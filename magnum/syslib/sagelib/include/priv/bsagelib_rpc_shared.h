@@ -39,6 +39,8 @@
 #ifndef BSAGELIB_RPC_SHARED_H_
 #define BSAGELIB_RPC_SHARED_H_
 
+#include "bsagelib_types.h"
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,9 +49,68 @@ extern "C" {
 
 /* message protocol version */
 #define BSAGELIB_MESSAGE_VERSION_MINOR 0x0000
+
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+#define BSAGELIB_MESSAGE_VERSION_MAJOR 0x0002
+#else
 #define BSAGELIB_MESSAGE_VERSION_MAJOR 0x0003
+#endif
+
 #define BSAGELIB_MESSAGE_VERSION ((BSAGELIB_MESSAGE_VERSION_MAJOR << 16) | BSAGELIB_MESSAGE_VERSION_MINOR)
 
+
+
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+/************************************************************************
+  There are two types of 'channels'
+   - Request channel, from Host to SAGE, used to
+       send a request from Host to SAGE (RpcRequest message)
+   - Response channel, from SAGE to Host, used to
+       send a response from SAGE to Host (RpcResponse message)
+         (there is exactly one response per request)
+       send an indication from SAGE to Host (RpcIndication message)
+**************************************************************************/
+
+typedef struct
+{
+    uint64_t messageOffset; /* physical address of a BSAGElib_RpcMessage */
+} BSAGElib_RpcRequest;
+
+typedef struct
+{
+    uint32_t rc;     /* Request return Code */
+} BSAGElib_RpcAck;
+
+typedef enum
+{
+    BSAGElib_Response_eResponse = 0x1,
+    BSAGElib_Response_eIndication
+} BSAGElib_Response_eType;
+
+typedef struct
+{
+    uint32_t responseType;    /* BSAGElib_Response_eResponse */
+    uint32_t rc;              /* Request processing return Code for response */
+    uint64_t messageOffset;   /* Physical address of a BSAGElib_RpcMessage : if 0, the response is an indication and is not bound to any request. */
+} BSAGElib_RpcResponse;
+
+typedef struct
+{
+    uint32_t responseType;    /* BSAGElib_Response_eIndication */
+    uint32_t instanceId;      /* instance Id to identify to which platform/module this indication belongs */
+    uint32_t id;              /* Indication IDentifier */
+    uint32_t value;           /* Indication value */
+} BSAGElib_RpcIndication;
+
+/* type used to get the sized of the bigger of all that can be backhauled by response channel */
+typedef union {
+    uint32_t responseType;
+    BSAGElib_RpcResponse response;
+    BSAGElib_RpcIndication indication;
+} BSAGElib_Response;
+
+/* could define a BSAGElib_Request similar to BSAGElib_Response but request only backhault one type of message */
+#else
 /************************************************************************
   There are three 'channels'
    - Request channel, from Host to SAGE, used to
@@ -142,6 +203,7 @@ typedef union {
     BSAGElib_RpcRequest request;
     BSAGElib_RpcResponse callbackResponse;
 } BSAGElib_RequestChannel;
+#endif
 
 /* RpcMessage type is used to carry request from one another */
 typedef struct

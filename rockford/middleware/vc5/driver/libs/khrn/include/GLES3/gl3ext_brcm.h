@@ -35,16 +35,6 @@ extern "C" {
 #define GL_MIRROR_CLAMP_TO_EDGE_BRCM   0x8743 /* wrap mode */
 #endif
 
-/* Expose texture flip x, flip y and swap st */
-#ifndef GL_BRCM_texture_mirror_swap
-#define GL_BRCM_texture_mirror_swap 1
-#endif
-#if GL_BRCM_texture_mirror_swap
-#define GL_TEXTURE_FLIP_X              0x7910 /* mirror x */
-#define GL_TEXTURE_FLIP_Y              0x7911 /* mirror y */
-#define GL_TEXTURE_SWAP_ST             0x7912 /* swap st */
-#endif
-
 /* Expose unorm16/snorm16 texture types */
 #ifndef GL_BRCM_texture_norm16
 #define GL_BRCM_texture_norm16 1

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,12 +70,12 @@
 /***************************************************************************
  *FMISC - BVN Front Control Registers
  ***************************************************************************/
-#define BCHP_FMISC_SW_INIT                       0x20608000 /* [CFG] BVN Front Soft Init */
-#define BCHP_FMISC_BVN_PDA_CTRL                  0x2060800c /* [CFG] BVN PDA Control */
-#define BCHP_FMISC_BVNF_PDA_OUT_STATUS           0x20608010 /* [RO] BVN Front PDA Out Status */
-#define BCHP_FMISC_BVNF_PDA_PWR_UP_STATUS        0x20608014 /* [RO] BVN Front PDA Power Up Status */
-#define BCHP_FMISC_BVNF_CLOCK_CTRL               0x20608018 /* [CFG] BVN Front clock control register */
-#define BCHP_FMISC_SCRATCH_0                     0x20608020 /* [CFG] Scratch Register */
+#define BCHP_FMISC_SW_INIT                       0x20608000 /* [CFG][32] BVN Front Soft Init */
+#define BCHP_FMISC_BVN_PDA_CTRL                  0x2060800c /* [CFG][32] BVN PDA Control */
+#define BCHP_FMISC_BVNF_PDA_OUT_STATUS           0x20608010 /* [RO][32] BVN Front PDA Out Status */
+#define BCHP_FMISC_BVNF_PDA_PWR_UP_STATUS        0x20608014 /* [RO][32] BVN Front PDA Power Up Status */
+#define BCHP_FMISC_BVNF_CLOCK_CTRL               0x20608018 /* [CFG][32] BVN Front clock control register */
+#define BCHP_FMISC_SCRATCH_0                     0x20608020 /* [CFG][32] Scratch Register */
 
 /***************************************************************************
  *SW_INIT - BVN Front Soft Init

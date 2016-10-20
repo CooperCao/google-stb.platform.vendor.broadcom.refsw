@@ -31,6 +31,13 @@ typedef enum
    enumify(GL_TRIANGLES),
    enumify(GL_TRIANGLE_STRIP),
    enumify(GL_TRIANGLE_FAN),
+#if GLXX_HAS_TNG
+   enumify(GL_PATCHES),
+   enumify(GL_LINES_ADJACENCY),
+   enumify(GL_LINE_STRIP_ADJACENCY),
+   enumify(GL_TRIANGLES_ADJACENCY),
+   enumify(GL_TRIANGLE_STRIP_ADJACENCY),
+#endif
 }GLXX_PRIMITIVE_T;
 
 #endif /* GLXX_ENUM_TYPES_H */

@@ -3106,12 +3106,18 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
     } \
 }
 
+#if defined(BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB_ADDR_MSB_MASK)
+#define BGRC_GET_SURFACE_ADDR_0(surface) ((BSTD_DeviceOffset)BGRC_PACKET_P_GET_REG(surface##_SURFACE_ADDR_0_MSB)<<32 | BGRC_PACKET_P_GET_REG(surface##_SURFACE_ADDR_0))
+#else
+#define BGRC_GET_SURFACE_ADDR_0(surface) BGRC_PACKET_P_GET_REG(surface##_SURFACE_ADDR_0)
+#endif
+
 /***************************************************************************/
 #define BGRC_PACKET_P_VERIFY_RECTANGLE_WITH_BOUNDS( surface, num, pos, dim, mask ) \
 { \
     if( BGRC_PACKET_P_GET_REG(surface##_FEEDER_ENABLE) ) \
     { \
-        uint32_t surface_offset = BGRC_PACKET_P_GET_REG(surface##_SURFACE_ADDR_0); \
+        BSTD_DeviceOffset surface_offset = BGRC_GET_SURFACE_ADDR_0(surface); \
         if( surface_offset != hGrc->ulDummySurOffset ) \
         { \
             if( surface_offset ) \
@@ -3121,24 +3127,24 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
                 uint32_t y = BGRC_PACKET_P_GET_REG_FIELD_SHIFT(BLIT_##surface##_##pos, TOP); \
                 uint32_t w = BGRC_PACKET_P_GET_REG_FIELD_SHIFT(BLIT_##surface##_##dim, SURFACE_WIDTH); \
                 uint32_t h = BGRC_PACKET_P_GET_REG_FIELD_SHIFT(BLIT_##surface##_##dim, SURFACE_HEIGHT); \
-                uint32_t start_offset = surface_offset + y * pitch; \
-                uint32_t end_offset = surface_offset + (y + h) * pitch; \
+                BSTD_DeviceOffset start_offset = surface_offset + y * pitch; \
+                BSTD_DeviceOffset end_offset = surface_offset + (y + h) * pitch; \
 \
                 if( start_offset < hContext->create_settings.memory_bounds.offset ) \
                 { \
-                    BDBG_ERR(( "%6s context memory violation (bounds=0x%lx-0x%lx start=%08x)   sur (off=%08x x=%4d y=%4d w=%4d h=%4d), blit dropped", \
-                        #surface, (unsigned long)hContext->create_settings.memory_bounds.offset, \
-                        (unsigned long)(hContext->create_settings.memory_bounds.offset) + hContext->create_settings.memory_bounds.size, \
-                        start_offset, surface_offset, x, y, w, h )); \
+                    BDBG_ERR(( "%6s context memory violation (bounds=" BDBG_UINT64_FMT "-" BDBG_UINT64_FMT " start=" BDBG_UINT64_FMT ")   sur (off=" BDBG_UINT64_FMT " x=%4d y=%4d w=%4d h=%4d), blit dropped", \
+                        #surface, BDBG_UINT64_ARG(hContext->create_settings.memory_bounds.offset), \
+                        BDBG_UINT64_ARG(hContext->create_settings.memory_bounds.offset + hContext->create_settings.memory_bounds.size), \
+                        BDBG_UINT64_ARG(start_offset), BDBG_UINT64_ARG(surface_offset), x, y, w, h )); \
                     hContext->bBlitInvalid = true; \
                 } \
 \
                 if( end_offset > hContext->create_settings.memory_bounds.offset + hContext->create_settings.memory_bounds.size ) \
                 { \
-                    BDBG_ERR(( "%6s context memory violation (bounds=0x%lx-0x%lx   end=%08x)   sur (off=%08x x=%4d y=%4d w=%4d h=%4d), blit dropped", \
-                        #surface, (unsigned long)hContext->create_settings.memory_bounds.offset, \
-                        (unsigned long)(hContext->create_settings.memory_bounds.offset) + hContext->create_settings.memory_bounds.size, \
-                        end_offset, surface_offset, x, y, w, h )); \
+                    BDBG_ERR(( "%6s context memory violation (bounds=" BDBG_UINT64_FMT "-" BDBG_UINT64_FMT "   end=" BDBG_UINT64_FMT ")   sur (off=" BDBG_UINT64_FMT " x=%4d y=%4d w=%4d h=%4d), blit dropped", \
+                        #surface, BDBG_UINT64_ARG(hContext->create_settings.memory_bounds.offset), \
+                        BDBG_UINT64_ARG(hContext->create_settings.memory_bounds.offset + hContext->create_settings.memory_bounds.size), \
+                        BDBG_UINT64_ARG(end_offset), BDBG_UINT64_ARG(surface_offset), x, y, w, h )); \
                     hContext->bBlitInvalid = true; \
                 } \
             } \
@@ -3159,7 +3165,7 @@ static uint32_t *BGRC_PACKET_P_ProcessSwPaket(
 { \
     if( BGRC_PACKET_P_GET_REG(surface##_FEEDER_ENABLE) ) \
     { \
-        uint32_t surface_offset = BGRC_PACKET_P_GET_REG(surface##_SURFACE_ADDR_0); \
+        BSTD_DeviceOffset surface_offset = BGRC_GET_SURFACE_ADDR_0(surface); \
         if( surface_offset && (surface_offset != hGrc->ulDummySurOffset) ) \
         { \
             uint32_t bpp = BGRC_PACKET_P_GET_SURFACE_BPP(surface##_SURFACE); \
@@ -3231,9 +3237,9 @@ void BGRC_P_CheckHwStatus(
 {
     uint32_t ulBlitStatus = 255;
     uint32_t ulListStatus = 255;
-    uint32_t ulCurExeHwPkt;
-    uint32_t ulLastHwPktOffset;
-    uint32_t ulPrevHwPktOffsetExecuted;
+    BSTD_DeviceOffset ulCurExeHwPkt;
+    BSTD_DeviceOffset ulLastHwPktOffset;
+    BSTD_DeviceOffset ulPrevHwPktOffsetExecuted;
     BGRC_PacketContext_Handle hContext;
     bool bHwIdle = false;
 
@@ -3265,7 +3271,7 @@ void BGRC_P_CheckHwStatus(
     {
         uint32_t ulBlittedSyncCntr = 0;
 
-        BMEM_FlushCache( hGrc->hMemory, hGrc->pDummySurBase, 16 );
+        BMMA_FlushCache(hGrc->pDummySurAlloc, hGrc->pDummySurBase, 16 );
         ulBlittedSyncCntr = *(uint32_t *)hGrc->pDummySurBase;
 
         hContext = bgrc_p_first_context(hGrc);
@@ -3345,9 +3351,9 @@ void BGRC_P_CheckHwStatus(
 static bool BGRC_PACKET_P_OkToWriteHwPkt(
     BGRC_Handle hGrc )
 {
-    uint32_t ulHwPktWritePtrOffset;
-    uint32_t ulHwPktOffsetExecuted = hGrc->ulHwPktOffsetExecuted;
-    uint32_t ulHwPktBufEnd = hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize;
+    BSTD_DeviceOffset ulHwPktWritePtrOffset;
+    BSTD_DeviceOffset ulHwPktOffsetExecuted = hGrc->ulHwPktOffsetExecuted;
+    BSTD_DeviceOffset ulHwPktBufEnd = hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize;
 
     hGrc->pHwPktWritePtr = BGRC_PACKET_P_ALIGN_HW_PKT(hGrc->pHwPktWritePtr);
     ulHwPktWritePtrOffset = (hGrc->pHwPktWritePtr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
@@ -3389,16 +3395,16 @@ static void BGRC_PACKET_P_FlushHwPktBuf( BGRC_Handle hGrc, uint8_t *pHwPktFlushP
     {
         /* flush unwrapped buf */
         flush_size = hGrc->pHwPktWritePtr - pHwPktFlushPtr;
-        BMEM_FlushCache( hGrc->hMemory, pHwPktFlushPtr, flush_size );
+        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, pHwPktFlushPtr, flush_size );
     }
     else if( hGrc->pHwPktWritePtr < pHwPktFlushPtr )
     {
         /* flush wrapped buf */
         flush_size =  hGrc->ulHwPktFifoSize - (pHwPktFlushPtr - hGrc->pHwPktFifoBase);
-        BMEM_FlushCache( hGrc->hMemory, pHwPktFlushPtr, flush_size);
+        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, pHwPktFlushPtr, flush_size);
 
         flush_size = hGrc->pHwPktWritePtr - hGrc->pHwPktFifoBase;
-        BMEM_FlushCache( hGrc->hMemory, hGrc->pHwPktFifoBase, flush_size);
+        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktFifoBase, flush_size);
     }
 }
 
@@ -3409,7 +3415,7 @@ void BGRC_PACKET_P_WriteHwPkt(
     uint32_t ulGroupMask )
 {
     uint32_t *pHwPktWritePtr = (uint32_t *)hGrc->pHwPktWritePtr;
-    uint32_t ulHwPktWritePtrOffset = (hGrc->pHwPktWritePtr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
+    BSTD_DeviceOffset ulHwPktWritePtrOffset = (hGrc->pHwPktWritePtr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
     int groups = sizeof s_BGRC_PACKET_P_DeviceGroupSizes / sizeof (uint32_t);
     int ii, jj;
 
@@ -3496,7 +3502,7 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     BGRC_PacketContext_Handle hContext,
     uint8_t *pStartHwPkt )
 {
-    uint32_t ulStartHwPktOffset = (pStartHwPkt - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
+    BSTD_DeviceOffset ulStartHwPktOffset = (pStartHwPkt - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset;
 
     /* enable interrupt with the last blit to keep pipe line advancing */
     *(hContext->pLastBlitHeaderPtr) = *(hContext->pLastBlitHeaderPtr) | BGRC_M2MC(BLIT_HEADER_INTERRUPT_ENABLE_MASK);
@@ -3513,7 +3519,7 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
         BGRC_PACKET_P_DEBUG_PRINT( "\n" );
 
         /* flush "next offset" from previous blits */
-        BMEM_FlushCache( hGrc->hMemory, hGrc->pHwPktSubmitLinkPtr, sizeof (uint32_t) );
+        BMMA_FlushCache(hGrc->pHwPktFifoBaseAlloc, hGrc->pHwPktSubmitLinkPtr, sizeof (uint32_t) );
 
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, WakeUp ) |
@@ -3522,6 +3528,9 @@ static void BGRC_PACKET_P_SubmitHwPktsToHw(
     }
     else
     {
+        if (ulStartHwPktOffset >> 32) {
+            BDBG_ERR(("invalid 40 bit LIST_FIRST_PKT_ADDR address: " BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulStartHwPktOffset)));
+        }
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_FIRST_PKT_ADDR, ulStartHwPktOffset );
         BGRC_P_WriteReg32( hGrc->hRegister, LIST_CTRL,
             BCHP_FIELD_ENUM( M2MC_LIST_CTRL, WAKE, Ack ) |
@@ -3875,7 +3884,7 @@ void BGRC_PACKET_P_CheckFlush(
     BGRC_Handle hGrc )
 {
     uint8_t  *pLastHwPktPtr;
-    uint32_t ulLastHwPktOffset;
+    BSTD_DeviceOffset ulLastHwPktOffset;
     BGRC_PacketContext_Handle hLastSyncCtx;
 
     pLastHwPktPtr = hGrc->pLastHwPktPtr;
@@ -3903,9 +3912,9 @@ void BGRC_PACKET_P_CheckFlush(
             if (hGrc->ulExtraFlushCntr > BGRC_P_EXTRA_FLUSH_THRESH)
             {
                 /* waited too long, make it to be cleared */
-                BDBG_WRN(("Force cleared for ctx[%d]: lastOff 0x%x, syncOff 0x%x, syncCtr 0x%x, mem 0x%x",
-                          hLastSyncCtx->ulId, (hGrc->pLastHwPktPtr)? ulLastHwPktOffset : 0,
-                          hLastSyncCtx->ulSyncHwPktOffset, hLastSyncCtx->ulSyncCntr, *(uint32_t *)hGrc->pDummySurBase));
+                BDBG_WRN(("Force cleared for ctx[%d]: lastOff " BDBG_UINT64_FMT ", syncOff " BDBG_UINT64_FMT ", syncCtr 0x%x, mem 0x%x",
+                          hLastSyncCtx->ulId, BDBG_UINT64_ARG((hGrc->pLastHwPktPtr)? ulLastHwPktOffset : 0),
+                          BDBG_UINT64_ARG(hLastSyncCtx->ulSyncHwPktOffset), hLastSyncCtx->ulSyncCntr, *(uint32_t *)hGrc->pDummySurBase));
                 *(uint32_t *)hGrc->pDummySurBase = hLastSyncCtx->ulSyncCntr;
                 hGrc->ulExtraFlushCntr = 0;
             }

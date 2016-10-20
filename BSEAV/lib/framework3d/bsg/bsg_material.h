@@ -201,6 +201,9 @@ public:
 
    void SetUniformValue(const std::string &name, float scalar)    { SetUniform(name, scalar);   }
    void SetUniformValue(const std::string &name, GLint scalar)    { SetUniform(name, scalar);   }
+#ifdef BSG_USE_ES3
+   void SetUniformValue(const std::string &name, GLuint scalar)   { SetUniform(name, scalar);   }
+#endif
    void SetUniformValue(const std::string &name, const Vec2 &v)   { SetUniform(name, v);        }
    void SetUniformValue(const std::string &name, const Vec3 &v)   { SetUniform(name, v);        }
    void SetUniformValue(const std::string &name, const Vec4 &v)   { SetUniform(name, v);        }

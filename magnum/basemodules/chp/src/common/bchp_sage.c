@@ -41,10 +41,16 @@
 #include "bkni.h"
 #include "bchp_scpu_host_intr2.h"
 #include "bchp_scpu_globalram.h"
+#include "bsagelib_types.h"
 
 BDBG_MODULE(BCHP_SAGE);
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+#define SAGE_BOOT_STATUS_OFFSET 0x120
+#else
 #define SAGE_BOOT_STATUS_OFFSET (0x2E*4)
+#endif
+
 #define SAGE_BOOT_STATUS_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_BOOT_STATUS_OFFSET)
 
 #define SAGE_BOOT_ERROR          (0xFFFF)
@@ -55,8 +61,13 @@ BDBG_MODULE(BCHP_SAGE);
 #define SAGE_MAX_BOOT_TIME_US (10 * 1000 * 1000)
 #define SAGE_STEP_BOOT_TIME_US (50 * 1000)
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+#define SAGE_RESET_OFFSET 0x1a4
+#define SAGE_SRR_START_OFFSET 0x18
+#else
 #define SAGE_RESET_OFFSET (0x2B*4)
 #define SAGE_SRR_START_OFFSET (0x06*4)
+#endif
 #define SAGE_RESET_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_RESET_OFFSET)
 #define SAGE_SRR_START_REG (BCHP_SCPU_GLOBALRAM_DMEMi_ARRAY_BASE + SAGE_SRR_START_OFFSET)
 
@@ -64,6 +75,7 @@ BDBG_MODULE(BCHP_SAGE);
 #define SAGE_RESETVAL_READYTORESTART 0x0112E00E
 #define SAGE_RESETVAL_MAINSTART 0x0211DCB0
 #define SAGE_RESETVAL_DOWN  0x1FF1FEED
+#define SAGE_RESETVAL_ERROR 0x30DE018E
 
 BERR_Code
 BCHP_SAGE_Reset(
@@ -111,6 +123,14 @@ BCHP_SAGE_Reset(
 
     val = BREG_Read32(hReg, SAGE_RESET_REG);
 
+    if(val == SAGE_RESETVAL_ERROR)
+    {
+        /* Error in a previous cleanup attempt */
+        BDBG_ERR(("Previous SAGE clean failed! All TA's must be clean/closed."));
+        rc=BERR_TRACE(BERR_LEAKED_RESOURCE);
+        goto end;
+    }
+
     if (val == SAGE_RESETVAL_READYTORESTART)
     {
         uint32_t cpt = 0;
@@ -129,6 +149,18 @@ BCHP_SAGE_Reset(
             wdval = BREG_Read32(hReg, BCHP_SCPU_HOST_INTR2_CPU_STATUS);
             if (wdval & (1 << BCHP_SCPU_HOST_INTR2_CPU_STATUS_SCPU_TIMER_SHIFT)) {
                 BDBG_MSG(("SAGE has been reset successfully!"));
+                break;
+            }
+            val=BREG_Read32(hReg, SAGE_RESET_REG);
+            if(val == SAGE_RESETVAL_READYTORESTART)
+            {
+                BDBG_MSG(("SAGE has cleaned succesfully!"));
+                break;
+            }
+            if(val == SAGE_RESETVAL_ERROR)
+            {
+                BDBG_ERR(("SAGE CANNOT CLEAN... All TA's must be clean/closed."));
+                rc=BERR_TRACE(BERR_LEAKED_RESOURCE);
                 break;
             }
         } while (cpt < 500);

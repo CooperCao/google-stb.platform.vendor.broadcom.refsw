@@ -534,11 +534,11 @@ NEXUS_Error NEXUS_Docsis_P_Reset(NEXUS_DocsisDeviceHandle hDevice)
         }
 
     }
-    if(hChannel->upStream)
+    if(hDevice->hUpStreamChannel)
     {
         hFrontend = hDevice->hUpStreamChannel;
         hChannel = (NEXUS_DocsisChannelHandle)hFrontend->pDeviceHandle;
-        BDBG_MSG(("resetting US channel"));
+        BDBG_MSG(("resetting UP stream channel"));
         if(hChannel->upStream)
         {
             BDCM_AusSettings ausSettings;
@@ -554,7 +554,6 @@ NEXUS_Error NEXUS_Docsis_P_Reset(NEXUS_DocsisDeviceHandle hDevice)
                 rc = NEXUS_NOT_INITIALIZED;
                 goto error;
             }
-
         }
     }
     hDevice->status.state = NEXUS_DocsisDeviceState_eOperational;
@@ -730,10 +729,10 @@ void NEXUS_Docsis_P_CloseChannel(NEXUS_FrontendHandle handle)
 
     if(hChannel->qam)
     {
-        BDCM_Ads_CloseChannel(hChannel->qam);
         BDCM_Ads_InstallChannelCallback(hChannel->qam,
                                            BDCM_AdsCallback_eLockChange,
                                            NULL, NULL);
+        BDCM_Ads_CloseChannel(hChannel->qam);
         hChannel->qam = NULL;
         hDevice->hDsChannel[hChannel->dsChannelNum] = NULL;
     }
@@ -1678,7 +1677,7 @@ NEXUS_Error NEXUS_Docsis_P_TransmitDebugPacket(
      if (retCode != BERR_SUCCESS)
      {
          BDBG_WRN(("transmission of debug packet failed"));
-         rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)?
+         rc = (retCode == BERR_OUT_OF_DEVICE_MEMORY)?
               NEXUS_OUT_OF_SYSTEM_MEMORY : NEXUS_INVALID_PARAMETER;
      }
      return rc;

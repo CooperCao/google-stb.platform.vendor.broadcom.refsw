@@ -119,6 +119,12 @@ typedef struct BDSP_RaagaSettings
     unsigned maxAlgorithms[BDSP_AlgorithmType_eMax] ;
 
     unsigned NumDsp;    /*Number of DSP supported in the System, currently used for estimation of Memory*/
+    struct {
+        BSTD_DeviceOffset baseAddress; /* Physical base address of the lowest physical address region for each MEMC.
+            [0] is always 0 and it is assumed to always exist. For [1] and [2], an address of 0 means the MEMC is not populated.
+            RAAGA is unable to access a discontiguous upper memory region, so its base address and size is not needed. */
+        unsigned stripeWidth;
+    } memc[3]; /* for each MEMC */
 } BDSP_RaagaSettings;
 
 /*********************************************************************
@@ -261,19 +267,6 @@ BERR_Code BDSP_Raaga_GetMemoryEstimate(
     BBOX_Handle                   boxHandle,
     BDSP_RaagaMemoryEstimate     *pEstimate /*[out]*/
 );
-
-/***************************************************************************
-Summary:
-Helper Function by the BDSP to convert the sampling frequency provided as a enum into unsigned integer value
-
-Description:
-Helper Function by the BDSP to convert the sampling frequency provided as a enum into unsigned integer value.
-
-See Also:
-None
-***************************************************************************/
-unsigned BDSP_SampleFrequencyToInt( BDSP_AF_P_SampFreq SamplingFrequency );
-
 
 /***************************************************************************
 Summary:

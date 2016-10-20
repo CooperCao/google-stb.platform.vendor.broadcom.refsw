@@ -547,7 +547,6 @@ BERR_Code BSAT_g1_P_QpskLockViterbi_isr(BSAT_ChannelHandle h)
          case 0:
             /* reset the equalizer */
             BSAT_g1_P_ToggleBit_isrsafe(h, BCHP_SDS_EQ_EQFFECTL, 1);
-
             hChn->carrierDelay = (hChn->acqSettings.mode == BSAT_Mode_eDcii_scan) ? 900000 : 700000;
 
             /* extend delay for small symbol rates, shorten delay for higher symbol rates */
@@ -558,7 +557,6 @@ BERR_Code BSAT_g1_P_QpskLockViterbi_isr(BSAT_ChannelHandle h)
 #if 0 /* this bw is way too high */
             BSAT_g1_P_SetBaudBw_isr(h, hChn->baudAcqBw, hChn->baudAcqDamp);
 #endif
-
             hChn->functState = 1;
             break;
 
@@ -619,7 +617,8 @@ BERR_Code BSAT_g1_P_QpskLockViterbi_isr(BSAT_ChannelHandle h)
             /* make sure real time status is locked before checking sticky bits */
             raw = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_MISC_INTR_RAW_STS0) & 0x08;
             irq = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_INTR2_0_CPU_STATUS) & 0x08;
-            /* BDBG_MSG(("raw=0x%X, irq=0x%X", raw, irq)); */
+            /* BDBG_MSG(("raw=0x%X, irq=0x%X, count1=%u", raw, irq, hChn->count1)); */
+
             if (raw == 0x08) /* BCHP_SDS_INTR2_0_CPU_STATUS_vit_in_sync_MASK */
             {
                BSAT_DEBUG_QPSK(BDBG_MSG(("vit raw sts is locked")));
@@ -951,6 +950,12 @@ BERR_Code BSAT_g1_P_QpskAcquire_isr(BSAT_ChannelHandle h)
    BSAT_g1_P_QpskInitializeLoopParameters_isr(h);
    BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eStartViterbi));
 
+   if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
+   {
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0x0E08D25C);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00006003);
+   }
+
    hChn->functState = 0;
    return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaud, 20000, BSAT_g1_P_QpskLockViterbi_isr);
 
@@ -964,6 +969,8 @@ BERR_Code BSAT_g1_P_QpskAcquire_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 {
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+
    /* set agc tracking bw */
    BSAT_g1_P_SetAgcTrackingBw_isr(h);
 
@@ -978,6 +985,7 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_EQ_VLCTL, 0x00040704);
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLTD, 0x28000000);
+
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x000000EF, 0x000000A1);  /* CLMISC=0xA1 but retain bit 4 */
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, ~0x0CFFFF00, 0x0C481000);  /* CLPDCTL=0x10, CLQCFD=0x40 */
 
@@ -985,6 +993,12 @@ BERR_Code BSAT_g1_P_QpskAcquire1_isr(BSAT_ChannelHandle h)
 
    BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_PLI, 0x00000000),
    BSAT_g1_P_ReadModifyWriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, ~0x0000FF00, 0x00007100);  /*CLMISC2=0x71 */
+
+   if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
+   {
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL1, 0x0E08D25C);
+      BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_CLCTL2, 0x00006003);
+   }
 
    BSAT_g1_P_QpskSetFinalFlBw_isr(h);
 

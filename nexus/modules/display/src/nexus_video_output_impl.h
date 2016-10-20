@@ -123,7 +123,10 @@ struct NEXUS_Ccir656Output {
 
 void NEXUS_VideoOutputs_P_Init(void);
 void NEXUS_VideoOutput_P_PostSetHdmiFormat(void);
-NEXUS_Error NEXUS_VideoOutput_P_SetHdrSettings(void *output, NEXUS_VideoEotf eotf, const NEXUS_MasteringDisplayColorVolume * pMdcv, const NEXUS_ContentLightLevel * pCll);
+
+NEXUS_Error NEXUS_VideoOutput_P_SetHdrSettings(
+    void *output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame *drmInfoFrame);
+
 NEXUS_Error nexus_p_bypass_video_output_connect(NEXUS_VideoOutput_P_Link *link, const NEXUS_DisplaySettings *pSettings, NEXUS_VideoFormat hdmiOutputFormat);
 NEXUS_Error nexus_videooutput_p_connect(NEXUS_VideoOutput_P_Link *link);
 void nexus_videooutput_p_disconnect(NEXUS_VideoOutput_P_Link *link);

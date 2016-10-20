@@ -50,10 +50,14 @@ typedef struct NEXUS_Security_P_Handle * NEXUS_SecurityHandle;
 #define NEXUS_SECURITY_MAX_KEYSLOT_TYPES    8
 
 /* defines to interprete Zeus version. */
-#define NEXUS_ZEUS_VERSION_CALC(major,minor) ((major)<<16|(minor))
-#define NEXUS_ZEUS_VERSION_MAJOR(zeusVersion) ((zeusVersion)>>16)
-#define NEXUS_ZEUS_VERSION_MINOR(zeusVersion) ((zeusVersion)&0x0000FFFF)
-#define NEXUS_ZEUS_VERSION  NEXUS_ZEUS_VERSION_CALC(NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR)
+#define NEXUS_ZEUS_VERSION_CALC(major,minor)            ((((major) & 0xFF)<<16) | (((minor) & 0xFF)<<8)                      )
+#define NEXUS_ZEUS_VERSION_CALC_3(major,minor,subMinor) ((((major) & 0xFF)<<16) | (((minor) & 0xFF)<<8) | ((subMinor) & 0xFF))
+
+#define NEXUS_ZEUS_VERSION_MAJOR(zeusVersion)    (((zeusVersion)>>16) & 0xFF)
+#define NEXUS_ZEUS_VERSION_MINOR(zeusVersion)    (((zeusVersion)>> 8) & 0xFF)
+#define NEXUS_ZEUS_VERSION_SUBMINOR(zeusVersion) ( (zeusVersion)      & 0xFF)
+
+#define NEXUS_ZEUS_VERSION  NEXUS_ZEUS_VERSION_CALC_3(NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR,NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR)
 
 /* defines to interprete the BFW firmware version */
 #define NEXUS_BFW_VERSION_CALC(major,minor,subMinor) ( (((major) & 0xFF)<<16) |(((minor) & 0xFF)<<8) | ((subMinor) & 0xFF) )
@@ -92,6 +96,12 @@ typedef struct NEXUS_SecurityCapabilities
        unsigned zeus;        /* use NEXUS_ZEUS_VERSION_* defines to interpret  */
        unsigned firmware;    /* use NEXUS_BFW_VERSION_* defines to interpret  */
    } version;
+
+   struct{
+       bool valid;           /* true if the firmware EPOCH is available */
+       uint8_t value;        /* the EPOCH value ranging from 0 to 255*/
+   }firmwareEpoch;           /* the EPOCH of the BSECK Firmware (BFW) */
+
    NEXUS_KeySlotTableSettings keySlotTableSettings;
 } NEXUS_SecurityCapabilities;
 

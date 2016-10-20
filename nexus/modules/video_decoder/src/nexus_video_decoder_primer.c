@@ -621,10 +621,12 @@ static NEXUS_Error NEXUS_VideoDecoderPrimer_P_Start(NEXUS_VideoDecoderPrimerHand
         rc = 0;
     }
     else {
+        struct NEXUS_VideoDecoderDevice *device = nexus_video_decoder_p_any_device(); /* primer is not tied to any HVD instance, so get one */
         NEXUS_Rave_GetDefaultSettings_priv(&raveSettings);
         raveSettings.pidChannel = pStartSettings->pidChannel;
         raveSettings.bandHold = false; /* should not be true when live, should not be true when IP */
         raveSettings.continuityCountEnabled = !pidChannelStatus.playback;
+        raveSettings.includeRepeatedItbStartCodes = device && device->cap.bIncludeRepeatedItbStartCodes;
         rc = NEXUS_Rave_ConfigureVideo_priv(primer->rave, pStartSettings->codec, &raveSettings);
     }
     if (!rc) {

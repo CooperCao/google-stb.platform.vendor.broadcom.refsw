@@ -202,8 +202,6 @@ end:
 	BDBG_LEAVE(BDSP_Arm_P_AckEventCallback_isr);
 }
 
-
-
 /***********************************************************************
 Name        :   BDSP_Arm_P_ProcessWatchdogInterrupt
 
@@ -216,7 +214,6 @@ Return      :   Error Code to return SUCCESS or FAILURE
 Functionality   :   On occurance of an watchdog, call the Arm Open function.
                 On completion, clear the watchdog flag of the Device handle and Context handle
 ***********************************************************************/
-
 BERR_Code BDSP_Arm_P_ProcessWatchdogInterrupt(
     void *pContextHandle)
 {

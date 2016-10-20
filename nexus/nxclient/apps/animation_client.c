@@ -278,7 +278,7 @@ int main(int argc, const char **argv)
     BDBG_ASSERT(!rc);
 
 
-    if (pig_inc.x && !nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
+    if (pig_inc.x && !cmdline.comp.rect.set) {
         const char *argv[] = {"-rect","0,0,400,300"};
         nxapps_cmdline_parse(0, 2, argv, &cmdline);
     }
@@ -343,6 +343,7 @@ int main(int argc, const char **argv)
         
         draw_surface(total_pushes, g_queue.surface[g_queue.submit_ptr].handle);
 
+        BDBG_MSG(("PUSH %u:%p(%s)", g_queue.submit_ptr, (void *)g_queue.surface[g_queue.submit_ptr].handle, infront?"infront":""));
         NEXUS_SurfaceClient_PushSurface(blit_client, g_queue.surface[g_queue.submit_ptr].handle, NULL, infront);
         BDBG_ASSERT(!rc);
         g_queue.surface[g_queue.submit_ptr].submitted = true;
@@ -367,8 +368,8 @@ int main(int argc, const char **argv)
         if (pig_inc.x) {
             comp.position.x += pig_inc.x;
             comp.position.y += pig_inc.y;
-            if (!comp.position.x || comp.position.x + comp.position.width == 1920) pig_inc.x *= -1;
-            if (!comp.position.y || comp.position.y + comp.position.height == 1080) pig_inc.y *= -1;
+            if (!comp.position.x || comp.position.x + comp.position.width >= 1920) pig_inc.x *= -1;
+            if (!comp.position.y || comp.position.y + comp.position.height >= 1080) pig_inc.y *= -1;
             NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         }
     }
@@ -402,9 +403,11 @@ static void recycle_next(NEXUS_SurfaceClientHandle blit_client)
         
         rc = NEXUS_SurfaceClient_RecycleSurface(blit_client, surface, MAX_RECYCLE, &num);
         BDBG_ASSERT(!rc);
+        BDBG_MSG(("Recycle %u", (unsigned)num));
         for (i=0;i<num;i++) {
             unsigned j;
             /* if submitted infront, they may return out of order */
+            BDBG_MSG(("Recycle %u/%u %p", i, (unsigned)num, (void *)surface[i]));
             for (j=0;j<g_queue.numsurfaces;j++) {
                 if (g_queue.surface[j].handle == surface[i]) {
                     BDBG_ASSERT(g_queue.surface[j].submitted);

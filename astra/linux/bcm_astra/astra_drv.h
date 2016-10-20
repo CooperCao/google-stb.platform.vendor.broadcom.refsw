@@ -28,6 +28,7 @@
 #include "tzioc_client.h"
 #include "tzioc_peer.h"
 #include "tzioc_file.h"
+#include "tzioc_coredump.h"
 
 #define ASTRA_TIMEOUT_MSEC      5000
 #define ASTRA_GETID_ATTEMPTS    5
@@ -57,6 +58,14 @@ struct astra_device
 
     /* ioctl module */
     struct astra_ioctl_module *pIoctlMod;
+};
+
+struct coredump_device
+{
+    /* misc device */
+    struct miscdevice *mdev;
+    uint32_t buf_addr;
+    uint32_t buf_size;
 };
 
 struct astra_client
@@ -239,6 +248,10 @@ int _astra_event_poll(
 
 int _astra_event_exit(
     struct astra_client *pClient);
+
+void _astra_uapp_coredump(
+    struct astra_uapp *pUapp);
+
 
 /* global variables */
 extern struct astra_device *adev;

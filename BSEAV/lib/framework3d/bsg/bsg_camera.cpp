@@ -232,9 +232,9 @@ void Camera::GetViewVolume(ViewVolume *frustumPtr) const
       frustum[ViewVolume::eBOTTOM] = Plane(nearBR, farBR, nearBL);
    }
 
-   // The clipping planes distances are positive even though the distance is actually in negative z!
+   // Positive distance means outside the frustum plane.
    frustum[ViewVolume::eFARTHEST]  = Plane( 0.0f,  0.0f,  1.0f,  m_farClippingPlane,  true);      // true => normalized already
-   frustum[ViewVolume::eNEAREST]   = Plane( 0.0f,  0.0f, -1.0f,  m_nearClippingPlane, true);
+   frustum[ViewVolume::eNEAREST]   = Plane( 0.0f,  0.0f, -1.0f, -m_nearClippingPlane, true);
 }
 
 float Camera::XFovPersp() const

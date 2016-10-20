@@ -937,6 +937,142 @@ int Memconfig_GetBoxModeDefaultSettings(
             rc = 0;
             break;
         }
+        case 17:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription          = "Display:None, Video:UHD Main/no PIP Headless,Transcode:Quad up to 1080p30/720p60/1080i60(Max)";
+
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Video Decoder 0 Luma";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Video Decoder 0 Chroma";
+
+            pSettings->videoDecoder[1].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[1].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].usage                         = "Video Decoder 1";
+
+            pSettings->videoDecoder[2].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[2].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[2].usage                         = "Video Decoder 2";
+
+            pSettings->videoDecoder[3].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[3].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[3].usage                         = "Video Decoder 3";
+
+            pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain        = "Primary Display Main Window/Transcode 0 Display ";
+
+            pSettings->display[1].property         = Memconfig_DisplayProperty_eSecondary;
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->display[1].usageMain        = "Transcode 1 Display";
+
+            pSettings->display[2].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[2].mainPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->display[2].usageMain        = "Transcode 2 Display";
+
+            pSettings->display[3].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[3].mainPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->display[3].usageMain        = "Transcode 3 Display";
+
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].used            = false;
+            pSettings->graphics[1].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[1].used            = false;
+            pSettings->graphics[2].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[2].used            = false;
+            pSettings->graphics[3].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[3].used            = false;
+
+            pSettings->transcoders[0].videoDecoder = 1;
+            pSettings->transcoders[1].videoDecoder = 2;
+            pSettings->transcoders[2].videoDecoder = 3;
+            pSettings->transcoders[3].videoDecoder = 4;
+
+            pSettings->transcoders[0].audioDecoder = 1;
+            pSettings->transcoders[1].audioDecoder = 2;
+            pSettings->transcoders[2].audioDecoder = 3;
+            pSettings->transcoders[3].audioDecoder = 4;
+
+            pSettings->graphics3d.used             = false;
+            rc = 0;
+            break;
+        }
+        case 18:
+        {
+            pSettings->boxModeId = boxMode;
+            pSettings->boxModeDescription          = "Display:HD Output, Video:HD Main/no PIP,Transcode:Triple up to 1080p30(Max)";
+
+            pSettings->videoDecoder[0].property                      = Memconfig_VideoDecoderProperty_eMain;
+            pSettings->videoDecoder[0].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].usage                         = "Video Decoder 0 Luma";
+            pSettings->videoDecoder[0].secondaryPictureBufferHeapIdx = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[0].secondaryUsage                = "Video Decoder 0 Chroma";
+
+            pSettings->videoDecoder[1].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[1].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[1].usage                         = "Video Decoder 1";
+
+            pSettings->videoDecoder[2].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[2].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[2].usage                         = "Video Decoder 2";
+
+            pSettings->videoDecoder[3].property                      = Memconfig_VideoDecoderProperty_eTranscode;
+            pSettings->videoDecoder[3].pictureBufferHeapIdx          = NEXUS_MEMC2_PICTURE_BUFFER_HEAP;
+            pSettings->videoDecoder[3].usage                         = "Video Decoder 3";
+
+            pSettings->display[0].property         = Memconfig_DisplayProperty_ePrimary;
+            pSettings->display[0].mainPictureBufferHeapIdx = NEXUS_MEMC0_PICTURE_BUFFER_HEAP;
+            pSettings->display[0].usageMain        = "Primary Display Main Window";
+
+            pSettings->display[1].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[1].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->display[1].usageMain        = "Encoder 0 Display";
+
+            pSettings->display[2].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[2].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->display[2].usageMain        = "Encoder 1 Display";
+
+            pSettings->display[3].property         = Memconfig_DisplayProperty_eTranscode;
+            pSettings->display[3].mainPictureBufferHeapIdx = NEXUS_MEMC1_PICTURE_BUFFER_HEAP;
+            pSettings->display[3].usageMain        = "Encoder 2 Display";
+
+            pSettings->graphics[0].property        = Memconfig_DisplayProperty_ePrimary;
+            pSettings->graphics[0].used            = true;
+            pSettings->graphics[0].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[0].usage           = "M2MC, 3D, Primary Display FB";
+
+            pSettings->graphics[1].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[1].used            = true;
+            pSettings->graphics[1].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[1].usage           = "Graphics with encode0";
+
+            pSettings->graphics[2].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[2].used            = true;
+            pSettings->graphics[2].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[2].usage           = "Graphics with encode1";
+
+            pSettings->graphics[3].property        = Memconfig_DisplayProperty_eTranscode;
+            pSettings->graphics[3].used            = true;
+            pSettings->graphics[3].heapIdx         = NEXUS_MEMC2_GRAPHICS_HEAP;
+            pSettings->graphics[3].usage           = "Graphics with encode2";
+
+            pSettings->transcoders[0].videoDecoder = 1;
+            pSettings->transcoders[1].videoDecoder = 2;
+            pSettings->transcoders[2].videoDecoder = 3;
+            pSettings->transcoders[0].audioDecoder = 1;
+            pSettings->transcoders[1].audioDecoder = 2;
+            pSettings->transcoders[2].audioDecoder = 3;
+
+            pSettings->graphics3d.used             = true;
+            pSettings->graphics3d.heapIdx          = NEXUS_MEMC2_GRAPHICS_HEAP; /* should match the 3D Primary graphics heap index */
+            pSettings->graphics3d.usage            = "V3D";
+
+            rc = 0;
+            break;
+        }
+
 
 /************* 97252 Box modes *****************/
 		case 2:

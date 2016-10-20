@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,80 +70,80 @@
 /***************************************************************************
  *DVP_HR - Top Level DVP Registers
  ***************************************************************************/
-#define BCHP_DVP_HR_CORE_REV                     0x206f0000 /* [RW] Digital Video Port Core Revision Number */
-#define BCHP_DVP_HR_TOP_SW_INIT                  0x206f0004 /* [RW] Software Init for Top level Core */
-#define BCHP_DVP_HR_HDMI_FE_0_SW_INIT            0x206f0008 /* [RW] Software Init for HDMI Receiver Front End 0 */
-#define BCHP_DVP_HR_HDMI_RX_0_SW_INIT            0x206f0018 /* [RW] Software Init for HDMI Receiver 0 */
-#define BCHP_DVP_HR_POWER_CONTROL                0x206f0028 /* [RW] Power Control */
-#define BCHP_DVP_HR_VMS_LOOPBACK_ENABLE          0x206f002c /* [RW] VMS loopback enable */
-#define BCHP_DVP_HR_TEST_PORT_CONFIGURATION      0x206f0030 /* [RW] Configure which data is output on the test port */
-#define BCHP_DVP_HR_DVP_FLOW_CONTROL             0x206f0034 /* [RW] DVP Flow Control */
-#define BCHP_DVP_HR_I2C_CONTROL                  0x206f0038 /* [RW] I2C Control Register */
-#define BCHP_DVP_HR_DVP_HR_TIMER_1S_CONTROL      0x206f003c /* [RW] Timer Control Register - 1S */
-#define BCHP_DVP_HR_DVP_HR_TIMER_1MS_CONTROL     0x206f0040 /* [RW] Timer Control Register - 1MS */
-#define BCHP_DVP_HR_DVP_HR_TIMER_1US_CONTROL     0x206f0044 /* [RW] Timer Control Register - 1US */
-#define BCHP_DVP_HR_FREQ_MEASURE_CONTROL         0x206f0048 /* [RW] Freq Measurement Control */
-#define BCHP_DVP_HR_FREQ_MEASURE                 0x206f004c /* [RO] Freq Measurement Current Value */
-#define BCHP_DVP_HR_MAX_FREQ                     0x206f0050 /* [RO] Freq Measurement Max Value */
-#define BCHP_DVP_HR_MIN_FREQ                     0x206f0054 /* [RO] Freq Measurement Min Value */
-#define BCHP_DVP_HR_TEST_CONFIG                  0x206f0200 /* [RW] Test Configuration */
-#define BCHP_DVP_HR_TVG_CFG_0                    0x206f0204 /* [RW] Test Video Generator Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_CFG_1                    0x206f0208 /* [RW] Test Video Generator Configuration Register 1 */
-#define BCHP_DVP_HR_TVG_BAR_CFG                  0x206f020c /* [RW] Test Video Generator Color Bar Configuration Register */
-#define BCHP_DVP_HR_TVG_BAR_CFG_0A               0x206f0210 /* [RW] Test Video Generator Color Bar Configuration Register 0A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_0B               0x206f0214 /* [RW] Test Video Generator Color Bar Configuration Register 0B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_1A               0x206f0218 /* [RW] Test Video Generator Color Bar Configuration Register 1A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_1B               0x206f021c /* [RW] Test Video Generator Color Bar Configuration Register 1B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_2A               0x206f0220 /* [RW] Test Video Generator Color Bar Configuration Register 2A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_2B               0x206f0224 /* [RW] Test Video Generator Color Bar Configuration Register 2B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_3A               0x206f0228 /* [RW] Test Video Generator Color Bar Configuration Register 3A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_3B               0x206f022c /* [RW] Test Video Generator Color Bar Configuration Register 3B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_4A               0x206f0230 /* [RW] Test Video Generator Color Bar Configuration Register 4A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_4B               0x206f0234 /* [RW] Test Video Generator Color Bar Configuration Register 4B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_5A               0x206f0238 /* [RW] Test Video Generator Color Bar Configuration Register 5A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_5B               0x206f023c /* [RW] Test Video Generator Color Bar Configuration Register 5B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_6A               0x206f0240 /* [RW] Test Video Generator Color Bar Configuration Register 6A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_6B               0x206f0244 /* [RW] Test Video Generator Color Bar Configuration Register 6B */
-#define BCHP_DVP_HR_TVG_BAR_CFG_7A               0x206f0248 /* [RW] Test Video Generator Color Bar Configuration Register 7A */
-#define BCHP_DVP_HR_TVG_BAR_CFG_7B               0x206f024c /* [RW] Test Video Generator Color Bar Configuration Register 7B */
-#define BCHP_DVP_HR_TVG_PATTERN_CFG_0            0x206f0250 /* [RW] Test Video Generator Pattern Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_PATTERN_CFG_1            0x206f0254 /* [RW] Test Video Generator Pattern Configuration Register 1 */
-#define BCHP_DVP_HR_TVG_OUTPUT_REMAP             0x206f0258 /* [RW] Test Video Generator Output Re-map Register */
-#define BCHP_DVP_HR_TVG_GRID_CFG_0               0x206f025c /* [RW] Test Video Generator Grid Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_GRID_CFG_1               0x206f0260 /* [RW] Test Video Generator Grid Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_3D_BAR_CFG_0             0x206f0264 /* [RW] Test Video Generator 3D Color Bar Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_0             0x206f0268 /* [RW] Test Video Generator Format Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_1             0x206f026c /* [RW] Test Video Generator Format Configuration Register 1 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_2             0x206f0270 /* [RW] Test Video Generator Format Configuration Register 2 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_3             0x206f0274 /* [RW] Test Video Generator Format Configuration Register 3 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_4             0x206f0278 /* [RW] Test Video Generator Format Configuration Register 4 */
-#define BCHP_DVP_HR_TVG_FORMAT_CFG_5             0x206f027c /* [RW] Test Video Generator Format Configuration Register 5 */
-#define BCHP_DVP_HR_TVG_3D_CFG_0                 0x206f0280 /* [RW] Test Video Generator 3D Configuration Register 0 */
-#define BCHP_DVP_HR_TVG_3D_CFG_1                 0x206f0284 /* [RW] Test Video Generator 3D Configuration Register 1 */
-#define BCHP_DVP_HR_TVG_3D_CFG_2                 0x206f0288 /* [RW] Test Video Generator 3D Configuration Register 2 */
-#define BCHP_DVP_HR_TVG_3D_CFG_3                 0x206f028c /* [RW] Test Video Generator 3D Configuration Register 3 */
-#define BCHP_DVP_HR_TAG_CFG_0                    0x206f0290 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_CFG_1                    0x206f0294 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_NCO_SYNC                 0x206f0298 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_NCO_LEFT                 0x206f029c /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_NCO_RIGHT                0x206f02a0 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_CHANNEL_STATUS_0         0x206f02a4 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_TAG_CHANNEL_STATUS_1         0x206f02a8 /* [RW] Test Audio Generator */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_CFG_0         0x206f02ac /* [RW] RBUS Monitor Configuration */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_CTL_0         0x206f02b0 /* [RW] RBUS Monitor Control */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_0     0x206f02b4 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_1     0x206f02b8 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_2     0x206f02bc /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_3     0x206f02c0 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_4     0x206f02c4 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_CFG_0         0x206f02c8 /* [RW] RBUS Monitor Configuration */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_CTL_0         0x206f02cc /* [RW] RBUS Monitor Control */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_0     0x206f02d0 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_1     0x206f02d4 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_2     0x206f02d8 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_3     0x206f02dc /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_4     0x206f02e0 /* [RO] RBUS Monitor Results */
-#define BCHP_DVP_HR_SPARE_REGISTER_BITS          0x206f03fc /* [RW] Spare Bits For ECO's */
+#define BCHP_DVP_HR_CORE_REV                     0x206f0000 /* [RW][32] Digital Video Port Core Revision Number */
+#define BCHP_DVP_HR_TOP_SW_INIT                  0x206f0004 /* [RW][32] Software Init for Top level Core */
+#define BCHP_DVP_HR_HDMI_FE_0_SW_INIT            0x206f0008 /* [RW][32] Software Init for HDMI Receiver Front End 0 */
+#define BCHP_DVP_HR_HDMI_RX_0_SW_INIT            0x206f0018 /* [RW][32] Software Init for HDMI Receiver 0 */
+#define BCHP_DVP_HR_POWER_CONTROL                0x206f0028 /* [RW][32] Power Control */
+#define BCHP_DVP_HR_VMS_LOOPBACK_ENABLE          0x206f002c /* [RW][32] VMS loopback enable */
+#define BCHP_DVP_HR_TEST_PORT_CONFIGURATION      0x206f0030 /* [RW][32] Configure which data is output on the test port */
+#define BCHP_DVP_HR_DVP_FLOW_CONTROL             0x206f0034 /* [RW][32] DVP Flow Control */
+#define BCHP_DVP_HR_I2C_CONTROL                  0x206f0038 /* [RW][32] I2C Control Register */
+#define BCHP_DVP_HR_DVP_HR_TIMER_1S_CONTROL      0x206f003c /* [RW][32] Timer Control Register - 1S */
+#define BCHP_DVP_HR_DVP_HR_TIMER_1MS_CONTROL     0x206f0040 /* [RW][32] Timer Control Register - 1MS */
+#define BCHP_DVP_HR_DVP_HR_TIMER_1US_CONTROL     0x206f0044 /* [RW][32] Timer Control Register - 1US */
+#define BCHP_DVP_HR_FREQ_MEASURE_CONTROL         0x206f0048 /* [RW][32] Freq Measurement Control */
+#define BCHP_DVP_HR_FREQ_MEASURE                 0x206f004c /* [RO][32] Freq Measurement Current Value */
+#define BCHP_DVP_HR_MAX_FREQ                     0x206f0050 /* [RO][32] Freq Measurement Max Value */
+#define BCHP_DVP_HR_MIN_FREQ                     0x206f0054 /* [RO][32] Freq Measurement Min Value */
+#define BCHP_DVP_HR_TEST_CONFIG                  0x206f0200 /* [RW][32] Test Configuration */
+#define BCHP_DVP_HR_TVG_CFG_0                    0x206f0204 /* [RW][32] Test Video Generator Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_CFG_1                    0x206f0208 /* [RW][32] Test Video Generator Configuration Register 1 */
+#define BCHP_DVP_HR_TVG_BAR_CFG                  0x206f020c /* [RW][32] Test Video Generator Color Bar Configuration Register */
+#define BCHP_DVP_HR_TVG_BAR_CFG_0A               0x206f0210 /* [RW][32] Test Video Generator Color Bar Configuration Register 0A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_0B               0x206f0214 /* [RW][32] Test Video Generator Color Bar Configuration Register 0B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_1A               0x206f0218 /* [RW][32] Test Video Generator Color Bar Configuration Register 1A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_1B               0x206f021c /* [RW][32] Test Video Generator Color Bar Configuration Register 1B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_2A               0x206f0220 /* [RW][32] Test Video Generator Color Bar Configuration Register 2A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_2B               0x206f0224 /* [RW][32] Test Video Generator Color Bar Configuration Register 2B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_3A               0x206f0228 /* [RW][32] Test Video Generator Color Bar Configuration Register 3A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_3B               0x206f022c /* [RW][32] Test Video Generator Color Bar Configuration Register 3B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_4A               0x206f0230 /* [RW][32] Test Video Generator Color Bar Configuration Register 4A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_4B               0x206f0234 /* [RW][32] Test Video Generator Color Bar Configuration Register 4B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_5A               0x206f0238 /* [RW][32] Test Video Generator Color Bar Configuration Register 5A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_5B               0x206f023c /* [RW][32] Test Video Generator Color Bar Configuration Register 5B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_6A               0x206f0240 /* [RW][32] Test Video Generator Color Bar Configuration Register 6A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_6B               0x206f0244 /* [RW][32] Test Video Generator Color Bar Configuration Register 6B */
+#define BCHP_DVP_HR_TVG_BAR_CFG_7A               0x206f0248 /* [RW][32] Test Video Generator Color Bar Configuration Register 7A */
+#define BCHP_DVP_HR_TVG_BAR_CFG_7B               0x206f024c /* [RW][32] Test Video Generator Color Bar Configuration Register 7B */
+#define BCHP_DVP_HR_TVG_PATTERN_CFG_0            0x206f0250 /* [RW][32] Test Video Generator Pattern Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_PATTERN_CFG_1            0x206f0254 /* [RW][32] Test Video Generator Pattern Configuration Register 1 */
+#define BCHP_DVP_HR_TVG_OUTPUT_REMAP             0x206f0258 /* [RW][32] Test Video Generator Output Re-map Register */
+#define BCHP_DVP_HR_TVG_GRID_CFG_0               0x206f025c /* [RW][32] Test Video Generator Grid Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_GRID_CFG_1               0x206f0260 /* [RW][32] Test Video Generator Grid Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_3D_BAR_CFG_0             0x206f0264 /* [RW][32] Test Video Generator 3D Color Bar Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_0             0x206f0268 /* [RW][32] Test Video Generator Format Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_1             0x206f026c /* [RW][32] Test Video Generator Format Configuration Register 1 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_2             0x206f0270 /* [RW][32] Test Video Generator Format Configuration Register 2 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_3             0x206f0274 /* [RW][32] Test Video Generator Format Configuration Register 3 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_4             0x206f0278 /* [RW][32] Test Video Generator Format Configuration Register 4 */
+#define BCHP_DVP_HR_TVG_FORMAT_CFG_5             0x206f027c /* [RW][32] Test Video Generator Format Configuration Register 5 */
+#define BCHP_DVP_HR_TVG_3D_CFG_0                 0x206f0280 /* [RW][32] Test Video Generator 3D Configuration Register 0 */
+#define BCHP_DVP_HR_TVG_3D_CFG_1                 0x206f0284 /* [RW][32] Test Video Generator 3D Configuration Register 1 */
+#define BCHP_DVP_HR_TVG_3D_CFG_2                 0x206f0288 /* [RW][32] Test Video Generator 3D Configuration Register 2 */
+#define BCHP_DVP_HR_TVG_3D_CFG_3                 0x206f028c /* [RW][32] Test Video Generator 3D Configuration Register 3 */
+#define BCHP_DVP_HR_TAG_CFG_0                    0x206f0290 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_CFG_1                    0x206f0294 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_NCO_SYNC                 0x206f0298 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_NCO_LEFT                 0x206f029c /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_NCO_RIGHT                0x206f02a0 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_CHANNEL_STATUS_0         0x206f02a4 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_TAG_CHANNEL_STATUS_1         0x206f02a8 /* [RW][32] Test Audio Generator */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_CFG_0         0x206f02ac /* [RW][32] RBUS Monitor Configuration */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_CTL_0         0x206f02b0 /* [RW][32] RBUS Monitor Control */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_0     0x206f02b4 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_1     0x206f02b8 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_2     0x206f02bc /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_3     0x206f02c0 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_0_RESULTS_4     0x206f02c4 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_CFG_0         0x206f02c8 /* [RW][32] RBUS Monitor Configuration */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_CTL_0         0x206f02cc /* [RW][32] RBUS Monitor Control */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_0     0x206f02d0 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_1     0x206f02d4 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_2     0x206f02d8 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_3     0x206f02dc /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_RBUS_MONITOR_1_RESULTS_4     0x206f02e0 /* [RO][32] RBUS Monitor Results */
+#define BCHP_DVP_HR_SPARE_REGISTER_BITS          0x206f03fc /* [RW][32] Spare Bits For ECO's */
 
 /***************************************************************************
  *CORE_REV - Digital Video Port Core Revision Number

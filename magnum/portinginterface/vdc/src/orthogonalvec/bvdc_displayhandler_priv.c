@@ -196,11 +196,9 @@ static const struct
     {BVDC_P_Output_eYUV_M,         BDBG_STRING("BVDC_P_Output_eYUV_M")},
     {BVDC_P_Output_eYUV_N,         BDBG_STRING("BVDC_P_Output_eYUV_N")},
     {BVDC_P_Output_eYUV_NC,        BDBG_STRING("BVDC_P_Output_eYUV_NC")},
-#if BVDC_P_SUPPORT_VEC_SECAM
     {BVDC_P_Output_eYDbDr_LDK,     BDBG_STRING("BVDC_P_Output_eYDbDr_LDK")},
     {BVDC_P_Output_eYDbDr_BG,      BDBG_STRING("BVDC_P_Output_eYDbDr_BG")},
     {BVDC_P_Output_eYDbDr_H,       BDBG_STRING("BVDC_P_Output_eYDbDr_H")},
-#endif
     {BVDC_P_Output_eSDYPrPb,       BDBG_STRING("BVDC_P_Output_eSDYPrPb")},
     {BVDC_P_Output_eSDRGB,         BDBG_STRING("BVDC_P_Output_eSDRGB")},
     {BVDC_P_Output_eHDYPrPb,       BDBG_STRING("BVDC_P_Output_eHDYPrPb")},
@@ -1449,7 +1447,6 @@ static void BVDC_P_Vec_Build_SECAM_isr
       BVDC_P_DisplayAnlgChan          *pstChan,
       BVDC_P_ListInfo                 *pList )
 {
-#if BVDC_P_SUPPORT_VEC_SECAM
     uint32_t ulOffset = pstChan->ulSecamRegOffset;
 
     if(BFMT_IS_SECAM(eVideoFmt))
@@ -1480,13 +1477,6 @@ static void BVDC_P_Vec_Build_SECAM_isr
         *pList->pulCurrent++ = BRDC_REGISTER(BCHP_SECAM_0_FM_CONTROL + ulOffset);
         *pList->pulCurrent++ = BCHP_FIELD_ENUM(SECAM_0_FM_CONTROL, ENABLE, OFF);
     }
-
-#else
-    BSTD_UNUSED(eVideoFmt);
-    BSTD_UNUSED(pstChan);
-    BSTD_UNUSED(pList);
-#endif
-
     return;
 }
 
@@ -2113,7 +2103,6 @@ static void BVDC_P_Vec_Build_ItMc_isr
 }
 
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
 /*************************************************************************
  *  {secret}
  *  BVDC_P_Vec_Build_It3D_isr
@@ -2145,7 +2134,6 @@ static void BVDC_P_Vec_Build_It3D_isr
 
     return;
 }
-#endif
 
 
 /*************************************************************************
@@ -2324,9 +2312,7 @@ static void BVDC_P_Vec_Build_IT_isr
 
 #endif /** } !DCS_SUPPORT **/
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     BVDC_P_Vec_Build_It3D_isr(hDisplay, pList);
-#endif
 
 #if (BVDC_P_SUPPORT_TDAC_VER >= BVDC_P_SUPPORT_TDAC_VER_9)
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -2494,6 +2480,7 @@ BERR_Code BVDC_P_AllocDviChanResources_isr
 
 void BVDC_P_FreeDviChanResources_isr
     ( BVDC_P_Resource_Handle           hResource,
+      BVDC_Display_Handle              hDisplay,
       BVDC_P_DisplayDviChan           *pstChan )
 {
     if (pstChan->ulDvi != BVDC_P_HW_ID_INVALID)
@@ -2503,8 +2490,18 @@ void BVDC_P_FreeDviChanResources_isr
 #if BVDC_P_SUPPORT_MHL
         pstChan->bMhlMode = false;
 #endif
-
     }
+
+#ifdef BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0
+    if(hDisplay->ulHdmiPwrAcquire != 0)
+    {
+        hDisplay->ulHdmiPwrAcquire--;
+        hDisplay->ulHdmiPwrRelease = 1;
+        BDBG_MSG(("hdmi slave mode disable: Release pending BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY"));
+    }
+#else
+    BSTD_UNUSED(hDisplay);
+#endif
 
     return;
 }
@@ -2714,6 +2711,10 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
     const BFMT_VideoInfo  *pFmtInfo;
     const char* pcRateString;
 
+#ifdef BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0
+    BDBG_ASSERT(hDisplay->ulHdmiPwrAcquire);
+#endif
+
     if(pCurInfo->bHdmiFmt)
     {
 #if BCHP_HW7439_439_WORKAROUND
@@ -2900,6 +2901,18 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
             BCHP_HDMI_TX_PHY_MDIV_LOAD + pstChan->ulDvpRegOffset);
 #endif
     }
+#if (BVDC_P_SUPPORT_HDMI_RM_VER >= BVDC_P_HDMI_RM_VER_7)
+    else
+    {
+        /* HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1 (RW),
+         * For frequency shitf (aka rate vs rate/1.001) we need
+         * ALWAYS_RESET_PLL_ON_FREQ_CHANGE = 0 to avoid unintented reset. */
+        BVDC_P_RD_MOD_WR_RUL(pList->pulCurrent,
+            ~(BCHP_MASK(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, ALWAYS_RESET_PLL_ON_FREQ_CHANGE)),
+             BCHP_FIELD_DATA(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, ALWAYS_RESET_PLL_ON_FREQ_CHANGE, 0),
+            BCHP_HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1 + pstChan->ulDvpRegOffset);
+    }
+#endif
 
     /* HDMI_RM_RATE_RATIO (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -3016,7 +3029,7 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
             BCHP_FIELD_DATA(HDMI_TX_PHY_CTL_3, ICP, pRmInfo->ulIcp),
             BCHP_HDMI_TX_PHY_CTL_3 + pstChan->ulDvpRegOffset);
 
-#if (BVDC_P_SUPPORT_HDMI_RM_VER == BVDC_P_HDMI_RM_VER_7)
+#if (BVDC_P_SUPPORT_HDMI_RM_VER >= BVDC_P_HDMI_RM_VER_7)
         ulFcw = pRmInfo->ulOffset / 16;
         ulStableThrsh = ulFcw / 4000;
         ulHoldThrsh = ulFcw / 250;
@@ -3029,7 +3042,7 @@ static void BVDC_P_Vec_Build_DVI_RM_isr
                 (ulHoldThrsh < 0x10000) ?  0 : 1) |
             BCHP_FIELD_DATA(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, AUTO_LIMIT,
                 (ulHoldThrsh < 0x10000) ?  1 : 0) |
-            BCHP_FIELD_DATA(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, ALWAYS_RESET_PLL_ON_FREQ_CHANGE, 0) |
+            BCHP_FIELD_DATA(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, ALWAYS_RESET_PLL_ON_FREQ_CHANGE, 1) |
             BCHP_FIELD_DATA(HDMI_TX_PHY_PLL_CALIBRATION_CONFIG_1, MIN_LIMIT,
                 (ulHoldThrsh < 0x10000) ? 0 : ulFcw - ulHoldThrsh);
 
@@ -3243,7 +3256,6 @@ static void BVDC_P_Vec_Build_DVI_DTG_isr
 #endif
         BCHP_FIELD_DATA(DVI_DTG_0_DTG_TRIGGER_1, ENABLE, 0);
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
 {
     uint32_t ulLineNum, ulStartLine;
 
@@ -3264,7 +3276,6 @@ static void BVDC_P_Vec_Build_DVI_DTG_isr
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_DTG_0_DTG_AS_LINE_NUMBER + pstChan->ulDviRegOffset);
     *pList->pulCurrent++ = BCHP_FIELD_DATA(DVI_DTG_0_DTG_AS_LINE_NUMBER, LINE_NUMBER, ulLineNum);
 }
-#endif
 
     return;
 }
@@ -3282,9 +3293,9 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     bool  bDviCscPassThrough;
 #endif
 
-    BDBG_ASSERT(stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.eHdmiOutput].eAvcCs == hDisplay->stCurInfo.eHdmiOutput);
+    BDBG_ASSERT(stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].eAvcCs == hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs);
     BDBG_MSG(("Display %d Hdmi %d using %s",
-        hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.eHdmiOutput].pcAvcCsStr));
+        hDisplay->eId, pstChan->ulDvi, stAVC_MatrixCoefficient_InfoTbl[hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs].pcAvcCsStr));
 #if BCHP_DVI_MISC_0_REG_START
     bDviCscPassThrough = (hDisplay->bCmpBypassDviCsc || hDisplay->stCurInfo.bBypassVideoProcess);
     if (bDviCscPassThrough)
@@ -3306,8 +3317,8 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     {
         BVDC_P_Csc_FromMatrixDvo_isr(&hDisplay->stDvoCscMatrix.stCscCoeffs,
             pCurInfo->pl32_Matrix, pCurInfo->ulUserShift,
-            ((pCurInfo->eHdmiOutput == BAVC_MatrixCoefficients_eHdmi_RGB) ||
-             (pCurInfo->eHdmiOutput == BAVC_MatrixCoefficients_eDvi_Full_Range_RGB))? true : false);
+            ((pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eHdmi_RGB) ||
+             (pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eDvi_Full_Range_RGB))? true : false);
 
         hDisplay->stDvoCscMatrix.ulMin = pCscMatrix->ulMin;
         hDisplay->stDvoCscMatrix.ulMax = pCscMatrix->ulMax;
@@ -3339,8 +3350,8 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
         BVDC_P_Csc_ApplyYCbCrColor_isr(&hDisplay->stDvoCscMatrix.stCscCoeffs, ucCh1, ucCh0, ucCh2);
     }
 
-    if((BAVC_MatrixCoefficients_eHdmi_RGB == pCurInfo->eHdmiOutput) ||
-       (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pCurInfo->eHdmiOutput))
+    if((BAVC_MatrixCoefficients_eHdmi_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
+       (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs))
     {
         ucCh0 = pCmpInfo->ucGreen;
         ucCh1 = pCmpInfo->ucBlue;
@@ -3356,7 +3367,7 @@ static void BVDC_P_Vec_Build_DVI_CSC_isr
     /* enable converting from BT2020 NCL R'G'B' to BT2020 CL YCbCr */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_DVI_CSC_0_CL2020_CONTROL + pstChan->ulDviRegOffset);
-    *pList->pulCurrent++ = (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pCurInfo->eHdmiOutput)?
+    *pList->pulCurrent++ = (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs)?
         BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, ENABLE ) | BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, SEL_GAMMA, BT1886_GAMMA ):
         BCHP_FIELD_ENUM(DVI_CSC_0_CL2020_CONTROL, CTRL, DISABLE );
 #endif /* #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC */
@@ -6434,11 +6445,11 @@ static BERR_Code BVDC_P_Display_Validate_Hdmi_Config
         BKNI_EnterCriticalSection();
         err = BVDC_P_AllocDviChanResources_isr(
                 hDisplay->hVdc->hResource, hDisplay->hVdc->hRegister,
-                hDisplay->eId, pNewInfo->ulHdmi,
+                hDisplay->eId, pNewInfo->stHdmiSettings.stSettings.ulPortId,
                 &hDisplay->stDviChan, hDisplay->hCompositor->eId);
         BKNI_LeaveCriticalSection();
         /* SW7563-101: close connected window before disable hdmi */
-        if((hDisplay->stNewInfo.eHdmiOutput == BAVC_MatrixCoefficients_eUnknown)
+        if((hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eUnknown)
             &&(BVDC_P_DISPLAY_USED_DVI(hDisplay->eMasterTg))
             &&(hDisplay->hCompositor->ulActiveGfxWindow + hDisplay->hCompositor->ulActiveVideoWindow))
         {
@@ -6448,6 +6459,15 @@ static BERR_Code BVDC_P_Display_Validate_Hdmi_Config
 
         if(err != BERR_SUCCESS)
             return BERR_TRACE(err);
+
+#ifdef BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY0
+        if(hDisplay->ulHdmiPwrAcquire == 0)
+        {
+            BDBG_MSG(("hdmi slave mode: Acquire BCHP_PWR_RESOURCE_VDC_HDMI_TX_PHY %d", hDisplay->stDviChan.ulDvi));
+            BCHP_PWR_AcquireResource(hDisplay->hVdc->hChip, hDisplay->ulHdmiPwrId);
+            hDisplay->ulHdmiPwrAcquire++;
+        }
+#endif
     }
 
     return BERR_SUCCESS;
@@ -6459,7 +6479,7 @@ static void BVDC_P_Display_Copy_HdmiCsc_Setting_isr
 {
     int i;
 
-    hDisplay->stCurInfo.eHdmiOutput = hDisplay->stNewInfo.eHdmiOutput;
+    hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs = hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs;
     hDisplay->stCurInfo.stDvoCfg = hDisplay->stNewInfo.stDvoCfg;
 
     hDisplay->stCurInfo.lDvoAttenuationR = hDisplay->stNewInfo.lDvoAttenuationR;
@@ -6487,7 +6507,10 @@ static void BVDC_P_Display_Apply_HdmiCsc_Setting_isr
 {
     BSTD_UNUSED(eFieldPolarity);
 
-    BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList);
+    if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
+    {
+        BVDC_P_Vec_Build_DVI_CSC_isr(hDisplay, &hDisplay->stDviChan, pList);
+    }
 
     hDisplay->stCurInfo.stDirty.stBits.bHdmiCsc = BVDC_P_CLEAN;
 
@@ -6499,18 +6522,12 @@ static void BVDC_P_Display_Copy_Hdmi_Config_isr
 {
     int i;
 
-    hDisplay->stCurInfo.ulHdmi      = hDisplay->stNewInfo.ulHdmi;
+    hDisplay->stCurInfo.stHdmiSettings.stSettings.ulPortId = hDisplay->stNewInfo.stHdmiSettings.stSettings.ulPortId;
     hDisplay->stCurInfo.bEnableHdmi = hDisplay->stNewInfo.bEnableHdmi;
 
     if (hDisplay->stCurInfo.bEnableHdmi)
     {
-
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-        /* Reset the DVI slave attachment process state */
-        hDisplay->eDviSlaveState = BVDC_P_Slave_eInactive;
-#else
         hDisplay->eDviState = BVDC_P_DisplayResource_eCreate;
-#endif
     }
     else
     {
@@ -6545,44 +6562,11 @@ static void BVDC_P_Display_Apply_Hdmi_Config_isr
 
     if (pCurInfo->bEnableHdmi)
     {
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-        switch (hDisplay->eDviSlaveState)
-        {
-            case BVDC_P_Slave_eInactive:
-                /* Acquire DVI core */
-                if (BVDC_P_AllocDviChanResources_isr(hDisplay->hVdc->hResource, hDisplay->hVdc->hRegister,
-                      hDisplay->eId, pCurInfo->ulHdmi, pstChan, hDisplay->hCompositor->eId))
-                {
-                    BDBG_ERR(("No DVI available for display [%]", hDisplay->eId));
-                    return;
-                }
-
-                BVDC_P_SetupDviChan_isr(hDisplay, pstChan, pList);
-                BVDC_P_ProgramDviChan_isr(hDisplay, pstChan, pList);
-
-                /* Enable micro-controller */
-                BVDC_P_Display_StartDviCtrler_isr(hDisplay, pList);
-                hDisplay->eDviSlaveState = BVDC_P_Slave_eEnable;
-                break;
-
-            case BVDC_P_Slave_eEnable:
-                BVDC_P_ConnectDviSrc_isr(hDisplay, pstChan, pList);
-                hDisplay->eDviSlaveState = BVDC_P_Slave_eConnectSrc;
-                break;
-
-            case BVDC_P_Slave_eConnectSrc:
-            default:
-                hDisplay->eDviSlaveState = BVDC_P_Slave_eAttached;
-                hDisplay->stCurInfo.stDirty.stBits.bHdmiEnable = BVDC_P_CLEAN;
-                break;
-        }
-#else
         /* When DVI is in slave mode, a format switch has to be done. Even
          * if the RUL somehow didn't get exeucted, our re-do mechanism will keep
          * trying. So it is safe to move the state to eActive directly. */
         hDisplay->eDviState = BVDC_P_DisplayResource_eActive;
         hDisplay->stCurInfo.stDirty.stBits.bHdmiEnable = BVDC_P_CLEAN;
-#endif
     }
     else
     {
@@ -6601,7 +6585,7 @@ static void BVDC_P_Display_Apply_Hdmi_Config_isr
                 if (pList->bLastExecuted)
                 {
                     if(!hDisplay->stDviChan.bEnable)
-                        BVDC_P_FreeDviChanResources_isr(hDisplay->hVdc->hResource, pstChan);
+                        BVDC_P_FreeDviChanResources_isr(hDisplay->hVdc->hResource, hDisplay, pstChan);
                     hDisplay->eDviState = BVDC_P_DisplayResource_eInactive;
                     hDisplay->stCurInfo.stDirty.stBits.bHdmiEnable = BVDC_P_CLEAN;
                 }
@@ -6656,10 +6640,7 @@ static BERR_Code BVDC_P_Display_Validate_656_Setting
 #endif
     }
 
-#if !BVDC_P_SUPPORT_SEAMLESS_ATTACH
     hDisplay->st656Chan.bEnable = pNewInfo->bEnable656;
-#endif
-
     return BERR_SUCCESS;
 }
 
@@ -6671,12 +6652,7 @@ static void BVDC_P_Display_Copy_656_Setting_isr
 
     if (hDisplay->stCurInfo.bEnable656)
     {
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-        /* Reset the 656 slave attachment process state */
-        hDisplay->e656SlaveState = BVDC_P_Slave_eInactive;
-#else
         hDisplay->e656State = BVDC_P_DisplayResource_eCreate;
-#endif
     }
     else
     {
@@ -6701,48 +6677,12 @@ static void BVDC_P_Display_Apply_656_Setting_isr
 
     if (pCurInfo->bEnable656)
     {
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-        switch (hDisplay->e656SlaveState)
-        {
-            case BVDC_P_Slave_eInactive:
-                /* Acquire 656 core */
-                if (BVDC_P_Alloc656ChanResources_isr(hDisplay->hVdc->hResource,
-                      hDisplay->eId, pstChan, hDisplay->hCompositor->eId))
-                {
-                    BDBG_ERR(("No 656 available "));
-                    return;
-                }
-
-                hDisplay->st656Chan.bEnable = true;
-
-                BVDC_P_Setup656Chan_isr(hDisplay, pstChan, pList);
-                BVDC_P_Program656Chan_isr(hDisplay, pstChan, pList);
-
-                /* Enable micro-controller */
-                BVDC_P_Display_Start656Ctrler_isr(hDisplay, pList);
-
-                hDisplay->e656SlaveState = BVDC_P_Slave_eEnable;
-                break;
-
-            case BVDC_P_Slave_eEnable:
-                BVDC_P_Connect656Src_isr(hDisplay, pstChan, pList);
-                hDisplay->e656SlaveState = BVDC_P_Slave_eConnectSrc;
-                break;
-
-            case BVDC_P_Slave_eConnectSrc:
-            default:
-                hDisplay->e656SlaveState = BVDC_P_Slave_eAttached;
-                hDisplay->stCurInfo.stDirty.stBits.b656Enable = BVDC_P_CLEAN;
-                break;
-        }
-#else
         /* When 656 is in slave mode, a format switch has to be done. Even
          * if the RUL somehow didn't get exeucted, our re-do mechanism will keep
          * trying. So it is safe to move the state to eActive directly.
          */
         hDisplay->e656State = BVDC_P_DisplayResource_eActive;
         hDisplay->stCurInfo.stDirty.stBits.b656Enable = BVDC_P_CLEAN;
-#endif
     }
     else
     {
@@ -6830,7 +6770,6 @@ static void BVDC_P_Display_Copy_AspRatio_Setting_isr
         &hDisplay->ulPxlAspRatio_x_y,
         BFMT_Orientation_e2D);
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     if(hDisplay->stCurInfo.eOrientation == BFMT_Orientation_e3D_OverUnder)
     {
         hDisplay->ulPxlAspRatio = hDisplay->ulPxlAspRatio / 2;
@@ -6839,7 +6778,6 @@ static void BVDC_P_Display_Copy_AspRatio_Setting_isr
     {
         hDisplay->ulPxlAspRatio = hDisplay->ulPxlAspRatio * 2;
     }
-#endif
 
     hDisplay->hCompositor->ulStgPxlAspRatio_x_y = hDisplay->ulPxlAspRatio_x_y;
     /* inform window ApplyChanges  */
@@ -7497,7 +7435,10 @@ static void BVDC_P_Display_Apply_Hdmi_RM_Setting_isr
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity )
 {
-    BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, &hDisplay->stDviChan, pList, true);
+    if(hDisplay->stDviChan.bEnable || hDisplay->stCurInfo.bEnableHdmi)
+    {
+        BVDC_P_Vec_Build_DVI_RM_isr(hDisplay, &hDisplay->stDviChan, pList, true);
+    }
     hDisplay->stCurInfo.stDirty.stBits.bHdmiRmSettings = BVDC_P_CLEAN;
 
     BSTD_UNUSED(eFieldPolarity);
@@ -7517,16 +7458,12 @@ static void BVDC_P_Display_Apply_3D_Setting_isr
       BVDC_P_ListInfo                 *pList,
       BAVC_Polarity                    eFieldPolarity )
 {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     if(hDisplay->bAnlgEnable ||   /* if analog master */
        (!hDisplay->bAnlgEnable &&  /* or anlog slave with DACs */
        (hDisplay->stAnlgChan_0.bEnable || hDisplay->stAnlgChan_1.bEnable)))
     {
         BVDC_P_Vec_Build_It3D_isr(hDisplay, pList);
     }
-#else
-    BSTD_UNUSED(pList);
-#endif
 
     BSTD_UNUSED(eFieldPolarity);
     hDisplay->stCurInfo.stDirty.stBits.b3DSetting = BVDC_P_CLEAN;

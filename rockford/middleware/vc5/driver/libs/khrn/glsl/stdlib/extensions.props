@@ -87,6 +87,28 @@ GL_OES_texture_cube_map_array:
    highp void imageStore(writeonly uimageCubeArray image, ivec3 coord, uvec4 data);
 
 
+GL_OES_texture_buffer:
+   highp int textureSize( samplerBuffer sampler);
+   highp int textureSize(isamplerBuffer sampler);
+   highp int textureSize(usamplerBuffer sampler);
+
+    vec4 texelFetch( samplerBuffer sampler, int P);
+   ivec4 texelFetch(isamplerBuffer sampler, int P);
+   uvec4 texelFetch(usamplerBuffer sampler, int P);
+
+   highp ivec3 imageSize(readonly writeonly  imageBuffer  image);
+   highp ivec3 imageSize(readonly writeonly iimageBuffer  image);
+   highp ivec3 imageSize(readonly writeonly uimageBuffer  image);
+
+   highp  vec4 imageLoad(readonly  imageBuffer image, int coord);
+   highp ivec4 imageLoad(readonly iimageBuffer image, int coord);
+   highp uvec4 imageLoad(readonly uimageBuffer image, int coord);
+
+   highp void imageStore(writeonly  imageBuffer image, int coord,  vec4 data);
+   highp void imageStore(writeonly iimageBuffer image, int coord, ivec4 data);
+   highp void imageStore(writeonly uimageBuffer image, int coord, uvec4 data);
+
+
 GL_OES_texture_storage_multisample_2d_array:
    highp ivec3 textureSize( sampler2DMSArray sampler);
    highp ivec3 textureSize(isampler2DMSArray sampler);
@@ -279,6 +301,10 @@ GL_OES_geometry_shader:
    const mediump int gl_MaxGeometryUniformComponents;
    const mediump int gl_MaxGeometryAtomicCounters;
    const mediump int gl_MaxGeometryAtomicCounterBuffers;
+
+
+GL_OES_primitive_bounding_box:
+   patch out highp vec4  gl_BoundingBoxOES[2];
 
 
 GL_EXT_primitive_bounding_box:

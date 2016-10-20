@@ -933,6 +933,16 @@ error:
     return rc;
 }
 
+void gpioCallback(void *context, int param)
+{
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(param);
+
+    if(g_DeviceState.power_mode == ePowerModeS1 && g_StandbyNexusHandles.s1Event) {
+        BKNI_SetEvent(g_StandbyNexusHandles.s1Event);
+    }
+}
+
 
 void irCallback(void *pParam, int iParam)
 {
@@ -2198,6 +2208,27 @@ void complete(void *data, int unused)
 {
     BSTD_UNUSED(unused);
     BKNI_SetEvent((BKNI_EventHandle)data);
+}
+
+void gpio_open(void)
+{
+    NEXUS_GpioSettings gpioSettings;
+
+    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
+    gpioSettings.mode = NEXUS_GpioMode_eInput;
+    gpioSettings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
+    gpioSettings.interrupt.callback = gpioCallback;
+    g_StandbyNexusHandles.gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eAonStandard, g_DeviceState.gpio_pin, &gpioSettings);
+    if(!g_StandbyNexusHandles.gpioHandle) {
+        printf("Could not open AON GPIO pin %d. Possibly incorrect pinmux\n", g_DeviceState.gpio_pin);
+    }
+}
+
+void gpio_close(void)
+{
+    if(g_StandbyNexusHandles.gpioHandle)
+        NEXUS_Gpio_Close(g_StandbyNexusHandles.gpioHandle);
+    g_StandbyNexusHandles.gpioHandle = NULL;
 }
 
 void ir_open(void)
@@ -3626,6 +3657,7 @@ int start_app(void)
     BKNI_CreateEvent(&g_StandbyNexusHandles.s1Event);
     BKNI_CreateEvent(&g_StandbyNexusHandles.signalLockedEvent);
 
+    gpio_open();
     ir_open();
     uhf_open();
     /*keypad_open();*/
@@ -3703,6 +3735,7 @@ void stop_app(void)
     /*keypad_close();*/
     uhf_close();
     ir_close();
+    gpio_close();
 
     if(g_StandbyNexusHandles.event)
         BKNI_DestroyEvent(g_StandbyNexusHandles.event);

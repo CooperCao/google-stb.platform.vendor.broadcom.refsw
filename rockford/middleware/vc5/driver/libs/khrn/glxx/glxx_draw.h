@@ -12,14 +12,15 @@ FILE DESCRIPTION
 
 #include "glxx_enum_types.h"
 #include "glxx_server_state.h"
+#include "../glsl/glsl_program.h"
 
 /* Raw params as passed to glDraw* function by user */
 typedef struct
 {
    GLenum mode;
 
-   GLuint min_index;
-   GLuint max_index;
+   GLuint start;
+   GLuint end;
 
    GLsizei count; /* Unused if is_indirect */
    GLsizei instance_count; /* Unused if is_indirect */
@@ -43,8 +44,8 @@ typedef struct
 
 #define GLXX_DRAW_RAW_DEFAULTS   \
    /* Must set mode */           \
-   .min_index = 0,               \
-   .max_index = (GLuint)-1,      \
+   .start = 0,                   \
+   .end = (GLuint)-1,            \
    .count = 0,                   \
    .instance_count = 1,          \
    .is_draw_arrays = false,      \
@@ -66,11 +67,8 @@ typedef struct
 {
    GLXX_PRIMITIVE_T mode;
 
-   unsigned int min_index;
-   unsigned int max_index;
-
-   unsigned int count; /* Unused if is_indirect */
-   unsigned int instance_count; /* Unused if is_indirect */
+   size_t count; /* Unused if is_indirect */
+   size_t instance_count; /* Unused if is_indirect */
 
    bool is_draw_arrays;
    /* is_draw_arrays only */
@@ -118,5 +116,8 @@ extern void glintDrawArraysOrElements(GLXX_SERVER_STATE_T *state, const GLXX_DRA
 
 extern bool glxx_drawtex(GLXX_SERVER_STATE_T *state, float Xs, float Ys, float
       Zw, float Ws, float Hs);
+
+extern GLXX_PRIMITIVE_T glxx_get_used_draw_mode(const GLSL_PROGRAM_T *p,
+      GLXX_PRIMITIVE_T draw_mode);
 
 #endif

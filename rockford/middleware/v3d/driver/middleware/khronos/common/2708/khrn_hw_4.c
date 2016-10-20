@@ -36,8 +36,8 @@ Various cross-API hardware-specific functions
 #include <sys/time.h>
 #endif
 
-#ifdef ANDROID
-#include <cutils/log.h>
+#ifdef KHRN_AUTOCLIF
+#include "tools/v3d/autoclif/autoclif.h"
 #endif
 
 static KHRN_DRIVER_COUNTERS_T s_driverCounters;
@@ -48,32 +48,6 @@ static uint64_t               s_jobSequenceDone   = 0;
 static VCOS_EVENT_T           s_jobDoneEvent;
 
 void khrn_send_job(BEGL_HWJob *job);
-
-#ifdef ANDROID
-void selective_logd(const char *fmt, ...)
-{
-   char buffer[256];
-   FILE *fp;
-
-   snprintf(buffer, sizeof(buffer), "/proc/%d/cmdline", getpid());
-
-   fp = fopen(buffer, "r");
-   if (fp != NULL)
-   {
-      buffer[0] = '\0';
-      fgets(buffer, sizeof(buffer), fp);
-      fclose(fp);
-
-      if (strcmp(buffer, "com.android.opengl.cts") == 0)
-      {
-         va_list args;
-         va_start(args, fmt);
-         vsnprintf(buffer, sizeof(buffer), fmt, args);
-         LOGD("%s", buffer);
-      }
-   }
-}
-#endif
 
 #ifdef TIMELINE_EVENT_LOGGING
 static void EventLog(BEGL_HWNotification *notification, BEGL_HWCallbackRecord *cbRec, uint64_t sequence)
@@ -127,7 +101,7 @@ static void EventLog(BEGL_HWNotification *notification, BEGL_HWCallbackRecord *c
       khrn_remote_event_log(&ev);
       break;
    case KHRN_TFCONVERT_DONE :
-      khrn_tfconvert_logevents(notification, cbRec);
+      khrn_tfconvert_logevents(notification);
       break;
    default :
       break;
@@ -296,6 +270,7 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
       Treat that like an abandoned job too. */
    /* should read (!abandon && rs->drawn), but unfortunatly some demos call swapbuffers without drawing
       anything.  Causes corruption on startup which doesnt look good */
+   uint32_t bin_start, bin_end, render_start, render_end;
    if (!abandon)
    {
       job.program[i].operation         = BEGL_HW_OP_SECURE;
@@ -313,8 +288,10 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
       }
 
       job.program[i].operation     = BEGL_HW_OP_BIN;
-      job.program[i].arg1          = khrn_hw_addr(fmem->bin_begin, &fmem->bin_begin_lbh);
-      job.program[i].arg2          = khrn_hw_addr(fmem->bin_end, &fmem->render_begin_lbh);
+      bin_start                    = khrn_hw_addr(fmem->bin_begin, &fmem->bin_begin_lbh);
+      bin_end                      = khrn_hw_addr(fmem->bin_end, &fmem->render_begin_lbh);
+      job.program[i].arg1          = bin_start;
+      job.program[i].arg2          = bin_end;
       i++;
 
       job.program[i].operation     = BEGL_HW_OP_WAIT;
@@ -330,8 +307,10 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
       }
 
       job.program[i].operation     = BEGL_HW_OP_RENDER;
-      job.program[i].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
-      job.program[i].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
+      render_start                 = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
+      render_end                   = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
+      job.program[i].arg1          = render_start;
+      job.program[i].arg2          = render_end;
       job.program[i].callbackParam = (uint32_t)callback_data;
    }
    else
@@ -344,6 +323,21 @@ void khrn_issue_bin_render_job(GLXX_HW_RENDER_STATE_T *rs, bool secure)
 
    /* Flush the dcache prior to the bin/render starting */
    khrn_hw_flush_dcache();
+
+#ifdef KHRN_AUTOCLIF
+   V3D_IDENT_T ident = {
+      .tlb_w = 64, /*KHRN_HW_TILE_WIDTH;*/
+      .tlb_h = 64 /*KHRN_HW_TILE_HEIGHT;*/
+   };
+   /* platform interface uses standard types, so make sure they match prior to calling */
+   vcos_static_assert(sizeof(V3D_ADDR_T) == sizeof(uint32_t));
+   autoclif_begin(autoclif_addr_to_ptr, autoclif_ptr_to_addr, &ident);
+   autoclif_bin(bin_start, bin_end);
+   autoclif_render(render_start, render_end);
+   autoclif_end(autoclif_get_clif_filename());
+   /* not part of the autoclif library, but a call to the platform layer to reset */
+   autoclif_reset();
+#endif
 
    khrn_send_job(&job);
 }
@@ -478,39 +472,28 @@ void khrn_vg_job_done(BEGL_HWCallbackRecord *cbRecord, uint64_t job_sequence)
 #endif /* NO_OPENVG */
 
 /* Submit a tf convert job */
-void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, MEM_HANDLE_T heglimage,
-   uint8_t *ctrlListPtr, uint32_t numBytes, bool secure)
+void khrn_issue_tfconvert_job(KHRN_FMEM_T *fmem, bool secure)
 {
    BEGL_HWCallbackRecord   *callback_data = (BEGL_HWCallbackRecord*)calloc(sizeof(BEGL_HWCallbackRecord), 1);
    BEGL_HWJob              job;
-   CONVERT_CALLBACK_DATA_T *convData = (CONVERT_CALLBACK_DATA_T*)&(callback_data->payload[0]);
 
    memset(&job, 0, sizeof(BEGL_HWJob));
 
-   callback_data->reason = KHRN_TFCONVERT_LOCK;
+   callback_data->reason = KHRN_TFCONVERT_DONE;
    callback_data->payload[0] = (uint32_t)fmem;
 
    khrn_fmem_prep_for_render_only_job(fmem);
 
-   convData->fmem = fmem;
-   MEM_ASSIGN(convData->heglimage, heglimage);
-   convData->controlList = ctrlListPtr;
-   convData->conversionKilled = false;
-   convData->semaphoreTaken = false;
-   convData->numCLBytes = numBytes;
-
    job.program[0].operation = BEGL_HW_OP_SECURE;
    job.program[0].arg1 = secure;
 
-   job.program[1].operation     = BEGL_HW_OP_SYNC;
+   job.program[1].operation     = BEGL_HW_OP_RENDER;
+   job.program[1].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
+   job.program[1].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
    job.program[1].callbackParam = (uint32_t)callback_data;
 
-   job.program[2].operation     = BEGL_HW_OP_RENDER;
-   job.program[2].arg1          = khrn_hw_addr(fmem->render_begin, &fmem->render_begin_lbh);
-   job.program[2].arg2          = khrn_hw_addr(fmem->cle_pos, &fmem->lbh);
-   job.program[2].callbackParam = (uint32_t)callback_data;
-
-   /* The dcache will be flushed during the Sync callback for lock, so no need to do it here */
+   /* Flush the dcache prior to the conversion starting */
+   khrn_hw_flush_dcache();
 
    khrn_send_job(&job);
 }
@@ -629,9 +612,6 @@ void khrn_job_callback(void)
       case KHRN_BIN_RENDER_DONE :
          khrn_signal_job_done(notification.jobSequence);
          khrn_bin_render_done(cbRecord, notification.jobSequence);
-         break;
-      case KHRN_TFCONVERT_LOCK :
-         ok = khrn_tfconvert_lock(cbRecord);
          break;
       case KHRN_TFCONVERT_DONE :
          khrn_signal_job_done(notification.jobSequence);

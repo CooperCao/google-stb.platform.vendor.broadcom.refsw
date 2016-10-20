@@ -1,0 +1,7 @@
+# HDR10 stream B, PLM off, full screen VID with GFX thumbnail (pig=off)
+stream=3
+plm.vid=0
+plm.gfx=0
+image=0
+bg=0
+pig=off

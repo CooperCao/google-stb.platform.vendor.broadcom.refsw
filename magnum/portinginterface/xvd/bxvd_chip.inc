@@ -69,4 +69,9 @@ ifeq ($(findstring $(BCHP_CHIP), 7145 7250 7260 7268 7271 7445 7364 73625 7366 7
 BXVD_CHIP = revn0
 BXVD_DEFINES += BXVD_P_AVD_ARC600
 endif
+
+ifeq ($(findstring $(BCHP_CHIP), 7278), $(BCHP_CHIP))
+BXVD_CHIP = revt0
+BXVD_DEFINES += BXVD_P_AVD_ARC600
+endif
 endif

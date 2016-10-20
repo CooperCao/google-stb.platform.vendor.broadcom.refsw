@@ -30,11 +30,9 @@ typedef enum
 {
    KHRN_BIN_RENDER_DONE,
    KHRN_TFCONVERT_DONE,
-   KHRN_TFCONVERT_LOCK,
    KHRN_VG_DONE,
    KHRN_SWAPBUFFERS_DONE,
    KHRN_COPYBUFFERS_DONE
-
 } KHRN_CALLBACK_REASONS_T;
 
 bool khrn_hw_common_init(void);
@@ -87,8 +85,7 @@ extern int32_t khrn_do_suspend_resume(uint32_t up);
 extern void khrn_issue_finish_job(void);
 extern void khrn_issue_bin_render_job(struct GLXX_HW_RENDER_STATE *rs, bool secure);
 extern void khrn_issue_vg_job(struct VG_BE_RENDER_STATE *rs, bool loadFrameUsed, bool storeFrameUsed, bool maskUsed);
-extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, MEM_HANDLE_T heglimage,
-   uint8_t *ctrlListPtr, uint32_t numBytes, bool secure);
+extern void khrn_issue_tfconvert_job(struct KHRN_FMEM *fmem, bool secure);
 extern void khrn_issue_copy_buffer_job(struct KHRN_FMEM *fmem,
    MEM_HANDLE_T dst, MEM_HANDLE_T src, uint32_t numCLBytes, bool secure);
 extern void khrn_issue_swapbuffers_job(MEM_HANDLE_T image);

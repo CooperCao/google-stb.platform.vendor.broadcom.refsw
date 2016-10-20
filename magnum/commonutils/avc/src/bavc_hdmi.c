@@ -76,7 +76,8 @@ static const BAVC_HDMI_PacketTypes PacketTypes_Text[] =
     {BAVC_HDMI_PacketType_eVendorSpecificInfoframe, BDBG_STRING("Vendor Specific InfoFrame")},
     {BAVC_HDMI_PacketType_eAviInfoFrame, BDBG_STRING("AVI InfoFrame")},
     {BAVC_HDMI_PacketType_eSpdInfoFrame, BDBG_STRING("SPD InfoFrame")},
-    {BAVC_HDMI_PacketType_eAudioInfoFrame, BDBG_STRING("Audio InfoFrame") },
+    {BAVC_HDMI_PacketType_eAudioInfoFrame, BDBG_STRING("Audio InfoFrame")},
+    {BAVC_HDMI_PacketType_eDrmInfoFrame, BDBG_STRING("Dynamic Range Metadata InfoFrame")},
     {BAVC_HDMI_PacketType_eMpegInfoFrame, BDBG_STRING("MPEG Source InfoFrame")}
 } ;
 

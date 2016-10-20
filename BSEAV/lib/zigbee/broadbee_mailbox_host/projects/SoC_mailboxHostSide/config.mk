@@ -73,7 +73,8 @@ override PLATFORM = __ARM__
 CROSS_COMPILE ?= /opt/toolchains/stbgcc-4.8-1.0/bin/arm-linux-
 override CC = $(CROSS_COMPILE)gcc
 override LD = $(CROSS_COMPILE)gcc
-override PY=/tools/oss/packages/x86_64-rhel5/python/3.3.1/bin/python
+#override PY=/tools/oss/packages/x86_64-rhel5/python/3.3.1/bin/python
+override PY=/usr/bin/python3
 
 ### Override tools' default flags for Project build: C compiler, assembler, linker.
 override CFLAGS  = -c -O0 -g -std=gnu99 -Wattributes -fpack-struct=4 -fshort-enums
@@ -132,7 +133,7 @@ endif
 # component build. Use '%' as the wildcard. Files may be specified without extension.
 
 # Exclude units not necessary for MAC Sertification Tests.
-SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbExtPowerFilterKey
+SRCEXCL += bbSys% zigbee_core_sim zigbee_rpc_client shell sqlite3 bbPcUsart bbHal% bbExtPowerFilterKey bbExtTestEngine
 SRCINCL += bbSysEvent bbSysDbg bbSysFsm bbSysMemMan bbSysDbgMm bbSysPayload bbSysStackData bbSysTaskScheduler bbSysTimeoutTask bbSysQueue bbHalSystemTimer bbHalTask
 
 # Make RF4CE_TEST enabled by default.

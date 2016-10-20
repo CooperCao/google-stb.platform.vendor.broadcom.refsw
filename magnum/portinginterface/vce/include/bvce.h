@@ -228,6 +228,7 @@ typedef struct BVCE_OpenSettings
                                                              * support loading of ARC FW to specific memory regions (e.g. for
                                                              * authenticated firmware support).
                                                              */
+      unsigned firmwareMemc[BVCE_ArcInstance_eMax]; /* MEMC for each hFirmwareMem */
 
       BMMA_Heap_Handle hPictureMem;  /* If NULL, system memory handle (hMem) used.
                                       * If non-NULL, all picture memory allocated from this heap
@@ -743,6 +744,10 @@ BVCE_Channel_GetCallbackSettings(
 typedef struct BVCE_GOPStructure
 {
       bool bAllowNewGOPOnSceneChange; /* If true, the encoder will start a new GOP if it detects a scene change */
+      unsigned uiMinGOPLengthAfterSceneChange; /* If (bAllowNewGOPOnSceneChange == true), indicates the minimum GOP length after a
+                                                *   scene change to prevent complex content from causing a new GOP on every frame.
+                                                *   Expressed as a percentage of the total GOP length.
+                                                */
 
       unsigned uiDuration; /* If (uiDuration != 0):
                             *    If (bAllowOpenGOP == false): GOPLength = 1 + N*(1 + uiNumberOfBFrames)

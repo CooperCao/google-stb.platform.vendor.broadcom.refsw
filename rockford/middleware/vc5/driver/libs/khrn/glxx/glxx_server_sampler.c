@@ -22,6 +22,7 @@ FILE DESCRIPTION
 #include "glxx_server_texture.h"
 #include "glxx_server_internal.h"
 
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 static void glxx_sampler_init(GLXX_SERVER_STATE_T *state, GLXX_TEXTURE_SAMPLER_STATE_T *so, uint32_t id)
 {

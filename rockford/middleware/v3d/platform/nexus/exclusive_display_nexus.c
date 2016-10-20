@@ -23,6 +23,7 @@ physical display framebuffers. No copying is done.
 #endif
 
 #include <EGL/egl.h>
+#include <EGL/eglext_brcm.h>
 
 #include <malloc.h>
 #include <memory.h>
@@ -171,10 +172,9 @@ static bool QueueEmpty(NXPL_FenceQueue *q)
 /*****************************************************************************
  * Display driver interface
  *****************************************************************************/
-static void vsync_callback(void *context, int param)
+static void vsync_callback(void *context, int param __attribute__ ((unused)))
 {
    /* Simply trigger the event */
-   BSTD_UNUSED(param);
    BKNI_SetEvent((BKNI_EventHandle)context);
 }
 
@@ -731,6 +731,36 @@ static BEGL_Error DispWindowStateDestroy(void *context, void *swapChainCtx)
    return BEGL_Fail;
 }
 
+static BEGL_Error DispSurfaceVerifyImageTarget(void *context __attribute__ ((unused)),
+   void *buffer __attribute__ ((unused)), uint32_t eglTarget)
+{
+   return eglTarget == EGL_IMAGE_WRAP_BRCM_BCG ? BEGL_Success : BEGL_Fail;
+}
+
+static BEGL_Error DispDecodeNativeFormat(void *context __attribute__ ((unused)),
+   void *buffer,
+   BEGL_BufferSettings *settings)
+{
+   if (settings && buffer)
+   {
+      memset(settings, 0, sizeof(BEGL_BufferSettings));
+
+      EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *native_buffer = (EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer;
+
+      settings->format = native_buffer->format;
+      settings->width = native_buffer->width;
+      settings->height = native_buffer->height;
+      settings->pitchBytes = native_buffer->stride;
+
+      settings->physOffset = native_buffer->offset;
+      settings->cachedAddr = native_buffer->storage;
+
+      return BEGL_Success;
+   }
+   else
+      return BEGL_Fail;
+}
+
 BEGL_DisplayInterface *NXPL_CreateDisplayInterface(BEGL_MemoryInterface *memIface,
                                                    BEGL_HWInterface     *hwIface,
                                                    NEXUS_DISPLAYHANDLE display, BEGL_DisplayCallbacks *displayCallbacks)
@@ -768,6 +798,8 @@ BEGL_DisplayInterface *NXPL_CreateDisplayInterface(BEGL_MemoryInterface *memIfac
          disp->WindowGetInfo = DispWindowGetInfo;
          disp->WindowPlatformStateCreate = DispWindowStateCreate;
          disp->WindowPlatformStateDestroy = DispWindowStateDestroy;
+         disp->SurfaceVerifyImageTarget = DispSurfaceVerifyImageTarget;
+         disp->DecodeNativeFormat = DispDecodeNativeFormat;
 
          data->memInterface = memIface;
          data->hwInterface = hwIface;

@@ -365,7 +365,7 @@ static const BINT_P_IntMap bint_7250[] =
     BINT_MAP(1, UPG_BSC, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFFFBF),
     BINT_MAP(1, UPG_BSC_AON, "" , IRQ0_AON_IRQEN, REGULAR, MASK, 0xFFFFFFE7),
 
-    BINT_MAP(2, UPG_MAIN, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFFF7F),
+    BINT_MAP(2, UPG_MAIN, "" , IRQ0_IRQEN, REGULAR, MASK, 0xFFFFFE7F),
     BINT_MAP(2, UPG_MAIN_AON, "" , IRQ0_AON_IRQEN, REGULAR, MASK, 0xFFFFFE98),
     BINT_MAP(2, UPG_SC, "", SCIRQ0_SCIRQEN, REGULAR, ALL, 0),
     BINT_MAP(2, UPG_SPI, "" , IRQ0_AON_IRQEN, REGULAR, MASK, 0xFFFFFF7F),
@@ -609,8 +609,8 @@ static void BINT_P_7250_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         BREG_Write32( regHandle, baseAddr + BINT_P_PCROFFSET_ENABLE, intEnable);
         break;
     default:
-       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandel %p,  shift %d",
-                         baseAddr, regHandle, shift));
+       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
+                         baseAddr, (void *) regHandle, shift));
 
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );

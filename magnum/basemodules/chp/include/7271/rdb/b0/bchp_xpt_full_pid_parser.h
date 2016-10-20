@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,27 +70,27 @@
 /***************************************************************************
  *XPT_FULL_PID_PARSER - XPT FULL PID PARSER Control Registers
  ***************************************************************************/
-#define BCHP_XPT_FULL_PID_PARSER_PARSER_CFG      0x20a14000 /* [RW] Parser Config Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00 0x20a14004 /* [RW] Input Parser Band Accept Adapt 00 Control Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_ACCEPT_ADAPT_00 0x20a14008 /* [RW] Playback Parser Band Accept Adapt 00 Control Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG 0x20a1400c /* [RW] IBP_PCC Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG_EN 0x20a14010 /* [RW] IBP_PCC Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG 0x20a14014 /* [RW] PBP_PCC Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG_EN 0x20a14018 /* [RW] PBP_PCC Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG 0x20a1401c /* [RW] IBP_SCC Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG_EN 0x20a14020 /* [RW] IBP_SCC Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG 0x20a14024 /* [RW] PBP_SCC Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG_EN 0x20a14028 /* [RW] PBP_SCC Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG 0x20a1402c /* [RW] IBP_PSG_PROTOCOL Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG_EN 0x20a14030 /* [RW] IBP_PSG_PROTOCOL Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG 0x20a14034 /* [RW] PBP_PSG_PROTOCOL Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG_EN 0x20a14038 /* [RW] PBP_PSG_PROTOCOL Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG 0x20a1403c /* [RW] IBP_TRANSPORT_ERROR Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN 0x20a14040 /* [RW] IBP_TRANSPORT_ERROR Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG 0x20a14044 /* [RW] PBP_TRANSPORT_ERROR Interrupt Status Register */
-#define BCHP_XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN 0x20a14048 /* [RW] PBP_TRANSPORT_ERROR Interrupt Status Enable Register */
-#define BCHP_XPT_FULL_PID_PARSER_LATEST_INTR_CH_NUM 0x20a1404c /* [RO] LATEST_INTR_CH_NUM Latest Interrupt Channel Num Register */
-#define BCHP_XPT_FULL_PID_PARSER_PSG_ERR_MODE    0x20a14050 /* [RW] PSG_ERR_MODE PSG Error Mode Register */
+#define BCHP_XPT_FULL_PID_PARSER_PARSER_CFG      0x20a14000 /* [RW][32] Parser Config Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_ACCEPT_ADAPT_00 0x20a14004 /* [RW][32] Input Parser Band Accept Adapt 00 Control Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_ACCEPT_ADAPT_00 0x20a14008 /* [RW][32] Playback Parser Band Accept Adapt 00 Control Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG 0x20a1400c /* [RW][32] IBP_PCC Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_PCC_INTR_STATUS_REG_EN 0x20a14010 /* [RW][32] IBP_PCC Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG 0x20a14014 /* [RW][32] PBP_PCC Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_PCC_INTR_STATUS_REG_EN 0x20a14018 /* [RW][32] PBP_PCC Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG 0x20a1401c /* [RW][32] IBP_SCC Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_SCC_INTR_STATUS_REG_EN 0x20a14020 /* [RW][32] IBP_SCC Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG 0x20a14024 /* [RW][32] PBP_SCC Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_SCC_INTR_STATUS_REG_EN 0x20a14028 /* [RW][32] PBP_SCC Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG 0x20a1402c /* [RW][32] IBP_PSG_PROTOCOL Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_PSG_PROTOCOL_INTR_STATUS_REG_EN 0x20a14030 /* [RW][32] IBP_PSG_PROTOCOL Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG 0x20a14034 /* [RW][32] PBP_PSG_PROTOCOL Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_PSG_PROTOCOL_INTR_STATUS_REG_EN 0x20a14038 /* [RW][32] PBP_PSG_PROTOCOL Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG 0x20a1403c /* [RW][32] IBP_TRANSPORT_ERROR Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_IBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN 0x20a14040 /* [RW][32] IBP_TRANSPORT_ERROR Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG 0x20a14044 /* [RW][32] PBP_TRANSPORT_ERROR Interrupt Status Register */
+#define BCHP_XPT_FULL_PID_PARSER_PBP_TRANSPORT_ERROR_INTR_STATUS_REG_EN 0x20a14048 /* [RW][32] PBP_TRANSPORT_ERROR Interrupt Status Enable Register */
+#define BCHP_XPT_FULL_PID_PARSER_LATEST_INTR_CH_NUM 0x20a1404c /* [RO][32] LATEST_INTR_CH_NUM Latest Interrupt Channel Num Register */
+#define BCHP_XPT_FULL_PID_PARSER_PSG_ERR_MODE    0x20a14050 /* [RW][32] PSG_ERR_MODE PSG Error Mode Register */
 
 /***************************************************************************
  *STATE_CONFIG_0_%i - Full PID parser State Config 0

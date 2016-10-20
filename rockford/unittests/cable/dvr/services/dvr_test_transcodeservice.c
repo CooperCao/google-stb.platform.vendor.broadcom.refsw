@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -13,11 +13,11 @@
  *
  *  Except as expressly set forth in the Authorized License,
  *
- *  1. This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
  *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
  *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
  *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -35,15 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
  * Module Description: 
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ****************************************************************************/
 
 
@@ -56,10 +49,10 @@
 
 BDBG_MODULE(dvr_test_transcodeservice);
 
-#define MAX_AVPATH 				2
-#define DURATION     			60000        /* 1 minute */
-#define NUM_TSB_PATH 			8
-#define NUM_TSB_CONVERSION		1
+#define MAX_AVPATH              2
+#define DURATION                60000        /* 1 minute */
+#define NUM_TSB_PATH            8
+#define NUM_TSB_CONVERSION      1
 /* TSHDRBUILDER has one extra byte at the beginning to describe the variable length TS header buffer */
 #define BTST_TS_HEADER_BUF_LENGTH   189
 #define BTST_MUX_PMT_PID        (0x55)
@@ -108,22 +101,22 @@ char * audioCodecTranscodeList[9] =
 
 char* videoCodecTranscodeList[16] =
 {
-	"NEXUS_VideoCodec_eMpeg2",
-	"NEXUS_VideoCodec_eMpeg4Part2",
-	"NEXUS_VideoCodec_eH263",
-	"NEXUS_VideoCodec_eH264",
-	"NEXUS_VideoCodec_eH264_Svc",
-	"NEXUS_VideoCodec_eH264_Mvc",
-	"NEXUS_VideoCodec_eVc1",
-	"NEXUS_VideoCodec_eVc1SimpleMain",
-	"NEXUS_VideoCodec_eDivx311",
-	"NEXUS_VideoCodec_eAvs",
-	"NEXUS_VideoCodec_eRv40",
-	"NEXUS_VideoCodec_eVp6",
-	"NEXUS_VideoCodec_eVp7",
-	"NEXUS_VideoCodec_eVp8",
-	"NEXUS_VideoCodec_eSpark",
-	"NEXUS_VideoCodec_eMax"
+    "NEXUS_VideoCodec_eMpeg2",
+    "NEXUS_VideoCodec_eMpeg4Part2",
+    "NEXUS_VideoCodec_eH263",
+    "NEXUS_VideoCodec_eH264",
+    "NEXUS_VideoCodec_eH264_Svc",
+    "NEXUS_VideoCodec_eH264_Mvc",
+    "NEXUS_VideoCodec_eVc1",
+    "NEXUS_VideoCodec_eVc1SimpleMain",
+    "NEXUS_VideoCodec_eDivx311",
+    "NEXUS_VideoCodec_eAvs",
+    "NEXUS_VideoCodec_eRv40",
+    "NEXUS_VideoCodec_eVp6",
+    "NEXUS_VideoCodec_eVp7",
+    "NEXUS_VideoCodec_eVp8",
+    "NEXUS_VideoCodec_eSpark",
+    "NEXUS_VideoCodec_eMax"
 };
 
 
@@ -164,7 +157,7 @@ static void DvrTestCallback(void *appContext, int index,B_DVR_Event event,B_DVR_
 {
     char *eventString[eB_DVR_EventMax+1] = {"recStart","recEnd","hdStream","sdStream","tsbConvCompleted","overFlow","underFlow","pbStart","pbEnd","pbAlarm","abortPb","abortRec","abortTSBRec","abortTSBpb","dataInjection","noMediaDiskSpace","noNavDiskSpace","noMetaDataDiskSpace","invalidEvent"};
     char *serviceString[eB_DVR_ServiceMax+1]= {"tsbService","playbackService","recordService","mediaUtil","drmService","storagaService","dataInjectionService","invalidService"};
-	B_DVR_PlaybackServiceStatus playbackServiceStatus;
+    B_DVR_PlaybackServiceStatus playbackServiceStatus;
 
     printf("\n DvrTestCallback >>>> index %u event %s service %s",(unsigned)index,eventString[event],serviceString[service]);
     BSTD_UNUSED(appContext);
@@ -174,18 +167,18 @@ static void DvrTestCallback(void *appContext, int index,B_DVR_Event event,B_DVR_
         {
             if(service == eB_DVR_ServiceTSB)
             {
-				#if 1
-				B_DVR_TSBServiceStatus tsbServiceStatus;
+                #if 1
+                B_DVR_TSBServiceStatus tsbServiceStatus;
 
                 B_DVR_TSBService_GetStatus(g_dvrTest->streamPath[index].tsbService,&tsbServiceStatus);
                 printf("\n####### Beginning Of TSB Conversion %d start time %lu endTime %lu ##########\n", index, tsbServiceStatus.tsbRecStartTime,tsbServiceStatus.tsbRecEndTime);
-				#endif
+                #endif
                 ++num_OfTSBServiceReady;
-				printf("\nNumber of TSB ready %d \n", num_OfTSBServiceReady);
+                printf("\nNumber of TSB ready %d \n", num_OfTSBServiceReady);
                 /*if (num_OfTSBServiceReady == NUM_TSB_CONVERSION){*/
                 B_Event_Set(TSBServiceReady);
-				/*	printf("Set num_OfTSBServiceReady = 0\n");
-					num_OfTSBServiceReady = 0;}*/
+                /*  printf("Set num_OfTSBServiceReady = 0\n");
+                    num_OfTSBServiceReady = 0;}*/
             }
             else
             {
@@ -264,10 +257,10 @@ static void DvrTestCallback(void *appContext, int index,B_DVR_Event event,B_DVR_
         {
             printf("\n End of playback stream. Pausing");
             printf("\n Stop either TSBPlayback or Playback to enter live mode");
-			B_DVR_PlaybackService_GetStatus(g_dvrTest->streamPath[0].playbackService, &playbackServiceStatus);
-			currentEndTime = playbackServiceStatus.currentTime;
-			printf("\nCurrent Time: %lu", currentEndTime);
-			B_Event_Set(endOfStreamEvent);
+            B_DVR_PlaybackService_GetStatus(g_dvrTest->streamPath[0].playbackService, &playbackServiceStatus);
+            currentEndTime = playbackServiceStatus.currentTime;
+            printf("\nCurrent Time: %lu", currentEndTime);
+            B_Event_Set(endOfStreamEvent);
         }
         break;
     case eB_DVR_EventPlaybackAlarm:
@@ -303,7 +296,7 @@ static void DvrTestCallback(void *appContext, int index,B_DVR_Event event,B_DVR_
     case eB_DVR_EventOutOfMediaStorage:
         {
             printf("\n no media Storage space");
-			B_Event_Set(outOfMediaStorageEvent);
+            B_Event_Set(outOfMediaStorageEvent);
         }
         break;
     case eB_DVR_EventOutOfNavigationStorage:
@@ -363,10 +356,10 @@ void DvrTest_Create_PatPmt(
     {
             case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
             case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-            case NEXUS_AudioCodec_eAac    :      audStreamType = 0xf; break; /* ADTS */
-            case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-            /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+            case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
+            case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
             case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
             default:
                 printf("Audio encoder codec %d is not supported!\n", audioCodec);
@@ -505,7 +498,7 @@ void B_DvrTestTsbServiceStartOperation(int pathIndex, char *programName)
     B_DVR_TSBServiceSettings tsbServiceSettings;
     B_DVR_ERROR dvrError = B_DVR_SUCCESS;
     B_DVR_DataInjectionServiceOpenSettings dataInjectionOpenSettings;
-	if(!g_dvrTest->streamPath[pathIndex].liveDecodeStarted)
+    if(!g_dvrTest->streamPath[pathIndex].liveDecodeStarted)
     {
         DvrTestLiveDecodeStart(pathIndex);
     }
@@ -575,7 +568,7 @@ unsigned AudioCodec, char *subDir, char *programName)
     /* stop live decode*/
     if(g_dvrTest->streamPath[pathIndex].liveDecodeStarted && pathIndex <2)
     {
-       	DvrTestLiveDecodeStop(pathIndex);
+        DvrTestLiveDecodeStop(pathIndex);
     }
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStart : DvrTestLiveDecodeStop <<<"));
@@ -721,7 +714,7 @@ unsigned AudioCodec, char *subDir, char *programName)
     transcodeServiceSettings.videoEncodeSettings.frameRate = NEXUS_VideoFrameRate_e29_97;
     transcodeServiceSettings.videoEncodeSettings.streamStructure.framesB = 0;
     transcodeServiceSettings.videoEncodeSettings.streamStructure.framesP = 23;
-	/* Trackinput has been removed from NEXUS_VideoEncoderStreamStructure */
+    /* Trackinput has been removed from NEXUS_VideoEncoderStreamStructure */
     /*transcodeServiceSettings.videoEncodeSettings.streamStructure.trackInput = false;*/
     transcodeServiceSettings.videoEncodeSettings.enableFieldPairing = true;
     
@@ -865,7 +858,7 @@ unsigned AudioCodec, char *subDir, char *programName)
     B_DVR_PlaybackService_Start(g_dvrTest->streamPath[pathIndex].playbackService);
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStart : B_DVR_PlaybackService_Start <<<"));
 
-	BDBG_MSG(("\n DvrTest_FileToFileTranscodeStart : BKNI_CreateEvent >>>"));
+    BDBG_MSG(("\n DvrTest_FileToFileTranscodeStart : BKNI_CreateEvent >>>"));
     g_dvrTest->streamPath[pathIndex].transcodeFinishEvent = NULL;
     BKNI_CreateEvent(&g_dvrTest->streamPath[pathIndex].transcodeFinishEvent);
     if(!g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
@@ -904,7 +897,7 @@ unsigned AudioCodec, char *subDir, char *programName)
     NEXUS_PidChannelHandle transcodePidChannel;
     B_DVR_TranscodeServiceSettings transcodeServiceSettings;
     B_DVR_DataInjectionServiceOpenSettings dataInjectionOpenSettings;
-	NEXUS_VideoCodec inputVideoCodec;
+    NEXUS_VideoCodec inputVideoCodec;
 
     printf("\n\n--------------------------------------\n");
     printf("B_DvrTestPlaybackInProgressTranscode\n");
@@ -913,7 +906,7 @@ unsigned AudioCodec, char *subDir, char *programName)
     /* stop live decode*/
     if(g_dvrTest->streamPath[pathIndex].liveDecodeStarted && pathIndex <2)
     {
-       	DvrTestLiveDecodeStop(pathIndex);
+        DvrTestLiveDecodeStop(pathIndex);
     }
 
     BDBG_MSG(("\n B_DvrTestPlaybackInProgressTranscode : DvrTestLiveDecodeStop <<<"));
@@ -1114,13 +1107,13 @@ unsigned AudioCodec, char *subDir, char *programName)
     BDBG_MSG(("\n B_DvrTestPlaybackInProgressTranscode : B_DVR_TranscodeService_Start >>>"));
 
     /* start transcode */
-	inputVideoCodec = B_DVR_PlaybackService_P_GetVideoCodec(g_dvrTest->streamPath[0].playbackService);
-	printf("\n\n Playback video Codec %s \n\n", videoCodecTranscodeList[inputVideoCodec]);
-	printf("\n##########################################################\n");
-	printf("Start Transcoding from audioCodec %s videoCodec %s to audioCodec %s videoCodec %s \n", 
-				audioCodecArray[playbackMedia.esStreamInfo[1].codec.audioCodec], videoCodecTranscodeList[playbackMedia.esStreamInfo[0].codec.videoCodec],
-				AudioCodecName,VideoCodecName);
-	printf("\n##########################################################\n");
+    inputVideoCodec = B_DVR_PlaybackService_P_GetVideoCodec(g_dvrTest->streamPath[0].playbackService);
+    printf("\n\n Playback video Codec %s \n\n", videoCodecTranscodeList[inputVideoCodec]);
+    printf("\n##########################################################\n");
+    printf("Start Transcoding from audioCodec %s videoCodec %s to audioCodec %s videoCodec %s \n",
+                audioCodecArray[playbackMedia.esStreamInfo[1].codec.audioCodec], videoCodecTranscodeList[playbackMedia.esStreamInfo[0].codec.videoCodec],
+                AudioCodecName,VideoCodecName);
+    printf("\n##########################################################\n");
     rc = B_DVR_TranscodeService_Start(g_dvrTest->streamPath[pathIndex].transcodeService);
     if (rc != B_DVR_SUCCESS)
     {
@@ -1208,30 +1201,30 @@ unsigned AudioCodec, char *subDir, char *programName)
     B_DVR_PlaybackService_Start(g_dvrTest->streamPath[pathIndex].playbackService);
     BDBG_MSG(("\n B_DvrTestPlaybackInProgressTranscode : B_DVR_PlaybackService_Start <<<"));
 
-	/* Start Playback the current trancoding file */
+    /* Start Playback the current trancoding file */
 #if 1
-	sleep(10);
-	strcpy(g_dvrTest->streamPath[1].playbackServiceRequest.subDir, g_dvrTest->streamPath[pathIndex].recordServiceRequest.subDir);
-	g_dvrTest->streamPath[1].playbackServiceRequest.playpumpIndex = 7;
+    sleep(10);
+    strcpy(g_dvrTest->streamPath[1].playbackServiceRequest.subDir, g_dvrTest->streamPath[pathIndex].recordServiceRequest.subDir);
+    g_dvrTest->streamPath[1].playbackServiceRequest.playpumpIndex = 7;
     g_dvrTest->streamPath[1].playbackServiceRequest.volumeIndex = 0;
-	
-	printf("\n\n#### Playback directory %s ####\n\n", g_dvrTest->streamPath[1].playbackServiceRequest.subDir);
-	strcpy(g_dvrTest->streamPath[1].playbackServiceRequest.programName, g_dvrTest->streamPath[pathIndex].recordServiceRequest.programName);
-	printf("\n\n#### Playback stream %s ####\n\n", g_dvrTest->streamPath[1].playbackServiceRequest.programName);
+
+    printf("\n\n#### Playback directory %s ####\n\n", g_dvrTest->streamPath[1].playbackServiceRequest.subDir);
+    strcpy(g_dvrTest->streamPath[1].playbackServiceRequest.programName, g_dvrTest->streamPath[pathIndex].recordServiceRequest.programName);
+    printf("\n\n#### Playback stream %s ####\n\n", g_dvrTest->streamPath[1].playbackServiceRequest.programName);
     g_dvrTest->streamPath[1].playbackService = B_DVR_PlaybackService_Open(&g_dvrTest->streamPath[1].playbackServiceRequest);
-	B_DVR_PlaybackService_InstallCallback(g_dvrTest->streamPath[1].playbackService, g_dvrTest->dvrTestCallback, (void *)g_dvrTest);
+    B_DVR_PlaybackService_InstallCallback(g_dvrTest->streamPath[1].playbackService, g_dvrTest->dvrTestCallback, (void *)g_dvrTest);
     printf("\n B_DVR_PlaybackService_Open");
     if(g_dvrTest->streamPath[1].liveDecodeStarted)
     {
         DvrTestLiveDecodeStop(1);
-		printf("\n## Live decode stopped ##\n");
+        printf("\n## Live decode stopped ##\n");
     }
     DvrTestPlaybackDecodeStart(1);
     printf("\n DvrTest_PlaybackDecodeStart");
     B_DVR_PlaybackService_Start(g_dvrTest->streamPath[1].playbackService);
 
 #endif
-	BDBG_MSG(("\n B_DvrTestPlaybackInProgressTranscode : BKNI_CreateEvent >>>"));
+    BDBG_MSG(("\n B_DvrTestPlaybackInProgressTranscode : BKNI_CreateEvent >>>"));
     g_dvrTest->streamPath[pathIndex].transcodeFinishEvent = NULL;
     BKNI_CreateEvent(&g_dvrTest->streamPath[pathIndex].transcodeFinishEvent);
     if(!g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
@@ -1259,95 +1252,95 @@ B_DVR_ERROR DvrTestFileToFileTranscodeStop(unsigned pathIndex)
 {
     B_DVR_ERROR rc = B_DVR_SUCCESS;
     B_DVR_TranscodeServiceSettings transcodeServiceSettings;
-	int i;
+    int i;
 
     printf("\n\n-------------------------------------\n");
     printf("Starting DvrTestFileToFileTranscodeStop\n");
     printf("-------------------------------------\n");
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_GetSettings >>>"));
-	if(g_dvrTest->streamPath[pathIndex].transcodeService)
-	{
-		B_DVR_TranscodeService_GetSettings(g_dvrTest->streamPath[pathIndex].transcodeService,
+    if(g_dvrTest->streamPath[pathIndex].transcodeService)
+    {
+        B_DVR_TranscodeService_GetSettings(g_dvrTest->streamPath[pathIndex].transcodeService,
                                        &transcodeServiceSettings);
-	}
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_GetSettings <<<"));
 
-	BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : DvrTestPlaybackDecodeStop >>>"));
-	if (g_dvrTest->streamPath[pathIndex].playbackService)
-	{
-		B_DvrTestPlaybackDecodeStop(pathIndex);
-	}
+    BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : DvrTestPlaybackDecodeStop >>>"));
+    if (g_dvrTest->streamPath[pathIndex].playbackService)
+    {
+        B_DvrTestPlaybackDecodeStop(pathIndex);
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : DvrTestPlaybackDecodeStop <<<"));
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Stop Playback Service >>>"));
-	if (g_dvrTest->streamPath[pathIndex].playbackService)
-	{
-		B_DVR_PlaybackService_Stop(g_dvrTest->streamPath[pathIndex].playbackService);
-	}
-	BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Stop Playback Service <<<"));
-	
+    if (g_dvrTest->streamPath[pathIndex].playbackService)
+    {
+        B_DVR_PlaybackService_Stop(g_dvrTest->streamPath[pathIndex].playbackService);
+    }
+    BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Stop Playback Service <<<"));
+
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_Stop >>>"));
     if (g_dvrTest->streamPath[pathIndex].transcodeService)
     {
-    	B_DVR_TranscodeService_Stop(g_dvrTest->streamPath[pathIndex].transcodeService);
+        B_DVR_TranscodeService_Stop(g_dvrTest->streamPath[pathIndex].transcodeService);
     }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_Stop <<<"));
 
     /* wait for the encoder buffer model's data to be drained */
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : BKNI_WaitForEvent >>>"));
-	if (g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
-	{
-	    if(BKNI_WaitForEvent(g_dvrTest->streamPath[pathIndex].transcodeFinishEvent,
-	                         (transcodeServiceSettings.videoEncodeSettings.encoderDelay/27000)*2)!=BERR_SUCCESS) 
-	    {
-	        printf("\n Transcode Finish timeout");
-	    }
-	}
+    if (g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
+    {
+        if(BKNI_WaitForEvent(g_dvrTest->streamPath[pathIndex].transcodeFinishEvent,
+                             (transcodeServiceSettings.videoEncodeSettings.encoderDelay/27000)*2)!=BERR_SUCCESS)
+        {
+            printf("\n Transcode Finish timeout");
+        }
+    }
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Stop and Close Record Service >>>"));
     if (g_dvrTest->streamPath[pathIndex].recordService)
     {
-	    B_DVR_RecordService_Stop(g_dvrTest->streamPath[pathIndex].recordService);
-		B_DVR_RecordService_RemoveCallback(g_dvrTest->streamPath[pathIndex].recordService);
-		B_DVR_RecordService_Close(g_dvrTest->streamPath[pathIndex].recordService);
+        B_DVR_RecordService_Stop(g_dvrTest->streamPath[pathIndex].recordService);
+        B_DVR_RecordService_RemoveCallback(g_dvrTest->streamPath[pathIndex].recordService);
+        B_DVR_RecordService_Close(g_dvrTest->streamPath[pathIndex].recordService);
     }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Record Service Closed <<<"));
 
-	BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Playback Service Closed >>>"));
-	if (g_dvrTest->streamPath[pathIndex].playbackService)
-	{
-		B_DVR_PlaybackService_RemoveCallback(g_dvrTest->streamPath[pathIndex].playbackService);
-		B_DVR_PlaybackService_Close(g_dvrTest->streamPath[pathIndex].playbackService);
-	}
-	BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Playback Service Closed <<<"));
-	
+    BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Playback Service Closed >>>"));
+    if (g_dvrTest->streamPath[pathIndex].playbackService)
+    {
+        B_DVR_PlaybackService_RemoveCallback(g_dvrTest->streamPath[pathIndex].playbackService);
+        B_DVR_PlaybackService_Close(g_dvrTest->streamPath[pathIndex].playbackService);
+    }
+    BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : Playback Service Closed <<<"));
+
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_RemoveCallback >>>"));
-	if(g_dvrTest->streamPath[pathIndex].transcodeService)
-	{
-    	B_DVR_TranscodeService_RemoveCallback(g_dvrTest->streamPath[pathIndex].transcodeService);
-	}
+    if(g_dvrTest->streamPath[pathIndex].transcodeService)
+    {
+        B_DVR_TranscodeService_RemoveCallback(g_dvrTest->streamPath[pathIndex].transcodeService);
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_RemoveCallback <<<"));
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_RemoveAllInputEsStreams >>>"));
-	if(g_dvrTest->streamPath[pathIndex].transcodeService)
-	{
-		B_DVR_TranscodeService_RemoveAllInputEsStreams(g_dvrTest->streamPath[pathIndex].transcodeService);
-	}
+    if(g_dvrTest->streamPath[pathIndex].transcodeService)
+    {
+        B_DVR_TranscodeService_RemoveAllInputEsStreams(g_dvrTest->streamPath[pathIndex].transcodeService);
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_RemoveAllInputEsStreams <<<"));
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_Close >>>"));
-	if(g_dvrTest->streamPath[pathIndex].transcodeService)
-	{
-		B_DVR_TranscodeService_Close(g_dvrTest->streamPath[pathIndex].transcodeService);
-	}
+    if(g_dvrTest->streamPath[pathIndex].transcodeService)
+    {
+        B_DVR_TranscodeService_Close(g_dvrTest->streamPath[pathIndex].transcodeService);
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : B_DVR_TranscodeService_Close <<<"));
 
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : NEXUS_StcChannel_Close >>>"));
-	if (g_dvrTest->streamPath[pathIndex].transcodeServiceRequest.transcodeStcChannel)
-	{
-		NEXUS_StcChannel_Close(g_dvrTest->streamPath[pathIndex].transcodeServiceRequest.transcodeStcChannel);
-	}
+    if (g_dvrTest->streamPath[pathIndex].transcodeServiceRequest.transcodeStcChannel)
+    {
+        NEXUS_StcChannel_Close(g_dvrTest->streamPath[pathIndex].transcodeServiceRequest.transcodeStcChannel);
+    }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : NEXUS_StcChannel_Close <<<"));
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : DvrTestLiveDecodeStart >>>"));
     g_dvrTest->streamPath[pathIndex].transcodeService = NULL;
@@ -1359,12 +1352,12 @@ B_DVR_ERROR DvrTestFileToFileTranscodeStop(unsigned pathIndex)
        DvrTestLiveDecodeStart(pathIndex);
     }
     BDBG_MSG(("\n DvrTest_FileToFileTranscodeStop : DvrTestLiveDecodeStart <<<"));
-	if (g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
-	{
-		BKNI_DestroyEvent(g_dvrTest->streamPath[pathIndex].transcodeFinishEvent);
-	}
+    if (g_dvrTest->streamPath[pathIndex].transcodeFinishEvent)
+    {
+        BKNI_DestroyEvent(g_dvrTest->streamPath[pathIndex].transcodeFinishEvent);
+    }
 
-	B_Event_Set(TranscodeServiceReady);
+    B_Event_Set(TranscodeServiceReady);
 
     return rc;
 }
@@ -1553,10 +1546,10 @@ void DvrTestFileToFileTranscode (CuTest * tc)
     unsigned VideoPID, AudioPID;
     unsigned record_videoCodec, record_audioCodec;
 
-	BSTD_UNUSED(tc);
+    BSTD_UNUSED(tc);
     g_dvrTest->maxChannels = MAX_STATIC_CHANNELS;
     g_dvrTest->streamPath[0].currentChannel = currentLiveChannel;
-	/*DvrTestTuneChannel(0);*/
+    /*DvrTestTuneChannel(0);*/
 
     TSBServiceReady = B_Event_Create(NULL);
     TSBConversionComplete= B_Event_Create(NULL);
@@ -1566,7 +1559,7 @@ void DvrTestFileToFileTranscode (CuTest * tc)
     g_dvrTest->dvrTestCallback = (B_DVR_ServiceCallback)DvrTestCallback;
     DvrTestTsbBufferPreallocate(NUM_TSB_CONVERSION);
 
-	/* Start TSB service */
+    /* Start TSB service */
     for (index = 0; index < NUM_TSB_CONVERSION; index++)
     {
         if(!g_dvrTest->streamPath[index].tsbService)
@@ -1580,34 +1573,34 @@ void DvrTestFileToFileTranscode (CuTest * tc)
     /* wait until TSB Service becomes ready */
     while(B_Event_Wait(TSBServiceReady, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
 
-	/* Start TSB Conversion Service */
-	for (index=0; index < NUM_TSB_CONVERSION ; index++)
-	{
-	    if(g_dvrTest->streamPath[index].tsbService)
-	    {
-	        B_DVR_ERROR rc = B_DVR_SUCCESS;
-	        B_DVR_TSBServiceStatus tsbStatus;
-	        B_DVR_TSBServicePermanentRecordingRequest recReq;
+    /* Start TSB Conversion Service */
+    for (index=0; index < NUM_TSB_CONVERSION ; index++)
+    {
+        if(g_dvrTest->streamPath[index].tsbService)
+        {
+            B_DVR_ERROR rc = B_DVR_SUCCESS;
+            B_DVR_TSBServiceStatus tsbStatus;
+            B_DVR_TSBServicePermanentRecordingRequest recReq;
 
-	        B_DVR_TSBService_GetStatus(g_dvrTest->streamPath[index].tsbService, &tsbStatus);
-	        sprintf(recReq.programName, programName);
-	        recReq.recStartTime = tsbStatus.tsbRecStartTime;
-	        recReq.recEndTime = recReq.recStartTime + DURATION;
-	        printf("\n \t program name %s \t start %lu \t end %lu",recReq.programName,recReq.recStartTime,recReq.recEndTime);
-	        sprintf(recReq.subDir, subDir);
-	        rc = B_DVR_TSBService_ConvertStart(g_dvrTest->streamPath[index].tsbService,&recReq);
-	        if(rc!=B_DVR_SUCCESS)
-	        {
-	            printf("\n Invalid paramters");
-	        }
-	    }
-	}
+            B_DVR_TSBService_GetStatus(g_dvrTest->streamPath[index].tsbService, &tsbStatus);
+            sprintf(recReq.programName, programName);
+            recReq.recStartTime = tsbStatus.tsbRecStartTime;
+            recReq.recEndTime = recReq.recStartTime + DURATION;
+            printf("\n \t program name %s \t start %lu \t end %lu",recReq.programName,recReq.recStartTime,recReq.recEndTime);
+            sprintf(recReq.subDir, subDir);
+            rc = B_DVR_TSBService_ConvertStart(g_dvrTest->streamPath[index].tsbService,&recReq);
+            if(rc!=B_DVR_SUCCESS)
+            {
+                printf("\n Invalid paramters");
+            }
+        }
+    }
 
     /* wait until TSB Conversion is completed */
     while(B_Event_Wait(TSBConversionComplete, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
     B_Event_Reset(TSBConversionComplete);
-	B_DVR_TSBService_ConvertStop(g_dvrTest->streamPath[0].tsbService);
-	DvrTestTsbServiceStopOperation(0);
+    B_DVR_TSBService_ConvertStop(g_dvrTest->streamPath[0].tsbService);
+    DvrTestTsbServiceStopOperation(0);
 
     /* check the recording's video codec and audio codec to exclude them 
     from the selection of codecs for transcoding */
@@ -1666,8 +1659,8 @@ void DvrTestFileToFileTranscode (CuTest * tc)
                 while(B_Event_Wait(TranscodeServiceReady, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
                 B_Event_Reset(TranscodeServiceReady);
                 rc = B_DvrTestFileToFileTranscodeStart(0, VideoCodec, AudioCodec, subDir, programName);
-				printf("\n### Running B_DvrTestFileToFileTranscodeStart for audioCodecIndex %d ###\n", audioCodecIndex);
-				if (rc == B_DVR_SUCCESS)
+                printf("\n### Running B_DvrTestFileToFileTranscodeStart for audioCodecIndex %d ###\n", audioCodecIndex);
+                if (rc == B_DVR_SUCCESS)
                 {
                     /* wailt until the playback point is reached to the end */
                     while(B_Event_Wait(endOfStreamEvent, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
@@ -1679,8 +1672,8 @@ void DvrTestFileToFileTranscode (CuTest * tc)
             }
         }
     }
-	closing_services:
-	DvrTestTsbBufferDeallocate(NUM_TSB_CONVERSION);
+    closing_services:
+    DvrTestTsbBufferDeallocate(NUM_TSB_CONVERSION);
 }
 
 void DvrTestPlaybackInProgressTranscode (CuTest * tc)
@@ -1699,10 +1692,10 @@ void DvrTestPlaybackInProgressTranscode (CuTest * tc)
     unsigned VideoPID, AudioPID;
     unsigned record_videoCodec, record_audioCodec;
 
-	BSTD_UNUSED(tc);
+    BSTD_UNUSED(tc);
     g_dvrTest->maxChannels = MAX_STATIC_CHANNELS;
     g_dvrTest->streamPath[0].currentChannel = currentLiveChannel;
-	/*DvrTestTuneChannel(0);*/
+    /*DvrTestTuneChannel(0);*/
 
     TSBServiceReady = B_Event_Create(NULL);
     TSBConversionComplete= B_Event_Create(NULL);
@@ -1712,7 +1705,7 @@ void DvrTestPlaybackInProgressTranscode (CuTest * tc)
     g_dvrTest->dvrTestCallback = (B_DVR_ServiceCallback)DvrTestCallback;
     B_DvrTestTsbBufferPreallocate(NUM_TSB_CONVERSION, programName);
 
-	/* Start TSB service */
+    /* Start TSB service */
     for (index = 0; index < NUM_TSB_CONVERSION; index++)
     {
         if(!g_dvrTest->streamPath[index].tsbService)
@@ -1726,35 +1719,35 @@ void DvrTestPlaybackInProgressTranscode (CuTest * tc)
     /* wait until TSB Service becomes ready */
     while(B_Event_Wait(TSBServiceReady, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
 
-	/* Start TSB Conversion Service */
-	for (index=0; index < NUM_TSB_CONVERSION ; index++)
-	{
-	    if(g_dvrTest->streamPath[index].tsbService)
-	    {
-	        B_DVR_ERROR rc = B_DVR_SUCCESS;
-	        B_DVR_TSBServiceStatus tsbStatus;
-	        B_DVR_TSBServicePermanentRecordingRequest recReq;
+    /* Start TSB Conversion Service */
+    for (index=0; index < NUM_TSB_CONVERSION ; index++)
+    {
+        if(g_dvrTest->streamPath[index].tsbService)
+        {
+            B_DVR_ERROR rc = B_DVR_SUCCESS;
+            B_DVR_TSBServiceStatus tsbStatus;
+            B_DVR_TSBServicePermanentRecordingRequest recReq;
 
-	        B_DVR_TSBService_GetStatus(g_dvrTest->streamPath[index].tsbService, &tsbStatus);
-	        sprintf(recReq.programName, programName);
-			printf("\n\n#### recReq.programName %s #### \n", recReq.programName);
-	        recReq.recStartTime = tsbStatus.tsbRecStartTime;
-	        recReq.recEndTime = recReq.recStartTime + DURATION;
-	        printf("\n \t program name %s \t start %lu \t end %lu",recReq.programName,recReq.recStartTime,recReq.recEndTime);
-	        sprintf(recReq.subDir, subDir);
-	        rc = B_DVR_TSBService_ConvertStart(g_dvrTest->streamPath[index].tsbService,&recReq);
-	        if(rc!=B_DVR_SUCCESS)
-	        {
-	            printf("\n Invalid paramters");
-	        }
-	    }
-	}
+            B_DVR_TSBService_GetStatus(g_dvrTest->streamPath[index].tsbService, &tsbStatus);
+            sprintf(recReq.programName, programName);
+            printf("\n\n#### recReq.programName %s #### \n", recReq.programName);
+            recReq.recStartTime = tsbStatus.tsbRecStartTime;
+            recReq.recEndTime = recReq.recStartTime + DURATION;
+            printf("\n \t program name %s \t start %lu \t end %lu",recReq.programName,recReq.recStartTime,recReq.recEndTime);
+            sprintf(recReq.subDir, subDir);
+            rc = B_DVR_TSBService_ConvertStart(g_dvrTest->streamPath[index].tsbService,&recReq);
+            if(rc!=B_DVR_SUCCESS)
+            {
+                printf("\n Invalid paramters");
+            }
+        }
+    }
 
     /* wait until TSB Conversion is completed */
     while(B_Event_Wait(TSBConversionComplete, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
     B_Event_Reset(TSBConversionComplete);
-	B_DVR_TSBService_ConvertStop(g_dvrTest->streamPath[0].tsbService);
-	DvrTestTsbServiceStopOperation(0);
+    B_DVR_TSBService_ConvertStop(g_dvrTest->streamPath[0].tsbService);
+    DvrTestTsbServiceStopOperation(0);
 
     /* check the recording's video codec and audio codec to exclude them 
     from the selection of codecs for transcoding */
@@ -1810,20 +1803,18 @@ void DvrTestPlaybackInProgressTranscode (CuTest * tc)
 
                 while(B_Event_Wait(TranscodeServiceReady, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
                 B_Event_Reset(TranscodeServiceReady);
-				printf("\n### Running B_DvrTestFileToFileTranscodeStart for audioCodecIndex %d ###\n", audioCodecIndex);
+                printf("\n### Running B_DvrTestFileToFileTranscodeStart for audioCodecIndex %d ###\n", audioCodecIndex);
                 rc = DvrTestPlaybackInProgressTranscodeStart(0, VideoCodec, AudioCodec, subDir, programName);
-				if (rc == B_DVR_SUCCESS)
+                if (rc == B_DVR_SUCCESS)
                 {
                     /* wailt until the playback point is reached to the end */
                     while(B_Event_Wait(endOfStreamEvent, B_WAIT_FOREVER)!=B_ERROR_SUCCESS);
-					B_Event_Reset(endOfStreamEvent);
-					DvrTestFileToFileTranscodeStop(0);					
+                    B_Event_Reset(endOfStreamEvent);
+                    DvrTestFileToFileTranscodeStop(0);
                 }
                 else
                     CuFail(tc, "TRANSCODE SERVICE FAILED");
             }
     }
-	B_DvrTestTsbBufferDeallocate(NUM_TSB_CONVERSION, programName);
+    B_DvrTestTsbBufferDeallocate(NUM_TSB_CONVERSION, programName);
 }
-
-

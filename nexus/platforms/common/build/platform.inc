@@ -102,14 +102,15 @@ endif
 # Module Sources #
 ##################
 NEXUS_PLATFORM_SOURCES = \
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_map.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform.c \
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_$(NEXUS_PLATFORM).c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_config.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_core.c \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_$(NEXUS_PLATFORM).c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_interrupt.c \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_map.c \
-    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_settings.c \
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_ipc.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_memconfig.c \
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_settings.c \
     $(NEXUS_PLATFORM_COMMON_DIR)/src/nexus_platform_standby.c \
     $(NEXUS_TOP)/base/src/b_objdb.c \
     $(NEXUS_TOP)/base/src/nexus_client_resources.c
@@ -229,7 +230,12 @@ ifeq ($(B_REFSW_OS),linuxkernel)
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_driver_callbacks.c
 
         # nexus_generic_driver.c depends on the thunk in order to trap NEXUS_Platform_Init/Uninit
+        ifeq ($(NEXUS_ABICOMPAT_MODE),y)
+        $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_abiverify_ioctl.h
+        else
         $(NEXUS_PLATFORM_COMMON_DIR)/src/$(B_REFSW_OS)/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_ioctl.h
+        endif
+
     endif
 
     ifeq ($(NEXUS_CONFIG_IMAGE),y)
@@ -264,7 +270,11 @@ ifeq ($(B_REFSW_OS),bare)
         # $(NEXUS_PLATFORM_COMMON_DIR)/src/bare/libgcc/memcpy_brcm.S
 
     # nexus_generic_driver.c depends on the thunk in order to trap NEXUS_Platform_Init/Uninit
+    ifeq ($(NEXUS_ABICOMPAT_MODE),y)
+    $(NEXUS_PLATFORM_COMMON_DIR)/src/linuxkernel/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_abiverify_ioctl.h
+    else
     $(NEXUS_PLATFORM_COMMON_DIR)/src/linuxkernel/nexus_generic_driver.c: $(NEXUS_SYNCTHUNK_DIR)/nexus_platform_ioctl.h
+    endif
 endif
 
 # allow override of socket interface

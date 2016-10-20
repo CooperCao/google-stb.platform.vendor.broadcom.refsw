@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #include "../common/bhdm_priv.h"
 
@@ -266,7 +265,7 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 	/* Register/enable interrupt callbacks */
 
 	rc = BHDM_AUTO_I2C_P_EnableInterrupts(hHDMI) ;
-	if (rc) { BERR_TRACE(rc) ; goto done ;}
+	if (rc) { (void)BERR_TRACE(rc) ; goto done ;}
 
 	/*configure polling channels; NOTE: Polling is not started here */
 
@@ -276,7 +275,7 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 	rc = BHDM_AUTO_I2C_P_ConfigureReadChannel(hHDMI,
 		BHDM_AUTO_I2C_MODE_ePollScdcUpdate0, BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR,
 		BHDM_AUTO_I2C_P_SCDC_UPDATE0_OFFSET, 2) ;
-	if (rc) { BERR_TRACE(rc) ; goto done ;}
+	if (rc) { (void)BERR_TRACE(rc) ; goto done ;}
 
 	/************/
 	/* HDCP2.2  */
@@ -284,7 +283,7 @@ BERR_Code  BHDM_AUTO_I2C_P_AllocateResources(const BHDM_Handle hHDMI)
 	rc = BHDM_AUTO_I2C_P_ConfigureReadChannel(hHDMI,
 		BHDM_AUTO_I2C_MODE_ePollHdcp22RxStatus, BHDM_AUTO_I2C_P_HDCP22_SLAVE_ADDR,
 		BHDM_AUTO_I2C_P_HDCP22_RXSTATUS_OFFSET, 2) ;
-	if (rc) { BERR_TRACE(rc) ; goto done ;}
+	if (rc) { (void)BERR_TRACE(rc) ; goto done ;}
 
 done :
 	if (rc)
@@ -315,14 +314,14 @@ BERR_Code BHDM_AUTO_I2C_P_DisableInterrupts(BHDM_Handle hHDMI)
 		{
 			if (BINT_DisableCallback( (hHDMI->hAutoI2cCallback[i])) != BERR_SUCCESS)
 			{
-				BERR_TRACE(rc) ;
+				(void)BERR_TRACE(rc) ;
 				rc = BERR_UNKNOWN ;
 			}
 
 			if  (BINT_DestroyCallback( hHDMI->hAutoI2cCallback[i]) != BERR_SUCCESS)
 			{
 				BDBG_ERR(("Error Destroying Callback %d", i)) ;
-				BERR_TRACE(rc) ;
+				(void)BERR_TRACE(rc) ;
 				rc = BERR_UNKNOWN ;
 
 			}
@@ -521,6 +520,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureReadChannel_isr(const BHDM_Handle hHDMI,
 		+ BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * (uint8_t) eChannel ;
 
 	BDBG_MSG(("Channel: %d Offset: %x", eChannel, channelOffset)) ;
+        BSTD_UNUSED(channelOffset);
 
 	if (length > BHDM_AUTO_I2C_P_MAX_READ_BYTES)
 	{
@@ -674,6 +674,7 @@ BERR_Code BHDM_AUTO_I2C_P_ConfigureWriteChannel_isr(const BHDM_Handle hHDMI,
 	channelOffset = BCHP_HDMI_TX_AUTO_I2C_CH0_REG0_CFG + ulOffset
 		+ BHDM_AUTO_I2C_P_NUM_CHX_REGISTERS * eChannel ;
 	BDBG_MSG(("Channel: %d Offset: %x", eChannel, channelOffset)) ;
+        BSTD_UNUSED(channelOffset);
 
 	if (length > BHDM_AUTO_I2C_P_MAX_WRITE_BYTES)
 	{
@@ -873,10 +874,12 @@ void BHDM_AUTO_I2C_P_EnableChannelWrite(const BHDM_Handle hHDMI,
 		default :
 			BDBG_ERR(("Unknown Channel %d for SCDC Update0 Polling", eChannel)) ;
 		}
+        BSTD_UNUSED(eChannel);
 	BREG_Write32(hRegister, BCHP_HDMI_TX_AUTO_I2C_START + ulOffset, Register) ;
 }
 
 
+#if !B_REFSW_MINIMAL
 BERR_Code BHDM_AUTO_I2C_EnableWriteChannel(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_CHANNEL eChannel)
 {
@@ -885,6 +888,7 @@ BERR_Code BHDM_AUTO_I2C_EnableWriteChannel(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_EnableChannelWrite(hHDMI, eChannel) ;
 	return 0 ;
 }
+#endif
 
 
 /* Read/store the  data read by the auto i2c circuit */

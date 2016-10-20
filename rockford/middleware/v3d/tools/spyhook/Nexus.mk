@@ -26,6 +26,13 @@ V3D_PLATFORM_DIR ?= $(ROCKFORD_TOP)/middleware/v3d/platform
 CFLAGS += -I. -I$(V3D_DIR)/interface/khronos/include -I$(V3D_DIR)
 ## CAUTION: Using higher optimsation levels causes a SEGV when getting state
 #CFLAGS += -O0 -fPIC -DPIC -fvisibility=hidden
+ifeq ($(VC5_GPUMON_HOOK),)
+CFLAGS += \
+        -I./../../../vc5/tools/gpumon_hook
+else
+CFLAGS += \
+        -I$(VC5_GPUMON_HOOK)
+endif
 CFLAGS += -O0 -fPIC -DPIC
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 

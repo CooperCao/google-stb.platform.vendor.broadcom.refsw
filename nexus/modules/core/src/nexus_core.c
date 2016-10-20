@@ -295,6 +295,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     g_NexusCore.publicHandles.reg = pSettings->regHandle;
     g_NexusCore.publicHandles.box = preInitState->hBox;
     g_NexusCore.publicHandles.tee = pSettings->teeHandle;
+    g_NexusCore.publicHandles.memoryLayout = pSettings->memoryLayout;
 
 #if BCHP_UNIFIED_IMPL
     {
@@ -302,6 +303,7 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
     const char *str = NEXUS_GetEnv("B_REFSW_OVERRIDE_PRODUCT_ID_TO");
     BCHP_GetDefaultOpenSettings(&openSettings);
     openSettings.reg = g_NexusCore.publicHandles.reg;
+    openSettings.memoryLayout = pSettings->memoryLayout;
     if (str) {
         openSettings.productId = NEXUS_hextoi(str);
     }
@@ -427,8 +429,8 @@ NEXUS_CoreModule_Init(const NEXUS_Core_Settings *pSettings, const NEXUS_Core_Pre
 
                 BMRC_Monitor_GetDefaultSettings(&mrcMonitorSettings);
 
-                memcOffset = g_NexusCore.cfg.memcRegion[memStatus.memcIndex].offset;
-                memcSize = g_NexusCore.cfg.memcRegion[memStatus.memcIndex].length;
+                memcOffset = g_NexusCore.cfg.memoryLayout.memc[memStatus.memcIndex].region[0].addr;
+                memcSize = g_NexusCore.cfg.memoryLayout.memc[memStatus.memcIndex].region[0].size;
                 BDBG_MSG(("MEMC%u " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", memStatus.memcIndex, BDBG_UINT64_ARG(memcOffset), BDBG_UINT64_ARG(memcSize)));
 
                 BDBG_ASSERT(memcOffset+memcSize >= memcOffset); /* check that addresses wouldn't wrap */
@@ -829,18 +831,6 @@ void NEXUS_KeySlot_P_DeferredDestroy(NEXUS_KeySlotHandle keyslot)
     keyslot->deferDestroy = false;
     NEXUS_KeySlot_P_Finalizer(keyslot);
     NEXUS_UnlockModule();
-}
-
-void NEXUS_KeySlot_SetTag( NEXUS_KeySlotHandle keyslot, NEXUS_KeySlotTag tag )
-{
-    NEXUS_OBJECT_ASSERT(NEXUS_KeySlot, keyslot);
-    keyslot->drmContext = tag;
-}
-
-void NEXUS_KeySlot_GetTag( NEXUS_KeySlotHandle keyslot, NEXUS_KeySlotTag *pTag )
-{
-    NEXUS_OBJECT_ASSERT(NEXUS_KeySlot, keyslot);
-    *pTag = keyslot->drmContext;
 }
 
 static void NEXUS_VideoInput_P_Finalizer(NEXUS_VideoInputHandle videoInput)

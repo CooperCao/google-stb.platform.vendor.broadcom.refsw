@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2012 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  *****************************************************************************/
 #include "nexus_platform.h"
 #include <stdio.h>
@@ -75,7 +67,7 @@ void simple_fill(NEXUS_Graphics2DHandle gfx, NEXUS_SurfaceHandle surface, uint32
     BDBG_ASSERT(!rc);
 }
 
-int main(void)
+int main(int argc, char **argv)
 {
     NEXUS_SurfaceHandle framebuffer, red_surface, green_surface;
     NEXUS_SurfaceCreateSettings createSurfaceSettings;
@@ -94,6 +86,11 @@ int main(void)
     NEXUS_Error rc;
     NEXUS_Rect red_rect = {100,100,200,200}; /* x,y coordinates are framebuffer coordinates */
     NEXUS_Rect green_rect = {150,150,200,200}; /* x,y coordinates are framebuffer coordinates */
+    bool use_equation = false;
+
+    if (argc > 1) {
+        use_equation = !strcmp(argv[1], "-eq");
+    }
 
     /* Bring up all modules for a platform in a default configuraiton for this platform */
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
@@ -173,8 +170,20 @@ int main(void)
     blitSettings.source.surface = green_surface;
     blitSettings.output.surface = framebuffer;
     blitSettings.output.rect = green_rect;
-    blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
-    blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
+    if (use_equation) {
+        NEXUS_BlendEquation colorEq = { NEXUS_BlendFactor_eSourceColor, NEXUS_BlendFactor_eOne, 0,
+            NEXUS_BlendFactor_eZero, NEXUS_BlendFactor_eZero, 0, NEXUS_BlendFactor_eZero };
+        NEXUS_BlendEquation alphaEq = { NEXUS_BlendFactor_eSourceAlpha, NEXUS_BlendFactor_eOne, 0,
+            NEXUS_BlendFactor_eZero, NEXUS_BlendFactor_eZero, 0, NEXUS_BlendFactor_eZero };
+        blitSettings.colorOp = NEXUS_BlitColorOp_eUseBlendEquation;
+        blitSettings.colorBlend = colorEq;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eUseBlendEquation;
+        blitSettings.alphaBlend = alphaEq;
+    }
+    else {
+        blitSettings.colorOp = NEXUS_BlitColorOp_eCopySource;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
+    }
     rc = NEXUS_Graphics2D_Blit(gfx, &blitSettings);
     BDBG_ASSERT(!rc);
     while (NEXUS_Graphics2D_Checkpoint(gfx, NULL)); /* loop until done */
@@ -198,8 +207,20 @@ int main(void)
     blitSettings.output.surface = framebuffer;
     blitSettings.output.rect = green_rect; /* output.rect can be different from dest.rect, but it's not in this app. */
     blitSettings.constantColor = 0x80 << 24;
-    blitSettings.colorOp = NEXUS_BlitColorOp_eUseConstantAlpha;
-    blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
+    if (use_equation) {
+        NEXUS_BlendEquation colorEq = { NEXUS_BlendFactor_eSourceColor, NEXUS_BlendFactor_eConstantAlpha, 0,
+            NEXUS_BlendFactor_eDestinationColor, NEXUS_BlendFactor_eInverseConstantAlpha, 0, NEXUS_BlendFactor_eZero };
+        NEXUS_BlendEquation alphaEq = { NEXUS_BlendFactor_eSourceAlpha, NEXUS_BlendFactor_eOne, 0,
+            NEXUS_BlendFactor_eZero, NEXUS_BlendFactor_eZero, 0, NEXUS_BlendFactor_eZero };
+        blitSettings.colorOp = NEXUS_BlitColorOp_eUseBlendEquation;
+        blitSettings.colorBlend = colorEq;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eUseBlendEquation;
+        blitSettings.alphaBlend = alphaEq;
+    }
+    else {
+        blitSettings.colorOp = NEXUS_BlitColorOp_eUseConstantAlpha;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopySource;
+    }
     rc = NEXUS_Graphics2D_Blit(gfx, &blitSettings);
     BDBG_ASSERT(!rc);
     while (NEXUS_Graphics2D_Checkpoint(gfx, NULL)); /* loop until done */
@@ -224,12 +245,31 @@ int main(void)
     blitSettings.output.surface = framebuffer;
     blitSettings.output.rect = green_rect;
     blitSettings.constantColor = 0xFF << 24; /* constant not used for blend. used for framebuffer's final alpha to blend with video. */
-    blitSettings.colorOp = NEXUS_BlitColorOp_eUseSourceAlpha;
-    blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopyConstant;
+    if (use_equation) {
+        NEXUS_BlendEquation colorEq = { NEXUS_BlendFactor_eSourceColor, NEXUS_BlendFactor_eSourceAlpha, 0,
+            NEXUS_BlendFactor_eDestinationColor, NEXUS_BlendFactor_eInverseSourceAlpha, 0, NEXUS_BlendFactor_eZero };
+        NEXUS_BlendEquation alphaEq = { NEXUS_BlendFactor_eConstantAlpha, NEXUS_BlendFactor_eOne, 0,
+            NEXUS_BlendFactor_eZero, NEXUS_BlendFactor_eZero, 0, NEXUS_BlendFactor_eZero };
+        blitSettings.colorOp = NEXUS_BlitColorOp_eUseBlendEquation;
+        blitSettings.colorBlend = colorEq;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eUseBlendEquation;
+        blitSettings.alphaBlend = alphaEq;
+    }
+    else {
+        blitSettings.colorOp = NEXUS_BlitColorOp_eUseSourceAlpha;
+        blitSettings.alphaOp = NEXUS_BlitAlphaOp_eCopyConstant;
+    }
     rc = NEXUS_Graphics2D_Blit(gfx, &blitSettings);
     BDBG_ASSERT(!rc);
     while (NEXUS_Graphics2D_Checkpoint(gfx, NULL)); /* loop until done */
     getchar();
+
+    NEXUS_Display_Close(display);
+    NEXUS_Surface_Destroy(framebuffer);
+    NEXUS_Surface_Destroy(red_surface);
+    NEXUS_Surface_Destroy(green_surface);
+    NEXUS_Graphics2D_Close(gfx);
+    NEXUS_Platform_Uninit();
 
     return 0;
 }

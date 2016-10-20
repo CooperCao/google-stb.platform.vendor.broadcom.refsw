@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -281,8 +281,8 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
 
     case eKey_Stop:
     {
-        CChannel *  pChannel     = _pModel->getCurrentChannel();
-        CPlayback * pPlayback    = _pModel->getPlayback();
+        CChannel *  pChannel  = _pModel->getCurrentChannel();
+        CPlayback * pPlayback = _pModel->getPlayback();
 
         if ((NULL != pPlayback) && (true == pPlayback->isActive()))
         {
@@ -294,13 +294,18 @@ eRet CControl::processKeyEvent(CRemoteEvent * pRemoteEvent)
             recordStop();
         }
         else
+        if (0 < _encodingChannels.total())
+        {
+            encodeStop();
+        }
+        else
         if ((NULL != pChannel) &&
             (true == pChannel->isTuned()) &&
             (true == pChannel->isStopAllowed()))
         {
             /* stop is only allowed for channels that are not a part of the
-               channelmgr's channel lists.  one example of a stoppable channel
-               is an auto-discovered streaming channel */
+             * channelmgr's channel lists.  one example of a stoppable channel
+             * is an auto-discovered streaming channel */
             unTuneChannel(pChannel, true);
             tuneLastChannel();
         }
@@ -878,7 +883,7 @@ void CControl::processNotification(CNotification & notification)
         removeRf4ceRemote(pRf4ceData->_pairingRefNum);
     }
     break;
-#endif
+#endif /* if RF4CE_SUPPORT */
 
     case eNotify_Tune:
     {
@@ -1025,12 +1030,12 @@ void CControl::processNotification(CNotification & notification)
             }
         }
 
+        _pModel->resetChannelHistory();
         if (eRet_Ok != _pChannelMgr->loadChannelList(pLoadData->_strFileName.s(), pLoadData->_append))
         {
             BDBG_WRN(("channel list XML version MISmatch (%s)", pLoadData->_strFileName.s()));
         }
 
-        _pModel->resetChannelHistory();
         _pChannelMgr->dumpChannelList(true);
         tuneChannel();
     }
@@ -1339,13 +1344,21 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_EncodeStart:
     {
-        encodeStart();
+#if NEXUS_HAS_VIDEO_ENCODER
+        CTranscodeData * pEncodeData = (CTranscodeData *)notification.getData();
+        if (pEncodeData != NULL)
+        {
+            encodeStart(pEncodeData->_strFileName.s(), pEncodeData->_strPath.s());
+        }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
     }
     break;
 
     case eNotify_EncodeStop:
     {
+#if NEXUS_HAS_VIDEO_ENCODER
         encodeStop();
+#endif
     }
     break;
 
@@ -1542,41 +1555,40 @@ void CControl::processNotification(CNotification & notification)
 
     case eNotify_ipClientTranscodeEnable:
     {
-        bool *              transcodeEnabled;
-        transcodeEnabled    = (bool *)notification.getData();
+        bool * transcodeEnabled;
+        transcodeEnabled = (bool *)notification.getData();
         _pModel->setIpClientTranscodeEnabled(*transcodeEnabled);
-		if(*transcodeEnabled)
-		{
-			BDBG_WRN(("Transcoding is enabled for the IP streaming for this client" ));
-	    }
-		else
-		{
-			BDBG_WRN(("Transcoding is disabled for the IP streaming for this client" ));
-		}
+        if (*transcodeEnabled)
+        {
+            BDBG_WRN(("Transcoding is enabled for the IP streaming for this client"));
+        }
+        else
+        {
+            BDBG_WRN(("Transcoding is disabled for the IP streaming for this client"));
+        }
     }
     break;
 
     case eNotify_ipClientTranscodeProfile:
     {
-
         int * transcodeProfile = (int *)notification.getData();
-        BDBG_WRN(("You entered %d", *transcodeProfile ));
+        BDBG_WRN(("You entered %d", *transcodeProfile));
 
-        if(*transcodeProfile == 1)
-		{
-			BDBG_WRN(("Transcode profile is set to 480p30 for the next IP streaming for this client" ));
-	    }
-		else if(*transcodeProfile == 2)
-		{
-			BDBG_WRN(("Transcode profile is set to 720p30 for the next IP streaming for this client" ));
-	    }
+        if (*transcodeProfile == 1)
+        {
+            BDBG_WRN(("Transcode profile is set to 480p30 for the next IP streaming for this client"));
+        }
         else
-		{
-			BDBG_WRN(("Invalid Transcode profile. Please enter 1 for 480p30 OR 2 for 720p30 profile" ));
-	    }
+        if (*transcodeProfile == 2)
+        {
+            BDBG_WRN(("Transcode profile is set to 720p30 for the next IP streaming for this client"));
+        }
+        else
+        {
+            BDBG_WRN(("Invalid Transcode profile. Please enter 1 for 480p30 OR 2 for 720p30 profile"));
+        }
 
         _pModel->setIpClientTranscodeProfile(*transcodeProfile);
-
     }
     break;
 
@@ -1931,7 +1943,7 @@ eRet CControl::unTuneChannel(
         eWindowType windowType
         )
 {
-    eRet                 ret          = eRet_Ok;
+    eRet ret = eRet_Ok;
 
 #if DVR_LIB_SUPPORT
     CTsb * pTsb = _pModel->getTsb(windowType);
@@ -2022,7 +2034,7 @@ eRet CControl::unTuneChannel(
         }
     }
 
-    if (false == pChannel->isRecording())
+    if ((false == pChannel->isRecording()) && (false == pChannel->isEncoding()))
     {
         BDBG_MSG(("CControl::unTuneChannel()"));
         pChannel->closePids();
@@ -2080,7 +2092,7 @@ eRet CControl::tuneChannel(
     {
         bool bForceUntune = ((true == pCurrentChannel->isTunerRequired()) && (false == pChannel->isTunerRequired()));
 
-         BDBG_MSG(("untune channel because actual tuner FORCED:%d", bForceUntune));
+        BDBG_MSG(("untune channel because actual tuner FORCED:%d", bForceUntune));
         /* only do full untune when transitioning from a channel with an actual tuner, to one
          * without a tuner (i.e. qam channel to streamer channel).  this will ensure that the
          * new channel will not mistakenly decode the previous input band.  we do not fully
@@ -2319,17 +2331,17 @@ eRet CControl::encodeStart(
         )
 {
 #if NEXUS_HAS_VIDEO_ENCODER
-    eRet              ret             = eRet_Ok;
-    CChannel *        pCurrentChannel = _pModel->getCurrentChannel();
-    CBoardResources * pBoardResources = NULL;
-    CPlaybackList *   pPlaybackList   = _pModel->getPlaybackList();
+    eRet                 ret             = eRet_Ok;
+    CSimpleVideoDecode * pVideoDecode    = _pModel->getSimpleVideoDecode();
+    CChannel *           pCurrentChannel = _pModel->getCurrentChannel();
+    CBoardResources *    pBoardResources = NULL;
+    CPlaybackList *      pPlaybackList   = _pModel->getPlaybackList();
     /* Each Channel has its own ParserBand*/
-    CParserBand *    pParserBand = pCurrentChannel->getParserBand();
-    CConfiguration * pCfg        = NULL;
-    CVideo *         video       = NULL;
-    CEncode *        pEncode     = NULL;
-    MString          indexName;
-    MString          strPath = path;
+    CParserBand * pEncodeParserBand = NULL;
+    CVideo *      video             = NULL;
+    CEncode *     pEncode           = NULL;
+    MString       indexName;
+    MString       strPath = path;
 
     BDBG_ASSERT(NULL != _pModel);
     BDBG_ASSERT(NULL != _pConfig);
@@ -2337,7 +2349,6 @@ eRet CControl::encodeStart(
     BDBG_ASSERT(NULL != pCurrentChannel);
 
     pBoardResources = _pConfig->getBoardResources();
-    pCfg            = _pConfig->getCfg();
     /* Add transcode check here*/
     if ((false == pCurrentChannel->isTuned()) && pCurrentChannel->isEncoding())
     {
@@ -2361,7 +2372,18 @@ eRet CControl::encodeStart(
         CHECK_PTR_ERROR_GOTO("unable to allocate video object", video, ret, eRet_OutOfMemory, error);
     }
 
-    pEncode->setBand(pParserBand);
+    pEncode->setBand(pCurrentChannel->getParserBand());
+
+    pEncodeParserBand = pEncode->getBand();
+    if (pEncodeParserBand == NULL)
+    {
+        BDBG_ERR(("EncodeParserBand is NULL"));
+        ret = eRet_ExternalError;
+        goto error;
+    }
+
+    ret = pCurrentChannel->dupParserBand(pEncodeParserBand);
+    CHECK_ERROR_GOTO("unable to duplicate ParserBand", ret, error);
 
     /* Check Path */
     if (false == strPath.isEmpty())
@@ -2405,6 +2427,26 @@ eRet CControl::encodeStart(
 
     BDBG_MSG(("Encoding CurrentChannel"));
     _pModel->addEncode(pEncode);
+
+    /* save decoder source resolution */
+    {
+        NEXUS_VideoDecoderStatus status;
+        ret = pVideoDecode->getStatus(&status);
+        if (eRet_Ok == ret)
+        {
+            video->setWidth(status.source.width);
+            video->setHeight(status.source.height);
+        }
+    }
+
+    if (pPlaybackList->find(fileName) == NULL)
+    {
+        pPlaybackList->addVideo(video, 0);
+        pPlaybackList->createInfo(video);
+        pPlaybackList->sync();
+    }
+
+    BDBG_MSG(("Added a Video on the playback list"));
 
 done:
     return(ret);
@@ -2461,7 +2503,7 @@ eRet CControl::encodeStop(CChannel * pChannel)
         pEncode = pChannel->getEncode();
         pCurrentChannel->setEncode(NULL);
         ret = pEncode->stop();
-        /* pEncode->close(); */
+        pEncode->close();
         _encodingChannels.remove(pChannel);
         if (pChannel != pCurrentChannel)
         {
@@ -2475,7 +2517,7 @@ eRet CControl::encodeStop(CChannel * pChannel)
         pEncode = pCurrentChannel->getEncode();
         pCurrentChannel->setEncode(NULL);
         ret = pEncode->stop();
-        /* pEncode->close(); */
+        pEncode->close();
         _encodingChannels.remove(pCurrentChannel);
         CHECK_ERROR_GOTO("Encode error!", ret, error);
     }
@@ -2488,7 +2530,7 @@ eRet CControl::encodeStop(CChannel * pChannel)
                 pEncode = pChannel->getEncode();
                 pCurrentChannel->setEncode(NULL);
                 ret = pEncode->stop();
-                /* pEncode->close(); */
+                pEncode->close();
                 _encodingChannels.remove(pChannel);
                 unTuneChannel(pChannel, true);
                 break;
@@ -2531,7 +2573,6 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     CPlayback *          pPlayback       = NULL;
     CPlaybackList *      pPlaybackList   = _pModel->getPlaybackList();
     CParserBand *        pParserBand     = NULL;
-    CConfiguration *     pCfg            = NULL;
     CVideo *             video           = NULL;
     CRecord *            pRecord         = NULL;
     eWindowType          windowType      = eWindowType_Main;
@@ -2567,9 +2608,7 @@ eRet CControl::recordStart(CRecordData * pRecordData)
     }
 
     pBoardResources = _pConfig->getBoardResources();
-    pCfg            = _pConfig->getCfg();
-
-    pParserBand = pCurrentChannel->getParserBand();
+    pParserBand     = pCurrentChannel->getParserBand();
 
     if ((false == pCurrentChannel->isTuned()) || pCurrentChannel->isRecording())
     {
@@ -2786,6 +2825,7 @@ eRet CControl::recordStop(CChannel * pChannel)
         pRecord = pChannel->getRecord();
         pChannel->setRecord(NULL);
         pRecord->stop();
+        pRecord->closePids();
         _recordingChannels.remove(pChannel);
         if (pChannel != pCurrentChannel)
         {
@@ -2799,6 +2839,7 @@ eRet CControl::recordStop(CChannel * pChannel)
         pRecord = pCurrentChannel->getRecord();
         pCurrentChannel->setRecord(NULL);
         pRecord->stop();
+        pRecord->closePids();
         _recordingChannels.remove(pCurrentChannel);
         goto done;
     }
@@ -2813,6 +2854,7 @@ eRet CControl::recordStop(CChannel * pChannel)
                 pRecord = pChannel->getRecord();
                 pChannel->setRecord(NULL);
                 pRecord->stop();
+                pRecord->closePids();
                 _recordingChannels.remove(pChannel);
                 unTuneChannel(pChannel, true);
                 break;
@@ -3285,24 +3327,28 @@ done:
 #endif /* NEXUS_HAS_FRONTEND */
 
 #if RF4CE_SUPPORT
-eRet CControl::addRf4ceRemote(const char *remote_name)
+eRet CControl::addRf4ceRemote(const char * remote_name)
 {
     CRemote::addRf4ceRemote(remote_name);
-    return (eRet_Ok);
+
+    return(eRet_Ok);
 }
 
 eRet CControl::removeRf4ceRemote(int pairingRefNum)
 {
     CRemote::removeRf4ceRemote(pairingRefNum);
-    return (eRet_Ok);
+
+    return(eRet_Ok);
 }
 
 eRet CControl::displayRf4ceRemotes()
 {
     CRemote::displayRf4ceRemotes();
-    return (eRet_Ok);
+
+    return(eRet_Ok);
 }
-#endif
+
+#endif /* if RF4CE_SUPPORT */
 
 eRet CControl::channelUp()
 {
@@ -3539,6 +3585,7 @@ void CControl::dumpPlaybackList(bool bForce)
 void CControl::updatePlaybackList()
 {
     CPlaybackList * pPlaybackList = _pModel->getPlaybackList();
+
 #ifdef PLAYBACK_IP_SUPPORT
     CServerMgr * pServerMgr         = _pModel->getServerMgr();
     bool         bHttpServerStarted = false;
@@ -4258,6 +4305,24 @@ eRet CControl::showWindowType(
     return(ret);
 } /* showWindowType */
 
+eRet CControl::applyVbiSettings(uint32_t nDisplayIndex)
+{
+    CDisplay * pDisplay = _pModel->getDisplay(nDisplayIndex);
+    eRet       ret      = eRet_Ok;
+
+    if (NULL == pDisplay)
+    {
+        return(eRet_InvalidState);
+    }
+
+    CDisplayVbiData vbiSettings = pDisplay->getVbiSettings();
+    ret = pDisplay->setVbiSettings(&vbiSettings);
+    CHECK_ERROR("unable to set VBI settings after pip swap", ret);
+
+error:
+    return(ret);
+} /* applyVbiSettings */
+
 eRet CControl::showPip(bool bShow)
 {
     eRet        ret          = eRet_Ok;
@@ -4371,12 +4436,13 @@ error:
 
 eRet CControl::swapPip()
 {
-    eRet                 ret          = eRet_InvalidState;
-    CSimpleAudioDecode * pAudioDecode = NULL;
-    CStc *               pStc         = NULL;
-    eMode                mode         = eMode_Max;
-    CPlayback *          pPlayback    = _pModel->getPlayback(_pModel->getFullScreenWindowType());
-    CChannel *           pChannel     = _pModel->getCurrentChannel();
+    eRet                 ret                 = eRet_InvalidState;
+    CSimpleAudioDecode * pAudioDecode        = NULL;
+    CStc *               pStc                = NULL;
+    eMode                mode                = eMode_Max;
+    CPlayback *          pPlayback           = _pModel->getPlayback(_pModel->getFullScreenWindowType());
+    CChannel *           pChannel            = _pModel->getCurrentChannel();
+    bool                 bSingleAudioDecoder = false;
 
 #ifdef DVR_LIB_SUPPORT
     CTsb * pTsb = _pModel->getTsb(_pModel->getFullScreenWindowType());
@@ -4399,6 +4465,13 @@ eRet CControl::swapPip()
         goto error;
     }
 
+    /* if we only have one audio decoder, we will swap it between main and pip.  the downside
+     * to this is that if we are swapping a playback, audio will lag for several seconds while
+     * the buffer fills up.  if we have 2 audio decoders, audio will be primed and ready
+     * after swap */
+    bSingleAudioDecoder = ((NULL == _pModel->getSimpleAudioDecode()) ||
+                           (NULL == _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType())));
+
 #if DVR_LIB_SUPPORT
     if (pTsb)
     {
@@ -4407,29 +4480,45 @@ eRet CControl::swapPip()
     else
 #endif /* if DVR_LIB_SUPPORT */
     /* First Change the Full Screen PVR */
-    if (pPlayback != NULL)
+
+    if (true == bSingleAudioDecoder)
     {
-        CPid * pAudioPid = NULL;
-        pAudioDecode = _pModel->getSimpleAudioDecode();
-        CHECK_PTR_ERROR_GOTO("pAudioDecode null", pAudioDecode, ret, eRet_NotAvailable, error);
-        CHECK_PTR_ERROR_GOTO("pPlayback null", pPlayback, ret, eRet_NotAvailable, error);
-        pAudioDecode->stop();
-
-        BDBG_MSG(("Turn off Audio to PLAYBACK %s audio", pPlayback->getVideoName().s()));
-        BDBG_MSG(("WINDOW fullscreen %d", _pModel->getFullScreenWindowType()));
-
-        pAudioPid = pPlayback->getPid(0, ePidType_Audio);
-        if (NULL != pAudioPid)
+        /* we only have 1 audio decoder */
+        if (pPlayback != NULL)
         {
-            pAudioPid->setAudioDecoder(NULL);
-            ret = pAudioPid->setSettings(pPlayback);
-            CHECK_ERROR_GOTO("error setting playback in audio pid", ret, error);
-        }
-    }
+            CPid * pAudioPid = NULL;
+            pAudioDecode = _pModel->getSimpleAudioDecode();
+            CHECK_PTR_ERROR_GOTO("pAudioDecode null", pAudioDecode, ret, eRet_NotAvailable, error);
+            CHECK_PTR_ERROR_GOTO("pPlayback null", pPlayback, ret, eRet_NotAvailable, error);
+            pAudioDecode->stop();
 
-    /* swap main/pip audio decoders (actually there is only 1 audio decoder so this will simply
-     * move it between main and pip so the fullscreen window will always have audio */
-    _pModel->swapSimpleAudioDecode();
+            BDBG_MSG(("Turn off Audio to PLAYBACK %s audio", pPlayback->getVideoName().s()));
+            BDBG_MSG(("WINDOW fullscreen %d", _pModel->getFullScreenWindowType()));
+
+            pAudioPid = pPlayback->getPid(0, ePidType_Audio);
+            if (NULL != pAudioPid)
+            {
+                pAudioPid->setAudioDecoder(NULL);
+                ret = pAudioPid->setSettings(pPlayback);
+                CHECK_ERROR_GOTO("error setting playback in audio pid", ret, error);
+            }
+        }
+
+        /* swap main/pip audio decoders (actually there is only 1 audio decoder so this will simply
+         * move it between main and pip so the fullscreen window will always have audio */
+        _pModel->swapSimpleAudioDecode();
+    }
+    else
+    {
+        /* we have 2 audio decoders */
+        CSimpleAudioDecode * pAudioDecodeFullScreen = _pModel->getSimpleAudioDecode();
+        CSimpleAudioDecode * pAudioDecodeDecimated  = _pModel->getSimpleAudioDecode(_pModel->getPipScreenWindowType());
+
+        NEXUS_SimpleAudioDecoder_SwapServerSettings(
+                _pModel->getSimpleAudioDecoderServer(),
+                pAudioDecodeFullScreen->getSimpleDecoder(),
+                pAudioDecodeDecimated->getSimpleDecoder());
+    }
 
     /* keep track of which content is full screen (main or pip) */
     _pModel->setFullScreenWindowType((eWindowType_Main == _pModel->getFullScreenWindowType()) ? eWindowType_Pip : eWindowType_Main);
@@ -4445,12 +4534,13 @@ eRet CControl::swapPip()
     /* swap decoder to video window connections between the main/pip decoders */
     _pModel->swapDecodeVideoWindows();
 
-    /* setup audio decode with tsm POST swap */
+    if (true == bSingleAudioDecoder)
     {
         CPid * pAudioPid = NULL;
 
         pAudioDecode->stop();
 
+        /* setup audio decode with tsm POST swap */
         switch (mode)
         {
         case eMode_Live:
@@ -4497,6 +4587,10 @@ eRet CControl::swapPip()
             CHECK_ERROR_GOTO("unable to start audio decode", ret, error);
         }
     }
+
+    /* restart VBI closed captioning based on full screen video window */
+    ret = applyVbiSettings();
+    CHECK_ERROR("unable to set VBI settings after pip swap", ret);
 
     ret = eRet_Ok;
 
@@ -4702,6 +4796,12 @@ eRet CControl::startDecoders(
     {
         ret = pAudioDecode->start(pAudioPid, (NULL != pVideoPid) ? pStc : NULL);
         CHECK_WARN("unable to start audio decode", ret);
+    }
+
+    {
+        eRet retVbi = eRet_Ok;
+        retVbi = applyVbiSettings();
+        CHECK_WARN("unable to set VBI settings after decoder start", retVbi);
     }
 
     return(ret);

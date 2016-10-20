@@ -45,7 +45,7 @@
 
 #include "bstd.h"
 #include "breg_mem.h"
-#include "bmem.h"
+#include "bmma.h"
 #include "bint.h"
 #include "bchp.h"
 #include "berr_ids.h"
@@ -264,7 +264,7 @@ The following should be performed when the chip is initialized:
     // Provided by other porting interface initialization functions:
     BCHP_Handle chipHandle;
     BREG_Handle regHandle;
-    BMEM_Handle memHandle;
+    BMMA_Heap_Handle hMmaHeap;
 
     // Which video decoder (VDEC) to use.
     // Can be queried from the VDC module
@@ -281,7 +281,7 @@ The following should be performed when the chip is initialized:
     BVBI_Encode_Handle decodeHandle;
 
     // Initialize the entire VBI module
-    eErr = BVBI_Open (&vbiHandle, chipHandle, regHandle, memHandle, NULL);
+    eErr = BVBI_Open (&vbiHandle, chipHandle, regHandle, hMmaHeap, NULL);
 
     // Allocate some containers for VBI data
     for (index = 0 ; index < 16 ; ++index)
@@ -1119,12 +1119,12 @@ BERR_Code BVBI_GetDefaultSettings(
     BVBI_Close, BVBI_GetDefaultSettings
  *****************************************************************************/
 BERR_Code BVBI_Open(
-    BVBI_Handle  *pVbiHandle,   /* [out] A pointer to an allocated
+    BVBI_Handle   *pVbiHandle,  /* [out] A pointer to an allocated
                                          BVBI_Handle                     */
-    BCHP_Handle   chipHandle,   /*  [in] A handle to the chip            */
-    BREG_Handle    regHandle,   /*  [in] A handle to the chip's register
+    BCHP_Handle    chipHandle,  /*  [in] A handle to the chip            */
+    BREG_Handle     regHandle,  /*  [in] A handle to the chip's register
                                          settings                        */
-    BMEM_Handle    memHandle,   /*  [in] The local memory heap handle    */
+    BMMA_Heap_Handle hMmaHeap,  /*  [in] The local memory heap handle    */
     const BVBI_Settings*
                    pSettings    /*  [in] A pointer to a BVBI_Settings
                                          structure, or NULL              */

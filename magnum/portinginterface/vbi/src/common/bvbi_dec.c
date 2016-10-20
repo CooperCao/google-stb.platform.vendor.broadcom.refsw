@@ -189,7 +189,7 @@ BERR_Code BVBI_Decode_Create(BVBI_Handle vbiHandle,
     }
     BKNI_Memset((void*)pttDataB, 0x0, sizeof(BVBI_P_TTData));
     eErr = BVBI_P_TTData_Alloc (
-        pVbi->hMem, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH, pttDataB);
+        pVbi->hMmaHeap, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH, pttDataB);
     if (eErr != BERR_SUCCESS)
     {
         eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -225,12 +225,12 @@ BVBI_Decode_Create_Done:
     {
         if (NULL != pttDataB)
         {
-            BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttDataB);
+            BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttDataB);
             BKNI_Free ((void*)pttDataB);
         }
         if (NULL != pttDataT)
         {
-            BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttDataT);
+            BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttDataT);
             BKNI_Free ((void*)pttDataT);
         }
         if (NULL != pVbi_Dec)
@@ -267,11 +267,11 @@ BERR_Code BVBI_Decode_Destroy(BVBI_Decode_Handle decodeHandle)
     pVbi = pVbi_Dec->pVbi;
     BVBI_P_LCOP_DESTROY (pVbi_Dec, topTTDataO, &pVbi->ttFreelist, clink);
     pttData = BVBI_P_LCOP_GET (pVbi_Dec, topTTDataO);
-    BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttData);
+    BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttData);
     BKNI_Free ((void*)pttData);
     BVBI_P_LCOP_DESTROY (pVbi_Dec, botTTDataO, &pVbi->ttFreelist, clink);
     pttData = BVBI_P_LCOP_GET (pVbi_Dec, botTTDataO);
-    BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttData);
+    BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttData);
     BKNI_Free ((void*)pttData);
 
     /* Shut down 656 ancillary data parser (software) */
@@ -657,14 +657,13 @@ static BERR_Code BVBI_P_Decode_ApplyChanges (
     /* Program the IN656 core */
     eErr = BERR_TRACE (BVBI_P_IN656_Dec_Program (
         pVbi->hReg,
-        pVbi->hMem,
         pVbi_Dec->eSource,
         isActive,
         cnState->e656Format,
         &(cnState->SMPTE291Moptions),
         cnState->eVideoFormat,
-        pVbi_Dec->top656Data,
-        pVbi_Dec->bot656Data));
+        pVbi_Dec->top656Data.pHwAccess,
+        pVbi_Dec->bot656Data.pHwAccess));
     if (eErr != BERR_SUCCESS)
     {
         if (firstErr == BERR_SUCCESS)

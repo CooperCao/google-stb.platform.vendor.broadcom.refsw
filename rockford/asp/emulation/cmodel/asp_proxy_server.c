@@ -325,6 +325,7 @@ processSendPayloadToAspMessage(
             sendPayloadToAspResp.payloadGivenToAspSuccess = true;
             rc = ASP_ProxyServerMsg_Send(hProxyServerSocket->payloadSocketInfo.sockFd, ASP_ProxyServerMsg_eSendPayloadToAspResp, sizeof(sendPayloadToAspResp), &sendPayloadToAspResp);
             assert(rc);
+
         }
     }
 
@@ -509,8 +510,9 @@ ASP_ProxyServer_ProcessIo(
 
             /* TODO: instead of this, insert this ServerSocket to the list. */
             hProxyServer->hProxyServerSocket = hProxyServerSocket;
-
+            printf("\n new accepted socket on fdpayload is ================ %u\n", newSockFd);
         }
+
     }
     return 0;
 }

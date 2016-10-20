@@ -725,39 +725,6 @@ typedef enum BDSP_VF_P_ePixelDataType
 
 /***************************************************************************
 Summary:
-    Display and reference buffer info structure.
-
-Description:
-       This structure contains info required to calculate the size and number of display and
-       reference buffers to allocated for any specifc algo Id.
-       Calculation as below
-       ReferenceBufferSize_Luma = (DispBufferWidth_luma + (2 * ui32PaddingX))
-                                                   * (DispBufferHeight_luma + (2 * ui32PaddingY) ;
-       ReferenceBufferSize_Chrom = (DispBufferWidth_chrom + (2 * ui32PaddingX))
-                                                   * (DispBufferHeight_chrom + (2 * ui32PaddingY) ;
-
-See Also:
-    None.
-****************************************************************************/
-typedef struct
-{
-    /* Ref Buffer info */
-    uint32_t        ui32NumRefBuff;
-    uint32_t        ui32MinNumRefBuff;
-    BDSP_VF_P_ePixelDataType   eRefPixelDataType;  /* Storage datatype used by a pixel */
-
-    /* Disp Buffer info */
-    uint32_t        ui32NumDispBuff;
-    uint32_t        ui32MinNumDispBuff;
-    BDSP_VF_P_ePixelDataType   eDispPixelDataType;  /* Storage datatype used by a pixel */
-
-    uint32_t        ui32PaddingX;
-    uint32_t        ui32PaddingY;
-
-}BDSP_VF_P_sOutputBuffInfo;
-
-/***************************************************************************
-Summary:
     The structure contains the Picture Buffer addrs
 
 Description:

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,1496 +70,1496 @@
 /***************************************************************************
  *XPT_XCBUFF - XPT XCBUFF Control Registers
  ***************************************************************************/
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0   0x20a06000 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP0    0x20a06004 /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP0  0x20a06008 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP0  0x20a0600c /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP0   0x20a06010 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP0      0x20a06014 /* [RW] XC Buffer - Watermark RAVE Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP1   0x20a06018 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP1    0x20a0601c /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP1  0x20a06020 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP1  0x20a06024 /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP1   0x20a06028 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP1      0x20a0602c /* [RW] XC Buffer - Watermark   RAVE Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP2   0x20a06030 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP2    0x20a06034 /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP2  0x20a06038 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP2  0x20a0603c /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP2   0x20a06040 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP2      0x20a06044 /* [RW] XC Buffer - Watermark   RAVE Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP3   0x20a06048 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP3    0x20a0604c /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP3  0x20a06050 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP3  0x20a06054 /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP3   0x20a06058 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP3      0x20a0605c /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP4   0x20a06060 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP4    0x20a06064 /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP4  0x20a06068 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP4  0x20a0606c /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP4   0x20a06070 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP4      0x20a06074 /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP5   0x20a06078 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP5    0x20a0607c /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP5  0x20a06080 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP5  0x20a06084 /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP5   0x20a06088 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP5      0x20a0608c /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP6   0x20a06090 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP6    0x20a06094 /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP6  0x20a06098 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP6  0x20a0609c /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP6   0x20a060a0 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP6      0x20a060a4 /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP7   0x20a060a8 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP7    0x20a060ac /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP7  0x20a060b0 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP7  0x20a060b4 /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP7   0x20a060b8 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP7      0x20a060bc /* [RW] XC Buffer - Watermark RAVE Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP8   0x20a060c0 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP8    0x20a060c4 /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP8  0x20a060c8 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP8  0x20a060cc /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP8   0x20a060d0 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP8      0x20a060d4 /* [RW] XC Buffer - Watermark   RAVE Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP9   0x20a060d8 /* [RW] XC Buffer - Base pointer for  RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP9    0x20a060dc /* [RW] XC Buffer - End pointer for  RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP9  0x20a060e0 /* [RW] XC Buffer - Write pointer for  RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP9  0x20a060e4 /* [RW] XC Buffer - Valid pointer for  RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP9   0x20a060e8 /* [RW] XC Buffer - Read pointer for  RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP9      0x20a060ec /* [RW] XC Buffer - Watermark   RAVE Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP10  0x20a060f0 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP10   0x20a060f4 /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP10 0x20a060f8 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP10 0x20a060fc /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP10  0x20a06100 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP10     0x20a06104 /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP11  0x20a06108 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP11   0x20a0610c /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP11 0x20a06110 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP11 0x20a06114 /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP11  0x20a06118 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP11     0x20a0611c /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP12  0x20a06120 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP12   0x20a06124 /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP12 0x20a06128 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP12 0x20a0612c /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP12  0x20a06130 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP12     0x20a06134 /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP13  0x20a06138 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP13   0x20a0613c /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP13 0x20a06140 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP13 0x20a06144 /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP13  0x20a06148 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP13     0x20a0614c /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP14  0x20a06150 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP14   0x20a06154 /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP14 0x20a06158 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP14 0x20a0615c /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP14  0x20a06160 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP14     0x20a06164 /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP15  0x20a06168 /* [RW] XC Buffer - Base pointer for RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP15   0x20a0616c /* [RW] XC Buffer - End pointer for RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP15 0x20a06170 /* [RW] XC Buffer - Write pointer for RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP15 0x20a06174 /* [RW] XC Buffer - Valid pointer for RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP15  0x20a06178 /* [RW] XC Buffer - Read pointer for RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP15     0x20a0617c /* [RW] XC Buffer - Watermark  RAVE Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0   0x20a06300 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP0    0x20a06304 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP0  0x20a06308 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP0  0x20a0630c /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP0   0x20a06310 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP0      0x20a06314 /* [RW] XC Buffer - Watermark RAVE Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP1   0x20a06318 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP1    0x20a0631c /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP1  0x20a06320 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP1  0x20a06324 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP1   0x20a06328 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP1      0x20a0632c /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP2   0x20a06330 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP2    0x20a06334 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP2  0x20a06338 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP2  0x20a0633c /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP2   0x20a06340 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP2      0x20a06344 /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP3   0x20a06348 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP3    0x20a0634c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP3  0x20a06350 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP3  0x20a06354 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP3   0x20a06358 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP3      0x20a0635c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP4   0x20a06360 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP4    0x20a06364 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP4  0x20a06368 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP4  0x20a0636c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP4   0x20a06370 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP4      0x20a06374 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP5   0x20a06378 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP5    0x20a0637c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP5  0x20a06380 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP5  0x20a06384 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP5   0x20a06388 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP5      0x20a0638c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP6   0x20a06390 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP6    0x20a06394 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP6  0x20a06398 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP6  0x20a0639c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP6   0x20a063a0 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP6      0x20a063a4 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP7   0x20a063a8 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP7    0x20a063ac /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP7  0x20a063b0 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP7  0x20a063b4 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP7   0x20a063b8 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP7      0x20a063bc /* [RW] XC Buffer - Watermark RAVE Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP8   0x20a063c0 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP8    0x20a063c4 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP8  0x20a063c8 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP8  0x20a063cc /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP8   0x20a063d0 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP8      0x20a063d4 /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP9   0x20a063d8 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP9    0x20a063dc /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP9  0x20a063e0 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP9  0x20a063e4 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP9   0x20a063e8 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP9      0x20a063ec /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP10  0x20a063f0 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP10   0x20a063f4 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP10 0x20a063f8 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP10 0x20a063fc /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP10  0x20a06400 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP10     0x20a06404 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP11  0x20a06408 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP11   0x20a0640c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP11 0x20a06410 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP11 0x20a06414 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP11  0x20a06418 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP11     0x20a0641c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP12  0x20a06420 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP12   0x20a06424 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP12 0x20a06428 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP12 0x20a0642c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP12  0x20a06430 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP12     0x20a06434 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP13  0x20a06438 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP13   0x20a0643c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP13 0x20a06440 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP13 0x20a06444 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP13  0x20a06448 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP13     0x20a0644c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP14  0x20a06450 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP14   0x20a06454 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP14 0x20a06458 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP14 0x20a0645c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP14  0x20a06460 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP14     0x20a06464 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP15  0x20a06468 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP15   0x20a0646c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP15 0x20a06470 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP15 0x20a06474 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP15  0x20a06478 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP15     0x20a0647c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP16  0x20a06480 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP16   0x20a06484 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP16 0x20a06488 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP16 0x20a0648c /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP16  0x20a06490 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP16     0x20a06494 /* [RW] XC Buffer - Watermark RAVE Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP17  0x20a06498 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP17   0x20a0649c /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP17 0x20a064a0 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP17 0x20a064a4 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP17  0x20a064a8 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP17     0x20a064ac /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP18  0x20a064b0 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP18   0x20a064b4 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP18 0x20a064b8 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP18 0x20a064bc /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP18  0x20a064c0 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP18     0x20a064c4 /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP19  0x20a064c8 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP19   0x20a064cc /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP19 0x20a064d0 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP19 0x20a064d4 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP19  0x20a064d8 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP19     0x20a064dc /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP20  0x20a064e0 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP20   0x20a064e4 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP20 0x20a064e8 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP20 0x20a064ec /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP20  0x20a064f0 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP20     0x20a064f4 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP21  0x20a064f8 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP21   0x20a064fc /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP21 0x20a06500 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP21 0x20a06504 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP21  0x20a06508 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP21     0x20a0650c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP22  0x20a06510 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP22   0x20a06514 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP22 0x20a06518 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP22 0x20a0651c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP22  0x20a06520 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP22     0x20a06524 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP23  0x20a06528 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP23   0x20a0652c /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP23 0x20a06530 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP23 0x20a06534 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP23  0x20a06538 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP23     0x20a0653c /* [RW] XC Buffer - Watermark RAVE Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP24  0x20a06540 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP24   0x20a06544 /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP24 0x20a06548 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP24 0x20a0654c /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP24  0x20a06550 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP24     0x20a06554 /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP25  0x20a06558 /* [RW] XC Buffer - Base pointer for  RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP25   0x20a0655c /* [RW] XC Buffer - End pointer for  RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP25 0x20a06560 /* [RW] XC Buffer - Write pointer for  RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP25 0x20a06564 /* [RW] XC Buffer - Valid pointer for  RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP25  0x20a06568 /* [RW] XC Buffer - Read pointer for  RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP25     0x20a0656c /* [RW] XC Buffer - Watermark   RAVE Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP26  0x20a06570 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP26   0x20a06574 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP26 0x20a06578 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP26 0x20a0657c /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP26  0x20a06580 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP26     0x20a06584 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP27  0x20a06588 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP27   0x20a0658c /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP27 0x20a06590 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP27 0x20a06594 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP27  0x20a06598 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP27     0x20a0659c /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP28  0x20a065a0 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP28   0x20a065a4 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP28 0x20a065a8 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP28 0x20a065ac /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP28  0x20a065b0 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP28     0x20a065b4 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP29  0x20a065b8 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP29   0x20a065bc /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP29 0x20a065c0 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP29 0x20a065c4 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP29  0x20a065c8 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP29     0x20a065cc /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP30  0x20a065d0 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP30   0x20a065d4 /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP30 0x20a065d8 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP30 0x20a065dc /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP30  0x20a065e0 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP30     0x20a065e4 /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP31  0x20a065e8 /* [RW] XC Buffer - Base pointer for RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP31   0x20a065ec /* [RW] XC Buffer - End pointer for RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP31 0x20a065f0 /* [RW] XC Buffer - Write pointer for RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP31 0x20a065f4 /* [RW] XC Buffer - Valid pointer for RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP31  0x20a065f8 /* [RW] XC Buffer - Read pointer for RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP31     0x20a065fc /* [RW] XC Buffer - Watermark  RAVE Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0    0x20a06600 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP0     0x20a06604 /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP0   0x20a06608 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP0   0x20a0660c /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP0    0x20a06610 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP0       0x20a06614 /* [RW] XC Buffer - Watermark MSG Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP1    0x20a06618 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP1     0x20a0661c /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP1   0x20a06620 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP1   0x20a06624 /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP1    0x20a06628 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP1       0x20a0662c /* [RW] XC Buffer - Watermark   MSG Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP2    0x20a06630 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP2     0x20a06634 /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP2   0x20a06638 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP2   0x20a0663c /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP2    0x20a06640 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP2       0x20a06644 /* [RW] XC Buffer - Watermark   MSG Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP3    0x20a06648 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP3     0x20a0664c /* [RW] XC Buffer - End pointer for MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP3   0x20a06650 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP3   0x20a06654 /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP3    0x20a06658 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP3       0x20a0665c /* [RW] XC Buffer - Watermark  MSG Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP4    0x20a06660 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP4     0x20a06664 /* [RW] XC Buffer - End pointer for MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP4   0x20a06668 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP4   0x20a0666c /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP4    0x20a06670 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP4       0x20a06674 /* [RW] XC Buffer - Watermark  MSG Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP5    0x20a06678 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP5     0x20a0667c /* [RW] XC Buffer - End pointer for MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP5   0x20a06680 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP5   0x20a06684 /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP5    0x20a06688 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP5       0x20a0668c /* [RW] XC Buffer - Watermark  MSG Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP6    0x20a06690 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP6     0x20a06694 /* [RW] XC Buffer - End pointer for MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP6   0x20a06698 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP6   0x20a0669c /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP6    0x20a066a0 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP6       0x20a066a4 /* [RW] XC Buffer - Watermark  MSG Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP7    0x20a066a8 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP7     0x20a066ac /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP7   0x20a066b0 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP7   0x20a066b4 /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP7    0x20a066b8 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP7       0x20a066bc /* [RW] XC Buffer - Watermark MSG Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP8    0x20a066c0 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP8     0x20a066c4 /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP8   0x20a066c8 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP8   0x20a066cc /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP8    0x20a066d0 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP8       0x20a066d4 /* [RW] XC Buffer - Watermark   MSG Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP9    0x20a066d8 /* [RW] XC Buffer - Base pointer for  MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP9     0x20a066dc /* [RW] XC Buffer - End pointer for  MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP9   0x20a066e0 /* [RW] XC Buffer - Write pointer for  MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP9   0x20a066e4 /* [RW] XC Buffer - Valid pointer for  MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP9    0x20a066e8 /* [RW] XC Buffer - Read pointer for  MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP9       0x20a066ec /* [RW] XC Buffer - Watermark   MSG Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP10   0x20a066f0 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP10    0x20a066f4 /* [RW] XC Buffer - End pointer for MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP10  0x20a066f8 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP10  0x20a066fc /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP10   0x20a06700 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP10      0x20a06704 /* [RW] XC Buffer - Watermark  MSG Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP11   0x20a06708 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP11    0x20a0670c /* [RW] XC Buffer - End pointer for MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP11  0x20a06710 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP11  0x20a06714 /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP11   0x20a06718 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP11      0x20a0671c /* [RW] XC Buffer - Watermark  MSG Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP12   0x20a06720 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP12    0x20a06724 /* [RW] XC Buffer - End pointer for MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP12  0x20a06728 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP12  0x20a0672c /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP12   0x20a06730 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP12      0x20a06734 /* [RW] XC Buffer - Watermark  MSG Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP13   0x20a06738 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP13    0x20a0673c /* [RW] XC Buffer - End pointer for MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP13  0x20a06740 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP13  0x20a06744 /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP13   0x20a06748 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP13      0x20a0674c /* [RW] XC Buffer - Watermark  MSG Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP14   0x20a06750 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP14    0x20a06754 /* [RW] XC Buffer - End pointer for MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP14  0x20a06758 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP14  0x20a0675c /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP14   0x20a06760 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP14      0x20a06764 /* [RW] XC Buffer - Watermark  MSG Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP15   0x20a06768 /* [RW] XC Buffer - Base pointer for MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP15    0x20a0676c /* [RW] XC Buffer - End pointer for MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP15  0x20a06770 /* [RW] XC Buffer - Write pointer for MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP15  0x20a06774 /* [RW] XC Buffer - Valid pointer for MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP15   0x20a06778 /* [RW] XC Buffer - Read pointer for MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP15      0x20a0677c /* [RW] XC Buffer - Watermark  MSG Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0    0x20a06900 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP0     0x20a06904 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP0   0x20a06908 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP0   0x20a0690c /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP0    0x20a06910 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP0       0x20a06914 /* [RW] XC Buffer - Watermark MSG Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP1    0x20a06918 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP1     0x20a0691c /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP1   0x20a06920 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP1   0x20a06924 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP1    0x20a06928 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP1       0x20a0692c /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP2    0x20a06930 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP2     0x20a06934 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP2   0x20a06938 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP2   0x20a0693c /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP2    0x20a06940 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP2       0x20a06944 /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP3    0x20a06948 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP3     0x20a0694c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP3   0x20a06950 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP3   0x20a06954 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP3    0x20a06958 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP3       0x20a0695c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP4    0x20a06960 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP4     0x20a06964 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP4   0x20a06968 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP4   0x20a0696c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP4    0x20a06970 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP4       0x20a06974 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP5    0x20a06978 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP5     0x20a0697c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP5   0x20a06980 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP5   0x20a06984 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP5    0x20a06988 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP5       0x20a0698c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP6    0x20a06990 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP6     0x20a06994 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP6   0x20a06998 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP6   0x20a0699c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP6    0x20a069a0 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP6       0x20a069a4 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP7    0x20a069a8 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP7     0x20a069ac /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP7   0x20a069b0 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP7   0x20a069b4 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP7    0x20a069b8 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP7       0x20a069bc /* [RW] XC Buffer - Watermark MSG Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP8    0x20a069c0 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP8     0x20a069c4 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP8   0x20a069c8 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP8   0x20a069cc /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP8    0x20a069d0 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP8       0x20a069d4 /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP9    0x20a069d8 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP9     0x20a069dc /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP9   0x20a069e0 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP9   0x20a069e4 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP9    0x20a069e8 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP9       0x20a069ec /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP10   0x20a069f0 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP10    0x20a069f4 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP10  0x20a069f8 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP10  0x20a069fc /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP10   0x20a06a00 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP10      0x20a06a04 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP11   0x20a06a08 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP11    0x20a06a0c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP11  0x20a06a10 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP11  0x20a06a14 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP11   0x20a06a18 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP11      0x20a06a1c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP12   0x20a06a20 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP12    0x20a06a24 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP12  0x20a06a28 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP12  0x20a06a2c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP12   0x20a06a30 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP12      0x20a06a34 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP13   0x20a06a38 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP13    0x20a06a3c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP13  0x20a06a40 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP13  0x20a06a44 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP13   0x20a06a48 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP13      0x20a06a4c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP14   0x20a06a50 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP14    0x20a06a54 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP14  0x20a06a58 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP14  0x20a06a5c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP14   0x20a06a60 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP14      0x20a06a64 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP15   0x20a06a68 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP15    0x20a06a6c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP15  0x20a06a70 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP15  0x20a06a74 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP15   0x20a06a78 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP15      0x20a06a7c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP16   0x20a06a80 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP16    0x20a06a84 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP16  0x20a06a88 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP16  0x20a06a8c /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP16   0x20a06a90 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP16      0x20a06a94 /* [RW] XC Buffer - Watermark MSG Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP17   0x20a06a98 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP17    0x20a06a9c /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP17  0x20a06aa0 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP17  0x20a06aa4 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP17   0x20a06aa8 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP17      0x20a06aac /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP18   0x20a06ab0 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP18    0x20a06ab4 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP18  0x20a06ab8 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP18  0x20a06abc /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP18   0x20a06ac0 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP18      0x20a06ac4 /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP19   0x20a06ac8 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP19    0x20a06acc /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP19  0x20a06ad0 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP19  0x20a06ad4 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP19   0x20a06ad8 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP19      0x20a06adc /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP20   0x20a06ae0 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP20    0x20a06ae4 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP20  0x20a06ae8 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP20  0x20a06aec /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP20   0x20a06af0 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP20      0x20a06af4 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP21   0x20a06af8 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP21    0x20a06afc /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP21  0x20a06b00 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP21  0x20a06b04 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP21   0x20a06b08 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP21      0x20a06b0c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP22   0x20a06b10 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP22    0x20a06b14 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP22  0x20a06b18 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP22  0x20a06b1c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP22   0x20a06b20 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP22      0x20a06b24 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP23   0x20a06b28 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP23    0x20a06b2c /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP23  0x20a06b30 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP23  0x20a06b34 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP23   0x20a06b38 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP23      0x20a06b3c /* [RW] XC Buffer - Watermark MSG Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP24   0x20a06b40 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP24    0x20a06b44 /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP24  0x20a06b48 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP24  0x20a06b4c /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP24   0x20a06b50 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP24      0x20a06b54 /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP25   0x20a06b58 /* [RW] XC Buffer - Base pointer for  MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP25    0x20a06b5c /* [RW] XC Buffer - End pointer for  MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP25  0x20a06b60 /* [RW] XC Buffer - Write pointer for  MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP25  0x20a06b64 /* [RW] XC Buffer - Valid pointer for  MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP25   0x20a06b68 /* [RW] XC Buffer - Read pointer for  MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP25      0x20a06b6c /* [RW] XC Buffer - Watermark   MSG Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP26   0x20a06b70 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP26    0x20a06b74 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP26  0x20a06b78 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP26  0x20a06b7c /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP26   0x20a06b80 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP26      0x20a06b84 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP27   0x20a06b88 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP27    0x20a06b8c /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP27  0x20a06b90 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP27  0x20a06b94 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP27   0x20a06b98 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP27      0x20a06b9c /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP28   0x20a06ba0 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP28    0x20a06ba4 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP28  0x20a06ba8 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP28  0x20a06bac /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP28   0x20a06bb0 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP28      0x20a06bb4 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP29   0x20a06bb8 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP29    0x20a06bbc /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP29  0x20a06bc0 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP29  0x20a06bc4 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP29   0x20a06bc8 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP29      0x20a06bcc /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP30   0x20a06bd0 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP30    0x20a06bd4 /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP30  0x20a06bd8 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP30  0x20a06bdc /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP30   0x20a06be0 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP30      0x20a06be4 /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP31   0x20a06be8 /* [RW] XC Buffer - Base pointer for MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP31    0x20a06bec /* [RW] XC Buffer - End pointer for MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP31  0x20a06bf0 /* [RW] XC Buffer - Write pointer for MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP31  0x20a06bf4 /* [RW] XC Buffer - Valid pointer for MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP31   0x20a06bf8 /* [RW] XC Buffer - Read pointer for MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP31      0x20a06bfc /* [RW] XC Buffer - Watermark  MSG Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0   0x20a06c00 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP0    0x20a06c04 /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP0  0x20a06c08 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP0  0x20a06c0c /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP0   0x20a06c10 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP0      0x20a06c14 /* [RW] XC Buffer - Watermark RMX0 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP1   0x20a06c18 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP1    0x20a06c1c /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP1  0x20a06c20 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP1  0x20a06c24 /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP1   0x20a06c28 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP1      0x20a06c2c /* [RW] XC Buffer - Watermark   RMX0 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP2   0x20a06c30 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP2    0x20a06c34 /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP2  0x20a06c38 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP2  0x20a06c3c /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP2   0x20a06c40 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP2      0x20a06c44 /* [RW] XC Buffer - Watermark   RMX0 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP3   0x20a06c48 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP3    0x20a06c4c /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP3  0x20a06c50 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP3  0x20a06c54 /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP3   0x20a06c58 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP3      0x20a06c5c /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP4   0x20a06c60 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP4    0x20a06c64 /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP4  0x20a06c68 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP4  0x20a06c6c /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP4   0x20a06c70 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP4      0x20a06c74 /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP5   0x20a06c78 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP5    0x20a06c7c /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP5  0x20a06c80 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP5  0x20a06c84 /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP5   0x20a06c88 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP5      0x20a06c8c /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP6   0x20a06c90 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP6    0x20a06c94 /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP6  0x20a06c98 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP6  0x20a06c9c /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP6   0x20a06ca0 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP6      0x20a06ca4 /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP7   0x20a06ca8 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP7    0x20a06cac /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP7  0x20a06cb0 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP7  0x20a06cb4 /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP7   0x20a06cb8 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP7      0x20a06cbc /* [RW] XC Buffer - Watermark RMX0 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP8   0x20a06cc0 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP8    0x20a06cc4 /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP8  0x20a06cc8 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP8  0x20a06ccc /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP8   0x20a06cd0 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP8      0x20a06cd4 /* [RW] XC Buffer - Watermark   RMX0 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP9   0x20a06cd8 /* [RW] XC Buffer - Base pointer for  RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP9    0x20a06cdc /* [RW] XC Buffer - End pointer for  RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP9  0x20a06ce0 /* [RW] XC Buffer - Write pointer for  RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP9  0x20a06ce4 /* [RW] XC Buffer - Valid pointer for  RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP9   0x20a06ce8 /* [RW] XC Buffer - Read pointer for  RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP9      0x20a06cec /* [RW] XC Buffer - Watermark   RMX0 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP10  0x20a06cf0 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP10   0x20a06cf4 /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP10 0x20a06cf8 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP10 0x20a06cfc /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP10  0x20a06d00 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP10     0x20a06d04 /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP11  0x20a06d08 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP11   0x20a06d0c /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP11 0x20a06d10 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP11 0x20a06d14 /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP11  0x20a06d18 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP11     0x20a06d1c /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP12  0x20a06d20 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP12   0x20a06d24 /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP12 0x20a06d28 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP12 0x20a06d2c /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP12  0x20a06d30 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP12     0x20a06d34 /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP13  0x20a06d38 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP13   0x20a06d3c /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP13 0x20a06d40 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP13 0x20a06d44 /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP13  0x20a06d48 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP13     0x20a06d4c /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP14  0x20a06d50 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP14   0x20a06d54 /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP14 0x20a06d58 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP14 0x20a06d5c /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP14  0x20a06d60 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP14     0x20a06d64 /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP15  0x20a06d68 /* [RW] XC Buffer - Base pointer for RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP15   0x20a06d6c /* [RW] XC Buffer - End pointer for RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP15 0x20a06d70 /* [RW] XC Buffer - Write pointer for RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP15 0x20a06d74 /* [RW] XC Buffer - Valid pointer for RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP15  0x20a06d78 /* [RW] XC Buffer - Read pointer for RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP15     0x20a06d7c /* [RW] XC Buffer - Watermark  RMX0 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0   0x20a06f00 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP0    0x20a06f04 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP0  0x20a06f08 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP0  0x20a06f0c /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP0   0x20a06f10 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP0      0x20a06f14 /* [RW] XC Buffer - Watermark RMX0 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP1   0x20a06f18 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP1    0x20a06f1c /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP1  0x20a06f20 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP1  0x20a06f24 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP1   0x20a06f28 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP1      0x20a06f2c /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP2   0x20a06f30 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP2    0x20a06f34 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP2  0x20a06f38 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP2  0x20a06f3c /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP2   0x20a06f40 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP2      0x20a06f44 /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP3   0x20a06f48 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP3    0x20a06f4c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP3  0x20a06f50 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP3  0x20a06f54 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP3   0x20a06f58 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP3      0x20a06f5c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP4   0x20a06f60 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP4    0x20a06f64 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP4  0x20a06f68 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP4  0x20a06f6c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP4   0x20a06f70 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP4      0x20a06f74 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP5   0x20a06f78 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP5    0x20a06f7c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP5  0x20a06f80 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP5  0x20a06f84 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP5   0x20a06f88 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP5      0x20a06f8c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP6   0x20a06f90 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP6    0x20a06f94 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP6  0x20a06f98 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP6  0x20a06f9c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP6   0x20a06fa0 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP6      0x20a06fa4 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP7   0x20a06fa8 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP7    0x20a06fac /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP7  0x20a06fb0 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP7  0x20a06fb4 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP7   0x20a06fb8 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP7      0x20a06fbc /* [RW] XC Buffer - Watermark RMX0 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP8   0x20a06fc0 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP8    0x20a06fc4 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP8  0x20a06fc8 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP8  0x20a06fcc /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP8   0x20a06fd0 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP8      0x20a06fd4 /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP9   0x20a06fd8 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP9    0x20a06fdc /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP9  0x20a06fe0 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP9  0x20a06fe4 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP9   0x20a06fe8 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP9      0x20a06fec /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP10  0x20a06ff0 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP10   0x20a06ff4 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP10 0x20a06ff8 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP10 0x20a06ffc /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP10  0x20a07000 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP10     0x20a07004 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP11  0x20a07008 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP11   0x20a0700c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP11 0x20a07010 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP11 0x20a07014 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP11  0x20a07018 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP11     0x20a0701c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP12  0x20a07020 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP12   0x20a07024 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP12 0x20a07028 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP12 0x20a0702c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP12  0x20a07030 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP12     0x20a07034 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP13  0x20a07038 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP13   0x20a0703c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP13 0x20a07040 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP13 0x20a07044 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP13  0x20a07048 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP13     0x20a0704c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP14  0x20a07050 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP14   0x20a07054 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP14 0x20a07058 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP14 0x20a0705c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP14  0x20a07060 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP14     0x20a07064 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP15  0x20a07068 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP15   0x20a0706c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP15 0x20a07070 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP15 0x20a07074 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP15  0x20a07078 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP15     0x20a0707c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP16  0x20a07080 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP16   0x20a07084 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP16 0x20a07088 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP16 0x20a0708c /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP16  0x20a07090 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP16     0x20a07094 /* [RW] XC Buffer - Watermark RMX0 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP17  0x20a07098 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP17   0x20a0709c /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP17 0x20a070a0 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP17 0x20a070a4 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP17  0x20a070a8 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP17     0x20a070ac /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP18  0x20a070b0 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP18   0x20a070b4 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP18 0x20a070b8 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP18 0x20a070bc /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP18  0x20a070c0 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP18     0x20a070c4 /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP19  0x20a070c8 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP19   0x20a070cc /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP19 0x20a070d0 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP19 0x20a070d4 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP19  0x20a070d8 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP19     0x20a070dc /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP20  0x20a070e0 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP20   0x20a070e4 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP20 0x20a070e8 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP20 0x20a070ec /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP20  0x20a070f0 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP20     0x20a070f4 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP21  0x20a070f8 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP21   0x20a070fc /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP21 0x20a07100 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP21 0x20a07104 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP21  0x20a07108 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP21     0x20a0710c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP22  0x20a07110 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP22   0x20a07114 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP22 0x20a07118 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP22 0x20a0711c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP22  0x20a07120 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP22     0x20a07124 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP23  0x20a07128 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP23   0x20a0712c /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP23 0x20a07130 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP23 0x20a07134 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP23  0x20a07138 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP23     0x20a0713c /* [RW] XC Buffer - Watermark RMX0 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP24  0x20a07140 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP24   0x20a07144 /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP24 0x20a07148 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP24 0x20a0714c /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP24  0x20a07150 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP24     0x20a07154 /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP25  0x20a07158 /* [RW] XC Buffer - Base pointer for  RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP25   0x20a0715c /* [RW] XC Buffer - End pointer for  RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP25 0x20a07160 /* [RW] XC Buffer - Write pointer for  RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP25 0x20a07164 /* [RW] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP25  0x20a07168 /* [RW] XC Buffer - Read pointer for  RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP25     0x20a0716c /* [RW] XC Buffer - Watermark   RMX0 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP26  0x20a07170 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP26   0x20a07174 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP26 0x20a07178 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP26 0x20a0717c /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP26  0x20a07180 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP26     0x20a07184 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP27  0x20a07188 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP27   0x20a0718c /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP27 0x20a07190 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP27 0x20a07194 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP27  0x20a07198 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP27     0x20a0719c /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP28  0x20a071a0 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP28   0x20a071a4 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP28 0x20a071a8 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP28 0x20a071ac /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP28  0x20a071b0 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP28     0x20a071b4 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP29  0x20a071b8 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP29   0x20a071bc /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP29 0x20a071c0 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP29 0x20a071c4 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP29  0x20a071c8 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP29     0x20a071cc /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP30  0x20a071d0 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP30   0x20a071d4 /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP30 0x20a071d8 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP30 0x20a071dc /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP30  0x20a071e0 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP30     0x20a071e4 /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP31  0x20a071e8 /* [RW] XC Buffer - Base pointer for RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP31   0x20a071ec /* [RW] XC Buffer - End pointer for RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP31 0x20a071f0 /* [RW] XC Buffer - Write pointer for RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP31 0x20a071f4 /* [RW] XC Buffer - Valid pointer for RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP31  0x20a071f8 /* [RW] XC Buffer - Read pointer for RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP31     0x20a071fc /* [RW] XC Buffer - Watermark  RMX0 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0   0x20a07200 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP0    0x20a07204 /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP0  0x20a07208 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP0  0x20a0720c /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP0   0x20a07210 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP0      0x20a07214 /* [RW] XC Buffer - Watermark RMX1 Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP1   0x20a07218 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP1    0x20a0721c /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP1  0x20a07220 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP1  0x20a07224 /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP1   0x20a07228 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP1      0x20a0722c /* [RW] XC Buffer - Watermark   RMX1 Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP2   0x20a07230 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP2    0x20a07234 /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP2  0x20a07238 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP2  0x20a0723c /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP2   0x20a07240 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP2      0x20a07244 /* [RW] XC Buffer - Watermark   RMX1 Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP3   0x20a07248 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP3    0x20a0724c /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP3  0x20a07250 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP3  0x20a07254 /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP3   0x20a07258 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP3      0x20a0725c /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP4   0x20a07260 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP4    0x20a07264 /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP4  0x20a07268 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP4  0x20a0726c /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP4   0x20a07270 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP4      0x20a07274 /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP5   0x20a07278 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP5    0x20a0727c /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP5  0x20a07280 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP5  0x20a07284 /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP5   0x20a07288 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP5      0x20a0728c /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP6   0x20a07290 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP6    0x20a07294 /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP6  0x20a07298 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP6  0x20a0729c /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP6   0x20a072a0 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP6      0x20a072a4 /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP7   0x20a072a8 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP7    0x20a072ac /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP7  0x20a072b0 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP7  0x20a072b4 /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP7   0x20a072b8 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP7      0x20a072bc /* [RW] XC Buffer - Watermark RMX1 Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP8   0x20a072c0 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP8    0x20a072c4 /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP8  0x20a072c8 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP8  0x20a072cc /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP8   0x20a072d0 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP8      0x20a072d4 /* [RW] XC Buffer - Watermark   RMX1 Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP9   0x20a072d8 /* [RW] XC Buffer - Base pointer for  RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP9    0x20a072dc /* [RW] XC Buffer - End pointer for  RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP9  0x20a072e0 /* [RW] XC Buffer - Write pointer for  RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP9  0x20a072e4 /* [RW] XC Buffer - Valid pointer for  RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP9   0x20a072e8 /* [RW] XC Buffer - Read pointer for  RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP9      0x20a072ec /* [RW] XC Buffer - Watermark   RMX1 Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP10  0x20a072f0 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP10   0x20a072f4 /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP10 0x20a072f8 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP10 0x20a072fc /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP10  0x20a07300 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP10     0x20a07304 /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP11  0x20a07308 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP11   0x20a0730c /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP11 0x20a07310 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP11 0x20a07314 /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP11  0x20a07318 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP11     0x20a0731c /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP12  0x20a07320 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP12   0x20a07324 /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP12 0x20a07328 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP12 0x20a0732c /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP12  0x20a07330 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP12     0x20a07334 /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP13  0x20a07338 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP13   0x20a0733c /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP13 0x20a07340 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP13 0x20a07344 /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP13  0x20a07348 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP13     0x20a0734c /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP14  0x20a07350 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP14   0x20a07354 /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP14 0x20a07358 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP14 0x20a0735c /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP14  0x20a07360 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP14     0x20a07364 /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP15  0x20a07368 /* [RW] XC Buffer - Base pointer for RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP15   0x20a0736c /* [RW] XC Buffer - End pointer for RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP15 0x20a07370 /* [RW] XC Buffer - Write pointer for RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP15 0x20a07374 /* [RW] XC Buffer - Valid pointer for RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP15  0x20a07378 /* [RW] XC Buffer - Read pointer for RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP15     0x20a0737c /* [RW] XC Buffer - Watermark  RMX1 Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0   0x20a07500 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP0    0x20a07504 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP0  0x20a07508 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP0  0x20a0750c /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP0   0x20a07510 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP0      0x20a07514 /* [RW] XC Buffer - Watermark RMX1 Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP1   0x20a07518 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP1    0x20a0751c /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP1  0x20a07520 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP1  0x20a07524 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP1   0x20a07528 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP1      0x20a0752c /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP2   0x20a07530 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP2    0x20a07534 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP2  0x20a07538 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP2  0x20a0753c /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP2   0x20a07540 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP2      0x20a07544 /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP3   0x20a07548 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP3    0x20a0754c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP3  0x20a07550 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP3  0x20a07554 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP3   0x20a07558 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP3      0x20a0755c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP4   0x20a07560 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP4    0x20a07564 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP4  0x20a07568 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP4  0x20a0756c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP4   0x20a07570 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP4      0x20a07574 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP5   0x20a07578 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP5    0x20a0757c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP5  0x20a07580 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP5  0x20a07584 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP5   0x20a07588 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP5      0x20a0758c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP6   0x20a07590 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP6    0x20a07594 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP6  0x20a07598 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP6  0x20a0759c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP6   0x20a075a0 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP6      0x20a075a4 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP7   0x20a075a8 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP7    0x20a075ac /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP7  0x20a075b0 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP7  0x20a075b4 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP7   0x20a075b8 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP7      0x20a075bc /* [RW] XC Buffer - Watermark RMX1 Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP8   0x20a075c0 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP8    0x20a075c4 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP8  0x20a075c8 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP8  0x20a075cc /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP8   0x20a075d0 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP8      0x20a075d4 /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP9   0x20a075d8 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP9    0x20a075dc /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP9  0x20a075e0 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP9  0x20a075e4 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP9   0x20a075e8 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP9      0x20a075ec /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP10  0x20a075f0 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP10   0x20a075f4 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP10 0x20a075f8 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP10 0x20a075fc /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP10  0x20a07600 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP10     0x20a07604 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP11  0x20a07608 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP11   0x20a0760c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP11 0x20a07610 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP11 0x20a07614 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP11  0x20a07618 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP11     0x20a0761c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP12  0x20a07620 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP12   0x20a07624 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP12 0x20a07628 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP12 0x20a0762c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP12  0x20a07630 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP12     0x20a07634 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP13  0x20a07638 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP13   0x20a0763c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP13 0x20a07640 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP13 0x20a07644 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP13  0x20a07648 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP13     0x20a0764c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP14  0x20a07650 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP14   0x20a07654 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP14 0x20a07658 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP14 0x20a0765c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP14  0x20a07660 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP14     0x20a07664 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP15  0x20a07668 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP15   0x20a0766c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP15 0x20a07670 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP15 0x20a07674 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP15  0x20a07678 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP15     0x20a0767c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP16  0x20a07680 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP16   0x20a07684 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP16 0x20a07688 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP16 0x20a0768c /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP16  0x20a07690 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP16     0x20a07694 /* [RW] XC Buffer - Watermark RMX1 Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP17  0x20a07698 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP17   0x20a0769c /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP17 0x20a076a0 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP17 0x20a076a4 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP17  0x20a076a8 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP17     0x20a076ac /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP18  0x20a076b0 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP18   0x20a076b4 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP18 0x20a076b8 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP18 0x20a076bc /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP18  0x20a076c0 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP18     0x20a076c4 /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP19  0x20a076c8 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP19   0x20a076cc /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP19 0x20a076d0 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP19 0x20a076d4 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP19  0x20a076d8 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP19     0x20a076dc /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP20  0x20a076e0 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP20   0x20a076e4 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP20 0x20a076e8 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP20 0x20a076ec /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP20  0x20a076f0 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP20     0x20a076f4 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP21  0x20a076f8 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP21   0x20a076fc /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP21 0x20a07700 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP21 0x20a07704 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP21  0x20a07708 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP21     0x20a0770c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP22  0x20a07710 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP22   0x20a07714 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP22 0x20a07718 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP22 0x20a0771c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP22  0x20a07720 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP22     0x20a07724 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP23  0x20a07728 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP23   0x20a0772c /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP23 0x20a07730 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP23 0x20a07734 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP23  0x20a07738 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP23     0x20a0773c /* [RW] XC Buffer - Watermark RMX1 Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP24  0x20a07740 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP24   0x20a07744 /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP24 0x20a07748 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP24 0x20a0774c /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP24  0x20a07750 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP24     0x20a07754 /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP25  0x20a07758 /* [RW] XC Buffer - Base pointer for  RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP25   0x20a0775c /* [RW] XC Buffer - End pointer for  RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP25 0x20a07760 /* [RW] XC Buffer - Write pointer for  RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP25 0x20a07764 /* [RW] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP25  0x20a07768 /* [RW] XC Buffer - Read pointer for  RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP25     0x20a0776c /* [RW] XC Buffer - Watermark   RMX1 Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP26  0x20a07770 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP26   0x20a07774 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP26 0x20a07778 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP26 0x20a0777c /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP26  0x20a07780 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP26     0x20a07784 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP27  0x20a07788 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP27   0x20a0778c /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP27 0x20a07790 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP27 0x20a07794 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP27  0x20a07798 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP27     0x20a0779c /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP28  0x20a077a0 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP28   0x20a077a4 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP28 0x20a077a8 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP28 0x20a077ac /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP28  0x20a077b0 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP28     0x20a077b4 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP29  0x20a077b8 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP29   0x20a077bc /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP29 0x20a077c0 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP29 0x20a077c4 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP29  0x20a077c8 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP29     0x20a077cc /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP30  0x20a077d0 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP30   0x20a077d4 /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP30 0x20a077d8 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP30 0x20a077dc /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP30  0x20a077e0 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP30     0x20a077e4 /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP31  0x20a077e8 /* [RW] XC Buffer - Base pointer for RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP31   0x20a077ec /* [RW] XC Buffer - End pointer for RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP31 0x20a077f0 /* [RW] XC Buffer - Write pointer for RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP31 0x20a077f4 /* [RW] XC Buffer - Valid pointer for RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP31  0x20a077f8 /* [RW] XC Buffer - Read pointer for RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP31     0x20a077fc /* [RW] XC Buffer - Watermark  RMX1 Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP  0x20a07800 /* [RW] XC Buffer RAVE Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP  0x20a07804 /* [RW] XC Buffer RAVE Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_RAVE_CTRL_PAUSE_EN_PBP   0x20a07808 /* [RW] XC Buffer RAVE Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RAVE_CTRL_PAUSE_EN_IBP   0x20a0780c /* [RW] XC Buffer RAVE Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP   0x20a07810 /* [RW] XC Buffer MSG Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP   0x20a07814 /* [RW] XC Buffer MSG Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_MSG_CTRL_PAUSE_EN_PBP    0x20a07818 /* [RW] XC Buffer MSG Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_MSG_CTRL_PAUSE_EN_IBP    0x20a0781c /* [RW] XC Buffer MSG Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP  0x20a07820 /* [RW] XC Buffer RMX0 Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP  0x20a07824 /* [RW] XC Buffer RMX0 Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_RMX0_CTRL_PAUSE_EN_PBP   0x20a07828 /* [RW] XC Buffer RMX0 Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RMX0_CTRL_PAUSE_EN_IBP   0x20a0782c /* [RW] XC Buffer RMX0 Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP  0x20a07830 /* [RW] XC Buffer RMX1 Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP  0x20a07834 /* [RW] XC Buffer RMX1 Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_RMX1_CTRL_PAUSE_EN_PBP   0x20a07838 /* [RW] XC Buffer RMX1 Control Buffer Enable PBP */
-#define BCHP_XPT_XCBUFF_RMX1_CTRL_PAUSE_EN_IBP   0x20a0783c /* [RW] XC Buffer RMX1 Control Buffer Enable IBP */
-#define BCHP_XPT_XCBUFF_PAUSE_THRESHOLD          0x20a07840 /* [RW] XC Buffer Pause Threshold */
-#define BCHP_XPT_XCBUFF_RAVE_PAUSE_STATUS_PBP    0x20a07844 /* [RO] XC Buffer RAVE Pause Status PBP */
-#define BCHP_XPT_XCBUFF_RAVE_PAUSE_STATUS_IBP    0x20a07848 /* [RO] XC Buffer RAVE Pause Status IBP */
-#define BCHP_XPT_XCBUFF_MSG_PAUSE_STATUS_PBP     0x20a0784c /* [RO] XC Buffer MSG Pause Status PBP */
-#define BCHP_XPT_XCBUFF_MSG_PAUSE_STATUS_IBP     0x20a07850 /* [RO] XC Buffer MSG Pause Status IBP */
-#define BCHP_XPT_XCBUFF_RMX0_PAUSE_STATUS_PBP    0x20a07854 /* [RO] XC Buffer RMX0 Pause Status PBP */
-#define BCHP_XPT_XCBUFF_RMX0_PAUSE_STATUS_IBP    0x20a07858 /* [RO] XC Buffer RMX0 Pause Status IBP */
-#define BCHP_XPT_XCBUFF_RMX1_PAUSE_STATUS_PBP    0x20a0785c /* [RO] XC Buffer RMX1 Pause Status PBP */
-#define BCHP_XPT_XCBUFF_RMX1_PAUSE_STATUS_IBP    0x20a07860 /* [RO] XC Buffer RMX1 Pause Status IBP */
-#define BCHP_XPT_XCBUFF_RAVE_DATA_RDY_PBP        0x20a07864 /* [RW] XC Buffer RAVE Data Ready PBP */
-#define BCHP_XPT_XCBUFF_RAVE_DATA_RDY_IBP        0x20a07868 /* [RW] XC Buffer RAVE Data Ready IBP */
-#define BCHP_XPT_XCBUFF_MSG_DATA_RDY_PBP         0x20a0786c /* [RW] XC Buffer MSG Data Ready PBP */
-#define BCHP_XPT_XCBUFF_MSG_DATA_RDY_IBP         0x20a07870 /* [RW] XC Buffer MSG Data Ready IBP */
-#define BCHP_XPT_XCBUFF_RMX0_DATA_RDY_PBP        0x20a07874 /* [RW] XC Buffer RMX0 Data Ready PBP */
-#define BCHP_XPT_XCBUFF_RMX0_DATA_RDY_IBP        0x20a07878 /* [RW] XC Buffer RMX0 Data Ready IBP */
-#define BCHP_XPT_XCBUFF_RMX1_DATA_RDY_PBP        0x20a0787c /* [RW] XC Buffer RMX1 Data Ready PBP */
-#define BCHP_XPT_XCBUFF_RMX1_DATA_RDY_IBP        0x20a07880 /* [RW] XC Buffer RMX1 Data Ready IBP */
-#define BCHP_XPT_XCBUFF_OVERFLOW_THRESHOLD       0x20a07884 /* [RW] XC Buffer Overflow Threshold */
-#define BCHP_XPT_XCBUFF_RAVE_OVERFLOW_STATUS_PBP 0x20a07888 /* [RW] XC Buffer RAVE Overflow status PBP */
-#define BCHP_XPT_XCBUFF_RAVE_OVERFLOW_STATUS_IBP 0x20a0788c /* [RW] XC Buffer RAVE Overflow status IBP */
-#define BCHP_XPT_XCBUFF_MSG_OVERFLOW_STATUS_PBP  0x20a07890 /* [RW] XC Buffer MSG Overflow status PBP */
-#define BCHP_XPT_XCBUFF_MSG_OVERFLOW_STATUS_IBP  0x20a07894 /* [RW] XC Buffer MSG Overflow status IBP */
-#define BCHP_XPT_XCBUFF_RMX0_OVERFLOW_STATUS_PBP 0x20a07898 /* [RW] XC Buffer RMX0 Overflow status PBP */
-#define BCHP_XPT_XCBUFF_RMX0_OVERFLOW_STATUS_IBP 0x20a0789c /* [RW] XC Buffer RMX0 Overflow status IBP */
-#define BCHP_XPT_XCBUFF_RMX1_OVERFLOW_STATUS_PBP 0x20a078a0 /* [RW] XC Buffer RMX1 Overflow status PBP */
-#define BCHP_XPT_XCBUFF_RMX1_OVERFLOW_STATUS_IBP 0x20a078a4 /* [RW] XC Buffer RMX1 Overflow status IBP */
-#define BCHP_XPT_XCBUFF_BYTE_SWAP_CTRL           0x20a078a8 /* [RW] XC Buffer Byte swap Control */
-#define BCHP_XPT_XCBUFF_PACKET_LENGTH            0x20a078ac /* [RW] XC Buffer Packet Length */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP0             0x20a078b0 /* [RW] XC Buffer Block Out Control for Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP1             0x20a078b4 /* [RW] XC Buffer Block Out Control for Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP2             0x20a078b8 /* [RW] XC Buffer Block Out Control for Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP3             0x20a078bc /* [RW] XC Buffer Block Out Control for Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP4             0x20a078c0 /* [RW] XC Buffer Block Out Control for Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP5             0x20a078c4 /* [RW] XC Buffer Block Out Control for Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP6             0x20a078c8 /* [RW] XC Buffer Block Out Control for Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP7             0x20a078cc /* [RW] XC Buffer Block Out Control for Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP8             0x20a078d0 /* [RW] XC Buffer Block Out Control for Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP9             0x20a078d4 /* [RW] XC Buffer Block Out Control for Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP10            0x20a078d8 /* [RW] XC Buffer Block Out Control for Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP11            0x20a078dc /* [RW] XC Buffer Block Out Control for Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP12            0x20a078e0 /* [RW] XC Buffer Block Out Control for Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP13            0x20a078e4 /* [RW] XC Buffer Block Out Control for Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP14            0x20a078e8 /* [RW] XC Buffer Block Out Control for Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_IBP15            0x20a078ec /* [RW] XC Buffer Block Out Control for Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP0             0x20a07930 /* [RW] XC Buffer Block Out Control for Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP1             0x20a07934 /* [RW] XC Buffer Block Out Control for Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP2             0x20a07938 /* [RW] XC Buffer Block Out Control for Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP3             0x20a0793c /* [RW] XC Buffer Block Out Control for Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP4             0x20a07940 /* [RW] XC Buffer Block Out Control for Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP5             0x20a07944 /* [RW] XC Buffer Block Out Control for Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP6             0x20a07948 /* [RW] XC Buffer Block Out Control for Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP7             0x20a0794c /* [RW] XC Buffer Block Out Control for Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP8             0x20a07950 /* [RW] XC Buffer Block Out Control for Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP9             0x20a07954 /* [RW] XC Buffer Block Out Control for Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP10            0x20a07958 /* [RW] XC Buffer Block Out Control for Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP11            0x20a0795c /* [RW] XC Buffer Block Out Control for Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP12            0x20a07960 /* [RW] XC Buffer Block Out Control for Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP13            0x20a07964 /* [RW] XC Buffer Block Out Control for Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP14            0x20a07968 /* [RW] XC Buffer Block Out Control for Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP15            0x20a0796c /* [RW] XC Buffer Block Out Control for Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP16            0x20a07970 /* [RW] XC Buffer Block Out Control for Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP17            0x20a07974 /* [RW] XC Buffer Block Out Control for Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP18            0x20a07978 /* [RW] XC Buffer Block Out Control for Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP19            0x20a0797c /* [RW] XC Buffer Block Out Control for Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP20            0x20a07980 /* [RW] XC Buffer Block Out Control for Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP21            0x20a07984 /* [RW] XC Buffer Block Out Control for Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP22            0x20a07988 /* [RW] XC Buffer Block Out Control for Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP23            0x20a0798c /* [RW] XC Buffer Block Out Control for Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP24            0x20a07990 /* [RW] XC Buffer Block Out Control for Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP25            0x20a07994 /* [RW] XC Buffer Block Out Control for Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP26            0x20a07998 /* [RW] XC Buffer Block Out Control for Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP27            0x20a0799c /* [RW] XC Buffer Block Out Control for Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP28            0x20a079a0 /* [RW] XC Buffer Block Out Control for Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP29            0x20a079a4 /* [RW] XC Buffer Block Out Control for Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP30            0x20a079a8 /* [RW] XC Buffer Block Out Control for Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BO_RAVE_PBP31            0x20a079ac /* [RW] XC Buffer Block Out Control for Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP0              0x20a079b0 /* [RW] XC Buffer Block Out Control for Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP1              0x20a079b4 /* [RW] XC Buffer Block Out Control for Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP2              0x20a079b8 /* [RW] XC Buffer Block Out Control for Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP3              0x20a079bc /* [RW] XC Buffer Block Out Control for Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP4              0x20a079c0 /* [RW] XC Buffer Block Out Control for Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP5              0x20a079c4 /* [RW] XC Buffer Block Out Control for Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP6              0x20a079c8 /* [RW] XC Buffer Block Out Control for Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP7              0x20a079cc /* [RW] XC Buffer Block Out Control for Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP8              0x20a079d0 /* [RW] XC Buffer Block Out Control for Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP9              0x20a079d4 /* [RW] XC Buffer Block Out Control for Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP10             0x20a079d8 /* [RW] XC Buffer Block Out Control for Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP11             0x20a079dc /* [RW] XC Buffer Block Out Control for Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP12             0x20a079e0 /* [RW] XC Buffer Block Out Control for Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP13             0x20a079e4 /* [RW] XC Buffer Block Out Control for Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP14             0x20a079e8 /* [RW] XC Buffer Block Out Control for Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_MSG_IBP15             0x20a079ec /* [RW] XC Buffer Block Out Control for Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP0              0x20a07a30 /* [RW] XC Buffer Block Out Control for Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP1              0x20a07a34 /* [RW] XC Buffer Block Out Control for Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP2              0x20a07a38 /* [RW] XC Buffer Block Out Control for Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP3              0x20a07a3c /* [RW] XC Buffer Block Out Control for Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP4              0x20a07a40 /* [RW] XC Buffer Block Out Control for Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP5              0x20a07a44 /* [RW] XC Buffer Block Out Control for Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP6              0x20a07a48 /* [RW] XC Buffer Block Out Control for Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP7              0x20a07a4c /* [RW] XC Buffer Block Out Control for Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP8              0x20a07a50 /* [RW] XC Buffer Block Out Control for Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP9              0x20a07a54 /* [RW] XC Buffer Block Out Control for Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP10             0x20a07a58 /* [RW] XC Buffer Block Out Control for Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP11             0x20a07a5c /* [RW] XC Buffer Block Out Control for Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP12             0x20a07a60 /* [RW] XC Buffer Block Out Control for Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP13             0x20a07a64 /* [RW] XC Buffer Block Out Control for Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP14             0x20a07a68 /* [RW] XC Buffer Block Out Control for Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP15             0x20a07a6c /* [RW] XC Buffer Block Out Control for Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP16             0x20a07a70 /* [RW] XC Buffer Block Out Control for Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP17             0x20a07a74 /* [RW] XC Buffer Block Out Control for Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP18             0x20a07a78 /* [RW] XC Buffer Block Out Control for Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP19             0x20a07a7c /* [RW] XC Buffer Block Out Control for Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP20             0x20a07a80 /* [RW] XC Buffer Block Out Control for Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP21             0x20a07a84 /* [RW] XC Buffer Block Out Control for Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP22             0x20a07a88 /* [RW] XC Buffer Block Out Control for Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP23             0x20a07a8c /* [RW] XC Buffer Block Out Control for Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP24             0x20a07a90 /* [RW] XC Buffer Block Out Control for Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP25             0x20a07a94 /* [RW] XC Buffer Block Out Control for Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP26             0x20a07a98 /* [RW] XC Buffer Block Out Control for Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP27             0x20a07a9c /* [RW] XC Buffer Block Out Control for Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP28             0x20a07aa0 /* [RW] XC Buffer Block Out Control for Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP29             0x20a07aa4 /* [RW] XC Buffer Block Out Control for Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP30             0x20a07aa8 /* [RW] XC Buffer Block Out Control for Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BO_MSG_PBP31             0x20a07aac /* [RW] XC Buffer Block Out Control for Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP0             0x20a07ab0 /* [RW] XC Buffer Block Out Control for Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP1             0x20a07ab4 /* [RW] XC Buffer Block Out Control for Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP2             0x20a07ab8 /* [RW] XC Buffer Block Out Control for Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP3             0x20a07abc /* [RW] XC Buffer Block Out Control for Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP4             0x20a07ac0 /* [RW] XC Buffer Block Out Control for Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP5             0x20a07ac4 /* [RW] XC Buffer Block Out Control for Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP6             0x20a07ac8 /* [RW] XC Buffer Block Out Control for Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP7             0x20a07acc /* [RW] XC Buffer Block Out Control for Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP8             0x20a07ad0 /* [RW] XC Buffer Block Out Control for Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP9             0x20a07ad4 /* [RW] XC Buffer Block Out Control for Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP10            0x20a07ad8 /* [RW] XC Buffer Block Out Control for Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP11            0x20a07adc /* [RW] XC Buffer Block Out Control for Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP12            0x20a07ae0 /* [RW] XC Buffer Block Out Control for Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP13            0x20a07ae4 /* [RW] XC Buffer Block Out Control for Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP14            0x20a07ae8 /* [RW] XC Buffer Block Out Control for Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_IBP15            0x20a07aec /* [RW] XC Buffer Block Out Control for Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP0             0x20a07b30 /* [RW] XC Buffer Block Out Control for Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP1             0x20a07b34 /* [RW] XC Buffer Block Out Control for Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP2             0x20a07b38 /* [RW] XC Buffer Block Out Control for Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP3             0x20a07b3c /* [RW] XC Buffer Block Out Control for Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP4             0x20a07b40 /* [RW] XC Buffer Block Out Control for Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP5             0x20a07b44 /* [RW] XC Buffer Block Out Control for Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP6             0x20a07b48 /* [RW] XC Buffer Block Out Control for Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP7             0x20a07b4c /* [RW] XC Buffer Block Out Control for Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP8             0x20a07b50 /* [RW] XC Buffer Block Out Control for Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP9             0x20a07b54 /* [RW] XC Buffer Block Out Control for Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP10            0x20a07b58 /* [RW] XC Buffer Block Out Control for Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP11            0x20a07b5c /* [RW] XC Buffer Block Out Control for Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP12            0x20a07b60 /* [RW] XC Buffer Block Out Control for Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP13            0x20a07b64 /* [RW] XC Buffer Block Out Control for Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP14            0x20a07b68 /* [RW] XC Buffer Block Out Control for Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP15            0x20a07b6c /* [RW] XC Buffer Block Out Control for Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP16            0x20a07b70 /* [RW] XC Buffer Block Out Control for Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP17            0x20a07b74 /* [RW] XC Buffer Block Out Control for Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP18            0x20a07b78 /* [RW] XC Buffer Block Out Control for Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP19            0x20a07b7c /* [RW] XC Buffer Block Out Control for Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP20            0x20a07b80 /* [RW] XC Buffer Block Out Control for Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP21            0x20a07b84 /* [RW] XC Buffer Block Out Control for Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP22            0x20a07b88 /* [RW] XC Buffer Block Out Control for Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP23            0x20a07b8c /* [RW] XC Buffer Block Out Control for Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP24            0x20a07b90 /* [RW] XC Buffer Block Out Control for Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP25            0x20a07b94 /* [RW] XC Buffer Block Out Control for Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP26            0x20a07b98 /* [RW] XC Buffer Block Out Control for Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP27            0x20a07b9c /* [RW] XC Buffer Block Out Control for Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP28            0x20a07ba0 /* [RW] XC Buffer Block Out Control for Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP29            0x20a07ba4 /* [RW] XC Buffer Block Out Control for Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP30            0x20a07ba8 /* [RW] XC Buffer Block Out Control for Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BO_RMX0_PBP31            0x20a07bac /* [RW] XC Buffer Block Out Control for Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP0             0x20a07bb0 /* [RW] XC Buffer Block Out Control for Input Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP1             0x20a07bb4 /* [RW] XC Buffer Block Out Control for Input Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP2             0x20a07bb8 /* [RW] XC Buffer Block Out Control for Input Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP3             0x20a07bbc /* [RW] XC Buffer Block Out Control for Input Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP4             0x20a07bc0 /* [RW] XC Buffer Block Out Control for Input Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP5             0x20a07bc4 /* [RW] XC Buffer Block Out Control for Input Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP6             0x20a07bc8 /* [RW] XC Buffer Block Out Control for Input Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP7             0x20a07bcc /* [RW] XC Buffer Block Out Control for Input Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP8             0x20a07bd0 /* [RW] XC Buffer Block Out Control for Input Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP9             0x20a07bd4 /* [RW] XC Buffer Block Out Control for Input Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP10            0x20a07bd8 /* [RW] XC Buffer Block Out Control for Input Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP11            0x20a07bdc /* [RW] XC Buffer Block Out Control for Input Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP12            0x20a07be0 /* [RW] XC Buffer Block Out Control for Input Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP13            0x20a07be4 /* [RW] XC Buffer Block Out Control for Input Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP14            0x20a07be8 /* [RW] XC Buffer Block Out Control for Input Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_IBP15            0x20a07bec /* [RW] XC Buffer Block Out Control for Input Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP0             0x20a07c30 /* [RW] XC Buffer Block Out Control for Playback Band Parser 0 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP1             0x20a07c34 /* [RW] XC Buffer Block Out Control for Playback Band Parser 1 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP2             0x20a07c38 /* [RW] XC Buffer Block Out Control for Playback Band Parser 2 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP3             0x20a07c3c /* [RW] XC Buffer Block Out Control for Playback Band Parser 3 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP4             0x20a07c40 /* [RW] XC Buffer Block Out Control for Playback Band Parser 4 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP5             0x20a07c44 /* [RW] XC Buffer Block Out Control for Playback Band Parser 5 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP6             0x20a07c48 /* [RW] XC Buffer Block Out Control for Playback Band Parser 6 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP7             0x20a07c4c /* [RW] XC Buffer Block Out Control for Playback Band Parser 7 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP8             0x20a07c50 /* [RW] XC Buffer Block Out Control for Playback Band Parser 8 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP9             0x20a07c54 /* [RW] XC Buffer Block Out Control for Playback Band Parser 9 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP10            0x20a07c58 /* [RW] XC Buffer Block Out Control for Playback Band Parser 10 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP11            0x20a07c5c /* [RW] XC Buffer Block Out Control for Playback Band Parser 11 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP12            0x20a07c60 /* [RW] XC Buffer Block Out Control for Playback Band Parser 12 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP13            0x20a07c64 /* [RW] XC Buffer Block Out Control for Playback Band Parser 13 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP14            0x20a07c68 /* [RW] XC Buffer Block Out Control for Playback Band Parser 14 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP15            0x20a07c6c /* [RW] XC Buffer Block Out Control for Playback Band Parser 15 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP16            0x20a07c70 /* [RW] XC Buffer Block Out Control for Playback Band Parser 16 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP17            0x20a07c74 /* [RW] XC Buffer Block Out Control for Playback Band Parser 17 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP18            0x20a07c78 /* [RW] XC Buffer Block Out Control for Playback Band Parser 18 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP19            0x20a07c7c /* [RW] XC Buffer Block Out Control for Playback Band Parser 19 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP20            0x20a07c80 /* [RW] XC Buffer Block Out Control for Playback Band Parser 20 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP21            0x20a07c84 /* [RW] XC Buffer Block Out Control for Playback Band Parser 21 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP22            0x20a07c88 /* [RW] XC Buffer Block Out Control for Playback Band Parser 22 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP23            0x20a07c8c /* [RW] XC Buffer Block Out Control for Playback Band Parser 23 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP24            0x20a07c90 /* [RW] XC Buffer Block Out Control for Playback Band Parser 24 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP25            0x20a07c94 /* [RW] XC Buffer Block Out Control for Playback Band Parser 25 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP26            0x20a07c98 /* [RW] XC Buffer Block Out Control for Playback Band Parser 26 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP27            0x20a07c9c /* [RW] XC Buffer Block Out Control for Playback Band Parser 27 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP28            0x20a07ca0 /* [RW] XC Buffer Block Out Control for Playback Band Parser 28 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP29            0x20a07ca4 /* [RW] XC Buffer Block Out Control for Playback Band Parser 29 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP30            0x20a07ca8 /* [RW] XC Buffer Block Out Control for Playback Band Parser 30 */
-#define BCHP_XPT_XCBUFF_BO_RMX1_PBP31            0x20a07cac /* [RW] XC Buffer Block Out Control for Playback Band Parser 31 */
-#define BCHP_XPT_XCBUFF_MISC_CTRL                0x20a07cb0 /* [RW] XC Buffer Miscellaneous Control */
-#define BCHP_XPT_XCBUFF_NO_RD_HANG_CTRL          0x20a07cb4 /* [RW] XC Buffer No Read Hang Control */
-#define BCHP_XPT_XCBUFF_WR_DEBUG                 0x20a07cb8 /* [RO] XC Buffer Write Debug Register */
-#define BCHP_XPT_XCBUFF_RMX0_RD_DEBUG            0x20a07cbc /* [RO] XC Buffer RMX0 Read Debug Register */
-#define BCHP_XPT_XCBUFF_RMX1_RD_DEBUG            0x20a07cc0 /* [RO] XC Buffer RMX1 Read Debug Register */
-#define BCHP_XPT_XCBUFF_MSG_RD_DEBUG             0x20a07cc4 /* [RO] XC Buffer MSG Read Debug Register */
-#define BCHP_XPT_XCBUFF_RAVE_RD_DEBUG            0x20a07cc8 /* [RO] XC Buffer RAVE Read Debug Register */
-#define BCHP_XPT_XCBUFF_PR_FALLBACK_CTRL         0x20a07ccc /* [RW] PR FALLBACK Control Register */
-#define BCHP_XPT_XCBUFF_MCPB0_RAVE_PAUSE_SEL0    0x20a07cd0 /* [RW] XC Buffer MCPB0 RAVE Pause Select Register for Playback bands 0-15 */
-#define BCHP_XPT_XCBUFF_MCPB0_RAVE_PAUSE_SEL1    0x20a07cd4 /* [RW] XC Buffer MCPB0 RAVE Pause Select Register for Playback bands 16-31 */
-#define BCHP_XPT_XCBUFF_RAVE_RDIF_BLOCK_OUT      0x20a07cd8 /* [RW] XC Buffer RAVE Read I/F Blockout Register */
-#define BCHP_XPT_XCBUFF_MSG_RDIF_BLOCK_OUT       0x20a07cdc /* [RW] XC Buffer MSG Read I/F Blockout Register */
-#define BCHP_XPT_XCBUFF_RMX0_RDIF_BLOCK_OUT      0x20a07ce0 /* [RW] XC Buffer RMX0 Read I/F Blockout Register */
-#define BCHP_XPT_XCBUFF_RMX1_RDIF_BLOCK_OUT      0x20a07ce4 /* [RW] XC Buffer RMX1 Read I/F Blockout Register */
-#define BCHP_XPT_XCBUFF_RAVE_IBP_BUFFER_IDLE     0x20a07ce8 /* [RO] XC Buffer RAVE IBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_BUFFER_IDLE     0x20a07cec /* [RO] XC Buffer RAVE PBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RAVE_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07cf0 /* [RW] XC Buffer RAVE IBP0 to IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07cf8 /* [RW] XC Buffer RAVE IBP0 to IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d00 /* [RW] XC Buffer RAVE PBP0 to PBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d04 /* [RW] XC Buffer RAVE PBP16 to PBP31 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d08 /* [RW] XC Buffer RAVE PBP0 to PBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d0c /* [RW] XC Buffer RAVE PBP16 to PBP31 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_IBP_BUFFER_IDLE      0x20a07d10 /* [RO] XC Buffer MSG IBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_BUFFER_IDLE      0x20a07d14 /* [RO] XC Buffer MSG PBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_MSG_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d18 /* [RW] XC Buffer MSG IBP0 to IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d20 /* [RW] XC Buffer MSG IBP0 to IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d28 /* [RW] XC Buffer MSG PBP0 to PBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d2c /* [RW] XC Buffer MSG PBP16 to PBP31 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d30 /* [RW] XC Buffer MSG PBP0 to PBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d34 /* [RW] XC Buffer MSG PBP16 to PBP31 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_IBP_BUFFER_IDLE     0x20a07d38 /* [RO] XC Buffer RMX0 IBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_BUFFER_IDLE     0x20a07d3c /* [RO] XC Buffer RMX0 PBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RMX0_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d40 /* [RW] XC Buffer RMX0 IBP0 to IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d48 /* [RW] XC Buffer RMX0 IBP0 to IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d50 /* [RW] XC Buffer RMX0 PBP0 to PBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d54 /* [RW] XC Buffer RMX0 PBP16 to PBP31 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d58 /* [RW] XC Buffer RMX0 PBP0 to PBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d5c /* [RW] XC Buffer RMX0 PBP16 to PBP31 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_IBP_BUFFER_IDLE     0x20a07d60 /* [RO] XC Buffer RMX1 IBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_BUFFER_IDLE     0x20a07d64 /* [RO] XC Buffer RMX1 PBP Buffer Idle Status */
-#define BCHP_XPT_XCBUFF_RMX1_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d68 /* [RW] XC Buffer RMX1 IBP0 to IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d70 /* [RW] XC Buffer RMX1 IBP0 to IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d78 /* [RW] XC Buffer RMX1 PBP0 to PBP15 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d7c /* [RW] XC Buffer RMX1 PBP16 to PBP31 Write Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d80 /* [RW] XC Buffer RMX1 PBP0 to PBP15 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d84 /* [RW] XC Buffer RMX1 PBP16 to PBP31 Read Transaction Pending Status */
-#define BCHP_XPT_XCBUFF_RAVE_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07d88 /* [RW] XC Buffer RAVE IBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RAVE_IBP_BAND_RD_IN_PROGRESS 0x20a07d8c /* [RW] XC Buffer RAVE IBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07d90 /* [RW] XC Buffer RAVE PBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RAVE_PBP_BAND_RD_IN_PROGRESS 0x20a07d94 /* [RW] XC Buffer RAVE PBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_MSG_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07d98 /* [RW] XC Buffer MSG IBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_MSG_IBP_BAND_RD_IN_PROGRESS 0x20a07d9c /* [RW] XC Buffer MSG IBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_MSG_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07da0 /* [RW] XC Buffer MSG PBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_MSG_PBP_BAND_RD_IN_PROGRESS 0x20a07da4 /* [RW] XC Buffer MSG PBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_RMX0_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07da8 /* [RW] XC Buffer RMX0 IBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RMX0_IBP_BAND_RD_IN_PROGRESS 0x20a07dac /* [RW] XC Buffer RMX0 IBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07db0 /* [RW] XC Buffer RMX0 PBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RMX0_PBP_BAND_RD_IN_PROGRESS 0x20a07db4 /* [RW] XC Buffer RMX0 PBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_RMX1_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07db8 /* [RW] XC Buffer RMX1 IBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RMX1_IBP_BAND_RD_IN_PROGRESS 0x20a07dbc /* [RW] XC Buffer RMX1 IBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07dc0 /* [RW] XC Buffer RMX1 PBP Read In Progress Control */
-#define BCHP_XPT_XCBUFF_RMX1_PBP_BAND_RD_IN_PROGRESS 0x20a07dc4 /* [RW] XC Buffer RMX1 PBP Read In Progress Status */
-#define BCHP_XPT_XCBUFF_TBG0_CTRL                0x20a07e00 /* [RW] XC Buffer Transponder Bonding Group 0 Control */
-#define BCHP_XPT_XCBUFF_TBG0_BO_RAVE             0x20a07e04 /* [RW] XC Buffer Transponder Bonding Group 0 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG0_BO_MSG              0x20a07e08 /* [RW] XC Buffer Transponder Bonding Group 0 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG0_BO_RMX0             0x20a07e0c /* [RW] XC Buffer Transponder Bonding Group 0 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG0_BO_RMX1             0x20a07e10 /* [RW] XC Buffer Transponder Bonding Group 0 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG1_CTRL                0x20a07e14 /* [RW] XC Buffer Transponder Bonding Group 1 Control */
-#define BCHP_XPT_XCBUFF_TBG1_BO_RAVE             0x20a07e18 /* [RW] XC Buffer Transponder Bonding Group 1 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG1_BO_MSG              0x20a07e1c /* [RW] XC Buffer Transponder Bonding Group 1 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG1_BO_RMX0             0x20a07e20 /* [RW] XC Buffer Transponder Bonding Group 1 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG1_BO_RMX1             0x20a07e24 /* [RW] XC Buffer Transponder Bonding Group 1 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG2_CTRL                0x20a07e28 /* [RW] XC Buffer Transponder Bonding Group 2 Control */
-#define BCHP_XPT_XCBUFF_TBG2_BO_RAVE             0x20a07e2c /* [RW] XC Buffer Transponder Bonding Group 2 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG2_BO_MSG              0x20a07e30 /* [RW] XC Buffer Transponder Bonding Group 2 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG2_BO_RMX0             0x20a07e34 /* [RW] XC Buffer Transponder Bonding Group 2 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG2_BO_RMX1             0x20a07e38 /* [RW] XC Buffer Transponder Bonding Group 2 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG3_CTRL                0x20a07e3c /* [RW] XC Buffer Transponder Bonding Group 3 Control */
-#define BCHP_XPT_XCBUFF_TBG3_BO_RAVE             0x20a07e40 /* [RW] XC Buffer Transponder Bonding Group 3 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG3_BO_MSG              0x20a07e44 /* [RW] XC Buffer Transponder Bonding Group 3 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG3_BO_RMX0             0x20a07e48 /* [RW] XC Buffer Transponder Bonding Group 3 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG3_BO_RMX1             0x20a07e4c /* [RW] XC Buffer Transponder Bonding Group 3 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG4_CTRL                0x20a07e50 /* [RW] XC Buffer Transponder Bonding Group 4 Control */
-#define BCHP_XPT_XCBUFF_TBG4_BO_RAVE             0x20a07e54 /* [RW] XC Buffer Transponder Bonding Group 4 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG4_BO_MSG              0x20a07e58 /* [RW] XC Buffer Transponder Bonding Group 4 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG4_BO_RMX0             0x20a07e5c /* [RW] XC Buffer Transponder Bonding Group 4 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG4_BO_RMX1             0x20a07e60 /* [RW] XC Buffer Transponder Bonding Group 4 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG5_CTRL                0x20a07e64 /* [RW] XC Buffer Transponder Bonding Group 5 Control */
-#define BCHP_XPT_XCBUFF_TBG5_BO_RAVE             0x20a07e68 /* [RW] XC Buffer Transponder Bonding Group 5 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG5_BO_MSG              0x20a07e6c /* [RW] XC Buffer Transponder Bonding Group 5 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG5_BO_RMX0             0x20a07e70 /* [RW] XC Buffer Transponder Bonding Group 5 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG5_BO_RMX1             0x20a07e74 /* [RW] XC Buffer Transponder Bonding Group 5 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG6_CTRL                0x20a07e78 /* [RW] XC Buffer Transponder Bonding Group 6 Control */
-#define BCHP_XPT_XCBUFF_TBG6_BO_RAVE             0x20a07e7c /* [RW] XC Buffer Transponder Bonding Group 6 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG6_BO_MSG              0x20a07e80 /* [RW] XC Buffer Transponder Bonding Group 6 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG6_BO_RMX0             0x20a07e84 /* [RW] XC Buffer Transponder Bonding Group 6 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG6_BO_RMX1             0x20a07e88 /* [RW] XC Buffer Transponder Bonding Group 6 Block Out Control for RMX1 */
-#define BCHP_XPT_XCBUFF_TBG7_CTRL                0x20a07e8c /* [RW] XC Buffer Transponder Bonding Group 7 Control */
-#define BCHP_XPT_XCBUFF_TBG7_BO_RAVE             0x20a07e90 /* [RW] XC Buffer Transponder Bonding Group 7 Block Out Control for RAVE */
-#define BCHP_XPT_XCBUFF_TBG7_BO_MSG              0x20a07e94 /* [RW] XC Buffer Transponder Bonding Group 7 Block Out Control for MSG */
-#define BCHP_XPT_XCBUFF_TBG7_BO_RMX0             0x20a07e98 /* [RW] XC Buffer Transponder Bonding Group 7 Block Out Control for RMX0 */
-#define BCHP_XPT_XCBUFF_TBG7_BO_RMX1             0x20a07e9c /* [RW] XC Buffer Transponder Bonding Group 7 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP0   0x20a06000 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP0    0x20a06004 /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP0  0x20a06008 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP0  0x20a0600c /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP0   0x20a06010 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP0      0x20a06014 /* [RW][32] XC Buffer - Watermark RAVE Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP1   0x20a06018 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP1    0x20a0601c /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP1  0x20a06020 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP1  0x20a06024 /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP1   0x20a06028 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP1      0x20a0602c /* [RW][32] XC Buffer - Watermark   RAVE Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP2   0x20a06030 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP2    0x20a06034 /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP2  0x20a06038 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP2  0x20a0603c /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP2   0x20a06040 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP2      0x20a06044 /* [RW][32] XC Buffer - Watermark   RAVE Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP3   0x20a06048 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP3    0x20a0604c /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP3  0x20a06050 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP3  0x20a06054 /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP3   0x20a06058 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP3      0x20a0605c /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP4   0x20a06060 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP4    0x20a06064 /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP4  0x20a06068 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP4  0x20a0606c /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP4   0x20a06070 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP4      0x20a06074 /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP5   0x20a06078 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP5    0x20a0607c /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP5  0x20a06080 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP5  0x20a06084 /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP5   0x20a06088 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP5      0x20a0608c /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP6   0x20a06090 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP6    0x20a06094 /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP6  0x20a06098 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP6  0x20a0609c /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP6   0x20a060a0 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP6      0x20a060a4 /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP7   0x20a060a8 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP7    0x20a060ac /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP7  0x20a060b0 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP7  0x20a060b4 /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP7   0x20a060b8 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP7      0x20a060bc /* [RW][32] XC Buffer - Watermark RAVE Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP8   0x20a060c0 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP8    0x20a060c4 /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP8  0x20a060c8 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP8  0x20a060cc /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP8   0x20a060d0 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP8      0x20a060d4 /* [RW][32] XC Buffer - Watermark   RAVE Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP9   0x20a060d8 /* [RW][32] XC Buffer - Base pointer for  RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP9    0x20a060dc /* [RW][32] XC Buffer - End pointer for  RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP9  0x20a060e0 /* [RW][32] XC Buffer - Write pointer for  RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP9  0x20a060e4 /* [RW][32] XC Buffer - Valid pointer for  RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP9   0x20a060e8 /* [RW][32] XC Buffer - Read pointer for  RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP9      0x20a060ec /* [RW][32] XC Buffer - Watermark   RAVE Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP10  0x20a060f0 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP10   0x20a060f4 /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP10 0x20a060f8 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP10 0x20a060fc /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP10  0x20a06100 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP10     0x20a06104 /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP11  0x20a06108 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP11   0x20a0610c /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP11 0x20a06110 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP11 0x20a06114 /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP11  0x20a06118 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP11     0x20a0611c /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP12  0x20a06120 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP12   0x20a06124 /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP12 0x20a06128 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP12 0x20a0612c /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP12  0x20a06130 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP12     0x20a06134 /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP13  0x20a06138 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP13   0x20a0613c /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP13 0x20a06140 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP13 0x20a06144 /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP13  0x20a06148 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP13     0x20a0614c /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP14  0x20a06150 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP14   0x20a06154 /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP14 0x20a06158 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP14 0x20a0615c /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP14  0x20a06160 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP14     0x20a06164 /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_IBP15  0x20a06168 /* [RW][32] XC Buffer - Base pointer for RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_IBP15   0x20a0616c /* [RW][32] XC Buffer - End pointer for RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_IBP15 0x20a06170 /* [RW][32] XC Buffer - Write pointer for RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_IBP15 0x20a06174 /* [RW][32] XC Buffer - Valid pointer for RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_IBP15  0x20a06178 /* [RW][32] XC Buffer - Read pointer for RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_IBP15     0x20a0617c /* [RW][32] XC Buffer - Watermark  RAVE Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP0   0x20a06300 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP0    0x20a06304 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP0  0x20a06308 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP0  0x20a0630c /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP0   0x20a06310 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP0      0x20a06314 /* [RW][32] XC Buffer - Watermark RAVE Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP1   0x20a06318 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP1    0x20a0631c /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP1  0x20a06320 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP1  0x20a06324 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP1   0x20a06328 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP1      0x20a0632c /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP2   0x20a06330 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP2    0x20a06334 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP2  0x20a06338 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP2  0x20a0633c /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP2   0x20a06340 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP2      0x20a06344 /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP3   0x20a06348 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP3    0x20a0634c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP3  0x20a06350 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP3  0x20a06354 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP3   0x20a06358 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP3      0x20a0635c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP4   0x20a06360 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP4    0x20a06364 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP4  0x20a06368 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP4  0x20a0636c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP4   0x20a06370 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP4      0x20a06374 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP5   0x20a06378 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP5    0x20a0637c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP5  0x20a06380 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP5  0x20a06384 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP5   0x20a06388 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP5      0x20a0638c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP6   0x20a06390 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP6    0x20a06394 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP6  0x20a06398 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP6  0x20a0639c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP6   0x20a063a0 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP6      0x20a063a4 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP7   0x20a063a8 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP7    0x20a063ac /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP7  0x20a063b0 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP7  0x20a063b4 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP7   0x20a063b8 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP7      0x20a063bc /* [RW][32] XC Buffer - Watermark RAVE Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP8   0x20a063c0 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP8    0x20a063c4 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP8  0x20a063c8 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP8  0x20a063cc /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP8   0x20a063d0 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP8      0x20a063d4 /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP9   0x20a063d8 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP9    0x20a063dc /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP9  0x20a063e0 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP9  0x20a063e4 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP9   0x20a063e8 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP9      0x20a063ec /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP10  0x20a063f0 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP10   0x20a063f4 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP10 0x20a063f8 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP10 0x20a063fc /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP10  0x20a06400 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP10     0x20a06404 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP11  0x20a06408 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP11   0x20a0640c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP11 0x20a06410 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP11 0x20a06414 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP11  0x20a06418 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP11     0x20a0641c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP12  0x20a06420 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP12   0x20a06424 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP12 0x20a06428 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP12 0x20a0642c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP12  0x20a06430 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP12     0x20a06434 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP13  0x20a06438 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP13   0x20a0643c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP13 0x20a06440 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP13 0x20a06444 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP13  0x20a06448 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP13     0x20a0644c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP14  0x20a06450 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP14   0x20a06454 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP14 0x20a06458 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP14 0x20a0645c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP14  0x20a06460 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP14     0x20a06464 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP15  0x20a06468 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP15   0x20a0646c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP15 0x20a06470 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP15 0x20a06474 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP15  0x20a06478 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP15     0x20a0647c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP16  0x20a06480 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP16   0x20a06484 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP16 0x20a06488 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP16 0x20a0648c /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP16  0x20a06490 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP16     0x20a06494 /* [RW][32] XC Buffer - Watermark RAVE Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP17  0x20a06498 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP17   0x20a0649c /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP17 0x20a064a0 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP17 0x20a064a4 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP17  0x20a064a8 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP17     0x20a064ac /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP18  0x20a064b0 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP18   0x20a064b4 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP18 0x20a064b8 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP18 0x20a064bc /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP18  0x20a064c0 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP18     0x20a064c4 /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP19  0x20a064c8 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP19   0x20a064cc /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP19 0x20a064d0 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP19 0x20a064d4 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP19  0x20a064d8 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP19     0x20a064dc /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP20  0x20a064e0 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP20   0x20a064e4 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP20 0x20a064e8 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP20 0x20a064ec /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP20  0x20a064f0 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP20     0x20a064f4 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP21  0x20a064f8 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP21   0x20a064fc /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP21 0x20a06500 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP21 0x20a06504 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP21  0x20a06508 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP21     0x20a0650c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP22  0x20a06510 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP22   0x20a06514 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP22 0x20a06518 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP22 0x20a0651c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP22  0x20a06520 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP22     0x20a06524 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP23  0x20a06528 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP23   0x20a0652c /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP23 0x20a06530 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP23 0x20a06534 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP23  0x20a06538 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP23     0x20a0653c /* [RW][32] XC Buffer - Watermark RAVE Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP24  0x20a06540 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP24   0x20a06544 /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP24 0x20a06548 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP24 0x20a0654c /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP24  0x20a06550 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP24     0x20a06554 /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP25  0x20a06558 /* [RW][32] XC Buffer - Base pointer for  RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP25   0x20a0655c /* [RW][32] XC Buffer - End pointer for  RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP25 0x20a06560 /* [RW][32] XC Buffer - Write pointer for  RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP25 0x20a06564 /* [RW][32] XC Buffer - Valid pointer for  RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP25  0x20a06568 /* [RW][32] XC Buffer - Read pointer for  RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP25     0x20a0656c /* [RW][32] XC Buffer - Watermark   RAVE Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP26  0x20a06570 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP26   0x20a06574 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP26 0x20a06578 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP26 0x20a0657c /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP26  0x20a06580 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP26     0x20a06584 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP27  0x20a06588 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP27   0x20a0658c /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP27 0x20a06590 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP27 0x20a06594 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP27  0x20a06598 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP27     0x20a0659c /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP28  0x20a065a0 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP28   0x20a065a4 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP28 0x20a065a8 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP28 0x20a065ac /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP28  0x20a065b0 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP28     0x20a065b4 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP29  0x20a065b8 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP29   0x20a065bc /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP29 0x20a065c0 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP29 0x20a065c4 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP29  0x20a065c8 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP29     0x20a065cc /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP30  0x20a065d0 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP30   0x20a065d4 /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP30 0x20a065d8 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP30 0x20a065dc /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP30  0x20a065e0 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP30     0x20a065e4 /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RAVE_PBP31  0x20a065e8 /* [RW][32] XC Buffer - Base pointer for RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RAVE_PBP31   0x20a065ec /* [RW][32] XC Buffer - End pointer for RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RAVE_PBP31 0x20a065f0 /* [RW][32] XC Buffer - Write pointer for RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RAVE_PBP31 0x20a065f4 /* [RW][32] XC Buffer - Valid pointer for RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RAVE_PBP31  0x20a065f8 /* [RW][32] XC Buffer - Read pointer for RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RAVE_PBP31     0x20a065fc /* [RW][32] XC Buffer - Watermark  RAVE Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP0    0x20a06600 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP0     0x20a06604 /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP0   0x20a06608 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP0   0x20a0660c /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP0    0x20a06610 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP0       0x20a06614 /* [RW][32] XC Buffer - Watermark MSG Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP1    0x20a06618 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP1     0x20a0661c /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP1   0x20a06620 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP1   0x20a06624 /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP1    0x20a06628 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP1       0x20a0662c /* [RW][32] XC Buffer - Watermark   MSG Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP2    0x20a06630 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP2     0x20a06634 /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP2   0x20a06638 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP2   0x20a0663c /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP2    0x20a06640 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP2       0x20a06644 /* [RW][32] XC Buffer - Watermark   MSG Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP3    0x20a06648 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP3     0x20a0664c /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP3   0x20a06650 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP3   0x20a06654 /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP3    0x20a06658 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP3       0x20a0665c /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP4    0x20a06660 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP4     0x20a06664 /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP4   0x20a06668 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP4   0x20a0666c /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP4    0x20a06670 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP4       0x20a06674 /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP5    0x20a06678 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP5     0x20a0667c /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP5   0x20a06680 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP5   0x20a06684 /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP5    0x20a06688 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP5       0x20a0668c /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP6    0x20a06690 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP6     0x20a06694 /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP6   0x20a06698 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP6   0x20a0669c /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP6    0x20a066a0 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP6       0x20a066a4 /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP7    0x20a066a8 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP7     0x20a066ac /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP7   0x20a066b0 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP7   0x20a066b4 /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP7    0x20a066b8 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP7       0x20a066bc /* [RW][32] XC Buffer - Watermark MSG Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP8    0x20a066c0 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP8     0x20a066c4 /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP8   0x20a066c8 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP8   0x20a066cc /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP8    0x20a066d0 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP8       0x20a066d4 /* [RW][32] XC Buffer - Watermark   MSG Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP9    0x20a066d8 /* [RW][32] XC Buffer - Base pointer for  MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP9     0x20a066dc /* [RW][32] XC Buffer - End pointer for  MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP9   0x20a066e0 /* [RW][32] XC Buffer - Write pointer for  MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP9   0x20a066e4 /* [RW][32] XC Buffer - Valid pointer for  MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP9    0x20a066e8 /* [RW][32] XC Buffer - Read pointer for  MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP9       0x20a066ec /* [RW][32] XC Buffer - Watermark   MSG Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP10   0x20a066f0 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP10    0x20a066f4 /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP10  0x20a066f8 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP10  0x20a066fc /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP10   0x20a06700 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP10      0x20a06704 /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP11   0x20a06708 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP11    0x20a0670c /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP11  0x20a06710 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP11  0x20a06714 /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP11   0x20a06718 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP11      0x20a0671c /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP12   0x20a06720 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP12    0x20a06724 /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP12  0x20a06728 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP12  0x20a0672c /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP12   0x20a06730 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP12      0x20a06734 /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP13   0x20a06738 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP13    0x20a0673c /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP13  0x20a06740 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP13  0x20a06744 /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP13   0x20a06748 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP13      0x20a0674c /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP14   0x20a06750 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP14    0x20a06754 /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP14  0x20a06758 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP14  0x20a0675c /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP14   0x20a06760 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP14      0x20a06764 /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_IBP15   0x20a06768 /* [RW][32] XC Buffer - Base pointer for MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_IBP15    0x20a0676c /* [RW][32] XC Buffer - End pointer for MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_IBP15  0x20a06770 /* [RW][32] XC Buffer - Write pointer for MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_IBP15  0x20a06774 /* [RW][32] XC Buffer - Valid pointer for MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_IBP15   0x20a06778 /* [RW][32] XC Buffer - Read pointer for MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_IBP15      0x20a0677c /* [RW][32] XC Buffer - Watermark  MSG Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP0    0x20a06900 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP0     0x20a06904 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP0   0x20a06908 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP0   0x20a0690c /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP0    0x20a06910 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP0       0x20a06914 /* [RW][32] XC Buffer - Watermark MSG Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP1    0x20a06918 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP1     0x20a0691c /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP1   0x20a06920 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP1   0x20a06924 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP1    0x20a06928 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP1       0x20a0692c /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP2    0x20a06930 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP2     0x20a06934 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP2   0x20a06938 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP2   0x20a0693c /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP2    0x20a06940 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP2       0x20a06944 /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP3    0x20a06948 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP3     0x20a0694c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP3   0x20a06950 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP3   0x20a06954 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP3    0x20a06958 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP3       0x20a0695c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP4    0x20a06960 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP4     0x20a06964 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP4   0x20a06968 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP4   0x20a0696c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP4    0x20a06970 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP4       0x20a06974 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP5    0x20a06978 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP5     0x20a0697c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP5   0x20a06980 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP5   0x20a06984 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP5    0x20a06988 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP5       0x20a0698c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP6    0x20a06990 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP6     0x20a06994 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP6   0x20a06998 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP6   0x20a0699c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP6    0x20a069a0 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP6       0x20a069a4 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP7    0x20a069a8 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP7     0x20a069ac /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP7   0x20a069b0 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP7   0x20a069b4 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP7    0x20a069b8 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP7       0x20a069bc /* [RW][32] XC Buffer - Watermark MSG Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP8    0x20a069c0 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP8     0x20a069c4 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP8   0x20a069c8 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP8   0x20a069cc /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP8    0x20a069d0 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP8       0x20a069d4 /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP9    0x20a069d8 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP9     0x20a069dc /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP9   0x20a069e0 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP9   0x20a069e4 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP9    0x20a069e8 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP9       0x20a069ec /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP10   0x20a069f0 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP10    0x20a069f4 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP10  0x20a069f8 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP10  0x20a069fc /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP10   0x20a06a00 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP10      0x20a06a04 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP11   0x20a06a08 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP11    0x20a06a0c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP11  0x20a06a10 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP11  0x20a06a14 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP11   0x20a06a18 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP11      0x20a06a1c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP12   0x20a06a20 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP12    0x20a06a24 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP12  0x20a06a28 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP12  0x20a06a2c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP12   0x20a06a30 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP12      0x20a06a34 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP13   0x20a06a38 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP13    0x20a06a3c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP13  0x20a06a40 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP13  0x20a06a44 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP13   0x20a06a48 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP13      0x20a06a4c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP14   0x20a06a50 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP14    0x20a06a54 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP14  0x20a06a58 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP14  0x20a06a5c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP14   0x20a06a60 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP14      0x20a06a64 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP15   0x20a06a68 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP15    0x20a06a6c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP15  0x20a06a70 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP15  0x20a06a74 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP15   0x20a06a78 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP15      0x20a06a7c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP16   0x20a06a80 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP16    0x20a06a84 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP16  0x20a06a88 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP16  0x20a06a8c /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP16   0x20a06a90 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP16      0x20a06a94 /* [RW][32] XC Buffer - Watermark MSG Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP17   0x20a06a98 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP17    0x20a06a9c /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP17  0x20a06aa0 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP17  0x20a06aa4 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP17   0x20a06aa8 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP17      0x20a06aac /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP18   0x20a06ab0 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP18    0x20a06ab4 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP18  0x20a06ab8 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP18  0x20a06abc /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP18   0x20a06ac0 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP18      0x20a06ac4 /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP19   0x20a06ac8 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP19    0x20a06acc /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP19  0x20a06ad0 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP19  0x20a06ad4 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP19   0x20a06ad8 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP19      0x20a06adc /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP20   0x20a06ae0 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP20    0x20a06ae4 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP20  0x20a06ae8 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP20  0x20a06aec /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP20   0x20a06af0 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP20      0x20a06af4 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP21   0x20a06af8 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP21    0x20a06afc /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP21  0x20a06b00 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP21  0x20a06b04 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP21   0x20a06b08 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP21      0x20a06b0c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP22   0x20a06b10 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP22    0x20a06b14 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP22  0x20a06b18 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP22  0x20a06b1c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP22   0x20a06b20 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP22      0x20a06b24 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP23   0x20a06b28 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP23    0x20a06b2c /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP23  0x20a06b30 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP23  0x20a06b34 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP23   0x20a06b38 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP23      0x20a06b3c /* [RW][32] XC Buffer - Watermark MSG Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP24   0x20a06b40 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP24    0x20a06b44 /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP24  0x20a06b48 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP24  0x20a06b4c /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP24   0x20a06b50 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP24      0x20a06b54 /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP25   0x20a06b58 /* [RW][32] XC Buffer - Base pointer for  MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP25    0x20a06b5c /* [RW][32] XC Buffer - End pointer for  MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP25  0x20a06b60 /* [RW][32] XC Buffer - Write pointer for  MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP25  0x20a06b64 /* [RW][32] XC Buffer - Valid pointer for  MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP25   0x20a06b68 /* [RW][32] XC Buffer - Read pointer for  MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP25      0x20a06b6c /* [RW][32] XC Buffer - Watermark   MSG Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP26   0x20a06b70 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP26    0x20a06b74 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP26  0x20a06b78 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP26  0x20a06b7c /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP26   0x20a06b80 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP26      0x20a06b84 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP27   0x20a06b88 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP27    0x20a06b8c /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP27  0x20a06b90 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP27  0x20a06b94 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP27   0x20a06b98 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP27      0x20a06b9c /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP28   0x20a06ba0 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP28    0x20a06ba4 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP28  0x20a06ba8 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP28  0x20a06bac /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP28   0x20a06bb0 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP28      0x20a06bb4 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP29   0x20a06bb8 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP29    0x20a06bbc /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP29  0x20a06bc0 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP29  0x20a06bc4 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP29   0x20a06bc8 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP29      0x20a06bcc /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP30   0x20a06bd0 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP30    0x20a06bd4 /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP30  0x20a06bd8 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP30  0x20a06bdc /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP30   0x20a06be0 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP30      0x20a06be4 /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_MSG_PBP31   0x20a06be8 /* [RW][32] XC Buffer - Base pointer for MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_END_POINTER_MSG_PBP31    0x20a06bec /* [RW][32] XC Buffer - End pointer for MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_MSG_PBP31  0x20a06bf0 /* [RW][32] XC Buffer - Write pointer for MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_MSG_PBP31  0x20a06bf4 /* [RW][32] XC Buffer - Valid pointer for MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_MSG_PBP31   0x20a06bf8 /* [RW][32] XC Buffer - Read pointer for MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WATERMARK_MSG_PBP31      0x20a06bfc /* [RW][32] XC Buffer - Watermark  MSG Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP0   0x20a06c00 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP0    0x20a06c04 /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP0  0x20a06c08 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP0  0x20a06c0c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP0   0x20a06c10 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP0      0x20a06c14 /* [RW][32] XC Buffer - Watermark RMX0 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP1   0x20a06c18 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP1    0x20a06c1c /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP1  0x20a06c20 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP1  0x20a06c24 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP1   0x20a06c28 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP1      0x20a06c2c /* [RW][32] XC Buffer - Watermark   RMX0 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP2   0x20a06c30 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP2    0x20a06c34 /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP2  0x20a06c38 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP2  0x20a06c3c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP2   0x20a06c40 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP2      0x20a06c44 /* [RW][32] XC Buffer - Watermark   RMX0 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP3   0x20a06c48 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP3    0x20a06c4c /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP3  0x20a06c50 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP3  0x20a06c54 /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP3   0x20a06c58 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP3      0x20a06c5c /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP4   0x20a06c60 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP4    0x20a06c64 /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP4  0x20a06c68 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP4  0x20a06c6c /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP4   0x20a06c70 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP4      0x20a06c74 /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP5   0x20a06c78 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP5    0x20a06c7c /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP5  0x20a06c80 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP5  0x20a06c84 /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP5   0x20a06c88 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP5      0x20a06c8c /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP6   0x20a06c90 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP6    0x20a06c94 /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP6  0x20a06c98 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP6  0x20a06c9c /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP6   0x20a06ca0 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP6      0x20a06ca4 /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP7   0x20a06ca8 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP7    0x20a06cac /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP7  0x20a06cb0 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP7  0x20a06cb4 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP7   0x20a06cb8 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP7      0x20a06cbc /* [RW][32] XC Buffer - Watermark RMX0 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP8   0x20a06cc0 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP8    0x20a06cc4 /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP8  0x20a06cc8 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP8  0x20a06ccc /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP8   0x20a06cd0 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP8      0x20a06cd4 /* [RW][32] XC Buffer - Watermark   RMX0 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP9   0x20a06cd8 /* [RW][32] XC Buffer - Base pointer for  RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP9    0x20a06cdc /* [RW][32] XC Buffer - End pointer for  RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP9  0x20a06ce0 /* [RW][32] XC Buffer - Write pointer for  RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP9  0x20a06ce4 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP9   0x20a06ce8 /* [RW][32] XC Buffer - Read pointer for  RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP9      0x20a06cec /* [RW][32] XC Buffer - Watermark   RMX0 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP10  0x20a06cf0 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP10   0x20a06cf4 /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP10 0x20a06cf8 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP10 0x20a06cfc /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP10  0x20a06d00 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP10     0x20a06d04 /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP11  0x20a06d08 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP11   0x20a06d0c /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP11 0x20a06d10 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP11 0x20a06d14 /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP11  0x20a06d18 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP11     0x20a06d1c /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP12  0x20a06d20 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP12   0x20a06d24 /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP12 0x20a06d28 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP12 0x20a06d2c /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP12  0x20a06d30 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP12     0x20a06d34 /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP13  0x20a06d38 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP13   0x20a06d3c /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP13 0x20a06d40 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP13 0x20a06d44 /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP13  0x20a06d48 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP13     0x20a06d4c /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP14  0x20a06d50 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP14   0x20a06d54 /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP14 0x20a06d58 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP14 0x20a06d5c /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP14  0x20a06d60 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP14     0x20a06d64 /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_IBP15  0x20a06d68 /* [RW][32] XC Buffer - Base pointer for RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_IBP15   0x20a06d6c /* [RW][32] XC Buffer - End pointer for RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_IBP15 0x20a06d70 /* [RW][32] XC Buffer - Write pointer for RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_IBP15 0x20a06d74 /* [RW][32] XC Buffer - Valid pointer for RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_IBP15  0x20a06d78 /* [RW][32] XC Buffer - Read pointer for RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_IBP15     0x20a06d7c /* [RW][32] XC Buffer - Watermark  RMX0 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP0   0x20a06f00 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP0    0x20a06f04 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP0  0x20a06f08 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP0  0x20a06f0c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP0   0x20a06f10 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP0      0x20a06f14 /* [RW][32] XC Buffer - Watermark RMX0 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP1   0x20a06f18 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP1    0x20a06f1c /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP1  0x20a06f20 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP1  0x20a06f24 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP1   0x20a06f28 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP1      0x20a06f2c /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP2   0x20a06f30 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP2    0x20a06f34 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP2  0x20a06f38 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP2  0x20a06f3c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP2   0x20a06f40 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP2      0x20a06f44 /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP3   0x20a06f48 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP3    0x20a06f4c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP3  0x20a06f50 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP3  0x20a06f54 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP3   0x20a06f58 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP3      0x20a06f5c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP4   0x20a06f60 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP4    0x20a06f64 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP4  0x20a06f68 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP4  0x20a06f6c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP4   0x20a06f70 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP4      0x20a06f74 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP5   0x20a06f78 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP5    0x20a06f7c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP5  0x20a06f80 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP5  0x20a06f84 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP5   0x20a06f88 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP5      0x20a06f8c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP6   0x20a06f90 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP6    0x20a06f94 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP6  0x20a06f98 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP6  0x20a06f9c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP6   0x20a06fa0 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP6      0x20a06fa4 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP7   0x20a06fa8 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP7    0x20a06fac /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP7  0x20a06fb0 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP7  0x20a06fb4 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP7   0x20a06fb8 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP7      0x20a06fbc /* [RW][32] XC Buffer - Watermark RMX0 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP8   0x20a06fc0 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP8    0x20a06fc4 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP8  0x20a06fc8 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP8  0x20a06fcc /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP8   0x20a06fd0 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP8      0x20a06fd4 /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP9   0x20a06fd8 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP9    0x20a06fdc /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP9  0x20a06fe0 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP9  0x20a06fe4 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP9   0x20a06fe8 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP9      0x20a06fec /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP10  0x20a06ff0 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP10   0x20a06ff4 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP10 0x20a06ff8 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP10 0x20a06ffc /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP10  0x20a07000 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP10     0x20a07004 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP11  0x20a07008 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP11   0x20a0700c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP11 0x20a07010 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP11 0x20a07014 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP11  0x20a07018 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP11     0x20a0701c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP12  0x20a07020 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP12   0x20a07024 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP12 0x20a07028 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP12 0x20a0702c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP12  0x20a07030 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP12     0x20a07034 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP13  0x20a07038 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP13   0x20a0703c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP13 0x20a07040 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP13 0x20a07044 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP13  0x20a07048 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP13     0x20a0704c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP14  0x20a07050 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP14   0x20a07054 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP14 0x20a07058 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP14 0x20a0705c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP14  0x20a07060 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP14     0x20a07064 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP15  0x20a07068 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP15   0x20a0706c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP15 0x20a07070 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP15 0x20a07074 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP15  0x20a07078 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP15     0x20a0707c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP16  0x20a07080 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP16   0x20a07084 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP16 0x20a07088 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP16 0x20a0708c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP16  0x20a07090 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP16     0x20a07094 /* [RW][32] XC Buffer - Watermark RMX0 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP17  0x20a07098 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP17   0x20a0709c /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP17 0x20a070a0 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP17 0x20a070a4 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP17  0x20a070a8 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP17     0x20a070ac /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP18  0x20a070b0 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP18   0x20a070b4 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP18 0x20a070b8 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP18 0x20a070bc /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP18  0x20a070c0 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP18     0x20a070c4 /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP19  0x20a070c8 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP19   0x20a070cc /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP19 0x20a070d0 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP19 0x20a070d4 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP19  0x20a070d8 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP19     0x20a070dc /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP20  0x20a070e0 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP20   0x20a070e4 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP20 0x20a070e8 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP20 0x20a070ec /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP20  0x20a070f0 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP20     0x20a070f4 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP21  0x20a070f8 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP21   0x20a070fc /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP21 0x20a07100 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP21 0x20a07104 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP21  0x20a07108 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP21     0x20a0710c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP22  0x20a07110 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP22   0x20a07114 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP22 0x20a07118 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP22 0x20a0711c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP22  0x20a07120 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP22     0x20a07124 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP23  0x20a07128 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP23   0x20a0712c /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP23 0x20a07130 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP23 0x20a07134 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP23  0x20a07138 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP23     0x20a0713c /* [RW][32] XC Buffer - Watermark RMX0 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP24  0x20a07140 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP24   0x20a07144 /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP24 0x20a07148 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP24 0x20a0714c /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP24  0x20a07150 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP24     0x20a07154 /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP25  0x20a07158 /* [RW][32] XC Buffer - Base pointer for  RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP25   0x20a0715c /* [RW][32] XC Buffer - End pointer for  RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP25 0x20a07160 /* [RW][32] XC Buffer - Write pointer for  RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP25 0x20a07164 /* [RW][32] XC Buffer - Valid pointer for  RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP25  0x20a07168 /* [RW][32] XC Buffer - Read pointer for  RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP25     0x20a0716c /* [RW][32] XC Buffer - Watermark   RMX0 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP26  0x20a07170 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP26   0x20a07174 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP26 0x20a07178 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP26 0x20a0717c /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP26  0x20a07180 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP26     0x20a07184 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP27  0x20a07188 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP27   0x20a0718c /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP27 0x20a07190 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP27 0x20a07194 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP27  0x20a07198 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP27     0x20a0719c /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP28  0x20a071a0 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP28   0x20a071a4 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP28 0x20a071a8 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP28 0x20a071ac /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP28  0x20a071b0 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP28     0x20a071b4 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP29  0x20a071b8 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP29   0x20a071bc /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP29 0x20a071c0 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP29 0x20a071c4 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP29  0x20a071c8 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP29     0x20a071cc /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP30  0x20a071d0 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP30   0x20a071d4 /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP30 0x20a071d8 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP30 0x20a071dc /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP30  0x20a071e0 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP30     0x20a071e4 /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX0_PBP31  0x20a071e8 /* [RW][32] XC Buffer - Base pointer for RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX0_PBP31   0x20a071ec /* [RW][32] XC Buffer - End pointer for RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX0_PBP31 0x20a071f0 /* [RW][32] XC Buffer - Write pointer for RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX0_PBP31 0x20a071f4 /* [RW][32] XC Buffer - Valid pointer for RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX0_PBP31  0x20a071f8 /* [RW][32] XC Buffer - Read pointer for RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX0_PBP31     0x20a071fc /* [RW][32] XC Buffer - Watermark  RMX0 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP0   0x20a07200 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP0    0x20a07204 /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP0  0x20a07208 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP0  0x20a0720c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP0   0x20a07210 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP0      0x20a07214 /* [RW][32] XC Buffer - Watermark RMX1 Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP1   0x20a07218 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP1    0x20a0721c /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP1  0x20a07220 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP1  0x20a07224 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP1   0x20a07228 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP1      0x20a0722c /* [RW][32] XC Buffer - Watermark   RMX1 Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP2   0x20a07230 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP2    0x20a07234 /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP2  0x20a07238 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP2  0x20a0723c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP2   0x20a07240 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP2      0x20a07244 /* [RW][32] XC Buffer - Watermark   RMX1 Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP3   0x20a07248 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP3    0x20a0724c /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP3  0x20a07250 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP3  0x20a07254 /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP3   0x20a07258 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP3      0x20a0725c /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP4   0x20a07260 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP4    0x20a07264 /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP4  0x20a07268 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP4  0x20a0726c /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP4   0x20a07270 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP4      0x20a07274 /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP5   0x20a07278 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP5    0x20a0727c /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP5  0x20a07280 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP5  0x20a07284 /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP5   0x20a07288 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP5      0x20a0728c /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP6   0x20a07290 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP6    0x20a07294 /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP6  0x20a07298 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP6  0x20a0729c /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP6   0x20a072a0 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP6      0x20a072a4 /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP7   0x20a072a8 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP7    0x20a072ac /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP7  0x20a072b0 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP7  0x20a072b4 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP7   0x20a072b8 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP7      0x20a072bc /* [RW][32] XC Buffer - Watermark RMX1 Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP8   0x20a072c0 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP8    0x20a072c4 /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP8  0x20a072c8 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP8  0x20a072cc /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP8   0x20a072d0 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP8      0x20a072d4 /* [RW][32] XC Buffer - Watermark   RMX1 Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP9   0x20a072d8 /* [RW][32] XC Buffer - Base pointer for  RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP9    0x20a072dc /* [RW][32] XC Buffer - End pointer for  RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP9  0x20a072e0 /* [RW][32] XC Buffer - Write pointer for  RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP9  0x20a072e4 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP9   0x20a072e8 /* [RW][32] XC Buffer - Read pointer for  RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP9      0x20a072ec /* [RW][32] XC Buffer - Watermark   RMX1 Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP10  0x20a072f0 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP10   0x20a072f4 /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP10 0x20a072f8 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP10 0x20a072fc /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP10  0x20a07300 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP10     0x20a07304 /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP11  0x20a07308 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP11   0x20a0730c /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP11 0x20a07310 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP11 0x20a07314 /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP11  0x20a07318 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP11     0x20a0731c /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP12  0x20a07320 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP12   0x20a07324 /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP12 0x20a07328 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP12 0x20a0732c /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP12  0x20a07330 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP12     0x20a07334 /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP13  0x20a07338 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP13   0x20a0733c /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP13 0x20a07340 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP13 0x20a07344 /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP13  0x20a07348 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP13     0x20a0734c /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP14  0x20a07350 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP14   0x20a07354 /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP14 0x20a07358 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP14 0x20a0735c /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP14  0x20a07360 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP14     0x20a07364 /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_IBP15  0x20a07368 /* [RW][32] XC Buffer - Base pointer for RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_IBP15   0x20a0736c /* [RW][32] XC Buffer - End pointer for RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_IBP15 0x20a07370 /* [RW][32] XC Buffer - Write pointer for RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_IBP15 0x20a07374 /* [RW][32] XC Buffer - Valid pointer for RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_IBP15  0x20a07378 /* [RW][32] XC Buffer - Read pointer for RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_IBP15     0x20a0737c /* [RW][32] XC Buffer - Watermark  RMX1 Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP0   0x20a07500 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP0    0x20a07504 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP0  0x20a07508 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP0  0x20a0750c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP0   0x20a07510 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP0      0x20a07514 /* [RW][32] XC Buffer - Watermark RMX1 Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP1   0x20a07518 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP1    0x20a0751c /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP1  0x20a07520 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP1  0x20a07524 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP1   0x20a07528 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP1      0x20a0752c /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP2   0x20a07530 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP2    0x20a07534 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP2  0x20a07538 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP2  0x20a0753c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP2   0x20a07540 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP2      0x20a07544 /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP3   0x20a07548 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP3    0x20a0754c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP3  0x20a07550 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP3  0x20a07554 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP3   0x20a07558 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP3      0x20a0755c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP4   0x20a07560 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP4    0x20a07564 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP4  0x20a07568 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP4  0x20a0756c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP4   0x20a07570 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP4      0x20a07574 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP5   0x20a07578 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP5    0x20a0757c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP5  0x20a07580 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP5  0x20a07584 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP5   0x20a07588 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP5      0x20a0758c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP6   0x20a07590 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP6    0x20a07594 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP6  0x20a07598 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP6  0x20a0759c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP6   0x20a075a0 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP6      0x20a075a4 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP7   0x20a075a8 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP7    0x20a075ac /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP7  0x20a075b0 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP7  0x20a075b4 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP7   0x20a075b8 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP7      0x20a075bc /* [RW][32] XC Buffer - Watermark RMX1 Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP8   0x20a075c0 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP8    0x20a075c4 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP8  0x20a075c8 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP8  0x20a075cc /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP8   0x20a075d0 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP8      0x20a075d4 /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP9   0x20a075d8 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP9    0x20a075dc /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP9  0x20a075e0 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP9  0x20a075e4 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP9   0x20a075e8 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP9      0x20a075ec /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP10  0x20a075f0 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP10   0x20a075f4 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP10 0x20a075f8 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP10 0x20a075fc /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP10  0x20a07600 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP10     0x20a07604 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP11  0x20a07608 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP11   0x20a0760c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP11 0x20a07610 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP11 0x20a07614 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP11  0x20a07618 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP11     0x20a0761c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP12  0x20a07620 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP12   0x20a07624 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP12 0x20a07628 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP12 0x20a0762c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP12  0x20a07630 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP12     0x20a07634 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP13  0x20a07638 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP13   0x20a0763c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP13 0x20a07640 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP13 0x20a07644 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP13  0x20a07648 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP13     0x20a0764c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP14  0x20a07650 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP14   0x20a07654 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP14 0x20a07658 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP14 0x20a0765c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP14  0x20a07660 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP14     0x20a07664 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP15  0x20a07668 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP15   0x20a0766c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP15 0x20a07670 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP15 0x20a07674 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP15  0x20a07678 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP15     0x20a0767c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP16  0x20a07680 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP16   0x20a07684 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP16 0x20a07688 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP16 0x20a0768c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP16  0x20a07690 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP16     0x20a07694 /* [RW][32] XC Buffer - Watermark RMX1 Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP17  0x20a07698 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP17   0x20a0769c /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP17 0x20a076a0 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP17 0x20a076a4 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP17  0x20a076a8 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP17     0x20a076ac /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP18  0x20a076b0 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP18   0x20a076b4 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP18 0x20a076b8 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP18 0x20a076bc /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP18  0x20a076c0 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP18     0x20a076c4 /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP19  0x20a076c8 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP19   0x20a076cc /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP19 0x20a076d0 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP19 0x20a076d4 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP19  0x20a076d8 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP19     0x20a076dc /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP20  0x20a076e0 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP20   0x20a076e4 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP20 0x20a076e8 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP20 0x20a076ec /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP20  0x20a076f0 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP20     0x20a076f4 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP21  0x20a076f8 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP21   0x20a076fc /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP21 0x20a07700 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP21 0x20a07704 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP21  0x20a07708 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP21     0x20a0770c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP22  0x20a07710 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP22   0x20a07714 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP22 0x20a07718 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP22 0x20a0771c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP22  0x20a07720 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP22     0x20a07724 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP23  0x20a07728 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP23   0x20a0772c /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP23 0x20a07730 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP23 0x20a07734 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP23  0x20a07738 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP23     0x20a0773c /* [RW][32] XC Buffer - Watermark RMX1 Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP24  0x20a07740 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP24   0x20a07744 /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP24 0x20a07748 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP24 0x20a0774c /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP24  0x20a07750 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP24     0x20a07754 /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP25  0x20a07758 /* [RW][32] XC Buffer - Base pointer for  RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP25   0x20a0775c /* [RW][32] XC Buffer - End pointer for  RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP25 0x20a07760 /* [RW][32] XC Buffer - Write pointer for  RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP25 0x20a07764 /* [RW][32] XC Buffer - Valid pointer for  RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP25  0x20a07768 /* [RW][32] XC Buffer - Read pointer for  RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP25     0x20a0776c /* [RW][32] XC Buffer - Watermark   RMX1 Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP26  0x20a07770 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP26   0x20a07774 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP26 0x20a07778 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP26 0x20a0777c /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP26  0x20a07780 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP26     0x20a07784 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP27  0x20a07788 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP27   0x20a0778c /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP27 0x20a07790 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP27 0x20a07794 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP27  0x20a07798 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP27     0x20a0779c /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP28  0x20a077a0 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP28   0x20a077a4 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP28 0x20a077a8 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP28 0x20a077ac /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP28  0x20a077b0 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP28     0x20a077b4 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP29  0x20a077b8 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP29   0x20a077bc /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP29 0x20a077c0 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP29 0x20a077c4 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP29  0x20a077c8 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP29     0x20a077cc /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP30  0x20a077d0 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP30   0x20a077d4 /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP30 0x20a077d8 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP30 0x20a077dc /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP30  0x20a077e0 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP30     0x20a077e4 /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BASE_POINTER_RMX1_PBP31  0x20a077e8 /* [RW][32] XC Buffer - Base pointer for RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_END_POINTER_RMX1_PBP31   0x20a077ec /* [RW][32] XC Buffer - End pointer for RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WRITE_POINTER_RMX1_PBP31 0x20a077f0 /* [RW][32] XC Buffer - Write pointer for RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_VALID_POINTER_RMX1_PBP31 0x20a077f4 /* [RW][32] XC Buffer - Valid pointer for RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_READ_POINTER_RMX1_PBP31  0x20a077f8 /* [RW][32] XC Buffer - Read pointer for RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_WATERMARK_RMX1_PBP31     0x20a077fc /* [RW][32] XC Buffer - Watermark  RMX1 Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_PBP  0x20a07800 /* [RW][32] XC Buffer RAVE Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RAVE_CTRL_BUFFER_EN_IBP  0x20a07804 /* [RW][32] XC Buffer RAVE Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_RAVE_CTRL_PAUSE_EN_PBP   0x20a07808 /* [RW][32] XC Buffer RAVE Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RAVE_CTRL_PAUSE_EN_IBP   0x20a0780c /* [RW][32] XC Buffer RAVE Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_PBP   0x20a07810 /* [RW][32] XC Buffer MSG Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_MSG_CTRL_BUFFER_EN_IBP   0x20a07814 /* [RW][32] XC Buffer MSG Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_MSG_CTRL_PAUSE_EN_PBP    0x20a07818 /* [RW][32] XC Buffer MSG Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_MSG_CTRL_PAUSE_EN_IBP    0x20a0781c /* [RW][32] XC Buffer MSG Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_PBP  0x20a07820 /* [RW][32] XC Buffer RMX0 Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RMX0_CTRL_BUFFER_EN_IBP  0x20a07824 /* [RW][32] XC Buffer RMX0 Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_RMX0_CTRL_PAUSE_EN_PBP   0x20a07828 /* [RW][32] XC Buffer RMX0 Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RMX0_CTRL_PAUSE_EN_IBP   0x20a0782c /* [RW][32] XC Buffer RMX0 Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_PBP  0x20a07830 /* [RW][32] XC Buffer RMX1 Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RMX1_CTRL_BUFFER_EN_IBP  0x20a07834 /* [RW][32] XC Buffer RMX1 Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_RMX1_CTRL_PAUSE_EN_PBP   0x20a07838 /* [RW][32] XC Buffer RMX1 Control Buffer Enable PBP */
+#define BCHP_XPT_XCBUFF_RMX1_CTRL_PAUSE_EN_IBP   0x20a0783c /* [RW][32] XC Buffer RMX1 Control Buffer Enable IBP */
+#define BCHP_XPT_XCBUFF_PAUSE_THRESHOLD          0x20a07840 /* [RW][32] XC Buffer Pause Threshold */
+#define BCHP_XPT_XCBUFF_RAVE_PAUSE_STATUS_PBP    0x20a07844 /* [RO][32] XC Buffer RAVE Pause Status PBP */
+#define BCHP_XPT_XCBUFF_RAVE_PAUSE_STATUS_IBP    0x20a07848 /* [RO][32] XC Buffer RAVE Pause Status IBP */
+#define BCHP_XPT_XCBUFF_MSG_PAUSE_STATUS_PBP     0x20a0784c /* [RO][32] XC Buffer MSG Pause Status PBP */
+#define BCHP_XPT_XCBUFF_MSG_PAUSE_STATUS_IBP     0x20a07850 /* [RO][32] XC Buffer MSG Pause Status IBP */
+#define BCHP_XPT_XCBUFF_RMX0_PAUSE_STATUS_PBP    0x20a07854 /* [RO][32] XC Buffer RMX0 Pause Status PBP */
+#define BCHP_XPT_XCBUFF_RMX0_PAUSE_STATUS_IBP    0x20a07858 /* [RO][32] XC Buffer RMX0 Pause Status IBP */
+#define BCHP_XPT_XCBUFF_RMX1_PAUSE_STATUS_PBP    0x20a0785c /* [RO][32] XC Buffer RMX1 Pause Status PBP */
+#define BCHP_XPT_XCBUFF_RMX1_PAUSE_STATUS_IBP    0x20a07860 /* [RO][32] XC Buffer RMX1 Pause Status IBP */
+#define BCHP_XPT_XCBUFF_RAVE_DATA_RDY_PBP        0x20a07864 /* [RW][32] XC Buffer RAVE Data Ready PBP */
+#define BCHP_XPT_XCBUFF_RAVE_DATA_RDY_IBP        0x20a07868 /* [RW][32] XC Buffer RAVE Data Ready IBP */
+#define BCHP_XPT_XCBUFF_MSG_DATA_RDY_PBP         0x20a0786c /* [RW][32] XC Buffer MSG Data Ready PBP */
+#define BCHP_XPT_XCBUFF_MSG_DATA_RDY_IBP         0x20a07870 /* [RW][32] XC Buffer MSG Data Ready IBP */
+#define BCHP_XPT_XCBUFF_RMX0_DATA_RDY_PBP        0x20a07874 /* [RW][32] XC Buffer RMX0 Data Ready PBP */
+#define BCHP_XPT_XCBUFF_RMX0_DATA_RDY_IBP        0x20a07878 /* [RW][32] XC Buffer RMX0 Data Ready IBP */
+#define BCHP_XPT_XCBUFF_RMX1_DATA_RDY_PBP        0x20a0787c /* [RW][32] XC Buffer RMX1 Data Ready PBP */
+#define BCHP_XPT_XCBUFF_RMX1_DATA_RDY_IBP        0x20a07880 /* [RW][32] XC Buffer RMX1 Data Ready IBP */
+#define BCHP_XPT_XCBUFF_OVERFLOW_THRESHOLD       0x20a07884 /* [RW][32] XC Buffer Overflow Threshold */
+#define BCHP_XPT_XCBUFF_RAVE_OVERFLOW_STATUS_PBP 0x20a07888 /* [RW][32] XC Buffer RAVE Overflow status PBP */
+#define BCHP_XPT_XCBUFF_RAVE_OVERFLOW_STATUS_IBP 0x20a0788c /* [RW][32] XC Buffer RAVE Overflow status IBP */
+#define BCHP_XPT_XCBUFF_MSG_OVERFLOW_STATUS_PBP  0x20a07890 /* [RW][32] XC Buffer MSG Overflow status PBP */
+#define BCHP_XPT_XCBUFF_MSG_OVERFLOW_STATUS_IBP  0x20a07894 /* [RW][32] XC Buffer MSG Overflow status IBP */
+#define BCHP_XPT_XCBUFF_RMX0_OVERFLOW_STATUS_PBP 0x20a07898 /* [RW][32] XC Buffer RMX0 Overflow status PBP */
+#define BCHP_XPT_XCBUFF_RMX0_OVERFLOW_STATUS_IBP 0x20a0789c /* [RW][32] XC Buffer RMX0 Overflow status IBP */
+#define BCHP_XPT_XCBUFF_RMX1_OVERFLOW_STATUS_PBP 0x20a078a0 /* [RW][32] XC Buffer RMX1 Overflow status PBP */
+#define BCHP_XPT_XCBUFF_RMX1_OVERFLOW_STATUS_IBP 0x20a078a4 /* [RW][32] XC Buffer RMX1 Overflow status IBP */
+#define BCHP_XPT_XCBUFF_BYTE_SWAP_CTRL           0x20a078a8 /* [RW][32] XC Buffer Byte swap Control */
+#define BCHP_XPT_XCBUFF_PACKET_LENGTH            0x20a078ac /* [RW][32] XC Buffer Packet Length */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP0             0x20a078b0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP1             0x20a078b4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP2             0x20a078b8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP3             0x20a078bc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP4             0x20a078c0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP5             0x20a078c4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP6             0x20a078c8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP7             0x20a078cc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP8             0x20a078d0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP9             0x20a078d4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP10            0x20a078d8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP11            0x20a078dc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP12            0x20a078e0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP13            0x20a078e4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP14            0x20a078e8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_IBP15            0x20a078ec /* [RW][32] XC Buffer Block Out Control for Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP0             0x20a07930 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP1             0x20a07934 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP2             0x20a07938 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP3             0x20a0793c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP4             0x20a07940 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP5             0x20a07944 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP6             0x20a07948 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP7             0x20a0794c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP8             0x20a07950 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP9             0x20a07954 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP10            0x20a07958 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP11            0x20a0795c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP12            0x20a07960 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP13            0x20a07964 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP14            0x20a07968 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP15            0x20a0796c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP16            0x20a07970 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP17            0x20a07974 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP18            0x20a07978 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP19            0x20a0797c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP20            0x20a07980 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP21            0x20a07984 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP22            0x20a07988 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP23            0x20a0798c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP24            0x20a07990 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP25            0x20a07994 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP26            0x20a07998 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP27            0x20a0799c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP28            0x20a079a0 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP29            0x20a079a4 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP30            0x20a079a8 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BO_RAVE_PBP31            0x20a079ac /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP0              0x20a079b0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP1              0x20a079b4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP2              0x20a079b8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP3              0x20a079bc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP4              0x20a079c0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP5              0x20a079c4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP6              0x20a079c8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP7              0x20a079cc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP8              0x20a079d0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP9              0x20a079d4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP10             0x20a079d8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP11             0x20a079dc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP12             0x20a079e0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP13             0x20a079e4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP14             0x20a079e8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_MSG_IBP15             0x20a079ec /* [RW][32] XC Buffer Block Out Control for Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP0              0x20a07a30 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP1              0x20a07a34 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP2              0x20a07a38 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP3              0x20a07a3c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP4              0x20a07a40 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP5              0x20a07a44 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP6              0x20a07a48 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP7              0x20a07a4c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP8              0x20a07a50 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP9              0x20a07a54 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP10             0x20a07a58 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP11             0x20a07a5c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP12             0x20a07a60 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP13             0x20a07a64 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP14             0x20a07a68 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP15             0x20a07a6c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP16             0x20a07a70 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP17             0x20a07a74 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP18             0x20a07a78 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP19             0x20a07a7c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP20             0x20a07a80 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP21             0x20a07a84 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP22             0x20a07a88 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP23             0x20a07a8c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP24             0x20a07a90 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP25             0x20a07a94 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP26             0x20a07a98 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP27             0x20a07a9c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP28             0x20a07aa0 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP29             0x20a07aa4 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP30             0x20a07aa8 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BO_MSG_PBP31             0x20a07aac /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP0             0x20a07ab0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP1             0x20a07ab4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP2             0x20a07ab8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP3             0x20a07abc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP4             0x20a07ac0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP5             0x20a07ac4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP6             0x20a07ac8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP7             0x20a07acc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP8             0x20a07ad0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP9             0x20a07ad4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP10            0x20a07ad8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP11            0x20a07adc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP12            0x20a07ae0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP13            0x20a07ae4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP14            0x20a07ae8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_IBP15            0x20a07aec /* [RW][32] XC Buffer Block Out Control for Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP0             0x20a07b30 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP1             0x20a07b34 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP2             0x20a07b38 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP3             0x20a07b3c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP4             0x20a07b40 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP5             0x20a07b44 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP6             0x20a07b48 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP7             0x20a07b4c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP8             0x20a07b50 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP9             0x20a07b54 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP10            0x20a07b58 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP11            0x20a07b5c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP12            0x20a07b60 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP13            0x20a07b64 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP14            0x20a07b68 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP15            0x20a07b6c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP16            0x20a07b70 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP17            0x20a07b74 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP18            0x20a07b78 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP19            0x20a07b7c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP20            0x20a07b80 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP21            0x20a07b84 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP22            0x20a07b88 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP23            0x20a07b8c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP24            0x20a07b90 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP25            0x20a07b94 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP26            0x20a07b98 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP27            0x20a07b9c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP28            0x20a07ba0 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP29            0x20a07ba4 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP30            0x20a07ba8 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BO_RMX0_PBP31            0x20a07bac /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP0             0x20a07bb0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP1             0x20a07bb4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP2             0x20a07bb8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP3             0x20a07bbc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP4             0x20a07bc0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP5             0x20a07bc4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP6             0x20a07bc8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP7             0x20a07bcc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP8             0x20a07bd0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP9             0x20a07bd4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP10            0x20a07bd8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP11            0x20a07bdc /* [RW][32] XC Buffer Block Out Control for Input Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP12            0x20a07be0 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP13            0x20a07be4 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP14            0x20a07be8 /* [RW][32] XC Buffer Block Out Control for Input Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_IBP15            0x20a07bec /* [RW][32] XC Buffer Block Out Control for Input Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP0             0x20a07c30 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 0 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP1             0x20a07c34 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 1 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP2             0x20a07c38 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 2 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP3             0x20a07c3c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 3 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP4             0x20a07c40 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 4 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP5             0x20a07c44 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 5 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP6             0x20a07c48 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 6 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP7             0x20a07c4c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 7 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP8             0x20a07c50 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 8 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP9             0x20a07c54 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 9 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP10            0x20a07c58 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 10 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP11            0x20a07c5c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 11 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP12            0x20a07c60 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 12 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP13            0x20a07c64 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 13 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP14            0x20a07c68 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 14 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP15            0x20a07c6c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 15 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP16            0x20a07c70 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 16 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP17            0x20a07c74 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 17 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP18            0x20a07c78 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 18 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP19            0x20a07c7c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 19 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP20            0x20a07c80 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 20 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP21            0x20a07c84 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 21 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP22            0x20a07c88 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 22 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP23            0x20a07c8c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 23 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP24            0x20a07c90 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 24 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP25            0x20a07c94 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 25 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP26            0x20a07c98 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 26 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP27            0x20a07c9c /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 27 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP28            0x20a07ca0 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 28 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP29            0x20a07ca4 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 29 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP30            0x20a07ca8 /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 30 */
+#define BCHP_XPT_XCBUFF_BO_RMX1_PBP31            0x20a07cac /* [RW][32] XC Buffer Block Out Control for Playback Band Parser 31 */
+#define BCHP_XPT_XCBUFF_MISC_CTRL                0x20a07cb0 /* [RW][32] XC Buffer Miscellaneous Control */
+#define BCHP_XPT_XCBUFF_NO_RD_HANG_CTRL          0x20a07cb4 /* [RW][32] XC Buffer No Read Hang Control */
+#define BCHP_XPT_XCBUFF_WR_DEBUG                 0x20a07cb8 /* [RO][32] XC Buffer Write Debug Register */
+#define BCHP_XPT_XCBUFF_RMX0_RD_DEBUG            0x20a07cbc /* [RO][32] XC Buffer RMX0 Read Debug Register */
+#define BCHP_XPT_XCBUFF_RMX1_RD_DEBUG            0x20a07cc0 /* [RO][32] XC Buffer RMX1 Read Debug Register */
+#define BCHP_XPT_XCBUFF_MSG_RD_DEBUG             0x20a07cc4 /* [RO][32] XC Buffer MSG Read Debug Register */
+#define BCHP_XPT_XCBUFF_RAVE_RD_DEBUG            0x20a07cc8 /* [RO][32] XC Buffer RAVE Read Debug Register */
+#define BCHP_XPT_XCBUFF_PR_FALLBACK_CTRL         0x20a07ccc /* [RW][32] PR FALLBACK Control Register */
+#define BCHP_XPT_XCBUFF_MCPB0_RAVE_PAUSE_SEL0    0x20a07cd0 /* [RW][32] XC Buffer MCPB0 RAVE Pause Select Register for Playback bands 0-15 */
+#define BCHP_XPT_XCBUFF_MCPB0_RAVE_PAUSE_SEL1    0x20a07cd4 /* [RW][32] XC Buffer MCPB0 RAVE Pause Select Register for Playback bands 16-31 */
+#define BCHP_XPT_XCBUFF_RAVE_RDIF_BLOCK_OUT      0x20a07cd8 /* [RW][32] XC Buffer RAVE Read I/F Blockout Register */
+#define BCHP_XPT_XCBUFF_MSG_RDIF_BLOCK_OUT       0x20a07cdc /* [RW][32] XC Buffer MSG Read I/F Blockout Register */
+#define BCHP_XPT_XCBUFF_RMX0_RDIF_BLOCK_OUT      0x20a07ce0 /* [RW][32] XC Buffer RMX0 Read I/F Blockout Register */
+#define BCHP_XPT_XCBUFF_RMX1_RDIF_BLOCK_OUT      0x20a07ce4 /* [RW][32] XC Buffer RMX1 Read I/F Blockout Register */
+#define BCHP_XPT_XCBUFF_RAVE_IBP_BUFFER_IDLE     0x20a07ce8 /* [RO][32] XC Buffer RAVE IBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_BUFFER_IDLE     0x20a07cec /* [RO][32] XC Buffer RAVE PBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RAVE_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07cf0 /* [RW][32] XC Buffer RAVE IBP0 to IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07cf8 /* [RW][32] XC Buffer RAVE IBP0 to IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d00 /* [RW][32] XC Buffer RAVE PBP0 to PBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d04 /* [RW][32] XC Buffer RAVE PBP16 to PBP31 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d08 /* [RW][32] XC Buffer RAVE PBP0 to PBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d0c /* [RW][32] XC Buffer RAVE PBP16 to PBP31 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_IBP_BUFFER_IDLE      0x20a07d10 /* [RO][32] XC Buffer MSG IBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_BUFFER_IDLE      0x20a07d14 /* [RO][32] XC Buffer MSG PBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_MSG_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d18 /* [RW][32] XC Buffer MSG IBP0 to IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d20 /* [RW][32] XC Buffer MSG IBP0 to IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d28 /* [RW][32] XC Buffer MSG PBP0 to PBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d2c /* [RW][32] XC Buffer MSG PBP16 to PBP31 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d30 /* [RW][32] XC Buffer MSG PBP0 to PBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d34 /* [RW][32] XC Buffer MSG PBP16 to PBP31 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_IBP_BUFFER_IDLE     0x20a07d38 /* [RO][32] XC Buffer RMX0 IBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_BUFFER_IDLE     0x20a07d3c /* [RO][32] XC Buffer RMX0 PBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RMX0_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d40 /* [RW][32] XC Buffer RMX0 IBP0 to IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d48 /* [RW][32] XC Buffer RMX0 IBP0 to IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d50 /* [RW][32] XC Buffer RMX0 PBP0 to PBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d54 /* [RW][32] XC Buffer RMX0 PBP16 to PBP31 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d58 /* [RW][32] XC Buffer RMX0 PBP0 to PBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d5c /* [RW][32] XC Buffer RMX0 PBP16 to PBP31 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_IBP_BUFFER_IDLE     0x20a07d60 /* [RO][32] XC Buffer RMX1 IBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_BUFFER_IDLE     0x20a07d64 /* [RO][32] XC Buffer RMX1 PBP Buffer Idle Status */
+#define BCHP_XPT_XCBUFF_RMX1_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d68 /* [RW][32] XC Buffer RMX1 IBP0 to IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d70 /* [RW][32] XC Buffer RMX1 IBP0 to IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d78 /* [RW][32] XC Buffer RMX1 PBP0 to PBP15 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d7c /* [RW][32] XC Buffer RMX1 PBP16 to PBP31 Write Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a07d80 /* [RW][32] XC Buffer RMX1 PBP0 to PBP15 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a07d84 /* [RW][32] XC Buffer RMX1 PBP16 to PBP31 Read Transaction Pending Status */
+#define BCHP_XPT_XCBUFF_RAVE_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07d88 /* [RW][32] XC Buffer RAVE IBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RAVE_IBP_BAND_RD_IN_PROGRESS 0x20a07d8c /* [RW][32] XC Buffer RAVE IBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07d90 /* [RW][32] XC Buffer RAVE PBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RAVE_PBP_BAND_RD_IN_PROGRESS 0x20a07d94 /* [RW][32] XC Buffer RAVE PBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_MSG_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07d98 /* [RW][32] XC Buffer MSG IBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_MSG_IBP_BAND_RD_IN_PROGRESS 0x20a07d9c /* [RW][32] XC Buffer MSG IBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_MSG_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07da0 /* [RW][32] XC Buffer MSG PBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_MSG_PBP_BAND_RD_IN_PROGRESS 0x20a07da4 /* [RW][32] XC Buffer MSG PBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_RMX0_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07da8 /* [RW][32] XC Buffer RMX0 IBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RMX0_IBP_BAND_RD_IN_PROGRESS 0x20a07dac /* [RW][32] XC Buffer RMX0 IBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07db0 /* [RW][32] XC Buffer RMX0 PBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RMX0_PBP_BAND_RD_IN_PROGRESS 0x20a07db4 /* [RW][32] XC Buffer RMX0 PBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_RMX1_IBP_BAND_RD_IN_PROGRESS_EN 0x20a07db8 /* [RW][32] XC Buffer RMX1 IBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RMX1_IBP_BAND_RD_IN_PROGRESS 0x20a07dbc /* [RW][32] XC Buffer RMX1 IBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_BAND_RD_IN_PROGRESS_EN 0x20a07dc0 /* [RW][32] XC Buffer RMX1 PBP Read In Progress Control */
+#define BCHP_XPT_XCBUFF_RMX1_PBP_BAND_RD_IN_PROGRESS 0x20a07dc4 /* [RW][32] XC Buffer RMX1 PBP Read In Progress Status */
+#define BCHP_XPT_XCBUFF_TBG0_CTRL                0x20a07e00 /* [RW][32] XC Buffer Transponder Bonding Group 0 Control */
+#define BCHP_XPT_XCBUFF_TBG0_BO_RAVE             0x20a07e04 /* [RW][32] XC Buffer Transponder Bonding Group 0 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG0_BO_MSG              0x20a07e08 /* [RW][32] XC Buffer Transponder Bonding Group 0 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG0_BO_RMX0             0x20a07e0c /* [RW][32] XC Buffer Transponder Bonding Group 0 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG0_BO_RMX1             0x20a07e10 /* [RW][32] XC Buffer Transponder Bonding Group 0 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG1_CTRL                0x20a07e14 /* [RW][32] XC Buffer Transponder Bonding Group 1 Control */
+#define BCHP_XPT_XCBUFF_TBG1_BO_RAVE             0x20a07e18 /* [RW][32] XC Buffer Transponder Bonding Group 1 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG1_BO_MSG              0x20a07e1c /* [RW][32] XC Buffer Transponder Bonding Group 1 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG1_BO_RMX0             0x20a07e20 /* [RW][32] XC Buffer Transponder Bonding Group 1 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG1_BO_RMX1             0x20a07e24 /* [RW][32] XC Buffer Transponder Bonding Group 1 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG2_CTRL                0x20a07e28 /* [RW][32] XC Buffer Transponder Bonding Group 2 Control */
+#define BCHP_XPT_XCBUFF_TBG2_BO_RAVE             0x20a07e2c /* [RW][32] XC Buffer Transponder Bonding Group 2 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG2_BO_MSG              0x20a07e30 /* [RW][32] XC Buffer Transponder Bonding Group 2 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG2_BO_RMX0             0x20a07e34 /* [RW][32] XC Buffer Transponder Bonding Group 2 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG2_BO_RMX1             0x20a07e38 /* [RW][32] XC Buffer Transponder Bonding Group 2 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG3_CTRL                0x20a07e3c /* [RW][32] XC Buffer Transponder Bonding Group 3 Control */
+#define BCHP_XPT_XCBUFF_TBG3_BO_RAVE             0x20a07e40 /* [RW][32] XC Buffer Transponder Bonding Group 3 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG3_BO_MSG              0x20a07e44 /* [RW][32] XC Buffer Transponder Bonding Group 3 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG3_BO_RMX0             0x20a07e48 /* [RW][32] XC Buffer Transponder Bonding Group 3 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG3_BO_RMX1             0x20a07e4c /* [RW][32] XC Buffer Transponder Bonding Group 3 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG4_CTRL                0x20a07e50 /* [RW][32] XC Buffer Transponder Bonding Group 4 Control */
+#define BCHP_XPT_XCBUFF_TBG4_BO_RAVE             0x20a07e54 /* [RW][32] XC Buffer Transponder Bonding Group 4 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG4_BO_MSG              0x20a07e58 /* [RW][32] XC Buffer Transponder Bonding Group 4 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG4_BO_RMX0             0x20a07e5c /* [RW][32] XC Buffer Transponder Bonding Group 4 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG4_BO_RMX1             0x20a07e60 /* [RW][32] XC Buffer Transponder Bonding Group 4 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG5_CTRL                0x20a07e64 /* [RW][32] XC Buffer Transponder Bonding Group 5 Control */
+#define BCHP_XPT_XCBUFF_TBG5_BO_RAVE             0x20a07e68 /* [RW][32] XC Buffer Transponder Bonding Group 5 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG5_BO_MSG              0x20a07e6c /* [RW][32] XC Buffer Transponder Bonding Group 5 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG5_BO_RMX0             0x20a07e70 /* [RW][32] XC Buffer Transponder Bonding Group 5 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG5_BO_RMX1             0x20a07e74 /* [RW][32] XC Buffer Transponder Bonding Group 5 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG6_CTRL                0x20a07e78 /* [RW][32] XC Buffer Transponder Bonding Group 6 Control */
+#define BCHP_XPT_XCBUFF_TBG6_BO_RAVE             0x20a07e7c /* [RW][32] XC Buffer Transponder Bonding Group 6 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG6_BO_MSG              0x20a07e80 /* [RW][32] XC Buffer Transponder Bonding Group 6 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG6_BO_RMX0             0x20a07e84 /* [RW][32] XC Buffer Transponder Bonding Group 6 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG6_BO_RMX1             0x20a07e88 /* [RW][32] XC Buffer Transponder Bonding Group 6 Block Out Control for RMX1 */
+#define BCHP_XPT_XCBUFF_TBG7_CTRL                0x20a07e8c /* [RW][32] XC Buffer Transponder Bonding Group 7 Control */
+#define BCHP_XPT_XCBUFF_TBG7_BO_RAVE             0x20a07e90 /* [RW][32] XC Buffer Transponder Bonding Group 7 Block Out Control for RAVE */
+#define BCHP_XPT_XCBUFF_TBG7_BO_MSG              0x20a07e94 /* [RW][32] XC Buffer Transponder Bonding Group 7 Block Out Control for MSG */
+#define BCHP_XPT_XCBUFF_TBG7_BO_RMX0             0x20a07e98 /* [RW][32] XC Buffer Transponder Bonding Group 7 Block Out Control for RMX0 */
+#define BCHP_XPT_XCBUFF_TBG7_BO_RMX1             0x20a07e9c /* [RW][32] XC Buffer Transponder Bonding Group 7 Block Out Control for RMX1 */
 
 /***************************************************************************
  *BASE_POINTER_RAVE_IBP0 - XC Buffer - Base pointer for  RAVE Input Band Parser 0

@@ -58,7 +58,7 @@ typedef struct {
 } GLXX_SHARED_T;
 
 extern bool glxx_shared_init(GLXX_SHARED_T *shared);
-extern void glxx_shared_term(void *v, uint32_t size);
+extern void glxx_shared_term(MEM_HANDLE_T handle);
 
 extern uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared);
 extern uint32_t glxx_shared_create_shader(GLXX_SHARED_T *shared, uint32_t type);

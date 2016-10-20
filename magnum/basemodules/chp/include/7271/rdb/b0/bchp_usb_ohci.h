@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,28 +70,28 @@
 /***************************************************************************
  *USB_OHCI - USB OHCI Control Registers
  ***************************************************************************/
-#define BCHP_USB_OHCI_HcRevision                 0x20b00400 /* [RO] Host Controller Revision Register */
-#define BCHP_USB_OHCI_HcControl                  0x20b00404 /* [RW] Host Controller Control Register */
-#define BCHP_USB_OHCI_HcCommandStatus            0x20b00408 /* [RW] Host Controller Command Status Register */
-#define BCHP_USB_OHCI_HcInterruptStatus          0x20b0040c /* [RW] Host Controller Interrupt Status Register */
-#define BCHP_USB_OHCI_HcInterruptEnable          0x20b00410 /* [RW] Host Controller Interrupt Enable Register */
-#define BCHP_USB_OHCI_HcInterruptDisable         0x20b00414 /* [RW] Host Controller Interrupt Disable Register */
-#define BCHP_USB_OHCI_HcHCCA                     0x20b00418 /* [RW] Host Controller Communication Area Register */
-#define BCHP_USB_OHCI_HcPeriodCurrentED          0x20b0041c /* [RO] Current Isochronous or Interrupt Endpoint Descriptor Register */
-#define BCHP_USB_OHCI_HcControlHeadED            0x20b00420 /* [RW] First Endpoint Descriptor of the Control List */
-#define BCHP_USB_OHCI_HcControlCurrentED         0x20b00424 /* [RW] Current Endpoint Descriptor of the Control List */
-#define BCHP_USB_OHCI_HcBulkHeadED               0x20b00428 /* [RW] First Endpoint Descriptor of the Bulk List */
-#define BCHP_USB_OHCI_HcBulkCurrentED            0x20b0042c /* [RW] Current Endpoint Descriptor of the Bulk List */
-#define BCHP_USB_OHCI_HcDoneHead                 0x20b00430 /* [RO] Last Completed Transfer Descriptor Added to the Done Queue */
-#define BCHP_USB_OHCI_HcFmInterval               0x20b00434 /* [RW] Frame Bit Time Interval Register */
-#define BCHP_USB_OHCI_HcFmRemaining              0x20b00438 /* [RW] Bit Time Remaining in the Current Frame */
-#define BCHP_USB_OHCI_HcFmNumber                 0x20b0043c /* [RW] Frame Number Register */
-#define BCHP_USB_OHCI_HcPeriodicStart            0x20b00440 /* [RW] Register to Start Processing the Periodic List */
-#define BCHP_USB_OHCI_HcLSThreshold              0x20b00444 /* [RW] LS Packet Threshold Register */
-#define BCHP_USB_OHCI_HcRhDescriptorA            0x20b00448 /* [RW] Root Hub Descriptor A Register */
-#define BCHP_USB_OHCI_HcRhDescriptorB            0x20b0044c /* [RW] Root Hub Descriptor B Register */
-#define BCHP_USB_OHCI_HcRhStatus                 0x20b00450 /* [RW] Root Hub Status Register */
-#define BCHP_USB_OHCI_HcRhPortStatus1            0x20b00454 /* [RW] Root Hub Port Status Register for Port 1 */
+#define BCHP_USB_OHCI_HcRevision                 0x20b00400 /* [RO][32] Host Controller Revision Register */
+#define BCHP_USB_OHCI_HcControl                  0x20b00404 /* [RW][32] Host Controller Control Register */
+#define BCHP_USB_OHCI_HcCommandStatus            0x20b00408 /* [RW][32] Host Controller Command Status Register */
+#define BCHP_USB_OHCI_HcInterruptStatus          0x20b0040c /* [RW][32] Host Controller Interrupt Status Register */
+#define BCHP_USB_OHCI_HcInterruptEnable          0x20b00410 /* [RW][32] Host Controller Interrupt Enable Register */
+#define BCHP_USB_OHCI_HcInterruptDisable         0x20b00414 /* [RW][32] Host Controller Interrupt Disable Register */
+#define BCHP_USB_OHCI_HcHCCA                     0x20b00418 /* [RW][32] Host Controller Communication Area Register */
+#define BCHP_USB_OHCI_HcPeriodCurrentED          0x20b0041c /* [RO][32] Current Isochronous or Interrupt Endpoint Descriptor Register */
+#define BCHP_USB_OHCI_HcControlHeadED            0x20b00420 /* [RW][32] First Endpoint Descriptor of the Control List */
+#define BCHP_USB_OHCI_HcControlCurrentED         0x20b00424 /* [RW][32] Current Endpoint Descriptor of the Control List */
+#define BCHP_USB_OHCI_HcBulkHeadED               0x20b00428 /* [RW][32] First Endpoint Descriptor of the Bulk List */
+#define BCHP_USB_OHCI_HcBulkCurrentED            0x20b0042c /* [RW][32] Current Endpoint Descriptor of the Bulk List */
+#define BCHP_USB_OHCI_HcDoneHead                 0x20b00430 /* [RO][32] Last Completed Transfer Descriptor Added to the Done Queue */
+#define BCHP_USB_OHCI_HcFmInterval               0x20b00434 /* [RW][32] Frame Bit Time Interval Register */
+#define BCHP_USB_OHCI_HcFmRemaining              0x20b00438 /* [RW][32] Bit Time Remaining in the Current Frame */
+#define BCHP_USB_OHCI_HcFmNumber                 0x20b0043c /* [RW][32] Frame Number Register */
+#define BCHP_USB_OHCI_HcPeriodicStart            0x20b00440 /* [RW][32] Register to Start Processing the Periodic List */
+#define BCHP_USB_OHCI_HcLSThreshold              0x20b00444 /* [RW][32] LS Packet Threshold Register */
+#define BCHP_USB_OHCI_HcRhDescriptorA            0x20b00448 /* [RW][32] Root Hub Descriptor A Register */
+#define BCHP_USB_OHCI_HcRhDescriptorB            0x20b0044c /* [RW][32] Root Hub Descriptor B Register */
+#define BCHP_USB_OHCI_HcRhStatus                 0x20b00450 /* [RW][32] Root Hub Status Register */
+#define BCHP_USB_OHCI_HcRhPortStatus1            0x20b00454 /* [RW][32] Root Hub Port Status Register for Port 1 */
 
 /***************************************************************************
  *HcRevision - Host Controller Revision Register

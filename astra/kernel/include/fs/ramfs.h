@@ -60,7 +60,7 @@ namespace RamFS {
     static const int L3RangeSize = 4096;
 
     void init();
-    IDirectory *load(TzMem::VirtAddr memAddr);
+    IDirectory *load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool initRamFS = true);
 
     class File : public IFile {
     public:

@@ -86,21 +86,9 @@ typedef struct BDSP_Stage *BDSP_StageHandle;
 
 /***************************************************************************
 Summary:
-DSP Task Stage Input Handle
-***************************************************************************/
-typedef struct BDSP_TaskStageInput *BDSP_TaskStageInputHandle;
-
-/***************************************************************************
-Summary:
 DSP External Interrupt Handle
 ***************************************************************************/
 typedef struct BDSP_ExternalInterrupt *BDSP_ExternalInterruptHandle;
-
-/***************************************************************************
-Summary:
-DSP Rdb Register handle
-***************************************************************************/
-typedef struct BDSP_RdbRegister *BDSP_RdbRegisterHandle;
 
 /***************************************************************************
 Summary:
@@ -206,6 +194,7 @@ typedef enum BDSP_Algorithm
     BDSP_Algorithm_eDolbyAacheLoasDecode,
     BDSP_Algorithm_eOpusDecode,
     BDSP_Algorithm_eALSDecode,
+    BDSP_Algorithm_eALSLoasDecode,
     BDSP_Algorithm_eAC4Decode,
     BDSP_Algorithm_eOpusEncode,
     BDSP_Algorithm_eDDPEncode,

@@ -21,6 +21,7 @@ COMMON_SRC_FILES := \
 	libs/khrn/common/khrn_uintptr_vector.c \
 	libs/khrn/common/khrn_synclist.c \
 	libs/khrn/common/khrn_fence.c \
+	libs/khrn/common/khrn_tile_state.c \
 	libs/khrn/common/khrn_timeline.c \
 	libs/khrn/common/khrn_record.c \
 	libs/khrn/egl/egl_attrib_list.c \
@@ -110,6 +111,9 @@ COMMON_SRC_FILES := \
 	libs/khrn/glsl/glsl_backflow_visitor.c \
 	libs/khrn/glsl/glsl_backflow_print.c \
 	libs/khrn/glsl/glsl_backflow.c \
+	libs/khrn/glsl/glsl_qbe_fragment.c \
+	libs/khrn/glsl/glsl_qbe_fragment_adv_blend.c \
+	libs/khrn/glsl/glsl_qbe_vertex.c \
 	libs/khrn/glsl/glsl_backflow_combine.c \
 	libs/khrn/glsl/glsl_backend.c \
 	libs/khrn/glsl/glsl_ast_visitor.c \
@@ -175,7 +179,9 @@ COMMON_SRC_FILES := \
 	libs/khrn/glxx/glxx_compute.c \
 	libs/khrn/glxx/glxx_texlevel_param.c \
 	libs/khrn/glxx/glxx_image_unit.c \
+	libs/khrn/glxx/glxx_tf.c \
 	libs/util/desc_map/desc_map.c \
+	libs/util/gfx_util/gfx_util_conv.c \
 	libs/util/gfx_util/gfx_util_morton.c \
 	libs/util/gfx_util/gfx_util_hrsize.c \
 	libs/util/gfx_util/gfx_util_file.c \
@@ -202,7 +208,8 @@ COMMON_SRC_FILES := \
 	libs/core/gfx_buffer/gfx_buffer_slow_conv_xform.c \
 	libs/core/gfx_buffer/gfx_buffer_slow_conv.c \
 	libs/util/gfx_args/gfx_args.c \
-	libs/core/v3d/v3d_choose_supertile.c \
+	libs/core/v3d/v3d_supertile.c \
+	libs/core/v3d/v3d_shadrec.c \
 	libs/core/v3d/v3d_cl.c \
 	libs/core/v3d/v3d_cl_compr.c \
 	libs/core/v3d/v3d_gen.c \
@@ -218,6 +225,7 @@ COMMON_SRC_FILES := \
 	libs/platform/v3d_imgconv_extra_neon.c \
 	libs/platform/v3d_imgconv_gfx_blit.c \
 	libs/platform/v3d_scheduler.c \
+	libs/platform/v3d_scheduler_graph.c \
 	libs/platform/v3d_imgconv_tfu.c \
 	libs/platform/v3d_imgconv_tlb.c \
 	libs/platform/v3d_parallel.c \

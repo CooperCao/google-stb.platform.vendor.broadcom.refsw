@@ -72,6 +72,7 @@ static const uint32_t alDCTable1[NEXUS_DC_TABLE_ROWS * NEXUS_DC_TABLE_COLS] = {
 
 #define pVideo (&g_NEXUS_DisplayModule_State)
 static NEXUS_Error NEXUS_VideoWindow_P_ApplySplitScreenSettings(NEXUS_VideoWindowHandle window);
+static NEXUS_Error NEXUS_VideoWindow_P_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput input, bool skipDisconnect);
 
 static void
 NEXUS_VideoWindow_P_LboxCallbackFunc_isr(void *pvParm1, int iParm2, const BVDC_BoxDetectInfo *pBoxDetectInfo)
@@ -135,14 +136,14 @@ static BERR_Code NEXUS_VideoWindow_P_RecreateWindow(NEXUS_VideoWindowHandle wind
     return 0;
 }
 
-#define IS_DIGITAL_SOURCE(window) ((window)->input && (window)->input->type == NEXUS_VideoInputType_eDecoder)
+#define IS_DIGITAL_SOURCE(input) ((input) && (input)->type == NEXUS_VideoInputType_eDecoder)
 
 static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
 {
     unsigned j;
     bool foundSyncLockedWindow = false;
 
-    if (!window->status.isSyncLocked && IS_DIGITAL_SOURCE(window))
+    if (!window->status.isSyncLocked && IS_DIGITAL_SOURCE(window->input))
     {
         /* if there's another digital window on this display, destroy & recreate it. then this window will become sync-locked. */
         /* if there's another digital window for this source on another display, destroy & recreate it. then this window will become sync-locked. */
@@ -158,7 +159,7 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
 
                 /* if the other window shares the same source or
                 another digital source on the same display, then it contends for sync lock. */
-                if (w->input == window->input || (d == window->display && IS_DIGITAL_SOURCE(w)))
+                if (w->input == window->input || (d == window->display && IS_DIGITAL_SOURCE(w->input)))
                 {
                     foundSyncLockedWindow = true;
                     break;
@@ -173,51 +174,74 @@ static void NEXUS_VideoWindow_P_PredictSyncLock(NEXUS_VideoWindowHandle window)
     }
 }
 
-static BERR_Code NEXUS_VideoWindow_P_TestSyncLock(NEXUS_VideoWindowHandle window)
+struct nexus_synclock_recreate
 {
-    unsigned j;
+    NEXUS_VideoInput input;
+    NEXUS_VideoWindowHandle window[NEXUS_NUM_DISPLAYS];
+};
 
-    if (window->status.isSyncLocked || !window->input) return 0;
+static void NEXUS_VideoWindow_P_DestroyForSyncLock(NEXUS_VideoWindowHandle window, bool preferSyncLock, NEXUS_VideoInput input, struct nexus_synclock_recreate *recreate)
+{
+    unsigned i;
 
-    if (!IS_DIGITAL_SOURCE(window)) {
+    BKNI_Memset(recreate, 0, sizeof(*recreate));
+
+    if (!preferSyncLock ||
+        window->status.isSyncLocked ||
+        window->display->index != 0) return;
+
+    if (!IS_DIGITAL_SOURCE(input)) {
         BDBG_ERR(("preferSyncLock only applies to digital sources"));
-        return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return;
     }
 
-    /* if there's another digital window on this display, destroy & recreate it. then this window will become sync-locked. */
-    /* if there's another digital window for this source on another display, destroy & recreate it. then this window will become sync-locked. */
-    /* TODO: this algo doesn't work for triple display (HD, SD, encode) */
-    for (j=0;j<NEXUS_NUM_DISPLAYS;j++) {
-        unsigned i;
-        NEXUS_DisplayHandle d = pVideo->displays[j];
-        if (!d) continue;
-        for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
-            NEXUS_VideoWindowHandle w = &d->windows[i];
-            if (!w->open || w == window) continue; /* skip closed or same window */
-
-            /* if the other window shares the same source or
-            another digital source on the same display, then it contends for sync lock. */
-            if (w->input == window->input || (d == window->display && IS_DIGITAL_SOURCE(w))) {
-                if (w->cfg.preferSyncLock) {
-                    BDBG_WRN(("two windows have preferSyncLock = true"));
-                    if (w->status.isSyncLocked) {
-                        return 0;
-                    }
-                    break;
-                }
-                else if (w->status.isSyncLocked) {
-                    int rc = NEXUS_VideoWindow_P_RecreateWindow(w);
-                    if (rc) return BERR_TRACE(rc);
-                    break;
-                }
-                /* keep looking for the sync locked window */
-            }
+    for (i=0;i<NEXUS_NUM_VIDEO_WINDOWS;i++) {
+        NEXUS_VideoWindowHandle w = &window->display->windows[i];
+        if (!w->open || w == window) continue; /* skip closed or same window */
+        if (w->cfg.preferSyncLock) {
+            BDBG_WRN(("two windows have preferSyncLock = true"));
+            /* take no action */
+            return;
+        }
+        else if (w->status.isSyncLocked) {
+            break;
+        }
+    }
+    if (i<NEXUS_NUM_VIDEO_WINDOWS) {
+        /* window[i] is synclocked but does not prefer it. We must destroy windows for this input on all displays,
+        then recreate after the window that prefers synclock is created.
+        To simplify, we will assume the window->index is the same on all displays */
+        unsigned d;
+        BDBG_WRN(("NEXUS_VideoWindow_P_DestroyForSyncLock: %d.%d prefers but is not", window->display->index, window->index));
+        recreate->input = window->display->windows[i].input;
+        for (d=0;d<NEXUS_NUM_DISPLAYS;d++) {
+            NEXUS_VideoWindowHandle w;
+            if (!pVideo->displays[d] || !pVideo->displays[d]->windows[i].open) continue;
+            w = &pVideo->displays[d]->windows[i];
+            if (w->input != recreate->input) continue; /* not expected */
+            BDBG_WRN(("  destroying %d.%d", d, i));
+            recreate->window[d] = w;
+            NEXUS_VideoWindow_P_RemoveInput(w, recreate->input, true);
         }
     }
 
     /* this window should now be sync-locked, the callback will come and verify later */
     window->status.isSyncLocked = true;
-    return 0;
+}
+
+static void NEXUS_VideoWindow_P_RecreateForSyncLock(struct nexus_synclock_recreate *recreate)
+{
+    unsigned i;
+    if (!recreate->input) return;
+    for (i=0;i<NEXUS_NUM_DISPLAYS;i++) {
+        if (recreate->window[i]) {
+            int rc;
+            BDBG_WRN(("  recreating %d.%d as syncslip window", recreate->window[i]->display->index, recreate->window[i]->index));
+            rc = NEXUS_VideoWindow_AddInput(recreate->window[i], recreate->input);
+            if (rc) BERR_TRACE(rc); /* keep going */
+            recreate->window[i]->status.isSyncLocked = false;
+        }
+    }
 }
 
 /* NEXUS_VideoWindow_P_SetCbSetting is called on Open and SetSettings.
@@ -1040,6 +1064,7 @@ NEXUS_VideoWindow_AddInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput inpu
 {
     NEXUS_Error rc;
     NEXUS_VideoInput_P_Link *link;
+    struct nexus_synclock_recreate recreate;
 
     BDBG_OBJECT_ASSERT(window, NEXUS_VideoWindow);
 
@@ -1053,15 +1078,12 @@ NEXUS_VideoWindow_AddInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput inpu
     }
 
     /* first, see if we need to recreate for desired sync lock */
-    if (window->cfg.preferSyncLock) {
-       rc = NEXUS_VideoWindow_P_TestSyncLock(window);
-       if (rc) {rc = BERR_TRACE(rc); goto err_testsynclock;}
-    }
+    NEXUS_VideoWindow_P_DestroyForSyncLock(window, window->cfg.preferSyncLock,  input, &recreate);
 
 #if NEXUS_NUM_MOSAIC_DECODES
     if (window->mosaic.parent) {
         rc = NEXUS_VideoWindow_P_AddMosaicInput(window, input);
-        if (rc) {rc = BERR_TRACE(rc); goto err_sanity_check;}
+        if (rc) {rc = BERR_TRACE(rc); goto err_add_mosaic;}
         /* mosaics can now be connected as a normal input/input, but do not create the VDC window */
     }
 #endif
@@ -1098,6 +1120,8 @@ NEXUS_VideoWindow_AddInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput inpu
         rc = NEXUS_Display_P_ApplyChanges();
         if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);goto err_applychanges;}
     }
+
+    NEXUS_VideoWindow_P_RecreateForSyncLock(&recreate);
 
     /* update display settings on the input side */
     BDBG_ASSERT(window->display);
@@ -1138,14 +1162,21 @@ err_link:
     if (window->mosaic.parent) {
         NEXUS_VideoWindow_P_RemoveMosaicInput(window, input);
     }
+err_add_mosaic:
 #endif
-err_testsynclock:
+    NEXUS_VideoWindow_P_RecreateForSyncLock(&recreate);
 err_sanity_check:
     return rc;
 }
 
 NEXUS_Error
 NEXUS_VideoWindow_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput input)
+{
+    return NEXUS_VideoWindow_P_RemoveInput(window, input, false);
+}
+
+static NEXUS_Error
+NEXUS_VideoWindow_P_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput input, bool skipDisconnect)
 {
     NEXUS_VideoInput_P_Link *link;
 
@@ -1174,7 +1205,9 @@ NEXUS_VideoWindow_RemoveInput(NEXUS_VideoWindowHandle window, NEXUS_VideoInput i
 
     BDBG_ASSERT(link->ref_cnt>0);
     if (--link->ref_cnt==0) {
-        NEXUS_VideoInput_P_Disconnect(window->input);
+        if (!skipDisconnect) {
+            NEXUS_VideoInput_P_Disconnect(window->input);
+        }
 
 #if NEXUS_NUM_MOSAIC_DECODES
         /* because each mosaic's link copies the VDC source of the parent, we must shutdown the mosaic on
@@ -1218,11 +1251,10 @@ NEXUS_VideoWindow_SetSettings(NEXUS_VideoWindowHandle window, const NEXUS_VideoW
     if (window->vdcState.window)
     {
         NEXUS_VideoWindowSettings oldSettings;
-        /* first, see if we need to recreate for desired sync lock */
-        if (settings->preferSyncLock) {
-            rc = NEXUS_VideoWindow_P_TestSyncLock(window);
-            if (rc) {rc = BERR_TRACE(rc); goto err_testsynclock;}
-        }
+        struct nexus_synclock_recreate recreate;
+
+        NEXUS_VideoWindow_P_DestroyForSyncLock(window, settings->preferSyncLock, window->input, &recreate);
+        NEXUS_VideoWindow_P_RecreateForSyncLock(&recreate);
 
         rc = NEXUS_VideoWindow_P_SetVdcSettings(window, settings, false);
         if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);goto err_setsettings;}
@@ -1264,7 +1296,6 @@ err_setsettings:
         BERR_Code rc = BVDC_AbortChanges(pVideo->vdc);
         if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc);}
     }
-err_testsynclock:
     return rc;
 }
 
@@ -2111,6 +2142,8 @@ void NEXUS_VideoWindow_P_InitState(NEXUS_VideoWindowHandle window, unsigned pare
     window->cfg.colorKey.cb.lower = 0;
     window->cfg.colorKey.cb.upper = 0xff;
     window->cfg.colorKey.cb.mask = 0;
+    NEXUS_CallbackDesc_Init(&window->cfg.letterBoxDetectionChange);
+    NEXUS_CallbackDesc_Init(&window->cfg.outputRectChanged);
     NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &window->cfg.minimumSourceFormat);
     NEXUS_VideoWindow_GetDefaultMinDisplayFormat_isrsafe(window, &window->cfg.minimumDisplayFormat);
     BKNI_Memcpy(&window->picContext.stCustomContrast.dcTable1[0], &alDCTable1[0], sizeof(window->picContext.stCustomContrast.dcTable1));

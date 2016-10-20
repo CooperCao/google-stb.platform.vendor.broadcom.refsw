@@ -104,7 +104,6 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_bufferheap_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_buffer_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_capture_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_ccbtable_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_chromacoeff_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_vnetcrc_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_coeff_priv.c \
@@ -124,12 +123,9 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_gfxsurface_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_hddvi_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_heap.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_hist_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_hscaler_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_mad_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_mcdi_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_mcvp_priv.c \
-	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_oscl_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepalgorithm_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepcmstable_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_pepcms_priv.c \
@@ -149,6 +145,7 @@ BVDC_SOURCES = \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_window.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_window_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_xsrc_priv.c \
+	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_vfc_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_tntd_priv.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_memconfig.c \
 	$(MAGNUM)/portinginterface/vdc/src/common/bvdc_memconfig_priv.c \

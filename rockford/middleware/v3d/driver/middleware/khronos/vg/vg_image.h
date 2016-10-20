@@ -33,7 +33,7 @@ extern void vg_image_bprint_from_stem(
    uint32_t allowed_quality,
    int32_t width, int32_t height);
 
-extern void vg_image_bprint_term(void *, uint32_t);
+extern void vg_image_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_image_bprint(MEM_HANDLE_T handle)
 {
@@ -54,7 +54,7 @@ extern VGImageFormat vg_image_get_external_format(KHRN_IMAGE_FORMAT_T format); /
 extern MEM_HANDLE_T vg_image_alloc_from_image(MEM_HANDLE_T src_handle);
 extern void vg_image_from_stem_and_image(MEM_HANDLE_T handle, MEM_HANDLE_T src_handle);
 
-extern void vg_image_term(void *, uint32_t);
+extern void vg_image_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_image(MEM_HANDLE_T handle)
 {
@@ -97,7 +97,7 @@ extern void vg_child_image_bprint_from_stem(
    int32_t x, int32_t y,
    int32_t width, int32_t height);
 
-extern void vg_child_image_bprint_term(void *, uint32_t);
+extern void vg_child_image_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_child_image_bprint(MEM_HANDLE_T handle)
 {
@@ -106,7 +106,7 @@ static INLINE bool vg_is_child_image_bprint(MEM_HANDLE_T handle)
 
 extern bool vg_child_image_from_bprint(MEM_HANDLE_T handle);
 
-extern void vg_child_image_term(void *, uint32_t);
+extern void vg_child_image_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_child_image(MEM_HANDLE_T handle)
 {

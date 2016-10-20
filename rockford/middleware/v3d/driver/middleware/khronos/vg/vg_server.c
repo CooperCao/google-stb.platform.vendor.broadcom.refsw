@@ -84,11 +84,9 @@ static void term(void)
 shared state
 ******************************************************************************/
 
-void vg_server_shared_state_term(void *p, uint32_t size)
+void vg_server_shared_state_term(MEM_HANDLE_T handle)
 {
-   VG_SERVER_SHARED_STATE_T *shared_state = (VG_SERVER_SHARED_STATE_T *)p;
-
-   UNUSED(size);
+   VG_SERVER_SHARED_STATE_T *shared_state = (VG_SERVER_SHARED_STATE_T *)mem_lock(handle, NULL);
 
    vg_set_term(&shared_state->objects);
 
@@ -97,6 +95,8 @@ void vg_server_shared_state_term(void *p, uint32_t size)
       vcos_assert(!term_outstanding);
       term_outstanding = true;
    }
+
+   mem_unlock(handle);
 }
 
 MEM_HANDLE_T vg_server_shared_state_alloc(void)
@@ -140,7 +140,7 @@ MEM_HANDLE_T vg_server_shared_state_alloc(void)
    }
    mem_unlock(handle);
 
-   mem_set_term(handle, vg_server_shared_state_term);
+   mem_set_term(handle, vg_server_shared_state_term, NULL);
 
    return handle;
 }
@@ -149,11 +149,9 @@ MEM_HANDLE_T vg_server_shared_state_alloc(void)
 state
 ******************************************************************************/
 
-void vg_server_state_term(void *p, uint32_t size)
+void vg_server_state_term(MEM_HANDLE_T handle)
 {
-   VG_SERVER_STATE_T *state = (VG_SERVER_STATE_T *)p;
-
-   UNUSED(size);
+   VG_SERVER_STATE_T *state = (VG_SERVER_STATE_T *)mem_lock(handle, NULL);
 
    mem_release(state->shared_state);
 
@@ -163,6 +161,8 @@ void vg_server_state_term(void *p, uint32_t size)
    if (state->scissor.scissor != MEM_INVALID_HANDLE) {
       mem_release(state->scissor.scissor);
    }
+
+   mem_unlock(handle);
 }
 
 MEM_HANDLE_T vg_server_state_alloc(MEM_HANDLE_T shared_state_handle, uint64_t pid)
@@ -263,7 +263,7 @@ MEM_HANDLE_T vg_server_state_alloc(MEM_HANDLE_T shared_state_handle, uint64_t pi
 
    mem_unlock(handle);
 
-   mem_set_term(handle, vg_server_state_term);
+   mem_set_term(handle, vg_server_state_term, NULL);
 
    return handle;
 }

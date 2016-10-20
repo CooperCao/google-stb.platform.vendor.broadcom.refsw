@@ -1,21 +1,41 @@
 /***************************************************************************
-*     Copyright (c) 2006-2014, Broadcom Corporation*
-*     All Rights Reserved*
-*     Confidential Property of Broadcom Corporation*
-*
-*  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-*  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-*  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -58,15 +78,15 @@ static void BCHP_PWR_P_HW_SVD0_CLK_Control(BCHP_Handle handle, bool activate)
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, mask);
     }
     else {
-        mask =	BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_CPU_CLOCK_ENABLE_MASK;
+        mask =  BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_CPU_CLOCK_ENABLE_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, 0);
         mask = BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_AVD_CLOCK_ENABLE_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, 0);
-        mask =	BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK;
+        mask =  BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_108_CLOCK_ENABLE_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, 0);
-        mask =	BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK;
+        mask =  BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_ALTERNATE_SCB_CLOCK_ENABLE_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, 0);
-        mask =	BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_SCB_CLOCK_ENABLE_MASK;
+        mask =  BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE_SVD_SCB_CLOCK_ENABLE_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_SVD_TOP_INST_CLOCK_ENABLE, mask, 0);
     }
 }
@@ -112,16 +132,16 @@ static void BCHP_PWR_P_HW_AIO_SRAM_Control(BCHP_Handle handle, bool activate)
 
     BDBG_MSG(("HW_AIO_SRAM: %s", activate?"on":"off"));
 
-	mask = BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO_AIO_POWER_SWITCH_MEMORY_AIO_MASK;
+    mask = BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO_AIO_POWER_SWITCH_MEMORY_AIO_MASK;
 
-	if(activate) {
-	    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, 2);
-	    BKNI_Delay(10);
-	    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, 0);
-	    BKNI_Delay(10);
-	} else {
-	    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, mask);
-	}
+    if(activate) {
+        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, 2);
+        BKNI_Delay(10);
+        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, 0);
+        BKNI_Delay(10);
+    } else {
+        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_VEC_AIO_TOP_INST_POWER_SWITCH_MEMORY_AIO, mask, mask);
+    }
 
 }
 
@@ -180,7 +200,7 @@ static void BCHP_PWR_P_HW_BVN_108M_Control(BCHP_Handle handle, bool activate)
 
     BDBG_MSG(("HW_BVN_108M: %s", activate?"on":"off"));
 
-     mask = (BCHP_CLKGEN_BVN_TOP_INST_CLOCK_ENABLE_BVN_216_CLOCK_ENABLE_MASK |
+     mask = (/*BCHP_CLKGEN_BVN_TOP_INST_CLOCK_ENABLE_BVN_216_CLOCK_ENABLE_MASK |*/
              BCHP_CLKGEN_BVN_TOP_INST_CLOCK_ENABLE_BVN_108_CLOCK_ENABLE_MASK);
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_CLOCK_ENABLE, mask, activate?mask:0);
 }
@@ -194,12 +214,12 @@ static void BCHP_PWR_P_HW_BVN_SRAM_Control(BCHP_Handle handle, bool activate)
     mask = BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY_BVN_POWER_SWITCH_MEMORY_MASK;
 
     if(activate) {
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, 2);
-	BKNI_Delay(10);
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, 0);
-	BKNI_Delay(10);
+    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, 2);
+    BKNI_Delay(10);
+    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, 0);
+    BKNI_Delay(10);
     } else {
-	BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, mask);
+    BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_BVN_TOP_INST_POWER_SWITCH_MEMORY, mask, mask);
     }
 }
 
@@ -311,14 +331,14 @@ static void BCHP_PWR_P_HW_XPT_SRAM_Control(BCHP_Handle handle, bool activate)
 static void BCHP_PWR_P_HW_XPT_WAKEUP_Control(BCHP_Handle handle, bool activate)
 {
     uint32_t mask;
-	uint32_t chipVer;
+    uint32_t chipVer;
 
     BDBG_MSG(("HW_XPT_WAKEUP: %s", activate?"on":"off"));
 
-	chipVer = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
-	if(chipVer == 0x73460012){
-   		mask = BCHP_CLKGEN_PM_CLOCK_108_ALIVE_SEL_CLOCK_108_CG_FTM_MASK;
-		BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PM_CLOCK_108_ALIVE_SEL, mask, activate?mask:0);
+    chipVer = BREG_Read32(handle->regHandle, BCHP_SUN_TOP_CTRL_PRODUCT_ID);
+    if(chipVer == 0x73460012){
+        mask = BCHP_CLKGEN_PM_CLOCK_108_ALIVE_SEL_CLOCK_108_CG_FTM_MASK;
+        BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PM_CLOCK_108_ALIVE_SEL, mask, activate?mask:0);
     }
 
     mask = BCHP_CLKGEN_PM_CLOCK_216_ALIVE_SEL_CLOCK_216_CG_XPT_MASK;
@@ -341,12 +361,12 @@ static void BCHP_PWR_P_HW_HDMI_TX_CLK_Control(BCHP_Handle handle, bool activate)
     reg |= activate?0:mask;
     BREG_Write32(handle->regHandle, BCHP_CLKGEN_DVP_HT_INST_CLOCK_DISABLE, reg);
 
-	mask = (BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_CLK_MAX_ENABLE_MASK |
-	    BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_CLK_VEC_ENABLE_MASK);
+    mask = (BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_216_CLOCK_ENABLE_MASK |
+        BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_108_CLOCK_ENABLE_MASK |
+        BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_ALTERNATE_216_CLOCK_ENABLE_MASK |
+        BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_ALTERNATE_108_CLOCK_ENABLE_MASK |
+        BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_CLK_MAX_ENABLE_MASK |
+        BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE_DVPHT_CLK_VEC_ENABLE_MASK);
     BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE, mask, activate?mask:0);
 }
 
@@ -636,7 +656,7 @@ static void BCHP_PWR_P_HW_PLL_AVD_Control(BCHP_Handle handle, bool activate)
         }
 
         if(!cnt)
-	    BDBG_ERR(("AVD PLL Lock Timeout"));
+        BDBG_ERR(("AVD PLL Lock Timeout"));
     } else {
         mask = BCHP_CLKGEN_PLL_AVD_PLL_PWRDN_PWRDN_PLL_MASK;
         BREG_AtomicUpdate32(handle->regHandle, BCHP_CLKGEN_PLL_AVD_PLL_PWRDN , mask, mask);
@@ -886,7 +906,7 @@ static void BCHP_PWR_P_HW_PLL_RAAGA_Control(BCHP_Handle handle, bool activate)
         if(!cnt)
             BDBG_ERR(("RAAGA PLL Lock Timeout"));
         }
-	else {
+    else {
         reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
         mask = ( BCHP_CLKGEN_PLL_RAAGA_PLL_RESET_RESETD_MASK |
                  BCHP_CLKGEN_PLL_RAAGA_PLL_RESET_RESETA_MASK );

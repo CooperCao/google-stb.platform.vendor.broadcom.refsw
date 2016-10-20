@@ -62,16 +62,14 @@
 BDBG_MODULE(BVBI);
 
 /* Some special aliases for SCTE features */
-#if defined(BVBI_P_CCE_VER2)
-    #define BCHP_CCE_0_Active_Lines_TOP_ACTIVE_MASK \
-        BCHP_CCE_0_Active_Lines_default_TOP_ACTIVE_MASK
-    #define BCHP_CCE_0_Active_Lines_TOP_ACTIVE_SHIFT \
-        BCHP_CCE_0_Active_Lines_default_TOP_ACTIVE_SHIFT
-    #define BCHP_CCE_0_Active_Lines_BOT_ACTIVE_MASK \
-        BCHP_CCE_0_Active_Lines_default_BOT_ACTIVE_MASK
-    #define BCHP_CCE_0_Active_Lines_BOT_ACTIVE_SHIFT \
-        BCHP_CCE_0_Active_Lines_default_BOT_ACTIVE_SHIFT
-#endif
+#define BCHP_CCE_0_Active_Lines_TOP_ACTIVE_MASK \
+    BCHP_CCE_0_Active_Lines_default_TOP_ACTIVE_MASK
+#define BCHP_CCE_0_Active_Lines_TOP_ACTIVE_SHIFT \
+    BCHP_CCE_0_Active_Lines_default_TOP_ACTIVE_SHIFT
+#define BCHP_CCE_0_Active_Lines_BOT_ACTIVE_MASK \
+    BCHP_CCE_0_Active_Lines_default_BOT_ACTIVE_MASK
+#define BCHP_CCE_0_Active_Lines_BOT_ACTIVE_SHIFT \
+    BCHP_CCE_0_Active_Lines_default_BOT_ACTIVE_SHIFT
 
 
 /***************************************************************************
@@ -277,10 +275,7 @@ BERR_Code BVBI_P_CC_Enc_Program (
     ulControlReg &= ~(
         BCHP_MASK      (CCE_0_Control, reserved0                           )|
         BCHP_MASK      (CCE_0_Control, reserved_for_eco1                   )|
-#if defined(BVBI_P_CCE_VER2)
         BCHP_MASK      (CCE_0_Control, SCTE_MODE                           )|
-#endif
-        /* set parity bits so we provide the parity */
         BCHP_MASK      (CCE_0_Control, TOP_FLD_PARITY                      )|
         BCHP_MASK      (CCE_0_Control, BOT_FLD_PARITY                      )|
         BCHP_MASK      (CCE_0_Control, TOP_FLD_STAT                        )|
@@ -296,10 +291,7 @@ BERR_Code BVBI_P_CC_Enc_Program (
     ulControlReg |= (
         BCHP_FIELD_DATA(CCE_0_Control, reserved0,             0            )|
         BCHP_FIELD_DATA(CCE_0_Control, reserved_for_eco1,     0            )|
-#if defined(BVBI_P_CCE_VER2)
         BCHP_FIELD_ENUM( CCE_0_Control, SCTE_MODE,            SCTE_OFF     )|
-#endif
-        /* set parity bits so we provide the parity */
         BCHP_FIELD_ENUM(CCE_0_Control, TOP_FLD_PARITY,        AUTOMATIC    )|
         BCHP_FIELD_ENUM(CCE_0_Control, BOT_FLD_PARITY,        AUTOMATIC    )|
         BCHP_FIELD_DATA(CCE_0_Control, TOP_FLD_STAT,          0            )|

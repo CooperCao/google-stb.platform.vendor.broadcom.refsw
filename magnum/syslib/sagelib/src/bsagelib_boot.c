@@ -290,6 +290,9 @@ typedef struct {
         uint32_t addr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_e##REGID); \
         BREG_Write32(hSAGElib->core_handles.hReg, addr, VAL);                   \
         BootParamDbgPrintf(("%s - Read %s - Addr: 0x%08x Value: 0x%08x", __FUNCTION__, #REGID, addr, BREG_Read32(hSAGElib->core_handles.hReg, (uint32_t)addr))); }
+#define _BSAGElib_P_Boot_GetBootParam(REGID, VAR) {      \
+        uint32_t addr = BSAGElib_GlobalSram_GetRegister(BSAGElib_GlobalSram_e##REGID); \
+        VAR=BREG_Read32(hSAGElib->core_handles.hReg, addr); }
 
 
 #define _Swap16(PVAL) (((PVAL)[0] << 8) | ((PVAL)[1]))
@@ -809,7 +812,6 @@ end:
     return rc;
 }
 
-
 /* Write SAGE boot parameters information into Global SRAM GP registers */
 static BERR_Code
 BSAGElib_P_Boot_SetBootParams(
@@ -819,6 +821,7 @@ BSAGElib_P_Boot_SetBootParams(
 {
     BERR_Code rc = BERR_SUCCESS;
     uint32_t offset = 0;
+    uint32_t header_size;
     BSAGElib_Handle hSAGElib = ctx->hSAGElib;
 
     /* SAGE < -- > Host communication buffers */
@@ -883,12 +886,15 @@ BSAGElib_P_Boot_SetBootParams(
 
         /* Framework Signature */
         if (frameworkHolder->signature) {
-            offset = hSAGElib->i_memory_map.addr_to_offset(BSAGElib_P_Boot_GetSignature(ctx, frameworkHolder));
+            uint8_t *signature;
+            signature = BSAGElib_P_Boot_GetSignature(ctx, frameworkHolder);
+            offset = hSAGElib->i_memory_map.addr_to_offset(signature);
             if(offset == 0) {
                 BDBG_ERR(("%s - Cannot convert SAGE Framework signature address to offset", __FUNCTION__));
                 rc = BERR_INVALID_PARAMETER;
                 goto end;
             }
+            hSAGElib->i_memory_sync.flush(signature, 256);
             _BSAGElib_P_Boot_SetBootParam(SageFrameworkBinSignature, offset);
         } else {
             _BSAGElib_P_Boot_SetBootParam(SageFrameworkBinSignature, 0);
@@ -913,8 +919,10 @@ BSAGElib_P_Boot_SetBootParams(
             rc = BERR_INVALID_PARAMETER;
             goto end;
         }
+        header_size = BSAGElib_P_Boot_GetHeaderSize(ctx, frameworkHolder);
+        hSAGElib->i_memory_sync.flush(frameworkHolder->header, header_size);
         _BSAGElib_P_Boot_SetBootParam(SageFrameworkHeader, offset);
-        _BSAGElib_P_Boot_SetBootParam(SageFrameworkHeaderSize, BSAGElib_P_Boot_GetHeaderSize(ctx, frameworkHolder));
+        _BSAGElib_P_Boot_SetBootParam(SageFrameworkHeaderSize, header_size);
     }
 end:
     return rc;
@@ -933,6 +941,7 @@ BSAGElib_P_Boot_ResetSage(
     /* if OTP_SAGE_VERIFY_ENABLE_BIT: verify SAGE boot loader */
     if(ctx->otp_sage_verify_enable) {
         BHSM_VerifySecondTierKeyIO_t secondTierKey;
+        BCMD_SecondTierKey_t *pSecondTierKey;
 
         BKNI_Memset(&secondTierKey, 0, sizeof(BHSM_VerifySecondTierKeyIO_t));
 
@@ -944,12 +953,13 @@ BSAGElib_P_Boot_ResetSage(
         }
         secondTierKey.eKeyIdentifier = BCMD_SecondTierKeyId_eKey3;
 
-        secondTierKey.keyAddr = hSAGElib->i_memory_map.addr_to_offset(BSAGElib_P_Boot_GetKey(ctx, blImg));
+        pSecondTierKey = BSAGElib_P_Boot_GetKey(ctx, blImg);
+        secondTierKey.keyAddr = hSAGElib->i_memory_map.addr_to_offset(pSecondTierKey);
         if(secondTierKey.keyAddr == 0) {
             BDBG_ERR(("%s - Cannot convert 2nd-tier key address to offset", __FUNCTION__));
             goto end;
         }
-
+        hSAGElib->i_memory_sync.flush(pSecondTierKey, sizeof(*pSecondTierKey));
         BSAGElib_iLockHsm();
         rc = BHSM_VerifySecondTierKey(hSAGElib->core_handles.hHsm,  &secondTierKey);
         BSAGElib_iUnlockHsm();
@@ -1163,11 +1173,14 @@ BSAGElib_P_Boot_ResetSage(
         verifyIO.region.endAddress = verifyIO.region.startAddress + (blImg->data_len) - 1;
 
         if (blImg->signature) {
-            verifyIO.signature.startAddress = hSAGElib->i_memory_map.addr_to_offset(BSAGElib_P_Boot_GetSignature(ctx, blImg));
+            uint8_t *signature;
+            signature = BSAGElib_P_Boot_GetSignature(ctx, blImg);
+            verifyIO.signature.startAddress = hSAGElib->i_memory_map.addr_to_offset(signature);
             if(verifyIO.signature.startAddress == 0) {
                 BDBG_ERR(("%s - Cannot convert bootloader signature address to offset", __FUNCTION__));
                 goto end;
             }
+            hSAGElib->i_memory_sync.flush(signature, 256);
         }
         else {
             verifyIO.signature.startAddress = 0;
@@ -1273,6 +1286,169 @@ end:
  * Public API
  ***************************************/
 
+/* Host (nexus) has restarted... check/reset connection w/ SAGE */
+/* To be called prior to any attempts to communicate w/ SAGE */
+BERR_Code
+BSAGElib_Boot_HostReset(
+    BSAGElib_Handle hSAGElib,
+    const BSAGElib_BootSettings *pBootSettings)
+{
+    BERR_Code rc = BERR_INVALID_PARAMETER;
+    uint32_t offset = 0;
+    uint32_t val;
+    BSAGElib_SageImageHolder frameworkHolder;
+    BSAGElib_P_BootContext *ctx = NULL;
+    BSAGElib_RegionInfo local_region[3];
+    unsigned i;
+
+    BDBG_ENTER(BSAGElib_Boot_HostReset);
+
+    BDBG_OBJECT_ASSERT(hSAGElib, BSAGElib_P_Instance);
+    BDBG_ASSERT(pBootSettings);
+
+    /* Validate boot settings */
+    if ((pBootSettings->pFramework == NULL)      ||
+        (pBootSettings->frameworkSize == 0)) {
+        BDBG_ERR(("%s - Invalid SAGE image buffer.", __FUNCTION__));
+        goto end;
+    }
+
+    if (hSAGElib->core_handles.hHsm == NULL) {
+        BDBG_ERR(("%s - Invalid HSM handle.", __FUNCTION__));
+        goto end;
+    }
+
+    ctx = BKNI_Malloc(sizeof(*ctx));
+    if (ctx == NULL) {
+        BDBG_ERR(("%s - Cannot allocate temporary context for SAGE Boot.", __FUNCTION__));
+        goto end;
+    }
+    BKNI_Memset(ctx, 0, sizeof(*ctx));
+    ctx->hSAGElib = hSAGElib;
+
+    /* Get SAGE Secureboot OTP MSPs value */
+    rc = BSAGElib_P_Boot_GetSageOtpMspParams(ctx);
+    if(rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s - BSAGElib_P_Boot_GetSageOtpMspParams() fails", __FUNCTION__));
+        goto end;
+    }
+
+    rc = BERR_INVALID_PARAMETER;
+
+    offset = hSAGElib->i_memory_map.addr_to_offset(hSAGElib->hsi_buffers);
+    if(offset == 0) {
+        BDBG_ERR(("%s - Cannot convert HSI buffer address to offset", __FUNCTION__));
+        goto end;
+    }
+
+    /* HSI will not work w/o HSI buffers, and GLR region */
+    _BSAGElib_P_Boot_GetBootParam(HostSageBuffers, val);
+    if(val!=offset)
+    {
+        BDBG_ERR(("%s - Host/Sage buffer address cannot change", __FUNCTION__));
+        goto end;
+    }
+
+    _BSAGElib_P_Boot_GetBootParam(HostSageBuffersSize, val);
+    if(val!=(SAGE_HOST_BUF_SIZE*4))
+    {
+        BDBG_ERR(("%s - Host/Sage buffer size cannot change", __FUNCTION__));
+        goto end;
+    }
+
+    /* On "cleanup", SAGE will store last GLR region in re-used GSRAM */
+    /* Store for later check w/ CRR/SRR */
+    _BSAGElib_P_Boot_GetBootParam(LastRegionGlrOffset, local_region[0].offset);
+    _BSAGElib_P_Boot_GetBootParam(LastRegionGlrSize, local_region[0].size);
+    local_region[0].id=BSAGElib_RegionId_Glr;
+
+    _BSAGElib_P_Boot_GetBootParam(SageLogBufferOffset, val);
+    if(val!=pBootSettings->logBufferOffset)
+    {
+        BDBG_ERR(("%s - log buffer offset cannot change", __FUNCTION__));
+        goto end;
+    }
+    _BSAGElib_P_Boot_GetBootParam(SageLogBufferSize, val);
+    if(val!=pBootSettings->logBufferSize)
+    {
+        BDBG_ERR(("%s - log buffer size cannot change", __FUNCTION__));
+        goto end;
+    }
+
+    _BSAGElib_P_Boot_GetBootParam(SageVklMask, val);
+    if(val!=(uint32_t)((1 << BHSM_RemapVklId(hSAGElib->vkl1)) | (1 << BHSM_RemapVklId(hSAGElib->vkl2))))
+    {
+        BDBG_ERR(("%s - VKL info cannot change", __FUNCTION__));
+        goto end;
+    }
+
+    _BSAGElib_P_Boot_GetBootParam(SageDmaChannel, val);
+    if(val!=0)
+    {
+        BDBG_ERR(("%s - dma channel cannot change", __FUNCTION__));
+        goto end;
+    }
+
+    /* Can check some region settings */
+    _BSAGElib_P_Boot_GetBootParam(CRRStartOffset, local_region[1].offset);
+    _BSAGElib_P_Boot_GetBootParam(CRREndOffset, local_region[1].size);
+    local_region[1].size=local_region[1].size-local_region[1].offset+0x8; /* HW uses 8byte alignment */;
+    local_region[1].id=BSAGElib_RegionId_Crr;
+
+    _BSAGElib_P_Boot_GetBootParam(SRRStartOffset, local_region[2].offset);
+    _BSAGElib_P_Boot_GetBootParam(SRREndOffset, local_region[2].size);
+    local_region[2].size=local_region[2].size-local_region[2].offset+0x8; /* HW uses 8byte alignment */
+    local_region[2].id=BSAGElib_RegionId_Srr;
+
+    for(i=0;i<pBootSettings->regionMapNum;i++)
+    {
+        switch(pBootSettings->pRegionMap[i].id)
+        {
+            case BSAGElib_RegionId_Glr:
+                if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[0], sizeof(local_region[0]))!=0)
+                {
+                    BDBG_ERR(("%s - GLR region cannot change", __FUNCTION__));
+                    goto end;
+                }
+                break;
+            case BSAGElib_RegionId_Crr:
+                if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[1], sizeof(local_region[1]))!=0)
+                {
+                    BDBG_ERR(("%s - CRR region cannot change", __FUNCTION__));
+                    goto end;
+                }
+                break;
+            case BSAGElib_RegionId_Srr:
+               if(BKNI_Memcmp(&pBootSettings->pRegionMap[i], &local_region[2], sizeof(local_region[2]))!=0)
+                {
+                    BDBG_ERR(("%s - SRR region cannot change", __FUNCTION__));
+                    goto end;
+                }
+                break;
+            default:
+                break;
+        }
+    }
+
+    /* Parse SAGE Framework */
+    /* Needed for THL check */
+    frameworkHolder.name = "Framework image";
+    rc = BSAGElib_P_Boot_ParseSageImage(hSAGElib, ctx, pBootSettings->pFramework, pBootSettings->frameworkSize, &frameworkHolder);
+    if(rc != BERR_SUCCESS) { goto end; }
+
+    /* If here, then things are ok */
+    rc = BERR_SUCCESS;
+
+end:
+    if (ctx != NULL) {
+        BKNI_Free(ctx);
+    }
+
+    BDBG_LEAVE(BSAGElib_Boot_HostReset);
+
+    return rc;
+}
+
 void
 BSAGElib_Boot_GetDefaultSettings(
     BSAGElib_BootSettings *pBootSettings /* [in/out] */)
@@ -1304,7 +1480,8 @@ BSAGElib_Boot_Launch(
     if ((pBootSettings->pBootloader == NULL) ||
         (pBootSettings->bootloaderSize == 0) ||
         (pBootSettings->pFramework == NULL)      ||
-        (pBootSettings->frameworkSize == 0)) {
+        (pBootSettings->frameworkSize == 0)   ||
+        ((pBootSettings-> pRegionMap == NULL)  &&  (pBootSettings-> regionMapNum != 0)) ) {
         BDBG_ERR(("%s - Invalid SAGE image buffer.", __FUNCTION__));
         goto end;
     }
@@ -1363,6 +1540,11 @@ BSAGElib_Boot_Launch(
     /* Check if both SAGE images have triple signing mode */
     rc = BSAGElib_P_Boot_CheckSigningMode(ctx);
     if(rc != BERR_SUCCESS) { goto end; }
+
+    /* push region map to DRAM */
+    if(pBootSettings->regionMapNum != 0) {
+        hSAGElib->i_memory_sync.flush(pBootSettings-> pRegionMap, pBootSettings->regionMapNum * sizeof(BSAGElib_RegionInfo));
+    }
 
     /* Set SAGE boot parameters information into Global SRAM GP registers */
     rc = BSAGElib_P_Boot_SetBootParams(ctx, pBootSettings, &frameworkHolder);

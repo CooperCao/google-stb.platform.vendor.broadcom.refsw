@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:14 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,16 +70,16 @@
 /***************************************************************************
  *PWM - PWM
  ***************************************************************************/
-#define BCHP_PWM_CTRL                            0x20408000 /* [RW] PWM Control */
-#define BCHP_PWM_CTRL2                           0x20408004 /* [RW] PWM Control 2 */
-#define BCHP_PWM_PWM1_CWORD_MSB                  0x20408008 /* [RW] PWM 1 Frequency Control Word MSB */
-#define BCHP_PWM_PWM1_CWORD_LSB                  0x2040800c /* [RW] PWM 1 Frequency Control Word LSB */
-#define BCHP_PWM_PWM2_CWORD_MSB                  0x20408010 /* [RW] PWM 2 Frequency Control Word MSB */
-#define BCHP_PWM_PWM2_CWORD_LSB                  0x20408014 /* [RW] PWM 2 Frequency Control Word LSB */
-#define BCHP_PWM_PWM1_ON                         0x20408018 /* [RW] PWM 1 CFPWM On Interval */
-#define BCHP_PWM_PWM1_PERIOD                     0x2040801c /* [RW] PWM 1 CFPWM Period */
-#define BCHP_PWM_PWM2_ON                         0x20408020 /* [RW] PWM 2 CFPWM On Interval */
-#define BCHP_PWM_PWM2_PERIOD                     0x20408024 /* [RW] PWM 2 CFPWM Period */
+#define BCHP_PWM_CTRL                            0x20408000 /* [RW][32] PWM Control */
+#define BCHP_PWM_CTRL2                           0x20408004 /* [RW][32] PWM Control 2 */
+#define BCHP_PWM_PWM1_CWORD_MSB                  0x20408008 /* [RW][32] PWM 1 Frequency Control Word MSB */
+#define BCHP_PWM_PWM1_CWORD_LSB                  0x2040800c /* [RW][32] PWM 1 Frequency Control Word LSB */
+#define BCHP_PWM_PWM2_CWORD_MSB                  0x20408010 /* [RW][32] PWM 2 Frequency Control Word MSB */
+#define BCHP_PWM_PWM2_CWORD_LSB                  0x20408014 /* [RW][32] PWM 2 Frequency Control Word LSB */
+#define BCHP_PWM_PWM1_ON                         0x20408018 /* [RW][32] PWM 1 CFPWM On Interval */
+#define BCHP_PWM_PWM1_PERIOD                     0x2040801c /* [RW][32] PWM 1 CFPWM Period */
+#define BCHP_PWM_PWM2_ON                         0x20408020 /* [RW][32] PWM 2 CFPWM On Interval */
+#define BCHP_PWM_PWM2_PERIOD                     0x20408024 /* [RW][32] PWM 2 CFPWM Period */
 
 /***************************************************************************
  *CTRL - PWM Control

@@ -47,6 +47,9 @@
 #include "bhsm_otpmsp.h"
 #include "bsp_s_otp_common.h"
 #include "bhsm_bseck.h"
+#if NEXUS_HAS_SAGE
+#include "bchp_bsp_glb_control.h"
+#endif
 
 #if NEXUS_SECURITY_FW_SIGN
 #include "nexus_security_regver_signatures.inc"
@@ -171,6 +174,7 @@ static NEXUS_Error loadSignature( unsigned regionId,  const uint8_t *pSigData )
 
     NEXUS_Memory_GetDefaultAllocationSettings( &memSetting );
     memSetting.alignment = 32;
+    memSetting.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
     rc = NEXUS_Memory_Allocate( NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, ppSig );
     if( rc != NEXUS_SUCCESS )
     {
@@ -365,9 +369,18 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
     regionData_t *pRegionData;
     unsigned x;
     NEXUS_Error rc;
+    bool sageRunning=false;
 
     BDBG_ENTER( NEXUS_Security_RegionVerification_Init_priv );
     NEXUS_ASSERT_MODULE();
+
+#if NEXUS_HAS_SAGE
+    if(!(BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
+    {
+        sageRunning=true;
+    }
+#endif
 
     if( gRegVerModuleData.moduleInitialised == false )
     {
@@ -434,7 +447,12 @@ NEXUS_Error NEXUS_Security_RegionVerification_Init_priv( void )
 
                 if( regionSatus.regionStatus[x] & REGION_STATUS_ENABLED )
                 {
-                    disableRegion( pRegionData->regionId );
+                    /* Special case for SAGE if it's already running */
+                    if(( pRegionData->regionId != NEXUS_SecurityRegverRegionID_eScpuFsbl ) ||
+                        ( !sageRunning ))
+                    {
+                        disableRegion( pRegionData->regionId );
+                    }
                 }
             }
         }
@@ -576,6 +594,7 @@ NEXUS_Error NEXUS_Security_RegionConfig_priv( NEXUS_SecurityRegverRegionID regio
         {
             NEXUS_Memory_GetDefaultAllocationSettings(&memSetting);
             memSetting.alignment = 32;
+            memSetting.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
             rc = NEXUS_Memory_Allocate( NEXUS_REGIONVERIFY_SIGNATURE_PLUS_HEADER_SIZE, &memSetting, (void **)&pRegionData->pSignature );
             if( rc != NEXUS_SUCCESS )
             {
@@ -773,6 +792,7 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
 {
     BHSM_Handle hHsm;
     BHSM_RegionConfiguration_t  regionConfiguration;
+    BHSM_VerifcationStatus_t regionStatus;
     BERR_Code rc = BERR_SUCCESS;
     regionData_t *pRegionData;
     NEXUS_Addr startAddress = 0;
@@ -795,6 +815,17 @@ static NEXUS_Error verifyRegion( NEXUS_SecurityRegverRegionID regionId, NEXUS_Ad
     {
         BDBG_ERR(("No signature for Region [0x%02X].", regionId ));
         return BERR_TRACE( NEXUS_INVALID_PARAMETER ); /* Signature not defined; neither statically, nor via NEXUS_Security_RegionConfig_priv */
+    }
+
+    BKNI_Memset( &regionStatus, 0, sizeof(regionStatus) );
+    if( ( rc = BHSM_RegionVerification_QueryStatus( hHsm,  &regionStatus ) ) != BERR_SUCCESS )
+    {
+        return BERR_TRACE( MAKE_HSM_ERR( rc ) );
+    }
+    if( regionStatus.region[regionId] & REGION_STATUS_ENABLED ||
+        regionStatus.region[regionId] & REGION_STATUS_DEFINED )
+    {
+        disableRegion( regionId );
     }
 
     if( pRegionData->rsaKeyIndex == DEFAULT_RSA_KEY_INDEX )
@@ -1377,6 +1408,7 @@ static BERR_Code loadDefaultRegionVerificationKey( void )
 
     NEXUS_Memory_GetDefaultAllocationSettings(&memSetting);
     memSetting.alignment = 32;
+    memSetting.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
     rc = NEXUS_Memory_Allocate( sizeof(gRegionVerificationKey2), &memSetting, (void**)&pKey );
     if ( rc != NEXUS_SUCCESS || pKey == NULL )
     {

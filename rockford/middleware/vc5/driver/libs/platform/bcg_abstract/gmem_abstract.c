@@ -642,10 +642,10 @@ void gmem_validate_cpu_access(gmem_handle_t handle, uint32_t sync_flags)
 #endif
 
    // Must specify some sync-flags.
-   assert((sync_flags & GMEM_SYNC_CPU) != 0);
+   assert((sync_flags & GMEM_SYNC_CPU_RW) != 0);
 
    // V3D sync-flags not allowed.
-   assert((sync_flags & GMEM_SYNC_V3D) == 0);
+   assert((sync_flags & GMEM_SYNC_V3D_RW) == 0);
 
    // Discard only valid for write access.
    assert((sync_flags & (GMEM_SYNC_CPU_WRITE | GMEM_SYNC_DISCARD)) != GMEM_SYNC_DISCARD);
@@ -668,10 +668,10 @@ void gmem_validate_v3d_access(gmem_handle_t handle, uint32_t sync_flags)
 #endif
 
    // Must specify some sync flags.
-   assert((sync_flags & GMEM_SYNC_V3D) != 0);
+   assert((sync_flags & GMEM_SYNC_V3D_RW) != 0);
 
    // CPU sync-flags not allowed.
-   assert((sync_flags & GMEM_SYNC_CPU) == 0);
+   assert((sync_flags & GMEM_SYNC_CPU_RW) == 0);
 
    // Discard only valid for write access.
    assert((sync_flags & (GMEM_SYNC_V3D_WRITE | GMEM_SYNC_DISCARD)) != GMEM_SYNC_DISCARD);
@@ -692,6 +692,32 @@ void gmem_validate_v3d_access_range(gmem_handle_t handle, size_t offset, size_t 
 void gmem_cpu_sync_list_init(struct gmem_cpu_sync_list *sync_list)
 {
    LIST_INIT(&sync_list->list);
+}
+
+void gmem_cpu_sync_list_init_from(struct gmem_cpu_sync_list *sync_list,
+                                  const struct gmem_cpu_sync_list *from)
+{
+   gmem_abstract_cpu_sync_block_t *next = NULL;
+
+   LIST_INIT(&sync_list->list);
+
+   for (gmem_abstract_cpu_sync_block_t *b = LIST_FIRST(&from->list); b; b = next)
+   {
+      next = LIST_NEXT(b, link);
+      gmem_cpu_sync_list_add_range(sync_list, b->handle, b->offset, b->length, b->sync_flags);
+   }
+}
+
+void gmem_cpu_sync_list_merge(struct gmem_cpu_sync_list *sync_list,
+                              const struct gmem_cpu_sync_list *from)
+{
+   gmem_abstract_cpu_sync_block_t *next = NULL;
+
+   for (gmem_abstract_cpu_sync_block_t *b = LIST_FIRST(&from->list); b; b = next)
+   {
+      next = LIST_NEXT(b, link);
+      gmem_cpu_sync_list_add_range(sync_list, b->handle, b->offset, b->length, b->sync_flags);
+   }
 }
 
 void gmem_cpu_sync_list_add(struct gmem_cpu_sync_list *sync_list,

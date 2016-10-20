@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -164,7 +164,7 @@ struct bdbg_obj
 };
 
 
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 
 #if 0
 /***************************************************************************
@@ -957,6 +957,7 @@ See Also:
 #endif
 #define BDBG_CASSERT(expr) do switch(0){case 0: case (expr):;} while(0)
 #define BDBG_CWARNING(expr) do {if(0){int unused = 1/(expr);unused++;}} while(0)
+#define BDBG_CWARNING_EXPR(expr) (1/(expr) ? 0 : 0)
 
 
 #define BDBG_OBJECT_ID(name) const char bdbg_id__##name[]= "#" #name
@@ -1011,8 +1012,9 @@ void BDBG_LeaveFunction(BDBG_pDebugModuleFile dbg_module, const char *function);
 #define BDBG_MODULE_UNREGISTER_INSTANCE(module,instance)
 
 #define BDBG_ASSERT(expr) BDBG_NOP()
-#define BDBG_CASSERT(expr)
-#define BDBG_CWARNING(expr) 
+#define BDBG_CASSERT(expr) do switch(0){case 0: case (expr):;} while(0)
+#define BDBG_CWARNING(expr) do {if(0){int unused = 1/(expr);unused++;}} while(0)
+#define BDBG_CWARNING_EXPR(expr) (1/(expr) ? 0 : 0)
 
 
 #define BDBG_OBJECT_ID(name) extern const char bdbg_id_unused_##name
@@ -1109,7 +1111,7 @@ they can be used to avoid unused code warnings. */
 #define BDBG_MODULE_INSTANCE_LOG(module, instance, format) BDBG_P_MODULE_INSTANCE_PRINTMSG(module,BDBG_eLog, instance, format)
 #endif
 
-#if BDBG_DEBUG_BUILD && !defined(BDBG_DEBUG_WITH_STRINGS)
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD && !defined(BDBG_DEBUG_WITH_STRINGS)
 #define BDBG_DEBUG_WITH_STRINGS 1
 #endif
 extern const char BDBG_P_EmptyString[];
@@ -1147,7 +1149,7 @@ BDBG_GetPrintableFileName(const char *pFileName);
 const char *BDBG_P_Int64DecArg(int64_t x, char *buf, size_t buf_size);
 #define BDBG_INT64_DEC_FMT  "%s"
 
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BDBG_INT64_DEC_BUF(buf) char _bdbg_int64_buf_##buf[16]
 #define BDBG_INT64_DEC_ARG(buf,x) BDBG_P_Int64DecArg((x), _bdbg_int64_buf_##buf, sizeof(_bdbg_int64_buf_##buf))
 #else

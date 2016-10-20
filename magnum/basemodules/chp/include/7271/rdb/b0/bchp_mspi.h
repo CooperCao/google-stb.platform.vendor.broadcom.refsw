@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,97 +70,97 @@
 /***************************************************************************
  *MSPI - Master SPI
  ***************************************************************************/
-#define BCHP_MSPI_SPCR0_LSB                      0x20418000 /* [RW] SPCR0_LSB REGISTER */
-#define BCHP_MSPI_SPCR0_MSB                      0x20418004 /* [RW] SPCR0_MSB Register */
-#define BCHP_MSPI_SPCR1_LSB                      0x20418008 /* [RW] SPCR1_LSB REGISTER */
-#define BCHP_MSPI_SPCR1_MSB                      0x2041800c /* [RW] SPCR1_MSB REGISTER */
-#define BCHP_MSPI_NEWQP                          0x20418010 /* [RW] NEWQP REGISTER */
-#define BCHP_MSPI_ENDQP                          0x20418014 /* [RW] ENDQP REGISTER */
-#define BCHP_MSPI_SPCR2                          0x20418018 /* [RW] SPCR2 REGISTER */
-#define BCHP_MSPI_MSPI_STATUS                    0x20418020 /* [RW] MSPI STATUS REGISTER */
-#define BCHP_MSPI_CPTQP                          0x20418024 /* [RO] CPTQP REGISTER */
-#define BCHP_MSPI_SPCR3                          0x20418028 /* [RW] SPCR3 REGISTER */
-#define BCHP_MSPI_REVISION                       0x2041802c /* [RO] REVISION ID REGISTER */
-#define BCHP_MSPI_TXRAM00                        0x20418040 /* [RW] Most significant byte of TXRAM[0] (queue pointer = 0) */
-#define BCHP_MSPI_TXRAM01                        0x20418044 /* [RW] Least significant byte of TXRAM[0] (queue pointer = 0) */
-#define BCHP_MSPI_TXRAM02                        0x20418048 /* [RW] Most significant byte of TXRAM[1] (queue pointer = 1) */
-#define BCHP_MSPI_TXRAM03                        0x2041804c /* [RW] Least significant byte of TXRAM[1] (queue pointer = 1) */
-#define BCHP_MSPI_TXRAM04                        0x20418050 /* [RW] Most significant byte of TXRAM[2] (queue pointer = 2) */
-#define BCHP_MSPI_TXRAM05                        0x20418054 /* [RW] Least significant byte of TXRAM[2] (queue pointer = 2) */
-#define BCHP_MSPI_TXRAM06                        0x20418058 /* [RW] Most significant byte of TXRAM[3] (queue pointer = 3) */
-#define BCHP_MSPI_TXRAM07                        0x2041805c /* [RW] Least significant byte of TXRAM[3] (queue pointer = 3) */
-#define BCHP_MSPI_TXRAM08                        0x20418060 /* [RW] Most significant byte of TXRAM[4] (queue pointer = 4) */
-#define BCHP_MSPI_TXRAM09                        0x20418064 /* [RW] Least significant byte of TXRAM[4] (queue pointer = 4) */
-#define BCHP_MSPI_TXRAM10                        0x20418068 /* [RW] Most significant byte of TXRAM[5] (queue pointer = 5) */
-#define BCHP_MSPI_TXRAM11                        0x2041806c /* [RW] Least significant byte of TXRAM[5] (queue pointer = 5) */
-#define BCHP_MSPI_TXRAM12                        0x20418070 /* [RW] Most significant byte of TXRAM[6] (queue pointer = 6) */
-#define BCHP_MSPI_TXRAM13                        0x20418074 /* [RW] Least significant byte of TXRAM[6] (queue pointer = 6) */
-#define BCHP_MSPI_TXRAM14                        0x20418078 /* [RW] Most significant byte of TXRAM[7] (queue pointer = 7) */
-#define BCHP_MSPI_TXRAM15                        0x2041807c /* [RW] Least significant byte of TXRAM[7] (queue pointer = 7) */
-#define BCHP_MSPI_TXRAM16                        0x20418080 /* [RW] Most significant byte of TXRAM[8] (queue pointer = 8) */
-#define BCHP_MSPI_TXRAM17                        0x20418084 /* [RW] Least significant byte of TXRAM[8] (queue pointer = 8) */
-#define BCHP_MSPI_TXRAM18                        0x20418088 /* [RW] Most significant byte of TXRAM[9] (queue pointer = 9) */
-#define BCHP_MSPI_TXRAM19                        0x2041808c /* [RW] Least significant byte of TXRAM[9] (queue pointer = 9) */
-#define BCHP_MSPI_TXRAM20                        0x20418090 /* [RW] Most significant byte of TXRAM[10] (queue pointer = 10) */
-#define BCHP_MSPI_TXRAM21                        0x20418094 /* [RW] Least significant byte of TXRAM[10] (queue pointer = 10) */
-#define BCHP_MSPI_TXRAM22                        0x20418098 /* [RW] Most significant byte of TXRAM[11] (queue pointer = 11) */
-#define BCHP_MSPI_TXRAM23                        0x2041809c /* [RW] Least significant byte of TXRAM[11] (queue pointer = 11) */
-#define BCHP_MSPI_TXRAM24                        0x204180a0 /* [RW] Most significant byte of TXRAM[12] (queue pointer = 12) */
-#define BCHP_MSPI_TXRAM25                        0x204180a4 /* [RW] Least significant byte of TXRAM[12] (queue pointer = 12) */
-#define BCHP_MSPI_TXRAM26                        0x204180a8 /* [RW] Most significant byte of TXRAM[13] (queue pointer = 13) */
-#define BCHP_MSPI_TXRAM27                        0x204180ac /* [RW] Least significant byte of TXRAM[13] (queue pointer = 13) */
-#define BCHP_MSPI_TXRAM28                        0x204180b0 /* [RW] Most significant byte of TXRAM[14] (queue pointer = 14) */
-#define BCHP_MSPI_TXRAM29                        0x204180b4 /* [RW] Least significant byte of TXRAM[14] (queue pointer = 14) */
-#define BCHP_MSPI_TXRAM30                        0x204180b8 /* [RW] Most significant byte of TXRAM[15] (queue pointer = 15) */
-#define BCHP_MSPI_TXRAM31                        0x204180bc /* [RW] Least significant byte of TXRAM[15] (queue pointer = 15) */
-#define BCHP_MSPI_RXRAM00                        0x204180c0 /* [RW] Most significant byte of RXRAM[0] (queue pointer = 0) */
-#define BCHP_MSPI_RXRAM01                        0x204180c4 /* [RW] Least significant byte of RXRAM[0] (queue pointer = 0) */
-#define BCHP_MSPI_RXRAM02                        0x204180c8 /* [RW] Most significant byte of RXRAM[1] (queue pointer = 1) */
-#define BCHP_MSPI_RXRAM03                        0x204180cc /* [RW] Least significant byte of RXRAM[1] (queue pointer = 1) */
-#define BCHP_MSPI_RXRAM04                        0x204180d0 /* [RW] Most significant byte of RXRAM[2] (queue pointer = 2) */
-#define BCHP_MSPI_RXRAM05                        0x204180d4 /* [RW] Least significant byte of RXRAM[2] (queue pointer = 2) */
-#define BCHP_MSPI_RXRAM06                        0x204180d8 /* [RW] Most significant byte of RXRAM[3] (queue pointer = 3) */
-#define BCHP_MSPI_RXRAM07                        0x204180dc /* [RW] Least significant byte of RXRAM[3] (queue pointer = 3) */
-#define BCHP_MSPI_RXRAM08                        0x204180e0 /* [RW] Most significant byte of RXRAM[4] (queue pointer = 4) */
-#define BCHP_MSPI_RXRAM09                        0x204180e4 /* [RW] Least significant byte of RXRAM[4] (queue pointer = 4) */
-#define BCHP_MSPI_RXRAM10                        0x204180e8 /* [RW] Most significant byte of RXRAM[5] (queue pointer = 5) */
-#define BCHP_MSPI_RXRAM11                        0x204180ec /* [RW] Least significant byte of RXRAM[5] (queue pointer = 5) */
-#define BCHP_MSPI_RXRAM12                        0x204180f0 /* [RW] Most significant byte of RXRAM[6] (queue pointer = 6) */
-#define BCHP_MSPI_RXRAM13                        0x204180f4 /* [RW] Least significant byte of RXRAM[6] (queue pointer = 6) */
-#define BCHP_MSPI_RXRAM14                        0x204180f8 /* [RW] Most significant byte of RXRAM[7] (queue pointer = 7) */
-#define BCHP_MSPI_RXRAM15                        0x204180fc /* [RW] Least significant byte of RXRAM[7] (queue pointer = 7) */
-#define BCHP_MSPI_RXRAM16                        0x20418100 /* [RW] Most significant byte of RXRAM[8] (queue pointer = 8) */
-#define BCHP_MSPI_RXRAM17                        0x20418104 /* [RW] Least significant byte of RXRAM[8] (queue pointer = 8) */
-#define BCHP_MSPI_RXRAM18                        0x20418108 /* [RW] Most significant byte of RXRAM[9] (queue pointer = 9) */
-#define BCHP_MSPI_RXRAM19                        0x2041810c /* [RW] Least significant byte of RXRAM[9] (queue pointer = 9) */
-#define BCHP_MSPI_RXRAM20                        0x20418110 /* [RW] Most significant byte of RXRAM[10] (queue pointer = 10) */
-#define BCHP_MSPI_RXRAM21                        0x20418114 /* [RW] Least significant byte of RXRAM[10] (queue pointer = 10) */
-#define BCHP_MSPI_RXRAM22                        0x20418118 /* [RW] Most significant byte of RXRAM[11] (queue pointer = 11) */
-#define BCHP_MSPI_RXRAM23                        0x2041811c /* [RW] Least significant byte of RXRAM[11] (queue pointer = 11) */
-#define BCHP_MSPI_RXRAM24                        0x20418120 /* [RW] Most significant byte of RXRAM[12] (queue pointer = 12) */
-#define BCHP_MSPI_RXRAM25                        0x20418124 /* [RW] Least significant byte of RXRAM[12] (queue pointer = 12) */
-#define BCHP_MSPI_RXRAM26                        0x20418128 /* [RW] Most significant byte of RXRAM[13] (queue pointer = 13) */
-#define BCHP_MSPI_RXRAM27                        0x2041812c /* [RW] Least significant byte of RXRAM[13] (queue pointer = 13) */
-#define BCHP_MSPI_RXRAM28                        0x20418130 /* [RW] Most significant byte of RXRAM[14] (queue pointer = 14) */
-#define BCHP_MSPI_RXRAM29                        0x20418134 /* [RW] Least significant byte of RXRAM[14] (queue pointer = 14) */
-#define BCHP_MSPI_RXRAM30                        0x20418138 /* [RW] Most significant byte of RXRAM[15] (queue pointer = 15) */
-#define BCHP_MSPI_RXRAM31                        0x2041813c /* [RW] Least significant byte of RXRAM[15] (queue pointer = 15) */
-#define BCHP_MSPI_CDRAM00                        0x20418140 /* [RW] 8-bit command (queue pointer = 0) */
-#define BCHP_MSPI_CDRAM01                        0x20418144 /* [RW] 8-bit command (queue pointer = 1) */
-#define BCHP_MSPI_CDRAM02                        0x20418148 /* [RW] 8-bit command (queue pointer = 2) */
-#define BCHP_MSPI_CDRAM03                        0x2041814c /* [RW] 8-bit command (queue pointer = 3) */
-#define BCHP_MSPI_CDRAM04                        0x20418150 /* [RW] 8-bit command (queue pointer = 4) */
-#define BCHP_MSPI_CDRAM05                        0x20418154 /* [RW] 8-bit command (queue pointer = 5) */
-#define BCHP_MSPI_CDRAM06                        0x20418158 /* [RW] 8-bit command (queue pointer = 6) */
-#define BCHP_MSPI_CDRAM07                        0x2041815c /* [RW] 8-bit command (queue pointer = 7) */
-#define BCHP_MSPI_CDRAM08                        0x20418160 /* [RW] 8-bit command (queue pointer = 8) */
-#define BCHP_MSPI_CDRAM09                        0x20418164 /* [RW] 8-bit command (queue pointer = 9) */
-#define BCHP_MSPI_CDRAM10                        0x20418168 /* [RW] 8-bit command (queue pointer = a) */
-#define BCHP_MSPI_CDRAM11                        0x2041816c /* [RW] 8-bit command (queue pointer = b) */
-#define BCHP_MSPI_CDRAM12                        0x20418170 /* [RW] 8-bit command (queue pointer = c) */
-#define BCHP_MSPI_CDRAM13                        0x20418174 /* [RW] 8-bit command (queue pointer = d) */
-#define BCHP_MSPI_CDRAM14                        0x20418178 /* [RW] 8-bit command (queue pointer = e) */
-#define BCHP_MSPI_CDRAM15                        0x2041817c /* [RW] 8-bit command (queue pointer = f) */
+#define BCHP_MSPI_SPCR0_LSB                      0x20418000 /* [RW][32] SPCR0_LSB REGISTER */
+#define BCHP_MSPI_SPCR0_MSB                      0x20418004 /* [RW][32] SPCR0_MSB Register */
+#define BCHP_MSPI_SPCR1_LSB                      0x20418008 /* [RW][32] SPCR1_LSB REGISTER */
+#define BCHP_MSPI_SPCR1_MSB                      0x2041800c /* [RW][32] SPCR1_MSB REGISTER */
+#define BCHP_MSPI_NEWQP                          0x20418010 /* [RW][32] NEWQP REGISTER */
+#define BCHP_MSPI_ENDQP                          0x20418014 /* [RW][32] ENDQP REGISTER */
+#define BCHP_MSPI_SPCR2                          0x20418018 /* [RW][32] SPCR2 REGISTER */
+#define BCHP_MSPI_MSPI_STATUS                    0x20418020 /* [RW][32] MSPI STATUS REGISTER */
+#define BCHP_MSPI_CPTQP                          0x20418024 /* [RO][32] CPTQP REGISTER */
+#define BCHP_MSPI_SPCR3                          0x20418028 /* [RW][32] SPCR3 REGISTER */
+#define BCHP_MSPI_REVISION                       0x2041802c /* [RO][32] REVISION ID REGISTER */
+#define BCHP_MSPI_TXRAM00                        0x20418040 /* [RW][32] Most significant byte of TXRAM[0] (queue pointer = 0) */
+#define BCHP_MSPI_TXRAM01                        0x20418044 /* [RW][32] Least significant byte of TXRAM[0] (queue pointer = 0) */
+#define BCHP_MSPI_TXRAM02                        0x20418048 /* [RW][32] Most significant byte of TXRAM[1] (queue pointer = 1) */
+#define BCHP_MSPI_TXRAM03                        0x2041804c /* [RW][32] Least significant byte of TXRAM[1] (queue pointer = 1) */
+#define BCHP_MSPI_TXRAM04                        0x20418050 /* [RW][32] Most significant byte of TXRAM[2] (queue pointer = 2) */
+#define BCHP_MSPI_TXRAM05                        0x20418054 /* [RW][32] Least significant byte of TXRAM[2] (queue pointer = 2) */
+#define BCHP_MSPI_TXRAM06                        0x20418058 /* [RW][32] Most significant byte of TXRAM[3] (queue pointer = 3) */
+#define BCHP_MSPI_TXRAM07                        0x2041805c /* [RW][32] Least significant byte of TXRAM[3] (queue pointer = 3) */
+#define BCHP_MSPI_TXRAM08                        0x20418060 /* [RW][32] Most significant byte of TXRAM[4] (queue pointer = 4) */
+#define BCHP_MSPI_TXRAM09                        0x20418064 /* [RW][32] Least significant byte of TXRAM[4] (queue pointer = 4) */
+#define BCHP_MSPI_TXRAM10                        0x20418068 /* [RW][32] Most significant byte of TXRAM[5] (queue pointer = 5) */
+#define BCHP_MSPI_TXRAM11                        0x2041806c /* [RW][32] Least significant byte of TXRAM[5] (queue pointer = 5) */
+#define BCHP_MSPI_TXRAM12                        0x20418070 /* [RW][32] Most significant byte of TXRAM[6] (queue pointer = 6) */
+#define BCHP_MSPI_TXRAM13                        0x20418074 /* [RW][32] Least significant byte of TXRAM[6] (queue pointer = 6) */
+#define BCHP_MSPI_TXRAM14                        0x20418078 /* [RW][32] Most significant byte of TXRAM[7] (queue pointer = 7) */
+#define BCHP_MSPI_TXRAM15                        0x2041807c /* [RW][32] Least significant byte of TXRAM[7] (queue pointer = 7) */
+#define BCHP_MSPI_TXRAM16                        0x20418080 /* [RW][32] Most significant byte of TXRAM[8] (queue pointer = 8) */
+#define BCHP_MSPI_TXRAM17                        0x20418084 /* [RW][32] Least significant byte of TXRAM[8] (queue pointer = 8) */
+#define BCHP_MSPI_TXRAM18                        0x20418088 /* [RW][32] Most significant byte of TXRAM[9] (queue pointer = 9) */
+#define BCHP_MSPI_TXRAM19                        0x2041808c /* [RW][32] Least significant byte of TXRAM[9] (queue pointer = 9) */
+#define BCHP_MSPI_TXRAM20                        0x20418090 /* [RW][32] Most significant byte of TXRAM[10] (queue pointer = 10) */
+#define BCHP_MSPI_TXRAM21                        0x20418094 /* [RW][32] Least significant byte of TXRAM[10] (queue pointer = 10) */
+#define BCHP_MSPI_TXRAM22                        0x20418098 /* [RW][32] Most significant byte of TXRAM[11] (queue pointer = 11) */
+#define BCHP_MSPI_TXRAM23                        0x2041809c /* [RW][32] Least significant byte of TXRAM[11] (queue pointer = 11) */
+#define BCHP_MSPI_TXRAM24                        0x204180a0 /* [RW][32] Most significant byte of TXRAM[12] (queue pointer = 12) */
+#define BCHP_MSPI_TXRAM25                        0x204180a4 /* [RW][32] Least significant byte of TXRAM[12] (queue pointer = 12) */
+#define BCHP_MSPI_TXRAM26                        0x204180a8 /* [RW][32] Most significant byte of TXRAM[13] (queue pointer = 13) */
+#define BCHP_MSPI_TXRAM27                        0x204180ac /* [RW][32] Least significant byte of TXRAM[13] (queue pointer = 13) */
+#define BCHP_MSPI_TXRAM28                        0x204180b0 /* [RW][32] Most significant byte of TXRAM[14] (queue pointer = 14) */
+#define BCHP_MSPI_TXRAM29                        0x204180b4 /* [RW][32] Least significant byte of TXRAM[14] (queue pointer = 14) */
+#define BCHP_MSPI_TXRAM30                        0x204180b8 /* [RW][32] Most significant byte of TXRAM[15] (queue pointer = 15) */
+#define BCHP_MSPI_TXRAM31                        0x204180bc /* [RW][32] Least significant byte of TXRAM[15] (queue pointer = 15) */
+#define BCHP_MSPI_RXRAM00                        0x204180c0 /* [RW][32] Most significant byte of RXRAM[0] (queue pointer = 0) */
+#define BCHP_MSPI_RXRAM01                        0x204180c4 /* [RW][32] Least significant byte of RXRAM[0] (queue pointer = 0) */
+#define BCHP_MSPI_RXRAM02                        0x204180c8 /* [RW][32] Most significant byte of RXRAM[1] (queue pointer = 1) */
+#define BCHP_MSPI_RXRAM03                        0x204180cc /* [RW][32] Least significant byte of RXRAM[1] (queue pointer = 1) */
+#define BCHP_MSPI_RXRAM04                        0x204180d0 /* [RW][32] Most significant byte of RXRAM[2] (queue pointer = 2) */
+#define BCHP_MSPI_RXRAM05                        0x204180d4 /* [RW][32] Least significant byte of RXRAM[2] (queue pointer = 2) */
+#define BCHP_MSPI_RXRAM06                        0x204180d8 /* [RW][32] Most significant byte of RXRAM[3] (queue pointer = 3) */
+#define BCHP_MSPI_RXRAM07                        0x204180dc /* [RW][32] Least significant byte of RXRAM[3] (queue pointer = 3) */
+#define BCHP_MSPI_RXRAM08                        0x204180e0 /* [RW][32] Most significant byte of RXRAM[4] (queue pointer = 4) */
+#define BCHP_MSPI_RXRAM09                        0x204180e4 /* [RW][32] Least significant byte of RXRAM[4] (queue pointer = 4) */
+#define BCHP_MSPI_RXRAM10                        0x204180e8 /* [RW][32] Most significant byte of RXRAM[5] (queue pointer = 5) */
+#define BCHP_MSPI_RXRAM11                        0x204180ec /* [RW][32] Least significant byte of RXRAM[5] (queue pointer = 5) */
+#define BCHP_MSPI_RXRAM12                        0x204180f0 /* [RW][32] Most significant byte of RXRAM[6] (queue pointer = 6) */
+#define BCHP_MSPI_RXRAM13                        0x204180f4 /* [RW][32] Least significant byte of RXRAM[6] (queue pointer = 6) */
+#define BCHP_MSPI_RXRAM14                        0x204180f8 /* [RW][32] Most significant byte of RXRAM[7] (queue pointer = 7) */
+#define BCHP_MSPI_RXRAM15                        0x204180fc /* [RW][32] Least significant byte of RXRAM[7] (queue pointer = 7) */
+#define BCHP_MSPI_RXRAM16                        0x20418100 /* [RW][32] Most significant byte of RXRAM[8] (queue pointer = 8) */
+#define BCHP_MSPI_RXRAM17                        0x20418104 /* [RW][32] Least significant byte of RXRAM[8] (queue pointer = 8) */
+#define BCHP_MSPI_RXRAM18                        0x20418108 /* [RW][32] Most significant byte of RXRAM[9] (queue pointer = 9) */
+#define BCHP_MSPI_RXRAM19                        0x2041810c /* [RW][32] Least significant byte of RXRAM[9] (queue pointer = 9) */
+#define BCHP_MSPI_RXRAM20                        0x20418110 /* [RW][32] Most significant byte of RXRAM[10] (queue pointer = 10) */
+#define BCHP_MSPI_RXRAM21                        0x20418114 /* [RW][32] Least significant byte of RXRAM[10] (queue pointer = 10) */
+#define BCHP_MSPI_RXRAM22                        0x20418118 /* [RW][32] Most significant byte of RXRAM[11] (queue pointer = 11) */
+#define BCHP_MSPI_RXRAM23                        0x2041811c /* [RW][32] Least significant byte of RXRAM[11] (queue pointer = 11) */
+#define BCHP_MSPI_RXRAM24                        0x20418120 /* [RW][32] Most significant byte of RXRAM[12] (queue pointer = 12) */
+#define BCHP_MSPI_RXRAM25                        0x20418124 /* [RW][32] Least significant byte of RXRAM[12] (queue pointer = 12) */
+#define BCHP_MSPI_RXRAM26                        0x20418128 /* [RW][32] Most significant byte of RXRAM[13] (queue pointer = 13) */
+#define BCHP_MSPI_RXRAM27                        0x2041812c /* [RW][32] Least significant byte of RXRAM[13] (queue pointer = 13) */
+#define BCHP_MSPI_RXRAM28                        0x20418130 /* [RW][32] Most significant byte of RXRAM[14] (queue pointer = 14) */
+#define BCHP_MSPI_RXRAM29                        0x20418134 /* [RW][32] Least significant byte of RXRAM[14] (queue pointer = 14) */
+#define BCHP_MSPI_RXRAM30                        0x20418138 /* [RW][32] Most significant byte of RXRAM[15] (queue pointer = 15) */
+#define BCHP_MSPI_RXRAM31                        0x2041813c /* [RW][32] Least significant byte of RXRAM[15] (queue pointer = 15) */
+#define BCHP_MSPI_CDRAM00                        0x20418140 /* [RW][32] 8-bit command (queue pointer = 0) */
+#define BCHP_MSPI_CDRAM01                        0x20418144 /* [RW][32] 8-bit command (queue pointer = 1) */
+#define BCHP_MSPI_CDRAM02                        0x20418148 /* [RW][32] 8-bit command (queue pointer = 2) */
+#define BCHP_MSPI_CDRAM03                        0x2041814c /* [RW][32] 8-bit command (queue pointer = 3) */
+#define BCHP_MSPI_CDRAM04                        0x20418150 /* [RW][32] 8-bit command (queue pointer = 4) */
+#define BCHP_MSPI_CDRAM05                        0x20418154 /* [RW][32] 8-bit command (queue pointer = 5) */
+#define BCHP_MSPI_CDRAM06                        0x20418158 /* [RW][32] 8-bit command (queue pointer = 6) */
+#define BCHP_MSPI_CDRAM07                        0x2041815c /* [RW][32] 8-bit command (queue pointer = 7) */
+#define BCHP_MSPI_CDRAM08                        0x20418160 /* [RW][32] 8-bit command (queue pointer = 8) */
+#define BCHP_MSPI_CDRAM09                        0x20418164 /* [RW][32] 8-bit command (queue pointer = 9) */
+#define BCHP_MSPI_CDRAM10                        0x20418168 /* [RW][32] 8-bit command (queue pointer = a) */
+#define BCHP_MSPI_CDRAM11                        0x2041816c /* [RW][32] 8-bit command (queue pointer = b) */
+#define BCHP_MSPI_CDRAM12                        0x20418170 /* [RW][32] 8-bit command (queue pointer = c) */
+#define BCHP_MSPI_CDRAM13                        0x20418174 /* [RW][32] 8-bit command (queue pointer = d) */
+#define BCHP_MSPI_CDRAM14                        0x20418178 /* [RW][32] 8-bit command (queue pointer = e) */
+#define BCHP_MSPI_CDRAM15                        0x2041817c /* [RW][32] 8-bit command (queue pointer = f) */
 
 /***************************************************************************
  *SPCR0_LSB - SPCR0_LSB REGISTER

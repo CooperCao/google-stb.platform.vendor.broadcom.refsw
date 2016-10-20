@@ -364,7 +364,7 @@ BERR_Code BBOX_P_LoadRts
         for (i=0;i<pBoxRts->ulNumPfriClients;i++)
         {
             BREG_Write32(hReg, pBoxRts->pastPfriClient[i].ulAddr, pBoxRts->pastPfriClient[i].ulData);
-            BDBG_MSG(("PFRI[%d] = 0x%x : 0x%x\n", i, pBoxRts->pastPfriClient[i].ulAddr, pBoxRts->pastPfriClient[i].ulData));
+            BDBG_MSG(("PFRI[%d] = 0x%x : 0x%x", i, pBoxRts->pastPfriClient[i].ulAddr, pBoxRts->pastPfriClient[i].ulData));
         }
     }
 

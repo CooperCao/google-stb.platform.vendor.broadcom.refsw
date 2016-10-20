@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -367,6 +367,38 @@ void BGRC_P_ResetDevice(
 #else
     #error need port for m2mc reset
 #endif
+
+#if defined(BCHP_M2MC_DRAM_MAP_MAP_MASK)
+    {
+        uint32_t ulScbType = 0;
+        /* Assuming memcs have same type of dram */
+        switch(hGrc->stMemInfo.memc[0].type)
+        {
+        case BCHP_DramType_eDDR2:
+            ulScbType = BCHP_M2MC_DRAM_MAP_MAP_MAP_2P0;
+            break;
+
+        case BCHP_DramType_eDDR3:
+        case BCHP_DramType_eDDR4:
+        case BCHP_DramType_eGDDR5:
+        case BCHP_DramType_eGDDR5M:
+            ulScbType = BCHP_M2MC_DRAM_MAP_MAP_MAP_5P0;
+            break;
+
+        case BCHP_DramType_eLPDDR4:
+            ulScbType = BCHP_M2MC_DRAM_MAP_MAP_MAP_8P0;
+            break;
+
+        default:
+            ulScbType = BCHP_M2MC_DRAM_MAP_MAP_DEFAULT;
+            break;
+        }
+        BDBG_MSG(("MEMC_TYPE = %d - selected MAP_TYPE %d", hGrc->stMemInfo.memc[0].type, ulScbType));
+        BGRC_P_WriteReg32( hGrc->hRegister, DRAM_MAP,
+                           BCHP_FIELD_DATA( M2MC_DRAM_MAP, MAP, ulScbType ) );
+    }
+#endif
+    return;
 }
 
 #ifndef BCHP_PWR_RESOURCE_M2MC_SRAM
@@ -436,7 +468,7 @@ BERR_Code BGRC_Open(
     BGRC_Handle *phGrc,
     BCHP_Handle hChip,
     BREG_Handle hRegister,
-    BMEM_Handle hMemory,
+    BMMA_Heap_Handle hMemory,
     BINT_Handle hInterrupt,
     const BGRC_Settings *pDefSettings )
 {
@@ -462,23 +494,26 @@ BERR_Code BGRC_Open(
     /* turn on power for this m2mc engine */
     BGRC_P_SetupPower(hGrc, true, true);
 
+    /* read memory controller type to use for scb map setting*/
+    BCHP_GetMemoryInfo(hChip, &hGrc->stMemInfo);
+
     /* allocate device hw pakets buf, with some extra size for flushing blit */
-    hGrc->pHwPktFifoBaseAlloc = BMEM_Heap_AllocAligned( hGrc->hMemory, BGRC_PACKET_P_ALIGN_HW_PKT_SIZE(hGrc->ulPacketMemoryMax) + BGRC_PACKET_P_BLIT_GROUP_SIZE_MAX, BGRC_PACKET_P_MEMORY_ALIGN_BITS, 0 );
+    hGrc->pHwPktFifoBaseAlloc = BMMA_Alloc( hGrc->hMemory, BGRC_PACKET_P_ALIGN_HW_PKT_SIZE(hGrc->ulPacketMemoryMax) + BGRC_PACKET_P_BLIT_GROUP_SIZE_MAX, 1<<BGRC_PACKET_P_MEMORY_ALIGN_BITS, NULL );
     if( hGrc->pHwPktFifoBaseAlloc == NULL )
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
 
-    err = BMEM_ConvertAddressToOffset( hGrc->hMemory, hGrc->pHwPktFifoBaseAlloc, &hGrc->ulHwPktFifoBaseOffset );
-    if( err != BERR_SUCCESS )
+    hGrc->ulHwPktFifoBaseOffset = BMMA_LockOffset(hGrc->pHwPktFifoBaseAlloc);
+    if(!hGrc->ulHwPktFifoBaseOffset)
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
 
-    err = BMEM_ConvertAddressToCached( hGrc->hMemory, hGrc->pHwPktFifoBaseAlloc, (void *) &hGrc->pHwPktFifoBase );
-    if( err != BERR_SUCCESS )
+    hGrc->pHwPktFifoBase = BMMA_Lock(hGrc->pHwPktFifoBaseAlloc);
+    if(!hGrc->pHwPktFifoBase)
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -488,20 +523,20 @@ BERR_Code BGRC_Open(
     hGrc->pHwPktWritePtr = hGrc->pHwPktFifoBase;
 
     /* allocate dummy plane */
-    hGrc->pDummySurAlloc = BMEM_Heap_AllocAligned( hGrc->hMemory, 1024, BGRC_PACKET_P_MEMORY_ALIGN_BITS, 0 );
+    hGrc->pDummySurAlloc = BMMA_Alloc( hGrc->hMemory, 1024, 1<<BGRC_PACKET_P_MEMORY_ALIGN_BITS, NULL);
     if( hGrc->pDummySurAlloc == NULL )
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
-    err = BMEM_ConvertAddressToOffset( hGrc->hMemory, hGrc->pDummySurAlloc, &hGrc->ulDummySurOffset );
-    if( err != BERR_SUCCESS )
+    hGrc->ulDummySurOffset = BMMA_LockOffset(hGrc->pDummySurAlloc);
+    if(!hGrc->ulDummySurOffset)
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
-    err = BMEM_ConvertAddressToCached( hGrc->hMemory, hGrc->pDummySurAlloc, (void *) &hGrc->pDummySurBase );
-    if( err != BERR_SUCCESS )
+    hGrc->pDummySurBase = BMMA_Lock(hGrc->pDummySurAlloc);
+    if(!hGrc->pDummySurBase)
     {
         BGRC_Close( hGrc );
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
@@ -509,7 +544,7 @@ BERR_Code BGRC_Open(
 
     /* in case *hGrc->pDummySurBase is checked before BGRC_Packet_SyncPackets */
     *(uint32_t *)hGrc->pDummySurBase = ++hGrc->ulSyncCntr;
-    BMEM_FlushCache( hGrc->hMemory, hGrc->pDummySurBase, 1024 );
+    BMMA_FlushCache(hGrc->pDummySurAlloc, hGrc->pDummySurBase, 1024 );
 
     /* init context list */
     BLST_D_INIT(&hGrc->context_list);
@@ -579,12 +614,14 @@ void BGRC_Close(
     }
 
     /* free hw pakets buf */
-    if( hGrc->pHwPktFifoBaseAlloc )
-        BMEM_Free( hGrc->hMemory, hGrc->pHwPktFifoBaseAlloc );
+    if( hGrc->pHwPktFifoBaseAlloc ) {
+        BMMA_Free(hGrc->pHwPktFifoBaseAlloc);
+    }
 
     /* free dummy surface buf */
-    if( hGrc->pDummySurAlloc )
-        BMEM_Free( hGrc->hMemory, hGrc->pDummySurAlloc );
+    if( hGrc->pDummySurAlloc ) {
+        BMMA_Free(hGrc->pDummySurAlloc );
+    }
 
     /* destroy dummy context */
     if (hGrc->hDummyCtx)
@@ -745,7 +782,7 @@ BERR_Code BGRC_Packet_CreateContext(
     BGRC_PacketContext_Handle *phContext,
     BGRC_PacketContext_CreateSettings *pSettings )
 {
-    BMEM_Handle packet_heap = pSettings->packet_buffer_heap ? pSettings->packet_buffer_heap : hGrc->hMemory;
+    BMMA_Heap_Handle packet_heap = pSettings->packet_buffer_heap ? pSettings->packet_buffer_heap : hGrc->hMemory;
     BERR_Code err = BERR_SUCCESS;
 
     BGRC_PacketContext_Handle hContext = (BGRC_PacketContext_Handle) BKNI_Malloc( sizeof (BGRC_P_PacketContext) );
@@ -765,16 +802,16 @@ BERR_Code BGRC_Packet_CreateContext(
 
     /* allocate software packet buffer */
     hContext->ulSwPktFifoSize = pSettings->packet_buffer_size;
-    hContext->pSwPktFifoBaseAlloc = BMEM_Heap_AllocAligned( packet_heap, hContext->ulSwPktFifoSize + BGRC_PACKET_P_EXTRA_PACKET_SIZE, 2, 0 );
-    if( hContext->pSwPktFifoBaseAlloc == 0 )
+    hContext->pSwPktFifoBaseAlloc = BMMA_Alloc( packet_heap, hContext->ulSwPktFifoSize + BGRC_PACKET_P_EXTRA_PACKET_SIZE, 1<<2, NULL);
+    if(!hContext->pSwPktFifoBaseAlloc)
     {
         err = BERR_OUT_OF_SYSTEM_MEMORY;
         BGRC_Packet_DestroyContext( hGrc, hContext );
         return BERR_TRACE(err);
     }
 
-    err = BMEM_ConvertAddressToCached( packet_heap, hContext->pSwPktFifoBaseAlloc, (void *) &hContext->pSwPktFifoBase );
-    if( err != BERR_SUCCESS )
+    hContext->pSwPktFifoBase = BMMA_Lock(hContext->pSwPktFifoBaseAlloc);
+    if(!hContext->pSwPktFifoBase)
     {
         err = BERR_OUT_OF_SYSTEM_MEMORY;
         BGRC_Packet_DestroyContext( hGrc, hContext );
@@ -818,10 +855,8 @@ BERR_Code BGRC_Packet_DestroyContext(
         BINT_DestroyCallback( hContext->hCallback );
     }
 
-    if( hContext->pSwPktFifoBaseAlloc )
-    {
-        BMEM_Handle packet_heap = hContext->create_settings.packet_buffer_heap ? hContext->create_settings.packet_buffer_heap : hGrc->hMemory;
-        BMEM_Free( packet_heap, hContext->pSwPktFifoBaseAlloc );
+    if( hContext->pSwPktFifoBaseAlloc ) {
+        BMMA_Free(hContext->pSwPktFifoBaseAlloc);
     }
 
     if ( hContext == hGrc->hContext )
@@ -1106,17 +1141,20 @@ BERR_Code BGRC_Packet_SyncPackets(
 void BGRC_Packet_PrintStatus(BGRC_PacketContext_Handle hContext)
 {
     int iSwPktBufAvailable = BGRC_PACKET_P_SwPktBufAvailable( hContext->hGrc, hContext, 0 );
-    BDBG_WRN(("Ctx[%d] sync %d[off %#08x], SwPkt: Size 0x%x[%d], range[%p, %p], w %p, r %p, wrap %p, bufAvail %d, %s",
-              hContext->ulId, hContext->eSyncState, hContext->ulSyncHwPktOffset, hContext->ulSwPktSizeToProc, (int)hContext->bPktsInPipe,
+    BDBG_WRN(("Ctx[%d] sync %d[off " BDBG_UINT64_FMT "], SwPkt: Size 0x%x[%d], range[%p, %p], w %p, r %p, wrap %p, bufAvail %d, %s",
+              hContext->ulId, hContext->eSyncState, BDBG_UINT64_ARG(hContext->ulSyncHwPktOffset), hContext->ulSwPktSizeToProc, (int)hContext->bPktsInPipe,
               hContext->pSwPktFifoBase, hContext->pSwPktFifoBase + hContext->ulSwPktFifoSize,
               hContext->pSwPktWritePtr, hContext->pSwPktReadPtr, hContext->pSwPktWrapPtr, iSwPktBufAvailable,
               hContext->create_settings.secure?"secure":"unsecure"));
+    BSTD_UNUSED (iSwPktBufAvailable);
 }
 
-static unsigned bgrc_p_hw_fifo_ptr_to_offset(BGRC_Handle hGrc, void *ptr)
+#if (BDBG_DEBUG_BUILD)
+static BSTD_DeviceOffset bgrc_p_hw_fifo_ptr_to_offset(BGRC_Handle hGrc, void *ptr)
 {
-    return ptr ? (uint32_t)((uint8_t*)ptr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset: 0;
+    return ptr ? (BSTD_DeviceOffset)((uint8_t*)ptr - hGrc->pHwPktFifoBase) + hGrc->ulHwPktFifoBaseOffset: 0;
 }
+#endif
 
 /***************************************************************************
  * could also be called from app to dump status in the case something goes wrong.
@@ -1134,10 +1172,11 @@ static void BGRC_PrintStatus(
     blit_status = BGRC_P_ReadReg32( hGrc->hRegister, BLIT_STATUS );
     list_status = BGRC_P_ReadReg32( hGrc->hRegister, LIST_STATUS );
     cur_desc = BGRC_P_ReadReg32( hGrc->hRegister, LIST_CURR_PKT_ADDR );
-    BDBG_WRN(("Total HwPkt range[0x%x, 0x%x], w 0x%x, r 0x%x, last 0x%x, blitStatus 0x%x, listStatus 0x%x, curDesc 0x%x, %s",
-              hGrc->ulHwPktFifoBaseOffset, hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize,
-              bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pHwPktWritePtr), hGrc->ulHwPktOffsetExecuted,
-              bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pLastHwPktPtr),
+    BDBG_WRN(("Total HwPkt range[" BDBG_UINT64_FMT "," BDBG_UINT64_FMT "], w " BDBG_UINT64_FMT ", r " BDBG_UINT64_FMT ", last " BDBG_UINT64_FMT ", blitStatus 0x%x, listStatus 0x%x, curDesc 0x%x, %s",
+              BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset), BDBG_UINT64_ARG(hGrc->ulHwPktFifoBaseOffset + hGrc->ulHwPktFifoSize),
+              BDBG_UINT64_ARG(bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pHwPktWritePtr)),
+              BDBG_UINT64_ARG(hGrc->ulHwPktOffsetExecuted),
+              BDBG_UINT64_ARG(bgrc_p_hw_fifo_ptr_to_offset(hGrc, hGrc->pLastHwPktPtr)),
               blit_status, list_status, cur_desc,
               hGrc->secure?"secure":"unsecure"));
 
@@ -1209,7 +1248,7 @@ BERR_Code BGRC_Packet_CheckpointWatchdog(BGRC_Handle hGrc, BGRC_PacketContext_Ha
 
         if (!hContext->create_settings.secure) {
             /* ensure BGRC_Packet_GetContextStatus to report 'synced' */
-            BMEM_FlushCache( hGrc->hMemory, hGrc->pDummySurBase, 1024 );
+            BMMA_FlushCache(hGrc->pDummySurAlloc, hGrc->pDummySurBase, 1024 );
             hContext->ulSyncCntr = *(uint32_t *)hGrc->pDummySurBase;
         }
 

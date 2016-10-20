@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1513,8 +1513,8 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
             strTrickMode.replace(')', ' ');
             strTrickMode.replace('[', ' ');
             strTrickMode.replace(']', ' ');
-
-            n = sscanf(strTrickMode.mid(5), "%s %d %f", trick, &modifier, &decoderSlowRate);
+            /* coverity[secure_coding] */
+            n = sscanf(strTrickMode.mid(5), "%63s %d %f", trick, &modifier, &decoderSlowRate);
             if ((n < 2) || (modifier == 0)) { modifier = 1; }
             if ((n < 3) || (decoderSlowRate == 0)) { decoderSlowRate = 1; }
 
@@ -1561,18 +1561,19 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
             unsigned msec = 0;
 
             pPlaybackTrickData->_command = ePlaybackTrick_Seek;
-
+            /* coverity[secure_coding] */
             if (sscanf(strTrickMode.mid(5), "%u:%u:%u", &min, &sec, &msec) == 3)
             {
                 pPlaybackTrickData->_seekPosition = (min * 60 + sec) * 1000 + msec;
             }
-
+            /* coverity[secure_coding] */
             if (sscanf(strTrickMode.mid(5), "%u:%u", &min, &sec) == 2)
             {
                 pPlaybackTrickData->_seekPosition = (min * 60 + sec) * 1000;
             }
             else
             {
+                /* coverity[secure_coding] */
                 sscanf(strTrickMode.mid(5), "%u", &(pPlaybackTrickData->_seekPosition));
             }
         }
@@ -1585,17 +1586,20 @@ static int atlasLua_PlaybackTrickMode(lua_State * pLua)
 
             pPlaybackTrickData->_command = ePlaybackTrick_SeekRelative;
 
+            /* coverity[secure_coding] */
             if (sscanf(strTrickMode.mid(13), "%u:%u:%u", &min, &sec, &msec) == 3)
             {
                 pPlaybackTrickData->_seekPosition = (min * 60 + sec) * 1000 + msec;
             }
 
+            /* coverity[secure_coding] */
             if (sscanf(strTrickMode.mid(13), "%u:%u", &min, &sec) == 2)
             {
                 pPlaybackTrickData->_seekPosition = (min * 60 + sec) * 1000;
             }
             else
             {
+                /* coverity[secure_coding] */
                 sscanf(strTrickMode.mid(13), "%u", &(pPlaybackTrickData->_seekPosition));
             }
         }
@@ -1909,13 +1913,40 @@ done:
  */
 static int atlasLua_EncodeStart(lua_State * pLua)
 {
-    CLua *      pThis     = getCLua(pLua);
-    CLuaEvent * pLuaEvent = NULL;
-    eRet        err       = eRet_Ok;
+#if NEXUS_HAS_VIDEO_ENCODER
+    CLua *           pThis       = getCLua(pLua);
+    eRet             err         = eRet_Ok;
+    CTranscodeData * pEncData    = NULL;
+    uint8_t          argNum      = 1;
+    uint8_t          numArgTotal = lua_gettop(pLua) - 1;
+
+    CLuaDataEvent <CTranscodeData> * pLuaEvent = NULL;
 
     BDBG_ASSERT(pThis);
 
-    pLuaEvent = new CLuaEvent(eNotify_EncodeStart);
+    /* add required arguments to scan data */
+    pEncData = new CTranscodeData();
+
+    /* add optional arguments to scan data */
+    if (1 <= numArgTotal)
+    {
+        const char * strFileName = luaL_checkstring(pLua, argNum++);
+        if (NULL != strFileName)
+        {
+            pEncData->_strFileName = strFileName;
+        }
+    }
+    else
+    if (2 <= numArgTotal)
+    {
+        const char * strPath = luaL_checkstring(pLua, argNum++);
+        if (NULL != strPath)
+        {
+            pEncData->_strPath = strPath;
+        }
+    }
+
+    pLuaEvent = new CLuaDataEvent <CTranscodeData>(eNotify_EncodeStart, pEncData);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
     pThis->addEvent(pLuaEvent);
 
@@ -1928,12 +1959,19 @@ error:
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
+#else /* if NEXUS_HAS_VIDEO_ENCODER */
+    BDBG_ERR(("Platform does not support Encode"));
+    BSTD_UNUSED(pLua);
+    return(eRet_InvalidParameter);
+
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
 } /* atlasLua_EncodeStart */
 
 /* atlas.encodeStop
  */
 static int atlasLua_EncodeStop(lua_State * pLua)
 {
+#if NEXUS_HAS_VIDEO_ENCODER
     CLua *      pThis     = getCLua(pLua);
     CLuaEvent * pLuaEvent = NULL;
     eRet        err       = eRet_Ok;
@@ -1953,6 +1991,12 @@ error:
     err = eRet_InvalidParameter;
 done:
     LUA_RETURN(err);
+#else /* if NEXUS_HAS_VIDEO_ENCODER */
+    BDBG_ERR(("Platform does not support Encode"));
+    BSTD_UNUSED(pLua);
+    return(eRet_InvalidParameter);
+
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
 } /* atlasLua_EncodeStop */
 
 static int atlasLua_RefreshPlaybackList(lua_State * pLua)
@@ -3641,7 +3685,7 @@ static int atlasLua_WifiConnect(lua_State * pLua)
     pNetworkWifiConnectData->_strPassword = luaL_checkstring(pLua, argNum++);
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnectionStatus, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaDataEvent <CNetworkWifiConnectData>(eNotify_NetworkWifiConnect, pNetworkWifiConnectData, eNotify_NetworkWifiConnected, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -3678,7 +3722,7 @@ static int atlasLua_WifiDisconnect(lua_State * pLua)
     }
 
     /* create lua event and give it scan data */
-    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiDisconnect, NULL, eNotify_NetworkWifiConnectionStatus, DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaDataEvent <bool>(eNotify_NetworkWifiDisconnect, NULL, eNotify_NetworkWifiDisconnected, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     /* save lua event to queue - this event will be serviced when we get the bwin io callback:
@@ -4054,12 +4098,13 @@ extern void RemoveRf4ceRemote(int remote_num);
 
 static int atlasLua_AddRf4ceRemote(lua_State * pLua)
 {
-    uint8_t      argNum      = 1;
-    uint8_t      numArgTotal = lua_gettop(pLua);
-    const char * remoteName  = NULL;
-    eRet         err         = eRet_Ok;
-    CLua *       pThis       = getCLua(pLua);
-    CRf4ceRemoteData * pRf4ceRemoteData  = NULL;
+    uint8_t            argNum           = 1;
+    uint8_t            numArgTotal      = lua_gettop(pLua);
+    const char *       remoteName       = NULL;
+    eRet               err              = eRet_Ok;
+    CLua *             pThis            = getCLua(pLua);
+    CRf4ceRemoteData * pRf4ceRemoteData = NULL;
+
     CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
 
     /* check number of lua arguments on stack */
@@ -4098,11 +4143,12 @@ done:
 
 static int atlasLua_RemoveRf4ceRemote(lua_State * pLua)
 {
-    int     remote_num;
-    uint8_t numArgTotal = lua_gettop(pLua);
-    eRet    err         = eRet_Ok;
-    CLua *  pThis       = getCLua(pLua);
-    CRf4ceRemoteData * pRf4ceRemoteData  = NULL;
+    int                remote_num;
+    uint8_t            numArgTotal      = lua_gettop(pLua);
+    eRet               err              = eRet_Ok;
+    CLua *             pThis            = getCLua(pLua);
+    CRf4ceRemoteData * pRf4ceRemoteData = NULL;
+
     CLuaDataEvent <CRf4ceRemoteData> * pLuaEvent = NULL;
 
     /* check number of lua arguments on stack */
@@ -4141,9 +4187,9 @@ done:
 
 static int atlasLua_DisplayRf4ceRemotes(lua_State * pLua)
 {
-    CLua *  pThis       = getCLua(pLua);
+    CLua *      pThis     = getCLua(pLua);
     CLuaEvent * pLuaEvent = NULL;
-    eRet    err         = eRet_Ok;
+    eRet        err       = eRet_Ok;
 
     pLuaEvent = new CLuaEvent(eNotify_DisplayRf4ceRemotes);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
@@ -4312,12 +4358,12 @@ done:
  */
 static int atlasLua_ipClientTranscodeEnable(lua_State * pLua)
 {
-    CLua *  pThis       = getCLua(pLua);
-    eRet    err         = eRet_Ok;
-    uint8_t argNum      = 1;
-    uint8_t numArgTotal = lua_gettop(pLua) - 1;
-    bool *  pTranscodeEnable   = NULL;
-    bool    transcodeEnable    = false;
+    CLua *  pThis            = getCLua(pLua);
+    eRet    err              = eRet_Ok;
+    uint8_t argNum           = 1;
+    uint8_t numArgTotal      = lua_gettop(pLua) - 1;
+    bool *  pTranscodeEnable = NULL;
+    bool    transcodeEnable  = false;
 
     CLuaDataEvent <bool> * pLuaEvent = NULL;
 
@@ -4353,12 +4399,12 @@ done:
  */
 static int atlasLua_ipClientTranscodeProfile(lua_State * pLua)
 {
-    CLua *  pThis       = getCLua(pLua);
-    eRet    err         = eRet_Ok;
-    uint8_t argNum      = 1;
-    uint8_t numArgTotal = lua_gettop(pLua) - 1;
-    int _xcodeProfile = 0;
-    int * pTranscodeProfile = NULL;
+    CLua *  pThis             = getCLua(pLua);
+    eRet    err               = eRet_Ok;
+    uint8_t argNum            = 1;
+    uint8_t numArgTotal       = lua_gettop(pLua) - 1;
+    int     _xcodeProfile     = 0;
+    int *   pTranscodeProfile = NULL;
 
     CLuaDataEvent <int> * pLuaEvent = NULL;
 
@@ -4377,7 +4423,7 @@ static int atlasLua_ipClientTranscodeProfile(lua_State * pLua)
     *pTranscodeProfile = _xcodeProfile;
 
     /* note that we are not setting a wait notification so we will not wait for this command to complete */
-    pLuaEvent = new CLuaDataEvent <int>(eNotify_ipClientTranscodeProfile, pTranscodeProfile,eNotify_Invalid,DEFAULT_LUA_EVENT_TIMEOUT);
+    pLuaEvent = new CLuaDataEvent <int>(eNotify_ipClientTranscodeProfile, pTranscodeProfile, eNotify_Invalid, DEFAULT_LUA_EVENT_TIMEOUT);
     CHECK_PTR_ERROR_GOTO("Unable to malloc CLuaEvent", pLuaEvent, err, eRet_OutOfMemory, error);
 
     pThis->addEvent(pLuaEvent);
@@ -5379,7 +5425,7 @@ void CLua::processNotification(CNotification & notification)
 
     /* check to see if the current notification is one that a pending lua command is waiting on */
     {
-        int           i           = 0;
+        int           i          = 0;
         eNotification busyNotify = _busyLuaEvent.getWaitNotification(i);
 
         while (eNotify_Invalid != busyNotify)

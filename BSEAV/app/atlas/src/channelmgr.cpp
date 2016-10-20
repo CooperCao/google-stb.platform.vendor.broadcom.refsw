@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,7 +55,10 @@
 
 BDBG_MODULE(atlas_channelmgr);
 
-CChannel * createChannel(CConfiguration * pCfg, MXmlElement * xmlElemChannel)
+CChannel * createChannel(
+        CConfiguration * pCfg,
+        MXmlElement *    xmlElemChannel
+        )
 {
     eRet       ret = eRet_Ok;
     CChannel * pCh = NULL;
@@ -124,7 +127,6 @@ CChannel * createChannel(CConfiguration * pCfg, MXmlElement * xmlElemChannel)
         CHECK_PTR_ERROR_GOTO("Error allocating Mosaic channel", pCh, ret, eRet_OutOfMemory, error);
     }
     else
-
     {
         BDBG_WRN(("Unhandled channel type:%s - skipping", strName.s()));
         /*
@@ -135,7 +137,7 @@ CChannel * createChannel(CConfiguration * pCfg, MXmlElement * xmlElemChannel)
 
 error:
     return(pCh);
-}
+} /* createChannel */
 
 #ifdef MPOD_SUPPORT
 static BKNI_EventHandle scteEvent;
@@ -678,8 +680,8 @@ channel_error:
              * so we will update it here */
             {
                 /* serialized access to _channelList */
-                CScopedMutex        channelListMutex(_mutex);
-                CChannel *          pChannel = NULL;
+                CScopedMutex channelListMutex(_mutex);
+                CChannel *   pChannel = NULL;
 
                 for (int winType = 0; winType < eWindowType_Max; winType++)
                 {
@@ -905,28 +907,17 @@ void CChannelMgr::dumpChannelList(bool bForce)
     /* serialized access to _channelList */
     CScopedMutex channelListMutex(_mutex);
 
-    if (true == bForce)
-    {
-        BDBG_GetModuleLevel("atlas_channel", &level);
-        BDBG_SetModuleLevel("atlas_channel", BDBG_eMsg);
-    }
-
     for (ptr = itr.first(); ptr; ptr = itr.next())
     {
-        ptr->dump();
-    }
-
-    if (true == bForce)
-    {
-        BDBG_SetModuleLevel("atlas_channel", level);
+        ptr->dump(bForce);
     }
 } /* dumpChannelList */
 
 /* find any tuned channel */
 CChannel * CChannelMgr::findTunedChannel()
 {
-    CChannel *          pChannel = NULL;
-    CChannel *          pChannelFound  = NULL;
+    CChannel * pChannel      = NULL;
+    CChannel * pChannelFound = NULL;
 
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);
@@ -951,8 +942,8 @@ CChannel * CChannelMgr::findTunedChannel()
  *           we could find the tuned channel for say the 2nd tuner only */
 CChannel * CChannelMgr::findTunedChannel(eBoardResource tunerType)
 {
-    CChannel *          pChannel = NULL;
-    CChannel *          pChannelFound  = NULL;
+    CChannel * pChannel      = NULL;
+    CChannel * pChannelFound = NULL;
 
     /* serialized access to _channelListMain/Pip */
     CScopedMutex channelListMutex(_mutex);

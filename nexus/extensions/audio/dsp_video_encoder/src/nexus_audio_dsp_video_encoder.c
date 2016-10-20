@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -86,8 +78,8 @@ static struct NEXUS_DspVideoEncoder_P_Device g_encoder;
 
 static void NEXUS_DspVideoEncoder_P_Watchdog_isr(void *pParam1, int param2);
 
-#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.transport)
-#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.transport)
+#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
+#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
 
 #define STC_CONTEXT_STEP ( BCHP_XPT_PCROFFSET_STC1_CTRL - BCHP_XPT_PCROFFSET_STC0_CTRL )
 
@@ -421,9 +413,9 @@ NEXUS_Error NEXUS_DspVideoEncoder_GetStatus_priv(NEXUS_DspVideoEncoderHandle enc
 
     if ( NULL != bufferStatus.stCommon.hFrameBufferBlock ) {
         if(encoder->frame.nexus==NULL) {
-            NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.core);
+            NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.core);
             encoder->frame.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hFrameBufferBlock );
-            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.core);
+            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.core);
             if(encoder->frame.nexus==NULL) {
                 rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
             }
@@ -437,9 +429,9 @@ NEXUS_Error NEXUS_DspVideoEncoder_GetStatus_priv(NEXUS_DspVideoEncoderHandle enc
     }
     if ( NULL != bufferStatus.stCommon.hMetadataBufferBlock ) {
         if(encoder->meta.nexus==NULL) {
-            NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.core);
+            NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.core);
             encoder->meta.nexus = NEXUS_MemoryBlock_FromMma_priv( bufferStatus.stCommon.hMetadataBufferBlock);
-            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.core);
+            NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.core);
             if(encoder->meta.nexus==NULL) {
                 rc=BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);goto error;
             }
@@ -582,7 +574,7 @@ NEXUS_Error NEXUS_DspVideoEncoder_DequeuePicture_isr(NEXUS_DspVideoEncoderHandle
     BKNI_Memset(picture, 0, sizeof(*picture));
 
     if(g_encoder.watchdog) {
-	return NEXUS_NOT_AVAILABLE;
+    return NEXUS_NOT_AVAILABLE;
     }
 
     rc = BVEE_Channel_DequeuePicture_isr(encoder->veeChannel, &descriptor);
@@ -701,7 +693,7 @@ void NEXUS_DspVideoEncoder_SetWatchdogCallback_priv(NEXUS_CallbackDesc *watchdog
 {
     BDBG_MSG(("NEXUS_DspVideoEncoder_SetWatchdogCallback_priv"));
     if(g_encoder.watchdogCallback)
-	NEXUS_IsrCallback_Set(g_encoder.watchdogCallback, watchdog);
+    NEXUS_IsrCallback_Set(g_encoder.watchdogCallback, watchdog);
 }
 
 void NEXUS_DspVideoEncoder_Watchdog_priv(void)
@@ -712,4 +704,3 @@ void NEXUS_DspVideoEncoder_Watchdog_priv(void)
 
     g_encoder.watchdog = false;
 }
-

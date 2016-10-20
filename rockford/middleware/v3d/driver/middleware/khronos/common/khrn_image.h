@@ -145,15 +145,17 @@ extern void khrn_image_platform_fudge(
    uint32_t *padded_width, uint32_t *padded_height,
    uint32_t *align, KHRN_IMAGE_CREATE_FLAG_T flags);
 
-extern void khrn_image_term(void *v, uint32_t);
+extern void khrn_image_term(MEM_HANDLE_T handle);
 
 extern MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height, int32_t stride,
    MEM_HANDLE_T palette_handle, MEM_HANDLE_T storage_handle, uint32_t offset,
    KHRN_IMAGE_CREATE_FLAG_T flags, bool secure); /* just used for setting up usage flags */
+
 extern MEM_HANDLE_T khrn_image_create(KHRN_IMAGE_FORMAT_T format,
    uint32_t width, uint32_t height,
    KHRN_IMAGE_CREATE_FLAG_T flags, bool secure);
+
 extern MEM_HANDLE_T khrn_image_create_dup(const KHRN_IMAGE_T *src,
    KHRN_IMAGE_CREATE_FLAG_T flags); /* flags are in addition to implicit flags from src */
 

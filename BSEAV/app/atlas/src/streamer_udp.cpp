@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "server_udp.h"
 #include "streamer_udp.h"
@@ -58,17 +55,15 @@ BDBG_MODULE(atlas_streamer_udp);
 
 eRet CStreamerUdp::openMedia()
 {
-    eRet                   ret                = eRet_Ok;
-    BIP_Status             bipStatus          = BIP_SUCCESS;
-    CModel *               pModel             = NULL;
-    CPlaybackList *        pPlaybackList      = NULL;
-    MString                mediaDirectoryPath = GET_STR(_pCfg, VIDEOS_PATH); /* we get it every time so that if pCfg changes and the path changes the we get the latest one.*/
-    MUrl                   mUrl;
+    eRet            ret                = eRet_Ok;
+    BIP_Status      bipStatus          = BIP_SUCCESS;
+    CModel *        pModel             = NULL;
+    CPlaybackList * pPlaybackList      = NULL;
+    MString         mediaDirectoryPath = GET_STR(_pCfg, VIDEOS_PATH); /* we get it every time so that if pCfg changes and the path changes the we get the latest one.*/
+    MUrl            mUrl;
 
     /* Check whether the received request has  valid parameter so that the stream can start streaming.*/
     {
-
-
         setStreamerInputType(_url.s());
 
         if (_streamerInputType == eUdpStreamerInputType_File)
@@ -166,7 +161,7 @@ error:
 /*** define Streamer class ***/
 CStreamerUdp::CStreamerUdp(
         CConfiguration * pCfg,
-        CServerUdp *    pServer
+        CServerUdp *     pServer
         ) :
     _mediaFileAbsoloutePath(),
     _pMethodName(NULL),
@@ -197,9 +192,7 @@ CStreamerUdp::CStreamerUdp(
 }
 
 /*** define Streamer class ***/
-CStreamerUdp::CStreamerUdp(
-        void
-        ) :
+CStreamerUdp::CStreamerUdp(void) :
     _mediaFileAbsoloutePath(),
     _pMethodName(NULL),
     _streamerInputType(eUdpStreamerInputType_Unknown),
@@ -236,12 +229,13 @@ eRet CStreamerUdp::initialize(CConfiguration * pCfg)
 }
 
 static BIP_Status rejectRequestAndSetResponseHeaders(
-        CStreamerUdp *        pStreamerUdp,
+        CStreamerUdp *         pStreamerUdp,
         BIP_HttpRequestHandle  hHttpRequest,
         BIP_HttpResponseStatus responseStatus
         )
 {
-    eRet       ret       = eRet_Ok;
+    eRet ret = eRet_Ok;
+
     BSTD_UNUSED(pStreamerUdp);
     BSTD_UNUSED(hHttpRequest);
     BSTD_UNUSED(responseStatus);
@@ -312,11 +306,12 @@ void CStreamerUdp::setStreamerInputType(const char * url)
 
 eRet CStreamerUdp::open(MString url)
 {
-   eRet ret = eRet_Ok;
-   /* just set the url variable  all the work is done in the Start call for UDP/RTP */
+    eRet ret = eRet_Ok;
 
-   _url = url;
-   return ret;
+    /* just set the url variable  all the work is done in the Start call for UDP/RTP */
+
+    _url = url;
+    return(ret);
 }
 
 void CStreamerUdp::close()
@@ -329,7 +324,7 @@ static void bipStreamerStopCallback(
         int    param
         )
 {
-    CStreamerUdp * pStreamer     = (CStreamerUdp *)context;
+    CStreamerUdp *  pStreamer     = (CStreamerUdp *)context;
     CServer *       pServer       = pStreamer->getUdpServer();
     CWidgetEngine * pWidgetEngine = pServer->getWidgetEngine();
 
@@ -502,25 +497,27 @@ eRet CStreamerUdp::addAllTracks()
         bipStatus = BIP_UdpStreamer_AddTrack(_hUdpStreamer, &streamerTrackInfo, NULL);
         CHECK_BIP_ERROR_GOTO("BIP_UdpStreamer_AddTrack Failed for BIP_MediaInfoTrackType_eAudio", ret, bipStatus, error);
     }
-    return ret;
+    return(ret);
+
 error:
-    BDBG_ERR(("%s,Error ",__FUNCTION__));
+    BDBG_ERR(("%s,Error ", __FUNCTION__));
 
     return(ret);
 } /* addAllTracks */
 
 eRet CStreamerUdp::start()
 {
-    eRet                   ret            = eRet_Ok;
-    BIP_Status             bipStatus      = BIP_SUCCESS;
-    CChannelBip   * pChannel  = NULL;
-    BIP_UdpStreamerProtocol     streamerProtocol = BIP_UdpStreamerProtocol_ePlainUdp;
+    eRet                    ret              = eRet_Ok;
+    BIP_Status              bipStatus        = BIP_SUCCESS;
+    CChannelBip *           pChannel         = NULL;
+    BIP_UdpStreamerProtocol streamerProtocol = BIP_UdpStreamerProtocol_ePlainUdp;
+
     /* must be whitin 1Mb ( plenty of space)*/
     pChannel = new CChannelBip();
-    CHECK_PTR_ERROR_GOTO("Invalid Channel",pChannel,ret,eRet_ExternalError,errorInStreamerStart);
+    CHECK_PTR_ERROR_GOTO("Invalid Channel", pChannel, ret, eRet_ExternalError, errorInStreamerStart);
 
     ret = openMedia();
-    CHECK_ERROR_GOTO("cannot open Media",ret,errorInStreamerStart);
+    CHECK_ERROR_GOTO("cannot open Media", ret, errorInStreamerStart);
 
     pChannel->setUrl(_url);
 
@@ -528,12 +525,12 @@ eRet CStreamerUdp::start()
     {
         BIP_UdpStreamerCreateSettings createStreamerSettings;
 
-        BIP_UdpStreamer_GetDefaultCreateSettings( &createStreamerSettings );
+        BIP_UdpStreamer_GetDefaultCreateSettings(&createStreamerSettings);
         createStreamerSettings.endOfStreamingCallback.callback = bipStreamerStopCallback;
-        createStreamerSettings.endOfStreamingCallback.context = this;
-        _hUdpStreamer = BIP_UdpStreamer_Create( &createStreamerSettings );
-        BIP_CHECK_GOTO(( _hUdpStreamer ), ( "BIP_UdpStreamer_Create Failed" ), errorInStreamerStart, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT " New BIP_UdpStreamer ... %p" BIP_MSG_PRE_ARG, (void *)_hUdpStreamer ));
+        createStreamerSettings.endOfStreamingCallback.context  = this;
+        _hUdpStreamer = BIP_UdpStreamer_Create(&createStreamerSettings);
+        BIP_CHECK_GOTO((_hUdpStreamer), ("BIP_UdpStreamer_Create Failed"), errorInStreamerStart, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus);
+        BDBG_MSG((BIP_MSG_PRE_FMT " New BIP_UdpStreamer ... %p" BIP_MSG_PRE_ARG, (void *)_hUdpStreamer));
     }
 
     /* Populate _mediaInfoStream. */
@@ -557,60 +554,59 @@ eRet CStreamerUdp::start()
         }
 
         bipStatus = BIP_UdpStreamer_SetFileInputSettings(
-                    _hUdpStreamer,
-                    _mediaFileAbsoloutePath.s(),
-                    &_streamerStreamInfo, /* MediaStreamInfo */
-                    &fileInputSettings
-                    );
-            CHECK_BIP_ERROR_GOTO("BIP_UdpStreamer_SetFileInputSettings Failed", ret, bipStatus, errorInStreamerStart);
+                _hUdpStreamer,
+                _mediaFileAbsoloutePath.s(),
+                &_streamerStreamInfo, /* MediaStreamInfo */
+                &fileInputSettings
+                );
+        CHECK_BIP_ERROR_GOTO("BIP_UdpStreamer_SetFileInputSettings Failed", ret, bipStatus, errorInStreamerStart);
 
-            BDBG_MSG((BIP_MSG_PRE_FMT "Method: %s, Absolute URL: %s,Byte Range: %s, TimeOffsetInMsec: start %u, end %u" BIP_MSG_PRE_ARG,
-                      _pMethodName, _mediaFileAbsoloutePath.s(),
-                      _rangeHeaderPresent ? "Y" : "N",
-                      fileInputSettings.beginTimeOffsetInMs, fileInputSettings.endTimeOffsetInMs
-                      ));
+        BDBG_MSG((BIP_MSG_PRE_FMT "Method: %s, Absolute URL: %s,Byte Range: %s, TimeOffsetInMsec: start %u, end %u" BIP_MSG_PRE_ARG,
+                  _pMethodName, _mediaFileAbsoloutePath.s(),
+                  _rangeHeaderPresent ? "Y" : "N",
+                  fileInputSettings.beginTimeOffsetInMs, fileInputSettings.endTimeOffsetInMs
+                  ));
 
         BDBG_MSG(("----------------------------------------------------------------------------------"));
-        BDBG_MSG((" Set UDPStreamer HOST %s,PORT %d ",  pChannel->getHost().s(),pChannel->getPort()));
+        BDBG_MSG((" Set UDPStreamer HOST %s,PORT %d ", pChannel->getHost().s(), pChannel->getPort()));
         BDBG_MSG(("----------------------------------------------------------------------------------"));
 
         {
             BIP_UdpStreamerOutputSettings streamerOutputSettings;
 
-            BIP_UdpStreamer_GetDefaultOutputSettings( &streamerOutputSettings );
+            BIP_UdpStreamer_GetDefaultOutputSettings(&streamerOutputSettings);
             bipStatus = BIP_UdpStreamer_SetOutputSettings(
                     _hUdpStreamer,
                     streamerProtocol,
                     pChannel->getHost(),
                     (const char *)MString(pChannel->getPort()).s(),
-                     _interfaceName,
+                    _interfaceName,
                     &streamerOutputSettings);
-            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_UdpStreamer_SetOutputSettings Failed" ), errorInStreamerStart, bipStatus, bipStatus );
+            BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ("BIP_UdpStreamer_SetOutputSettings Failed"), errorInStreamerStart, bipStatus, bipStatus);
         }
-
-    }else
+    }
+    else
     {
-       BDBG_ERR((" CANNOT WORK WITH TUNER YET!"));
-       goto errorInStreamerStart;
-
+        BDBG_ERR((" CANNOT WORK WITH TUNER YET!"));
+        goto errorInStreamerStart;
     }
 
-   /*Add Audio, video and other tracks.*/
-   ret = addAllTracks();
-   CHECK_ERROR_GOTO("Error while executing addAllTracks", ret, errorInStreamerStart);
-
+    /*Add Audio, video and other tracks.*/
+    ret = addAllTracks();
+    CHECK_ERROR_GOTO("Error while executing addAllTracks", ret, errorInStreamerStart);
 
     /* start streamer now*/
-    bipStatus = BIP_UdpStreamer_Start( _hUdpStreamer, NULL );
-    BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "BIP_UdpStreamer_Start Failed: hUdpStreamer %p", (void *)_hUdpStreamer ), errorInStreamerStart, bipStatus, bipStatus );
+    bipStatus = BIP_UdpStreamer_Start(_hUdpStreamer, NULL);
+    BIP_CHECK_GOTO((bipStatus == BIP_SUCCESS), ("BIP_UdpStreamer_Start Failed: hUdpStreamer %p", (void *)_hUdpStreamer), errorInStreamerStart, bipStatus, bipStatus);
 
     BDBG_MSG(("----------------------------------------------------------------------------------"));
-    BDBG_MSG((" Started UDPStreamer HOST %s,PORT %d File %s ",  pChannel->getHost().s(),pChannel->getPort(),pChannel->getUrlPath().s()));
+    BDBG_MSG((" Started UDPStreamer HOST %s,PORT %d File %s ", pChannel->getHost().s(), pChannel->getPort(), pChannel->getUrlPath().s()));
     BDBG_MSG(("----------------------------------------------------------------------------------"));
 
     /* Cleanup tmp Channel */
     DEL(pChannel);
-    return (ret);
+    return(ret);
+
 errorInStreamerStart:
     if (_hUdpStreamer)
     {

@@ -125,14 +125,17 @@ struct NEXUS_HdmiInput {
     BHDR_EDID_Info stEdidInfo ;
 #endif
 
-    BKNI_EventHandle frameRateEvent, formatEvent;
-    NEXUS_EventCallbackHandle frameRateHandler, formatHandler;
+    BKNI_EventHandle frameRateEvent ;
+    NEXUS_EventCallbackHandle frameRateHandler ;
+
+    BKNI_EventHandle hdrPacketEvent ;
 
     NEXUS_IsrCallbackHandle avMuteCallback;
     NEXUS_IsrCallbackHandle aviInfoFrameChanged;
     NEXUS_IsrCallbackHandle audioInfoFrameChanged;
     NEXUS_IsrCallbackHandle spdInfoFrameChanged;
     NEXUS_IsrCallbackHandle vendorSpecificInfoFrameChanged;
+    NEXUS_IsrCallbackHandle drmInfoFrameChanged;
     NEXUS_IsrCallbackHandle audioContentProtectionChanged;
     NEXUS_IsrCallbackHandle gamutMetadataPacketChanged;
     NEXUS_IsrCallbackHandle hdcpKeysetStatusUpdate ;
@@ -223,7 +226,6 @@ void NEXUS_HdmiInput_P_HotPlug_isr(void *context, int param, void *data);
 void NEXUS_HdmiInput_P_SetFrameRate(void *data);
 
 void Nexus_HdmiInput_P_SetHdmiVideoFormat_isr(NEXUS_HdmiVendorSpecificInfoFrame_HDMIVideoFormat hdmiVideoFormat);
-
 
 /* Proxy conversion */
 #define NEXUS_P_HDMI_INPUT_HDCP_KSV_SIZE(num) ((num)*sizeof(NEXUS_HdmiOutputHdcpKsv))

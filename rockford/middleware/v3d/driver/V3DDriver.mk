@@ -47,6 +47,7 @@ endif
 
 CFLAGS += \
 	-fpic -DPIC \
+	-std=c99 \
 	-I. \
 	-I./interface/vcos/pthreads
 
@@ -67,15 +68,19 @@ CFLAGS += \
 	-DMUST_SET_ALPHA \
 	-DBCG_VC4_FAST_ATOMICS \
 	-DBCG_MULTI_THREADED \
+	-D_XOPEN_SOURCE=600 \
 	-Wunused-parameter \
 	-Wsign-compare \
 	-Wclobbered \
 	-Wmissing-braces \
 	-Wparentheses
-
 ifeq ("$(GCCGTEQ_40800)", "1")
 CFLAGS += \
 	-Wmaybe-uninitialized
+else
+# early versions of gcc dont like anon unions in C99 mode
+CFLAGS += \
+	-fms-extensions
 endif
 
 ifeq ($(NO_OPENVG),1)
@@ -95,6 +100,10 @@ ifeq ($(WITH_DEFRAG),1)
 #   for a very long time.
 #
    CFLAGS += -DBCG_VC4_DEFRAG
+endif
+
+ifeq ($(KHRN_AUTOCLIF),1)
+	CFLAGS += -DKHRN_AUTOCLIF
 endif
 
 #   Add this define to change the scheduling of the low latency thread in the 3d driver
@@ -195,7 +204,6 @@ SOURCES = \
 	interface/khronos/ext/egl_khr_image_client.c \
 	interface/khronos/ext/egl_brcm_flush_client.c \
 	interface/khronos/ext/egl_brcm_driver_monitor_client.c \
-	interface/khronos/ext/egl_brcm_image_update_control_client.c \
 	interface/khronos/ext/ext_gl_oes_query_matrix.c \
 	interface/khronos/ext/ext_gl_oes_draw_texture.c \
 	interface/khronos/ext/ext_gl_debug_marker.c \
@@ -229,7 +237,6 @@ SOURCES = \
 	middleware/khronos/ext/gl_oes_egl_image.c \
 	middleware/khronos/ext/gl_oes_draw_texture.c \
 	middleware/khronos/ext/egl_brcm_driver_monitor.c \
-	middleware/khronos/ext/egl_brcm_image_update_control.c \
 	middleware/khronos/ext/egl_khr_image.c \
 	middleware/khronos/gl11/2708/gl11_shader_4.c \
 	middleware/khronos/gl11/2708/gl11_shadercache_4.c \
@@ -301,7 +308,8 @@ SOURCES = \
 	interface/vcos/pthreads/vcos_pthreads.c \
 	interface/vcos/generic/vcos_mem_from_malloc.c \
 	interface/vcos/generic/vcos_generic_named_sem.c \
-	interface/vcos/generic/vcos_abort.c
+	interface/vcos/generic/vcos_abort.c \
+    interface/vcos/generic/vcos_log.c
 
 SOURCES_VG = \
 	interface/khronos/vg/vg_int_mat3x3.c \
@@ -387,10 +395,23 @@ $(foreach src,$(filter %.c,$(SOURCES)),$(eval $(call DependRule_C,$(src),$(OBJDI
 $(foreach src,$(filter %.c,$(SOURCES)),$(eval -include $(OBJDIR)/$(basename $(notdir $(src))).d))
 endif
 
+ifeq ($(KHRN_AUTOCLIF),1)
+$(LIBDIR)/libautoclif.a:
+	$(Q)echo building autoclif
+	$(Q)cd tools/v3d/autoclif && ${MAKE} LIBDIR=$(abspath ${LIBDIR}) OBJDIR=$(abspath ${OBJDIR}) V3D_DEBUG=${V3D_DEBUG}
+endif
+
+ifeq ($(KHRN_AUTOCLIF),1)
+$(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS) $(LIBDIR)/libautoclif.a
+	$(Q)echo Linking ... libv3ddriver.so
+	$(Q)mkdir -p $(LIBDIR)
+	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS) $(LIBDIR)/libautoclif.a
+else
 $(LIBDIR)/libv3ddriver.so: $(PRE_BUILD_RULES) $(OBJS)
 	$(Q)echo Linking ... libv3ddriver.so
 	$(Q)mkdir -p $(LIBDIR)
 	$(Q)$(CC) $(LDFLAGS) -shared -o $(LIBDIR)/libv3ddriver.so $(OBJS)
+endif
 
 $(LIBDIR)/libv3ddriver.a: $(PRE_BUILD_RULES) $(OBJS)
 	$(Q)echo Archiving ... libv3ddriver.a

@@ -206,7 +206,7 @@ NEXUS_P_Thread_Create(const char *pThreadName, void (*pThreadFunc)(void *), void
         goto err_thread;
     }
     pthread_attr_destroy(&attr);
-    
+
     BLST_S_INSERT_HEAD(&NEXUS_P_Os_State.threads, thread, link);
     return thread;
 
@@ -271,7 +271,7 @@ NEXUS_P_Base_Os_MarkThread_locked(const char *name)
         BSTD_UNUSED(rc);
         return;
     }
-    /* initialiaze main pseudo thread */
+    /* initialize main pseudo thread */
     BDBG_OBJECT_INIT(thread, NEXUS_Thread);
     strncpy(thread->name, name, sizeof(thread->name)-1);
     NEXUS_P_ThreadInfo_Init(&thread->info);
@@ -316,14 +316,24 @@ NEXUS_P_Base_Os_MarkThread(const char *name)
 #if NEXUS_CPU_ARM && !NEXUS_BASE_MODE_PROXY
 static int g_bcmdriver = -1;
 #endif
+#if NEXUS_P_USE_PTHREAD_TLS
+void NEXUS_P_Base_Os_FreeThreadInfo(void *info)
+{
+    NEXUS_P_ThreadInfo *threadInfo = info;
 
+    if(threadInfo->nexusThread==NULL) { /* thread are not created with NEXUS_P_ThreadInfo */
+        free(info); /* data was allocated with malloc, not with BKNI_Malloc */
+    }
+    return;
+}
+#endif
 BERR_Code
 NEXUS_P_Base_Os_Init(void)
 {
     BLST_S_INIT(&NEXUS_P_Os_State.threads);
 #if NEXUS_P_USE_PTHREAD_TLS
     {
-        int rc = pthread_key_create(&NEXUS_P_Os_State.threadKey, NULL);
+        int rc = pthread_key_create(&NEXUS_P_Os_State.threadKey, NEXUS_P_Base_Os_FreeThreadInfo);
         if(rc!=0) {
             return BERR_TRACE(BERR_OS_ERROR);
         }
@@ -346,17 +356,14 @@ NEXUS_P_Base_Os_Uninit(void)
 
     while(NULL!=(thread=BLST_S_FIRST(&NEXUS_P_Os_State.threads))) {
         BLST_S_REMOVE_HEAD(&NEXUS_P_Os_State.threads, link); /* don't free or destroy thread */
-        if(thread->pThreadFunc==NULL) { /* dummy placeholder */
-#if !NEXUS_P_USE_PTHREAD_TLS
-            NEXUS_Base_P_Thread_DisassociateInfo(thread, &thread->info); 
-#endif
-            BDBG_OBJECT_DESTROY(thread, NEXUS_Thread);
-            BKNI_Free(thread); /* could delete it */
-        }
-        else
-        {
+        if(thread->pThreadFunc!=NULL) { /* dummy placeholder */
             BDBG_WRN(("NEXUS_P_Base_Os_Uninit: %#lx leaked thread '%s'", (unsigned long)thread, thread->name));
         }
+#if !NEXUS_P_USE_PTHREAD_TLS
+        NEXUS_Base_P_Thread_DisassociateInfo(thread, &thread->info);
+#endif
+        BDBG_OBJECT_DESTROY(thread, NEXUS_Thread);
+        BKNI_Free(thread); /* could delete it */
     }
 #if NEXUS_P_USE_PTHREAD_TLS
     pthread_key_delete(NEXUS_P_Os_State.threadKey);
@@ -412,10 +419,11 @@ NEXUS_P_ThreadInfo_Get(void)
 #if NEXUS_P_USE_PTHREAD_TLS
     threadInfo = pthread_getspecific(NEXUS_P_Os_State.threadKey);
     if(threadInfo==NULL) {
-        void *threadId = (void *)pthread_self();
-        threadInfo = NEXUS_Base_P_AllocateThreadInfo(threadId);  
-        pthread_setspecific(NEXUS_P_Os_State.threadKey, threadInfo);
-        NEXUS_Base_P_TickThreadInfo(threadInfo); 
+        threadInfo = malloc(sizeof(*threadInfo)); /* Can't use BKNI_Malloc since this data for the main thread will stay alive past BKNI_Uninit */
+        if(threadInfo) {
+            NEXUS_P_ThreadInfo_Init(threadInfo);
+            pthread_setspecific(NEXUS_P_Os_State.threadKey, threadInfo);
+        }
     }
 #else /* NEXUS_P_USE_PTHREAD_TLS */
     threadInfo = NEXUS_Base_P_Thread_GetInfo((void *)pthread_self());

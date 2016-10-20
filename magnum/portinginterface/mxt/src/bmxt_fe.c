@@ -66,7 +66,7 @@ BDBG_MODULE(bmxt_fe);
 #define STEP(res) (handle->platform.stepsize[res])
 #define EXIST(reg) (handle->platform.regoffsets[reg] != BMXT_NOREG)
 
-const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "7145", "7366", "7364"};
+const char* const BMXT_CHIP_STR[] = {"3128", "3158", "3383", "3384", "3390", "3466", "3472", "4517", "4528", "4538", "4548", "45216", "45308", "7145", "7366", "7364"};
 const char* const BMXT_PLATFORM_TYPE_STR[] = {"HAB", "RPC", "REG"};
 
 #define VIRTUAL_HANDLE_REG_OFFSET 0x80000000 /* hard-coded for now */
@@ -1312,4 +1312,11 @@ void BMXT_P_RegDump(BMXT_Handle handle)
     BMXT_P_RegDump_Quick(handle);
 #endif
     handle->dumpIndex++;
+}
+
+void BMXT_P_Debug(BMXT_Handle handle)
+{
+    uint32_t val;
+    val = BMXT_RegRead32(handle, R(BCHP_DEMOD_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT));
+    BDBG_WRN(("DEBUG: %08x", val));
 }

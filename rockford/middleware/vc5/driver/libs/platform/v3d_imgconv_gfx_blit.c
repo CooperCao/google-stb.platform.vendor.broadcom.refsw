@@ -63,7 +63,8 @@ static bool convert_now(
    gfx_buffer_blit(&dst_b, &src_b, &xform_seq, width, height, depth);
 
    unsigned end_us = vcos_getmicrosecs();
-   if ((end_us - start_us > SLOW_CONV_TIME) && log_warn_enabled())
+   if (((end_us - start_us > SLOW_CONV_TIME) && log_warn_enabled()) ||
+        log_trace_enabled())
    {
       static int slow_conversion_messages = 0;
 
@@ -71,14 +72,24 @@ static bool convert_now(
       {
          GFX_LFMT_SPRINT(src_lfmt_desc, src_b.desc.planes[0].lfmt);
          GFX_LFMT_SPRINT(dst_lfmt_desc, dst_b.desc.planes[0].lfmt);
-         log_warn("Slow unaccelerated conversion %ux%u @ (%u,%u) %s -> %ux%u @ (%u,%u) %s took %"PRIu32"us",
-                       src_b.desc.width, src_b.desc.height, src_b.x, src_b.y, src_lfmt_desc,
-                       dst_b.desc.width, dst_b.desc.height, dst_b.x, dst_b.y, dst_lfmt_desc,
+         if (log_trace_enabled())
+         {
+            log_trace("Unaccelerated conversion %ux%u @ (%u,%u) %s -> %ux%u @ (%u,%u) %s took %"PRIu32"us",
+                       width, height, src_b.x, src_b.y, src_lfmt_desc,
+                       width, height, dst_b.x, dst_b.y, dst_lfmt_desc,
+                       end_us - start_us);
+         }
+         else
+         {
+            log_warn("Slow unaccelerated conversion %ux%u @ (%u,%u) %s -> %ux%u @ (%u,%u) %s took %"PRIu32"us",
+                       width, height, src_b.x, src_b.y, src_lfmt_desc,
+                       width, height, dst_b.x, dst_b.y, dst_lfmt_desc,
                        end_us - start_us);
 
-         slow_conversion_messages++;
-         if (slow_conversion_messages == MAX_SLOW_CONVERSION_MESSAGES)
-            log_warn("Suppressing further slow unaccelerated conversion messages");
+            slow_conversion_messages++;
+            if (slow_conversion_messages == MAX_SLOW_CONVERSION_MESSAGES)
+               log_warn("Suppressing further slow unaccelerated conversion messages");
+         }
       }
    }
 

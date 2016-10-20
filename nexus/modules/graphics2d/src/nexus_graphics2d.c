@@ -173,7 +173,7 @@ static NEXUS_Error NEXUS_Graphics2D_P_OpenGrc(unsigned index)
     engine->standby.heap = heap;
     engine->standby.grcSettings = grcSettings;
     rc = BGRC_Open(&engine->grc, g_pCoreHandles->chp, g_pCoreHandles->reg,
-        NEXUS_Heap_GetMemHandle(heap),
+        NEXUS_Heap_GetMmaHandle(heap),
         g_pCoreHandles->bint, &grcSettings);
     if (rc) {rc = BERR_TRACE(rc); goto err_opengrc;}
 
@@ -269,7 +269,8 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
     gfx->surfaceFifoRead = 0;
     gfx->surfaceFifoWrite = 0;
     gfx->settings.colorFormatType = NEXUS_ColorFormatType_eStandardFormat;
-    NEXUS_CALLBACKDESC_INIT(&gfx->settings.checkpointCallback);
+    NEXUS_CallbackDesc_Init(&gfx->settings.checkpointCallback);
+    NEXUS_CallbackDesc_Init(&gfx->settings.packetSpaceAvailable);
     gfx->settings.pollingCheckpoint = false;
     gfx->settings.blockedSync = false;
     gfx->settings.completionTimeout = 0;
@@ -307,7 +308,7 @@ NEXUS_Graphics2DHandle NEXUS_Graphics2D_Open(unsigned index, const NEXUS_Graphic
             rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
             goto error;
         }
-        packetContextSettings.packet_buffer_heap = NEXUS_Heap_GetMemHandle(heap);
+        packetContextSettings.packet_buffer_heap = NEXUS_Heap_GetMmaHandle(heap);
     }
     packetContextSettings.packet_buffer_size = pSettings->packetFifoSize;
     packetContextSettings.packet_buffer_store = pSettings->packetFifoThreshold;
@@ -425,6 +426,10 @@ static void NEXUS_Graphics2D_P_Finalizer(NEXUS_Graphics2DHandle gfx)
     struct NEXUS_Graphics2DEngine *engine;
 
     NEXUS_OBJECT_ASSERT(NEXUS_Graphics2D, gfx);
+
+    gfx->openSettings.secure = false;
+    nexus_p_check_and_switch_secure(gfx);
+
     engine = &g_grcInstance[gfx->index];
 
     if (gfx->grclib) {

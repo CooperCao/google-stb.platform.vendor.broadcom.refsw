@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,27 +70,27 @@
 /***************************************************************************
  *MDI_PPB_1 - MADR Pixel Processing Block Registers
  ***************************************************************************/
-#define BCHP_MDI_PPB_1_CONSTANT_COLOR            0x20692800 /* [RW] Constant Color */
-#define BCHP_MDI_PPB_1_STATS_RANGE               0x20692804 /* [RW] Statistics Results Collection Range */
-#define BCHP_MDI_PPB_1_LA_MAX_ANGLE_STRENGTH     0x20692860 /* [RW] Low Angle Maximum Angle Strength */
-#define BCHP_MDI_PPB_1_LA_MIN_NORTH_STRENGTH     0x20692864 /* [RW] Low Angle Minimum North Strength */
-#define BCHP_MDI_PPB_1_LA_STRENGTH_CONTROL       0x20692868 /* [RW] Low Angle Strength Control */
-#define BCHP_MDI_PPB_1_LA_SCALE_0                0x2069286c /* [RW] Low Angle Strength Scale Set 0 */
-#define BCHP_MDI_PPB_1_LA_BC_CONTROL             0x20692874 /* [RW] Low Angle Bound Check Control */
-#define BCHP_MDI_PPB_1_XCHROMA_CONTROL_4         0x20692888 /* [RW] Cross Chroma Control Set 4 */
-#define BCHP_MDI_PPB_1_IT_REPF_HISTOGRAM_THRESH_0 0x20692894 /* [RW] Inverse Telecine Repeat Field Histogram Threshold Control 0 */
-#define BCHP_MDI_PPB_1_IT_REPF_HISTOGRAM_THRESH_1 0x20692898 /* [RW] Inverse Telecine Repeat Field Histogram Threshold Control 1 */
-#define BCHP_MDI_PPB_1_IT_PCC_CONTROL            0x2069289c /* [RW] IT PCC Control for IT cadence and Bad Edit */
-#define BCHP_MDI_PPB_1_BWV_CHECK                 0x206928ac /* [RW] Bad Weave pattern Checking */
-#define BCHP_MDI_PPB_1_DEBUG_MODE                0x206928b0 /* [RW] PPB Debug Mode */
-#define BCHP_MDI_PPB_1_STAIR_DETECT_THRESH       0x206928bc /* [RW] Stairstep detection thresholds */
-#define BCHP_MDI_PPB_1_MOTION_CAL_CONTROL        0x206928e0 /* [RW] Motion Calculation Control */
-#define BCHP_MDI_PPB_1_QM_MAPPING_RANGE          0x206928e4 /* [RW] Motion Histody 2-bit Quantized Motion Mapping RANGE */
-#define BCHP_MDI_PPB_1_MH_MAPPING_VALUE          0x206928e8 /* [RW] History Motion Mapping Value */
-#define BCHP_MDI_PPB_1_OBTS_CONTROL_0            0x206928ec /* [RW] OBTS Control Set 0 */
-#define BCHP_MDI_PPB_1_PIXEL_COMPUTATION_CONTROL 0x206928f0 /* [RW] Pixel Computation Control */
-#define BCHP_MDI_PPB_1_BWV_CHECK_MADR_PCC_IT     0x206928f4 /* [RW] Bad Weave pattern Checking Set for MADR PCC-based IT enhancement */
-#define BCHP_MDI_PPB_1_SCRATCH_0                 0x20692bfc /* [RW] Scratch register 0 */
+#define BCHP_MDI_PPB_1_CONSTANT_COLOR            0x20692800 /* [RW][32] Constant Color */
+#define BCHP_MDI_PPB_1_STATS_RANGE               0x20692804 /* [RW][32] Statistics Results Collection Range */
+#define BCHP_MDI_PPB_1_LA_MAX_ANGLE_STRENGTH     0x20692860 /* [RW][32] Low Angle Maximum Angle Strength */
+#define BCHP_MDI_PPB_1_LA_MIN_NORTH_STRENGTH     0x20692864 /* [RW][32] Low Angle Minimum North Strength */
+#define BCHP_MDI_PPB_1_LA_STRENGTH_CONTROL       0x20692868 /* [RW][32] Low Angle Strength Control */
+#define BCHP_MDI_PPB_1_LA_SCALE_0                0x2069286c /* [RW][32] Low Angle Strength Scale Set 0 */
+#define BCHP_MDI_PPB_1_LA_BC_CONTROL             0x20692874 /* [RW][32] Low Angle Bound Check Control */
+#define BCHP_MDI_PPB_1_XCHROMA_CONTROL_4         0x20692888 /* [RW][32] Cross Chroma Control Set 4 */
+#define BCHP_MDI_PPB_1_IT_REPF_HISTOGRAM_THRESH_0 0x20692894 /* [RW][32] Inverse Telecine Repeat Field Histogram Threshold Control 0 */
+#define BCHP_MDI_PPB_1_IT_REPF_HISTOGRAM_THRESH_1 0x20692898 /* [RW][32] Inverse Telecine Repeat Field Histogram Threshold Control 1 */
+#define BCHP_MDI_PPB_1_IT_PCC_CONTROL            0x2069289c /* [RW][32] IT PCC Control for IT cadence and Bad Edit */
+#define BCHP_MDI_PPB_1_BWV_CHECK                 0x206928ac /* [RW][32] Bad Weave pattern Checking */
+#define BCHP_MDI_PPB_1_DEBUG_MODE                0x206928b0 /* [RW][32] PPB Debug Mode */
+#define BCHP_MDI_PPB_1_STAIR_DETECT_THRESH       0x206928bc /* [RW][32] Stairstep detection thresholds */
+#define BCHP_MDI_PPB_1_MOTION_CAL_CONTROL        0x206928e0 /* [RW][32] Motion Calculation Control */
+#define BCHP_MDI_PPB_1_QM_MAPPING_RANGE          0x206928e4 /* [RW][32] Motion Histody 2-bit Quantized Motion Mapping RANGE */
+#define BCHP_MDI_PPB_1_MH_MAPPING_VALUE          0x206928e8 /* [RW][32] History Motion Mapping Value */
+#define BCHP_MDI_PPB_1_OBTS_CONTROL_0            0x206928ec /* [RW][32] OBTS Control Set 0 */
+#define BCHP_MDI_PPB_1_PIXEL_COMPUTATION_CONTROL 0x206928f0 /* [RW][32] Pixel Computation Control */
+#define BCHP_MDI_PPB_1_BWV_CHECK_MADR_PCC_IT     0x206928f4 /* [RW][32] Bad Weave pattern Checking Set for MADR PCC-based IT enhancement */
+#define BCHP_MDI_PPB_1_SCRATCH_0                 0x20692bfc /* [RW][32] Scratch register 0 */
 
 #endif /* #ifndef BCHP_MDI_PPB_1_H__ */
 

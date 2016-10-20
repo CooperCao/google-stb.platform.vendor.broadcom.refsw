@@ -1,21 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2014, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BCHP_H__
@@ -349,35 +369,35 @@ See Also:
  *
  */
 #if ((BCHP_DEBUG_OVERFLOW < 0) || (BCHP_DEBUG_OVERFLOW > 2))
-	#error "BCHP_DEBUG_OVERFLOW must be 0, 1, 2, or <undefined>"
+    #error "BCHP_DEBUG_OVERFLOW must be 0, 1, 2, or <undefined>"
 #elif (BCHP_DEBUG_OVERFLOW == 2)
-	#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                         \
-		1 /                                                                    \
-			((unsigned)(Data) <=                                               \
-				(BCHP_MASK(Register,Field) >>                                  \
-					BCHP_SHIFT(Register,Field)))
-	#define BCHP_FIELD_DATA(Register,Field,Data)                               \
-		(((Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
+#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                             \
+    1 /                                                                        \
+        ((uint64_t)(Data) <=                                                   \
+            (BCHP_MASK(Register,Field) >>                                      \
+                BCHP_SHIFT(Register,Field)))
+#define BCHP_FIELD_DATA(Register,Field,Data)                                   \
+    (((uint64_t)(Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
 #elif (BCHP_DEBUG_OVERFLOW == 1)
-	#define BCHP_FIELD_DATA(Register,Field,Data)                               \
-		(                                                                      \
-			(BDBG_ASSERT (                                                     \
-				(Data) <=                                                      \
-					(BCHP_MASK(Register,Field) >>                              \
-						BCHP_SHIFT(Register,Field)))),                         \
-			(((unsigned)(Data) <<                                              \
-			    BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))         \
-		)
-	#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                         \
-		(((Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
+#define BCHP_FIELD_DATA(Register,Field,Data)                                   \
+    (                                                                          \
+        (BDBG_ASSERT (                                                         \
+            ((uint64_t)(Data)) <=                                              \
+                (BCHP_MASK(Register,Field) >>                                  \
+                    BCHP_SHIFT(Register,Field)))),                             \
+        (((uint64_t)(Data) <<                                                  \
+            BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))             \
+    )
+#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                             \
+    ((((uint64_t)(Data)) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
 #else
-	#define BCHP_FIELD_DATA(Register,Field,Data)                               \
-		(((Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
-	#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                         \
-		(((Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
+#define BCHP_FIELD_DATA(Register,Field,Data)                                   \
+    (((uint64_t)(Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
+#define BCHP_FIELD_CONST_DATA(Register,Field,Data)                             \
+    ((((uint64_t)(Data)) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
 #endif
-#define BCHP_FIELD_FORCE_DATA(Register,Field,Data)                         \
-	(((Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
+#define BCHP_FIELD_FORCE_DATA(Register,Field,Data)                             \
+    (((uint64_t)(Data) << BCHP_SHIFT(Register,Field))&BCHP_MASK(Register,Field))
 
 /***************************************************************************
 Summary:
@@ -602,26 +622,19 @@ See Also:
 Summary:
 	Used only by BCHP interface to create interrupt IDs
 
-	Interrupt IDs consist of the left shifted L2 interrupt register
-	address or'd with the L2 interrupt bit shift value.
-
-	Since L2 registers are 32 bits in length the shift value must range
-	from 0-31. This requires 5 bits to represent the shift value.
+	Interrupt IDs consist of the L2 interrupt register address
+	or'd with an interrupt bit shift value.  Since L2 registers
+	are 32 bits in length the shift value must range from 0-31.
+	This requires 5 bits to represent the shift value.
 
 	Since all L2 interrupt register addresses are 32 bit aligned and
-	the register address is shifted up by 3 and the unused lower 2 bits
-	are reused to store the L2 interrupt shift.
-
-	In some new chips L2 interrupt register addresses might have format
-	0xh0xxxxxx, the leading hex digit 'h' is not 0, and will be overflowed
-	off after it is left shifted by 3. But it is noticed that h & 0x1 == 0,
-	and the shifted result all have leading hex digit as 0, therefore the
-	the leading hex digit of the interrupt ID could be used to save 'h'.
+	can be no larger than 0x1FFFFFF the register address is shifted
+	up by three and the unused lower two bits are reused to store
+	the interrupt shift.
 
 See Also:
 	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK,
-	BCHP_INT_ID_LEAD_MASK, BCHP_INT_ID_ADDR_HOLE_MASK
-	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG
+	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG, BCHP_INT_ID_REG_SHIFT
 **************************************************************************/
 #define BCHP_INT_ID_REG_SHIFT            3
 
@@ -630,26 +643,19 @@ See Also:
 Summary:
 	Used only by BCHP interface to create interrupt IDs
 
-	Interrupt IDs consist of the left shifted L2 interrupt register
-	address or'd with the L2 interrupt bit shift value.
-
-	Since L2 registers are 32 bits in length the shift value must range
-	from 0-31. This requires 5 bits to represent the shift value.
+	Interrupt IDs consist of the L2 interrupt register address
+	or'd with an interrupt bit shift value.  Since L2 registers
+	are 32 bits in length the shift value must range from 0-31.
+	This requires 5 bits to represent the shift value.
 
 	Since all L2 interrupt register addresses are 32 bit aligned and
-	the register address is shifted up by 3 and the unused lower 2 bits
-	are reused to store the L2 interrupt shift.
-
-	In some new chips L2 interrupt register addresses might have format
-	0xh0xxxxxx, the leading hex digit 'h' is not 0, and will be overflowed
-	off after it is left shifted by 3. But it is noticed that h & 0x1 == 0,
-	and the shifted result all have leading hex digit as 0, therefore the
-	the leading hex digit of the interrupt ID could be used to save 'h'.
+	can be no larger than 0x1FFFFFF the register address is shifted
+	up by three and the unused lower two bits are reused to store
+	the interrupt shift.
 
 See Also:
 	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK,
-	BCHP_INT_ID_LEAD_MASK, BCHP_INT_ID_ADDR_HOLE_MASK
-	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG
+	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG, BCHP_INT_ID_REG_SHIFT
 **************************************************************************/
 #define BCHP_INT_ID_SHIFT_MASK           0x0000001F
 
@@ -658,68 +664,12 @@ See Also:
 Summary:
 	Used only by BCHP interface to create interrupt IDs
 
-	Interrupt IDs consist of the left shifted L2 interrupt register
-	address or'd with the L2 interrupt bit shift value.
-
-	Since L2 registers are 32 bits in length the shift value must range
-	from 0-31. This requires 5 bits to represent the shift value.
-
-	Since all L2 interrupt register addresses are 32 bit aligned and
-	the register address is shifted up by 3 and the unused lower 2 bits
-	are reused to store the L2 interrupt shift.
-
-	In some new chips L2 interrupt register addresses might have format
-	0xh0xxxxxx, the leading hex digit 'h' is not 0, and will be overflowed
-	off after it is left shifted by 3. But it is noticed that h & 0x1 == 0,
-	and the shifted result all have leading hex digit as 0, therefore the
-	the leading hex digit of the interrupt ID could be used to save 'h'.
-
 See Also:
 	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK,
-	BCHP_INT_ID_LEAD_MASK, BCHP_INT_ID_ADDR_HOLE_MASK
-	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG
-**************************************************************************/
-#define BCHP_INT_ID_LEAD_MASK            0xF0000000
-
-/*{secret}******************************************************************
-
-Summary:
-	Used only by BCHP interface to create interrupt IDs
-
-	Interrupt IDs consist of the left shifted L2 interrupt register
-	address or'd with the L2 interrupt bit shift value.
-
-	Since L2 registers are 32 bits in length the shift value must range
-	from 0-31. This requires 5 bits to represent the shift value.
-
-	Since all L2 interrupt register addresses are 32 bit aligned and
-	the register address is shifted up by 3 and the unused lower 2 bits
-	are reused to store the L2 interrupt shift.
-
-	In some new chips L2 interrupt register addresses might have format
-	0xh0xxxxxx, the leading hex digit 'h' is not 0, and will be overflowed
-	off after it is left shifted by 3. But it is noticed that h & 0x1 == 0,
-	and the shifted result all have leading hex digit as 0, therefore the
-	the leading hex digit of the interrupt ID could be used to save 'h'.
-
-See Also:
-	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK,
-	BCHP_INT_ID_LEAD_MASK, BCHP_INT_ID_ADDR_HOLE_MASK
-	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG
-**************************************************************************/
-#define BCHP_INT_ID_ADDR_HOLE_MASK       0x1E000000
-
-/*{secret}******************************************************************
-
-Summary:
-	Used only by BCHP interface to create interrupt IDs
-
-See Also:
-	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK, BCHP_INT_ID_LEAD_MASK
 	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG, BCHP_INT_ID_REG_SHIFT
 **************************************************************************/
 #define BCHP_INT_ID_CREATE( reg, shift ) \
-	(((reg) << BCHP_INT_ID_REG_SHIFT) | (shift) | ((reg) & BCHP_INT_ID_LEAD_MASK))
+	((((reg)-BCHP_REGISTER_START) << BCHP_INT_ID_REG_SHIFT) | (shift) | BDBG_CWARNING_EXPR((int)(reg)>=(int)BCHP_REGISTER_START) | BDBG_CWARNING_EXPR(((((uint32_t)(reg)-BCHP_REGISTER_START)<<BCHP_INT_ID_REG_SHIFT)>>BCHP_INT_ID_REG_SHIFT)==((reg)-BCHP_REGISTER_START)) | BDBG_CWARNING_EXPR((reg)%4==0))
 
 /*{secret}******************************************************************
 
@@ -728,12 +678,11 @@ Summary:
 	from a BINT_Id
 
 See Also:
-	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK, BCHP_INT_ID_LEAD_MASK
-	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG
+	BCHP_INT_ID_REG_SHIFT, BCHP_INT_ID_SHIFT_MASK,
+	BCHP_INT_ID_CREATE, BCHP_INT_ID_GET_REG, BCHP_INT_ID_REG_SHIFT
 **************************************************************************/
 #define BCHP_INT_ID_GET_REG( intId ) \
-	((((intId) & (~BCHP_INT_ID_SHIFT_MASK) & (~BCHP_INT_ID_LEAD_MASK)) >> BCHP_INT_ID_REG_SHIFT) | \
-	 ((intId) & BCHP_INT_ID_LEAD_MASK))
+	((((intId) & (~BCHP_INT_ID_SHIFT_MASK)) >> BCHP_INT_ID_REG_SHIFT)+BCHP_REGISTER_START)
 
 /*{secret}******************************************************************
 
@@ -925,11 +874,24 @@ void BCHP_GetInfo(
     BCHP_Info *pInfo
     );
 
+#define BCHP_MAX_MEMC_REGIONS 3
+typedef struct BCHP_MemoryLayout
+{
+    struct {
+        unsigned size; /* total size of DRAM part */
+        struct {
+            BSTD_DeviceOffset addr; /* base physical address of contiguous addressing region */
+            unsigned size; /* size of contiguous addressing */
+        } region[BCHP_MAX_MEMC_REGIONS]; /* supports multiple discontiguous addressing region */
+    } memc[3];
+} BCHP_MemoryLayout;
+
 #if BCHP_UNIFIED_IMPL
 typedef struct BCHP_OpenSettings
 {
     BREG_Handle reg;
     unsigned productId; /* hex value. if non-zero, this will override BCHP_Info.productId. default is zero. */
+    BCHP_MemoryLayout memoryLayout;
 } BCHP_OpenSettings;
 
 void BCHP_GetDefaultOpenSettings(
@@ -989,6 +951,18 @@ typedef enum BCHP_DramType
 
 /***************************************************************************
 Summary:
+	SCB/MAP(striped frame buffer format) version of each memory controller
+**************************************************************************/
+typedef enum BCHP_ScbMapVer
+{
+    BCHP_ScbMapVer_eMap2, /* no address shuffle-map */
+    BCHP_ScbMapVer_eMap5, /* MAP5 address shuffle-map */
+    BCHP_ScbMapVer_eMap8, /* MAP8 address shuffle-map */
+    BCHP_ScbMapVer_eMax
+} BCHP_ScbMapVer;
+
+/***************************************************************************
+Summary:
 	Information about DRAM on each memory controller
 **************************************************************************/
 typedef struct BCHP_MemoryInfo
@@ -1001,13 +975,16 @@ typedef struct BCHP_MemoryInfo
         bool ddr3Capable; /* deprecated */
         bool groupageEnabled;
         unsigned deviceTech; /* same as BCHP_Feature_eMemCtrlxDDRDeviceTechCount for backward compat */
-        BSTD_DeviceOffset offset; /* device offset for the start of this memc */
 
         /* XVD/VCE/VDC striped memory parameters. */
         unsigned ulStripeWidth; /* in bytes */
         unsigned ulPageSize; /* in bytes */
         unsigned ulMbMultiplier; /* number of macroblocks in picture height = Multiplier*n + Remainder; */
         unsigned ulMbRemainder;
+
+        /* different SCB/MAP versions store striped frame buffer data in DRAM differerntly */
+        BCHP_ScbMapVer mapVer;
+        bool blindShuffle;
     } memc[3];
 } BCHP_MemoryInfo;
 
@@ -1016,7 +993,7 @@ Summary:
 	Get information about DRAM on each memory controller
 **************************************************************************/
 BERR_Code BCHP_GetMemoryInfo(
-    BREG_Handle reg,
+    BCHP_Handle chp,
     BCHP_MemoryInfo *pInfo
     );
 
@@ -1099,6 +1076,13 @@ void *BCHP_GetAvsHandle(
     BCHP_Handle hChip   /* [in] Chip handle */
 );
 
+/* return true if offset is on MEMC */
+bool BCHP_OffsetOnMemc(
+    BCHP_Handle hChip,
+    BSTD_DeviceOffset offset,
+    unsigned memcIndex
+    );
+
 #endif /* ! __ASSEMBLY__ */
 
 #include "bchp_ver_types.h"
@@ -1111,6 +1095,16 @@ void *BCHP_GetAvsHandle(
 #ifndef BCHP_VER
 #error BCHP_VER must be defined to a standard value.
 #endif
+
+/* Note this is stateless API, i.e., the memory info won't be stored in context.
+   not for general use. may return wrong information about unpopulated MEMC's */
+BERR_Code BCHP_GetMemoryInfo_PreInit(
+    BREG_Handle reg,
+    BCHP_MemoryInfo *pInfo
+    );
+
+/* Stripe memory address may be shuffled if the MEMC bus protocol supports it */
+BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset);
 
 #ifdef __cplusplus
 }

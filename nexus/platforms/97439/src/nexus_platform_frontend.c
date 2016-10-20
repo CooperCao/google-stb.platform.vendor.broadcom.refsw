@@ -48,7 +48,7 @@
 
 BDBG_MODULE(nexus_platform_frontend);
 
-#if NEXUS_HAS_FRONTEND && (NEXUS_USE_7439_DR4 || NEXUS_USE_7449S_CWM)
+#if NEXUS_HAS_FRONTEND && (NEXUS_USE_7439_SV || NEXUS_USE_7449S_CWM)
 #include "nexus_frontend.h"
 
 #include "nexus_gpio.h"

@@ -272,15 +272,15 @@ void BVDC_P_ConnectStgSrc_isr
 #endif
 
 #ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
-	if(hDisplay->stStgChan.ulStcFlag == BRDC_MAX_STC_FLAG_COUNT)
-	{
-		BDBG_MSG(("Display%u to acquire STC flag(%u) for STG%u with trigger %u", hDisplay->eId, hDisplay->stStgChan.ulStcFlag, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
-		if((hDisplay->stStgChan.ulStcFlag = BRDC_AcquireStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger))
-			!= hDisplay->stStgChan.ulStg)
-		{
-			BDBG_ERR(("No STC flag available for display %d STG %d trig %u. Check hardware capability.", hDisplay->eId, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
-		}
-	}
+    if(hDisplay->stStgChan.ulStcFlag == BRDC_MAX_STC_FLAG_COUNT)
+    {
+        BDBG_MSG(("Display%u to acquire STC flag(%u) for STG%u with trigger %u", hDisplay->eId, hDisplay->stStgChan.ulStcFlag, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
+        if((hDisplay->stStgChan.ulStcFlag = BRDC_AcquireStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger))
+            != hDisplay->stStgChan.ulStg)
+        {
+            BDBG_ERR(("No STC flag available for display %d STG %d trig %u. Check hardware capability.", hDisplay->eId, hDisplay->stStgChan.ulStg, hDisplay->eTopTrigger));
+        }
+    }
 #endif
 
 	return;
@@ -311,11 +311,11 @@ void BVDC_P_TearDownStgChan_isr
 #endif
 
 #ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
-	if(hDisplay->stStgChan.ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
-	{
-		BRDC_ReleaseStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg);
-		hDisplay->stStgChan.ulStcFlag = BRDC_MAX_STC_FLAG_COUNT;
-	}
+    if(hDisplay->stStgChan.ulStcFlag != BRDC_MAX_STC_FLAG_COUNT)
+    {
+        BRDC_ReleaseStcFlag_isr(hDisplay->hVdc->hRdc, hDisplay->stStgChan.ulStg);
+        hDisplay->stStgChan.ulStcFlag = BRDC_MAX_STC_FLAG_COUNT;
+    }
 #endif
 
 	return;
@@ -395,9 +395,7 @@ void BVDC_P_STG_Build_RM_isr
 void BVDC_P_Stg_Init_isr
     ( BVDC_Display_Handle              hDisplay)
 {
-#if BVDC_P_SUPPORT_VIP /* VDC owns VIP */
-    BSTD_UNUSED(hDisplay);
-#else /* VDC does NOT own VIP */
+#if !BVDC_P_SUPPORT_VIP /* VDC owns VIP */
     uint32_t                    ulStgId;
     uint32_t                    ulChannelPerCore = 0, ulCoreOffset = 0, ulChannelOffset = 0, ulViceIntOffset = 0, ulViceIntMask=0;
     uint32_t                    ulViceCoreIdx = 0, ulViceChannel=0;
@@ -472,10 +470,12 @@ void BVDC_P_Stg_Init_isr
         hDisplay->eId, ulStgId, ulViceCoreIdx, ulViceChannel, ulChannelPerCore,
         hDisplay->stStgChan.ulViceIntAddr, hDisplay->stStgChan.ulViceIntMask, ulViceIntMask));
     BSTD_UNUSED(ulChannelPerCore);
+#endif
     /* init STC flag */
 #ifdef BVDC_P_SUPPORT_RDC_STC_FLAG
     hDisplay->stStgChan.ulStcFlag = BRDC_MAX_STC_FLAG_COUNT;
-#endif
+#else
+    BSTD_UNUSED(hDisplay);
 #endif
 }
 
@@ -881,7 +881,6 @@ BERR_Code BVDC_P_Display_Validate_Stg_Setting
     bool      bStgSlave;
     pNewInfo = &hDisplay->stNewInfo;
 
-#if !BVDC_P_SUPPORT_SEAMLESS_ATTACH
     hDisplay->stStgChan.bEnable =
         pNewInfo->bEnableStg && BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg);
     bStgSlave = (!BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg)) &&
@@ -912,10 +911,6 @@ BERR_Code BVDC_P_Display_Validate_Stg_Setting
         hDisplay->ulStgRegOffset = (hDisplay->stStgChan.ulStg) * (BCHP_VIDEO_ENC_STG_1_REG_START - BCHP_VIDEO_ENC_STG_0_REG_START);
 #endif
     }
-#else
-    BSTD_UNUSED(err);
-    BSTD_UNUSED(bStgSlave);
-#endif
 
     /* allocate VIP buffer at runtime when enabled VIP heap */
 #if BVDC_P_SUPPORT_VIP
@@ -946,12 +941,7 @@ void BVDC_P_Display_Copy_Stg_Setting_isr
 
     if (!hDisplay->stCurInfo.bEnableStg && hDisplay->stNewInfo.bEnableStg)
     {
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-        /* Reset the Stg slave attachment process state */
-        hDisplay->eStgSlaveState = BVDC_P_Slave_eInactive;
-#else
         hDisplay->eStgState = BVDC_P_DisplayResource_eCreate;
-#endif
     }
     else if(hDisplay->stCurInfo.bEnableStg && !hDisplay->stNewInfo.bEnableStg)
     {
@@ -976,49 +966,13 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
       BAVC_Polarity                    eFieldPolarity )
 {
     BVDC_P_DisplayInfo *pCurInfo;
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-    BVDC_P_DisplayStgChan *pstChan;
-#endif
 
     BSTD_UNUSED(eFieldPolarity);
 
     pCurInfo = &hDisplay->stCurInfo;
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-    pstChan = &hDisplay->stStgChan;
-#endif
 
     if (pCurInfo->bEnableStg)
     {
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH /** { **/
-        switch (hDisplay->eStgSlaveState)
-        {
-            case BVDC_P_Slave_eInactive:
-                /* Acquire Stg core for slave mode */
-                if (!BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg) &&
-                  BVDC_P_AllocStgChanResources_isr(hDisplay->hVdc->hResource, hDisplay))
-                {
-                    BDBG_ERR(("No Stg available "));
-                    return;
-                }
-                BVDC_P_ProgramStgChan_isr(hDisplay, pstChan, pList);
-
-                hDisplay->eStgSlaveState = BVDC_P_Slave_eEnable;
-                break;
-
-            case BVDC_P_Slave_eEnable:
-                BVDC_P_ConnectStgSrc_isr(hDisplay, pstChan, pList);
-                hDisplay->eStgSlaveState = BVDC_P_Slave_eConnectSrc;
-                break;
-
-            case BVDC_P_Slave_eConnectSrc:
-            default:
-                hDisplay->eStgSlaveState = BVDC_P_Slave_eAttached;
-                hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
-                break;
-        }
-
-#else /** } BVDC_P_SUPPORT_SEAMLESS_ATTACH { **/
-
         BVDC_P_TearDownStgChan_isr(hDisplay, pList);
 
         /*
@@ -1038,9 +992,6 @@ void BVDC_P_Display_Apply_Stg_Setting_isr
          */
         hDisplay->eStgState = BVDC_P_DisplayResource_eActive;
         hDisplay->stCurInfo.stDirty.stBits.bStgEnable = BVDC_P_CLEAN;
-
-#endif /** } BVDC_P_SUPPORT_SEAMLESS_ATTACH **/
-
     }
     else
     {

@@ -189,6 +189,7 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(BAVC_HDMI_DRMInfoFrame * ma
             magnum->Type1.MaxFrameAverageLightLevel = nexus->metadata.typeSettings.type1.contentLightLevel.maxFrameAverage;
             break;
         default:
+            BDBG_WRN(("Unknown meta data type: %d", nexus->metadata.type)) ;
             break;
     }
 }
@@ -198,11 +199,6 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
     BERR_Code rc = BERR_SUCCESS;
     BAVC_HDMI_DRMInfoFrame stDRMInfoFrame ;
 
-    BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
-        NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&stDRMInfoFrame, pDrmInfoFrame);
-    rc = BHDM_SetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
-    if (rc) { BERR_TRACE(rc); goto error; }
-
     if (BKNI_Memcmp(&output->drm.outputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputDrmInfoFrame)))
     {
 #if !BDBG_NO_MSG
@@ -210,6 +206,12 @@ static NEXUS_Error NEXUS_HdmiOutput_P_SetDrmInfoFrame(NEXUS_HdmiOutputHandle out
         NEXUS_HdmiOutput_P_PrintDrmInfoFrameChanges(&output->drm.outputDrmInfoFrame, pDrmInfoFrame);
 #endif
         BKNI_Memcpy(&output->drm.outputDrmInfoFrame, pDrmInfoFrame, sizeof(output->drm.outputDrmInfoFrame));
+
+        BHDM_GetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
+        NEXUS_HdmiOutput_P_DrmInfoFrame_ToMagnum(&stDRMInfoFrame, pDrmInfoFrame);
+        rc = BHDM_SetDRMInfoFramePacket(output->hdmHandle, &stDRMInfoFrame) ;
+        if (rc) { BERR_TRACE(rc); goto error; }
+
         /* notify display that we've changed drminfoframe */
         NEXUS_TaskCallback_Fire(output->notifyDisplay);  /* NEXUS_VideoOutput_P_SetHdmiSettings */
     }
@@ -261,6 +263,19 @@ static void NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(NEXUS_HdmiOutputHandle out
 {
     /* for now, we only modify the eotf */
     pDrmInfoFrame->eotf = NEXUS_HdmiOutput_P_ComputeEotf(pDrmInfoFrame->eotf, &output->drm.hdrdb);
+    if (pDrmInfoFrame->eotf == NEXUS_VideoEotf_eSdr)
+    {
+		BKNI_Memset(&pDrmInfoFrame->metadata, 0, sizeof(pDrmInfoFrame->metadata)) ;
+    }
+}
+
+static void NEXUS_HdmiOutput_P_BuildDrmInfoFrame(NEXUS_HdmiDynamicRangeMasteringInfoFrame * pTargetDrmInfoFrame, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pSourceDrmInfoFrame)
+{
+    BKNI_Memset(pTargetDrmInfoFrame, 0, sizeof(*pTargetDrmInfoFrame));
+    if (pSourceDrmInfoFrame->eotf != NEXUS_VideoEotf_eSdr)
+    {
+        BKNI_Memcpy(pTargetDrmInfoFrame, pSourceDrmInfoFrame, sizeof(*pTargetDrmInfoFrame));
+    }
 }
 
 static NEXUS_Error NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(NEXUS_HdmiOutputHandle output)
@@ -270,8 +285,7 @@ static NEXUS_Error NEXUS_HdmiOutput_P_ApplyInputDrmInfoFrame(NEXUS_HdmiOutputHan
 
     if (output->drm.inputDrmInfoFrameValid)
     {
-        /* start with copy */
-        BKNI_Memcpy(&drmInfoFrame, &output->drm.inputDrmInfoFrame, sizeof(drmInfoFrame));
+        NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->drm.inputDrmInfoFrame);
 
         /* check compat with EDID -> modify as necessary and print debug */
         NEXUS_HdmiOutput_P_DrmInfoFrame_ApplyEdid(output, &drmInfoFrame);
@@ -299,7 +313,9 @@ NEXUS_Error NEXUS_HdmiOutput_P_ApplyDrmInfoFrameSource(NEXUS_HdmiOutputHandle ou
     {
         if (output->extraSettings.overrideDynamicRangeMasteringInfoFrame) /* means we listen to what user wants and ignore edid */
         {
-            rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &output->extraSettings.dynamicRangeMasteringInfoFrame);
+            NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame;
+            NEXUS_HdmiOutput_P_BuildDrmInfoFrame(&drmInfoFrame, &output->extraSettings.dynamicRangeMasteringInfoFrame);
+            rc = NEXUS_HdmiOutput_P_SetDrmInfoFrame(output, &drmInfoFrame);
             if (rc) { BERR_TRACE(rc); goto error; }
         }
         else
@@ -366,7 +382,8 @@ error:
     return;
 }
 
-NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle output, const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
+NEXUS_Error NEXUS_HdmiOutput_SetInputDrmInfoFrame_priv(NEXUS_HdmiOutputHandle output,
+	const NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     bool changed = false;

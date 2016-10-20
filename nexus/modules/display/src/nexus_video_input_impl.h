@@ -162,6 +162,7 @@ typedef struct NEXUS_VideoInput_P_Link {
         BKNI_EventHandle inputInfoUpdatedEvent;
         NEXUS_EventCallbackHandle inputInfoUpdatedEventHandler;
     } hdrInputInfo;
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
 
     BVDC_Source_CallbackData vdcSourceCallbackData; /* keep a copy of the VDC source callback data. this is more reliable than BVDC_Source_GetInputStatus.
                                                        be sure to enter a critical section before reading multiple items from this structure. */
@@ -208,7 +209,7 @@ void NEXUS_VideoInput_P_Disconnect( NEXUS_VideoInput input );
 /* this function called after display settings were changed */
 void NEXUS_Display_P_VideoInputDisplayUpdate(
     NEXUS_DisplayHandle display, /* only set for windowless connections */
-    NEXUS_VideoWindowHandle window, 
+    NEXUS_VideoWindowHandle window,
     const NEXUS_DisplaySettings *pSettings);
 
 #if NEXUS_VBI_SUPPORT

@@ -220,6 +220,7 @@ void NEXUS_Watchdog_GetLastResetStatus(bool *pStatus)
 void NEXUS_WatchdogCallback_GetDefaultSettings( NEXUS_WatchdogCallbackSettings *pSettings )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->midpointCallback);
 }
 
 static void nexus_p_watchdog_event(void *context)

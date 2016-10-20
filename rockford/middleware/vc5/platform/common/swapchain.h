@@ -14,7 +14,7 @@ All rights reserved.
 
 #include <stdbool.h>
 
-struct SwapchainSurface
+typedef struct SwapchainSurface
 {
    BEGL_PixmapInfo   pixmap_info;
    bool              secure;
@@ -23,39 +23,39 @@ struct SwapchainSurface
    int               display_fence;
    struct list       link;
    uint8_t           native_surface[0]; /* variable size buffer */
-};
+} SwapchainSurface;
 
-struct Swapchain
+typedef struct Swapchain
 {
-   const struct FenceInterface *fence_interface;
-   const struct SurfaceInterface *surface_interface;
+   const FenceInterface *fence_interface;
+   const SurfaceInterface *surface_interface;
 
    struct queue render_queue;
    struct queue display_queue;
 
-   struct SwapchainSurface *surfaces;
-};
+   SwapchainSurface *surfaces;
+} Swapchain;
 
-bool SwapchainCreate(struct Swapchain *swapchain,
-      const struct FenceInterface *fence_interface,
-      const struct SurfaceInterface *surface_interface,
+bool SwapchainCreate(Swapchain *swapchain,
+      const FenceInterface *fence_interface,
+      const SurfaceInterface *surface_interface,
       size_t swapchain_size);
 
-void SwapchainDestroy(struct Swapchain *swapchain);
+void SwapchainDestroy(Swapchain *swapchain);
 
-void SwapchainPoison(struct Swapchain *swapchain);
+void SwapchainPoison(Swapchain *swapchain);
 
-struct SwapchainSurface *SwapchainDequeueRenderSurface(
-      struct Swapchain *swapchain, const BEGL_PixmapInfo *requested,
+SwapchainSurface *SwapchainDequeueRenderSurface(
+      Swapchain *swapchain, const BEGL_PixmapInfo *requested,
       bool secure);
 
-void SwapchainEnqueueDisplaySurface(struct Swapchain *swapchain,
-      struct SwapchainSurface *surface);
+void SwapchainEnqueueDisplaySurface(Swapchain *swapchain,
+      SwapchainSurface *surface);
 
-struct SwapchainSurface *SwapchainDequeueDisplaySurface(
-      struct Swapchain *swapchain);
+SwapchainSurface *SwapchainDequeueDisplaySurface(
+      Swapchain *swapchain);
 
-void SwapchainEnqueueRenderSurface(struct Swapchain *swapchain,
-      struct SwapchainSurface *surface);
+void SwapchainEnqueueRenderSurface(Swapchain *swapchain,
+      SwapchainSurface *surface);
 
 #endif /* __SWAPCHAIN_H__ */

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,38 +70,38 @@
 /***************************************************************************
  *GSE_0 - GSE_0 registers
  ***************************************************************************/
-#define BCHP_GSE_0_REVID                         0x206ea800 /* [RO] GSTAR Encoder Revision ID Register */
-#define BCHP_GSE_0_CONTROL                       0x206ea808 /* [RW] Control Register */
-#define BCHP_GSE_0_ACTIVE_LINE_TOP               0x206ea80c /* [RW] Top Field Active Line and Pedestal Enable Register */
-#define BCHP_GSE_0_ACTIVE_LINE_BOT               0x206ea810 /* [RW] Bottom Field Active Line and Pedestal Enable Register */
-#define BCHP_GSE_0_GAIN_TOP                      0x206ea814 /* [RW] Top Field Gain Register */
-#define BCHP_GSE_0_GAIN_EXT_TOP                  0x206ea818 /* [RW] Top Field Line5 Gain Register */
-#define BCHP_GSE_0_GAIN_BOT                      0x206ea81c /* [RW] Bottom Field Gain Register */
-#define BCHP_GSE_0_GAIN_EXT_BOT                  0x206ea820 /* [RW] Bottom Field Line5 Gain Register */
-#define BCHP_GSE_0_DATA_LINE1_BANK0              0x206ea824 /* [RW] Bank 0 Line 1 Data Register */
-#define BCHP_GSE_0_DATA_LINE2_BANK0              0x206ea828 /* [RW] Bank 0 Line 2 Data Register */
-#define BCHP_GSE_0_DATA_LINE3_BANK0              0x206ea82c /* [RW] Bank 0 Line 3 Data Register */
-#define BCHP_GSE_0_DATA_LINE4_BANK0              0x206ea830 /* [RW] Bank 0 Line 4 Data Register */
-#define BCHP_GSE_0_DATA_LINE5_BANK0              0x206ea834 /* [RW] Bank 0 Line 5 Data Register */
-#define BCHP_GSE_0_DATA_LINE1_BANK1              0x206ea838 /* [RW] Bank 1 Line 1 Data Register */
-#define BCHP_GSE_0_DATA_LINE2_BANK1              0x206ea83c /* [RW] Bank 1 Line 2 Data Register */
-#define BCHP_GSE_0_DATA_LINE3_BANK1              0x206ea840 /* [RW] Bank 1 Line 3 Data Register */
-#define BCHP_GSE_0_DATA_LINE4_BANK1              0x206ea844 /* [RW] Bank 1 Line 4 Data Register */
-#define BCHP_GSE_0_DATA_LINE5_BANK1              0x206ea848 /* [RW] Bank 1 Line 5 Data Register */
-#define BCHP_GSE_0_DATA_LINE1_BANK2              0x206ea84c /* [RW] Bank 2 Line 1 Data Register */
-#define BCHP_GSE_0_DATA_LINE2_BANK2              0x206ea850 /* [RW] Bank 2 Line 2 Data Register */
-#define BCHP_GSE_0_DATA_LINE3_BANK2              0x206ea854 /* [RW] Bank 2 Line 3 Data Register */
-#define BCHP_GSE_0_DATA_LINE4_BANK2              0x206ea858 /* [RW] Bank 2 Line 4 Data Register */
-#define BCHP_GSE_0_DATA_LINE5_BANK2              0x206ea85c /* [RW] Bank 2 Line 5 Data Register */
-#define BCHP_GSE_0_DATA_LINE1_BANK3              0x206ea860 /* [RW] Bank 3 Line 1 Data Register */
-#define BCHP_GSE_0_DATA_LINE2_BANK3              0x206ea864 /* [RW] Bank 3 Line 2 Data Register */
-#define BCHP_GSE_0_DATA_LINE3_BANK3              0x206ea868 /* [RW] Bank 3 Line 3 Data Register */
-#define BCHP_GSE_0_DATA_LINE4_BANK3              0x206ea86c /* [RW] Bank 3 Line 4 Data Register */
-#define BCHP_GSE_0_DATA_LINE5_BANK3              0x206ea870 /* [RW] Bank 3 Line 5 Data Register */
-#define BCHP_GSE_0_NULL                          0x206ea874 /* [RW] NULL Register */
-#define BCHP_GSE_0_WRPTR                         0x206ea878 /* [RW] Write Pointer Register */
-#define BCHP_GSE_0_RDPTR                         0x206ea87c /* [RW] Read Pointer Register */
-#define BCHP_GSE_0_STATUS                        0x206ea880 /* [RW] Status Register */
+#define BCHP_GSE_0_REVID                         0x206ea800 /* [RO][32] GSTAR Encoder Revision ID Register */
+#define BCHP_GSE_0_CONTROL                       0x206ea808 /* [RW][32] Control Register */
+#define BCHP_GSE_0_ACTIVE_LINE_TOP               0x206ea80c /* [RW][32] Top Field Active Line and Pedestal Enable Register */
+#define BCHP_GSE_0_ACTIVE_LINE_BOT               0x206ea810 /* [RW][32] Bottom Field Active Line and Pedestal Enable Register */
+#define BCHP_GSE_0_GAIN_TOP                      0x206ea814 /* [RW][32] Top Field Gain Register */
+#define BCHP_GSE_0_GAIN_EXT_TOP                  0x206ea818 /* [RW][32] Top Field Line5 Gain Register */
+#define BCHP_GSE_0_GAIN_BOT                      0x206ea81c /* [RW][32] Bottom Field Gain Register */
+#define BCHP_GSE_0_GAIN_EXT_BOT                  0x206ea820 /* [RW][32] Bottom Field Line5 Gain Register */
+#define BCHP_GSE_0_DATA_LINE1_BANK0              0x206ea824 /* [RW][32] Bank 0 Line 1 Data Register */
+#define BCHP_GSE_0_DATA_LINE2_BANK0              0x206ea828 /* [RW][32] Bank 0 Line 2 Data Register */
+#define BCHP_GSE_0_DATA_LINE3_BANK0              0x206ea82c /* [RW][32] Bank 0 Line 3 Data Register */
+#define BCHP_GSE_0_DATA_LINE4_BANK0              0x206ea830 /* [RW][32] Bank 0 Line 4 Data Register */
+#define BCHP_GSE_0_DATA_LINE5_BANK0              0x206ea834 /* [RW][32] Bank 0 Line 5 Data Register */
+#define BCHP_GSE_0_DATA_LINE1_BANK1              0x206ea838 /* [RW][32] Bank 1 Line 1 Data Register */
+#define BCHP_GSE_0_DATA_LINE2_BANK1              0x206ea83c /* [RW][32] Bank 1 Line 2 Data Register */
+#define BCHP_GSE_0_DATA_LINE3_BANK1              0x206ea840 /* [RW][32] Bank 1 Line 3 Data Register */
+#define BCHP_GSE_0_DATA_LINE4_BANK1              0x206ea844 /* [RW][32] Bank 1 Line 4 Data Register */
+#define BCHP_GSE_0_DATA_LINE5_BANK1              0x206ea848 /* [RW][32] Bank 1 Line 5 Data Register */
+#define BCHP_GSE_0_DATA_LINE1_BANK2              0x206ea84c /* [RW][32] Bank 2 Line 1 Data Register */
+#define BCHP_GSE_0_DATA_LINE2_BANK2              0x206ea850 /* [RW][32] Bank 2 Line 2 Data Register */
+#define BCHP_GSE_0_DATA_LINE3_BANK2              0x206ea854 /* [RW][32] Bank 2 Line 3 Data Register */
+#define BCHP_GSE_0_DATA_LINE4_BANK2              0x206ea858 /* [RW][32] Bank 2 Line 4 Data Register */
+#define BCHP_GSE_0_DATA_LINE5_BANK2              0x206ea85c /* [RW][32] Bank 2 Line 5 Data Register */
+#define BCHP_GSE_0_DATA_LINE1_BANK3              0x206ea860 /* [RW][32] Bank 3 Line 1 Data Register */
+#define BCHP_GSE_0_DATA_LINE2_BANK3              0x206ea864 /* [RW][32] Bank 3 Line 2 Data Register */
+#define BCHP_GSE_0_DATA_LINE3_BANK3              0x206ea868 /* [RW][32] Bank 3 Line 3 Data Register */
+#define BCHP_GSE_0_DATA_LINE4_BANK3              0x206ea86c /* [RW][32] Bank 3 Line 4 Data Register */
+#define BCHP_GSE_0_DATA_LINE5_BANK3              0x206ea870 /* [RW][32] Bank 3 Line 5 Data Register */
+#define BCHP_GSE_0_NULL                          0x206ea874 /* [RW][32] NULL Register */
+#define BCHP_GSE_0_WRPTR                         0x206ea878 /* [RW][32] Write Pointer Register */
+#define BCHP_GSE_0_RDPTR                         0x206ea87c /* [RW][32] Read Pointer Register */
+#define BCHP_GSE_0_STATUS                        0x206ea880 /* [RW][32] Status Register */
 
 /***************************************************************************
  *REVID - GSTAR Encoder Revision ID Register

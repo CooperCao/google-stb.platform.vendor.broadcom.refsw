@@ -40,6 +40,7 @@
 
 /* for all drop tables */
 #define BVDC_P_MAKE_DROPTBL(t)
+#define BVDC_P_HAS_MAKE_DROPTBL 0
 
 /* for BVDC_P_aFormatInfoTable */
 #define BVDC_P_MAKE_FMTINFO_1(fmt, bHD, bED, bSD, bVESA, bProg, bMacVin, bDCS, bHDMI, bUseDropTbl, SavRmv, SavRp, EavPrd) \

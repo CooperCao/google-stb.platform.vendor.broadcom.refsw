@@ -1087,7 +1087,7 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             BDBG_MSG(("MEMC%d BMEM %uMBytes(%u) at " BDBG_UINT64_FMT, NEXUS_Platform_P_GetMemcForRange(info, info->bmem.range[i].addr, info->bmem.range[i].size), (unsigned)(info->bmem.range[i].size/(1024*1024)), (unsigned)info->bmem.range[i].size, BDBG_UINT64_ARG(info->bmem.range[i].addr)));
             for(j=0;j<info->lowmem.count;j++) {
                 if(NEXUS_Platform_P_RangeTestIntersect(&info->lowmem.range[j], info->bmem.range[i].addr, info->bmem.range[i].size)) {
-                    BDBG_ERR(("MEMC%d BMEM %uMBytes(%u) at " BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT, NEXUS_Platform_P_GetMemcForRange(info, info->bmem.range[i].addr, info->lowmem.range[i].size), (unsigned)(info->bmem.range[i].size/(1024*1024)), (unsigned)info->bmem.range[i].size, BDBG_UINT64_ARG(info->bmem.range[i].addr), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
+                    BDBG_ERR(("MEMC%d BMEM %uMBytes(%u) at " BDBG_UINT64_FMT " intersects with lowmem %uMBytes(%u) at " BDBG_UINT64_FMT, NEXUS_Platform_P_GetMemcForRange(info, info->bmem.range[i].addr, info->bmem.range[i].size), (unsigned)(info->bmem.range[i].size/(1024*1024)), (unsigned)info->bmem.range[i].size, BDBG_UINT64_ARG(info->bmem.range[i].addr), (unsigned)(info->lowmem.range[j].size/(1024*1024)), (unsigned)info->lowmem.range[j].size, BDBG_UINT64_ARG(info->lowmem.range[j].addr)));
                 }
             }
         }
@@ -1186,5 +1186,32 @@ void NEXUS_Platform_P_FreeCma(const NEXUS_PlatformMemory *pMemory, unsigned memc
     if (!cma_dev) {BERR_TRACE(-1); return;}
 
     (void)cma_dev_put_mem(cma_dev, addr, size);
+}
+
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
+{
+    NEXUS_Error rc;
+    nexus_p_memory_info info;
+    unsigned i, j;
+
+    rc = NEXUS_Platform_P_GetMemoryInfo(&info);
+    if (rc) {
+        BCHP_MemoryInfo memoryInfo;
+        BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &memoryInfo);
+        /* Running on Linux 3.14-1.7 and earlier (no bmem) requires emulating Linux's report of memory layout. */
+        BKNI_Memset(&info, 0, sizeof(info));
+        info.memc[0].range[0].size = memoryInfo.memc[0].size;
+    }
+
+    BDBG_CASSERT(BCHP_MAX_MEMC_REGIONS <= NEXUS_NUM_MEMC_REGIONS);
+    BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
+    for (i=0;i<NEXUS_MAX_MEMC;i++) {
+        for (j=0;j<BCHP_MAX_MEMC_REGIONS && j<(unsigned)info.memc[i].count;j++) {
+            pMemory->memc[i].region[j].addr = info.memc[i].range[j].addr;
+            pMemory->memc[i].region[j].size = info.memc[i].range[j].size;
+            pMemory->memc[i].size += info.memc[i].range[j].size;
+        }
+    }
+    return NEXUS_SUCCESS;
 }
 #endif /* NEXUS_USE_CMA */

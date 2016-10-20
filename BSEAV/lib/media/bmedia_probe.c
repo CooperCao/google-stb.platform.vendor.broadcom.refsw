@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2007-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -339,8 +339,8 @@ b_media_probe_filter_type(bool *valid_probes, bstream_mpeg_type type)
 
 static int b_media_strlen(const char *s) {
     const char *t=s;
-	while (*t) { t++; }
-	return t-s;
+    while (*t) { t++; }
+    return t-s;
 }
 
 typedef struct b_snprintf_buf {
@@ -541,6 +541,7 @@ bmedia_stream_to_string(const bmedia_probe_stream *stream, char *dest_buf, size_
             case baudio_format_mlp: format="MLP";break;
             case baudio_format_opus: format="OPUS";break;
             case baudio_format_als: format="ALS";break;
+            case baudio_format_als_loas: format="ALS LOAS";break;
             case baudio_format_ac4: format="AC4"; break;
             }
 
@@ -855,36 +856,36 @@ b_media_probe_feed_es(bmedia_probe_t probe, const char *ext, bfile_buffer_t buf)
 static void
 b_media_probe_parse_aux(bmedia_probe_t probe, bmedia_probe_stream *stream, const bmedia_probe_format_desc *media_probe, bfile_buffer_t buf, const bmedia_probe_parser_config  *parser_config, const bmedia_probe_config *probe_config)
 {
-	bmedia_probe_stream *stream_aux;
-	unsigned i;
+    bmedia_probe_stream *stream_aux;
+    unsigned i;
 
-	for(i=0;i<B_MEDIA_N_PROBES ;i++) {
-		if(b_media_probe_formats[i] == media_probe) {
-			bmedia_probe_track *track_aux, *track;
-			struct bmedia_probe_track_list extra_tracks;	
+    for(i=0;i<B_MEDIA_N_PROBES ;i++) {
+        if(b_media_probe_formats[i] == media_probe) {
+            bmedia_probe_track *track_aux, *track;
+            struct bmedia_probe_track_list extra_tracks;
 
-			BLST_SQ_INIT(&extra_tracks);
+            BLST_SQ_INIT(&extra_tracks);
 
-			if(!probe->probes[i]) {
-				probe->probes[i]= b_media_probe_formats[i]->create(probe->factory);
-				if(!probe->probes[i]) {
-					BDBG_WRN(("b_media_probe_parse_aux: %#lx can't create probe for stream type %u", (unsigned long)probe, b_media_probe_formats[i]->type));
-					break;
-				}
-			}
-			stream_aux = (bmedia_probe_stream *)media_probe->parse(probe->probes[i], buf, probe->pipe, parser_config);
-			if(stream_aux && stream_aux->type == stream->type) {
-				if(stream->duration==0) {
-					stream->duration = stream_aux->duration;
-				}
-				if(stream->max_bitrate==0) {
-					stream->max_bitrate = stream_aux->max_bitrate;
-				}
-				
-				while(NULL!=(track_aux=BLST_SQ_FIRST(&stream_aux->tracks))) {
-					bool match_found=false;
-					
-					BLST_SQ_REMOVE_HEAD(&stream_aux->tracks, link);				
+            if(!probe->probes[i]) {
+                probe->probes[i]= b_media_probe_formats[i]->create(probe->factory);
+                if(!probe->probes[i]) {
+                    BDBG_WRN(("b_media_probe_parse_aux: %#lx can't create probe for stream type %u", (unsigned long)probe, b_media_probe_formats[i]->type));
+                    break;
+                }
+            }
+            stream_aux = (bmedia_probe_stream *)media_probe->parse(probe->probes[i], buf, probe->pipe, parser_config);
+            if(stream_aux && stream_aux->type == stream->type) {
+                if(stream->duration==0) {
+                    stream->duration = stream_aux->duration;
+                }
+                if(stream->max_bitrate==0) {
+                    stream->max_bitrate = stream_aux->max_bitrate;
+                }
+
+                while(NULL!=(track_aux=BLST_SQ_FIRST(&stream_aux->tracks))) {
+                    bool match_found=false;
+
+                    BLST_SQ_REMOVE_HEAD(&stream_aux->tracks, link);
 
                     for(track=BLST_SQ_FIRST(&stream->tracks);track;track=BLST_SQ_NEXT(track, link)) {
                         bool matched = track->number == track_aux->number;
@@ -941,42 +942,42 @@ b_media_probe_parse_aux(bmedia_probe_t probe, bmedia_probe_stream *stream, const
                                     match_found=true;
                                     found_info=true;
                                     break;
-								case bmedia_track_type_pcr:
-									/* fall through */
-								default: 
-								  	match_found=true;
-								  	break;
-								}
-								if(found_info) {
-									break;
-								}
-							} else if (track_aux->type == bmedia_track_type_other) { /* other track matches any type */
+                                case bmedia_track_type_pcr:
+                                    /* fall through */
+                                default:
+                                    match_found=true;
+                                    break;
+                                }
+                                if(found_info) {
+                                    break;
+                                }
+                            } else if (track_aux->type == bmedia_track_type_other) { /* other track matches any type */
                                 match_found=true;
                             }
-						} 
-					}
-					
-					if(!match_found){
-						BLST_SQ_INSERT_HEAD(&extra_tracks, track_aux, link);
-					} else {
-						BKNI_Free(track_aux);
-					}
-				}
-				
-				/* copy extra tracks */
-				while(NULL!=(track_aux=BLST_SQ_FIRST(&extra_tracks))) {
-					BLST_SQ_REMOVE_HEAD(&extra_tracks,link);
-					track_aux->program = BMEDIA_PROBE_INVALID_PROGRAM;
-                    track_aux->probe_id = stream->probe_id;
-					BLST_SQ_INSERT_TAIL(&stream->tracks, track_aux, link);
-				}
+                        }
+                    }
 
-				b_media_probe_formats[i]->stream_free(probe->probes[i], (bmedia_probe_stream *)stream_aux);
-			}
-			break;
-		}
-	}
-	return;
+                    if(!match_found){
+                        BLST_SQ_INSERT_HEAD(&extra_tracks, track_aux, link);
+                    } else {
+                        BKNI_Free(track_aux);
+                    }
+                }
+
+                /* copy extra tracks */
+                while(NULL!=(track_aux=BLST_SQ_FIRST(&extra_tracks))) {
+                    BLST_SQ_REMOVE_HEAD(&extra_tracks,link);
+                    track_aux->program = BMEDIA_PROBE_INVALID_PROGRAM;
+                    track_aux->probe_id = stream->probe_id;
+                    BLST_SQ_INSERT_TAIL(&stream->tracks, track_aux, link);
+                }
+
+                b_media_probe_formats[i]->stream_free(probe->probes[i], (bmedia_probe_stream *)stream_aux);
+            }
+            break;
+        }
+    }
+    return;
 }
 
 #define B_MEDIA_PROBE_TIMESTAMP_STEP    (4*1024*1024)
@@ -1375,12 +1376,12 @@ b_media_probe_parse_step(bmedia_probe_t probe, bfile_io_read_t fd, bfile_buffer_
                                 }
                             }
                         }
-			            if(stream->type == bstream_mpeg_type_pes || stream->type == bstream_mpeg_type_vob){
-			                const bmedia_probe_track *track;		
-			                for(track=BLST_SQ_FIRST(&stream->tracks); track; track=BLST_SQ_NEXT(track, link)) {
-			                    if(track->type == bmedia_track_type_video) {
-				                    ((bmedia_probe_stream *)stream)->index = bmedia_probe_index_self;
-				                    break;
+                        if(stream->type == bstream_mpeg_type_pes || stream->type == bstream_mpeg_type_vob){
+                            const bmedia_probe_track *track;
+                            for(track=BLST_SQ_FIRST(&stream->tracks); track; track=BLST_SQ_NEXT(track, link)) {
+                                if(track->type == bmedia_track_type_video) {
+                                    ((bmedia_probe_stream *)stream)->index = bmedia_probe_index_self;
+                                    break;
                                 }
                             }
                         }

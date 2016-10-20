@@ -51,7 +51,7 @@
 #endif
 
 struct NEXUS_SimpleAudioDecoder_P_CodecSettings {
-    NEXUS_AudioDecoderCodecSettings codecSettings[NEXUS_AudioCodec_eMax];
+    NEXUS_AudioDecoderCodecSettings *codecSettings[NEXUS_AudioCodec_eMax];
 };
 
 struct NEXUS_SimpleAudioDecoder_P_CodecSettingsDecoder {

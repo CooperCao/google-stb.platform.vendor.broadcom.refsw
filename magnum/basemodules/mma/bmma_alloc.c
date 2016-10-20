@@ -202,6 +202,7 @@ static void BMMA_P_Lock(BMMA_Heap_Handle h)
     BDBG_OBJECT_ASSERT(h->parent, BMMA_Allocator);
     rc = BKNI_AcquireMutex(h->parent->lock);
     BDBG_ASSERT(rc==BERR_SUCCESS);
+    BSTD_UNUSED (rc);
     return;
 }
 
@@ -854,7 +855,6 @@ static bool BMMA_Heap_P_DumpHeap_IteratorAllocated(void *context, void *header, 
         BMMA_DeviceOffset offset = BMMA_RangeAllocator_GetAllocationBase(b->block);
         size_t size = BMMA_RangeAllocator_GetAllocationSize(b->block);
         BDBG_MODULE_LOG(BMEM_ALLOCATED, ("" BDBG_UINT64_FMT ",%-8u,%s:%u,%u%s", BDBG_UINT64_ARG(offset),(unsigned)size, b->fname, b->line, (unsigned)(b->lock_offset_cnt),b->discardable?",discardable":"" ));
-        BDBG_MODULE_MSG(BMEM_ALLOCATED, ("" BDBG_UINT64_FMT ",%-8u,%s:%u,%u%s", BDBG_UINT64_ARG(region->base),(unsigned)region->length, b->fname, b->line, (unsigned)(b->lock_offset_cnt),b->discardable?".discardable":"" ));
     }
 #endif
     return true;

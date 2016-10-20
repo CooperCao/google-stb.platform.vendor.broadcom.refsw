@@ -65,6 +65,7 @@ BDBG_OBJECT_ID(BVDC_DNR);
     (pDnr)->ulVnetResetMask = BCHP_##channel_init##_DNR_##id##_MASK;            \
     (pDnr)->ulVnetMuxAddr   = BCHP_VNET_F_DNR_##id##_SRC;                       \
     (pDnr)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_DNR_##id;            \
+    (pDnr)->ulRegOffset     = BCHP_DNR_##id##_REG_START - BCHP_DNR_0_REG_START; \
 }
 
 
@@ -112,7 +113,6 @@ BERR_Code BVDC_P_Dnr_Create
     /* DNR reset address */
     switch(eDnrId)
     {
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     case BVDC_P_DnrId_eDnr0:
         BVDC_P_MAKE_DNR(pDnr, MMISC_SW_INIT,  0, MMISC_VNET_B_CHANNEL_SW_INIT);
         BSTD_UNUSED(ulDnrIdx);
@@ -120,22 +120,6 @@ BERR_Code BVDC_P_Dnr_Create
 #if (BVDC_P_SUPPORT_DNR > 1)
     case BVDC_P_DnrId_eDnr1:
         BVDC_P_MAKE_DNR(pDnr, MMISC_SW_INIT,  1, MMISC_VNET_B_CHANNEL_SW_INIT);
-        break;
-#endif
-#else
-    case BVDC_P_DnrId_eDnr0:
-    case BVDC_P_DnrId_eDnr1:
-        pDnr->ulResetRegAddr = BCHP_MMISC_SOFT_RESET;
-        pDnr->ulResetMask    = BCHP_MMISC_SOFT_RESET_DNR_0_MASK << (ulDnrIdx);
-        pDnr->ulVnetMuxAddr  = BCHP_VNET_F_DNR_0_SRC + ((uint32_t)eDnrId) * sizeof(uint32_t);
-        pDnr->ulVnetMuxValue =
-            (eDnrId == BVDC_P_DnrId_eDnr0)?
-            BCHP_VNET_B_CAP_0_SRC_SOURCE_DNR_0 :
-            BCHP_VNET_B_CAP_0_SRC_SOURCE_DNR_1;
-#if BCHP_MMISC_VNET_B_CHANNEL_RESET
-        pDnr->ulVnetResetAddr = BCHP_MMISC_VNET_B_CHANNEL_RESET;
-        pDnr->ulVnetResetMask = BCHP_MMISC_VNET_B_CHANNEL_RESET_DNR_0_RESET_MASK << (ulDnrIdx);
-#endif
         break;
 #endif
 #if (BVDC_P_SUPPORT_DNR > 2)
@@ -164,7 +148,6 @@ BERR_Code BVDC_P_Dnr_Create
         break;
     }
 
-    pDnr->ulRegOffset = BVDC_P_DNR_GET_REG_OFFSET(eDnrId);
 
 #if BCHP_DNR_0_HW_CONFIGURATION_DNR_CORE_MASK
     ulReg = BREG_Read32(hRegister, BCHP_DNR_0_HW_CONFIGURATION + pDnr->ulRegOffset);

@@ -180,6 +180,24 @@ const BBOX_Vce_Capabilities BBOX_P_Vce_CapabilitiesLUT[] =
          BBOX_VCE_CHANNEL_INFO_720p60( 0, 0x3, 0 ),
       },
    },
+   /* Box Mode: 26 (No Transcode) */
+   { 26,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
+      },
+   },
+   /* Box Mode: 27 (1080p30x2) */
+   { 27,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_1080p30( 0, 0x3, 0 ),
+      },
+   },
+   /* Box Mode: 28 (No Transcode) */
+   { 28,
+      { /* Instance Array */
+         BBOX_VCE_CHANNEL_INFO_NO_TRANSCODE( 0, 0x0, 0 ),
+      },
+   },
 };
 
 const size_t BBOX_P_Vce_CapabilitiesLUT_size = sizeof( BBOX_P_Vce_CapabilitiesLUT );

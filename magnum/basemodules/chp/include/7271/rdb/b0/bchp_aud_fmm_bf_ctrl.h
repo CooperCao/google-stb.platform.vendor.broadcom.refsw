@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,366 +70,366 @@
 /***************************************************************************
  *AUD_FMM_BF_CTRL - Audio BF Control
  ***************************************************************************/
-#define BCHP_AUD_FMM_BF_CTRL_MISC_CONFIG         0x20ca01b0 /* [RW] BF Misc Configuration */
-#define BCHP_AUD_FMM_BF_CTRL_BLOCKCNT_RESET_PERIOD 0x20ca01b4 /* [RW] Block Counter reset period */
-#define BCHP_AUD_FMM_BF_CTRL_FIFO_RW_ADDR_SEL    0x20ca01b8 /* [RW] SRC/DST FIFO Read/Write Address Select */
-#define BCHP_AUD_FMM_BF_CTRL_FIFO_RW_ADDR        0x20ca01bc /* [RO] SRC/DST FIFO Read/Write Address Status */
-#define BCHP_AUD_FMM_BF_CTRL_FIFO_FLOWON_STAT    0x20ca01c0 /* [RO] Source FIFO Flow-on Status */
-#define BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_CNT_ZERO_STAT 0x20ca0214 /* [RO] Repeat or Drop Read Counter to zero */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCEFIFO_RD_REPEATORDROP_STAT 0x20ca0218 /* [RO] Source FIFO Read Repeat or Drop Read Status */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_BEGIN 0x20ca021c /* [RO] Source Channel Group Begin Status */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_ENABLE 0x20ca0220 /* [RO] Source Channel Group Enable Status */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_FLOWON 0x20ca0224 /* [RO] Source Channel Group Flowon Status */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_SYNC_DIS 0x20ca0228 /* [RW] Source Channel Group Sync Disable */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_DMA_ON 0x20ca022c /* [RO] Source Channel Group DMA On Status */
-#define BCHP_AUD_FMM_BF_CTRL_DMA_READ_REQUEST    0x20ca0230 /* [RO] DMA Read Request Status */
-#define BCHP_AUD_FMM_BF_CTRL_DMA_WRITE_REQUEST   0x20ca0234 /* [RO] DMA Write Request Status */
-#define BCHP_AUD_FMM_BF_CTRL_DMA_STATUS          0x20ca0238 /* [RO] DMA Status */
-#define BCHP_AUD_FMM_BF_CTRL_FREE_MARK_TRIG_STATE 0x20ca023c /* [RO] Free Mark Interrupt Trigger State */
-#define BCHP_AUD_FMM_BF_CTRL_FULL_MARK_TRIG_STATE 0x20ca0240 /* [RO] Full Mark Interrupt Trigger State */
-#define BCHP_AUD_FMM_BF_CTRL_REARM_FREE_MARK     0x20ca0244 /* [WO] Re-Arm Free Mark Interrupt */
-#define BCHP_AUD_FMM_BF_CTRL_REARM_FULL_MARK     0x20ca0248 /* [WO] Re-Arm Free Mark Interrupt */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_CLIENTPAIR_FLAGS 0x20ca024c /* [RO] Source Channel DMA Client Pair Error Flags */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_CLIENTPAIR_FLAGS 0x20ca0250 /* [RO] Destination Channel DMA Client Pair Error Flags */
-#define BCHP_AUD_FMM_BF_CTRL_CLIENTPAIR_STATUS   0x20ca0254 /* [RO] DMA Client Pair Error Status */
-#define BCHP_AUD_FMM_BF_CTRL_CLIENTPAIR_REARM    0x20ca0258 /* [WO] DMA Client Pair Re-Arm */
-#define BCHP_AUD_FMM_BF_CTRL_SCB_BRIDGE_STATUS   0x20ca025c /* [RO] SCB Bridge Status */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR 0x20ca0800 /* [RW] Source Channel Ring Buffer 0 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR 0x20ca0804 /* [RW] Source Channel Ring Buffer 0 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_BASEADDR 0x20ca0808 /* [RW] Source Channel Ring Buffer 0 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_ENDADDR 0x20ca080c /* [RW] Source Channel Ring Buffer 0 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FREE_MARK 0x20ca0810 /* [RW] Source Channel Ring Buffer 0 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_START_WRPOINT 0x20ca0814 /* [RW] Source Channel Ring Buffer 0 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_RDADDR 0x20ca0818 /* [RW] Source Channel Ring Buffer 1 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_WRADDR 0x20ca081c /* [RW] Source Channel Ring Buffer 1 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_BASEADDR 0x20ca0820 /* [RW] Source Channel Ring Buffer 1 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_ENDADDR 0x20ca0824 /* [RW] Source Channel Ring Buffer 1 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_FREE_MARK 0x20ca0828 /* [RW] Source Channel Ring Buffer 1 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_START_WRPOINT 0x20ca082c /* [RW] Source Channel Ring Buffer 1 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_RDADDR 0x20ca0830 /* [RW] Source Channel Ring Buffer 2 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_WRADDR 0x20ca0834 /* [RW] Source Channel Ring Buffer 2 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_BASEADDR 0x20ca0838 /* [RW] Source Channel Ring Buffer 2 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_ENDADDR 0x20ca083c /* [RW] Source Channel Ring Buffer 2 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_FREE_MARK 0x20ca0840 /* [RW] Source Channel Ring Buffer 2 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_START_WRPOINT 0x20ca0844 /* [RW] Source Channel Ring Buffer 2 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_RDADDR 0x20ca0848 /* [RW] Source Channel Ring Buffer 3 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_WRADDR 0x20ca084c /* [RW] Source Channel Ring Buffer 3 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_BASEADDR 0x20ca0850 /* [RW] Source Channel Ring Buffer 3 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_ENDADDR 0x20ca0854 /* [RW] Source Channel Ring Buffer 3 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_FREE_MARK 0x20ca0858 /* [RW] Source Channel Ring Buffer 3 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_START_WRPOINT 0x20ca085c /* [RW] Source Channel Ring Buffer 3 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_RDADDR 0x20ca0860 /* [RW] Source Channel Ring Buffer 4 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_WRADDR 0x20ca0864 /* [RW] Source Channel Ring Buffer 4 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_BASEADDR 0x20ca0868 /* [RW] Source Channel Ring Buffer 4 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_ENDADDR 0x20ca086c /* [RW] Source Channel Ring Buffer 4 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_FREE_MARK 0x20ca0870 /* [RW] Source Channel Ring Buffer 4 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_START_WRPOINT 0x20ca0874 /* [RW] Source Channel Ring Buffer 4 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_RDADDR 0x20ca0878 /* [RW] Source Channel Ring Buffer 5 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_WRADDR 0x20ca087c /* [RW] Source Channel Ring Buffer 5 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_BASEADDR 0x20ca0880 /* [RW] Source Channel Ring Buffer 5 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_ENDADDR 0x20ca0884 /* [RW] Source Channel Ring Buffer 5 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_FREE_MARK 0x20ca0888 /* [RW] Source Channel Ring Buffer 5 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_START_WRPOINT 0x20ca088c /* [RW] Source Channel Ring Buffer 5 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_RDADDR 0x20ca0890 /* [RW] Source Channel Ring Buffer 6 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_WRADDR 0x20ca0894 /* [RW] Source Channel Ring Buffer 6 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_BASEADDR 0x20ca0898 /* [RW] Source Channel Ring Buffer 6 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_ENDADDR 0x20ca089c /* [RW] Source Channel Ring Buffer 6 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_FREE_MARK 0x20ca08a0 /* [RW] Source Channel Ring Buffer 6 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_START_WRPOINT 0x20ca08a4 /* [RW] Source Channel Ring Buffer 6 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_RDADDR 0x20ca08a8 /* [RW] Source Channel Ring Buffer 7 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_WRADDR 0x20ca08ac /* [RW] Source Channel Ring Buffer 7 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_BASEADDR 0x20ca08b0 /* [RW] Source Channel Ring Buffer 7 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_ENDADDR 0x20ca08b4 /* [RW] Source Channel Ring Buffer 7 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_FREE_MARK 0x20ca08b8 /* [RW] Source Channel Ring Buffer 7 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_START_WRPOINT 0x20ca08bc /* [RW] Source Channel Ring Buffer 7 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_RDADDR 0x20ca08c0 /* [RW] Source Channel Ring Buffer 8 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_WRADDR 0x20ca08c4 /* [RW] Source Channel Ring Buffer 8 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_BASEADDR 0x20ca08c8 /* [RW] Source Channel Ring Buffer 8 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_ENDADDR 0x20ca08cc /* [RW] Source Channel Ring Buffer 8 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_FREE_MARK 0x20ca08d0 /* [RW] Source Channel Ring Buffer 8 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_START_WRPOINT 0x20ca08d4 /* [RW] Source Channel Ring Buffer 8 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_RDADDR 0x20ca08d8 /* [RW] Source Channel Ring Buffer 9 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_WRADDR 0x20ca08dc /* [RW] Source Channel Ring Buffer 9 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_BASEADDR 0x20ca08e0 /* [RW] Source Channel Ring Buffer 9 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_ENDADDR 0x20ca08e4 /* [RW] Source Channel Ring Buffer 9 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_FREE_MARK 0x20ca08e8 /* [RW] Source Channel Ring Buffer 9 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_START_WRPOINT 0x20ca08ec /* [RW] Source Channel Ring Buffer 9 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_RDADDR 0x20ca08f0 /* [RW] Source Channel Ring Buffer 10 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_WRADDR 0x20ca08f4 /* [RW] Source Channel Ring Buffer 10 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_BASEADDR 0x20ca08f8 /* [RW] Source Channel Ring Buffer 10 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_ENDADDR 0x20ca08fc /* [RW] Source Channel Ring Buffer 10 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_FREE_MARK 0x20ca0900 /* [RW] Source Channel Ring Buffer 10 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_START_WRPOINT 0x20ca0904 /* [RW] Source Channel Ring Buffer 10 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_RDADDR 0x20ca0908 /* [RW] Source Channel Ring Buffer 11 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_WRADDR 0x20ca090c /* [RW] Source Channel Ring Buffer 11 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_BASEADDR 0x20ca0910 /* [RW] Source Channel Ring Buffer 11 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_ENDADDR 0x20ca0914 /* [RW] Source Channel Ring Buffer 11 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_FREE_MARK 0x20ca0918 /* [RW] Source Channel Ring Buffer 11 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_START_WRPOINT 0x20ca091c /* [RW] Source Channel Ring Buffer 11 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_RDADDR 0x20ca0920 /* [RW] Source Channel Ring Buffer 12 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_WRADDR 0x20ca0924 /* [RW] Source Channel Ring Buffer 12 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_BASEADDR 0x20ca0928 /* [RW] Source Channel Ring Buffer 12 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_ENDADDR 0x20ca092c /* [RW] Source Channel Ring Buffer 12 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_FREE_MARK 0x20ca0930 /* [RW] Source Channel Ring Buffer 12 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_START_WRPOINT 0x20ca0934 /* [RW] Source Channel Ring Buffer 12 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_RDADDR 0x20ca0938 /* [RW] Source Channel Ring Buffer 13 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_WRADDR 0x20ca093c /* [RW] Source Channel Ring Buffer 13 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_BASEADDR 0x20ca0940 /* [RW] Source Channel Ring Buffer 13 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_ENDADDR 0x20ca0944 /* [RW] Source Channel Ring Buffer 13 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_FREE_MARK 0x20ca0948 /* [RW] Source Channel Ring Buffer 13 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_START_WRPOINT 0x20ca094c /* [RW] Source Channel Ring Buffer 13 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_RDADDR 0x20ca0950 /* [RW] Source Channel Ring Buffer 14 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_WRADDR 0x20ca0954 /* [RW] Source Channel Ring Buffer 14 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_BASEADDR 0x20ca0958 /* [RW] Source Channel Ring Buffer 14 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_ENDADDR 0x20ca095c /* [RW] Source Channel Ring Buffer 14 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_FREE_MARK 0x20ca0960 /* [RW] Source Channel Ring Buffer 14 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_START_WRPOINT 0x20ca0964 /* [RW] Source Channel Ring Buffer 14 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_RDADDR 0x20ca0968 /* [RW] Source Channel Ring Buffer 15 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_WRADDR 0x20ca096c /* [RW] Source Channel Ring Buffer 15 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_BASEADDR 0x20ca0970 /* [RW] Source Channel Ring Buffer 15 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_ENDADDR 0x20ca0974 /* [RW] Source Channel Ring Buffer 15 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_FREE_MARK 0x20ca0978 /* [RW] Source Channel Ring Buffer 15 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_START_WRPOINT 0x20ca097c /* [RW] Source Channel Ring Buffer 15 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_RDADDR 0x20ca0980 /* [RW] Source Channel Ring Buffer 16 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_WRADDR 0x20ca0984 /* [RW] Source Channel Ring Buffer 16 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_BASEADDR 0x20ca0988 /* [RW] Source Channel Ring Buffer 16 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_ENDADDR 0x20ca098c /* [RW] Source Channel Ring Buffer 16 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_FREE_MARK 0x20ca0990 /* [RW] Source Channel Ring Buffer 16 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_START_WRPOINT 0x20ca0994 /* [RW] Source Channel Ring Buffer 16 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_RDADDR 0x20ca0998 /* [RW] Source Channel Ring Buffer 17 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_WRADDR 0x20ca099c /* [RW] Source Channel Ring Buffer 17 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_BASEADDR 0x20ca09a0 /* [RW] Source Channel Ring Buffer 17 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_ENDADDR 0x20ca09a4 /* [RW] Source Channel Ring Buffer 17 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_FREE_MARK 0x20ca09a8 /* [RW] Source Channel Ring Buffer 17 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_START_WRPOINT 0x20ca09ac /* [RW] Source Channel Ring Buffer 17 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_RDADDR 0x20ca09b0 /* [RW] Source Channel Ring Buffer 18 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_WRADDR 0x20ca09b4 /* [RW] Source Channel Ring Buffer 18 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_BASEADDR 0x20ca09b8 /* [RW] Source Channel Ring Buffer 18 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_ENDADDR 0x20ca09bc /* [RW] Source Channel Ring Buffer 18 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_FREE_MARK 0x20ca09c0 /* [RW] Source Channel Ring Buffer 18 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_START_WRPOINT 0x20ca09c4 /* [RW] Source Channel Ring Buffer 18 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_RDADDR 0x20ca09c8 /* [RW] Source Channel Ring Buffer 19 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_WRADDR 0x20ca09cc /* [RW] Source Channel Ring Buffer 19 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_BASEADDR 0x20ca09d0 /* [RW] Source Channel Ring Buffer 19 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_ENDADDR 0x20ca09d4 /* [RW] Source Channel Ring Buffer 19 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_FREE_MARK 0x20ca09d8 /* [RW] Source Channel Ring Buffer 19 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_START_WRPOINT 0x20ca09dc /* [RW] Source Channel Ring Buffer 19 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_RDADDR 0x20ca09e0 /* [RW] Source Channel Ring Buffer 20 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_WRADDR 0x20ca09e4 /* [RW] Source Channel Ring Buffer 20 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_BASEADDR 0x20ca09e8 /* [RW] Source Channel Ring Buffer 20 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_ENDADDR 0x20ca09ec /* [RW] Source Channel Ring Buffer 20 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_FREE_MARK 0x20ca09f0 /* [RW] Source Channel Ring Buffer 20 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_START_WRPOINT 0x20ca09f4 /* [RW] Source Channel Ring Buffer 20 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_RDADDR 0x20ca09f8 /* [RW] Source Channel Ring Buffer 21 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_WRADDR 0x20ca09fc /* [RW] Source Channel Ring Buffer 21 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_BASEADDR 0x20ca0a00 /* [RW] Source Channel Ring Buffer 21 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_ENDADDR 0x20ca0a04 /* [RW] Source Channel Ring Buffer 21 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_FREE_MARK 0x20ca0a08 /* [RW] Source Channel Ring Buffer 21 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_START_WRPOINT 0x20ca0a0c /* [RW] Source Channel Ring Buffer 21 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_RDADDR 0x20ca0a10 /* [RW] Source Channel Ring Buffer 22 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_WRADDR 0x20ca0a14 /* [RW] Source Channel Ring Buffer 22 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_BASEADDR 0x20ca0a18 /* [RW] Source Channel Ring Buffer 22 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_ENDADDR 0x20ca0a1c /* [RW] Source Channel Ring Buffer 22 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_FREE_MARK 0x20ca0a20 /* [RW] Source Channel Ring Buffer 22 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_START_WRPOINT 0x20ca0a24 /* [RW] Source Channel Ring Buffer 22 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_RDADDR 0x20ca0a28 /* [RW] Source Channel Ring Buffer 23 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_WRADDR 0x20ca0a2c /* [RW] Source Channel Ring Buffer 23 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_BASEADDR 0x20ca0a30 /* [RW] Source Channel Ring Buffer 23 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_ENDADDR 0x20ca0a34 /* [RW] Source Channel Ring Buffer 23 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_FREE_MARK 0x20ca0a38 /* [RW] Source Channel Ring Buffer 23 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_START_WRPOINT 0x20ca0a3c /* [RW] Source Channel Ring Buffer 23 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_RDADDR 0x20ca0a40 /* [RW] Source Channel Ring Buffer 24 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_WRADDR 0x20ca0a44 /* [RW] Source Channel Ring Buffer 24 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_BASEADDR 0x20ca0a48 /* [RW] Source Channel Ring Buffer 24 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_ENDADDR 0x20ca0a4c /* [RW] Source Channel Ring Buffer 24 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_FREE_MARK 0x20ca0a50 /* [RW] Source Channel Ring Buffer 24 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_START_WRPOINT 0x20ca0a54 /* [RW] Source Channel Ring Buffer 24 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_RDADDR 0x20ca0a58 /* [RW] Source Channel Ring Buffer 25 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_WRADDR 0x20ca0a5c /* [RW] Source Channel Ring Buffer 25 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_BASEADDR 0x20ca0a60 /* [RW] Source Channel Ring Buffer 25 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_ENDADDR 0x20ca0a64 /* [RW] Source Channel Ring Buffer 25 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_FREE_MARK 0x20ca0a68 /* [RW] Source Channel Ring Buffer 25 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_START_WRPOINT 0x20ca0a6c /* [RW] Source Channel Ring Buffer 25 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_RDADDR 0x20ca0a70 /* [RW] Source Channel Ring Buffer 26 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_WRADDR 0x20ca0a74 /* [RW] Source Channel Ring Buffer 26 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_BASEADDR 0x20ca0a78 /* [RW] Source Channel Ring Buffer 26 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_ENDADDR 0x20ca0a7c /* [RW] Source Channel Ring Buffer 26 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_FREE_MARK 0x20ca0a80 /* [RW] Source Channel Ring Buffer 26 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_START_WRPOINT 0x20ca0a84 /* [RW] Source Channel Ring Buffer 26 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_RDADDR 0x20ca0a88 /* [RW] Source Channel Ring Buffer 27 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_WRADDR 0x20ca0a8c /* [RW] Source Channel Ring Buffer 27 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_BASEADDR 0x20ca0a90 /* [RW] Source Channel Ring Buffer 27 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_ENDADDR 0x20ca0a94 /* [RW] Source Channel Ring Buffer 27 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_FREE_MARK 0x20ca0a98 /* [RW] Source Channel Ring Buffer 27 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_START_WRPOINT 0x20ca0a9c /* [RW] Source Channel Ring Buffer 27 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_RDADDR 0x20ca0aa0 /* [RW] Source Channel Ring Buffer 28 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_WRADDR 0x20ca0aa4 /* [RW] Source Channel Ring Buffer 28 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_BASEADDR 0x20ca0aa8 /* [RW] Source Channel Ring Buffer 28 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_ENDADDR 0x20ca0aac /* [RW] Source Channel Ring Buffer 28 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_FREE_MARK 0x20ca0ab0 /* [RW] Source Channel Ring Buffer 28 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_START_WRPOINT 0x20ca0ab4 /* [RW] Source Channel Ring Buffer 28 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_RDADDR 0x20ca0ab8 /* [RW] Source Channel Ring Buffer 29 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_WRADDR 0x20ca0abc /* [RW] Source Channel Ring Buffer 29 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_BASEADDR 0x20ca0ac0 /* [RW] Source Channel Ring Buffer 29 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_ENDADDR 0x20ca0ac4 /* [RW] Source Channel Ring Buffer 29 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_FREE_MARK 0x20ca0ac8 /* [RW] Source Channel Ring Buffer 29 Water Mark for Number of Free Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_START_WRPOINT 0x20ca0acc /* [RW] Source Channel Ring Buffer 29 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_RDADDR 0x20ca0ad0 /* [RW] Dest Channel Ring Buffer 0 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_WRADDR 0x20ca0ad4 /* [RW] Dest Channel Ring Buffer 0 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_BASEADDR 0x20ca0ad8 /* [RW] Dest Channel Ring Buffer 0 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_ENDADDR 0x20ca0adc /* [RW] Dest Channel Ring Buffer 0 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_FULL_MARK 0x20ca0ae0 /* [RW] Dest Channel Ring Buffer 0 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_START_WRPOINT 0x20ca0ae4 /* [RW] Dest Channel Ring Buffer 0 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_RDADDR 0x20ca0ae8 /* [RW] Dest Channel Ring Buffer 1 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_WRADDR 0x20ca0aec /* [RW] Dest Channel Ring Buffer 1 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_BASEADDR 0x20ca0af0 /* [RW] Dest Channel Ring Buffer 1 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_ENDADDR 0x20ca0af4 /* [RW] Dest Channel Ring Buffer 1 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_FULL_MARK 0x20ca0af8 /* [RW] Dest Channel Ring Buffer 1 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_START_WRPOINT 0x20ca0afc /* [RW] Dest Channel Ring Buffer 1 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_RDADDR 0x20ca0b00 /* [RW] Dest Channel Ring Buffer 2 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_WRADDR 0x20ca0b04 /* [RW] Dest Channel Ring Buffer 2 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_BASEADDR 0x20ca0b08 /* [RW] Dest Channel Ring Buffer 2 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_ENDADDR 0x20ca0b0c /* [RW] Dest Channel Ring Buffer 2 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_FULL_MARK 0x20ca0b10 /* [RW] Dest Channel Ring Buffer 2 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_START_WRPOINT 0x20ca0b14 /* [RW] Dest Channel Ring Buffer 2 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_RDADDR 0x20ca0b18 /* [RW] Dest Channel Ring Buffer 3 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_WRADDR 0x20ca0b1c /* [RW] Dest Channel Ring Buffer 3 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_BASEADDR 0x20ca0b20 /* [RW] Dest Channel Ring Buffer 3 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_ENDADDR 0x20ca0b24 /* [RW] Dest Channel Ring Buffer 3 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_FULL_MARK 0x20ca0b28 /* [RW] Dest Channel Ring Buffer 3 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_START_WRPOINT 0x20ca0b2c /* [RW] Dest Channel Ring Buffer 3 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_RDADDR 0x20ca0b30 /* [RW] Dest Channel Ring Buffer 4 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_WRADDR 0x20ca0b34 /* [RW] Dest Channel Ring Buffer 4 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_BASEADDR 0x20ca0b38 /* [RW] Dest Channel Ring Buffer 4 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_ENDADDR 0x20ca0b3c /* [RW] Dest Channel Ring Buffer 4 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_FULL_MARK 0x20ca0b40 /* [RW] Dest Channel Ring Buffer 4 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_START_WRPOINT 0x20ca0b44 /* [RW] Dest Channel Ring Buffer 4 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_RDADDR 0x20ca0b48 /* [RW] Dest Channel Ring Buffer 5 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_WRADDR 0x20ca0b4c /* [RW] Dest Channel Ring Buffer 5 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_BASEADDR 0x20ca0b50 /* [RW] Dest Channel Ring Buffer 5 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_ENDADDR 0x20ca0b54 /* [RW] Dest Channel Ring Buffer 5 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_FULL_MARK 0x20ca0b58 /* [RW] Dest Channel Ring Buffer 5 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_START_WRPOINT 0x20ca0b5c /* [RW] Dest Channel Ring Buffer 5 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_RDADDR 0x20ca0b60 /* [RW] Dest Channel Ring Buffer 6 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_WRADDR 0x20ca0b64 /* [RW] Dest Channel Ring Buffer 6 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_BASEADDR 0x20ca0b68 /* [RW] Dest Channel Ring Buffer 6 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_ENDADDR 0x20ca0b6c /* [RW] Dest Channel Ring Buffer 6 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_FULL_MARK 0x20ca0b70 /* [RW] Dest Channel Ring Buffer 6 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_START_WRPOINT 0x20ca0b74 /* [RW] Dest Channel Ring Buffer 6 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_RDADDR 0x20ca0b78 /* [RW] Dest Channel Ring Buffer 7 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_WRADDR 0x20ca0b7c /* [RW] Dest Channel Ring Buffer 7 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_BASEADDR 0x20ca0b80 /* [RW] Dest Channel Ring Buffer 7 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_ENDADDR 0x20ca0b84 /* [RW] Dest Channel Ring Buffer 7 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_FULL_MARK 0x20ca0b88 /* [RW] Dest Channel Ring Buffer 7 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_START_WRPOINT 0x20ca0b8c /* [RW] Dest Channel Ring Buffer 7 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_RDADDR 0x20ca0b90 /* [RW] Dest Channel Ring Buffer 8 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_WRADDR 0x20ca0b94 /* [RW] Dest Channel Ring Buffer 8 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_BASEADDR 0x20ca0b98 /* [RW] Dest Channel Ring Buffer 8 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_ENDADDR 0x20ca0b9c /* [RW] Dest Channel Ring Buffer 8 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_FULL_MARK 0x20ca0ba0 /* [RW] Dest Channel Ring Buffer 8 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_START_WRPOINT 0x20ca0ba4 /* [RW] Dest Channel Ring Buffer 8 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_RDADDR 0x20ca0ba8 /* [RW] Dest Channel Ring Buffer 9 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_WRADDR 0x20ca0bac /* [RW] Dest Channel Ring Buffer 9 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_BASEADDR 0x20ca0bb0 /* [RW] Dest Channel Ring Buffer 9 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_ENDADDR 0x20ca0bb4 /* [RW] Dest Channel Ring Buffer 9 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_FULL_MARK 0x20ca0bb8 /* [RW] Dest Channel Ring Buffer 9 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_START_WRPOINT 0x20ca0bbc /* [RW] Dest Channel Ring Buffer 9 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_RDADDR 0x20ca0bc0 /* [RW] Dest Channel Ring Buffer 10 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_WRADDR 0x20ca0bc4 /* [RW] Dest Channel Ring Buffer 10 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_BASEADDR 0x20ca0bc8 /* [RW] Dest Channel Ring Buffer 10 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_ENDADDR 0x20ca0bcc /* [RW] Dest Channel Ring Buffer 10 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_FULL_MARK 0x20ca0bd0 /* [RW] Dest Channel Ring Buffer 10 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_START_WRPOINT 0x20ca0bd4 /* [RW] Dest Channel Ring Buffer 10 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_RDADDR 0x20ca0bd8 /* [RW] Dest Channel Ring Buffer 11 Read Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_WRADDR 0x20ca0bdc /* [RW] Dest Channel Ring Buffer 11 Write Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_BASEADDR 0x20ca0be0 /* [RW] Dest Channel Ring Buffer 11 Base Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_ENDADDR 0x20ca0be4 /* [RW] Dest Channel Ring Buffer 11 End Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_FULL_MARK 0x20ca0be8 /* [RW] Dest Channel Ring Buffer 11 Water Mark for Number of Full Bytes */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_START_WRPOINT 0x20ca0bec /* [RW] Dest Channel Ring Buffer 11 Write Point for Read Start */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR 0x20ca0bf0 /* [RW] Source Channel Ring Buffer 0 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_MI_VALID 0x20ca0bf4 /* [RW] Source Channel Ring Buffer 0 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_FRMSTADDR 0x20ca0bf8 /* [RW] Source Channel Ring Buffer 1 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_MI_VALID 0x20ca0bfc /* [RW] Source Channel Ring Buffer 1 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_FRMSTADDR 0x20ca0c00 /* [RW] Source Channel Ring Buffer 2 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_MI_VALID 0x20ca0c04 /* [RW] Source Channel Ring Buffer 2 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_FRMSTADDR 0x20ca0c08 /* [RW] Source Channel Ring Buffer 3 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_MI_VALID 0x20ca0c0c /* [RW] Source Channel Ring Buffer 3 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_FRMSTADDR 0x20ca0c10 /* [RW] Source Channel Ring Buffer 4 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_MI_VALID 0x20ca0c14 /* [RW] Source Channel Ring Buffer 4 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_FRMSTADDR 0x20ca0c18 /* [RW] Source Channel Ring Buffer 5 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_MI_VALID 0x20ca0c1c /* [RW] Source Channel Ring Buffer 5 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_FRMSTADDR 0x20ca0c20 /* [RW] Source Channel Ring Buffer 6 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_MI_VALID 0x20ca0c24 /* [RW] Source Channel Ring Buffer 6 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_FRMSTADDR 0x20ca0c28 /* [RW] Source Channel Ring Buffer 7 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_MI_VALID 0x20ca0c2c /* [RW] Source Channel Ring Buffer 7 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_FRMSTADDR 0x20ca0c30 /* [RW] Source Channel Ring Buffer 8 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_MI_VALID 0x20ca0c34 /* [RW] Source Channel Ring Buffer 8 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_FRMSTADDR 0x20ca0c38 /* [RW] Source Channel Ring Buffer 9 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_MI_VALID 0x20ca0c3c /* [RW] Source Channel Ring Buffer 9 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_FRMSTADDR 0x20ca0c40 /* [RW] Source Channel Ring Buffer 10 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_MI_VALID 0x20ca0c44 /* [RW] Source Channel Ring Buffer 10 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_FRMSTADDR 0x20ca0c48 /* [RW] Source Channel Ring Buffer 11 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_MI_VALID 0x20ca0c4c /* [RW] Source Channel Ring Buffer 11 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_FRMSTADDR 0x20ca0c50 /* [RW] Source Channel Ring Buffer 12 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_MI_VALID 0x20ca0c54 /* [RW] Source Channel Ring Buffer 12 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_FRMSTADDR 0x20ca0c58 /* [RW] Source Channel Ring Buffer 13 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_MI_VALID 0x20ca0c5c /* [RW] Source Channel Ring Buffer 13 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_FRMSTADDR 0x20ca0c60 /* [RW] Source Channel Ring Buffer 14 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_MI_VALID 0x20ca0c64 /* [RW] Source Channel Ring Buffer 14 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_FRMSTADDR 0x20ca0c68 /* [RW] Source Channel Ring Buffer 15 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_MI_VALID 0x20ca0c6c /* [RW] Source Channel Ring Buffer 15 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_FRMSTADDR 0x20ca0c70 /* [RW] Source Channel Ring Buffer 16 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_MI_VALID 0x20ca0c74 /* [RW] Source Channel Ring Buffer 16 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_FRMSTADDR 0x20ca0c78 /* [RW] Source Channel Ring Buffer 17 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_MI_VALID 0x20ca0c7c /* [RW] Source Channel Ring Buffer 17 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_FRMSTADDR 0x20ca0c80 /* [RW] Source Channel Ring Buffer 18 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_MI_VALID 0x20ca0c84 /* [RW] Source Channel Ring Buffer 18 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_FRMSTADDR 0x20ca0c88 /* [RW] Source Channel Ring Buffer 19 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_MI_VALID 0x20ca0c8c /* [RW] Source Channel Ring Buffer 19 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_FRMSTADDR 0x20ca0c90 /* [RW] Source Channel Ring Buffer 20 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_MI_VALID 0x20ca0c94 /* [RW] Source Channel Ring Buffer 20 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_FRMSTADDR 0x20ca0c98 /* [RW] Source Channel Ring Buffer 21 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_MI_VALID 0x20ca0c9c /* [RW] Source Channel Ring Buffer 21 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_FRMSTADDR 0x20ca0ca0 /* [RW] Source Channel Ring Buffer 22 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_MI_VALID 0x20ca0ca4 /* [RW] Source Channel Ring Buffer 22 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_FRMSTADDR 0x20ca0ca8 /* [RW] Source Channel Ring Buffer 23 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_MI_VALID 0x20ca0cac /* [RW] Source Channel Ring Buffer 23 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_FRMSTADDR 0x20ca0cb0 /* [RW] Source Channel Ring Buffer 24 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_MI_VALID 0x20ca0cb4 /* [RW] Source Channel Ring Buffer 24 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_FRMSTADDR 0x20ca0cb8 /* [RW] Source Channel Ring Buffer 25 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_MI_VALID 0x20ca0cbc /* [RW] Source Channel Ring Buffer 25 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_FRMSTADDR 0x20ca0cc0 /* [RW] Source Channel Ring Buffer 26 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_MI_VALID 0x20ca0cc4 /* [RW] Source Channel Ring Buffer 26 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_FRMSTADDR 0x20ca0cc8 /* [RW] Source Channel Ring Buffer 27 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_MI_VALID 0x20ca0ccc /* [RW] Source Channel Ring Buffer 27 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_FRMSTADDR 0x20ca0cd0 /* [RW] Source Channel Ring Buffer 28 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_MI_VALID 0x20ca0cd4 /* [RW] Source Channel Ring Buffer 28 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_FRMSTADDR 0x20ca0cd8 /* [RW] Source Channel Ring Buffer 29 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_MI_VALID 0x20ca0cdc /* [RW] Source Channel Ring Buffer 29 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_FRMSTADDR 0x20ca0ce0 /* [RW] Dest Channel Ring Buffer 0 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_MI_VALID 0x20ca0ce4 /* [RW] Dest Channel Ring Buffer 0 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_FRMSTADDR 0x20ca0ce8 /* [RW] Dest Channel Ring Buffer 1 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_MI_VALID 0x20ca0cec /* [RW] Dest Channel Ring Buffer 1 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_FRMSTADDR 0x20ca0cf0 /* [RW] Dest Channel Ring Buffer 2 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_MI_VALID 0x20ca0cf4 /* [RW] Dest Channel Ring Buffer 2 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_FRMSTADDR 0x20ca0cf8 /* [RW] Dest Channel Ring Buffer 3 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_MI_VALID 0x20ca0cfc /* [RW] Dest Channel Ring Buffer 3 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_FRMSTADDR 0x20ca0d00 /* [RW] Dest Channel Ring Buffer 4 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_MI_VALID 0x20ca0d04 /* [RW] Dest Channel Ring Buffer 4 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_FRMSTADDR 0x20ca0d08 /* [RW] Dest Channel Ring Buffer 5 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_MI_VALID 0x20ca0d0c /* [RW] Dest Channel Ring Buffer 5 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_FRMSTADDR 0x20ca0d10 /* [RW] Dest Channel Ring Buffer 6 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_MI_VALID 0x20ca0d14 /* [RW] Dest Channel Ring Buffer 6 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_FRMSTADDR 0x20ca0d18 /* [RW] Dest Channel Ring Buffer 7 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_MI_VALID 0x20ca0d1c /* [RW] Dest Channel Ring Buffer 7 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_FRMSTADDR 0x20ca0d20 /* [RW] Dest Channel Ring Buffer 8 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_MI_VALID 0x20ca0d24 /* [RW] Dest Channel Ring Buffer 8 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_FRMSTADDR 0x20ca0d28 /* [RW] Dest Channel Ring Buffer 9 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_MI_VALID 0x20ca0d2c /* [RW] Dest Channel Ring Buffer 9 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_FRMSTADDR 0x20ca0d30 /* [RW] Dest Channel Ring Buffer 10 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_MI_VALID 0x20ca0d34 /* [RW] Dest Channel Ring Buffer 10 MI Valid */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_FRMSTADDR 0x20ca0d38 /* [RW] Dest Channel Ring Buffer 11 Frame Start Address */
-#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_MI_VALID 0x20ca0d3c /* [RW] Dest Channel Ring Buffer 11 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_MISC_CONFIG         0x20ca01b0 /* [RW][32] BF Misc Configuration */
+#define BCHP_AUD_FMM_BF_CTRL_BLOCKCNT_RESET_PERIOD 0x20ca01b4 /* [RW][32] Block Counter reset period */
+#define BCHP_AUD_FMM_BF_CTRL_FIFO_RW_ADDR_SEL    0x20ca01b8 /* [RW][32] SRC/DST FIFO Read/Write Address Select */
+#define BCHP_AUD_FMM_BF_CTRL_FIFO_RW_ADDR        0x20ca01bc /* [RO][32] SRC/DST FIFO Read/Write Address Status */
+#define BCHP_AUD_FMM_BF_CTRL_FIFO_FLOWON_STAT    0x20ca01c0 /* [RO][32] Source FIFO Flow-on Status */
+#define BCHP_AUD_FMM_BF_CTRL_ADAPTRATE_REPEATDROP_CNT_ZERO_STAT 0x20ca0214 /* [RO][32] Repeat or Drop Read Counter to zero */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCEFIFO_RD_REPEATORDROP_STAT 0x20ca0218 /* [RO][32] Source FIFO Read Repeat or Drop Read Status */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_BEGIN 0x20ca021c /* [RO][32] Source Channel Group Begin Status */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_ENABLE 0x20ca0220 /* [RO][32] Source Channel Group Enable Status */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_FLOWON 0x20ca0224 /* [RO][32] Source Channel Group Flowon Status */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_SYNC_DIS 0x20ca0228 /* [RW][32] Source Channel Group Sync Disable */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_GROUP_DMA_ON 0x20ca022c /* [RO][32] Source Channel Group DMA On Status */
+#define BCHP_AUD_FMM_BF_CTRL_DMA_READ_REQUEST    0x20ca0230 /* [RO][32] DMA Read Request Status */
+#define BCHP_AUD_FMM_BF_CTRL_DMA_WRITE_REQUEST   0x20ca0234 /* [RO][32] DMA Write Request Status */
+#define BCHP_AUD_FMM_BF_CTRL_DMA_STATUS          0x20ca0238 /* [RO][32] DMA Status */
+#define BCHP_AUD_FMM_BF_CTRL_FREE_MARK_TRIG_STATE 0x20ca023c /* [RO][32] Free Mark Interrupt Trigger State */
+#define BCHP_AUD_FMM_BF_CTRL_FULL_MARK_TRIG_STATE 0x20ca0240 /* [RO][32] Full Mark Interrupt Trigger State */
+#define BCHP_AUD_FMM_BF_CTRL_REARM_FREE_MARK     0x20ca0244 /* [WO][32] Re-Arm Free Mark Interrupt */
+#define BCHP_AUD_FMM_BF_CTRL_REARM_FULL_MARK     0x20ca0248 /* [WO][32] Re-Arm Free Mark Interrupt */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_CLIENTPAIR_FLAGS 0x20ca024c /* [RO][32] Source Channel DMA Client Pair Error Flags */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_CLIENTPAIR_FLAGS 0x20ca0250 /* [RO][32] Destination Channel DMA Client Pair Error Flags */
+#define BCHP_AUD_FMM_BF_CTRL_CLIENTPAIR_STATUS   0x20ca0254 /* [RO][32] DMA Client Pair Error Status */
+#define BCHP_AUD_FMM_BF_CTRL_CLIENTPAIR_REARM    0x20ca0258 /* [WO][32] DMA Client Pair Re-Arm */
+#define BCHP_AUD_FMM_BF_CTRL_SCB_BRIDGE_STATUS   0x20ca025c /* [RO][32] SCB Bridge Status */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_RDADDR 0x20ca0800 /* [RW][32] Source Channel Ring Buffer 0 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR 0x20ca0804 /* [RW][32] Source Channel Ring Buffer 0 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_BASEADDR 0x20ca0808 /* [RW][32] Source Channel Ring Buffer 0 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_ENDADDR 0x20ca080c /* [RW][32] Source Channel Ring Buffer 0 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FREE_MARK 0x20ca0810 /* [RW][32] Source Channel Ring Buffer 0 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_START_WRPOINT 0x20ca0814 /* [RW][32] Source Channel Ring Buffer 0 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_RDADDR 0x20ca0818 /* [RW][32] Source Channel Ring Buffer 1 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_WRADDR 0x20ca081c /* [RW][32] Source Channel Ring Buffer 1 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_BASEADDR 0x20ca0820 /* [RW][32] Source Channel Ring Buffer 1 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_ENDADDR 0x20ca0824 /* [RW][32] Source Channel Ring Buffer 1 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_FREE_MARK 0x20ca0828 /* [RW][32] Source Channel Ring Buffer 1 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_START_WRPOINT 0x20ca082c /* [RW][32] Source Channel Ring Buffer 1 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_RDADDR 0x20ca0830 /* [RW][32] Source Channel Ring Buffer 2 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_WRADDR 0x20ca0834 /* [RW][32] Source Channel Ring Buffer 2 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_BASEADDR 0x20ca0838 /* [RW][32] Source Channel Ring Buffer 2 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_ENDADDR 0x20ca083c /* [RW][32] Source Channel Ring Buffer 2 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_FREE_MARK 0x20ca0840 /* [RW][32] Source Channel Ring Buffer 2 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_START_WRPOINT 0x20ca0844 /* [RW][32] Source Channel Ring Buffer 2 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_RDADDR 0x20ca0848 /* [RW][32] Source Channel Ring Buffer 3 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_WRADDR 0x20ca084c /* [RW][32] Source Channel Ring Buffer 3 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_BASEADDR 0x20ca0850 /* [RW][32] Source Channel Ring Buffer 3 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_ENDADDR 0x20ca0854 /* [RW][32] Source Channel Ring Buffer 3 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_FREE_MARK 0x20ca0858 /* [RW][32] Source Channel Ring Buffer 3 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_START_WRPOINT 0x20ca085c /* [RW][32] Source Channel Ring Buffer 3 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_RDADDR 0x20ca0860 /* [RW][32] Source Channel Ring Buffer 4 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_WRADDR 0x20ca0864 /* [RW][32] Source Channel Ring Buffer 4 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_BASEADDR 0x20ca0868 /* [RW][32] Source Channel Ring Buffer 4 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_ENDADDR 0x20ca086c /* [RW][32] Source Channel Ring Buffer 4 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_FREE_MARK 0x20ca0870 /* [RW][32] Source Channel Ring Buffer 4 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_START_WRPOINT 0x20ca0874 /* [RW][32] Source Channel Ring Buffer 4 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_RDADDR 0x20ca0878 /* [RW][32] Source Channel Ring Buffer 5 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_WRADDR 0x20ca087c /* [RW][32] Source Channel Ring Buffer 5 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_BASEADDR 0x20ca0880 /* [RW][32] Source Channel Ring Buffer 5 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_ENDADDR 0x20ca0884 /* [RW][32] Source Channel Ring Buffer 5 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_FREE_MARK 0x20ca0888 /* [RW][32] Source Channel Ring Buffer 5 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_START_WRPOINT 0x20ca088c /* [RW][32] Source Channel Ring Buffer 5 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_RDADDR 0x20ca0890 /* [RW][32] Source Channel Ring Buffer 6 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_WRADDR 0x20ca0894 /* [RW][32] Source Channel Ring Buffer 6 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_BASEADDR 0x20ca0898 /* [RW][32] Source Channel Ring Buffer 6 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_ENDADDR 0x20ca089c /* [RW][32] Source Channel Ring Buffer 6 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_FREE_MARK 0x20ca08a0 /* [RW][32] Source Channel Ring Buffer 6 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_START_WRPOINT 0x20ca08a4 /* [RW][32] Source Channel Ring Buffer 6 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_RDADDR 0x20ca08a8 /* [RW][32] Source Channel Ring Buffer 7 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_WRADDR 0x20ca08ac /* [RW][32] Source Channel Ring Buffer 7 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_BASEADDR 0x20ca08b0 /* [RW][32] Source Channel Ring Buffer 7 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_ENDADDR 0x20ca08b4 /* [RW][32] Source Channel Ring Buffer 7 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_FREE_MARK 0x20ca08b8 /* [RW][32] Source Channel Ring Buffer 7 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_START_WRPOINT 0x20ca08bc /* [RW][32] Source Channel Ring Buffer 7 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_RDADDR 0x20ca08c0 /* [RW][32] Source Channel Ring Buffer 8 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_WRADDR 0x20ca08c4 /* [RW][32] Source Channel Ring Buffer 8 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_BASEADDR 0x20ca08c8 /* [RW][32] Source Channel Ring Buffer 8 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_ENDADDR 0x20ca08cc /* [RW][32] Source Channel Ring Buffer 8 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_FREE_MARK 0x20ca08d0 /* [RW][32] Source Channel Ring Buffer 8 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_START_WRPOINT 0x20ca08d4 /* [RW][32] Source Channel Ring Buffer 8 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_RDADDR 0x20ca08d8 /* [RW][32] Source Channel Ring Buffer 9 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_WRADDR 0x20ca08dc /* [RW][32] Source Channel Ring Buffer 9 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_BASEADDR 0x20ca08e0 /* [RW][32] Source Channel Ring Buffer 9 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_ENDADDR 0x20ca08e4 /* [RW][32] Source Channel Ring Buffer 9 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_FREE_MARK 0x20ca08e8 /* [RW][32] Source Channel Ring Buffer 9 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_START_WRPOINT 0x20ca08ec /* [RW][32] Source Channel Ring Buffer 9 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_RDADDR 0x20ca08f0 /* [RW][32] Source Channel Ring Buffer 10 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_WRADDR 0x20ca08f4 /* [RW][32] Source Channel Ring Buffer 10 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_BASEADDR 0x20ca08f8 /* [RW][32] Source Channel Ring Buffer 10 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_ENDADDR 0x20ca08fc /* [RW][32] Source Channel Ring Buffer 10 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_FREE_MARK 0x20ca0900 /* [RW][32] Source Channel Ring Buffer 10 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_START_WRPOINT 0x20ca0904 /* [RW][32] Source Channel Ring Buffer 10 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_RDADDR 0x20ca0908 /* [RW][32] Source Channel Ring Buffer 11 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_WRADDR 0x20ca090c /* [RW][32] Source Channel Ring Buffer 11 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_BASEADDR 0x20ca0910 /* [RW][32] Source Channel Ring Buffer 11 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_ENDADDR 0x20ca0914 /* [RW][32] Source Channel Ring Buffer 11 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_FREE_MARK 0x20ca0918 /* [RW][32] Source Channel Ring Buffer 11 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_START_WRPOINT 0x20ca091c /* [RW][32] Source Channel Ring Buffer 11 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_RDADDR 0x20ca0920 /* [RW][32] Source Channel Ring Buffer 12 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_WRADDR 0x20ca0924 /* [RW][32] Source Channel Ring Buffer 12 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_BASEADDR 0x20ca0928 /* [RW][32] Source Channel Ring Buffer 12 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_ENDADDR 0x20ca092c /* [RW][32] Source Channel Ring Buffer 12 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_FREE_MARK 0x20ca0930 /* [RW][32] Source Channel Ring Buffer 12 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_START_WRPOINT 0x20ca0934 /* [RW][32] Source Channel Ring Buffer 12 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_RDADDR 0x20ca0938 /* [RW][32] Source Channel Ring Buffer 13 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_WRADDR 0x20ca093c /* [RW][32] Source Channel Ring Buffer 13 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_BASEADDR 0x20ca0940 /* [RW][32] Source Channel Ring Buffer 13 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_ENDADDR 0x20ca0944 /* [RW][32] Source Channel Ring Buffer 13 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_FREE_MARK 0x20ca0948 /* [RW][32] Source Channel Ring Buffer 13 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_START_WRPOINT 0x20ca094c /* [RW][32] Source Channel Ring Buffer 13 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_RDADDR 0x20ca0950 /* [RW][32] Source Channel Ring Buffer 14 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_WRADDR 0x20ca0954 /* [RW][32] Source Channel Ring Buffer 14 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_BASEADDR 0x20ca0958 /* [RW][32] Source Channel Ring Buffer 14 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_ENDADDR 0x20ca095c /* [RW][32] Source Channel Ring Buffer 14 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_FREE_MARK 0x20ca0960 /* [RW][32] Source Channel Ring Buffer 14 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_START_WRPOINT 0x20ca0964 /* [RW][32] Source Channel Ring Buffer 14 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_RDADDR 0x20ca0968 /* [RW][32] Source Channel Ring Buffer 15 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_WRADDR 0x20ca096c /* [RW][32] Source Channel Ring Buffer 15 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_BASEADDR 0x20ca0970 /* [RW][32] Source Channel Ring Buffer 15 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_ENDADDR 0x20ca0974 /* [RW][32] Source Channel Ring Buffer 15 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_FREE_MARK 0x20ca0978 /* [RW][32] Source Channel Ring Buffer 15 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_START_WRPOINT 0x20ca097c /* [RW][32] Source Channel Ring Buffer 15 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_RDADDR 0x20ca0980 /* [RW][32] Source Channel Ring Buffer 16 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_WRADDR 0x20ca0984 /* [RW][32] Source Channel Ring Buffer 16 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_BASEADDR 0x20ca0988 /* [RW][32] Source Channel Ring Buffer 16 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_ENDADDR 0x20ca098c /* [RW][32] Source Channel Ring Buffer 16 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_FREE_MARK 0x20ca0990 /* [RW][32] Source Channel Ring Buffer 16 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_START_WRPOINT 0x20ca0994 /* [RW][32] Source Channel Ring Buffer 16 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_RDADDR 0x20ca0998 /* [RW][32] Source Channel Ring Buffer 17 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_WRADDR 0x20ca099c /* [RW][32] Source Channel Ring Buffer 17 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_BASEADDR 0x20ca09a0 /* [RW][32] Source Channel Ring Buffer 17 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_ENDADDR 0x20ca09a4 /* [RW][32] Source Channel Ring Buffer 17 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_FREE_MARK 0x20ca09a8 /* [RW][32] Source Channel Ring Buffer 17 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_START_WRPOINT 0x20ca09ac /* [RW][32] Source Channel Ring Buffer 17 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_RDADDR 0x20ca09b0 /* [RW][32] Source Channel Ring Buffer 18 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_WRADDR 0x20ca09b4 /* [RW][32] Source Channel Ring Buffer 18 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_BASEADDR 0x20ca09b8 /* [RW][32] Source Channel Ring Buffer 18 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_ENDADDR 0x20ca09bc /* [RW][32] Source Channel Ring Buffer 18 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_FREE_MARK 0x20ca09c0 /* [RW][32] Source Channel Ring Buffer 18 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_START_WRPOINT 0x20ca09c4 /* [RW][32] Source Channel Ring Buffer 18 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_RDADDR 0x20ca09c8 /* [RW][32] Source Channel Ring Buffer 19 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_WRADDR 0x20ca09cc /* [RW][32] Source Channel Ring Buffer 19 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_BASEADDR 0x20ca09d0 /* [RW][32] Source Channel Ring Buffer 19 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_ENDADDR 0x20ca09d4 /* [RW][32] Source Channel Ring Buffer 19 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_FREE_MARK 0x20ca09d8 /* [RW][32] Source Channel Ring Buffer 19 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_START_WRPOINT 0x20ca09dc /* [RW][32] Source Channel Ring Buffer 19 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_RDADDR 0x20ca09e0 /* [RW][32] Source Channel Ring Buffer 20 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_WRADDR 0x20ca09e4 /* [RW][32] Source Channel Ring Buffer 20 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_BASEADDR 0x20ca09e8 /* [RW][32] Source Channel Ring Buffer 20 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_ENDADDR 0x20ca09ec /* [RW][32] Source Channel Ring Buffer 20 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_FREE_MARK 0x20ca09f0 /* [RW][32] Source Channel Ring Buffer 20 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_START_WRPOINT 0x20ca09f4 /* [RW][32] Source Channel Ring Buffer 20 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_RDADDR 0x20ca09f8 /* [RW][32] Source Channel Ring Buffer 21 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_WRADDR 0x20ca09fc /* [RW][32] Source Channel Ring Buffer 21 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_BASEADDR 0x20ca0a00 /* [RW][32] Source Channel Ring Buffer 21 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_ENDADDR 0x20ca0a04 /* [RW][32] Source Channel Ring Buffer 21 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_FREE_MARK 0x20ca0a08 /* [RW][32] Source Channel Ring Buffer 21 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_START_WRPOINT 0x20ca0a0c /* [RW][32] Source Channel Ring Buffer 21 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_RDADDR 0x20ca0a10 /* [RW][32] Source Channel Ring Buffer 22 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_WRADDR 0x20ca0a14 /* [RW][32] Source Channel Ring Buffer 22 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_BASEADDR 0x20ca0a18 /* [RW][32] Source Channel Ring Buffer 22 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_ENDADDR 0x20ca0a1c /* [RW][32] Source Channel Ring Buffer 22 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_FREE_MARK 0x20ca0a20 /* [RW][32] Source Channel Ring Buffer 22 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_START_WRPOINT 0x20ca0a24 /* [RW][32] Source Channel Ring Buffer 22 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_RDADDR 0x20ca0a28 /* [RW][32] Source Channel Ring Buffer 23 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_WRADDR 0x20ca0a2c /* [RW][32] Source Channel Ring Buffer 23 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_BASEADDR 0x20ca0a30 /* [RW][32] Source Channel Ring Buffer 23 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_ENDADDR 0x20ca0a34 /* [RW][32] Source Channel Ring Buffer 23 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_FREE_MARK 0x20ca0a38 /* [RW][32] Source Channel Ring Buffer 23 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_START_WRPOINT 0x20ca0a3c /* [RW][32] Source Channel Ring Buffer 23 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_RDADDR 0x20ca0a40 /* [RW][32] Source Channel Ring Buffer 24 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_WRADDR 0x20ca0a44 /* [RW][32] Source Channel Ring Buffer 24 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_BASEADDR 0x20ca0a48 /* [RW][32] Source Channel Ring Buffer 24 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_ENDADDR 0x20ca0a4c /* [RW][32] Source Channel Ring Buffer 24 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_FREE_MARK 0x20ca0a50 /* [RW][32] Source Channel Ring Buffer 24 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_START_WRPOINT 0x20ca0a54 /* [RW][32] Source Channel Ring Buffer 24 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_RDADDR 0x20ca0a58 /* [RW][32] Source Channel Ring Buffer 25 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_WRADDR 0x20ca0a5c /* [RW][32] Source Channel Ring Buffer 25 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_BASEADDR 0x20ca0a60 /* [RW][32] Source Channel Ring Buffer 25 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_ENDADDR 0x20ca0a64 /* [RW][32] Source Channel Ring Buffer 25 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_FREE_MARK 0x20ca0a68 /* [RW][32] Source Channel Ring Buffer 25 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_START_WRPOINT 0x20ca0a6c /* [RW][32] Source Channel Ring Buffer 25 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_RDADDR 0x20ca0a70 /* [RW][32] Source Channel Ring Buffer 26 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_WRADDR 0x20ca0a74 /* [RW][32] Source Channel Ring Buffer 26 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_BASEADDR 0x20ca0a78 /* [RW][32] Source Channel Ring Buffer 26 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_ENDADDR 0x20ca0a7c /* [RW][32] Source Channel Ring Buffer 26 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_FREE_MARK 0x20ca0a80 /* [RW][32] Source Channel Ring Buffer 26 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_START_WRPOINT 0x20ca0a84 /* [RW][32] Source Channel Ring Buffer 26 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_RDADDR 0x20ca0a88 /* [RW][32] Source Channel Ring Buffer 27 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_WRADDR 0x20ca0a8c /* [RW][32] Source Channel Ring Buffer 27 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_BASEADDR 0x20ca0a90 /* [RW][32] Source Channel Ring Buffer 27 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_ENDADDR 0x20ca0a94 /* [RW][32] Source Channel Ring Buffer 27 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_FREE_MARK 0x20ca0a98 /* [RW][32] Source Channel Ring Buffer 27 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_START_WRPOINT 0x20ca0a9c /* [RW][32] Source Channel Ring Buffer 27 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_RDADDR 0x20ca0aa0 /* [RW][32] Source Channel Ring Buffer 28 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_WRADDR 0x20ca0aa4 /* [RW][32] Source Channel Ring Buffer 28 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_BASEADDR 0x20ca0aa8 /* [RW][32] Source Channel Ring Buffer 28 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_ENDADDR 0x20ca0aac /* [RW][32] Source Channel Ring Buffer 28 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_FREE_MARK 0x20ca0ab0 /* [RW][32] Source Channel Ring Buffer 28 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_START_WRPOINT 0x20ca0ab4 /* [RW][32] Source Channel Ring Buffer 28 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_RDADDR 0x20ca0ab8 /* [RW][32] Source Channel Ring Buffer 29 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_WRADDR 0x20ca0abc /* [RW][32] Source Channel Ring Buffer 29 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_BASEADDR 0x20ca0ac0 /* [RW][32] Source Channel Ring Buffer 29 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_ENDADDR 0x20ca0ac4 /* [RW][32] Source Channel Ring Buffer 29 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_FREE_MARK 0x20ca0ac8 /* [RW][32] Source Channel Ring Buffer 29 Water Mark for Number of Free Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_START_WRPOINT 0x20ca0acc /* [RW][32] Source Channel Ring Buffer 29 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_RDADDR 0x20ca0ad0 /* [RW][32] Dest Channel Ring Buffer 0 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_WRADDR 0x20ca0ad4 /* [RW][32] Dest Channel Ring Buffer 0 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_BASEADDR 0x20ca0ad8 /* [RW][32] Dest Channel Ring Buffer 0 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_ENDADDR 0x20ca0adc /* [RW][32] Dest Channel Ring Buffer 0 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_FULL_MARK 0x20ca0ae0 /* [RW][32] Dest Channel Ring Buffer 0 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_START_WRPOINT 0x20ca0ae4 /* [RW][32] Dest Channel Ring Buffer 0 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_RDADDR 0x20ca0ae8 /* [RW][32] Dest Channel Ring Buffer 1 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_WRADDR 0x20ca0aec /* [RW][32] Dest Channel Ring Buffer 1 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_BASEADDR 0x20ca0af0 /* [RW][32] Dest Channel Ring Buffer 1 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_ENDADDR 0x20ca0af4 /* [RW][32] Dest Channel Ring Buffer 1 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_FULL_MARK 0x20ca0af8 /* [RW][32] Dest Channel Ring Buffer 1 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_START_WRPOINT 0x20ca0afc /* [RW][32] Dest Channel Ring Buffer 1 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_RDADDR 0x20ca0b00 /* [RW][32] Dest Channel Ring Buffer 2 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_WRADDR 0x20ca0b04 /* [RW][32] Dest Channel Ring Buffer 2 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_BASEADDR 0x20ca0b08 /* [RW][32] Dest Channel Ring Buffer 2 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_ENDADDR 0x20ca0b0c /* [RW][32] Dest Channel Ring Buffer 2 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_FULL_MARK 0x20ca0b10 /* [RW][32] Dest Channel Ring Buffer 2 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_START_WRPOINT 0x20ca0b14 /* [RW][32] Dest Channel Ring Buffer 2 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_RDADDR 0x20ca0b18 /* [RW][32] Dest Channel Ring Buffer 3 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_WRADDR 0x20ca0b1c /* [RW][32] Dest Channel Ring Buffer 3 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_BASEADDR 0x20ca0b20 /* [RW][32] Dest Channel Ring Buffer 3 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_ENDADDR 0x20ca0b24 /* [RW][32] Dest Channel Ring Buffer 3 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_FULL_MARK 0x20ca0b28 /* [RW][32] Dest Channel Ring Buffer 3 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_START_WRPOINT 0x20ca0b2c /* [RW][32] Dest Channel Ring Buffer 3 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_RDADDR 0x20ca0b30 /* [RW][32] Dest Channel Ring Buffer 4 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_WRADDR 0x20ca0b34 /* [RW][32] Dest Channel Ring Buffer 4 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_BASEADDR 0x20ca0b38 /* [RW][32] Dest Channel Ring Buffer 4 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_ENDADDR 0x20ca0b3c /* [RW][32] Dest Channel Ring Buffer 4 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_FULL_MARK 0x20ca0b40 /* [RW][32] Dest Channel Ring Buffer 4 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_START_WRPOINT 0x20ca0b44 /* [RW][32] Dest Channel Ring Buffer 4 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_RDADDR 0x20ca0b48 /* [RW][32] Dest Channel Ring Buffer 5 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_WRADDR 0x20ca0b4c /* [RW][32] Dest Channel Ring Buffer 5 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_BASEADDR 0x20ca0b50 /* [RW][32] Dest Channel Ring Buffer 5 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_ENDADDR 0x20ca0b54 /* [RW][32] Dest Channel Ring Buffer 5 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_FULL_MARK 0x20ca0b58 /* [RW][32] Dest Channel Ring Buffer 5 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_START_WRPOINT 0x20ca0b5c /* [RW][32] Dest Channel Ring Buffer 5 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_RDADDR 0x20ca0b60 /* [RW][32] Dest Channel Ring Buffer 6 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_WRADDR 0x20ca0b64 /* [RW][32] Dest Channel Ring Buffer 6 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_BASEADDR 0x20ca0b68 /* [RW][32] Dest Channel Ring Buffer 6 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_ENDADDR 0x20ca0b6c /* [RW][32] Dest Channel Ring Buffer 6 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_FULL_MARK 0x20ca0b70 /* [RW][32] Dest Channel Ring Buffer 6 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_START_WRPOINT 0x20ca0b74 /* [RW][32] Dest Channel Ring Buffer 6 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_RDADDR 0x20ca0b78 /* [RW][32] Dest Channel Ring Buffer 7 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_WRADDR 0x20ca0b7c /* [RW][32] Dest Channel Ring Buffer 7 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_BASEADDR 0x20ca0b80 /* [RW][32] Dest Channel Ring Buffer 7 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_ENDADDR 0x20ca0b84 /* [RW][32] Dest Channel Ring Buffer 7 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_FULL_MARK 0x20ca0b88 /* [RW][32] Dest Channel Ring Buffer 7 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_START_WRPOINT 0x20ca0b8c /* [RW][32] Dest Channel Ring Buffer 7 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_RDADDR 0x20ca0b90 /* [RW][32] Dest Channel Ring Buffer 8 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_WRADDR 0x20ca0b94 /* [RW][32] Dest Channel Ring Buffer 8 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_BASEADDR 0x20ca0b98 /* [RW][32] Dest Channel Ring Buffer 8 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_ENDADDR 0x20ca0b9c /* [RW][32] Dest Channel Ring Buffer 8 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_FULL_MARK 0x20ca0ba0 /* [RW][32] Dest Channel Ring Buffer 8 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_START_WRPOINT 0x20ca0ba4 /* [RW][32] Dest Channel Ring Buffer 8 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_RDADDR 0x20ca0ba8 /* [RW][32] Dest Channel Ring Buffer 9 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_WRADDR 0x20ca0bac /* [RW][32] Dest Channel Ring Buffer 9 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_BASEADDR 0x20ca0bb0 /* [RW][32] Dest Channel Ring Buffer 9 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_ENDADDR 0x20ca0bb4 /* [RW][32] Dest Channel Ring Buffer 9 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_FULL_MARK 0x20ca0bb8 /* [RW][32] Dest Channel Ring Buffer 9 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_START_WRPOINT 0x20ca0bbc /* [RW][32] Dest Channel Ring Buffer 9 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_RDADDR 0x20ca0bc0 /* [RW][32] Dest Channel Ring Buffer 10 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_WRADDR 0x20ca0bc4 /* [RW][32] Dest Channel Ring Buffer 10 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_BASEADDR 0x20ca0bc8 /* [RW][32] Dest Channel Ring Buffer 10 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_ENDADDR 0x20ca0bcc /* [RW][32] Dest Channel Ring Buffer 10 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_FULL_MARK 0x20ca0bd0 /* [RW][32] Dest Channel Ring Buffer 10 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_START_WRPOINT 0x20ca0bd4 /* [RW][32] Dest Channel Ring Buffer 10 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_RDADDR 0x20ca0bd8 /* [RW][32] Dest Channel Ring Buffer 11 Read Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_WRADDR 0x20ca0bdc /* [RW][32] Dest Channel Ring Buffer 11 Write Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_BASEADDR 0x20ca0be0 /* [RW][32] Dest Channel Ring Buffer 11 Base Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_ENDADDR 0x20ca0be4 /* [RW][32] Dest Channel Ring Buffer 11 End Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_FULL_MARK 0x20ca0be8 /* [RW][32] Dest Channel Ring Buffer 11 Water Mark for Number of Full Bytes */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_START_WRPOINT 0x20ca0bec /* [RW][32] Dest Channel Ring Buffer 11 Write Point for Read Start */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_FRMSTADDR 0x20ca0bf0 /* [RW][32] Source Channel Ring Buffer 0 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_MI_VALID 0x20ca0bf4 /* [RW][32] Source Channel Ring Buffer 0 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_FRMSTADDR 0x20ca0bf8 /* [RW][32] Source Channel Ring Buffer 1 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_1_MI_VALID 0x20ca0bfc /* [RW][32] Source Channel Ring Buffer 1 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_FRMSTADDR 0x20ca0c00 /* [RW][32] Source Channel Ring Buffer 2 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_2_MI_VALID 0x20ca0c04 /* [RW][32] Source Channel Ring Buffer 2 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_FRMSTADDR 0x20ca0c08 /* [RW][32] Source Channel Ring Buffer 3 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_3_MI_VALID 0x20ca0c0c /* [RW][32] Source Channel Ring Buffer 3 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_FRMSTADDR 0x20ca0c10 /* [RW][32] Source Channel Ring Buffer 4 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_4_MI_VALID 0x20ca0c14 /* [RW][32] Source Channel Ring Buffer 4 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_FRMSTADDR 0x20ca0c18 /* [RW][32] Source Channel Ring Buffer 5 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_5_MI_VALID 0x20ca0c1c /* [RW][32] Source Channel Ring Buffer 5 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_FRMSTADDR 0x20ca0c20 /* [RW][32] Source Channel Ring Buffer 6 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_6_MI_VALID 0x20ca0c24 /* [RW][32] Source Channel Ring Buffer 6 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_FRMSTADDR 0x20ca0c28 /* [RW][32] Source Channel Ring Buffer 7 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_7_MI_VALID 0x20ca0c2c /* [RW][32] Source Channel Ring Buffer 7 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_FRMSTADDR 0x20ca0c30 /* [RW][32] Source Channel Ring Buffer 8 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_8_MI_VALID 0x20ca0c34 /* [RW][32] Source Channel Ring Buffer 8 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_FRMSTADDR 0x20ca0c38 /* [RW][32] Source Channel Ring Buffer 9 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_9_MI_VALID 0x20ca0c3c /* [RW][32] Source Channel Ring Buffer 9 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_FRMSTADDR 0x20ca0c40 /* [RW][32] Source Channel Ring Buffer 10 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_10_MI_VALID 0x20ca0c44 /* [RW][32] Source Channel Ring Buffer 10 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_FRMSTADDR 0x20ca0c48 /* [RW][32] Source Channel Ring Buffer 11 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_11_MI_VALID 0x20ca0c4c /* [RW][32] Source Channel Ring Buffer 11 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_FRMSTADDR 0x20ca0c50 /* [RW][32] Source Channel Ring Buffer 12 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_12_MI_VALID 0x20ca0c54 /* [RW][32] Source Channel Ring Buffer 12 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_FRMSTADDR 0x20ca0c58 /* [RW][32] Source Channel Ring Buffer 13 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_13_MI_VALID 0x20ca0c5c /* [RW][32] Source Channel Ring Buffer 13 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_FRMSTADDR 0x20ca0c60 /* [RW][32] Source Channel Ring Buffer 14 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_14_MI_VALID 0x20ca0c64 /* [RW][32] Source Channel Ring Buffer 14 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_FRMSTADDR 0x20ca0c68 /* [RW][32] Source Channel Ring Buffer 15 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_15_MI_VALID 0x20ca0c6c /* [RW][32] Source Channel Ring Buffer 15 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_FRMSTADDR 0x20ca0c70 /* [RW][32] Source Channel Ring Buffer 16 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_16_MI_VALID 0x20ca0c74 /* [RW][32] Source Channel Ring Buffer 16 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_FRMSTADDR 0x20ca0c78 /* [RW][32] Source Channel Ring Buffer 17 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_17_MI_VALID 0x20ca0c7c /* [RW][32] Source Channel Ring Buffer 17 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_FRMSTADDR 0x20ca0c80 /* [RW][32] Source Channel Ring Buffer 18 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_18_MI_VALID 0x20ca0c84 /* [RW][32] Source Channel Ring Buffer 18 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_FRMSTADDR 0x20ca0c88 /* [RW][32] Source Channel Ring Buffer 19 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_19_MI_VALID 0x20ca0c8c /* [RW][32] Source Channel Ring Buffer 19 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_FRMSTADDR 0x20ca0c90 /* [RW][32] Source Channel Ring Buffer 20 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_20_MI_VALID 0x20ca0c94 /* [RW][32] Source Channel Ring Buffer 20 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_FRMSTADDR 0x20ca0c98 /* [RW][32] Source Channel Ring Buffer 21 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_21_MI_VALID 0x20ca0c9c /* [RW][32] Source Channel Ring Buffer 21 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_FRMSTADDR 0x20ca0ca0 /* [RW][32] Source Channel Ring Buffer 22 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_22_MI_VALID 0x20ca0ca4 /* [RW][32] Source Channel Ring Buffer 22 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_FRMSTADDR 0x20ca0ca8 /* [RW][32] Source Channel Ring Buffer 23 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_23_MI_VALID 0x20ca0cac /* [RW][32] Source Channel Ring Buffer 23 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_FRMSTADDR 0x20ca0cb0 /* [RW][32] Source Channel Ring Buffer 24 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_24_MI_VALID 0x20ca0cb4 /* [RW][32] Source Channel Ring Buffer 24 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_FRMSTADDR 0x20ca0cb8 /* [RW][32] Source Channel Ring Buffer 25 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_25_MI_VALID 0x20ca0cbc /* [RW][32] Source Channel Ring Buffer 25 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_FRMSTADDR 0x20ca0cc0 /* [RW][32] Source Channel Ring Buffer 26 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_26_MI_VALID 0x20ca0cc4 /* [RW][32] Source Channel Ring Buffer 26 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_FRMSTADDR 0x20ca0cc8 /* [RW][32] Source Channel Ring Buffer 27 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_27_MI_VALID 0x20ca0ccc /* [RW][32] Source Channel Ring Buffer 27 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_FRMSTADDR 0x20ca0cd0 /* [RW][32] Source Channel Ring Buffer 28 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_28_MI_VALID 0x20ca0cd4 /* [RW][32] Source Channel Ring Buffer 28 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_FRMSTADDR 0x20ca0cd8 /* [RW][32] Source Channel Ring Buffer 29 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_29_MI_VALID 0x20ca0cdc /* [RW][32] Source Channel Ring Buffer 29 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_FRMSTADDR 0x20ca0ce0 /* [RW][32] Dest Channel Ring Buffer 0 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_0_MI_VALID 0x20ca0ce4 /* [RW][32] Dest Channel Ring Buffer 0 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_FRMSTADDR 0x20ca0ce8 /* [RW][32] Dest Channel Ring Buffer 1 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_1_MI_VALID 0x20ca0cec /* [RW][32] Dest Channel Ring Buffer 1 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_FRMSTADDR 0x20ca0cf0 /* [RW][32] Dest Channel Ring Buffer 2 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_2_MI_VALID 0x20ca0cf4 /* [RW][32] Dest Channel Ring Buffer 2 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_FRMSTADDR 0x20ca0cf8 /* [RW][32] Dest Channel Ring Buffer 3 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_3_MI_VALID 0x20ca0cfc /* [RW][32] Dest Channel Ring Buffer 3 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_FRMSTADDR 0x20ca0d00 /* [RW][32] Dest Channel Ring Buffer 4 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_4_MI_VALID 0x20ca0d04 /* [RW][32] Dest Channel Ring Buffer 4 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_FRMSTADDR 0x20ca0d08 /* [RW][32] Dest Channel Ring Buffer 5 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_5_MI_VALID 0x20ca0d0c /* [RW][32] Dest Channel Ring Buffer 5 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_FRMSTADDR 0x20ca0d10 /* [RW][32] Dest Channel Ring Buffer 6 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_6_MI_VALID 0x20ca0d14 /* [RW][32] Dest Channel Ring Buffer 6 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_FRMSTADDR 0x20ca0d18 /* [RW][32] Dest Channel Ring Buffer 7 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_7_MI_VALID 0x20ca0d1c /* [RW][32] Dest Channel Ring Buffer 7 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_FRMSTADDR 0x20ca0d20 /* [RW][32] Dest Channel Ring Buffer 8 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_8_MI_VALID 0x20ca0d24 /* [RW][32] Dest Channel Ring Buffer 8 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_FRMSTADDR 0x20ca0d28 /* [RW][32] Dest Channel Ring Buffer 9 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_9_MI_VALID 0x20ca0d2c /* [RW][32] Dest Channel Ring Buffer 9 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_FRMSTADDR 0x20ca0d30 /* [RW][32] Dest Channel Ring Buffer 10 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_10_MI_VALID 0x20ca0d34 /* [RW][32] Dest Channel Ring Buffer 10 MI Valid */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_FRMSTADDR 0x20ca0d38 /* [RW][32] Dest Channel Ring Buffer 11 Frame Start Address */
+#define BCHP_AUD_FMM_BF_CTRL_DESTCH_RINGBUF_11_MI_VALID 0x20ca0d3c /* [RW][32] Dest Channel Ring Buffer 11 MI Valid */
 
 /***************************************************************************
  *DESTCH_CFG%i - Destination Channel Configuration

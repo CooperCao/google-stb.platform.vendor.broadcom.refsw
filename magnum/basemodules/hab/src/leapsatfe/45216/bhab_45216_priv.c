@@ -259,7 +259,7 @@ BERR_Code BHAB_45216_P_InitAp(
 #ifdef BHAB_VERIFY_DOWNLOAD
                if (BHAB_45216_VerifyMemory(h, fwAddr, pDataBuf, n))
                   break;
-               BDBG_ERR(("data read back does not match\n"));
+               BDBG_ERR(("data read back does not match"));
 #else
                break;
 #endif
@@ -325,7 +325,7 @@ BERR_Code BHAB_45216_P_InitAp(
 #ifdef BHAB_VERIFY_DOWNLOAD
                    if (BHAB_45216_VerifyMemory(h, fwAddr + chunk*chunk_size, pImage, n))
                       break;
-                   BDBG_ERR(("data read back does not match\n"));
+                   BDBG_ERR(("data read back does not match"));
 #else
                    break;
 #endif
@@ -387,7 +387,7 @@ BERR_Code BHAB_45216_P_InitAp(
    }
    if ((val32 & BHAB_45216_HIRQ0_INIT_DONE) == 0)
    {
-      BDBG_ERR(("AP initialization timeout\n"));
+      BDBG_ERR(("AP initialization timeout"));
       BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
    }
 #else
@@ -397,7 +397,7 @@ BERR_Code BHAB_45216_P_InitAp(
       BHAB_CHK_RETCODE(BHAB_45216_P_ReadRbus(h, BCHP_LEAP_HOST_L2_STATUS0, &val32, 1));
       if ((val32 & BHAB_45216_HIRQ0_INIT_DONE) == 0)
       {
-         BDBG_ERR(("AP initialization timeout\n"));
+         BDBG_ERR(("AP initialization timeout"));
          BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
          goto done;
       }

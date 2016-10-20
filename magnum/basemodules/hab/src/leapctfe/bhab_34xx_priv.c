@@ -214,7 +214,7 @@ BERR_Code BHAB_34xx_P_ErrorRecovery(
 
     if (BHAB_34xx_P_WaitForEvent(handle, p34xx->hHabReady, 1500) == BERR_TIMEOUT)
     {
-        BDBG_ERR(("########################## Unable to reset HAB\n"));
+        BDBG_ERR(("########################## Unable to reset HAB"));
         retCode = BHAB_ERR_HAB_TIMEOUT;
     }
 
@@ -1187,8 +1187,8 @@ read_hab:
     }
 
     if((retries==MAX_HAB_RETRIES) && (retCode == BHAB_ERR_HAB_TIMEOUT)){
-        BDBG_ERR(("HAB timeout\n"));
-        BDBG_WRN(("Dumping 34xx Registers\n"));
+        BDBG_ERR(("HAB timeout"));
+        BDBG_WRN(("Dumping 34xx Registers"));
         BHAB_34xx_P_DumpRegisters(handle);
 #ifdef BHAB_DEBUG
         BDBG_ASSERT(false);
@@ -1536,7 +1536,7 @@ BERR_Code BHAB_34xx_P_ServiceHab(
         {
             if (ack_byte != read_buf[0])
             {
-                BDBG_ERR(("HAB command not serviced!\n"));
+                BDBG_ERR(("HAB command not serviced!"));
                 BERR_TRACE(retCode = BHAB_ERR_HAB_NO_ACK);
             }
         }

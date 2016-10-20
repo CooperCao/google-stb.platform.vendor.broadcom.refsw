@@ -82,10 +82,6 @@ bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b,
    if (a->flavour != b->flavour)
       return false;
 
-   /* Anonymous types (e.g., structs) can never match, and type names must match */
-   if (a->name == NULL || b->name == NULL || strcmp(a->name, b->name) != 0)
-      return false;
-
    switch (a->flavour)
    {
       case SYMBOL_PRIMITIVE_TYPE:
@@ -96,6 +92,10 @@ bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b,
 
       case SYMBOL_STRUCT_TYPE:
          if (a->u.struct_type.member_count != b->u.struct_type.member_count)
+            return false;
+
+         /* Anonymous types can never match, and type names must match */
+         if (a->name == NULL || b->name == NULL || strcmp(a->name, b->name) != 0)
             return false;
 
          for (unsigned i = 0; i < a->u.struct_type.member_count; i++)
@@ -116,6 +116,10 @@ bool glsl_deep_match_nonfunction_types(const SymbolType *a, const SymbolType *b,
             return false;
 
          if(!glsl_layouts_equal(a->u.block_type.lq, b->u.block_type.lq))
+            return false;
+
+         /* Anonymous types can never match, and type names must match */
+         if (a->name == NULL || b->name == NULL || strcmp(a->name, b->name) != 0)
             return false;
 
          for (unsigned i = 0; i < a->u.block_type.member_count; i++)
@@ -658,7 +662,7 @@ Dataflow **glsl_symbol_get_default_scalar_values(const Symbol *symbol)
             }
             scalar_values[i] = glsl_dataflow_construct_const_sampler(type, false);
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index]))
-            scalar_values[i] = glsl_dataflow_construct_const_value(DF_INT, 0);
+            scalar_values[i] = glsl_dataflow_construct_const_uint(0);
          else {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];

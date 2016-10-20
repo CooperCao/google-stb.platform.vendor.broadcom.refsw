@@ -137,7 +137,7 @@ typedef struct BCHP_P_7435_Context
        (((BCHP_P_7435_Context*)((handle)->chipHandle))->ulBlackMagic != \
        sizeof(BCHP_P_7435_Context))) \
     { \
-        BDBG_ERR(("Corrupted context handle\n")); \
+        BDBG_ERR(("Corrupted context handle")); \
         (context) = NULL; \
     } \
     else \
@@ -211,7 +211,7 @@ BERR_Code BCHP_Open7435
     if((!phChip) ||
        (!hRegister))
     {
-        BDBG_ERR(("Invalid parameter\n"));
+        BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -267,7 +267,7 @@ Example: 0x74350000 becomes "7435A0" */
     {
         BDBG_MSG(("Supported Chip Family and revision: %x%c%d", PRINT_CHIP(s_aChipInfoTable[ulIdx].ulChipFamilyIdReg)));
         BDBG_MSG(("Supported Chip ID: %x", s_aChipInfoTable[ulIdx].usChipId));
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
     }
 
     /* Lookup corresponding chip id. */
@@ -295,10 +295,10 @@ Example: 0x74350000 becomes "7435A0" */
     {
         BKNI_Free(p7435Chip);
         BKNI_Free(pChip);
-        BDBG_ERR(("*****************************************************************\n"));
-        BDBG_ERR(("ERROR ERROR ERROR ERROR \n"));
+        BDBG_ERR(("*****************************************************************"));
+        BDBG_ERR(("ERROR ERROR ERROR ERROR"));
         BDBG_ERR(("Unsupported Revision: %x%c%d", PRINT_CHIP(ulChipFamilyIdReg)));
-        BDBG_ERR(("*****************************************************************\n"));
+        BDBG_ERR(("*****************************************************************"));
         phChip = NULL;
         BDBG_ASSERT(phChip);
         return BERR_TRACE(BERR_INVALID_PARAMETER);

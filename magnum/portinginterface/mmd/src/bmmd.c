@@ -1052,6 +1052,14 @@ static BERR_Code BMMD_Context_P_PrepareBlocks(
                 }
 #endif
             }
+
+#if BMMD_MIXED_MODE_SUPPORT
+            /* clear MODE_SEL field for descriptors outside of sgScram range, to support mixed-mode DMA */
+            if (numBlocks>1 && !sg && !pSettings->sgScramEnd) {
+                data &= ~BCHP_MEM_DMA_DESC_WORD4_MODE_SEL_MASK;
+            }
+#endif
+
             descAddr[4] = data;
         }
         else if (engineType==BMMD_EngineType_eSharf && ctx->settings.sharf.mode>BMMD_SharfMode_ePassThrough) {

@@ -95,7 +95,7 @@ public:
    {
       Bind();
 
-      if (samples == 0)
+      if (samples <= 1)
          glRenderbufferStorage(GL_RENDERBUFFER, internalFormat, width, height);
       else
 #ifdef GL_EXT_multisampled_render_to_texture

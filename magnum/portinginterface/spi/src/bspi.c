@@ -41,9 +41,9 @@
 #include "bstd.h"
 
 #include "bchp.h"
+#include "bchp_common.h"
 #include "breg_spi_priv.h"
 #include "bspi.h"
-#include "bspi_priv.h"
 
 #if (HAS_UPG_MSPI==1)
 #include "bchp_mspi.h"
@@ -51,32 +51,27 @@
 
 #if defined(BCHP_IRQ0_REG_START)
 #include "bchp_irq0.h"
-#endif
-
-#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
-#include "bchp_upg_spi_aon_irq.h"
-#else
 #include "bchp_int_id_irq0.h"
-#endif
-
-#if (BCHP_CHIP==3548) || (BCHP_CHIP==3556) || (BCHP_CHIP==4550) || (BCHP_CHIP==4528) || (BCHP_CHIP==4538) || (BCHP_CHIP==4552)
-#include "bchp_bspi.h"
-#endif
-#if (BCHP_CHIP==7422)  || (BCHP_CHIP==7425)  || (BCHP_CHIP==7429)  || (BCHP_CHIP==7344)  || (BCHP_CHIP==7364)  || (BCHP_CHIP==7250) || \
-    (BCHP_CHIP==7346)  || (BCHP_CHIP==7231)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7366)  || (BCHP_CHIP==7552)  || \
-    (BCHP_CHIP==7435)  || (BCHP_CHIP==7360)  || (BCHP_CHIP==7584)  || (BCHP_CHIP==7563)  || (BCHP_CHIP==7445)  || \
-    (BCHP_CHIP==7145)  || (BCHP_CHIP==7362)  || (BCHP_CHIP==7228)  || (BCHP_CHIP==7439)  || (BCHP_CHIP==74371) || (BCHP_CHIP==75635) || \
-    (BCHP_CHIP==7586)  || (BCHP_CHIP==73625) || (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP==73465) || (BCHP_CHIP==75525)
 #include "bchp_int_id_irq0_aon.h"
 #endif
-#if (BCHP_CHIP!=4550) && (BCHP_CHIP!=4528) && (BCHP_CHIP!=4538) && (BCHP_CHIP!=4552)
-#include "bchp_ebi.h"
+
+#if defined(BCHP_UPG_SPI_AON_IRQ_REG_START) /* Later 64-bit ARM CPU chips e.g. 7260/68/71/78 */
+#include "bchp_upg_spi_aon_irq.h"
 #endif
+
 #include "bkni_multi.h"
 
 BDBG_MODULE(bspi);
 
-#define DEV_MAGIC_ID            ((BERR_SPI_ID<<16) | 0xFACE)
+static void BSPI_P_SetClk (BSPI_ChannelHandle channel, uint32_t baud, uint8_t clkConfig);
+static BERR_Code BSPI_P_WaitForCompletion(BSPI_ChannelHandle  hChn, uint32_t numBytes);
+static void BSPI_P_HandleInterrupt_Isr(void *pParam1, int parm2);
+static void BSPI_P_GetBitsPerTransfer(void *pParam1, uint8_t *pBitsPerTransfer);
+static BERR_Code BSPI_P_Multiple_Write(void *context, const BREG_SPI_Data *pWriteData, size_t count);
+static BERR_Code BSPI_P_WriteAll(void *context, const uint8_t *pWriteData, size_t length);
+static BERR_Code BSPI_P_Write(void *context, const uint8_t *pWriteData, size_t length);
+static BERR_Code BSPI_P_Read(void *context, const uint8_t *pWriteData, uint8_t *pReadData, size_t length);
+static BERR_Code BSPI_P_ReadAll(void *context, const uint8_t *pWriteData, size_t writeLength, uint8_t *pReadData, size_t readLength);
 
 #define BSPI_CHK_RETCODE( rc, func )        \
 do {                                        \
@@ -94,7 +89,6 @@ do {                                        \
 #else
 #define MAX_SPI_BAUD        1687500     /* SPBR = 8, CLK=27MHZ */
 #endif
-#define MIN_SPI_BAUD        52734       /* SPBR = 0, 27MHZ */
 
 #define MAX_SPI_TIMEOUT     5000        /* 5000 ms = 5 seconds. */
 
@@ -185,10 +179,6 @@ typedef struct BSPI_P_ChannelHandle
 *   Default Module Settings
 *
 *******************************************************************************/
-#if (BCHP_CHIP==3548) || (BCHP_CHIP==3556)
-#define BSPI_USE_MAST_N_BOOT 1
-#endif
-
 void BSPI_P_ACQUIRE_UPG_MUTEX(BSPI_ChannelHandle hChn )
 {
     BSPI_Handle hDev;
@@ -417,7 +407,7 @@ BERR_Code BSPI_OpenChannel(
         /* coverity[overrun_static] */
         if( hDev->hSpiChn[channelNo] == NULL )
         {
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
             if ((pChnDefSettings->bitsPerTxfr != 32) && (pChnDefSettings->bitsPerTxfr != 64))
 #endif
             if ((pChnDefSettings->bitsPerTxfr != 8) && (pChnDefSettings->bitsPerTxfr != 16))
@@ -1162,7 +1152,7 @@ BERR_Code BSPI_P_Read
     BSPI_ChannelHandle  hChn;
     BERR_Code           retCode = BERR_SUCCESS;
     uint32_t            lval = 0, cdRamVal = 0, i;
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     uint32_t            j;
 #endif
 
@@ -1172,7 +1162,7 @@ BERR_Code BSPI_P_Read
     hDev = hChn->hSpi;
     BSPI_P_ACQUIRE_UPG_MUTEX( hChn );
 
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     if (((hChn->bitsPerTxfr == 8) && (length > MAX_SPI_XFER)) ||
         ((hChn->bitsPerTxfr == 16) && ((length > (MAX_SPI_XFER * 2)) || (length & 0x01))) ||
         ((hChn->bitsPerTxfr == 32) && ((length > (MAX_SPI_XFER * 4)) || (length & 0x03))) ||
@@ -1250,7 +1240,7 @@ BERR_Code BSPI_P_Read
         BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(NEWQP)), 0 );
         BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(ENDQP)), (uint32_t)((length/2) - 1) );
     }
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     else if (hChn->bitsPerTxfr == 32)
     {
         /*
@@ -1355,7 +1345,7 @@ BERR_Code BSPI_P_Read
             pReadData[i+1] = (uint8_t)lval;
         }
     }
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     else if (hChn->bitsPerTxfr == 32)
     {
         /*
@@ -1531,7 +1521,7 @@ BERR_Code BSPI_P_Write
     BSPI_ChannelHandle  hChn;
     BERR_Code           retCode = BERR_SUCCESS;
     uint32_t            lval = 0, cdRamVal = 0, cdRamVal_bitse = 0, i, num8BitBytes=0;
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     uint32_t            j;
 #endif
 
@@ -1541,7 +1531,7 @@ BERR_Code BSPI_P_Write
     hDev = hChn->hSpi;
     BSPI_P_ACQUIRE_UPG_MUTEX( hChn );
 
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
     if (((hChn->bitsPerTxfr == 8) && (length > MAX_SPI_XFER)) ||
         ((hChn->bitsPerTxfr == 16) && ((length > (MAX_SPI_XFER * 2)) || (length & 0x01))) ||
         ((hChn->bitsPerTxfr == 32) && ((length > (MAX_SPI_XFER * 4)) || (length & 0x03))) ||
@@ -1623,7 +1613,7 @@ BERR_Code BSPI_P_Write
             else
                 BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(ENDQP)), (uint32_t)((length/2) - 1) );
         }
-#if (BCHP_CHIP==7584) || (BCHP_CHIP==75845)
+#if BCHP_MSPI_SPCR3_data_reg_size_MASK
         else if (hChn->bitsPerTxfr == 32)
         {
             /*
@@ -1749,17 +1739,6 @@ void BSPI_P_SetClk(
 #endif
 
     BREG_Write32( hDev->hRegister, (hChn->coreOffset + SPI_REG(SPCR0_MSB)), lval );
-}
-
-void BSPI_P_SetEbiCs(
-    BSPI_ChannelHandle  hChn,           /* Device channel handle */
-    BSPI_EbiCs          ebiCs          /* EBI CS to use */
-    )
-{
-   BSTD_UNUSED(hChn);
-   BSTD_UNUSED(ebiCs);
-
-    BDBG_WRN(("HIF SPI is not supported"));
 }
 
 static void BSPI_P_EnableInterrupt( BSPI_ChannelHandle  hChn )

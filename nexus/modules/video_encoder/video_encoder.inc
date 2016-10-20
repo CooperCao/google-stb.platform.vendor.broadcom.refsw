@@ -105,15 +105,10 @@ NEXUS_VIDEO_ENCODER_MAGNUM_MODULES :=  \
     $(MAGNUM)/portinginterface/vce/bvce.inc \
     $(MAGNUM)/portinginterface/vce/bvce_auth.inc \
     $(MAGNUM)/portinginterface/vce/bvce_debug.inc \
-    $(MAGNUM)/commonutils/img/bimg.inc 
+    $(MAGNUM)/commonutils/img/bimg.inc \
+    $(MAGNUM)/commonutils/afl/bafl.inc
 
 NEXUS_FW_SIGN_MODULES += BVCE
-
-# Used to load the new ARC600 based encoder
-ifeq ($(filter $(BCHP_CHIP), 7422 7425 7445 7145 7366 7439 74371), $(BCHP_CHIP))
-NEXUS_VIDEO_ENCODER_MAGNUM_MODULES +=  \
-    $(MAGNUM)/commonutils/afl/bafl.inc
-endif
 
 include ${NEXUS_TOP}/extensions/video_encoder/security/secure_ext.inc
 

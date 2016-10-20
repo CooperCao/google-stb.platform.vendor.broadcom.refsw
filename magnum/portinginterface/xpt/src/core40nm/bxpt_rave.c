@@ -402,6 +402,7 @@ static void SetScdNum(
     uint32_t Reg;
 
     BDBG_ASSERT(Scd == 0); /* Unsupported SCD. Additional code needed. */
+    BSTD_UNUSED (Scd);
 
 #ifdef BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_AB
     Reg = BREG_Read32( hCtx->hReg, hCtx->BaseAddr + REC_SCD_PIDS_AB_OFFSET );
@@ -461,6 +462,36 @@ BERR_Code BXPT_Rave_GetChannelDefaultSettings(
     return( ExitCode );
 }
 
+static BXPT_P_ContextHandle * allocContextHandle(
+    BXPT_Rave_Handle hRave,
+    unsigned Index
+    )
+{
+    BXPT_P_ContextHandle *ThisCtx = hRave->ContextTbl[ Index ] = BKNI_Malloc(sizeof(BXPT_P_ContextHandle));
+
+    if(!ThisCtx)
+    {
+        BDBG_ERR(("%s malloc failed for context handle", __FUNCTION__));
+        goto Done;
+    }
+    BKNI_Memset(ThisCtx, 0, sizeof(*ThisCtx));
+
+    ThisCtx->hChp = hRave->hChip;
+    ThisCtx->hReg = hRave->hReg;
+    ThisCtx->hInt = hRave->hInt;
+    ThisCtx->Allocated = true;
+    ThisCtx->Index = Index;     /* Absolute context index, not type dependent. */
+    ThisCtx->vhRave = ( void * ) hRave;
+    ThisCtx->PicCounter = -1;    /* Invalid picture counter. */
+    ThisCtx->IsSoftContext = false;
+
+    ThisCtx->BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( Index * RAVE_CONTEXT_REG_STEP );
+    InitContext( ThisCtx, NULL );
+
+    Done:
+    return ThisCtx;
+}
+
 BERR_Code BXPT_Rave_OpenChannel(
     BXPT_Handle hXpt,                                   /* [in] Handle for this transport instance */
     BXPT_Rave_Handle *hRave,                            /* [out] Handle for the RAVE channel */
@@ -473,7 +504,6 @@ BERR_Code BXPT_Rave_OpenChannel(
     unsigned WaterMarkGranularity;
 
     BXPT_Rave_Handle lhRave = NULL;
-    BXPT_RaveCx_Handle ThisCtx = NULL;
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hXpt );
@@ -570,23 +600,7 @@ BERR_Code BXPT_Rave_OpenChannel(
     */
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
-        ThisCtx = lhRave->ContextTbl + Index;
-
-        ThisCtx->hChp = lhRave->hChip;
-        ThisCtx->hReg = lhRave->hReg;
-        ThisCtx->hMem = lhRave->hMem;
-        ThisCtx->hInt = lhRave->hInt;
-        ThisCtx->hRHeap = hXpt->hRHeap;
-        ThisCtx->Allocated = false;
-        ThisCtx->Index = Index;     /* Absolute context index, not type dependent. */
-        ThisCtx->vhRave = ( void * ) lhRave;
-        ThisCtx->PicCounter = -1;    /* Invalid picture counter. */
-        ThisCtx->IsSoftContext = false;
-        ThisCtx->avsDecHandle = NULL;
-        ThisCtx->avsRefHandle = NULL;
-
-        ThisCtx->BaseAddr = BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR + ( Index * RAVE_CONTEXT_REG_STEP );
-        InitContext( ThisCtx, NULL );
+        *(lhRave->ContextTbl + Index) = NULL;
     }
 
     for( Index = 0; Index < BXPT_P_NUM_SPLICING_QUEUES; Index++ )
@@ -770,8 +784,8 @@ BERR_Code BXPT_Rave_CloseChannel(
 
     /* Free any context buffers left hanging around */
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
-        if( hRave->ContextTbl[ Index ].Allocated == true )
-            BXPT_Rave_FreeContext( hRave->ContextTbl + Index );
+        if( hRave->ContextTbl[ Index ] )
+            BXPT_Rave_FreeContext( *(hRave->ContextTbl + Index) );
 
     BKNI_Free( hRave );
 
@@ -810,7 +824,12 @@ BERR_Code BXPT_Rave_AllocCx(
 
         /* Set the local heap handle to the one given at RAVE channel open, as the local handle
         may have been hijacked by BXPT_Rave_AllocSoftContextFromHeap() */
-        ThisCtx = hRave->ContextTbl + Index;
+
+        if( !(ThisCtx = allocContextHandle(hRave, Index)) )
+        {
+            BDBG_ERR(( "Can't allocate a context handle!" ));
+            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+        }
         ThisCtx->hMem = hRave->hMem;
 
         /* this triggers AllocSoftContext_Priv() not to allocate the ITB */
@@ -827,7 +846,11 @@ BERR_Code BXPT_Rave_AllocCx(
 
         /* Set the local heap handle to the one given at RAVE channel open, as the local handle
         may have been hijacked by BXPT_Rave_AllocContextFromHeap() */
-        ThisCtx = hRave->ContextTbl + Index;
+        if( !(ThisCtx = allocContextHandle(hRave, Index)) )
+        {
+            BDBG_ERR(( "Can't allocate a context handle!" ));
+            return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+        }
         ThisCtx->hMem = hRave->hMem;
 
         /* this triggers InitContext() not to allocate the CDB/ITB */
@@ -881,7 +904,7 @@ static BERR_Code setupAvsContext(
         goto done;
     }
 
-    ThisCtx = hRave->ContextTbl + Index;
+    ThisCtx = *(hRave->ContextTbl + Index);
     ThisCtx->Allocated = true;
     ThisCtx->Type = RequestedType;
     ThisCtx->VctNeighbor = NULL;
@@ -961,26 +984,34 @@ BERR_Code BXPT_Rave_AllocAvsCxPair(
         BDBG_ERR(( "No free reference context!" ));
         return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
     }
-    hRave->ContextTbl[ referenceIndex ].Allocated = true;
+
+    if( !(ThisRefCtx = allocContextHandle(hRave, referenceIndex)) )
+    {
+        BDBG_ERR(( "Can't allocate a context handle!" ));
+        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+    }
+
     if( GetNextRaveContext( hRave, pDecodeCxSettings->RequestedType, &decodeIndex ) != BERR_SUCCESS )
     {
         BDBG_ERR(( "No free decode context!" ));
-        hRave->ContextTbl[ referenceIndex ].Allocated = false;
         return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
     }
-    hRave->ContextTbl[ decodeIndex ].Allocated = true;
+
+    if( !(ThisDecCtx = allocContextHandle(hRave, decodeIndex)) )
+    {
+        BDBG_ERR(( "Can't allocate a context handle!" ));
+        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+    }
 
     /* Now that we've got the resources, mark them as allocated and init them. */
     BDBG_MSG(( "%s: referenceScdNum %u, decodeScdNum %u, referenceIndex %u, decodeIndex %u", __FUNCTION__, referenceScdNum, decodeScdNum, referenceIndex, decodeIndex ));
     hRave->ScdTable[ referenceScdNum ].Allocated = true;
     hRave->ScdTable[ decodeScdNum ].Allocated = true;
 
-    ThisRefCtx = hRave->ContextTbl + referenceIndex;
     ThisRefCtx->hMem = hRave->hMem;
     ThisRefCtx->CdbBufferAddr = pReferenceCxSettings->CdbBlock ? BMMA_Lock(pReferenceCxSettings->CdbBlock) : NULL;
     ThisRefCtx->ItbBufferAddr = pReferenceCxSettings->ItbBlock ? BMMA_Lock(pReferenceCxSettings->ItbBlock) : NULL;
 
-    ThisDecCtx = hRave->ContextTbl + decodeIndex;
     ThisDecCtx->hMem = hRave->hMem;
     ThisDecCtx->CdbBufferAddr = pDecodeCxSettings->CdbBlock ? BMMA_Lock(pDecodeCxSettings->CdbBlock) : NULL;
     ThisDecCtx->ItbBufferAddr = pDecodeCxSettings->ItbBlock ? BMMA_Lock(pDecodeCxSettings->ItbBlock) : NULL;
@@ -1036,7 +1067,11 @@ BERR_Code BXPT_Rave_AllocContextFromHeap(
 
     /* Same as the normal context alloc, except the we substitute the caller's heap
     for the general handle that was installed when the RAVE channel was openned. */
-    ThisCtx = hRave->ContextTbl + Index;
+    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
+    {
+        BDBG_ERR(( "Can't allocate a context handle!" ));
+        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+    }
     ThisCtx->hMem = ContextHeap;
 
     /* InitContext() will do the alloc */
@@ -1069,7 +1104,11 @@ BERR_Code BXPT_Rave_AllocContext(
 
     /* Set the local heap handle to the one given at RAVE channel open, as the local handle
     may have been hijacked by BXPT_Rave_AllocContextFromHeap() */
-    ThisCtx = hRave->ContextTbl + Index;
+    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
+    {
+        BDBG_ERR(( "Can't allocate a context handle!" ));
+        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+    }
     ThisCtx->hMem = hRave->hMem;
 
     /* InitContext() will do the alloc */
@@ -1133,13 +1172,13 @@ BERR_Code AllocContext_Priv(
         goto done;
     }
 
-    ThisCtx = hRave->ContextTbl + Index;
+    ThisCtx = *(hRave->ContextTbl + Index);
     ThisCtx->Allocated = true;
     ThisCtx->Type = RequestedType;
 
     if( RequestedType == BXPT_RaveCx_eVctNull )
     {
-        BXPT_RaveCx_Handle VctNeighbor = &hRave->ContextTbl[ Index + 1 ];
+        BXPT_RaveCx_Handle VctNeighbor = *(hRave->ContextTbl + Index + 1);
 
         VctNeighbor->Allocated = true;
         InitContext( VctNeighbor, NULL );
@@ -1493,10 +1532,14 @@ BERR_Code BXPT_Rave_FreeContext(
     void *BufferAddr;
     BMEM_Handle hMem;
 
+    unsigned Index;
     BERR_Code ExitCode = BERR_SUCCESS;
+    BXPT_Rave_Handle hRave;
 
     BDBG_ASSERT( Context );
 
+    Index = Context->Index;
+    hRave = (BXPT_Rave_Handle) Context->vhRave;
     if( Context->IsSoftContext )
     {
         /* BXPT_RaveSoftMode_ePointersOnly does not allocate any buffers. All other modes do. */
@@ -1574,14 +1617,9 @@ BERR_Code BXPT_Rave_FreeContext(
     }
 
     /* Zero out the registers */
-    Context->Type = BXPT_RaveCx_eAv;    /* Default to AV */
     InitContext( Context, NULL );
-
-    Context->allocatedCdbBufferSize = 0;
-    Context->usedCdbBufferSize = 0;
-    Context->Allocated = false;
-    Context->IsSoftContext = false;
-
+    BKNI_Free((void *) Context);
+    hRave->ContextTbl[Index] = NULL;
     return( ExitCode );
 }
 
@@ -7451,9 +7489,14 @@ BERR_Code BXPT_Rave_AllocSoftContextFromHeap(
         return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
     }
 
+    if( !(ThisCtx = allocContextHandle(hRave, Index)) )
+    {
+        BDBG_ERR(( "Can't allocate a context handle!" ));
+        return BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+    }
+
     /* Same as the normal context alloc, except the we substitute the caller's heap
     for the general handle that was installed when the RAVE channel was openned. */
-    ThisCtx = hRave->ContextTbl + Index;
     ThisCtx->hMem = ContextHeap ? ContextHeap : hRave->hMem;
 
     /* InitContext() will do the alloc */
@@ -7478,7 +7521,7 @@ BERR_Code AllocSoftContext_Priv(
     BXPT_RaveCx SoftCtxMode = DestContextMode == BXPT_RaveSoftMode_eIndexOnlyRecord ? BXPT_RaveCx_eRecord : BXPT_RaveCx_eAv;
 
     BDBG_MSG(( "AllocSoftContext_Priv: src %u dst %u", SrcContext->Index, Index ));
-    ThisCtx = hRave->ContextTbl + Index;
+    ThisCtx = *(hRave->ContextTbl + Index);
     ThisCtx->Allocated = true;
     ThisCtx->Type = SoftCtxMode;
 
@@ -8864,6 +8907,7 @@ BERR_Code GetNextRaveContext(
 
     if( RequestedType == BXPT_RaveCx_eVctNull )
     {
+#if 0
         /* Need to find two consecutive free contexts */
         for( ; Index < BXPT_NUM_RAVE_CONTEXTS - 2; Index++ )
         {
@@ -8877,12 +8921,16 @@ BERR_Code GetNextRaveContext(
             BDBG_ERR(( "No VCT context is available" ));
             ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
         }
+#else
+        BDBG_ERR(( "VCT context is not supported" ));
+        ExitCode = BERR_TRACE( BXPT_ERR_NO_AVAILABLE_RESOURCES );
+#endif
     }
     else
     {
         for( ; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
         {
-            if( hRave->ContextTbl[ Index ].Allocated == false )
+            if( !hRave->ContextTbl[ Index ] )
                 break;
         }
 
@@ -8907,7 +8955,7 @@ BERR_Code GetNextSoftRaveContext(
 
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
-        if( hRave->ContextTbl[ Index ].Allocated == false )
+        if( !hRave->ContextTbl[ Index ] )
             break;
     }
 
@@ -9006,7 +9054,7 @@ BERR_Code BXPT_Rave_P_FlowControl(
                     BXPT_Rave_BufferInfo BufferInfo;
 
                     /* Is the CDB depth over our threshold? */
-                    hCtx = &hRave->ContextTbl[ ContextNum ];
+                    hCtx = hRave->ContextTbl[ ContextNum ];
 
                     if ( hCtx->BandHoldEn )
                     {
@@ -9052,7 +9100,7 @@ void BXPT_Rave_GetStatus(
     Status->SupportedContexts = BXPT_NUM_RAVE_CONTEXTS;
     for( Index = 0; Index < BXPT_NUM_RAVE_CONTEXTS; Index++ )
     {
-        if( hRave->ContextTbl[ Index ].Allocated )
+        if( !hRave->ContextTbl[ Index ] )
             Status->AllocatedContexts++;
     }
 }
@@ -9062,6 +9110,7 @@ void BXPT_Rave_GetFwRevisionInfo(
     BXPT_Rave_RevisionInfo *versionInfo     /* [out] Version info */
     )
 {
+    BSTD_UNUSED( hRave );
     BDBG_ASSERT( hRave );
     BDBG_ASSERT( versionInfo );
 

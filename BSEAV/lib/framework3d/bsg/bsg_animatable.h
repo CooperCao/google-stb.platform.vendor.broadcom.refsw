@@ -204,18 +204,21 @@ private:
 // @cond
 // GLUniformX is a meta function that defines the "uniform" type corresponding
 // to the template parameter parameter.
-template <class T> struct GLUniformX         {                                };
-template <>        struct GLUniformX<float>  { typedef GLUniform1f     Type;  };
-template <>        struct GLUniformX<Vec2>   { typedef GLUniform2f     Type;  };
-template <>        struct GLUniformX<Vec3>   { typedef GLUniform3f     Type;  };
-template <>        struct GLUniformX<Vec4>   { typedef GLUniform4f     Type;  };
-template <>        struct GLUniformX<int>    { typedef GLUniform1i     Type;  };
-template <>        struct GLUniformX<IVec2>  { typedef GLUniform2i     Type;  };
-template <>        struct GLUniformX<IVec3>  { typedef GLUniform3i     Type;  };
-template <>        struct GLUniformX<IVec4>  { typedef GLUniform4i     Type;  };
-template <>        struct GLUniformX<Mat2>   { typedef GLUniformMat2   Type;  };
-template <>        struct GLUniformX<Mat3>   { typedef GLUniformMat3   Type;  };
-template <>        struct GLUniformX<Mat4>   { typedef GLUniformMat4   Type;  };
+template <class T> struct GLUniformX          {                                };
+template <>        struct GLUniformX<float>   { typedef GLUniform1f     Type;  };
+template <>        struct GLUniformX<Vec2>    { typedef GLUniform2f     Type;  };
+template <>        struct GLUniformX<Vec3>    { typedef GLUniform3f     Type;  };
+template <>        struct GLUniformX<Vec4>    { typedef GLUniform4f     Type;  };
+template <>        struct GLUniformX<int>     { typedef GLUniform1i     Type;  };
+#ifdef BSG_USE_ES3
+template <>        struct GLUniformX<unsigned>{ typedef GLUniform1u     Type;  };
+#endif
+template <>        struct GLUniformX<IVec2>   { typedef GLUniform2i     Type;  };
+template <>        struct GLUniformX<IVec3>   { typedef GLUniform3i     Type;  };
+template <>        struct GLUniformX<IVec4>   { typedef GLUniform4i     Type;  };
+template <>        struct GLUniformX<Mat2>    { typedef GLUniformMat2   Type;  };
+template <>        struct GLUniformX<Mat3>    { typedef GLUniformMat3   Type;  };
+template <>        struct GLUniformX<Mat4>    { typedef GLUniformMat4   Type;  };
 
 #ifdef BSG_USE_ES3
 template <>        struct GLUniformX<Mat2x3> { typedef GLUniformMat2x3 Type;  };

@@ -417,7 +417,7 @@ Summary:
     This definition defines the Hdmi outputs supported
 
 See Also:
-    BVDC_Display_SetHdmiConfiguration, BVDC_Display_GetHdmiConfiguration
+    BVDC_Display_SetHdmiSettings, BVDC_Display_GetHdmiSettings
 ***************************************************************************/
 #define BVDC_Hdmi_0                         UINT32_C(0x00000001)
 #define BVDC_Hdmi_1                         UINT32_C(0x00000002)
@@ -524,13 +524,6 @@ Description:
 
 ***************************************************************************/
 #define BVDC_CSC_COEFF_COUNT           (15)
-
-/***************************************************************************
-Description:
-    This macro represent the number of 2D/3D comb parameters.
-
-***************************************************************************/
-#define BVDC_COMB_PARAM_COUNT          (8)
 
 /***************************************************************************
 Description:
@@ -2150,12 +2143,23 @@ Description:
     BVDC_Compositor_Settings is a structure that use to describe the public
     settings of a compositor aka CMP.
 
-    reserved for future use.
+    hCfcHeap - Specify what MMA heap is used for this compositor's CFC block.
+        CFC stands for Color Format Convertor which consists of a group of
+        sub-blocks that converts input color space to output color space while
+        handling proper gamma and color tone for various SDR/HDR formats.
+        If hCfcHeap is specified, it will be used for CFC command list allocation.
+        Application is responsible for passing the correct driver heap on
+        box mode specific MEMC.  Passing incorrect will result in undefined
+        system behaviors.
 
 See Also:
     BVDC_Compositor_GetDefaultSettings, BVDC_Compositor_Create.
 ***************************************************************************/
-typedef void *BVDC_Compositor_Settings;
+typedef struct
+{
+    BMMA_Heap_Handle                   hCfcHeap;
+
+}BVDC_Compositor_Settings;
 
 /***************************************************************************
 Summary:
@@ -2165,18 +2169,13 @@ Description:
     BVDC_Window_Settings is a structure that use to describe the public
     settings of a window.
 
-    hHeap - Specify what hHeap to be used for this window.  If hHeap is NULL
-        the internal VDC created heap will be used.  Application is responsible
-        for passing the correct heap on system with multiple heaps.  Passing
-        incorrect will result in undefined system behaviors.
-
-    hHeap - Specify what hHeap to be used for this window. Capture block on this
+    hHeap - Specify what vdc heap to be used for this window. Capture block on this
         window always use this heap. If hHeap is NULL the internal VDC created
         heap will be used.  Application is responsible for passing the correct
         heap on system with multiple heaps.  Passing incorrect will result in
         undefined system behaviors.
 
-    hDeinterlacerHeap - Specify what hHeap to be used for deinterlacer on this
+    hDeinterlacerHeap - Specify what vdc heap to be used for deinterlacer on this
         window. If hDeinterlacerHeap is specified and it is not the same as
         hHeap, hDeinterlacerHeap will be used for deinterlacer allocation. If
         hDeinterlacerHeap is NULL or it is the same as hHeap, then hHeap will be
@@ -2232,6 +2231,7 @@ Description:
     processing like dering and color space conv, which are turn on by default
     as long as HW supports. This is a debug feature likely used by ViCE FW
     team only.
+
 See Also:
     BVDC_Window_GetDefaultSettings
     BVDC_Window_Create
@@ -2272,6 +2272,14 @@ Description:
     eMtgMode - How to decide whether this mpeg feeder will be a Mpeg Time Generator
         (RDC slot trigger)
 
+    hCfcHeap - Specify what driver heap to be used for this source (GFD only) CFC.
+        CFC stands for Color Format Convertor which consists of a group of
+        sub-blocks that converts input color space to output color space while
+        handling proper gamma and color tone for various SDR/HDR formats.
+        If hCfcHeap is specified, it will be used for CFC command list allocation.
+        Application is responsible for passing the correct driver heap on
+        box mode specific MEMC.  Passing incorrect will result in undefined
+        system behaviors.
 
 See Also:
     BVDC_Source_GetDefaultSettings, BVDC_Source_Create.
@@ -2282,6 +2290,7 @@ typedef struct
     BVDC_CompositorId                  eDsSrcCompId;
     BVDC_Mode                          eMtgMode;
     bool                               bGfxSrc;
+    BMMA_Heap_Handle                   hCfcHeap;
 
 }BVDC_Source_Settings;
 
@@ -3365,28 +3374,6 @@ BERR_Code BVDC_Source_SetCallbackSettings
     ( BVDC_Source_Handle                   hSource,
       const BVDC_Source_CallbackSettings  *pSettings );
 
-
-/***************************************************************************
-Summary:
-    Array to hold a pair of FMT format enums.
-
-Description:
-    This is an array to hold two FMT enum for mapping or other purposes.
-
-    eFmtA - A format A (from).
-
-    eFmtB - B format B (to).
-
-See Also:
-    BVDC_Source_SetReMapFormats
-****************************************************************************/
-typedef struct
-{
-    BFMT_VideoFmt                      eFmtA;
-    BFMT_VideoFmt                      eFmtB;
-
-} BVDC_VideoFmtPair;
-
 /***************************************************************************
 Summary:
     This structure describes the settings used the contrast stretch algorithm.
@@ -3752,7 +3739,7 @@ Description:
     Which returns the BFMT_VideoInfo of a given formats.
 
 See Also:
-    BVDC_Source_GetInputStatus, BVDC_Source_SetReMapFormats
+    BVDC_Source_GetInputStatus
 ***************************************************************************/
 typedef struct
 {
@@ -3837,7 +3824,7 @@ Description:
 See Also:
     BVDC_GetCapabilities, BVDC_Display_SetDacConfiguration,
     BVDC_Display_SetRfmConfiguration, BVDC_Display_SetStgConfiguration,
-    BVDC_Display_Set656Configuration, BVDC_Display_SetHdmiConfiguration,
+    BVDC_Display_Set656Configuration, BVDC_Display_SetHdmiSettings,
     BVDC_Source_SetDnrConfiguration.
 ***************************************************************************/
 typedef struct BVDC_Capabilities
@@ -4926,10 +4913,12 @@ Summary:
 Description:
     bUsed - Indicate if this display is used or not
     eMaxDisplayFormat - Maximum display format
-
+    vip - Defines VIP memory configuration settings
     stWindow - Defines memory configuration settings per video
         window. Default setting: MFD/VFD source, sync locked full screen only,
         no deinterlacer: 0 capture buffers, 0 deinterlacer buffers
+    cfc - Defines CMP & GFD CFC (Color Format Converter) memory configuration
+        settings
 
 See Also:
     BVDC_Heap_Settings
@@ -4952,6 +4941,13 @@ typedef struct
 
     /* Memory config settings for all windows on the display */
     BVDC_WinMemConfigSettings  stWindow[BVDC_MAX_VIDEO_WINDOWS];
+
+    /* MEMC settings for CMP & GFD CFC */
+    struct {
+        bool                      bUsed;
+        uint32_t                  ulCmpMemcIndex;
+        uint32_t                  ulGfdMemcIndex;
+    } cfc;
 
 } BVDC_DispMemConfigSettings;
 
@@ -4989,6 +4985,8 @@ Description:
 
     stDisplay - Defines memory configuration settings per display
     stRdc - Defines memory configuration settings for RDC
+    hdmiDisplayCfc - Defines HDMI display CFC(Color Format Converter)
+        memory configuration settings
 
 See Also:
     BVDC_Heap_Settings
@@ -5006,6 +5004,12 @@ typedef struct
     /* Memory config settings for RDC */
     BVDC_RdcMemConfigSettings   stRdc;
 
+    /* Memc Index for hdmi display CFC */
+    struct {
+        bool                    bUsed;
+        uint32_t                aulMemcIndex;
+    } hdmiDisplayCfc[BBOX_VDC_HDMI_DISPLAY_COUNT];
+
 } BVDC_MemConfigSettings;
 
 
@@ -5019,9 +5023,9 @@ Description:
         ulSize - Defines total size (byte) of VDC buffers on specific memc.
         stHeapSettings - Defines size and count of VDC buffers in each category
             on specific memc
-        ulRulSize - RDC (Regisger DMA Controller) RUL (Regisgter Update List)
-            memory.
-        ulVipSize - VIP (Video Input Processor) picture memory for new soft transcoder.
+        ulRulSize - Combined RDC (Regisger DMA Controller) RUL (Regisgter Update List)
+            memory and CFC (Color Format Converter) command list driver heap size.
+        ulVipSize - VIP (Video Input Processor) picture memory size for new soft transcoder.
 
 ***************************************************************************/
 typedef struct BVDC_MemConfig
@@ -5042,20 +5046,61 @@ Summary:
     This structure describes display Hdmi settings.
 
 Description:
-    This will allow application to fine tune the vec hdmi settings.
+    This will allow application to configure the hdmi display settings.
+
+    ulPortId - Which HDMI output (For most chips, BVDC_Hdmi_0 is the only valid choice)
+    eMatrixCoeffs - HDMI output color space standards:
+            a) BAVC_MatrixCoefficients_eItu_R_BT_709
+            b) BAVC_MatrixCoefficients_eFCC
+            c) BAVC_MatrixCoefficients_eSmpte_170M
+            d) BAVC_MatrixCoefficients_eSmpte_240M
+            e) BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG
+            f) BAVC_MatrixCoefficients_eXvYCC_709
+            g) BAVC_MatrixCoefficients_eXvYCC_601
+            h) BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL,
+            i) BAVC_MatrixCoefficients_eItu_R_BT_2020_CL,
+            j) BAVC_MatrixCoefficients_eUnknown      - HDMI output off;
+
+        Note that the last type is used to disable HDMI output. Other enums values
+        should match the display format set to this hDisplay. For eaxmple, NTSC
+        should be combined with BAVC_MatrixCoefficients_eSmpte_170M or
+        BAVC_MatrixCoefficients_eXvYCC_601. BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG
+        and BAVC_MatrixCoefficients_eXvYCC_601 should be set with PAL. HD should
+        be set together with BAVC_MatrixCoefficients_eItu_R_BT_709 or
+        BAVC_MatrixCoefficients_eXvYCC_709. UHD should be together with
+        BAVC_MatrixCoefficients_eItu_R_BT_709, BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL,
+        or BAVC_MatrixCoefficients_eItu_R_BT_2020_CL.
+
+        BAVC_MatrixCoefficients_eHdmi_RGB, BAVC_MatrixCoefficients_eDvi_Full_Range_RGB,
+        and BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr are to be obsolete. Use
+        BAVC_Colorspace and BAVC_ColorRange with BVDC_Display_SetHdmiSettings instead.
 
     eColorComponent - This parameter specifies RGB/YCbCr type (4:2:0/4:2:2/4:4:4).
     eColorRange - This parameter specifies whether limited range or full range.
     eEotf - This parameter specifies whether sdr, gama-hdr, or pq-hdr, ...
+    hCfcHeap - Specify what driver heap to be used for this HDMI display's CFC.
+        CFC stands for Color Format Convertor which consists of a group of
+        sub-blocks that converts input color space to output color space while
+        handling proper gamma and color tone for various SDR/HDR formats.
+        If hCfcHeap is specified, it will be used for CFC command list allocation.
+        Application is responsible for passing the correct driver heap on
+        box mode specific MEMC.  Passing incorrect will result in undefined
+        system behaviors.
+
 
 See Also:
+    BVDC_Hdmi_0, BVDC_Hdmi_1
     BVDC_Display_SetHdmiSettings;
+    BVDC_Display_GetHdmiSettings;
 ***************************************************************************/
 typedef struct
 {
+    uint32_t                     ulPortId;
+    BAVC_MatrixCoefficients      eMatrixCoeffs;
     BAVC_Colorspace              eColorComponent;
     BAVC_ColorRange              eColorRange;
     BAVC_HDMI_DRM_EOTF           eEotf;
+    BMMA_Heap_Handle             hCfcHeap;
 } BVDC_Display_HdmiSettings;
 
 /***************************************************************************
@@ -10230,52 +10275,6 @@ BERR_Code BVDC_Source_SetAutoFormat
 
 /***************************************************************************
 Summary:
-    Override the detected format with new remap format.
-
-Description:
-    This function overrides the detected format with the user specified format
-    list.  In the case of PC input (or HDMI) input format are closely related
-    that application would like the end-user to override the detected.  This
-    work while auto-format detection is enabled (auto format enabled with
-    BVDC_Source_SetAutoFormat).
-
-    NOTE: This remap currently only work for PC input source, other sources
-    are undefined.  In addition not all format can be remapped.  Only those
-    formats of very similar can be done.  For example 1024x768p@60Hz,
-    1280x768p@60Hz, and 1360x768p@60Hz.  This function assumpt user is fully
-    aware of format remapping capabilities.
-
-Input:
-    hSource - A valid source handle created earlier.
-
-    bReMap - This flag will enable/disable the remapping.  Default is false.
-
-    aReMapFormats - This parameter contains the list of formats to be remapped.
-    It contains format pairs that contains "from" and "to".  If enabled when PI
-    first detects aReMapFormats[i].eFmtA it will set aReMapFormats[i].eFmtB
-    instead.
-
-    ulReMapFormats - This paramter indicates the number of remap pairs.  This
-    number must be less than BFMT_VideoFmt_eMaxCount.
-
-Output:
-    None
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Function succeed
-
-See Also:
-    BVDC_Source_SetAutoFormat, BVDC_Source_SetVideoFormat.
-**************************************************************************/
-BERR_Code BVDC_Source_SetReMapFormats
-    ( BVDC_Source_Handle               hSource,
-      bool                             bReMap,
-      const BVDC_VideoFmtPair          aReMapFormats[],
-      uint32_t                         ulReMapFormats );
-
-/***************************************************************************
-Summary:
     This function gets the current video format of a source.
 
 Description:
@@ -12779,87 +12778,29 @@ BERR_Code BVDC_Display_GetDacConfiguration
 
 /***************************************************************************
 Summary:
-    This function setups the Hdmi output
-
-Description:
-    Enables or disables Hdmi output associated with a Display
-    handle. Returns an error if the selection is invalid.  This function
-    requires that all other display(s) must already shut off their HDMI output
-    (e.g. BAVC_MatrixCoefficients_eUnknown) and applied.
-
-    Does not take immediate effect. Requires an ApplyChanges() call.
-
-Input:
-    hDisplay    - Display handle created earlier.
-    ulHdmi      - Which HDMI (For 7038, BVDC_Hdmi_0 is the only valid choice)
-    eHdmiOutput - HDMI output color space standards
-                  a) BAVC_MatrixCoefficients_eItu_R_BT_709
-                  b) BAVC_MatrixCoefficients_eFCC
-                  c) BAVC_MatrixCoefficients_eSmpte_170M
-                  d) BAVC_MatrixCoefficients_eSmpte_240M
-                  e) BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG
-                  f) BAVC_MatrixCoefficients_eXvYCC_709
-                  g) BAVC_MatrixCoefficients_eXvYCC_601
-                  h) BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL,
-                  i) BAVC_MatrixCoefficients_eItu_R_BT_2020_CL,
-
-                  j) BAVC_MatrixCoefficients_eUnknown      - HDMI output off;
-
-    Note that the last type is used to disable HDMI output. Other enums values
-    should match the display format set to this hDisplay. For eaxmple, NTSC
-    should be combined with BAVC_MatrixCoefficients_eSmpte_170M or
-    BAVC_MatrixCoefficients_eXvYCC_601. BAVC_MatrixCoefficients_eItu_R_BT_470_2_BG
-    and BAVC_MatrixCoefficients_eXvYCC_601 should be set with PAL. HD should
-    be set together with BAVC_MatrixCoefficients_eItu_R_BT_709 or
-    BAVC_MatrixCoefficients_eXvYCC_709. UHD should be together with
-    BAVC_MatrixCoefficients_eItu_R_BT_709, BAVC_MatrixCoefficients_eItu_R_BT_2020_NCL,
-    or BAVC_MatrixCoefficients_eItu_R_BT_2020_CL.
-
-    BAVC_MatrixCoefficients_eHdmi_RGB, BAVC_MatrixCoefficients_eDvi_Full_Range_RGB,
-    and BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr are to be obsolete. Use
-    BAVC_Colorspace and BAVC_ColorRange with BVDC_Display_SetHdmiSettings instead.
-
-Output:
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Function succeed
+    This function will be obsoleted. Please use BVDC_Display_SetHdmiSettings instead.
 
 See Also:
-    BVDC_Display_GetHdmiConfiguration, BVDC_Display_SetVideoFormat.
+    BVDC_Display_HdmiSettings
+    BVDC_Display_SetHdmiSettings
 **************************************************************************/
 BERR_Code BVDC_Display_SetHdmiConfiguration
     ( BVDC_Display_Handle              hDisplay,
-      uint32_t                         ulHdmi,
-      BAVC_MatrixCoefficients          eHdmiOutput );
+      uint32_t                         ulPortId,
+      BAVC_MatrixCoefficients          eMatrixCoeffs );
 
 /***************************************************************************
 Summary:
-    This function queries the Hdmi output settings
-
-Description:
-    Returns Hdmi output color space interpretation.
-    Note:  If the output is BAVC_MatrixCoefficients_eUnknown, it means hdmi
-    output is disabled.
-
-Input:
-    hDisplay - Display handle created earlier.
-    ulHdmi   - Which HDMI (For 7038, BVDC_Hdmi_0 is the only valid selection)
-
-Output:
-    peHdmiOutput - pointer to Hdmi output color space
-
-Returns:
-    BERR_INVALID_PARAMETER - Invalid function parameters.
-    BERR_SUCCESS - Function succeed
+    This function will be obsoleted. Please use BVDC_Display_GetHdmiSettings instead.
 
 See Also:
-    BVDC_Display_SetHdmiConfiguration
+    BVDC_Display_HdmiSettings
+    BVDC_Display_GetHdmiSettings
 **************************************************************************/
 BERR_Code BVDC_Display_GetHdmiConfiguration
     ( const BVDC_Display_Handle        hDisplay,
-      uint32_t                         ulHdmi,
-      BAVC_MatrixCoefficients         *peHdmiOutput );
+      uint32_t                         ulPortId,
+      BAVC_MatrixCoefficients         *eMatrixCoeffs );
 
 /***************************************************************************
 Summary:
@@ -12877,7 +12818,8 @@ Returns:
     BERR_SUCCESS - Function succeed
 
 See Also:
-    BVDC_Display_GetHdmiSettings, BVDC_Display_HdmiSettings.
+    BVDC_Display_GetHdmiSettings
+    BVDC_Display_HdmiSettings.
 **************************************************************************/
 BERR_Code BVDC_Display_SetHdmiSettings
     ( const BVDC_Display_Handle        hDisplay,
@@ -12901,7 +12843,8 @@ Returns:
     BERR_SUCCESS - Function succeed
 
 See Also:
-    BVDC_Display_SetHdmiSettings, BVDC_Display_HdmiSettings.
+    BVDC_Display_SetHdmiSettings
+    BVDC_Display_HdmiSettings
 **************************************************************************/
 BERR_Code BVDC_Display_GetHdmiSettings
     ( const BVDC_Display_Handle        hDisplay,
@@ -12987,7 +12930,7 @@ Returns:
     BERR_SUCCESS - Function succeed
 
 See Also:
-    BVDC_Display_GetHdmiSyncOnly, BVDC_Display_SetHdmiConfiguration.
+    BVDC_Display_GetHdmiSyncOnly, BVDC_Display_SetHdmiSettings.
 **************************************************************************/
 BERR_Code BVDC_Display_SetHdmiSyncOnly
     ( const BVDC_Display_Handle        hDisplay,
@@ -13014,7 +12957,7 @@ Returns:
     BERR_SUCCESS - Function succeed
 
 See Also:
-    BVDC_Display_SetHdmiSyncOnly, BVDC_Display_GetHdmiConfiguration.
+    BVDC_Display_SetHdmiSyncOnly, BVDC_Display_GetHdmiSettings.
 **************************************************************************/
 BERR_Code BVDC_Display_GetHdmiSyncOnly
     ( const BVDC_Display_Handle        hDisplay,
@@ -13338,7 +13281,7 @@ Input:
     eMpaaDeciIf - An output interface type that support MPAA decimation.
     ulOutPorts - Or-ed bits (e.g. BVDC_Hdmi_0 | BVDC_Hdmi_1) representing
     some output ports of eMpaaDeciIf type, configured with
-    BVDC_Display_SetDacConfiguration, BVDC_Display_SetHdmiConfiguration, or
+    BVDC_Display_SetDacConfiguration, BVDC_Display_SetHdmiSettings, or
     BVDC_Display_Set656Configuration.
     bEnable  - Enable/Disable MPAA decimation
 
@@ -13352,7 +13295,7 @@ Note:
 
 See Also:
     BVDC_Display_GetMpaaDecimation,
-    BVDC_Display_SetDacConfiguration, BVDC_Display_SetHdmiConfiguration,
+    BVDC_Display_SetDacConfiguration, BVDC_Display_SetHdmiSettings,
     BVDC_Display_Set656Configuration
 **************************************************************************/
 BERR_Code BVDC_Display_SetMpaaDecimation
@@ -13371,7 +13314,7 @@ Input:
     eMpaaDeciIf - An output interface type that support MPAA decimation.
     ulOutPort - Bit field representing a specific output port of eMpaaDeciIf
     type, configured with BVDC_Display_SetDacConfiguration,
-    BVDC_Display_SetHdmiConfiguration, or BVDC_Display_Set656Configuration.
+    BVDC_Display_SetHdmiSettings, or BVDC_Display_Set656Configuration.
 
 Output:
     pbEnable  - Enable/Disable MPAA decimation
@@ -13775,7 +13718,7 @@ Description:
     {R_out, G_Out, B_out, A_out} = Output pixel after apply M matrix.
 
     How the values in the table are interpreted and read in depend on whether
-    the output is configured as RGB or YCbCr by BVDC_Display_SetHdmiConfiguration().
+    the output is configured as RGB or YCbCr by BVDC_Display_SetHdmiSettings().
 
     Note: The last two rows of the above matrix are used to facilitate
     computation only. It is not implemented physically in hardware.
@@ -13804,7 +13747,7 @@ Returns:
     BERR_SUCCESS - Color matrix was set.
     BERR_INVALID_PARAMETER - One of the input parameters was invalid.
 
-See Also: BVDC_Display_SetHdmiConfiguration
+See Also: BVDC_Display_SetHdmiSettings
 ****************************************************************************/
 BERR_Code BVDC_Display_SetDvoColorMatrix
     ( BVDC_Display_Handle              hDisplay,
@@ -13858,7 +13801,7 @@ Description:
     {R_out, G_Out, B_out, A_out} = Output pixel after apply M matrix.
 
     How the values in the table are read and returned depend on whether
-    the output is configured as RGB or YCbCr by BVDC_Display_SetHdmiConfiguration().
+    the output is configured as RGB or YCbCr by BVDC_Display_SetHdmiSettings().
 
     Note: The last two rows of the above matrix are used to facilitate
     computation only. It is not implemented physically in hardware.
@@ -13890,7 +13833,7 @@ Returns:
     BERR_SUCCESS - Color matrix was set.
     BERR_INVALID_PARAMETER - One of the input parameters was invalid.
 
-See Also: BVDC_Display_SetHdmiConfiguration
+See Also: BVDC_Display_SetHdmiSettings
 ****************************************************************************/
 BERR_Code BVDC_Display_GetDvoColorMatrix
     ( BVDC_Display_Handle              hDisplay,

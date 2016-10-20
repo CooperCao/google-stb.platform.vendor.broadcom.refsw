@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,28 +70,28 @@
 /***************************************************************************
  *DECODE_MAIN_0
  ***************************************************************************/
-#define BCHP_DECODE_MAIN_0_REG_MAINCTL           0x20020100 /* [RW] Decoder Control */
-#define BCHP_DECODE_MAIN_0_REG_FRAMESIZE         0x20020104 /* [RW] Size of the picture being decoded */
-#define BCHP_DECODE_MAIN_0_REG_DEC_VERSION       0x20020108 /* [RO] Version of the decoder core */
-#define BCHP_DECODE_MAIN_0_REG_STATUS            0x20020110 /* [RO] Provides back-end decoder processing status */
-#define BCHP_DECODE_MAIN_0_REG_PMONCTL           0x20020120 /* [RW] Performance Monitoring */
-#define BCHP_DECODE_MAIN_0_REG_PMONCNT0          0x20020124 /* [RO] REG_PMONCNT0 */
-#define BCHP_DECODE_MAIN_0_REG_PMONCNT1          0x20020128 /* [RO] REG_PMONCNT1 */
-#define BCHP_DECODE_MAIN_0_REG_PMON_MBCTL        0x2002012c /* [RW] REG_PMON_MBCTL */
-#define BCHP_DECODE_MAIN_0_DBLK_BUFF_CONTROL     0x20020130 /* [RW] DBLK_BUFF_CONTROL */
-#define BCHP_DECODE_MAIN_0_CRC_CONTROL           0x20020134 /* [RW] DBLK CRC CONTROL register */
-#define BCHP_DECODE_MAIN_0_CRC_SEED              0x20020138 /* [RW] DBLK CRC SEED register */
-#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_Y          0x2002013c /* [RO] DBLK Luma CRC/Checksum result register */
-#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_CB         0x20020140 /* [RO] DBLK Chroma (Cb) CRC/Checksum result register */
-#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_CR         0x20020144 /* [RO] DBLK Chroma (Cr) CRC/Checksum result register */
-#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_CONTROL  0x20020150 /* [RW] VP6 Mocomp Control */
-#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_AUTO     0x20020154 /* [RW] VP6 Mocomp Auto Filter Selection */
-#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_ALPHA    0x20020158 /* [RW] VP6 Mocomp Alpha Filter Selection */
-#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_FLIMIT   0x2002015c /* [RW] VP6 Mocomp Flimit Control */
-#define BCHP_DECODE_MAIN_0_REG_BACKEND_DEBUG     0x20020160 /* [RW] Backend debug Select */
-#define BCHP_DECODE_MAIN_0_REG_VC1_MC_DEBUG      0x20020164 /* [RO] VC1 Mocomp Debug */
-#define BCHP_DECODE_MAIN_0_REG_QPEL_FIFO_DEBUG   0x20020168 /* [RO] Qpel FIFO Debug */
-#define BCHP_DECODE_MAIN_0_REG_MAIN_END          0x200201fc /* [RW] REG_MAIN_END */
+#define BCHP_DECODE_MAIN_0_REG_MAINCTL           0x20020100 /* [RW][32] Decoder Control */
+#define BCHP_DECODE_MAIN_0_REG_FRAMESIZE         0x20020104 /* [RW][32] Size of the picture being decoded */
+#define BCHP_DECODE_MAIN_0_REG_DEC_VERSION       0x20020108 /* [RO][32] Version of the decoder core */
+#define BCHP_DECODE_MAIN_0_REG_STATUS            0x20020110 /* [RO][32] Provides back-end decoder processing status */
+#define BCHP_DECODE_MAIN_0_REG_PMONCTL           0x20020120 /* [RW][32] Performance Monitoring */
+#define BCHP_DECODE_MAIN_0_REG_PMONCNT0          0x20020124 /* [RO][32] REG_PMONCNT0 */
+#define BCHP_DECODE_MAIN_0_REG_PMONCNT1          0x20020128 /* [RO][32] REG_PMONCNT1 */
+#define BCHP_DECODE_MAIN_0_REG_PMON_MBCTL        0x2002012c /* [RW][32] REG_PMON_MBCTL */
+#define BCHP_DECODE_MAIN_0_DBLK_BUFF_CONTROL     0x20020130 /* [RW][32] DBLK_BUFF_CONTROL */
+#define BCHP_DECODE_MAIN_0_CRC_CONTROL           0x20020134 /* [RW][32] DBLK CRC CONTROL register */
+#define BCHP_DECODE_MAIN_0_CRC_SEED              0x20020138 /* [RW][32] DBLK CRC SEED register */
+#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_Y          0x2002013c /* [RO][32] DBLK Luma CRC/Checksum result register */
+#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_CB         0x20020140 /* [RO][32] DBLK Chroma (Cb) CRC/Checksum result register */
+#define BCHP_DECODE_MAIN_0_CRC_CHKSUM_CR         0x20020144 /* [RO][32] DBLK Chroma (Cr) CRC/Checksum result register */
+#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_CONTROL  0x20020150 /* [RW][32] VP6 Mocomp Control */
+#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_AUTO     0x20020154 /* [RW][32] VP6 Mocomp Auto Filter Selection */
+#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_ALPHA    0x20020158 /* [RW][32] VP6 Mocomp Alpha Filter Selection */
+#define BCHP_DECODE_MAIN_0_REG_VP6_MCOM_FLIMIT   0x2002015c /* [RW][32] VP6 Mocomp Flimit Control */
+#define BCHP_DECODE_MAIN_0_REG_BACKEND_DEBUG     0x20020160 /* [RW][32] Backend debug Select */
+#define BCHP_DECODE_MAIN_0_REG_VC1_MC_DEBUG      0x20020164 /* [RO][32] VC1 Mocomp Debug */
+#define BCHP_DECODE_MAIN_0_REG_QPEL_FIFO_DEBUG   0x20020168 /* [RO][32] Qpel FIFO Debug */
+#define BCHP_DECODE_MAIN_0_REG_MAIN_END          0x200201fc /* [RW][32] REG_MAIN_END */
 
 /***************************************************************************
  *REG_MAINCTL - Decoder Control

@@ -96,6 +96,8 @@ void BMXT_P_SetPlatform(
             else {
                 pNum = BMXT_NUMELEM_3158;  base = BMXT_REGBASE_3384;  pOff = BMXT_REGOFFSETS_3158; pStep = BMXT_STEPSIZE_3158; break; /* 3158-family, but assume previous regbase */
             }
+        case BMXT_Chip_e3466:  pNum = BMXT_NUMELEM_3158;  base = BMXT_REGBASE_3466;  pOff = BMXT_REGOFFSETS_3158;  pStep = BMXT_STEPSIZE_3158;
+            baseWakeup = BMXT_REGBASE_WAKEUP_3466; pOffWakeup = BMXT_REGOFFSETS_WAKEUP; break;
         default: BERR_TRACE(BERR_INVALID_PARAMETER); break;
     }
 

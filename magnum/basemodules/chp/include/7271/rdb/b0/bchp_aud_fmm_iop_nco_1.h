@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,21 +70,21 @@
 /***************************************************************************
  *AUD_FMM_IOP_NCO_1
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_CONTROL 0x20cb1000 /* [RW] Rate Manager Controls */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_RATE_RATIO 0x20cb1004 /* [RW] Rate Manager Output Rate Setting I */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SAMPLE_INC 0x20cb1008 /* [RW] Rate Manager Output Rate Setting II */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_PHASE_INC 0x20cb100c /* [RW] Rate Manager NCO Phase Increment */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_HI 0x20cb1010 /* [WO] Loop Filter Integrator HI Value */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_LO 0x20cb1014 /* [WO] Loop Filter Integrator LO Value */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_OFFSET 0x20cb1018 /* [RW] Rate Manager Output Formatting */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_FORMAT 0x20cb101c /* [RW] Rate Manager Output Formatting */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_CONTROL 0x20cb1020 /* [RW] Time Base Skip or Repeat Control Register */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_GAP 0x20cb1024 /* [RW] Time Base Skip or Repeat Gap Count Register */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_NUMBER 0x20cb1028 /* [RW] Time Base Skip or Repeat Count Register */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_HI_STATUS 0x20cb102c /* [RO] Loop Filter Integrator HI Status */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_LO_STATUS 0x20cb1030 /* [RO] Loop Filter Integrator LO Status */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_STATUS 0x20cb1034 /* [RO] Rate Manager Status Register */
-#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_STATUS_CLEAR 0x20cb1038 /* [RW] Rate Manager Status Clear Register */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_CONTROL 0x20cb1000 /* [RW][32] Rate Manager Controls */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_RATE_RATIO 0x20cb1004 /* [RW][32] Rate Manager Output Rate Setting I */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SAMPLE_INC 0x20cb1008 /* [RW][32] Rate Manager Output Rate Setting II */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_PHASE_INC 0x20cb100c /* [RW][32] Rate Manager NCO Phase Increment */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_HI 0x20cb1010 /* [WO][32] Loop Filter Integrator HI Value */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_LO 0x20cb1014 /* [WO][32] Loop Filter Integrator LO Value */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_OFFSET 0x20cb1018 /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_FORMAT 0x20cb101c /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_CONTROL 0x20cb1020 /* [RW][32] Time Base Skip or Repeat Control Register */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_GAP 0x20cb1024 /* [RW][32] Time Base Skip or Repeat Gap Count Register */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_SKIP_REPEAT_NUMBER 0x20cb1028 /* [RW][32] Time Base Skip or Repeat Count Register */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_HI_STATUS 0x20cb102c /* [RO][32] Loop Filter Integrator HI Status */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_INTEGRATOR_LO_STATUS 0x20cb1030 /* [RO][32] Loop Filter Integrator LO Status */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_STATUS 0x20cb1034 /* [RO][32] Rate Manager Status Register */
+#define BCHP_AUD_FMM_IOP_NCO_1_MCLK_GEN_0_STATUS_CLEAR 0x20cb1038 /* [RW][32] Rate Manager Status Clear Register */
 
 #endif /* #ifndef BCHP_AUD_FMM_IOP_NCO_1_H__ */
 

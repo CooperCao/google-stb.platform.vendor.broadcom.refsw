@@ -569,10 +569,7 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
             rc = B_ERROR_CHANNEL_CHANGE;
             break;
         }
-        if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode ||
-                playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode ||
-                playback_ip->playback_state == B_PlaybackIpState_ePaused
-                )
+        if (playback_ip->playback_state == B_PlaybackIpState_eWaitingToEnterTrickMode || playback_ip->playback_state == B_PlaybackIpState_eEnteringTrickMode )
         {
             BKNI_ReleaseMutex(playback_ip->lock);
             unlocked = true;
@@ -681,16 +678,6 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
                                 pPsi->syncByteCount, BMPEG2TS_INITIAL_SYNC_COUNT, pPsi->totalInitialTsPktsSkipped));
                 }
                 TS_parseTsPacket(pPsi->pTsPkt, &tsPkt);
-#if defined(LOG_IP_LATENCY)
-                if (tsPkt.adaptation_field.PCR_flag || tsPkt.adaptation_field.discontinuity_indicator)
-                {
-                    B_PlaybackIp_UtilsTrkPcrJitter(playback_ip,&tsPkt);
-                }
-                if (tsPkt.payload_unit_start_indicator && tsPkt.adaptation_field_control)
-                {
-                    B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(playback_ip, &tsPkt);
-                }
-#endif
                 if (tsPkt.data_size == 0)
                 {
                     pPsi->tsPktWithNoPayload++;
@@ -707,6 +694,16 @@ B_PlaybackIpError B_PlaybackIp_ParseAndProcessPsiState(
                     BDBG_MSG(("TS packet has error indicator set, skipping it: avBufferLength=%u bytesConsumed=%d, tsPkt#=%"PRId64 , avBufferLength, bytesConsumed, pPsi->tsPktCnt));
                     continue;
                 }
+#if defined(LOG_IP_LATENCY)
+                if (tsPkt.adaptation_field.PCR_flag || tsPkt.adaptation_field.discontinuity_indicator)
+                {
+                    B_PlaybackIp_UtilsTrkPcrJitter(playback_ip, &tsPkt);
+                }
+                if (tsPkt.payload_unit_start_indicator && tsPkt.adaptation_field_control)
+                {
+                    B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(playback_ip, &tsPkt);
+                }
+#endif
                 if (tsPkt.payload_unit_start_indicator)
                 {
                     pointerField = tsPkt.p_data_byte[0]; /* pointerField essentially provides offset to the PAT or PMT packet. */

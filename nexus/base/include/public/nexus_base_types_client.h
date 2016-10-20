@@ -122,7 +122,7 @@ typedef enum NEXUS_ClientMode
 /* NEXUS_MAX_HEAPS is the maximum number of heaps in the system, pointed to be NEXUS_HeapHandle.
 A heap is required for any memory access, whether by HW or SW.
 This depends on both HW capabilities & SW configuration. */
-#define NEXUS_MAX_HEAPS 16
+#define NEXUS_MAX_HEAPS 24
 
 /* NEXUS_MAX_MEMC is the maximum number of memory controllers in the system. */
 #define NEXUS_MAX_MEMC 3

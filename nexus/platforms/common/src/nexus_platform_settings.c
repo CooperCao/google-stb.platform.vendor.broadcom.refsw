@@ -113,8 +113,13 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
 #endif
 #if NEXUS_HAS_SAGE
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].placement.sage = true;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 16 * 1024 * 1024;
+    pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 16 * 1024 * 1024;
+#else
     pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].alignment = 1 * 1024 * 1024;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].alignment = 1 * 1024 * 1024;
+#endif
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].placement.sage = true;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
 #if defined(NEXUS_EXPORT_HEAP)
@@ -124,7 +129,11 @@ static void NEXUS_Platform_P_AdjustHeapSettings(NEXUS_PlatformSettings *pSetting
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size =  32*1024*1024; /*Sage Secure heap */
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].heapType |= NEXUS_HEAP_TYPE_SAGE_RESTRICTED_REGION;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+    pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 16 * 1024 * 1024;
+#else
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].alignment = 1 * 1024 * 1024;
+#endif
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.first = true;
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].placement.sage = true;
 #endif
@@ -194,31 +203,14 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     NEXUS_TransportModule_GetDefaultSettings(&pSettings->transportModuleSettings);
 #endif
 #if NEXUS_HAS_DISPLAY
-
     NEXUS_DisplayModule_GetDefaultSettings(preInitState, &pSettings->displayModuleSettings);
-
-    /* Should Not be defined for 7405 and variants,its done on platfrom_core.c
-       based on board strap options */
-#if (NEXUS_DISPLAY_NUM_SD_BUFFERS || NEXUS_DISPLAY_NUM_HD_BUFFERS || NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS)
-    pSettings->displayModuleSettings.primaryDisplayHeapIndex = 0; /* default 0 and could be overriden by platform */
-    pSettings->displayModuleSettings.fullHdBuffers.count = NEXUS_DISPLAY_NUM_FULL_HD_BUFFERS;
-    pSettings->displayModuleSettings.hdBuffers.count = NEXUS_DISPLAY_NUM_HD_BUFFERS;
-    pSettings->displayModuleSettings.sdBuffers.count = NEXUS_DISPLAY_NUM_SD_BUFFERS;
 #endif
-#endif
-
 
 #if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderModule_GetDefaultSettings(&pSettings->videoDecoderModuleSettings);
     if (NEXUS_GetEnv("avd_monitor")) {
         pSettings->videoDecoderModuleSettings.debugLogBufferSize = 10 * 1024;
     }
-#if NEXUS_VIDEO_DECODER_GENERAL_HEAP_SIZE
-    /* this method for setting default heap sizes is deprecated. instead, each platform's nexus_platform_$(NEXUS_PLATFORM).c sets default. */
-    pSettings->videoDecoderModuleSettings.heapSize[0].general = NEXUS_VIDEO_DECODER_GENERAL_HEAP_SIZE;
-    pSettings->videoDecoderModuleSettings.heapSize[0].secure = NEXUS_VIDEO_DECODER_SECURE_HEAP_SIZE;
-    pSettings->videoDecoderModuleSettings.heapSize[0].picture = NEXUS_VIDEO_DECODER_PICTURE_HEAP_SIZE;
-#endif
 #endif
 
 #if NEXUS_HAS_AUDIO
@@ -305,25 +297,21 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
 
     NEXUS_P_GetDefaultMemoryConfigurationSettings(preInitState, pMemConfigSettings);
 
-#if NEXUS_PLATFORM_P_READ_MEMC_CONFIG
-    NEXUS_Platform_P_ReadMemcConfig(pMemory, pSettings);
-#else
-    NEXUS_Platform_P_ReadGenericMemcConfig(pMemory, pSettings);
-#endif
+    BKNI_Memset(pMemory, 0, sizeof(*pMemory));
 
     errCode = NEXUS_Platform_P_GetHostMemory(pMemory);
     if (errCode) {
         errCode = BERR_TRACE(errCode);
         /* fall through */
     }
-    errCode = NEXUS_Platform_P_CalcSubMemc(preInitState, pMemory);
+    errCode = NEXUS_Platform_P_CalcSubMemc(preInitState, &pMemory->memoryLayout);
     if (errCode) {
         errCode = BERR_TRACE(errCode);
         /* fall through */
     }
     NEXUS_Platform_P_AdjustBmemRegions(pMemory);
-    NEXUS_P_GetDefaultMemoryRtsSettings(&rtsSettings);
-    NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, g_pPreInitState->boxMode);
+    NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &rtsSettings);
+    NEXUS_Platform_P_GetDefaultHeapSettings(pSettings, preInitState->boxMode);
     errCode = NEXUS_P_ApplyMemoryConfiguration(preInitState, pMemConfigSettings, &rtsSettings, pSettings);
     if (errCode) {
         /* we can't fail the function, but we can make sure we don't squeak by */
@@ -339,24 +327,6 @@ void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preIn
     BKNI_Free(pMemConfigSettings);
 err_malloc_settings:
     return;
-}
-
-NEXUS_Error NEXUS_Platform_P_ReadGenericMemcConfig(NEXUS_PlatformMemory *pMemory, NEXUS_PlatformSettings *pSettings)
-{
-    int rc;
-    BCHP_MemoryInfo memoryInfo;
-
-    BSTD_UNUSED(pSettings);
-
-    rc = BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memoryInfo);
-    if (rc) return BERR_TRACE(rc);
-
-    BKNI_Memset(pMemory, 0, sizeof(*pMemory));
-    pMemory->memc[0].length = memoryInfo.memc[0].size;
-    pMemory->memc[1].length = memoryInfo.memc[1].size;
-    pMemory->memc[2].length = memoryInfo.memc[2].size;
-
-    return 0;
 }
 
 void NEXUS_Platform_GetSettings( NEXUS_PlatformSettings *pSettings )
@@ -375,27 +345,6 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
     BSTD_UNUSED(j);
     BSTD_UNUSED(k);
 
-    /* add bmem regions that OS has left out.
-    in linux 2.6.37 and beyond, linux should report bmem regions for all memory and this code is not needed. */
-#if BMIPS3300
-    if (pMemory->memc[0].length > 0x20000000) {
-        unsigned availableBmem = NEXUS_MAX_HEAPS;
-        for (i=0;i<NEXUS_MAX_HEAPS;i++) {
-            if (pMemory->osRegion[i].length &&
-                pMemory->osRegion[i].base >= 0x20000000 &&
-                pMemory->osRegion[i].base < 0x40000000) break;
-            if (!pMemory->osRegion[i].length && availableBmem == NEXUS_MAX_HEAPS) {
-                availableBmem = i;
-            }
-        }
-        if (i == NEXUS_MAX_HEAPS && availableBmem != NEXUS_MAX_HEAPS) {
-            BDBG_MSG(("dynamically creating bmem.%d because OS is not reporting it", availableBmem));
-            pMemory->osRegion[availableBmem].base = 0x20000000;
-            pMemory->osRegion[availableBmem].length = pMemory->memc[0].length - 0x10000000;
-        }
-    }
-#endif
-
     /* dump all OS regions and all nexus regions for debug */
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
         if (pMemory->osRegion[i].length) {
@@ -409,13 +358,16 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
             BDBG_MSG(("%s.%d offset " BDBG_UINT64_FMT ", size %u", labelstr, i, BDBG_UINT64_ARG(pMemory->osRegion[i].base), (unsigned)pMemory->osRegion[i].length));
         }
     }
-    for(i=0;i<sizeof(pMemory->memc)/sizeof(pMemory->memc[0]);i++) {
-        for(j=0;j<sizeof(pMemory->memc[0].region)/sizeof(pMemory->memc[0].region[0]);j++) {
-            if(pMemory->memc[i].region[j].length) {
-                BDBG_MSG(("memc%u[%u] offset " BDBG_UINT64_FMT ", size %u", i, j, BDBG_UINT64_ARG(pMemory->memc[i].region[j].base), (unsigned)pMemory->memc[i].region[j].length));
+    for(i=0;i<sizeof(pMemory->memoryLayout.memc)/sizeof(pMemory->memoryLayout.memc[0]);i++) {
+        for(j=0;j<sizeof(pMemory->memoryLayout.memc[0].region)/sizeof(pMemory->memoryLayout.memc[0].region[0]);j++) {
+            if(pMemory->memoryLayout.memc[i].region[j].size) {
+                BDBG_MSG(("memc%u[%u] offset " BDBG_UINT64_FMT ", size %u", i, j, BDBG_UINT64_ARG(pMemory->memoryLayout.memc[i].region[j].addr), (unsigned)pMemory->memoryLayout.memc[i].region[j].size));
             }
         }
     }
+#if NEXUS_USE_CMA
+    return;
+#endif
 
     /* determine MEMC index/subIndex for each bmem region */
     for (i=0;i<NEXUS_MAX_HEAPS;i++) {
@@ -429,14 +381,14 @@ static void NEXUS_Platform_P_AdjustBmemRegions(NEXUS_PlatformMemory *pMemory)
 
         for (j=0;j<NEXUS_MAX_MEMC && !done;j++) {
             for (k=0;k<NEXUS_NUM_MEMC_REGIONS;k++) {
-                if (pMemory->osRegion[i].base >= pMemory->memc[j].region[k].base &&
-                    pMemory->osRegion[i].base < pMemory->memc[j].region[k].base + pMemory->memc[j].region[k].length)
+                if (pMemory->osRegion[i].base >= pMemory->memoryLayout.memc[j].region[k].addr &&
+                    pMemory->osRegion[i].base < pMemory->memoryLayout.memc[j].region[k].addr + pMemory->memoryLayout.memc[j].region[k].size)
                 {
                     NEXUS_Addr bound;
                     pMemory->osRegion[i].memcIndex = j;
                     pMemory->osRegion[i].subIndex = k;
                     /* linux 2.6.18 doesn't report size, so use MEMC info to bound each bmem region */
-                    bound = pMemory->memc[j].region[k].base + pMemory->memc[j].region[k].length;
+                    bound = pMemory->memoryLayout.memc[j].region[k].addr + pMemory->memoryLayout.memc[j].region[k].size;
                     if (pMemory->osRegion[i].base + pMemory->osRegion[i].length > bound) {
                         pMemory->osRegion[i].length = bound - pMemory->osRegion[i].base;
                     }
@@ -861,4 +813,55 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
     }
 
     NEXUS_Platform_P_PreUninit();
+}
+
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig,
+    NEXUS_PlatformConfigCapabilities *pCap, unsigned size )
+{
+    const NEXUS_Core_PreInitState *preInitState;
+    NEXUS_MemoryRtsSettings rtsSettings;
+    unsigned internal_size = sizeof(NEXUS_PlatformSettings)+sizeof(NEXUS_MemoryConfigurationSettings)+sizeof(NEXUS_PlatformConfigCapabilities);
+    NEXUS_MemoryConfigurationSettings defaultMemConfig;
+    unsigned memcIndex, heapIndex;
+
+    preInitState = NEXUS_Platform_P_PreInit();
+    if (!preInitState) return -1;
+    if (size != internal_size) {
+        BDBG_ERR(("NEXUS_GetPlatformConfigCapabilities: size mismatch %u != %u", internal_size, size));
+        BKNI_Memset(pCap, 0, size);
+        return -1;
+    }
+
+    BSTD_UNUSED(pSettings);
+    if (!pMemConfig) {
+        NEXUS_GetDefaultMemoryConfigurationSettings(&defaultMemConfig);
+        pMemConfig = &defaultMemConfig;
+    }
+
+    NEXUS_P_GetDefaultMemoryRtsSettings(preInitState, &rtsSettings);
+
+    BKNI_Memset(pCap, 0, sizeof(*pCap));
+
+    /* secure graphics must be GFD0-accessible */
+    memcIndex = preInitState->boxConfig.stMemConfig.stVdcMemcIndex.astDisplay[0].aulGfdWinMemcIndex[0];
+    switch (memcIndex) {
+#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
+    case 2: heapIndex = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP; break;
+#endif
+#if defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
+    case 1: heapIndex = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP; break;
+#endif
+#if defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
+    case 0: heapIndex = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP; break;
+#endif
+    default: heapIndex = NEXUS_MAX_HEAPS; break;
+    }
+    if (heapIndex < NEXUS_MAX_HEAPS && nexus_p_has_secure_decoder_on_memc(preInitState, &rtsSettings, pMemConfig, memcIndex)) {
+        pCap->secureGraphics[0].valid = true;
+        pCap->secureGraphics[0].heapIndex = heapIndex;
+        pCap->secureGraphics[0].memcIndex = memcIndex;
+    }
+
+    NEXUS_Platform_P_PreUninit();
+    return NEXUS_SUCCESS;
 }

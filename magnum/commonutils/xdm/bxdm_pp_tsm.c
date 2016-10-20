@@ -35,7 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * [File Description:]
+ * Module Description:
  *
  ***************************************************************************/
 
@@ -611,10 +611,10 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
       case BAVC_FrameRateCode_e120:
          if ( BXDM_PictureProvider_P_ScanMode_eProgressive != pstPicture->stPicParms.stDisplay.stStatic.eScanMode )
          {
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 60i->60p",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 60i->60p",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
             pstPicture->stPicParms.uiStateBits |= BXDM_PPDBG_State_60iTo60p;
 
@@ -713,10 +713,10 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
                 *     display 1080p60
                 *  2) Many early streams were incorrectly encoded as 1080p
                 *     when they were really 1080i */
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 1080p->1080i",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 1080p->1080i",
                                                    hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                                   pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                                   pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
                pstPicture->stPicParms.uiStateBits |= BXDM_PPDBG_State_1080pTo1080i;
 
@@ -799,10 +799,10 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
                       * deinterlacer, which can sort out the fields/frames and
                       * construct the correct picture.
                       */
-                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 480p->480i",
+                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 480p->480i",
                                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                                         pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                                         pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
                      pstPicture->stPicParms.uiStateBits |= BXDM_PPDBG_State_480pTo480i;
 
@@ -888,10 +888,10 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
           * case we could find. It was just experimental evidence that
           * showed better performance scaning out progressive.
           */
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 240i->240p (non-AVC)",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Source Polarity Override: 240i->240p (non-AVC)",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
          pstPicture->stPicParms.uiStateBits |= BXDM_PPDBG_State_240iTo240p;
 
@@ -908,10 +908,10 @@ static void BXDM_PPTSM_S_ApplyCDTOverride_isr(
         && ( ( BXDM_PictureProvider_P_RepeatMode_eFrame != pstPicture->stPicParms.stDisplay.stDynamic.eRateConversionRepeatMode )
              || ( BXDM_PictureProvider_P_RepeatMode_eFrame != pstPicture->stPicParms.stDisplay.stDynamic.eTrickPlayRepeatMode ) ) )
    {
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] 3:2 Source Format Override",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] 3:2 Source Format Override",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                       pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                       pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
       pstPicture->stPicParms.stDisplay.stDynamic.eRateConversionRepeatMode = BXDM_PictureProvider_P_RepeatMode_eFrame;
       pstPicture->stPicParms.stDisplay.stDynamic.eTrickPlayRepeatMode = BXDM_PictureProvider_P_RepeatMode_eFrame;
@@ -1059,12 +1059,12 @@ void BXDM_PPTSM_P_PtsCalculateParameters_isr(
             }
             else
             {
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Overriding unsupported frame rate of %d to default of %d",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x: [%02x.%03x] Overriding unsupported frame rate of %d to default of %d",
                                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                                                 pstPicParms->stTSM.stStatic.eFrameRate,
-                                                hXdmPP->stDMConfig.eDefaultFrameRate );
+                                                hXdmPP->stDMConfig.eDefaultFrameRate ));
             }
          }
          hXdmPP->stDMState.stDecode.eLastUnsupportedFrameRate = pstPicParms->stTSM.stStatic.eFrameRate;
@@ -1881,10 +1881,10 @@ void BXDM_PPTSM_P_EvaluateTsmState_isr(
                case BXDM_PictureProvider_PictureHandlingMode_eIgnorePTS:
                case BXDM_PictureProvider_PictureHandlingMode_eWait:
                   pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode = BXDM_PictureProvider_PictureHandlingMode_eDefault;
-                  BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.xxx] ePictureHandlingMode of %d is not support in vsync mode, forcing eDefault",
+                  BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.xxx] ePictureHandlingMode of %d is not support in vsync mode, forcing eDefault",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                       pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode );
+                                       pstPicture->stPicParms.stTSM.stDynamic.ePictureHandlingMode ));
                   break;
 
                default:
@@ -2260,7 +2260,7 @@ static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
 
       if ( true == pLocalState->bUsingSwStcToRunInReverse )
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c pts:%08x - stc:%08x =%8d slt:%c elm:%d %s",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c pts:%08x - stc:%08x =%8d slt:%c elm:%d %s",
                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                        pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -2271,11 +2271,11 @@ static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
                        pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceEvaluated,
                        hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole ? '2' : '1',
                        pstPicture->stPicParms.stTSM.stDynamic.uiTSMSelectedElement,
-                       ( pstPicture->stPicParms.stDisplay.stDynamic.bPPBRepeated ) ? "rp" : "  " );
+                       ( pstPicture->stPicParms.stDisplay.stDynamic.bPPBRepeated ) ? "rp" : "  " ));
       }
       else
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c stc:%08x - pts:%08x =%8d slt:%c elm:%d %s",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eTSM, "%x:[%02x.%03x] %c:%c stc:%08x - pts:%08x =%8d slt:%c elm:%d %s",
                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                        pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -2286,7 +2286,7 @@ static BXDM_PictureProvider_TSMResult BXDM_PPTSM_S_CompareStcAndPts_isr(
                        pstPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceEvaluated,
                        hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole ? '2' : '1',
                        pstPicture->stPicParms.stTSM.stDynamic.uiTSMSelectedElement,
-                       ( pstPicture->stPicParms.stDisplay.stDynamic.bPPBRepeated ) ? "rp" : "  " );
+                       ( pstPicture->stPicParms.stDisplay.stDynamic.bPPBRepeated ) ? "rp" : "  " ));
       }
    }
 #endif

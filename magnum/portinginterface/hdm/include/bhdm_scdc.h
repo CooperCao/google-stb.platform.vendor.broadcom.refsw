@@ -1,22 +1,41 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
- * This module implements the SCDC functionality described in the HDMI 2.0 Specification
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #ifndef BHDM_SCDC_H__
@@ -84,19 +103,9 @@ extern "C" {
 
 #define BHDM_SCDC_STATUS_FLAGS_1 0x41
 
-#define BHDM_SCDC_ERR_DET_0_L 0x50
-#define BHDM_SCDC_ERR_DET_0_H 0x51
-	#define BHDM_SCDC_ERR_DET_0_H_MASK_VALID 0x80
-
-#define BHDM_SCDC_ERR_DET_1_L 0x52
-#define BHDM_SCDC_ERR_DET_1_H 0x53
-	#define BHDM_SCDC_ERR_DET_1_H_MASK_VALID 0x80
-
-#define BHDM_SCDC_ERR_DET_2_L 0x54
-#define BHDM_SCDC_ERR_DET_2_H 0x55
-	#define BHDM_SCDC_ERR_DET_2_H_MASK_VALID 0x80
-
-#define BHDM_SCDC_ERR_DET_CHECKSUM 0x56
+#define BHDM_SCDC_CED_OFFSET 0x50
+#define BHDM_SCDC_CED_LENGTH  0x7
+	#define BHDM_SCDC_ERR_DET_CH_MASK_VALID 0x80
 
 #define BHDM_SCDC_TEST_CONFIG_0 0xC0
 	#define BHDM_SCDC_TEST_CONFIG_0_MASK_TEST_RR 0x80
@@ -154,7 +163,7 @@ typedef struct   BHDM_SCDC_StatusControlData
 	uint8_t TestConfig_0 ;
 
 	struct {
-		uint8_t valid ;
+		bool valid ;
 		uint8_t Err_L ;	uint8_t Err_H ;
 		uint16_t errorCount ;
 	} ch[3] ;

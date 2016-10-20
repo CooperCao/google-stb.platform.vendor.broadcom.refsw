@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,11 +34,12 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "thumbdecoder.h"
+
+#if NEXUS_HAS_VIDEO_DECODER
 #include "nexus_still_decoder.h"
 #include "nexus_graphics2d.h"
 #include "bioatom.h"
@@ -415,3 +416,35 @@ done:
 
     return rc;
 }
+#else
+thumbdecoder_t thumbdecoder_open(void)
+{
+    return NULL;
+}
+void thumbdecoder_close(thumbdecoder_t handle)
+{
+    BSTD_UNUSED(handle);
+}
+int thumbdecoder_open_file( thumbdecoder_t handle, const char *streamname, const char *indexname )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(streamname);
+    BSTD_UNUSED(indexname);
+    return -1;
+}
+int thumbdecoder_decode_still( thumbdecoder_t handle, unsigned time, NEXUS_SurfaceHandle destSurface )
+{
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(time);
+    BSTD_UNUSED(destSurface);
+    return -1;
+}
+void thumbdecoder_close_file( thumbdecoder_t handle )
+{
+    BSTD_UNUSED(handle);
+}
+void thumbdecoder_decode_cancel( thumbdecoder_t handle )
+{
+    BSTD_UNUSED(handle);
+}
+#endif

@@ -1,8 +1,8 @@
-#*******************************************************************************
-#   Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+############################################################
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#   This program is the proprietary software of Broadcom and/or its licensors,
-#   and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
 #  no license (express or implied), right to use, or waiver of any kind with respect to the
@@ -34,7 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#********************************************************************************
+############################################################
 NEXUS_PLATFORM ?= $(PLATFORM)
 NEXUS_TOP := $(shell cd ../../../../../nexus; pwd)
 MAGNUM_TOP := $(shell cd ../../../../../magnum; pwd)
@@ -78,7 +78,7 @@ APP_INCLUDES += ${BSAGELIB_INCLUDES} ${BSAGELIB_TOOLS_INCLUDES}
 # Custom include paths
 CFLAGS += -I./include -I$(SAGE_TOP)/include/private
 CFLAGS += $(addprefix -I,${BSAGELIB_INCLUDES})
-
+CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
 
 CFLAGS += -DPIC -fpic
 CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
@@ -111,7 +111,7 @@ vpath %.h $(foreach SDIR, $(BSAGELIB_TOOLS_SOURCES), $(dir $(SDIR)))
 F_SRCS += $(foreach depSRC, ${BSAGELIB_TOOLS_SOURCES}, $(notdir ${depSRC}))
 endif
 
-F_PUBLIC_LIBS += lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so
+F_PUBLIC_LIBS += $(addprefix $(SRAI_OBJ_ROOT)/, lib${LIB_BASENAME}.a lib${LIB_BASENAME}.so)
 ifneq ($(NEXUS_BIN_DIR),)
 D_FOR_LIB_INSTALL := $(NEXUS_BIN_DIR)
 else
@@ -120,58 +120,56 @@ endif
 F_OBJS := $(patsubst %.c,%.o, ${F_SRCS})
 END_OBJS := $(addprefix ${SRAI_OBJ_ROOT}/,${F_OBJS})
 
-F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_PUBLIC_LIBS})
+F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, $(notdir ${F_PUBLIC_LIBS}))
 
 ############################################################################
 #                              MAIN TARGETS
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-all: prep_folder
-	@$(MAKE) ${F_PUBLIC_LIBS}
+all: prep_folder install
 
 prep_folder:
 	@ mkdir -p ${SRAI_OBJ_ROOT}/
 
 clean:
-	@ echo clean objects [${F_OBJS}]
-	@ rm -f ${F_OBJS}
-	@ echo clean libraries [${F_PUBLIC_LIBS}]
-	@ rm -f ${F_INSTALLED_LIBS} ${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.so ${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.a
+	@rm -fr $(SRAI_OBJ_ROOT)
 
-re: clean
-	@$(MAKE) install
+re: clean reinstall
+
+.PHONY: reinstall
+reinstall: install |clean
 
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
+#$(error END_OBJS $(END_OBJS))
 
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-lib${LIB_BASENAME}.so: ${F_OBJS}
-	@ echo [Linking shared library .... ${SRAI_OBJ_ROOT}/$$@ ]
+${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.so: ${END_OBJS} |prep_folder
+	@ echo "[Link...... $(notdir $@) (srai)]"
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
-	@ ${CC} -shared -o ${SRAI_OBJ_ROOT}/$@ ${LDFLAGS} ${END_OBJS} -Wl,-Bdynamic
+	@ ${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-Bdynamic
 else
-	@ ${CC} -shared -o ${SRAI_OBJ_ROOT}/$@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
+	@ ${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
 endif
 	${STRIP_COMMAND}
 
-lib${LIB_BASENAME}.a: ${F_OBJS}
-	@ echo [Linking static library .... ${SRAI_OBJ_ROOT}/$@ ]
-	@ ${AR} rc ${SRAI_OBJ_ROOT}/$@ ${END_OBJS}
+${SRAI_OBJ_ROOT}/lib${LIB_BASENAME}.a: ${END_OBJS} |prep_folder
+	@ echo "[Archive... $(notdir $@) (srai)]"
+	@ ${AR} rc $@ ${END_OBJS}
 	${STRIP_COMMAND}
 
-idirs: all
+idirs:
 	@ [ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
 
-install: idirs
-	@$(MAKE) ${F_INSTALLED_LIBS}
+install: idirs $(F_INSTALLED_LIBS)
 
-${D_FOR_LIB_INSTALL}/%.a : %.a
-	install -m 0755 ${SRAI_OBJ_ROOT}/$< $@
+${D_FOR_LIB_INSTALL}/%.a : ${SRAI_OBJ_ROOT}/%.a |idirs
+	@install -m 0755 $< $@
 
-${D_FOR_LIB_INSTALL}/%.so : %.so
-	install -m 0755 ${SRAI_OBJ_ROOT}/$< $@
+${D_FOR_LIB_INSTALL}/%.so : ${SRAI_OBJ_ROOT}/%.so |idirs
+	@install -m 0755 $< $@
 
-%.o: %.c
-	@ echo [Compiling .... $< ]
-	@ ${CC} ${CFLAGS} -c -o ${SRAI_OBJ_ROOT}/$@ $<
+${SRAI_OBJ_ROOT}/%.o: %.c |prep_folder
+	@ echo "[Compile... $(notdir $<) (srai)]"
+	@ ${CC} ${CFLAGS} -c -o $@ $<

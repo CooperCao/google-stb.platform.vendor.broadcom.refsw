@@ -82,8 +82,10 @@ BERR_Code BSAT_g1_P_HpDisableInterrupts_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 void BSAT_g1_P_HpFrameBoundary_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+
+   BSTD_UNUSED(p);
+   BSTD_UNUSED(int_id);
 }
 
 
@@ -112,7 +114,7 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
    uint8_t oldScanState;
 #endif
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   BSTD_UNUSED(int_id);
 
    /* verify that we're in RECEIVER_LOCK state */
    if (BSAT_g1_P_IsHpLocked_isr(h) == false)
@@ -205,8 +207,9 @@ void BSAT_g1_P_HpStateMatch_isr(void *p, int int_id)
 ******************************************************************************/
 void BSAT_g1_P_HpStateChange_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+   BSTD_UNUSED(p);
+   BSTD_UNUSED(int_id);
 }
 
 

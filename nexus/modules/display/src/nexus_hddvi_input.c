@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_display_module.h"
@@ -108,7 +100,7 @@ NEXUS_HdDviInputHandle NEXUS_HdDviInput_Open( unsigned index, const NEXUS_HdDviI
     NEXUS_HdDviInputHandle master = NULL;
 
     if (index >= NEXUS_ALIAS_ID && index-NEXUS_ALIAS_ID < NEXUS_NUM_HDDVI_INPUTS) {
-        BDBG_MSG(("%d aliasing %d(%p)", index, index-NEXUS_ALIAS_ID, g_handle[index-NEXUS_ALIAS_ID]));
+        BDBG_MSG(("%d aliasing %d(%p)", index, index-NEXUS_ALIAS_ID, (void *)(g_handle[index-NEXUS_ALIAS_ID])));
         index -= NEXUS_ALIAS_ID;
         master = g_handle[index];
         if (!master) {

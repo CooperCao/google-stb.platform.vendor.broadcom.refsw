@@ -520,8 +520,8 @@ static void process_rx_message(unsigned int *message_rx, int socket)
     case (RPC_C2S_ZBPRO_ZCL_IASWDCmdStartWarningReq):
         server_ZBPRO_ZCL_IASWDCmdStartWarningReq(&socket_cb[socket].message_rx[0], socket);
         break;
-    case (RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkgReq):
-        server_ZBPRO_ZCL_IASWDCmdSquawkgReq(&socket_cb[socket].message_rx[0], socket);
+    case (RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkReq):
+        server_ZBPRO_ZCL_IASWDCmdSquawkReq(&socket_cb[socket].message_rx[0], socket);
         break;
     case (RPC_C2S_ZBPRO_ZCL_ColorControlCmdMoveToColorReq):
         server_ZBPRO_ZCL_ColorControlCmdMoveToColorReq(&socket_cb[socket].message_rx[0], socket);

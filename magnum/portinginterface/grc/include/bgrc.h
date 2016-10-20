@@ -822,7 +822,11 @@ BERR_Code BGRC_Open(
                                           handle. */
     BCHP_Handle hChip,                 /* [in] Chip handle. */
     BREG_Handle hRegister,             /* [in] Register access handle. */
+#ifdef BGRC_PACKET_MODE
+    BMMA_Heap_Handle hMemory,          /* [in] Memory allocation handle. */
+#else
     BMEM_Handle hMemory,               /* [in] Memory allocation handle. */
+#endif
     BINT_Handle hInterrupt,            /* [in] Interrupt handle. */
     const BGRC_Settings *pDefSettings  /* [in] Pointer to initial settings. */
 );

@@ -110,17 +110,14 @@ static void print_node(FILE *f, Backflow *backflow)
       case SPECIAL_VARYING:
          fprintf(f, "varying");
          break;
-      case ALU_MOV:
-      case ALU_FMOV:
-         /* TODO: Unpacks */
-         fprintf(f, "mov");
-         break;
       case ALU_M:
          switch(backflow->u.alu.op) {
             case BACKFLOW_UMUL:   fprintf(f, "umul");   break;
             case BACKFLOW_SMUL:   fprintf(f, "smul");   break;
             case BACKFLOW_MULTOP: fprintf(f, "multop"); break;
             case BACKFLOW_MUL:    fprintf(f, "mul");    break;
+            case BACKFLOW_MOV:    fprintf(f, "mov");    break;
+            case BACKFLOW_FMOV:   fprintf(f, "fmov");   break;
             default: unreachable();
          }
          break;
@@ -147,6 +144,7 @@ static void print_node(FILE *f, Backflow *backflow)
             case BACKFLOW_NOT:        fprintf(f, "~");        break;
             case BACKFLOW_INEG:       fprintf(f, "ineg");     break;
             case BACKFLOW_SETMSF:     fprintf(f, "setmsf");   break;
+            case BACKFLOW_SETREVF:    fprintf(f, "setrevf");  break;
             case BACKFLOW_TIDX:       fprintf(f, "tidx");     break;
             case BACKFLOW_EIDX:       fprintf(f, "eidx");     break;
             case BACKFLOW_FL:         fprintf(f, "fl");       break;
@@ -211,8 +209,6 @@ static void print_node(FILE *f, Backflow *backflow)
    /* TODO: Print out the unpacks here */
 
    switch (backflow->type) {
-      case ALU_MOV:
-      case ALU_FMOV:
       case ALU_M:
       case ALU_A:
          switch (backflow->magic_write) {

@@ -171,6 +171,16 @@ sub print_struct
     }
 }
 
+sub copy_structs
+{
+    my %dst;
+    my $structs = shift;
+    my $name; my $members;
+    while (($name, $members) = each %$structs) {
+        $dst{$name} = [@$members];
+    }
+    \%dst;
+}
 
 sub expand_structs
 {

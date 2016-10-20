@@ -62,6 +62,51 @@
 
 BDBG_MODULE(record);
 
+
+struct recordContext {
+    struct {
+        NEXUS_FifoRecordHandle fifofile;
+        NEXUS_FileRecordHandle file;
+        NEXUS_RecpumpHandle recpump;
+        NEXUS_RecordHandle record;
+        struct {
+            NEXUS_PlaypumpHandle playpump;
+            NEXUS_PlaybackHandle playback;
+            NEXUS_FilePlayHandle file;
+        } playback;
+        NEXUS_FrontendHandle frontend;
+        NEXUS_ParserBand parserBand;
+        dvr_crypto_t crypto;
+        bpsi_injection_t psi;
+    } handles;
+
+    struct {
+        const char *filename;
+        const char *indexname;
+        struct {
+            const char *filename;
+        } playback;
+        unsigned program;
+        unsigned timeshift;
+        NEXUS_SecurityAlgorithm encrypt_algo;
+        NEXUS_TransportTimestampType timestampType;
+        NEXUS_TristateEnable psi_injection;
+        bool append;
+        bool indexonly;
+        struct btune_settings tune_settings;
+    } settings;
+
+    struct {
+        bool started;
+        bool quit;
+        NEXUS_PlatformStandbyMode mode;
+    } state;
+
+    tspsimgr_scan_results scan_results;
+};
+
+char default_filename[64], default_indexname[64];
+
 static void complete(void *data)
 {
     BKNI_SetEvent((BKNI_EventHandle)data);
@@ -101,18 +146,22 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
         );
 }
 
-static void print_record_status(const char *filename, const char *indexname, NEXUS_RecordHandle record, bool indexonly)
+static void print_record_status(struct recordContext *recContext)
 {
     NEXUS_RecordStatus status;
-    NEXUS_Record_GetStatus(record, &status);
-    if (indexonly) {
+    NEXUS_Record_GetStatus(recContext->handles.record, &status);
+
+    if (recContext->state.mode > NEXUS_PlatformStandbyMode_eActive)
+        return;
+
+    if (recContext->settings.indexonly) {
         status.recpumpStatus.data.bytesRecorded = 0;
     }
     BDBG_WRN(("%s "BDBG_UINT64_FMT" bytes (%d%%), %s %u (%d%%), %d seconds, %d pictures",
-        filename,
+        recContext->settings.filename,
         BDBG_UINT64_ARG(status.recpumpStatus.data.bytesRecorded),
         status.recpumpStatus.data.fifoSize ? (unsigned)(status.recpumpStatus.data.fifoDepth*100/status.recpumpStatus.data.fifoSize) : 0,
-        indexname,
+        recContext->settings.indexname,
         (unsigned)status.recpumpStatus.index.bytesRecorded,
         status.recpumpStatus.index.fifoSize ? (unsigned)(status.recpumpStatus.index.fifoDepth*100/status.recpumpStatus.index.fifoSize) : 0,
         (unsigned)status.lastTimestamp / 1000,
@@ -162,78 +211,293 @@ static void convert_to_scan_results(tspsimgr_scan_results *pscan_results, const 
     }
 }
 
+static int start_record(struct recordContext *recContext)
+{
+#define MAX_PIDS 8
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    NEXUS_PidChannelHandle pidChannel[MAX_PIDS];
+    NEXUS_RecordPidChannelSettings pidSettings;
+    unsigned total_pids = 0;
+    unsigned program = recContext->settings.program;
+    unsigned i;
+
+    if(recContext->state.started)
+        return rc;
+
+    memset(pidChannel, 0, sizeof(pidChannel));
+
+    if(recContext->settings.playback.filename){
+        recContext->handles.playback.file = NEXUS_FilePlay_OpenPosix(recContext->settings.playback.filename, NULL);
+        if (!recContext->handles.playback.file) {
+            BDBG_ERR(("unable to open %s", recContext->settings.playback.filename));
+            return -1;
+        }
+    } else {
+#if NEXUS_HAS_FRONTEND
+        NEXUS_FrontendAcquireSettings settings;
+        NEXUS_Frontend_GetDefaultAcquireSettings(&settings);
+        settings.capabilities.qam = (recContext->settings.tune_settings.source == channel_source_qam);
+        settings.capabilities.ofdm = (recContext->settings.tune_settings.source == channel_source_ofdm);
+        settings.capabilities.satellite = (recContext->settings.tune_settings.source == channel_source_sat);
+        recContext->handles.frontend = NEXUS_Frontend_Acquire(&settings);
+#endif
+        rc = tune(recContext->handles.parserBand, recContext->handles.frontend, &recContext->settings.tune_settings, false);
+        if (rc) return BERR_TRACE(rc);
+    }
+    /* if no filename, then we default the filename and indexname.
+    if filename, don't default indexname: the user doesn't want an index. */
+    if (!recContext->settings.filename) {
+        NEXUS_RecpumpStatus status;
+        NEXUS_Recpump_GetStatus(recContext->handles.recpump, &status);
+        if (!recContext->settings.filename) {
+            recContext->settings.filename = default_filename;
+            snprintf(default_filename, sizeof(default_filename), "videos/stream%d.mpg", status.rave.index);
+        }
+        if (!recContext->settings.indexname) {
+            recContext->settings.indexname = default_indexname;
+            snprintf(default_indexname, sizeof(default_indexname), "videos/stream%d.nav", status.rave.index);
+        }
+    }
+
+    if (recContext->settings.timeshift) {
+        recContext->handles.fifofile = NEXUS_FifoRecord_Create(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
+        set_fifo_settings(recContext->handles.fifofile, recContext->settings.timeshift, 20*1024*1024);
+        recContext->handles.file = NEXUS_FifoRecord_GetFile(recContext->handles.fifofile);
+    }
+    else if (recContext->settings.append) {
+        recContext->handles.file = NEXUS_FileRecord_AppendPosix(recContext->settings.filename, recContext->settings.indexname);
+    }
+    else {
+        recContext->handles.file = NEXUS_FileRecord_OpenPosix(recContext->settings.indexonly?NULL:recContext->settings.filename, recContext->settings.indexname);
+    }
+
+    if (recContext->handles.playback.playback && recContext->settings.indexonly) {
+        /* index-only requires allpass because stream is unfiltered */
+        NEXUS_PlaybackPidChannelSettings pidCfg0;
+        NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
+        NEXUS_Playpump_GetAllPassPidChannelIndex(recContext->handles.playback.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex);
+        pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(recContext->handles.playback.playback, 0x0, &pidCfg0);
+        if (pidChannel[total_pids]) {
+            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
+            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
+            pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
+            pidSettings.recpumpSettings.pidTypeSettings.video.codec = recContext->scan_results.program_info[program].video_pids[0].codec;
+            pidSettings.recpumpSettings.pidTypeSettings.video.pid = recContext->scan_results.program_info[program].video_pids[0].pid;
+            NEXUS_Record_AddPidChannel(recContext->handles.record, pidChannel[total_pids], &pidSettings);
+            total_pids++;
+        }
+    }
+    else {
+        for (i=0;i<recContext->scan_results.program_info[program].num_video_pids && total_pids < MAX_PIDS;i++) {
+            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
+            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
+            if (i == 0 && recContext->settings.indexname) {
+                pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
+                pidSettings.recpumpSettings.pidTypeSettings.video.codec = recContext->scan_results.program_info[program].video_pids[i].codec;
+            }
+            if (recContext->handles.playback.playback) {
+                pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(recContext->handles.playback.playback, recContext->scan_results.program_info[program].video_pids[i].pid, NULL);
+            }
+            else {
+                pidChannel[total_pids] = NEXUS_PidChannel_Open(recContext->handles.parserBand, recContext->scan_results.program_info[program].video_pids[i].pid, NULL);
+            }
+            if (pidChannel[total_pids]) {
+                NEXUS_Record_AddPidChannel(recContext->handles.record, pidChannel[total_pids], &pidSettings);
+                total_pids++;
+            }
+        }
+
+        for (i=0;i<recContext->scan_results.program_info[program].num_audio_pids && total_pids < MAX_PIDS;i++) {
+            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
+            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eAudio;
+            if (recContext->handles.playback.playback) {
+                pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(recContext->handles.playback.playback, recContext->scan_results.program_info[program].audio_pids[i].pid, NULL);
+            }
+            else {
+                pidChannel[total_pids] = NEXUS_PidChannel_Open(recContext->handles.parserBand, recContext->scan_results.program_info[program].audio_pids[i].pid, NULL);
+            }
+            if (pidChannel[total_pids]) {
+                NEXUS_Record_AddPidChannel(recContext->handles.record, pidChannel[total_pids], &pidSettings);
+                total_pids++;
+            }
+        }
+    }
+
+    if (recContext->settings.encrypt_algo < NEXUS_SecurityAlgorithm_eMax) {
+        struct dvr_crypto_settings settings;
+        unsigned i;
+        dvr_crypto_get_default_settings(&settings);
+        settings.algo = recContext->settings.encrypt_algo;
+        settings.encrypt = true;
+        for (i=0;i<total_pids;i++) {
+            settings.pid[i] = pidChannel[i];
+        }
+        recContext->handles.crypto = dvr_crypto_create(&settings);
+
+        recContext->scan_results.program_info[program].other_pids[0].pid = NXAPPS_DVR_CRYPTO_TAG_PID_BASE + recContext->settings.encrypt_algo;
+        recContext->scan_results.program_info[program].num_other_pids = 1;
+    }
+
+    if (recContext->settings.append) {
+        NEXUS_RecordAppendSettings appendSettings;
+        struct stat st;
+        rc = stat(recContext->settings.filename, &st);
+        if (rc) {
+            return BERR_TRACE(rc);
+        }
+        BDBG_WRN(("appending to %s, size %u MB", recContext->settings.filename, (unsigned)(st.st_size/1024/1024)));
+        NEXUS_Record_GetDefaultAppendSettings(&appendSettings);
+        appendSettings.startingOffset = st.st_size;
+        rc = NEXUS_Record_StartAppend(recContext->handles.record, recContext->handles.file, &appendSettings);
+        BDBG_ASSERT(!rc);
+    }
+    else {
+        rc = NEXUS_Record_Start(recContext->handles.record, recContext->handles.file);
+        BDBG_ASSERT(!rc);
+    }
+
+    if (recContext->settings.psi_injection == NEXUS_TristateEnable_eNotSet) {
+        recContext->settings.psi_injection = recContext->handles.crypto ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
+    }
+    if (recContext->handles.playback.playback) {
+        rc = NEXUS_Playback_Start(recContext->handles.playback.playback, recContext->handles.playback.file, NULL);
+        if (rc) {BERR_TRACE(rc); return -1;}
+        NEXUS_Record_AddPlayback(recContext->handles.record, recContext->handles.playback.playback);
+    }
+    else {
+        if (recContext->settings.psi_injection == NEXUS_TristateEnable_eEnable) {
+            /* TODO: PSI injection for playback */
+            recContext->handles.psi = bpsi_injection_open(recContext->handles.parserBand, &recContext->scan_results, program);
+            if (recContext->handles.psi) {
+                NEXUS_Record_AddPidChannel(recContext->handles.record, bpsi_injection_get_pid_channel(recContext->handles.psi), NULL);
+            }
+        }
+    }
+
+    recContext->state.started = true;
+
+    return rc;
+}
+
+static void stop_record(struct recordContext *recContext)
+{
+    if(!recContext->state.started)
+        return;
+
+    if (recContext->handles.playback.playback) {
+        NEXUS_Record_RemovePlayback(recContext->handles.record, recContext->handles.playback.playback);
+    }
+    NEXUS_Record_Stop(recContext->handles.record);
+    if (recContext->handles.psi) {
+        NEXUS_Record_RemovePidChannel(recContext->handles.record, bpsi_injection_get_pid_channel(recContext->handles.psi));
+        bpsi_injection_close(recContext->handles.psi);
+    }
+    if (recContext->handles.crypto) {
+        dvr_crypto_destroy(recContext->handles.crypto);
+    }
+    NEXUS_FileRecord_Close(recContext->handles.file);
+    if (recContext->handles.playback.playback) {
+        NEXUS_Playback_Stop(recContext->handles.playback.playback);
+        NEXUS_FilePlay_Close(recContext->handles.playback.file);
+    }
+#if NEXUS_HAS_FRONTEND
+    if(recContext->handles.frontend) {
+        NEXUS_Frontend_Release(recContext->handles.frontend);
+    }
+#endif
+    recContext->state.started = false;
+}
+
+static void *standby_monitor(void *context)
+{
+    NEXUS_Error rc;
+    struct recordContext *recContext = context;
+    NxClient_StandbyStatus standbyStatus, prevStatus;
+
+    rc = NxClient_GetStandbyStatus(&prevStatus);
+    BDBG_ASSERT(!rc);
+
+    while(!recContext->state.quit) {
+        rc = NxClient_GetStandbyStatus(&standbyStatus);
+        BDBG_ASSERT(!rc);
+
+        if(standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_ePassive || standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eDeepSleep) {
+                stop_record(recContext);
+        } else if((standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn || standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eActive)) {
+                start_record(recContext);
+        }
+        if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
+            printf("'record' acknowledges standby state: %s\n", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
+            NxClient_AcknowledgeStandby(true);
+        }
+        recContext->state.mode = standbyStatus.settings.mode;
+
+        prevStatus = standbyStatus;
+        BKNI_Sleep(100);
+    }
+
+    return NULL;
+}
+
+static void init_settings(struct recordContext *recContext)
+{
+    memset(recContext, 0, sizeof(struct recordContext));
+    recContext->settings.program = 0;
+    recContext->settings.timeshift = 0;
+    recContext->settings.append = false;
+    recContext->settings.encrypt_algo = NEXUS_SecurityAlgorithm_eMax;
+    recContext->settings.timestampType = NEXUS_TransportTimestampType_eNone;
+    recContext->settings.psi_injection = NEXUS_TristateEnable_eNotSet;
+    recContext->settings.filename = NULL;
+    recContext->settings.indexname = NULL;
+    recContext->settings.playback.filename = NULL;
+}
+
 int main(int argc, const char **argv)
 {
     NxClient_JoinSettings joinSettings;
     NEXUS_Error rc = NEXUS_SUCCESS;
     BKNI_EventHandle event;
-    unsigned i;
     int curarg = 1;
     char source_str[64];
-    unsigned program = 0;
-    NEXUS_FrontendHandle frontend = NULL;
     bchannel_scan_t scan = NULL;
     bchannel_scan_start_settings scan_settings;
-    tspsimgr_scan_results scan_results;
-    NEXUS_ParserBand parserBand;
-    NEXUS_FifoRecordHandle fifofile = NULL;
-    NEXUS_FileRecordHandle file;
-    NEXUS_RecpumpHandle recpump;
     NEXUS_RecpumpOpenSettings recpumpOpenSettings;
-    NEXUS_RecordHandle record;
-    NEXUS_RecordPidChannelSettings pidSettings;
     NEXUS_RecordSettings recordSettings;
-    const char *filename = NULL;
-    const char *indexname = NULL;
-    char default_filename[64], default_indexname[64];
-    struct {
-        const char *filename;
-        NEXUS_PlaypumpHandle playpump;
-        NEXUS_PlaybackHandle playback;
-        NEXUS_FilePlayHandle file;
-    } playback;
-    bool indexonly;
-#define MAX_PIDS 8
-    NEXUS_PidChannelHandle pidChannel[MAX_PIDS];
-    unsigned total_pids = 0;
     bool prompt = false;
     bool gui = true;
     brecord_gui_t record_gui = NULL;
     char sourceName[64];
-    unsigned timeshift = 0;
-    dvr_crypto_t crypto = NULL;
-    NEXUS_SecurityAlgorithm encrypt_algo = NEXUS_SecurityAlgorithm_eMax;
-    bpsi_injection_t psi = NULL;
     bool quiet = false;
-    NEXUS_TransportTimestampType timestampType = NEXUS_TransportTimestampType_eNone;
     unsigned timeout = 0, starttime;
     struct nxapps_cmdline cmdline;
     int n;
-    NEXUS_TristateEnable psi_injection = NEXUS_TristateEnable_eNotSet;
-    bool append = false;
+    pthread_t standby_thread_id;
+    struct recordContext recContext;
+    NxClient_StandbyStatus standbyStatus;
 
     nxapps_cmdline_init(&cmdline);
     nxapps_cmdline_allow(&cmdline, nxapps_cmdline_type_frontend);
 
-    memset(pidChannel, 0, sizeof(pidChannel));
-    memset(&playback, 0, sizeof(playback));
+    init_settings(&recContext);
+
     while (curarg < argc) {
         if (!strcmp(argv[curarg], "-h") || !strcmp(argv[curarg], "--help")) {
             print_usage(&cmdline);
             return 0;
         }
         else if (!strcmp(argv[curarg], "-file") && argc>curarg+1) {
-            playback.filename = argv[++curarg];
+            recContext.settings.playback.filename = argv[++curarg];
         }
         else if (!strcmp(argv[curarg], "-program") && argc>curarg+1) {
-            program = atoi(argv[++curarg]);
+            recContext.settings.program = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-prompt")) {
             prompt = true;
         }
         else if (!strcmp(argv[curarg], "-timeshift") && argc>curarg+1) {
-            timeshift = atoi(argv[++curarg]);
-            if (!timeshift) {
+            recContext.settings.timeshift = atoi(argv[++curarg]);
+            if (!recContext.settings.timeshift) {
                 print_usage(&cmdline);
                 return 1;
             }
@@ -242,22 +506,22 @@ int main(int argc, const char **argv)
             gui = strcmp(argv[++curarg], "off");
         }
         else if (!strcmp(argv[curarg], "-crypto") && curarg+1 < argc) {
-            encrypt_algo = lookup(g_securityAlgoStrs, argv[++curarg]);
+            recContext.settings.encrypt_algo = lookup(g_securityAlgoStrs, argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-q")) {
             quiet = true;
         }
         else if (!strcmp(argv[curarg], "-tts")) {
-            timestampType = NEXUS_TransportTimestampType_eBinary;
+            recContext.settings.timestampType = NEXUS_TransportTimestampType_eBinary;
         }
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             timeout = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-psi") && argc>curarg+1) {
-            psi_injection = parse_boolean(argv[++curarg]) ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
+            recContext.settings.psi_injection = parse_boolean(argv[++curarg]) ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
         }
         else if (!strcmp(argv[curarg], "-append")) {
-            append = true;
+            recContext.settings.append = true;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {
@@ -266,11 +530,11 @@ int main(int argc, const char **argv)
             }
             curarg += n;
         }
-        else if (!filename) {
-            filename = argv[curarg];
+        else if (!recContext.settings.filename) {
+            recContext.settings.filename = argv[curarg];
         }
-        else if (!indexname) {
-            indexname = argv[curarg];
+        else if (!recContext.settings.indexname) {
+            recContext.settings.indexname = argv[curarg];
         }
         else {
             print_usage(&cmdline);
@@ -286,48 +550,43 @@ int main(int argc, const char **argv)
 
     BKNI_CreateEvent(&event);
 
-    indexonly = filename && !strcmp(filename, "none");
-    if (playback.filename) {
+    recContext.settings.indexonly = recContext.settings.filename && !strcmp(recContext.settings.filename, "none");
+    if (recContext.settings.playback.filename) {
         struct probe_request probe_request;
         struct probe_results probe_results;
         NEXUS_PlaybackSettings playbackSettings;
 
         probe_media_get_default_request(&probe_request);
-        probe_request.streamname = playback.filename;
-        probe_request.program = program;
+        probe_request.streamname = recContext.settings.playback.filename;
+        probe_request.program = recContext.settings.program;
         rc = probe_media_request(&probe_request, &probe_results);
         if (rc) {
-            BDBG_ERR(("unable to probe %s", playback.filename));
+            BDBG_ERR(("unable to probe %s", recContext.settings.playback.filename));
             return -1;
         }
 
-        playback.file = NEXUS_FilePlay_OpenPosix(playback.filename, NULL);
-        if (!playback.file) {
-            BDBG_ERR(("unable to open %s", playback.filename));
-            return -1;
-        }
-        playback.playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
-        playback.playback = NEXUS_Playback_Create();
-        NEXUS_Playback_GetSettings(playback.playback, &playbackSettings);
-        playbackSettings.playpump = playback.playpump;
+        recContext.handles.playback.playpump = NEXUS_Playpump_Open(NEXUS_ANY_ID, NULL);
+        recContext.handles.playback.playback = NEXUS_Playback_Create();
+        NEXUS_Playback_GetSettings(recContext.handles.playback.playback, &playbackSettings);
+        playbackSettings.playpump = recContext.handles.playback.playpump;
         playbackSettings.endOfStreamAction = NEXUS_PlaybackLoopMode_ePause; /* once */
-        if (indexonly) {
+        if (recContext.settings.indexonly) {
             playbackSettings.playpumpSettings.allPass = true;
             playbackSettings.playpumpSettings.acceptNullPackets = true;
         }
-        rc = NEXUS_Playback_SetSettings(playback.playback, &playbackSettings);
+        rc = NEXUS_Playback_SetSettings(recContext.handles.playback.playback, &playbackSettings);
         BDBG_ASSERT(!rc);
 
         /* convert to scan_results */
-        strncpy(source_str, playback.filename, sizeof(source_str)-1);
-        convert_to_scan_results(&scan_results, &probe_results);
+        strncpy(source_str, recContext.settings.playback.filename, sizeof(source_str)-1);
+        convert_to_scan_results(&recContext.scan_results, &probe_results);
         printf("playing video %#x:%s, audio %#x:%s\n",
-            scan_results.program_info[0].video_pids[0].pid,
-            lookup_name(g_videoCodecStrs, scan_results.program_info[0].video_pids[0].codec),
-            scan_results.program_info[0].audio_pids[0].pid,
-            lookup_name(g_audioCodecStrs, scan_results.program_info[0].audio_pids[0].codec));
+            recContext.scan_results.program_info[0].video_pids[0].pid,
+            lookup_name(g_videoCodecStrs, recContext.scan_results.program_info[0].video_pids[0].codec),
+            recContext.scan_results.program_info[0].audio_pids[0].pid,
+            lookup_name(g_audioCodecStrs, recContext.scan_results.program_info[0].audio_pids[0].codec));
         /* media probe picks the program and convert_to_scan_results just puts it in program 0 */
-        program = 0;
+        recContext.settings.program = 0;
     }
     else {
         get_default_channels(&cmdline.frontend.tune, &cmdline.frontend.freq_list);
@@ -357,183 +616,67 @@ int main(int argc, const char **argv)
             goto err_start_scan;
         }
         BKNI_WaitForEvent(event, 2000);
-        bchannel_scan_get_results(scan, &scan_results);
-        printf("%d programs found\n", scan_results.num_programs);
-        if (program >= scan_results.num_programs) {
-            BDBG_ERR(("program %d unavailable", program));
+        bchannel_scan_get_results(scan, &recContext.scan_results);
+        printf("%d programs found\n", recContext.scan_results.num_programs);
+        if (recContext.settings.program >= recContext.scan_results.num_programs) {
+            BDBG_ERR(("program %d unavailable", recContext.settings.program));
             goto err_scan_results;
         }
 
-        bchannel_scan_get_resources(scan, &frontend, &parserBand);
+        recContext.settings.tune_settings = cmdline.frontend.tune;
+        bchannel_scan_stop(scan);
+        scan = NULL;
     }
     snprintf(sourceName, sizeof(sourceName), "%s, %#x/%#x", source_str,
-        scan_results.program_info[program].video_pids[0].pid,
-        scan_results.program_info[program].audio_pids[0].pid);
+        recContext.scan_results.program_info[recContext.settings.program].video_pids[0].pid,
+        recContext.scan_results.program_info[recContext.settings.program].audio_pids[0].pid);
+
+    recContext.handles.parserBand = NEXUS_ParserBand_Open(NEXUS_ANY_ID);
 
     NEXUS_Recpump_GetDefaultOpenSettings(&recpumpOpenSettings);
     recpumpOpenSettings.data.bufferSize = 192512 * 8; /* limit to 1.5 MB because of limited eFull client heap space */
     recpumpOpenSettings.data.dataReadyThreshold = recpumpOpenSettings.data.bufferSize/4;
-    if (filename && !indexname) {
+    if (recContext.settings.filename && !recContext.settings.indexname) {
         recpumpOpenSettings.index.bufferSize = 0;
     }
-    recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
-    if (!recpump) {
+    recContext.handles.recpump = NEXUS_Recpump_Open(NEXUS_ANY_ID, &recpumpOpenSettings);
+    if (!recContext.handles.recpump) {
         BDBG_ERR(("unable to open recpump"));
         return -1;
     }
 
-    record = NEXUS_Record_Create();
+    recContext.handles.record = NEXUS_Record_Create();
 
-    NEXUS_Record_GetSettings(record, &recordSettings);
-    recordSettings.recpump = recpump;
-    recordSettings.recpumpSettings.timestampType = timestampType;
-    if (playback.filename) {
+    NEXUS_Record_GetSettings(recContext.handles.record, &recordSettings);
+    recordSettings.recpump = recContext.handles.recpump;
+    recordSettings.recpumpSettings.timestampType = recContext.settings.timestampType;
+    if (recContext.settings.playback.filename) {
         recordSettings.recpumpSettings.bandHold = true; /* pace playback to avoid overflow */
         recordSettings.writeAllTimeout          = 1000; /* wait if necessary for slow record media */
     }
-    NEXUS_Record_SetSettings(record, &recordSettings);
+    NEXUS_Record_SetSettings(recContext.handles.record, &recordSettings);
 
-    /* if no filename, then we default the filename and indexname.
-    if filename, don't default indexname: the user doesn't want an index. */
-    if (!filename) {
-        NEXUS_RecpumpStatus status;
-        NEXUS_Recpump_GetStatus(recpump, &status);
-        if (!filename) {
-            filename = default_filename;
-            snprintf(default_filename, sizeof(default_filename), "videos/stream%d.mpg", status.rave.index);
-        }
-        if (!indexname) {
-            indexname = default_indexname;
-            snprintf(default_indexname, sizeof(default_indexname), "videos/stream%d.nav", status.rave.index);
-        }
-    }
+    rc = start_record(&recContext);
+    if(rc) return -1;
 
-    if (timeshift) {
-        fifofile = NEXUS_FifoRecord_Create(indexonly?NULL:filename, indexname);
-        set_fifo_settings(fifofile, timeshift, 20*1024*1024);
-        file = NEXUS_FifoRecord_GetFile(fifofile);
-    }
-    else if (append) {
-        file = NEXUS_FileRecord_AppendPosix(filename, indexname);
-    }
-    else {
-        file = NEXUS_FileRecord_OpenPosix(indexonly?NULL:filename, indexname);
-    }
-
-    if (playback.playback && indexonly) {
-        /* index-only requires allpass because stream is unfiltered */
-        NEXUS_PlaybackPidChannelSettings pidCfg0;
-        NEXUS_Playback_GetDefaultPidChannelSettings(&pidCfg0);
-        NEXUS_Playpump_GetAllPassPidChannelIndex(playback.playpump, &pidCfg0.pidSettings.pidSettings.pidChannelIndex);
-        pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(playback.playback, 0x0, &pidCfg0);
-        if (pidChannel[total_pids]) {
-            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
-            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-            pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-            pidSettings.recpumpSettings.pidTypeSettings.video.codec = scan_results.program_info[program].video_pids[0].codec;
-            pidSettings.recpumpSettings.pidTypeSettings.video.pid = scan_results.program_info[program].video_pids[0].pid;
-            NEXUS_Record_AddPidChannel(record, pidChannel[total_pids], &pidSettings);
-            total_pids++;
-        }
-    }
-    else {
-        for (i=0;i<scan_results.program_info[program].num_video_pids && total_pids < MAX_PIDS;i++) {
-            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
-            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eVideo;
-            if (i == 0 && indexname) {
-                pidSettings.recpumpSettings.pidTypeSettings.video.index = true;
-                pidSettings.recpumpSettings.pidTypeSettings.video.codec = scan_results.program_info[program].video_pids[i].codec;
-            }
-            if (playback.playback) {
-                pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(playback.playback, scan_results.program_info[program].video_pids[i].pid, NULL);
-            }
-            else {
-                pidChannel[total_pids] = NEXUS_PidChannel_Open(parserBand, scan_results.program_info[program].video_pids[i].pid, NULL);
-            }
-            if (pidChannel[total_pids]) {
-                NEXUS_Record_AddPidChannel(record, pidChannel[total_pids], &pidSettings);
-                total_pids++;
-            }
-        }
-
-        for (i=0;i<scan_results.program_info[program].num_audio_pids && total_pids < MAX_PIDS;i++) {
-            NEXUS_Record_GetDefaultPidChannelSettings(&pidSettings);
-            pidSettings.recpumpSettings.pidType = NEXUS_PidType_eAudio;
-            if (playback.playback) {
-                pidChannel[total_pids] = NEXUS_Playback_OpenPidChannel(playback.playback, scan_results.program_info[program].audio_pids[i].pid, NULL);
-            }
-            else {
-                pidChannel[total_pids] = NEXUS_PidChannel_Open(parserBand, scan_results.program_info[program].audio_pids[i].pid, NULL);
-            }
-            if (pidChannel[total_pids]) {
-                NEXUS_Record_AddPidChannel(record, pidChannel[total_pids], &pidSettings);
-                total_pids++;
-            }
-        }
-    }
-
-    if (encrypt_algo < NEXUS_SecurityAlgorithm_eMax) {
-        struct dvr_crypto_settings settings;
-        unsigned i;
-        dvr_crypto_get_default_settings(&settings);
-        settings.algo = encrypt_algo;
-        settings.encrypt = true;
-        for (i=0;i<total_pids;i++) {
-            settings.pid[i] = pidChannel[i];
-        }
-        crypto = dvr_crypto_create(&settings);
-
-        scan_results.program_info[program].other_pids[0].pid = NXAPPS_DVR_CRYPTO_TAG_PID_BASE + encrypt_algo;
-        scan_results.program_info[program].num_other_pids = 1;
-    }
-
-    if (append) {
-        NEXUS_RecordAppendSettings appendSettings;
-        struct stat st;
-        rc = stat(filename, &st);
-        if (rc) {
-            return BERR_TRACE(rc);
-        }
-        BDBG_WRN(("appending to %s, size %u MB", filename, (unsigned)(st.st_size/1024/1024)));
-        NEXUS_Record_GetDefaultAppendSettings(&appendSettings);
-        appendSettings.startingOffset = st.st_size;
-        rc = NEXUS_Record_StartAppend(record, file, &appendSettings);
-        BDBG_ASSERT(!rc);
-    }
-    else {
-        rc = NEXUS_Record_Start(record, file);
-        BDBG_ASSERT(!rc);
-    }
-
-    if (psi_injection == NEXUS_TristateEnable_eNotSet) {
-        psi_injection = crypto ? NEXUS_TristateEnable_eEnable : NEXUS_TristateEnable_eDisable;
-    }
-    if (playback.playback) {
-        rc = NEXUS_Playback_Start(playback.playback, playback.file, NULL);
-        if (rc) {BERR_TRACE(rc); return -1;}
-        NEXUS_Record_AddPlayback(record, playback.playback);
-    }
-    else {
-        if (psi_injection == NEXUS_TristateEnable_eEnable) {
-            /* TODO: PSI injection for playback */
-            psi = bpsi_injection_open(parserBand, &scan_results, program);
-            if (psi) {
-                NEXUS_Record_AddPidChannel(record, bpsi_injection_get_pid_channel(psi), NULL);
-            }
-        }
-    }
-
-    if (gui) {
+    rc = NxClient_GetStandbyStatus(&standbyStatus);
+    BDBG_ASSERT(!rc);
+    if (gui && standbyStatus.settings.mode == NEXUS_PlatformStandbyMode_eOn) {
         struct brecord_gui_settings settings;
         brecord_gui_get_default_settings(&settings);
         settings.sourceName = sourceName;
-        settings.destName = filename;
-        settings.record = record;
+        settings.destName = recContext.settings.filename;
+        settings.record = recContext.handles.record;
         settings.color = 0xFF0000FF;
         record_gui = brecord_gui_create(&settings);
+    } else {
+        printf("Starting record without gui\n");
     }
 
-    BDBG_WRN(("recording to %s%s%s", filename, indexname?" and ":"", indexname?indexname:""));
+    BDBG_WRN(("recording to %s%s%s", recContext.settings.filename, recContext.settings.indexname?" and ":"", recContext.settings.indexname?recContext.settings.indexname:""));
+
+    pthread_create(&standby_thread_id, NULL, standby_monitor, &recContext);
+
     starttime = b_get_time();
     while (1) {
         if (prompt) {
@@ -547,17 +690,17 @@ int main(int argc, const char **argv)
                 break;
             }
             else if (!strcmp(buf, "st")) {
-                print_record_status(filename, indexname, record, indexonly);
+                print_record_status(&recContext);
             }
-            else if (timeshift && !strcmp(buf, "play")) {
+            else if (recContext.settings.timeshift && !strcmp(buf, "play")) {
                 /* TODO: this is a very simple addition of playback. a better integration could be done */
-                start_play(record, fifofile, filename, indexname, &scan_results, program);
+                start_play(recContext.handles.record, recContext.handles.fifofile, recContext.settings.filename, recContext.settings.indexname, &recContext.scan_results, recContext.settings.program);
             }
-            else if (timeshift && strstr(buf, "timeshift")) {
+            else if (recContext.settings.timeshift && strstr(buf, "timeshift")) {
                 unsigned interval, maxBitRate, n;
                 n = sscanf(buf+10, "%u,%u", &interval, &maxBitRate);
                 if (n == 2 && interval && maxBitRate) {
-                    set_fifo_settings(fifofile, interval, maxBitRate*1024*1024);
+                    set_fifo_settings(recContext.handles.fifofile, interval, maxBitRate*1024*1024);
                 }
             }
         }
@@ -565,46 +708,38 @@ int main(int argc, const char **argv)
             static int cnt = 0;
             BKNI_Sleep(200);
             if (!quiet && ++cnt == 10) {
-                print_record_status(filename, indexname, record, indexonly);
+                print_record_status(&recContext);
                 cnt = 0;
             }
-            if (record_gui) {
+            if (record_gui && recContext.state.mode == NEXUS_PlatformStandbyMode_eOn) {
                 brecord_gui_update(record_gui);
             }
         }
         if (timeout && b_get_time() - starttime >= timeout*1000) {
             break;
         }
-        if (playback.playback) {
+        if (recContext.handles.playback.playback && recContext.state.mode == NEXUS_PlatformStandbyMode_eOn) {
             NEXUS_PlaybackStatus status;
-            NEXUS_Playback_GetStatus(playback.playback, &status);
+            NEXUS_Playback_GetStatus(recContext.handles.playback.playback, &status);
             if (status.state != NEXUS_PlaybackState_ePlaying) break;
         }
 
     }
 
+    recContext.state.quit = true;
+    pthread_join(standby_thread_id, NULL);
+
     if (record_gui) {
         brecord_gui_destroy(record_gui);
     }
-    if (playback.playback) {
-        NEXUS_Record_RemovePlayback(record, playback.playback);
-    }
-    NEXUS_Record_Stop(record);
-    if (psi) {
-        NEXUS_Record_RemovePidChannel(record, bpsi_injection_get_pid_channel(psi));
-        bpsi_injection_close(psi);
-    }
-    if (crypto) {
-        dvr_crypto_destroy(crypto);
-    }
-    NEXUS_FileRecord_Close(file);
-    NEXUS_Record_Destroy(record);
-    NEXUS_Recpump_Close(recpump);
-    if (playback.playback) {
-        NEXUS_Playback_Stop(playback.playback);
-        NEXUS_Playback_Destroy(playback.playback);
-        NEXUS_Playpump_Close(playback.playpump);
-        NEXUS_FilePlay_Close(playback.file);
+
+    stop_record(&recContext);
+
+    NEXUS_Record_Destroy(recContext.handles.record);
+    NEXUS_Recpump_Close(recContext.handles.recpump);
+    if (recContext.handles.playback.playback) {
+        NEXUS_Playback_Destroy(recContext.handles.playback.playback);
+        NEXUS_Playpump_Close(recContext.handles.playback.playpump);
     }
 err_scan_results:
     if (scan) {

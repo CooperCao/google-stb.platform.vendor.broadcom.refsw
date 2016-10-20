@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *XPT_RMX1_IO - XPT RMX1 I/O Control Registers
  ***************************************************************************/
-#define BCHP_XPT_RMX1_IO_FORMAT                  0x20a00900 /* [RW] RMX Format Register */
-#define BCHP_XPT_RMX1_IO_MISC_DLY_SEL            0x20a00904 /* [RW] RMX Output Clk/Sync/Valid Delay Register */
-#define BCHP_XPT_RMX1_IO_DATA_DLY_SEL            0x20a00908 /* [RW] RMX Output Data Delay Register */
-#define BCHP_XPT_RMX1_IO_PKT_DLY_CNT             0x20a0090c /* [RW] RMX Packet Delay Control Register */
-#define BCHP_XPT_RMX1_IO_TV_STATUS               0x20a00920 /* [RW] TV Status */
+#define BCHP_XPT_RMX1_IO_FORMAT                  0x20a00900 /* [RW][32] RMX Format Register */
+#define BCHP_XPT_RMX1_IO_MISC_DLY_SEL            0x20a00904 /* [RW][32] RMX Output Clk/Sync/Valid Delay Register */
+#define BCHP_XPT_RMX1_IO_DATA_DLY_SEL            0x20a00908 /* [RW][32] RMX Output Data Delay Register */
+#define BCHP_XPT_RMX1_IO_PKT_DLY_CNT             0x20a0090c /* [RW][32] RMX Packet Delay Control Register */
+#define BCHP_XPT_RMX1_IO_TV_STATUS               0x20a00920 /* [RW][32] TV Status */
 
 #endif /* #ifndef BCHP_XPT_RMX1_IO_H__ */
 

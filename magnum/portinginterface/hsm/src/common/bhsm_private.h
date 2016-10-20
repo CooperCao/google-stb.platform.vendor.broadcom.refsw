@@ -78,8 +78,6 @@ extern "C" {
 #define BHSM_STASH_DWORDSIZE_KEYSLOT_TYPES        (2)
 
 
-#define BHSM_P_HANDLE_MAGIC_NUMBER             0xface1001   /* HSM handle magic number  */
-#define BHSM_P_CHANNEL_HANDLE_MAGIC_NUMBER     0xface1002   /* channel handle magic number */
 #define BHSM_SRAM_SIGNATURE                    0xface1003   /* Signature for SRAM block in SAGE global SRAM */
 
 #define BHSM_MAX_VKL                           (BCMD_VKL_KeyRam_eMax)
@@ -193,8 +191,6 @@ BHSM_Open()
 typedef struct BHSM_P_Handle
 {
     BDBG_OBJECT( BHSM_P_Handle )
-
-    uint32_t                  ulMagicNumber; /* Must be  BHSM_P_HANDLE_MAGIC_NUMBER */
 
     BHSM_Settings          currentSettings;   /* current settings */
 

@@ -36,6 +36,8 @@
  *  ANY LIMITED REMEDY.
 
  ******************************************************************************/
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
 #include "log.h" // to call wvcdm InitLogging
 #undef LOGE
 #undef LOGW
@@ -53,6 +55,8 @@
 #include "string_conversions.h"
 
 #include "wv_decryptor.h"
+#pragma GCC diagnostic pop
+
 BDBG_MODULE(wv_decryptor);
 
 using namespace wvcdm;

@@ -91,7 +91,7 @@
 #include "servermgr.h"
 #include "discovery.h"
 #include "playlist_db.h"
-#endif
+#endif /* ifdef PLAYBACK_IP_SUPPORT */
 #include "audio_capture.h"
 
 #include "nexus_video_types.h"
@@ -243,6 +243,7 @@ protected:
     CConfiguration *  _pCfg;
     CBoardResources * _pBoardResources;
     CWidgetEngine *   _pWidgetEngine;
+    bwin_engine_t     _bwinEngine;
     uint16_t          _number;
     eAtlasMode        _mode;
     CChannelMgr *     _pChannelMgr;

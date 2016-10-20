@@ -321,7 +321,7 @@ static GLuint create_program(enum cmp_type cmp_type)
    GLuint program;
 
    static const char *vshader_source =
-      "#version 300 es\n"
+      "#version 310 es\n"
       "in vec4 vertex;\n"
       "in vec2 tex_coord;\n"
       "out vec2 vtex_coord;\n"
@@ -331,20 +331,20 @@ static GLuint create_program(enum cmp_type cmp_type)
       "   vtex_coord = tex_coord;\n"
       "}\n";
 
-   static const char *fshader_version = "#version 300 es\n";
+   static const char *fshader_version = "#version 310 es\n";
    static const char *sampler_decls[N_CMP_TYPES] = {
       "uniform highp sampler2D tex;\n",
       "uniform highp isampler2D tex;\n",
       "uniform highp usampler2D tex;\n"
    };
    static const char *output_decls[N_CMP_TYPES] = {
-      "out vec4 FragColor;\n",
+      "out highp vec4 FragColor;\n",
       "out ivec4 FragColor;\n",
       "out uvec4 FragColor;\n"
    };
 
    static const char *fshader_src =
-      "in vec2 vtex_coord;\n"
+      "in highp vec2 vtex_coord;\n"
       "void main(void)\n"
       "{\n"
       "   FragColor = texture(tex, vtex_coord);\n"

@@ -45,30 +45,6 @@
 
 BDBG_MODULE(BRDC_DBG);
 
-
-/***************************************************************************
- *
- */
-BERR_Code BRDC_DBG_SetList(
-    BRDC_List_Handle  hList
-    )
-{
-    BERR_Code  eErr = BERR_SUCCESS;
-
-    /* initialize list state */
-    hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
-
-    BKNI_EnterCriticalSection();
-    hList->pulCurListAddr = BRDC_List_GetStartAddress_isr(hList);
-
-    /* get number of entries */
-    eErr = BERR_TRACE(BRDC_List_GetNumEntries_isr(hList, &hList->ulNumEntries));
-    BKNI_LeaveCriticalSection();
-
-    return eErr;
-}
-
-
 /***************************************************************************
  *
  */
@@ -88,19 +64,6 @@ BERR_Code BRDC_DBG_SetList_isr(
 
     /*printf("++++++++++++++++++++++++++++++++++++++++++++++ hList->ulNumEntries = %d\n", hList->ulNumEntries);*/
 
-    return eErr;
-}
-
-BERR_Code BRDC_DBG_GetListEntry(
-    BRDC_List_Handle     hList,
-    BRDC_DBG_ListEntry  *peEntry,
-    uint32_t             aulArgs[4]
-    )
-{
-    BERR_Code  eErr = BERR_SUCCESS;
-    BKNI_EnterCriticalSection();
-    eErr = BRDC_DBG_GetListEntry_isr(hList, peEntry, aulArgs);
-    BKNI_LeaveCriticalSection();
     return eErr;
 }
 
@@ -154,18 +117,30 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         {
         case BRDC_OP_REG_TO_VAR_OPCODE:
         case BRDC_OP_IMM_TO_VAR_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_REG_TO_VAR_OPCODE64:
+        case BRDC_OP_IMM_TO_VAR_OPCODE64:
+        #endif
             /* variable stored in bits 5-0 */
             aulArgs[1] = ulEntry & UINT32_C(0x3F);
             break;
 
         case BRDC_OP_VAR_TO_REG_OPCODE:
         case BRDC_OP_COND_SKIP_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_VAR_TO_REG_OPCODE64:
+        case BRDC_OP_COND_SKIP_OPCODE64:
+        #endif
             /* variable stored in bits 17-12 */
             aulArgs[1] = (ulEntry >> 12) & UINT32_C(0x3F);
             break;
 
         case BRDC_OP_IMMS_TO_REG_OPCODE:
         case BRDC_OP_IMMS_TO_REGS_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_IMMS_TO_REG_OPCODE64:
+        case BRDC_OP_IMMS_TO_REGS_OPCODE64:
+        #endif
             /* count-1 stored in bits 11-0 (store data count) */
             aulArgs[1] = (ulEntry & UINT32_C(0xFFF)) + 1;
             hList->iDataCount = aulArgs[1];
@@ -173,8 +148,10 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
 
         case BRDC_OP_REG_TO_REG_OPCODE:
         case BRDC_OP_REGS_TO_REGS_OPCODE:
-        case BRDC_OP_REG_TO_REGS_OPCODE:
-        case BRDC_OP_REGS_TO_REG_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_REG_TO_REG_OPCODE64:
+        case BRDC_OP_REGS_TO_REGS_OPCODE64:
+        #endif
             /* count-1 stored in bits 11-0 */
             aulArgs[1] = (ulEntry & UINT32_C(0xFFF)) + 1;
             break;
@@ -183,6 +160,12 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64:
+        #endif
             /* bit 17-12 = src1; bit 11-6 = src2; bit 5-0 = dst */
             aulArgs[1] = (ulEntry >> 12) & UINT32_C(0x3F);
             aulArgs[2] = (ulEntry >>  6) & UINT32_C(0x3F);
@@ -194,12 +177,22 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE:
         case BRDC_OP_NOT_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_NOT_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64:
+        #endif
             /* bit 17-12 = src; bit 5-0 = dst */
             aulArgs[1] = (ulEntry >> 12) & UINT32_C(0x3F);
             aulArgs[2] = (ulEntry      ) & UINT32_C(0x3F);
             break;
 
         case BRDC_OP_VAR_ROR_TO_VAR_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_VAR_ROR_TO_VAR_OPCODE64:
+        #endif
             /* bit 22-18 = rotate; bit 17-12 = src; bit 5-0 = dst */
             aulArgs[1] = (ulEntry >> 18) & UINT32_C(0x1F);
             aulArgs[2] = (ulEntry >> 12) & UINT32_C(0x3F);
@@ -210,6 +203,9 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         case BRDC_OP_IMM_TO_REG_OPCODE:
         case BRDC_OP_SKIP_OPCODE:
         case BRDC_OP_EXIT_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_IMM_TO_REG_OPCODE64:
+        #endif
             /* no extra data in command word */
             break;
 
@@ -256,6 +252,25 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
             }
             break;
 
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_IMM_TO_REG_OPCODE64:
+            /* register then data  then data */
+            if(hList->iCommandIndex == 0)
+            {
+                /* register */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eRegister;
+            } else if(hList->iCommandIndex <=  2)
+            {
+                /* data */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eData;
+            } else
+            {
+                /* next command */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
+            }
+            break;
+        #endif
+
         case BRDC_OP_VAR_TO_REG_OPCODE:
         case BRDC_OP_REG_TO_VAR_OPCODE:
         case BRDC_OP_COND_SKIP_OPCODE:
@@ -288,10 +303,35 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
             }
             break;
 
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64:
+            /* data only, twice */
+            if(hList->iCommandIndex <= 1)
+            {
+                /* data */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eData;
+            } else
+            {
+                /* next command */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
+            }
+            break;
+        #endif
+
         case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE:
         case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64:
+        #endif
             /* no data follows command */
             hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
             break;
@@ -314,10 +354,32 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
             }
             break;
 
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_IMMS_TO_REG_OPCODE64:
+        case BRDC_OP_IMMS_TO_REGS_OPCODE64:
+            /* single register then 2*N data */
+            if(hList->iCommandIndex == 0)
+            {
+                /* register */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eRegister;
+            } else if(hList->iCommandIndex <= 2*hList->iDataCount)
+            {
+                /* data */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eData;
+            } else
+            {
+                /* next command */
+                hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
+            }
+            break;
+        #endif
+
         case BRDC_OP_REG_TO_REG_OPCODE:
         case BRDC_OP_REGS_TO_REGS_OPCODE:
-        case BRDC_OP_REG_TO_REGS_OPCODE:
-        case BRDC_OP_REGS_TO_REG_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_REG_TO_REG_OPCODE64:
+        case BRDC_OP_REGS_TO_REGS_OPCODE64:
+        #endif
             /* source register followed by destination register */
             if(hList->iCommandIndex <= 1)
             {
@@ -335,6 +397,10 @@ BERR_Code BRDC_DBG_GetListEntry_isr(
         case BRDC_OP_NOP_OPCODE:
         case BRDC_OP_SKIP_OPCODE:
         case BRDC_OP_EXIT_OPCODE:
+        #if BRDC_64BIT_SUPPORT
+        case BRDC_OP_NOT_VAR_TO_VAR_OPCODE64:
+        case BRDC_OP_VAR_ROR_TO_VAR_OPCODE64:
+        #endif
             /* no data follows command */
             hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
             break;
@@ -352,7 +418,41 @@ done:
     return eErr;
 }
 
-#if !B_REFSW_MINIMAL
+/***************************************************************************
+ *
+ */
+BERR_Code BRDC_DBG_SetList(
+    BRDC_List_Handle  hList
+    )
+{
+    BERR_Code  eErr = BERR_SUCCESS;
+
+    /* initialize list state */
+    hList->eNextEntry = BRDC_DBG_ListEntry_eCommand;
+
+    BKNI_EnterCriticalSection();
+    hList->pulCurListAddr = BRDC_List_GetStartAddress_isr(hList);
+
+    /* get number of entries */
+    eErr = BERR_TRACE(BRDC_List_GetNumEntries_isr(hList, &hList->ulNumEntries));
+    BKNI_LeaveCriticalSection();
+
+    return eErr;
+}
+
+BERR_Code BRDC_DBG_GetListEntry(
+    BRDC_List_Handle     hList,
+    BRDC_DBG_ListEntry  *peEntry,
+    uint32_t             aulArgs[4]
+    )
+{
+    BERR_Code  eErr = BERR_SUCCESS;
+    BKNI_EnterCriticalSection();
+    eErr = BRDC_DBG_GetListEntry_isr(hList, peEntry, aulArgs);
+    BKNI_LeaveCriticalSection();
+    return eErr;
+}
+
 /***************************************************************************
  *
  */
@@ -399,105 +499,227 @@ BERR_Code BRDC_DBG_DumpList(
                 BDBG_MSG(("++ IMM TO REG"));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_IMM_TO_REG_OPCODE64:
+                BDBG_MSG(("++ IMM TO REG64"));
+                break;
+            #endif
+
             case BRDC_OP_VAR_TO_REG_OPCODE:
                 BDBG_MSG(("++ VAR TO REG: (%d)",
                     aulArgs[1]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_TO_REG_OPCODE64:
+                BDBG_MSG(("++ VAR TO REG64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
 
             case BRDC_OP_REG_TO_VAR_OPCODE:
                 BDBG_MSG(("++ REG TO VAR: (%d)",
                     aulArgs[1]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_REG_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ REG TO VAR64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
+
             case BRDC_OP_IMM_TO_VAR_OPCODE:
                 BDBG_MSG(("++ IMM TO VAR: (%d)",
                     aulArgs[1]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_IMM_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ IMM TO VAR64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
 
             case BRDC_OP_IMMS_TO_REG_OPCODE:
                 BDBG_MSG(("++ IMMS TO REG: (%d)",
                     aulArgs[1]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_IMMS_TO_REG_OPCODE64:
+                BDBG_MSG(("++ IMMS TO REG64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
+
             case BRDC_OP_IMMS_TO_REGS_OPCODE:
                 BDBG_MSG(("++ IMMS TO REGS: (%d)",
                     aulArgs[1]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_IMMS_TO_REGS_OPCODE64:
+                BDBG_MSG(("++ IMMS TO REGS64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
 
             case BRDC_OP_REG_TO_REG_OPCODE:
                 BDBG_MSG(("++ REG TO REG: (%d)",
                     aulArgs[1]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_REG_TO_REG_OPCODE64:
+                BDBG_MSG(("++ REG TO REG64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
+
             case BRDC_OP_REGS_TO_REGS_OPCODE:
                 BDBG_MSG(("++ REGS TO REGS: (%d)",
                     aulArgs[1]));
                 break;
 
-            case BRDC_OP_REG_TO_REGS_OPCODE:
-                BDBG_MSG(("++ REG TO REGS: (%d)",
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_REGS_TO_REGS_OPCODE64:
+                BDBG_MSG(("++ REGS TO REGS64: (%d)",
                     aulArgs[1]));
                 break;
-
-            case BRDC_OP_REGS_TO_REG_OPCODE:
-                BDBG_MSG(("++ REGS TO REG: (%d)",
-                    aulArgs[1]));
-                break;
+            #endif
 
             case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR AND VAR TO VAR: (%d, %d, %d)",
                     aulArgs[1], aulArgs[2], aulArgs[3]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR AND VAR TO VAR64: (%d, %d, %d)",
+                    aulArgs[1], aulArgs[2], aulArgs[3]));
+                break;
+            #endif
+
             case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR AND IMM TO VAR: (%d, %d)",
                     aulArgs[1], aulArgs[2]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR AND IMM TO VAR64: (%d, %d)",
+                    aulArgs[1], aulArgs[2]));
+                break;
+            #endif
 
             case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR OR VAR TO VAR: (%d, %d, %d)",
                     aulArgs[1], aulArgs[2], aulArgs[3]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR OR VAR TO VAR64: (%d, %d, %d)",
+                    aulArgs[1], aulArgs[2], aulArgs[3]));
+                break;
+            #endif
+
             case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR OR IMM TO VAR: (%d, %d)",
                     aulArgs[1], aulArgs[2]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR OR IMM TO VAR64: (%d, %d)",
+                    aulArgs[1], aulArgs[2]));
+                break;
+            #endif
 
             case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR XOR VAR TO VAR: (%d, %d, %d)",
                     aulArgs[1], aulArgs[2], aulArgs[3]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR XOR VAR TO VAR64: (%d, %d, %d)",
+                    aulArgs[1], aulArgs[2], aulArgs[3]));
+                break;
+            #endif
+
             case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR XOR IMM TO VAR: (%d, %d)",
                     aulArgs[1], aulArgs[2]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR XOR IMM TO VAR64: (%d, %d)",
+                    aulArgs[1], aulArgs[2]));
+                break;
+            #endif
 
             case BRDC_OP_NOT_VAR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ NOT VAR TO VAR: (%d, %d)",
                     aulArgs[1], aulArgs[2]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_NOT_VAR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ NOT VAR TO VAR64: (%d, %d)",
+                    aulArgs[1], aulArgs[2]));
+                break;
+            #endif
+
             case BRDC_OP_VAR_ROR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR ROR TO VAR: (%d, %d, %d)",
                     aulArgs[1], aulArgs[2], aulArgs[3]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_ROR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR ROR TO VAR64: (%d, %d, %d)",
+                    aulArgs[1], aulArgs[2], aulArgs[3]));
+                break;
+            #endif
 
             case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR SUM VAR TO VAR: (%d, %d, %d)",
                     aulArgs[1], aulArgs[2], aulArgs[3]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR SUM VAR TO VAR64: (%d, %d, %d)",
+                    aulArgs[1], aulArgs[2], aulArgs[3]));
+                break;
+            #endif
+
             case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE:
                 BDBG_MSG(("++ VAR SUM IMM TO VAR: (%d, %d)",
                     aulArgs[1], aulArgs[2]));
                 break;
 
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64:
+                BDBG_MSG(("++ VAR SUM IMM TO VAR64: (%d, %d)",
+                    aulArgs[1], aulArgs[2]));
+                break;
+            #endif
+
             case BRDC_OP_COND_SKIP_OPCODE:
                 BDBG_MSG(("++ COND SKIP: (%d)",
                     aulArgs[1]));
                 break;
+
+            #if BRDC_64BIT_SUPPORT
+            case BRDC_OP_COND_SKIP_OPCODE64:
+                BDBG_MSG(("++ COND SKIP64: (%d)",
+                    aulArgs[1]));
+                break;
+            #endif
 
             case BRDC_OP_SKIP_OPCODE:
                 BDBG_MSG(("++ SKIP "));
@@ -541,7 +763,6 @@ BERR_Code BRDC_DBG_DumpList(
 done:
     return eErr;
 }
-#endif
 
 #ifdef BRDC_USE_CAPTURE_BUFFER
 /**************************************************************
@@ -700,6 +921,43 @@ void BRDC_DBG_EnableCapture_isr(BRDC_Handle rdc, bool enable)
 {
     BRDC_DBG_CaptureBuffer *buffer = &rdc->captureBuffer;
     buffer->enable = enable;
+}
+#endif
+
+#ifdef BRDC_DEBUG
+/***************************************************************************
+ * This function is for debugging purpose ONLY, to test slot-linked
+ * synchronizer
+ *
+ * It's exactly same as BRDC_Slots_SetList_isr except it calls
+ * BRDC_P_Slots_SetList_NoArmSync_isr instead of BRDC_P_Slots_SetList_isr
+ */
+BERR_Code BRDC_Slot_SetList_NoArmSync_isr
+    ( BRDC_Slot_Handle                 hSlot,
+      BRDC_List_Handle                 hList )
+{
+    uint32_t *pulStart   = hList->pulRULAddr;
+    uint32_t *pulCurrent = pulStart + hList->ulEntries;
+    BERR_Code  err = BERR_SUCCESS;
+
+    BDBG_ENTER(BRDC_Slot_SetList_NoArmSync_isr);
+
+    /* Update the number of time this list, assigned to a slot. */
+    if(hSlot->bTrackExecution)
+    {
+        *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+        *pulCurrent++ = BRDC_REGISTER(hSlot->ulTrackRegAddr);
+        *pulCurrent++ = ++(hSlot->ulTrackCount);
+        hList->ulEntries = (uint32_t)(pulCurrent - pulStart);
+    }
+
+    /* Flush the list before setting it to dual slots. */
+    BMMA_FlushCache_isr(hList->hRULBlock, hList->pulRULAddr, hList->ulEntries * sizeof(uint32_t));
+
+    err = BRDC_P_Slots_SetList_NoArmSync_isr(&hSlot, hList, 1);
+
+    BDBG_LEAVE(BRDC_Slot_SetList_NoArmSync_isr);
+    return err;
 }
 #endif
 

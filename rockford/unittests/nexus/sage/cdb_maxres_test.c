@@ -37,6 +37,7 @@
 
  ******************************************************************************/
 
+
 /* Nexus example app: playback and decode */
 
 #include "nexus_platform.h"
@@ -103,23 +104,14 @@ int main(void)
 #endif
     const char *fname = FILE_NAME;
     NEXUS_Error rc;
-    unsigned i,j;
+    int i;
 
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
     platformSettings.openFrontend = false;
 
-	for (i = 0; i < NEXUS_NUM_VIDEO_DECODERS; i++)
-	{
-		memConfigSettings.videoDecoder[i].secure = NEXUS_SecureVideo_eBoth;
-	}
-	for (i = 0; i < NEXUS_NUM_DISPLAYS; i++)
-	{
-		for (j = 0; j < NEXUS_NUM_VIDEO_WINDOWS;j++)
-		{
-			memConfigSettings.display[i].window[j].secure = NEXUS_SecureVideo_eBoth;
-		}
-	}
+    memConfigSettings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
+    memConfigSettings.display[0].window[0].secure = NEXUS_SecureVideo_eBoth;
 
     rc = NEXUS_Platform_MemConfigInit(&platformSettings, &memConfigSettings);
     if (rc) return -1;

@@ -85,6 +85,7 @@ Standard Nexus error codes.
 #define NEXUS_P_ERR_ID_MASK   UINT32_C(0xFFFF0000)   /* {private} */
 #define NEXUS_P_ERR_ID_SHIFT  16                    /* {private} */
 #define NEXUS_P_ERR_NUM_MASK  UINT32_C(0x0000FFFF)  /* {private} */
+#define NEXUS_P_CALLBACK_COOKIE unsigned private_cookie
 
 /**
 Summary:
@@ -128,10 +129,21 @@ typedef struct NEXUS_CallbackDesc {
     NEXUS_Callback callback; /* Function pointer */
     void *context;           /* First parameter to callback function. */
     int param;               /* Second parameter to callback function. */
+
+    NEXUS_P_CALLBACK_COOKIE; /* private */
 } NEXUS_CallbackDesc;
 
-#define NEXUS_CALLBACKDESC_INITIALIZER() {NULL, NULL, 0}
-#define NEXUS_CALLBACKDESC_INIT(cb) do {(cb)->callback = NULL;(cb)->context=NULL;(cb)->param=0;}while(0)
+/**
+Summary:
+Initialize NEXUS_CallbackDesc structure
+**/
+void NEXUS_CallbackDesc_Init(
+    NEXUS_CallbackDesc *desc /* [out] */
+    );
+
+NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue(void);
+#define NEXUS_CALLBACKDESC_INITIALIZER() NEXUS_P_CallbackDescByValue()
+#define NEXUS_CALLBACKDESC_INIT(cb) NEXUS_CallbackDesc_Init(cb)
 
 /**
 Summary:

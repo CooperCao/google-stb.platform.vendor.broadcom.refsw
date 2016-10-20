@@ -304,6 +304,7 @@ void NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType type, NEXUS_GpioSettings *pSet
 {
     BSTD_UNUSED(type);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->interrupt);
 }
 
 NEXUS_GpioHandle NEXUS_Gpio_OpenAux(unsigned typeAndPin, const NEXUS_GpioSettings *pSettings)
@@ -399,11 +400,27 @@ static unsigned NEXUS_Gpio_P_InterruptIndex(NEXUS_GpioHandle gpio)
     return 0;
 }
 
+static void NEXUS_Gpio_P_SetBit_isr(uint32_t addr, unsigned shift, bool set)
+{
+    uint32_t mask = 1 << shift;
+    uint32_t val = set ? mask: 0;
+    BREG_Update32(g_pCoreHandles->reg, addr, mask, val);
+}
+
 static NEXUS_Error NEXUS_Gpio_P_AcquireInterrupt(NEXUS_GpioHandle gpio, NEXUS_GpioInterrupt interruptMode)
 {
     unsigned index = NEXUS_Gpio_P_InterruptIndex(gpio);
 
     BDBG_MSG(("%p:AcquireInterrupt isr:%u %#x:%u", (void*)gpio, index, gpio->addr.mask, gpio->shift));
+
+    if (!g_NEXUS_gpio.osSharedBankCaps.osManaged)
+    {
+        /*
+         * For nexus-managed gpio interrupts, mask L3 for each gpio on acquire
+         * before the L2 interrupt handler is installed and enabled.
+         */
+        NEXUS_Gpio_P_SetBit_isr(gpio->addr.mask, gpio->shift, false);
+    }
     if(g_NEXUS_gpio.intCallbacks[index].refCnt==0) {
         BERR_Code rc;
         rc = BINT_CreateCallback(&g_NEXUS_gpio.intCallbacks[index].callback, g_pCoreHandles->bint, g_NEXUS_gpio.intCallbacks[index].id, NEXUS_Gpio_P_isr, NULL, 0);
@@ -419,6 +436,7 @@ static NEXUS_Error NEXUS_Gpio_P_AcquireInterrupt(NEXUS_GpioHandle gpio, NEXUS_Gp
         openSettings.bankBaseAddress = gpio->addr.oden;
         openSettings.shift = gpio->shift;
         openSettings.interruptType = interruptMode;
+        /* For os-managed gpio interrupts, the openPin call below already masks/disables the irq on acquire. */
         gpio->osSharedBankGpio = g_NEXUS_gpio.settings.osSharedBankSettings.openPin(&openSettings);
         if (!gpio->osSharedBankGpio) { return BERR_TRACE(NEXUS_OS_ERROR); }
     }
@@ -450,10 +468,6 @@ static void NEXUS_Gpio_P_ReleaseInterrupt(NEXUS_GpioHandle gpio)
 static void NEXUS_Gpio_P_Finalizer(NEXUS_GpioHandle gpio)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_Gpio, gpio);
-    if (gpio->isrCallback) {
-        NEXUS_IsrCallback_Destroy(gpio->isrCallback);
-    }
-
     if(gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled) {
         /* disable the interrupt first */
         BKNI_EnterCriticalSection();
@@ -466,6 +480,9 @@ static void NEXUS_Gpio_P_Finalizer(NEXUS_GpioHandle gpio)
     BKNI_EnterCriticalSection();
     BLST_S_REMOVE(&g_NEXUS_gpio.list, gpio, NEXUS_Gpio, link);
     BKNI_LeaveCriticalSection();
+    if (gpio->isrCallback) {
+        NEXUS_IsrCallback_Destroy(gpio->isrCallback);
+    }
     NEXUS_OBJECT_DESTROY(NEXUS_Gpio, gpio);
     BKNI_Free(gpio);
 }
@@ -476,13 +493,6 @@ void NEXUS_Gpio_GetSettings(NEXUS_GpioHandle gpio, NEXUS_GpioSettings *pSettings
 {
     NEXUS_OBJECT_ASSERT(NEXUS_Gpio, gpio);
     *pSettings = gpio->settings;
-}
-
-static void NEXUS_Gpio_P_SetBit_isr(uint32_t addr, unsigned shift, bool set)
-{
-    uint32_t mask = 1 << shift;
-    uint32_t val = set ? mask: 0;
-    BREG_Update32(g_pCoreHandles->reg, addr, mask, val);
 }
 
 static unsigned NEXUS_Gpio_P_GetBit_isrsafe(uint32_t addr, unsigned shift)
@@ -609,26 +619,27 @@ NEXUS_Error NEXUS_Gpio_SetSettings(NEXUS_GpioHandle gpio, const NEXUS_GpioSettin
     }
 
     NEXUS_Gpio_P_SetBit_isr(gpio->addr.oden, gpio->shift, pSettings->mode == NEXUS_GpioMode_eOutputOpenDrain);
-
     NEXUS_Gpio_P_SetBit_isr(gpio->addr.iodir, gpio->shift, pSettings->mode == NEXUS_GpioMode_eInput);
 
+    /* os managed means we cannot write interrupt registers directly (mask, ec, ei, level) */
     if (!g_NEXUS_gpio.osSharedBankCaps.osManaged)
     {
-        if (enabled) {
-            /* Mask before resetting interrupt condition bits to avoid a re-trigger */
-            NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
-        }
-
         NEXUS_Gpio_P_SetBit_isr(gpio->addr.ec, gpio->shift, edge_conf);
         NEXUS_Gpio_P_SetBit_isr(gpio->addr.ei, gpio->shift, edge_insensitive);
         NEXUS_Gpio_P_SetBit_isr(gpio->addr.level, gpio->shift, edge_level);
-
-        if (enabled) {
-            NEXUS_Gpio_SetInterruptEnabled_isr(gpio, enabled);
-        }
     }
 
     gpio->settings = *pSettings;
+
+    if (gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled)
+    {
+        /*
+         * enable last because irq processing relies on stuff in settings struct
+         * having been copied already.  This enable is required for both os-managed
+         * and nexus-managed gpio interrupts.
+         */
+        NEXUS_Gpio_SetInterruptEnabled_isr(gpio, enabled);
+    }
 
     BKNI_LeaveCriticalSection();
 
@@ -669,7 +680,8 @@ NEXUS_Error NEXUS_Gpio_ClearInterrupt(NEXUS_GpioHandle gpio)
     }
     else
     {
-        BREG_Update32(g_pCoreHandles->reg, gpio->addr.stat, 1 << gpio->shift, 0xffffffff);
+        /* stat only gets changed if writing a 1, so masking all and writing zeroes to non-asserted ints is ok */
+        BREG_Update32(g_pCoreHandles->reg, gpio->addr.stat, 0xffffffff, 1 << gpio->shift);
     }
 
     if ( gpio->settings.interruptMode != NEXUS_GpioInterrupt_eDisabled )
@@ -696,9 +708,24 @@ static void NEXUS_Gpio_P_Dispatch_isr(NEXUS_GpioHandle gpio)
          gpio->settings.interruptMode == NEXUS_GpioInterrupt_eLow ||
          gpio->settings.interruptMode == NEXUS_GpioInterrupt_eHigh )
     {
-        /* Mask a level interrupt */
+        /* Mask a level interrupt (or an edge-based if maskEdge is true) */
         NEXUS_Gpio_SetInterruptEnabled_isr(gpio, false);
     }
+
+    /* clear int status, it is sticky */
+    if (g_NEXUS_gpio.osSharedBankCaps.osManaged)
+    {
+        if (g_NEXUS_gpio.settings.osSharedBankSettings.clearPinInterrupt_isr && gpio->osSharedBankGpio)
+        {
+            g_NEXUS_gpio.settings.osSharedBankSettings.clearPinInterrupt_isr(gpio->osSharedBankGpio);
+        }
+    }
+    else
+    {
+        /* stat only gets changed if writing a 1, so masking all and writing zeroes to non-asserted ints is ok */
+        BREG_Update32(g_pCoreHandles->reg,gpio->addr.stat, 0xFFFFFFFF, 1 << gpio->shift);
+    }
+
     if(gpio->isrCallback) {
         NEXUS_IsrCallback_Fire_isr(gpio->isrCallback);
     }

@@ -17,10 +17,9 @@ VG mask layer object handling implementation.
 vcos_static_assert(sizeof(VG_MASK_LAYER_BPRINT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_MASK_LAYER_BPRINT_T) <= VG_STEM_ALIGN);
 
-void vg_mask_layer_bprint_term(void *p, uint32_t size)
+void vg_mask_layer_bprint_term(MEM_HANDLE_T handle)
 {
-   UNUSED(p);
-   UNUSED(size);
+   UNUSED(handle);
 }
 
 void vg_mask_layer_bprint_from_stem(
@@ -40,19 +39,19 @@ void vg_mask_layer_bprint_from_stem(
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_MASK_LAYER_BPRINT_T");
-   mem_set_term(handle, vg_mask_layer_bprint_term);
+   mem_set_term(handle, vg_mask_layer_bprint_term, NULL);
 }
 
 vcos_static_assert(sizeof(VG_MASK_LAYER_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_MASK_LAYER_T) <= VG_STEM_ALIGN);
 
-void vg_mask_layer_term(void *p, uint32_t size)
+void vg_mask_layer_term(MEM_HANDLE_T handle)
 {
-   VG_MASK_LAYER_T *mask_layer = (VG_MASK_LAYER_T *)p;
-
-   UNUSED(size);
+   VG_MASK_LAYER_T *mask_layer = (VG_MASK_LAYER_T *)mem_lock(handle, NULL);
 
    mem_release(mask_layer->image);
+
+   mem_unlock(handle);
 }
 
 bool vg_mask_layer_from_bprint(MEM_HANDLE_T handle)
@@ -94,7 +93,7 @@ bool vg_mask_layer_from_bprint(MEM_HANDLE_T handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_MASK_LAYER_T");
-   mem_set_term(handle, vg_mask_layer_term);
+   mem_set_term(handle, vg_mask_layer_term, NULL);
 
    return true;
 }

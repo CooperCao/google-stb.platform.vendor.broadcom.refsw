@@ -566,8 +566,14 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglDestroyImageKHR(EGLDisplay dpy, EGLImageK
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 #endif /* EGL_KHR_platform_x11*/
@@ -578,6 +584,13 @@ DLLEXPORT EGLBoolean DLLEXPORTENTRY eglDestroyImageKHR(EGLDisplay dpy, EGLImageK
 #if EGL_KHR_wait_sync
 DLLEXPORT EGLint DLLEXPORTENTRY eglWaitSyncKHR(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags){ return sAPIClassTable.map_eglWaitSyncKHR(dpy, sync, flags); }
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+DLLEXPORT void DLLEXPORTENTRY glBlendBarrierKHR(void){ sAPIClassTable.map_glBlendBarrierKHR(); }
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 DLLEXPORT void DLLEXPORTENTRY glDebugMessageControlKHR(GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled){ sAPIClassTable.map_glDebugMessageControlKHR(source, type, severity, count, ids, enabled); }
@@ -626,6 +639,13 @@ DLLEXPORT void DLLEXPORTENTRY glBlendFuncSeparateiOES(GLuint buf, GLenum srcRGB,
 DLLEXPORT void DLLEXPORTENTRY glColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a){ sAPIClassTable.map_glColorMaskiOES(index, r, g, b, a); }
 DLLEXPORT GLboolean DLLEXPORTENTRY glIsEnablediOES(GLenum target, GLuint index){ return sAPIClassTable.map_glIsEnablediOES(target, index); }
 #endif /* GL_OES_draw_buffers_indexed*/
+
+#if GL_OES_draw_elements_base_vertex
+DLLEXPORT void DLLEXPORTENTRY glDrawElementsBaseVertexOES(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex){ sAPIClassTable.map_glDrawElementsBaseVertexOES(mode, count, type, indices, basevertex); }
+DLLEXPORT void DLLEXPORTENTRY glDrawRangeElementsBaseVertexOES(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex){ sAPIClassTable.map_glDrawRangeElementsBaseVertexOES(mode, start, end, count, type, indices, basevertex); }
+DLLEXPORT void DLLEXPORTENTRY glDrawElementsInstancedBaseVertexOES(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex){ sAPIClassTable.map_glDrawElementsInstancedBaseVertexOES(mode, count, type, indices, instancecount, basevertex); }
+DLLEXPORT void DLLEXPORTENTRY glMultiDrawElementsBaseVertexOES(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, const GLint *basevertex){ sAPIClassTable.map_glMultiDrawElementsBaseVertexOES(mode, count, type, indices, primcount, basevertex); }
+#endif /* GL_OES_draw_elements_base_vertex*/
 
 #if GL_OES_draw_texture
 DLLEXPORT void DLLEXPORTENTRY glDrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height){ sAPIClassTable.map_glDrawTexsOES(x, y, z, width, height); }
@@ -679,12 +699,20 @@ DLLEXPORT void DLLEXPORTENTRY glGetBufferPointervOES(GLenum target, GLenum pname
 DLLEXPORT void DLLEXPORTENTRY glPointSizePointerOES(GLenum type, GLsizei stride, const void *pointer){ sAPIClassTable.map_glPointSizePointerOES(type, stride, pointer); }
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+DLLEXPORT void DLLEXPORTENTRY glPrimitiveBoundingBoxOES(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW){ sAPIClassTable.map_glPrimitiveBoundingBoxOES(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW); }
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 DLLEXPORT GLbitfield DLLEXPORTENTRY glQueryMatrixxOES(GLfixed *mantissa, GLint *exponent){ return sAPIClassTable.map_glQueryMatrixxOES(mantissa, exponent); }
 #endif /* GL_OES_query_matrix*/
 
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+DLLEXPORT void DLLEXPORTENTRY glMinSampleShadingOES(GLfloat value){ sAPIClassTable.map_glMinSampleShadingOES(value); }
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -808,6 +836,9 @@ DLLEXPORT EGLSurface DLLEXPORTENTRY eglCreatePlatformWindowSurfaceEXT(EGLDisplay
 DLLEXPORT EGLSurface DLLEXPORTENTRY eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list){ return sAPIClassTable.map_eglCreatePlatformPixmapSurfaceEXT(dpy, config, native_pixmap, attrib_list); }
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
@@ -816,6 +847,12 @@ DLLEXPORT EGLSurface DLLEXPORTENTRY eglCreatePlatformPixmapSurfaceEXT(EGLDisplay
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+DLLEXPORT EGLBoolean DLLEXPORTENTRY eglBindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display){ return sAPIClassTable.map_eglBindWaylandDisplayWL(dpy, display); }
+DLLEXPORT EGLBoolean DLLEXPORTENTRY eglUnbindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display){ return sAPIClassTable.map_eglUnbindWaylandDisplayWL(dpy, display); }
+DLLEXPORT EGLBoolean DLLEXPORTENTRY eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint name, EGLint *value){ return sAPIClassTable.map_eglQueryWaylandBufferWL(dpy, buffer, name, value); }
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
@@ -831,9 +868,6 @@ DLLEXPORT void DLLEXPORTENTRY glProvokingVertexBRCM(GLenum mode){ sAPIClassTable
 #if GL_BRCM_texture_1D
 DLLEXPORT void DLLEXPORTENTRY glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels){ sAPIClassTable.map_glTexImage1DBRCM(target, level, internalformat, width, border, format, type, pixels); }
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

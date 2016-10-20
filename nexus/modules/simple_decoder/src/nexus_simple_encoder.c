@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -234,6 +234,9 @@ NEXUS_SimpleEncoderHandle NEXUS_SimpleEncoder_Create( NEXUS_SimpleEncoderServerH
     handle->settings.videoEncoder.streamStructure.framesB = 0; /* IP gop */
     handle->settings.videoEncoder.enableFieldPairing = true;
 #endif
+    handle->settings.streamMux.enable.video[0] = true;
+    handle->settings.streamMux.enable.audio[0] = true;
+    NEXUS_CallbackDesc_Init(&handle->settings.resourceChanged);
 
     NEXUS_AudioEncoder_GetDefaultCodecSettings(NEXUS_AudioCodec_eAac, &handle->settings.audioEncoder);
 
@@ -501,7 +504,7 @@ void NEXUS_SimpleEncoder_GetSettings( NEXUS_SimpleEncoderHandle handle, NEXUS_Si
 
 NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, const NEXUS_SimpleEncoderSettings *pSettings )
 {
-    int rc;
+    int rc = NEXUS_SUCCESS;
     BDBG_OBJECT_ASSERT(handle, NEXUS_SimpleEncoder);
     NEXUS_TaskCallback_Set(handle->resourceChangedCallback, &pSettings->resourceChanged);
 
@@ -551,7 +554,7 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
         if (handle->startSettings.input.display) {
             rc = nexus_simpleaudiodecoder_p_encoder_set_codec_settings (handle->serverSettings.displayEncode.masterAudio, &pSettings->audioEncoder);
         }
-        else {
+        else if (!handle->startSettings.output.audio.passthrough) {
             rc = nexus_simpleaudiodecoder_p_encoder_set_codec_settings (handle->startSettings.input.audio, &pSettings->audioEncoder);
         }
         if (rc) return BERR_TRACE(rc);
@@ -560,6 +563,17 @@ NEXUS_Error NEXUS_SimpleEncoder_SetSettings( NEXUS_SimpleEncoderHandle handle, c
     if (handle->serverSettings.videoEncoder) {
         rc = NEXUS_VideoEncoder_SetSettings(handle->serverSettings.videoEncoder, &pSettings->videoEncoder);
         if (rc) return BERR_TRACE(rc);
+    }
+    if (handle->serverSettings.streamMux) {
+        NEXUS_StreamMuxSettings settings;
+        NEXUS_StreamMux_GetSettings(handle->serverSettings.streamMux, &settings);
+        if (settings.enable.video[0] != pSettings->streamMux.enable.video[0] ||
+            settings.enable.audio[0] != pSettings->streamMux.enable.audio[0]) {
+            settings.enable.video[0] = pSettings->streamMux.enable.video[0];
+            settings.enable.audio[0] = pSettings->streamMux.enable.audio[0];
+            rc = NEXUS_StreamMux_SetSettings(handle->serverSettings.streamMux, &settings);
+            if (rc) return BERR_TRACE(rc);
+        }
     }
 #else
     BSTD_UNUSED(rc);
@@ -1094,7 +1108,8 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
     }
 
     if ( handle->startSettings.output.transport.type == NEXUS_TransportType_eTs ) {
-        nexus_simpleencoder_p_start_psi(handle);
+        rc = nexus_simpleencoder_p_start_psi(handle);
+        if (rc) {rc = BERR_TRACE(rc); goto err_start_psi;}
 
         rc = nexus_simpleencoder_p_start_stream_mux(handle);
         if (rc) {rc = BERR_TRACE(rc); goto err_stream_mux;}
@@ -1104,6 +1119,7 @@ static NEXUS_Error nexus_simpleencoder_p_start( NEXUS_SimpleEncoderHandle handle
     return 0;
 
 err_stream_mux:
+err_start_psi:
 err_mixer_start:
 err_startvideoenc:
 err_encodersettings:
@@ -1257,10 +1273,10 @@ static NEXUS_Error nexus_simpleencoder_p_start_psi( NEXUS_SimpleEncoderHandle ha
         switch(handle->startSettings.output.audio.codec) {
         case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
         case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-        case NEXUS_AudioCodec_eAac:          audStreamType = 0xf; break; /* ADTS */
-        case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-        /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+        case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
+        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
+        case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
+        case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
         case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
         case NEXUS_AudioCodec_eLpcm1394:     audStreamType = 0x83; break;
         default:

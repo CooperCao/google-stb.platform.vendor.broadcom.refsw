@@ -10,6 +10,9 @@ highp ivec2 imageSize(readonly writeonly uimageCube image) { return $$imageSize(
 highp ivec3 imageSize(readonly writeonly  image2DArray image) { return $$imageSize(image); }
 highp ivec3 imageSize(readonly writeonly iimage2DArray image) { return $$imageSize(image); }
 highp ivec3 imageSize(readonly writeonly uimage2DArray image) { return $$imageSize(image); }
+highp int imageSize(readonly writeonly  imageBuffer  image) { return $$imageSize(image); }
+highp int imageSize(readonly writeonly iimageBuffer  image) { return $$imageSize(image); }
+highp int imageSize(readonly writeonly uimageBuffer  image) { return $$imageSize(image); }
 highp ivec3 imageSize(readonly writeonly  imageCubeArray image) { return $$imageSize(image); }
 highp ivec3 imageSize(readonly writeonly iimageCubeArray image) { return $$imageSize(image); }
 highp ivec3 imageSize(readonly writeonly uimageCubeArray image) { return $$imageSize(image); }
@@ -29,6 +32,9 @@ highp uvec4 imageLoad(readonly uimageCubeArray image, ivec3 coord) { return $$te
 highp  vec4 imageLoad(readonly  image2DArray image, ivec3 coord) { return $$texture(2, image, coord, 0); }
 highp ivec4 imageLoad(readonly iimage2DArray image, ivec3 coord) { return $$texture(2, image, coord, 0); }
 highp uvec4 imageLoad(readonly uimage2DArray image, ivec3 coord) { return $$texture(2, image, coord, 0); }
+highp  vec4 imageLoad(readonly  imageBuffer image, int coord) { return $$texture(2, image, coord, 0); }
+highp ivec4 imageLoad(readonly iimageBuffer image, int coord) { return $$texture(2, image, coord, 0); }
+highp uvec4 imageLoad(readonly uimageBuffer image, int coord) { return $$texture(2, image, coord, 0); }
 
 highp void imageStore(writeonly  image2D image, ivec2 coord,  vec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly iimage2D image, ivec2 coord, ivec4 data) { $$imageStore(image, coord, data); }
@@ -42,6 +48,9 @@ highp void imageStore(writeonly uimageCube    image, ivec3 coord, uvec4 data) { 
 highp void imageStore(writeonly  image2DArray image, ivec3 coord,  vec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly iimage2DArray image, ivec3 coord, ivec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly uimage2DArray image, ivec3 coord, uvec4 data) { $$imageStore(image, coord, data); }
+highp void imageStore(writeonly  imageBuffer  image, int   coord,  vec4 data) { $$imageStore(image, coord, data); }
+highp void imageStore(writeonly iimageBuffer  image, int   coord, ivec4 data) { $$imageStore(image, coord, data); }
+highp void imageStore(writeonly uimageBuffer  image, int   coord, uvec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly  imageCubeArray image, ivec3 coord,  vec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly iimageCubeArray image, ivec3 coord, ivec4 data) { $$imageStore(image, coord, data); }
 highp void imageStore(writeonly uimageCubeArray image, ivec3 coord, uvec4 data) { $$imageStore(image, coord, data); }

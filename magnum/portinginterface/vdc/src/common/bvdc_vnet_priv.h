@@ -92,42 +92,46 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
      ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
 
 /* Check if this mode uses the mcvp. */
-#define BVDC_P_VNET_USED_MCVP(stVnetMode) \
-    ((stVnetMode).stBits.bUseMcvp)
+#define BVDC_P_VNET_USED_MVP(stVnetMode) \
+    ((stVnetMode).stBits.bUseMvp)
 
 /* Check if this mode uses the mcvp at reader. */
-#define BVDC_P_VNET_USED_MCVP_AT_READER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMcvp) && \
+#define BVDC_P_VNET_USED_MVP_AT_READER(stVnetMode) \
+    (((stVnetMode).stBits.bUseMvp) && \
      !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
 
 /* Check if this mode uses the mcvp at writer. */
-#define BVDC_P_VNET_USED_MCVP_AT_WRITER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMcvp) && \
+#define BVDC_P_VNET_USED_MVP_AT_WRITER(stVnetMode) \
+    (((stVnetMode).stBits.bUseMvp) && \
      ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
+
+
 /* Check if this mode bypass the mcvp. */
-#define BVDC_P_VNET_BYPASS_MCVP(stVnetMode) \
-    ((stVnetMode).stBits.bUseMvpBypass)
-/* Check if this mode uses the mcvp Bypass mode at reader. */
-#define BVDC_P_VNET_BYPASS_MCVP_AT_READER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMvpBypass) && \
-     !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
-/* Check if this mode uses the mcvp at writer. */
-#define BVDC_P_VNET_BYPASS_MCVP_AT_WRITER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMvpBypass) && \
-     ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
-/* Check if this mode uses the mad32. */
-#define BVDC_P_VNET_USED_MAD(stVnetMode) \
-    ((stVnetMode).stBits.bUseMad)
+#define BVDC_P_MVP_BYPASS_MVP(stMvpMode) \
+    ((stMvpMode).stBits.bUseMvpBypass)
+
+/* Check if this mode uses the HSCL (tied to MAD usage). */
+#define BVDC_P_MVP_USED_HSCL(stMvpMode) \
+    ((stMvpMode).stBits.bUseHscl)
+
+/* Check if this mode uses the ANR. */
+#define BVDC_P_MVP_USED_ANR(stMvpMode) \
+    ((stMvpMode).stBits.bUseAnr)
+
+/* Check if this mode uses the mcdi/madr. */
+#define BVDC_P_MVP_USED_MAD(stMvpMode) \
+    ((stMvpMode).stBits.bUseMad)
 
 /* Check if this mode uses the mad32 at reader. */
-#define BVDC_P_VNET_USED_MAD_AT_READER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMad) && \
+#define BVDC_P_MVP_USED_MAD_AT_READER(stVnetMode, stMvpMode) \
+    (((stMvpMode).stBits.bUseMad) && \
      !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
 
 /* Check if this mode uses the mad32 at writer. */
-#define BVDC_P_VNET_USED_MAD_AT_WRITER(stVnetMode) \
-    (((stVnetMode).stBits.bUseMad) && \
+#define BVDC_P_MVP_USED_MAD_AT_WRITER(stVnetMode, stMvpMode) \
+    (((stMvpMode).stBits.bUseMad) && \
      ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
+
 
 /* Check if this mode uses the XSRC (tied to 10-bit 4K usage). */
 #define BVDC_P_VNET_USED_XSRC(stVnetMode) \
@@ -141,6 +145,20 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 /* Check if this mode uses the XSRC at writer. */
 #define BVDC_P_VNET_USED_XSRC_AT_WRITER(stVnetMode) \
     (((stVnetMode).stBits.bUseXsrc) && \
+     ((stVnetMode).stBits.bUseCap))
+
+/* Check if this mode uses the XSRC (tied to 10-bit 4K usage). */
+#define BVDC_P_VNET_USED_VFC(stVnetMode) \
+    ((stVnetMode).stBits.bUseVfc)
+
+/* Check if this mode uses the XSRC at reader. */
+#define BVDC_P_VNET_USED_VFC_AT_READER(stVnetMode) \
+    (((stVnetMode).stBits.bUseVfc) && \
+     !((stVnetMode).stBits.bUseCap))
+
+/* Check if this mode uses the XSRC at writer. */
+#define BVDC_P_VNET_USED_VFC_AT_WRITER(stVnetMode) \
+    (((stVnetMode).stBits.bUseVfc) && \
      ((stVnetMode).stBits.bUseCap))
 
 /* Check if this mode uses the TNTD. */
@@ -157,20 +175,6 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
     (((stVnetMode).stBits.bUseTntd) && ((stVnetMode).stBits.bUseScl) && \
      ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
 
-/* Check if this mode uses the HSCL (tied to MAD usage). */
-#define BVDC_P_VNET_USED_HSCL(stVnetMode) \
-    ((stVnetMode).stBits.bUseHscl)
-
-/* Check if this mode uses the HSCL at reader. */
-#define BVDC_P_VNET_USED_HSCL_AT_READER(stVnetMode) \
-    (((stVnetMode).stBits.bUseHscl) && \
-     !(((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap)))
-
-/* Check if this mode uses the HSCL at writer. */
-#define BVDC_P_VNET_USED_HSCL_AT_WRITER(stVnetMode) \
-    (((stVnetMode).stBits.bUseHscl) && \
-     ((stVnetMode).stBits.bUseCap) && ((stVnetMode).stBits.bSclBeforeCap))
-
 /* Check if this mode uses the DNR. */
 #define BVDC_P_VNET_USED_DNR(stVnetMode) \
     ((stVnetMode).stBits.bUseDnr)
@@ -184,36 +188,6 @@ BDBG_OBJECT_ID_DECLARE(BVDC_RES);
 #define BVDC_P_VNET_USED_DNR_AT_WRITER(stVnetMode) \
     (((stVnetMode).stBits.bUseDnr) && \
      ((stVnetMode).stBits.bUseCap))
-
-/* Check if this mode uses the ANR. */
-#define BVDC_P_VNET_USED_ANR(stVnetMode) \
-    ((stVnetMode).stBits.bUseAnr)
-
-/* Check if this mode uses the ANR at reader. */
-#define BVDC_P_VNET_USED_ANR_AT_READER(stVnetMode) \
-    (((stVnetMode).stBits.bUseAnr) && \
-    !(((stVnetMode).stBits.bUseCap) && \
-      ((stVnetMode).stBits.bSclBeforeCap)))
-
-/* Check if this mode uses the ANR at writer. */
-#define BVDC_P_VNET_USED_ANR_AT_WRITER(stVnetMode) \
-    (((stVnetMode).stBits.bUseAnr) && \
-     ((stVnetMode).stBits.bUseCap) && \
-     ((stVnetMode).stBits.bSclBeforeCap))
-
-/* Check if this mode uses the ANR. */
-#define BVDC_P_VNET_USED_HIST(stVnetMode) \
-    ((stVnetMode).stBits.bUseHist)
-
-/* HIST is at writer */
-/* Check if this mode uses the HIST at reader */
-#define BVDC_P_VNET_USED_HIST_AT_READER(stVnetMode)  \
-    ((stVnetMode).stBits.bUseHist && !(stVnetMode).stBits.bUseHistAtSrc)
-
-/* HIST is at writer */
-/* Check if this mode uses the HIST at writer */
-#define BVDC_P_VNET_USED_HIST_AT_WRITER(stVnetMode) \
-    ((stVnetMode).stBits.bUseHist && (stVnetMode).stBits.bUseHistAtSrc)
 
 /* Check if this mode uses the vnet crc. */
 #define BVDC_P_VNET_USED_VNETCRC_AT_READER(stVnetMode) \

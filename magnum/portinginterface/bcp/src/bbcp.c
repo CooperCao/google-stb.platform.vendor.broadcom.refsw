@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bbcp.h"
 #include "bchp_bicap.h"
@@ -211,7 +228,7 @@ BERR_Code BBCP_Open(
     {
         *pBcp = NULL;
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BBCP_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BBCP_Open: BKNI_malloc() failed"));
         goto done;
     }
 
@@ -468,7 +485,7 @@ BERR_Code BBCP_OpenChannel(
             {
                 *phChn = NULL;
                 retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-                BDBG_ERR(("BBCP_OpenChannel: BKNI_malloc() failed\n"));
+                BDBG_ERR(("BBCP_OpenChannel: BKNI_malloc() failed"));
                 goto done;
             }
 
@@ -571,7 +588,7 @@ bool BBCP_IntMode(
     return ( hDev->intMode ? true : false );
 }
 
-BERR_Code BBCP_GetEdge( 
+BERR_Code BBCP_GetEdge(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     BBCP_Edge_Settings  *pEdge          /* [out] edge information */
     )
@@ -598,7 +615,7 @@ BERR_Code BBCP_GetEdge(
     return( retCode );
 }
 
-BERR_Code BBCP_SetEdge( 
+BERR_Code BBCP_SetEdge(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     BBCP_Edge_Settings  *pEdge          /* [out] edge information */
     )
@@ -633,7 +650,7 @@ BERR_Code BBCP_SetEdge(
     return( retCode );
 }
 
-BERR_Code BBCP_SetToutClkDiv( 
+BERR_Code BBCP_SetToutClkDiv(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     uint32_t            val             /* [in] value */
     )
@@ -658,7 +675,7 @@ BERR_Code BBCP_SetToutClkDiv(
     return( retCode );
 }
 
-BERR_Code BBCP_SetSysClkDiv( 
+BERR_Code BBCP_SetSysClkDiv(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     uint32_t            val             /* [in] value */
     )
@@ -683,7 +700,7 @@ BERR_Code BBCP_SetSysClkDiv(
     return( retCode );
 }
 
-BERR_Code BBCP_GetCntMode( 
+BERR_Code BBCP_GetCntMode(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     uint32_t            *mode           /* [out] mode */
     )
@@ -704,7 +721,7 @@ BERR_Code BBCP_GetCntMode(
     return( retCode );
 }
 
-BERR_Code BBCP_SetCntMode( 
+BERR_Code BBCP_SetCntMode(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     uint32_t            mode            /* [in] mode */
     )
@@ -776,7 +793,7 @@ BERR_Code BBCP_DisableEdge(
     return( retCode );
 }
 
-BERR_Code BBCP_GetRisingEdge( 
+BERR_Code BBCP_GetRisingEdge(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool    *edge                       /* [out] edge value */
     )
@@ -797,7 +814,7 @@ BERR_Code BBCP_GetRisingEdge(
     return( retCode );
 }
 
-BERR_Code BBCP_GetFallingEdge( 
+BERR_Code BBCP_GetFallingEdge(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool    *edge                       /* [out] edge value */
     )
@@ -818,7 +835,7 @@ BERR_Code BBCP_GetFallingEdge(
     return( retCode );
 }
 
-BERR_Code BBCP_GetInvertInput( 
+BERR_Code BBCP_GetInvertInput(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool                *invert         /* [out] invert value */
     )
@@ -839,7 +856,7 @@ BERR_Code BBCP_GetInvertInput(
     return( retCode );
 }
 
-BERR_Code BBCP_SetInvertInput( 
+BERR_Code BBCP_SetInvertInput(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool                invert          /* [in] invert value */
     )
@@ -864,7 +881,7 @@ BERR_Code BBCP_SetInvertInput(
     return( retCode );
 }
 
-BERR_Code BBCP_GetBicapEnable( 
+BERR_Code BBCP_GetBicapEnable(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool                *enable         /* [in] enable */
     )
@@ -885,7 +902,7 @@ BERR_Code BBCP_GetBicapEnable(
     return( retCode );
 }
 
-BERR_Code BBCP_SetBicapEnable( 
+BERR_Code BBCP_SetBicapEnable(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     bool    enable                      /* [in] enable */
     )
@@ -910,7 +927,7 @@ BERR_Code BBCP_SetBicapEnable(
     return( retCode );
 }
 
-void BBCP_GetFilter( 
+void BBCP_GetFilter(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     BBCP_Filter_Settings    *filter     /* [in] filter settings */
     )
@@ -937,7 +954,7 @@ void BBCP_GetFilter(
     return;
 }
 
-BERR_Code BBCP_SetFilter( 
+BERR_Code BBCP_SetFilter(
     BBCP_ChannelHandle  hChn,           /* [in] Device channel handle */
     BBCP_Filter_Settings    *filter     /* [in] filter settings */
     )
@@ -976,7 +993,7 @@ BERR_Code BBCP_SetFilter(
     return( retCode );
 }
 
-BERR_Code BBCP_GetTimeout( 
+BERR_Code BBCP_GetTimeout(
     BBCP_Handle     hDev,               /* [in] Device handle */
     uint32_t which,
     BBCP_Timeout_Settings   *timeout    /* {out} timeout settings */
@@ -998,7 +1015,7 @@ BERR_Code BBCP_GetTimeout(
     return( retCode );
 }
 
-BERR_Code BBCP_SetTimeout( 
+BERR_Code BBCP_SetTimeout(
     BBCP_Handle     hDev,               /* [in] Device handle */
     uint32_t which,
     BBCP_Timeout_Settings   *timeout    /* {in} timeout settings */
@@ -1025,7 +1042,7 @@ BERR_Code BBCP_SetTimeout(
     return( retCode );
 }
 
-BERR_Code BBCP_GetFifoInactTimeout( 
+BERR_Code BBCP_GetFifoInactTimeout(
     BBCP_Handle         hDev,           /* [in] Device handle */
     BBCP_FifoInactTimeout_Settings *inact
     )
@@ -1045,7 +1062,7 @@ BERR_Code BBCP_GetFifoInactTimeout(
     return( retCode );
 }
 
-BERR_Code BBCP_SetFifoInactTimeout( 
+BERR_Code BBCP_SetFifoInactTimeout(
     BBCP_Handle         hDev,           /* [in] Device handle */
     BBCP_FifoInactTimeout_Settings *inact
     )
@@ -1072,7 +1089,7 @@ BERR_Code BBCP_SetFifoInactTimeout(
     return( retCode );
 }
 
-BERR_Code BBCP_GetFifoData( 
+BERR_Code BBCP_GetFifoData(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint32_t            *count,         /* [out] number of elements */
     uint32_t            *data           /* [out] pointer to data */
@@ -1101,7 +1118,7 @@ BERR_Code BBCP_GetFifoData(
     return( retCode );
 }
 
-BERR_Code BBCP_GetOneFifoData( 
+BERR_Code BBCP_GetOneFifoData(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint32_t            *count,         /* [out] number of elements */
     uint32_t            *data           /* [out] pointer to data */
@@ -1128,7 +1145,7 @@ BERR_Code BBCP_GetOneFifoData(
     return( retCode );
 }
 
-BERR_Code BBCP_GetFifo( 
+BERR_Code BBCP_GetFifo(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint32_t            *fifo_depth,    /* [out] size of the fifo */
     uint32_t            *trig_lvl       /* [out] current value of the trigger level */
@@ -1138,14 +1155,14 @@ BERR_Code BBCP_GetFifo(
     uint32_t lval;
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-    
+
     lval = BREG_Read32(hDev->hRegister, BCHP_BICAP_FIFO_CONTROL);
     *fifo_depth = (lval & BCHP_BICAP_FIFO_CONTROL_fifo_depth_MASK) >> BCHP_BICAP_FIFO_CONTROL_fifo_depth_SHIFT;
     *trig_lvl = (lval & BCHP_BICAP_FIFO_CONTROL_trig_lvl_MASK) >> BCHP_BICAP_FIFO_CONTROL_trig_lvl_SHIFT;
     return( retCode );
 }
 
-BERR_Code BBCP_SetFifo( 
+BERR_Code BBCP_SetFifo(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint32_t            trig_lvl,       /* [in] when fifo reaches this level, event is generated */
     uint32_t            reset           /* [in] reset the fifo */
@@ -1155,7 +1172,7 @@ BERR_Code BBCP_SetFifo(
     uint32_t lval;
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
-    
+
     lval = BREG_Read32(hDev->hRegister, BCHP_BICAP_FIFO_CONTROL);
     lval &= ~(BCHP_BICAP_FIFO_CONTROL_trig_lvl_MASK | BCHP_BICAP_FIFO_CONTROL_reset_MASK);
     lval |= ((trig_lvl << BCHP_BICAP_FIFO_CONTROL_trig_lvl_SHIFT) & BCHP_BICAP_FIFO_CONTROL_trig_lvl_MASK);
@@ -1164,7 +1181,7 @@ BERR_Code BBCP_SetFifo(
     return( retCode );
 }
 
-BERR_Code BBCP_SetFifoTrigLevel( 
+BERR_Code BBCP_SetFifoTrigLevel(
     BBCP_Handle         hDev,           /* [in] Device handle */
     uint16_t            level           /* [in] trigger level */
     )
@@ -1182,7 +1199,7 @@ BERR_Code BBCP_SetFifoTrigLevel(
     return ( retCode );
 }
 
-BERR_Code BBCP_ResetFifo( 
+BERR_Code BBCP_ResetFifo(
     BBCP_ChannelHandle  hChn            /* [in] Device channel handle */
     )
 {
@@ -1202,7 +1219,7 @@ BERR_Code BBCP_ResetFifo(
 }
 
 #if 0
-uint16_t BBCP_GetFifoCount( 
+uint16_t BBCP_GetFifoCount(
     BBCP_Handle hDev            /* [in] Device handle */
     )
 {

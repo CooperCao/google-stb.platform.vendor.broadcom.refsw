@@ -146,13 +146,6 @@ BERR_Code BVDC_Display_Create
          */
         BDBG_ASSERT(pDefSettings->eMasterTg < BVDC_DisplayTg_eUnknown);
 
-#if !BVDC_P_SUPPORT_VEC_MUXING
-        if(!hDisplay->bIsBypass &&
-           ((BVDC_DisplayTg)eId != pDefSettings->eMasterTg))
-        {
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-#endif
         hDisplay->eMasterTg = pDefSettings->eMasterTg;
 
         /* Select specific flavor of 480P, output and sync modification */
@@ -475,13 +468,13 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
     }
 
     bDirty = (
-         (hDisplay->stCurInfo.ulHdmi != ulHdmi) ||
-         (hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput && hDisplay->stCurInfo.bEnableHdmi==false) ||
+         (hDisplay->stCurInfo.stHdmiSettings.stSettings.ulPortId != ulHdmi) ||
+         (hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs != eHdmiOutput && hDisplay->stCurInfo.bEnableHdmi==false) ||
          (BFMT_IS_4kx2k(hDisplay->stNewInfo.pFmtInfo->eVideoFmt) !=
           BFMT_IS_4kx2k(hDisplay->stCurInfo.pFmtInfo->eVideoFmt)) ||
          (hDisplay->stNewInfo.bErrorLastSetting));
-    hDisplay->stNewInfo.eHdmiOutput = eHdmiOutput;
-    hDisplay->stNewInfo.ulHdmi      = ulHdmi;
+    hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs = eHdmiOutput;
+    hDisplay->stNewInfo.stHdmiSettings.stSettings.ulPortId      = ulHdmi;
 
     /* Trying to turn off (and release) Digital Timing Generator (DviDtg). Except
      * the following cases where we still want the DviDtg to stay on to provide
@@ -493,7 +486,7 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
        (!BFMT_IS_4kx2k(hDisplay->stNewInfo.pFmtInfo->eVideoFmt)))
     {
         hDisplay->stNewInfo.bEnableHdmi = false;
-        if (hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput)
+        if (hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs != eHdmiOutput)
         {
             hDisplay->stNewInfo.stDirty.stBits.bHdmiEnable = BVDC_P_DIRTY;
             if (hDisplay->stCurInfo.aulEnableMpaaDeci[BVDC_MpaaDeciIf_eHdmi])
@@ -512,7 +505,6 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
             hDisplay->stNewInfo.stDirty.stBits.bHdmiEnable = BVDC_P_DIRTY;
             hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc    = BVDC_P_DIRTY;
 
-#if (!BVDC_P_SUPPORT_SEAMLESS_ATTACH)
             hDisplay->stNewInfo.stDirty.stBits.bTiming = BVDC_P_DIRTY;
             hDisplay->stNewInfo.stDirty.stBits.bTimeBase = BVDC_P_DIRTY;
             hDisplay->stNewInfo.stDirty.stBits.bDacSetting = BVDC_P_DIRTY;
@@ -522,11 +514,8 @@ static BERR_Code BVDC_P_Display_SetHdmiConfiguration
             {
                 hDisplay->stNewInfo.stDirty.stBits.bMpaaComp = BVDC_P_DIRTY;
             }
-#else
-            hDisplay->stNewInfo.stDirty.stBits.bMpaaHdmi = BVDC_P_DIRTY;
-#endif
         }
-        else if(hDisplay->stCurInfo.eHdmiOutput != eHdmiOutput)
+        else if(hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs != eHdmiOutput)
         {
             hDisplay->stNewInfo.stDirty.stBits.bHdmiCsc    = BVDC_P_DIRTY;
         }
@@ -570,6 +559,31 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
     {
         BDBG_ERR(("Format not supported: %s", pFmtInfo->pchFormatStr));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
+
+    if (!BFMT_IS_VESA_MODE(pFmtInfo->eVideoFmt) &&
+        !VIDEO_FORMAT_IS_SD(pFmtInfo->eVideoFmt) &&
+        !hDisplay->stCurInfo.bEnableStg)
+    {
+        const BBOX_Vdc_Capabilities *pBoxVdc;
+        const BFMT_VideoInfo *pBoxMaxVideoFmtInfo;
+
+        pBoxVdc = &hDisplay->hVdc->stBoxConfig.stVdc;
+
+        if (pBoxVdc->astDisplay[hDisplay->eId].eMaxVideoFmt != BBOX_VDC_DISREGARD)
+        {
+            BKNI_EnterCriticalSection();
+            pBoxMaxVideoFmtInfo = BFMT_GetVideoFormatInfoPtr_isr(pBoxVdc->astDisplay[hDisplay->eId].eMaxVideoFmt);
+            BKNI_LeaveCriticalSection();
+
+            if (pFmtInfo->ulVertFreq > pBoxMaxVideoFmtInfo->ulVertFreq)
+            {
+                BDBG_ERR(("New video format %s rate [%d Hz] doesn't comply with the box mode's max video format %s rate [%d Hz].",
+                          pFmtInfo->pchFormatStr, pFmtInfo->ulVertFreq/BFMT_FREQ_FACTOR,
+                          pBoxMaxVideoFmtInfo->pchFormatStr, pBoxMaxVideoFmtInfo->ulVertFreq/BFMT_FREQ_FACTOR));
+                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            }
+        }
     }
 
 #if BVDC_P_SUPPORT_VIP
@@ -623,39 +637,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
         hDisplay->stNewInfo.stDirty.stBits.bAspRatio = BVDC_P_DIRTY;
     }
 
-#if BVDC_P_SUPPORT_OSCL
-    /* Certain chipsets rely on OSCL (output sclaer) within compositor to
-     * to achieve 1080p output. When in this mode, VEC is running at 1080p, but
-     * the whole BVN is configured as if the output format is 1080i.
-     * We use OSCL to convert the interlaced picture to frame then render it
-     * to VEC.
-     */
-    if ((BFMT_VideoFmt_e1080p == pFmtInfo->eVideoFmt) ||
-        (BFMT_VideoFmt_e1080p_50Hz== pFmtInfo->eVideoFmt))
-    {
-        hDisplay->hCompositor->stNewInfo.pFmtInfo =
-            BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt_e1080p == pFmtInfo->eVideoFmt) ?
-                BFMT_VideoFmt_e1080i : BFMT_VideoFmt_e1080i_50Hz);
-        hDisplay->hCompositor->stNewInfo.bEnableOScl = true;
-        if((bFmtChange) || (hDisplay->stNewInfo.bErrorLastSetting))
-        {
-            hDisplay->hCompositor->stNewInfo.stDirty.stBits.bOScl = BVDC_P_DIRTY;
-        }
-        hDisplay->stNewInfo.ulTriggerModuloCnt = 2;
-    }
-    else
-    {
-        hDisplay->hCompositor->stNewInfo.pFmtInfo = hDisplay->stNewInfo.pFmtInfo;
-        hDisplay->hCompositor->stNewInfo.bEnableOScl = false;
-        if((bFmtChange) || (hDisplay->stNewInfo.bErrorLastSetting))
-        {
-            hDisplay->hCompositor->stNewInfo.stDirty.stBits.bOScl = BVDC_P_DIRTY;
-        }
-        hDisplay->stNewInfo.ulTriggerModuloCnt = 1;
-    }
-#else
     hDisplay->hCompositor->stNewInfo.pFmtInfo = hDisplay->stNewInfo.pFmtInfo;
-#endif
     hDisplay->stNewInfo.ulVertFreq = pFmtInfo->ulVertFreq;
     hDisplay->stNewInfo.eAspectRatio = pFmtInfo->eAspectRatio;
     if (BVDC_P_DISPLAY_USED_DIGTRIG(hDisplay->eMasterTg))
@@ -663,7 +645,7 @@ BERR_Code BVDC_Display_SetCustomVideoFormat
     else
         hDisplay->stNewInfo.ulHeight = pFmtInfo->ulHeight >> pFmtInfo->bInterlaced;
 
-    BVDC_P_Display_SetHdmiConfiguration(hDisplay, hDisplay->stNewInfo.ulHdmi, hDisplay->stNewInfo.eHdmiOutput);
+    BVDC_P_Display_SetHdmiConfiguration(hDisplay, hDisplay->stNewInfo.stHdmiSettings.stSettings.ulPortId, hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs);
 
     if((bFmtChange) || (hDisplay->stNewInfo.bErrorLastSetting))
     {
@@ -949,7 +931,7 @@ BERR_Code BVDC_Display_GetHdmiConfiguration
 
     if(peHdmiOutput)
     {
-        *peHdmiOutput = hDisplay->stCurInfo.eHdmiOutput;
+        *peHdmiOutput = hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs;
     }
 
     BDBG_LEAVE(BVDC_Display_GetHdmiConfiguration);
@@ -1309,6 +1291,8 @@ BERR_Code BVDC_Display_SetHdmiSettings
     BDBG_ENTER(BVDC_Display_SetHdmiSettings);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
 
+    eStatus = BVDC_P_Display_SetHdmiConfiguration(hDisplay, pHdmiSettings->ulPortId, pHdmiSettings->eMatrixCoeffs);
+
     eStatus = BVDC_P_Display_GetHdmiSettings(hDisplay, &stHdmiSettings);
     stHdmiSettings.stSettings = *pHdmiSettings;
     eStatus = BVDC_P_Display_SetHdmiSettings(hDisplay, &stHdmiSettings);
@@ -1507,7 +1491,6 @@ BERR_Code BVDC_Display_Set656Configuration
     {
         hDisplay->stNewInfo.stDirty.stBits.b656Enable = BVDC_P_DIRTY;
 
-#if (!BVDC_P_SUPPORT_SEAMLESS_ATTACH)
         if (hDisplay->stNewInfo.bEnable656)
         {
             /* Reset and reprogram master path as well */
@@ -1526,7 +1509,6 @@ BERR_Code BVDC_Display_Set656Configuration
                 hDisplay->stNewInfo.stDirty.stBits.bMpaaHdmi = BVDC_P_DIRTY;
             }
         }
-#endif
     }
 
     BDBG_LEAVE(BVDC_Display_Set656Configuration);
@@ -2673,7 +2655,6 @@ BERR_Code BVDC_Display_SetOrientation
         hDisplay->stNewInfo.stDirty.stBits.b3DSetting = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bAspRatio = BVDC_P_DIRTY;
 
-#if BVDC_P_SUPPORT_3D_VIDEO
         /* CMP_0_CMP_CTRL.BVB_VIDEO is shared by main, pip and graphics
          * window on the CMP. Graphics has no delay, main and pip video
          * window have different delay. So we treat display orientation
@@ -2682,7 +2663,6 @@ BERR_Code BVDC_Display_SetOrientation
          */
         hDisplay->stNewInfo.stDirty.stBits.bTiming = BVDC_P_DIRTY;
         hDisplay->stNewInfo.stDirty.stBits.bAcp    = BVDC_P_DIRTY;
-#endif
 
     }
 
@@ -2721,13 +2701,6 @@ BERR_Code BVDC_Display_Set3dSourceBufferSelect
 {
     BDBG_ENTER(BVDC_Display_Set3dSourceBufferSelect);
     BDBG_OBJECT_ASSERT(hDisplay, BVDC_DSP);
-
-#if (!BVDC_P_MFD_SUPPORT_3D_VIDEO)
-    if(e3dSrcBufSel != BVDC_3dSourceBufferSelect_eNormal)
-    {
-        BDBG_ERR(("3D video is not supported!"));
-    }
-#endif
 
     hDisplay->stNewInfo.e3dSrcBufSel = e3dSrcBufSel;
     if((hDisplay->stCurInfo.e3dSrcBufSel != e3dSrcBufSel) ||

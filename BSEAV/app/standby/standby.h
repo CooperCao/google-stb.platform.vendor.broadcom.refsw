@@ -175,6 +175,7 @@ typedef struct B_StandbyNexusHandles {
 
     NEXUS_InputBand wakeupInputBand;
 
+    NEXUS_GpioHandle gpioHandle;
     NEXUS_IrInputHandle irHandle;
 #if NEXUS_HAS_UHF_INPUT
     NEXUS_UhfInputHandle uhfHandle;
@@ -257,6 +258,7 @@ typedef struct B_DeviceState {
 #endif
     struct opts_t opts[MAX_CONTEXTS];
     unsigned num_contexts;
+    unsigned gpio_pin;
 } B_DeviceState;
 
 

@@ -152,23 +152,28 @@ typedef enum gfx_lfmt_dims
 
 typedef enum gfx_lfmt_swizzling
 {
-   GFX_LFMT_SWIZZLING_NONE            = 0 << GFX_LFMT_SWIZZLING_SHIFT,
+   GFX_LFMT_SWIZZLING_NONE                 = 0 << GFX_LFMT_SWIZZLING_SHIFT,
 
    /* Valid for 1D, 2D, and 3D */
-   GFX_LFMT_SWIZZLING_RSO             = 1 << GFX_LFMT_SWIZZLING_SHIFT, /* Raster scan order */
+   GFX_LFMT_SWIZZLING_RSO                  = 1 << GFX_LFMT_SWIZZLING_SHIFT, /* Raster scan order */
 
    /* Valid for 2D & 3D. For 3D, slices are essentially independent 2D buffers, separated by slice_pitch */
-   GFX_LFMT_SWIZZLING_LT              = 2 << GFX_LFMT_SWIZZLING_SHIFT, /* Lineartile */
-   GFX_LFMT_SWIZZLING_UIF             = 3 << GFX_LFMT_SWIZZLING_SHIFT, /* Unified image format, no XORing */
-   GFX_LFMT_SWIZZLING_UIF_XOR         = 4 << GFX_LFMT_SWIZZLING_SHIFT, /* XOR in odd columns */
-   GFX_LFMT_SWIZZLING_UIF_NOUTILE     = 5 << GFX_LFMT_SWIZZLING_SHIFT, /* Linear arrangement of pixels within UIF-block. See UIF spec "3.2: 4:2:0 and 4:2:2 YCbCr" */
-   GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR = 6 << GFX_LFMT_SWIZZLING_SHIFT,
-   GFX_LFMT_SWIZZLING_UBLINEAR        = 7 << GFX_LFMT_SWIZZLING_SHIFT, /* UIF-blocks in raster order */
+   GFX_LFMT_SWIZZLING_LT                   = 2 << GFX_LFMT_SWIZZLING_SHIFT, /* Lineartile */
+   GFX_LFMT_SWIZZLING_UIF                  = 3 << GFX_LFMT_SWIZZLING_SHIFT, /* Unified image format, no XORing */
+   GFX_LFMT_SWIZZLING_UIF_XOR              = 4 << GFX_LFMT_SWIZZLING_SHIFT, /* XOR in odd columns */
+   GFX_LFMT_SWIZZLING_UIF_NOUTILE          = 5 << GFX_LFMT_SWIZZLING_SHIFT, /* Linear arrangement of pixels within UIF-block. See UIF spec "3.2: 4:2:0 and 4:2:2 YCbCr" */
+   GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR      = 6 << GFX_LFMT_SWIZZLING_SHIFT,
+   GFX_LFMT_SWIZZLING_UBLINEAR             = 7 << GFX_LFMT_SWIZZLING_SHIFT, /* UIF-blocks in raster order */
 
    /* Only valid for 2D */
-   GFX_LFMT_SWIZZLING_SAND_128        = 8 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes */
-   GFX_LFMT_SWIZZLING_SAND_256        = 9 << GFX_LFMT_SWIZZLING_SHIFT,
-
+   GFX_LFMT_SWIZZLING_SAND_128_MAP2        = 8 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP2        = 9 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
+   /* Big endian (see GFXH-1344) */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND = 10 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND = 11 << GFX_LFMT_SWIZZLING_SHIFT, /* 128 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND = 12 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 2.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND = 13 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 5.0 */
+   GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND = 14 << GFX_LFMT_SWIZZLING_SHIFT, /* 256 byte wide stripes, DRAM MAP 8.0 */
 } GFX_LFMT_SWIZZLING_T;
 /* END AUTO-GENERATED CODE (enum_swizzling) */
 
@@ -565,15 +570,40 @@ static inline GFX_LFMT_T gfx_lfmt_to_ublinear(GFX_LFMT_T lfmt)
 static inline bool gfx_lfmt_is_ublinear(GFX_LFMT_T lfmt)
 { return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_UBLINEAR; }
 
-static inline GFX_LFMT_T gfx_lfmt_to_sand_128(GFX_LFMT_T lfmt)
-{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_128); }
-static inline bool gfx_lfmt_is_sand_128(GFX_LFMT_T lfmt)
-{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_128; }
+static inline GFX_LFMT_T gfx_lfmt_to_sand_128_map2(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_128_MAP2); }
+static inline bool gfx_lfmt_is_sand_128_map2(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_128_MAP2; }
 
-static inline GFX_LFMT_T gfx_lfmt_to_sand_256(GFX_LFMT_T lfmt)
-{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_256); }
-static inline bool gfx_lfmt_is_sand_256(GFX_LFMT_T lfmt)
-{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256; }
+static inline GFX_LFMT_T gfx_lfmt_to_sand_256_map2(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_256_MAP2); }
+static inline bool gfx_lfmt_is_sand_256_map2(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256_MAP2; }
+
+static inline GFX_LFMT_T gfx_lfmt_to_sand_128_map2_bigend(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND); }
+static inline bool gfx_lfmt_is_sand_128_map2_bigend(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND; }
+
+static inline GFX_LFMT_T gfx_lfmt_to_sand_128_map5_bigend(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND); }
+static inline bool gfx_lfmt_is_sand_128_map5_bigend(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND; }
+
+static inline GFX_LFMT_T gfx_lfmt_to_sand_256_map2_bigend(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND); }
+static inline bool gfx_lfmt_is_sand_256_map2_bigend(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND; }
+
+static inline GFX_LFMT_T gfx_lfmt_to_sand_256_map5_bigend(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND); }
+static inline bool gfx_lfmt_is_sand_256_map5_bigend(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND; }
+
+static inline GFX_LFMT_T gfx_lfmt_to_sand_256_map8_bigend(GFX_LFMT_T lfmt)
+{ return *gfx_lfmt_set_swizzling(&lfmt, GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND); }
+static inline bool gfx_lfmt_is_sand_256_map8_bigend(GFX_LFMT_T lfmt)
+{ return gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND; }
 /* END AUTO-GENERATED CODE (to_is_swizzling_funcs) */
 
 static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_to_uif_xor_family(GFX_LFMT_SWIZZLING_T swizzling)
@@ -609,6 +639,7 @@ static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_to_uif_noutile_family(GFX_LFMT_SWIZZ
 }
 
 /** Misc helpers */
+
 static inline GFX_LFMT_YFLIP_T gfx_lfmt_invert_yflip(GFX_LFMT_YFLIP_T yflip)
 {
    return yflip ? GFX_LFMT_YFLIP_NOYFLIP : GFX_LFMT_YFLIP_YFLIP;
@@ -616,6 +647,17 @@ static inline GFX_LFMT_YFLIP_T gfx_lfmt_invert_yflip(GFX_LFMT_YFLIP_T yflip)
 
 /* BEGIN AUTO-GENERATED CODE (misc_defines) */
 #define GFX_LFMT_MAX_BYTES_PER_BLOCK 32
+#define GFX_LFMT_CHAN_A_BIT 0x1
+#define GFX_LFMT_CHAN_B_BIT 0x2
+#define GFX_LFMT_CHAN_D_BIT 0x4
+#define GFX_LFMT_CHAN_G_BIT 0x8
+#define GFX_LFMT_CHAN_L_BIT 0x10
+#define GFX_LFMT_CHAN_R_BIT 0x20
+#define GFX_LFMT_CHAN_S_BIT 0x40
+#define GFX_LFMT_CHAN_U_BIT 0x80
+#define GFX_LFMT_CHAN_V_BIT 0x100
+#define GFX_LFMT_CHAN_X_BIT 0x200
+#define GFX_LFMT_CHAN_Y_BIT 0x400
 /* END AUTO-GENERATED CODE (misc_defines) */
 
 /* BEGIN AUTO-GENERATED CODE (misc_func_decls) */
@@ -624,6 +666,7 @@ extern bool gfx_lfmt_is_uif_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_uif_xor_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_noutile_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_sand_family(GFX_LFMT_T lfmt);
+extern bool gfx_lfmt_is_bigend_sand_family(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_compressed(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_paletted(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_is_etc_family(GFX_LFMT_T lfmt);
@@ -639,6 +682,7 @@ extern bool gfx_lfmt_contains_int_unsigned(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_contains_float(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_contains_unorm(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_contains_snorm(GFX_LFMT_T lfmt);
+extern uint32_t gfx_lfmt_present_channels(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_has_red(GFX_LFMT_T lfmt);
 extern uint32_t gfx_lfmt_red_bits(GFX_LFMT_T lfmt);
 extern bool gfx_lfmt_has_green(GFX_LFMT_T lfmt);
@@ -712,9 +756,6 @@ static inline void gfx_lfmt_check_num_slots_eq(GFX_LFMT_T lfmt, uint32_t num_slo
       assert(gfx_lfmt_num_slots_from_channels(lfmt) == num_slots);
 }
 
-/* TODO Just use gfx_lfmt_is_uif_xor_family everywhere */
-#define gfx_lfmt_is_uif_xor_col_family gfx_lfmt_is_uif_xor_family
-
 static inline bool gfx_lfmt_all_planes(bool (*pred)(GFX_LFMT_T),
    uint32_t num_planes, const GFX_LFMT_T *lfmts)
 {
@@ -773,16 +814,46 @@ static inline GFX_LFMT_SWIZZLING_T gfx_lfmt_collapse_uif_family(GFX_LFMT_SWIZZLI
    return gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling) ? GFX_LFMT_SWIZZLING_UIF : swizzling;
 }
 
+static inline unsigned gfx_lfmt_sandcol_w_in_bytes(GFX_LFMT_SWIZZLING_T swizzling)
+{
+   switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND:
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND:   return 128;
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP2:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND:   return 256;
+   default:                                        unreachable(); return 0;
+   }
+}
+
+static inline unsigned gfx_lfmt_dram_map_version(GFX_LFMT_SWIZZLING_T swizzling)
+{
+   switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP2:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP2:
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP2_BIGEND:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP2_BIGEND:   return 2;
+   case GFX_LFMT_SWIZZLING_SAND_128_MAP5_BIGEND:
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP5_BIGEND:   return 5;
+   case GFX_LFMT_SWIZZLING_SAND_256_MAP8_BIGEND:   return 8;
+   default:                                        unreachable(); return 0;
+   }
+}
+
 static inline bool gfx_lfmt_pitch_is_vertical(GFX_LFMT_T lfmt)
 {
+   if (gfx_lfmt_is_sand_family(lfmt))
+      return true;
    switch (gfx_lfmt_collapse_uif_family(gfx_lfmt_get_swizzling(&lfmt)))
    {
    case GFX_LFMT_SWIZZLING_RSO:      return false;
    case GFX_LFMT_SWIZZLING_LT:       return false;
    case GFX_LFMT_SWIZZLING_UIF:      return true;
    case GFX_LFMT_SWIZZLING_UBLINEAR: return false;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256: return true;
    default:                          unreachable(); return false;
    }
 }
@@ -981,15 +1052,7 @@ static inline uint32_t gfx_lfmt_ucol_w_2d(
 static inline uint32_t gfx_lfmt_sandcol_w_in_blocks_2d(
    const GFX_LFMT_BASE_DETAIL_T *bd, GFX_LFMT_SWIZZLING_T swizzling)
 {
-   uint32_t col_w_in_bytes;
-   switch (swizzling)
-   {
-   case GFX_LFMT_SWIZZLING_SAND_128: col_w_in_bytes = 128; break;
-   case GFX_LFMT_SWIZZLING_SAND_256: col_w_in_bytes = 256; break;
-   default: unreachable();
-   }
-
-   return gfx_udiv_exactly(col_w_in_bytes, bd->bytes_per_block);
+   return gfx_udiv_exactly(gfx_lfmt_sandcol_w_in_bytes(swizzling), bd->bytes_per_block);
 }
 
 static inline uint32_t gfx_lfmt_sandcol_w_2d(

@@ -434,7 +434,6 @@ extern "C" {
          BVDC_P_IS_CUSTOMFMT(pFmt->eVideoFmt)))
 
 /* Vec SW init macros */
-#if BVDC_P_SUPPORT_NEW_SW_INIT
 #define BVDC_P_VEC_SW_INIT_OFFSET(core, start, end) \
     (BCHP_VEC_CFG_SW_INIT_##core##_##start - BCHP_VEC_CFG_SW_INIT_##core##_##end)
 
@@ -444,17 +443,6 @@ extern "C" {
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_SW_INIT_##reg + (offset)); \
     *pList->pulCurrent++ = BCHP_FIELD_DATA(VEC_CFG_SW_INIT_##reg, INIT, val); \
 }
-#else
-#define BVDC_P_VEC_SW_INIT_OFFSET(core, start, end) \
-    (BCHP_VEC_CFG_SW_RESET_##core##_##start - BCHP_VEC_CFG_SW_RESET_##core##_##end)
-
-#define BVDC_P_VEC_SW_INIT(reg, offset, val) \
-{ \
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG(); \
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VEC_CFG_SW_RESET_##reg + (offset)); \
-    *pList->pulCurrent++ = BCHP_FIELD_DATA(VEC_CFG_SW_RESET_##reg, RESET, val); \
-}
-#endif
 
 /* This value needs to be further tuned.
  *
@@ -489,11 +477,9 @@ typedef enum
     BVDC_P_Output_eYUV_M,        /* SVideo and/or CVBS for Pal_M */
     BVDC_P_Output_eYUV_N,        /* SVideo and/or CVBS for Pal_N */
     BVDC_P_Output_eYUV_NC,       /* SVideo and/or CVBS for PAL_NC */
-#if BVDC_P_SUPPORT_VEC_SECAM
     BVDC_P_Output_eYDbDr_LDK,    /* SVideo and/or CVBS for SECAM_L/D/K */
     BVDC_P_Output_eYDbDr_BG,     /* SVideo and/or CVBS for SECAM_B/G */
     BVDC_P_Output_eYDbDr_H,      /* SVideo and/or CVBS for SECAM_H */
-#endif
     /* Folks, would you please put all of the component and RGB formats below
      * this line. Thanks.
      */
@@ -596,12 +582,6 @@ typedef enum
 /***************************************************************************
  * Display Context
  ***************************************************************************/
-typedef struct
-{
-    const uint32_t   *pulCCBTbl;
-    const char       *pchTblName;
-} BVDC_P_FormatCCBTbl;
-
 typedef struct
 {
     uint32_t                    bPsAgc            : 1; /* Pseudo-Sync/AGC      */
@@ -873,8 +853,6 @@ typedef struct
     uint32_t                    ulAnlgChan1Mask;
 
     BVDC_DacOutput              aDacOutput[BVDC_P_MAX_DACS];
-    uint32_t                    ulHdmi;
-    BAVC_MatrixCoefficients     eHdmiOutput;
     const BFMT_VideoInfo       *pFmtInfo;
     BFMT_VideoInfo              stCustomFmt;
     uint32_t                    ulVertFreq;
@@ -1105,19 +1083,9 @@ typedef struct BVDC_P_DisplayContext
 
     /* Display channels */
     BVDC_P_DisplayDviChan       stDviChan;           /* DVI channel */
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-    BVDC_P_SlaveState           eDviSlaveState;      /* State used when attaching DVI slave to master path */
-#endif
     BVDC_P_DisplayResourceState eDviState;           /* DVI channel state */
     BVDC_P_Display656Chan       st656Chan;           /* 656 channel */
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-    BVDC_P_SlaveState           e656SlaveState;      /* State used when attaching ITU656 slave to master path */
-#endif
     BVDC_P_DisplayResourceState e656State;           /* 656 channel state */
-
-#if BVDC_P_SUPPORT_SEAMLESS_ATTACH
-    BVDC_P_SlaveState           eStgSlaveState;      /* State used when attaching ITU656 slave to master path */
-#endif
     BVDC_P_DisplayResourceState eStgState;           /* 656 channel state */
     BVDC_P_DisplayStgChan       stStgChan;           /* STG channel */
     BVDC_P_DisplayAnlgChan      stAnlgChan_0;        /* Analog channel 0 */
@@ -1348,6 +1316,7 @@ BERR_Code BVDC_P_AllocDviChanResources_isr
 
 void BVDC_P_FreeDviChanResources_isr
     (BVDC_P_Resource_Handle hResource,
+      BVDC_Display_Handle   hDisplay,
      BVDC_P_DisplayDviChan *pstChan);
 
 BERR_Code BVDC_P_AllocDacResources

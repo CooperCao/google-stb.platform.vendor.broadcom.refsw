@@ -69,6 +69,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 1 */
@@ -86,6 +87,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 1 */
@@ -103,6 +105,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       0      ), /* disp 1 */
@@ -120,6 +123,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       1,       0,       1,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       1,       0,       1,       0      ), /* disp 1 */
@@ -137,6 +141,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       1,       0,       1,       1      ), /* disp 1 */
@@ -154,6 +159,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(2),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       2), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(2,       2,       2,       2,       2), /* disp 1 */
@@ -169,11 +175,12 @@ static const BBOX_MemConfig stBoxMemConfig =
 #elif (((BCHP_CHIP == 7439) && (BCHP_VER == BCHP_VER_A0))  || \
        ((BCHP_CHIP == 7366) && (BCHP_VER == BCHP_VER_A0))  || \
        ((BCHP_CHIP == 74371) && (BCHP_VER == BCHP_VER_A0)) || \
-       ((BCHP_CHIP == 7271)))
+       ((BCHP_CHIP == 7271))||((BCHP_CHIP == 7278)))
 static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ), /* disp 1 */
@@ -191,6 +198,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       0      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(1,       0,       1,       0,       0      ), /* disp 1 */
@@ -208,6 +216,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(1,       1,       1,       1,       1      ), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       Invalid, 0,       Invalid, 1      ), /* disp 1 */
@@ -232,6 +241,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0), /* disp 1 */
@@ -249,6 +259,7 @@ static const BBOX_MemConfig stBoxMemConfig =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(Invalid, Invalid, Invalid, Invalid, Invalid), /* disp 1 */

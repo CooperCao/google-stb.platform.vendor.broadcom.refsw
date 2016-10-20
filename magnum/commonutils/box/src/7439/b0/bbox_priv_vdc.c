@@ -83,6 +83,8 @@
 #include "bbox_vdc_box24_config.h"
 #include "bbox_vdc_box25_config.h"
 #include "bbox_vdc_box26_config.h"
+#include "bbox_vdc_box27_config.h"
+#include "bbox_vdc_box28_config.h"
 
 
 BDBG_MODULE(BBOX_PRIV);
@@ -177,6 +179,12 @@ void BBOX_P_Vdc_SetSourceCapabilities
             BBOX_P_Vdc_SetBox20SourceCapabilities(pSourceCap);
             BBOX_P_Vdc_SetBox26SourceCapabilities(pSourceCap);
             break;
+        case 27:
+            BBOX_P_Vdc_SetBox27SourceCapabilities(pSourceCap);
+            break;
+        case 28:
+            BBOX_P_Vdc_SetBox28SourceCapabilities(pSourceCap);
+            break;
     }
 }
 
@@ -254,6 +262,12 @@ void BBOX_P_Vdc_SetDisplayCapabilities
             break;
          case 26:
             BBOX_P_Vdc_SetBox26DisplayCapabilities(pDisplayCap);
+            break;
+         case 27:
+            BBOX_P_Vdc_SetBox27DisplayCapabilities(pDisplayCap);
+            break;
+         case 28:
+            BBOX_P_Vdc_SetBox28DisplayCapabilities(pDisplayCap);
             break;
     }
 }
@@ -334,6 +348,12 @@ void BBOX_P_Vdc_SetDeinterlacerCapabilities
         case 26:
             BBOX_P_Vdc_SetBox26DeinterlacerCapabilities(pDeinterlacerCap);
             break;
+        case 27:
+            BBOX_P_Vdc_SetBox27DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
+        case 28:
+            BBOX_P_Vdc_SetBox28DeinterlacerCapabilities(pDeinterlacerCap);
+            break;
     }
 }
 
@@ -411,6 +431,12 @@ void BBOX_P_Vdc_SetXcodeCapabilities
             break;
         case 26:
             BBOX_P_Vdc_SetBox26XcodeCapabilities(pXcodeCap);
+            break;
+        case 27:
+            BBOX_P_Vdc_SetBox27XcodeCapabilities(pXcodeCap);
+            break;
+        case 28:
+            BBOX_P_Vdc_SetBox28XcodeCapabilities(pXcodeCap);
             break;
     }
 }
@@ -495,6 +521,12 @@ BERR_Code BBOX_P_GetMemConfig
         case 26:
             BBOX_P_GetBox26MemConfig(pBoxMemConfig);
             break;
+        case 27:
+            BBOX_P_GetBox27MemConfig(pBoxMemConfig);
+            break;
+        case 28:
+            BBOX_P_GetBox28MemConfig(pBoxMemConfig);
+            break;
     }
     return BERR_SUCCESS;
 }
@@ -573,6 +605,12 @@ BERR_Code BBOX_P_GetRtsConfig
             break;
         case 26:
             BBOX_P_GetBox26Rts(pBoxRts);
+            break;
+        case 27:
+            BBOX_P_GetBox27Rts(pBoxRts);
+            break;
+        case 28:
+            BBOX_P_GetBox28Rts(pBoxRts);
             break;
     }
     return BERR_SUCCESS;

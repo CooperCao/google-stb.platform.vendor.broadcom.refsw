@@ -48,9 +48,9 @@ typedef struct {
 } GL20_SHADER_T;
 
 extern void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, GLenum type);
-extern void gl20_shader_term(void *v, uint32_t size);
+extern void gl20_shader_term(MEM_HANDLE_T handle);
 
-extern void gl20_shader_sources_term(void *v, uint32_t size);
+extern void gl20_shader_sources_term(MEM_HANDLE_T handle);
 
 extern void gl20_shader_acquire(GL20_SHADER_T *shader);
 extern void gl20_shader_release(GL20_SHADER_T *shader);

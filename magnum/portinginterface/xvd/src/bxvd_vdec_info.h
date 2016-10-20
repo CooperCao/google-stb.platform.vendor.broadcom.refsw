@@ -883,7 +883,13 @@ typedef struct
    /* Common fields. */
    uint32_t      flags;            /* see above         */
    uint32_t      luma_video_address;    /* Address of picbuf Y     */
+#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+   uint32_t      luma_video_address_hi;    /* Address of picbuf Y     */
+#endif
    uint32_t      chroma_video_address; /* Address of picbuf UV    */
+#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+   uint32_t      chroma_video_address_hi; /* Address of picbuf UV    */
+#endif
    uint32_t      video_width;      /* Picbuf width      */
    uint32_t      video_height;     /* Picbuf height     */
 
@@ -992,6 +998,9 @@ typedef struct
 #endif
 
 #define BXVD_P_STC_MAX 16
+
+#elif BXVD_P_DECODER_REVT
+#define  BXVD_P_CURRENT_MAJOR_VERSION 1
 
 #else
 /* Aphrodite */

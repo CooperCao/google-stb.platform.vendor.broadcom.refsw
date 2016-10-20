@@ -451,6 +451,19 @@ BERR_Code BAPE_Mixer_P_ApplyOutputVolume(BAPE_MixerHandle handle, BAPE_OutputPor
     }
 }
 
+BERR_Code BAPE_Mixer_P_ApplyStereoMode(BAPE_MixerHandle handle, BAPE_StereoMode stereoMode)
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+    BDBG_ASSERT(NULL != handle->interface);
+
+    if(handle->interface->applyStereoMode) {
+        return handle->interface->applyStereoMode(handle, stereoMode);
+    } else {
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+}
+
+
 void BAPE_Mixer_GetConnector(
     BAPE_MixerHandle handle,
     BAPE_Connector *pConnector /* [out] */

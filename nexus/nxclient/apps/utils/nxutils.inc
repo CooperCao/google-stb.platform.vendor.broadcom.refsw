@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2012-2015 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,17 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
 ############################################################
+
+BSEAV := $(NEXUS_TOP)/../BSEAV
+include $(BSEAV)/lib/tshdrbuilder/tshdrbuilder.inc
 
 NXUTILS_INCLUDES := \
 	$(NEXUS_TOP)/nxclient/apps/utils \
 	$(NEXUS_TOP)/utils \
-	$(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder \
+	$(TSHDRBUILDER_INCLUDES) \
 	$(NEXUS_TOP)/../BSEAV/lib/thumbnail \
 	$(NEXUS_TOP)/../BSEAV/lib/media \
-	$(NEXUS_TOP)/../BSEAV/lib/mpeg2_ts_parse \
 	$(NEXUS_TOP)/../BSEAV/lib/utils \
 	$(NEXUS_TOP)/../BSEAV/lib/bcmplayer/include
 
@@ -57,7 +58,7 @@ NXUTILS_SINGLE_SOURCES := \
 	$(NEXUS_TOP)/nxclient/apps/utils/media_probe.c \
 	$(NEXUS_TOP)/utils/namevalue.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/picdecoder.c \
-	$(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder/tshdrbuilder.c \
+	$(TSHDRBUILDER_SOURCES) \
 	$(NEXUS_TOP)/nxclient/apps/utils/tspsimgr3.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/wav_file.c \
 	$(NEXUS_TOP)/nxclient/apps/utils/thumbdecoder.c \

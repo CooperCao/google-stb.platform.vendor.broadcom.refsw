@@ -309,7 +309,8 @@ typedef enum
 	BHDM_P_TIMER_eFormatDetection,
 	BHDM_P_TIMER_eMonitorStatus,
 	BHDM_P_TIMER_eScdcStatus, /* timer to wait for SCDC status */
-	BHDM_P_TIMER_eTxScramble /* timer to wait before enabling Tx Scrambling */
+	BHDM_P_TIMER_eTxScramble, /* timer to wait before enabling Tx Scrambling */
+	BHDM_P_TIMER_ePacketChangeDelay /* timer to delay transmisson of HDMI Packets after a change */
 } BHDM_P_TIMER ;
 
 
@@ -361,6 +362,7 @@ typedef struct BHDM_P_Handle
 	BKNI_EventHandle BHDM_EventFIFO ;  /* debugging events */
 	BHDM_Settings DeviceSettings ;
 	bool bForcePacketUpdates ;   /* enables Packet updates when true */
+	uint32_t uiPacketRestartMask ;
 
 	BHDM_Status DeviceStatus ;
 
@@ -458,6 +460,7 @@ typedef struct BHDM_P_Handle
 	BTMR_TimerHandle TimerHotPlug ;  /* delay HP processing */
 	BTMR_TimerHandle TimerHotPlugChange ; /* monitor for stable HP */
 	BTMR_TimerHandle TimerFormatChange ;  /* monitor for format changes */
+	BTMR_TimerHandle TimerPacketChangeDelay ;  /* delay the transmission of packets */
 	bool TimerFormatInitialChangeReported ;  /* eliminate first message  */
 
 	BTMR_TimerHandle TimerStatusMonitor ;
@@ -764,7 +767,10 @@ BERR_Code BHDM_P_BREG_I2C_ReadNoAddr(
 );
 
 void BHDM_HDCP_P_ResetSettings_isr(const BHDM_Handle hHDMI) ;
-
+void BHDM_P_EnablePacketTransmission_isr(
+   const BHDM_Handle hHDMI,
+   BHDM_Packet PacketId
+) ;
 #ifdef __cplusplus
 }
 #endif

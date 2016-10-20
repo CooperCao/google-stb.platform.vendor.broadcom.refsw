@@ -163,18 +163,7 @@ end:
    glxx_unlock_server_state();
 }
 
-
-/*
-   glBlendColor()
-
-   Sets the constant color for use in blending. All inputs are clamped to the
-   range [0.0, 1.0] before being stored. No errors are generated.
-
-   Implementation: Done
-   Error Checks: Done
-*/
-
-GL_APICALL void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
+GL_APICALL void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state) return;
@@ -189,32 +178,29 @@ GL_APICALL void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf 
    glxx_unlock_server_state();
 }
 
-/*
-   glBlendEquationSeparate()
-
-   Sets the RGB and alpha blend equations to one of ADD, SUBTRACT or REVERSE_SUBTRACT.
-   Gives GL_INVALID_ENUM error if either equation is not one of these.
-
-   Implementation: Done
-   Error Checks: Done
-*/
-
 static void set_blend_eqn(GLXX_SERVER_STATE_T *state, glxx_blend_cfg *cfg,
-   v3d_blend_eqn_t ec, v3d_blend_eqn_t ea)
+                          glxx_blend_eqn_t ec, glxx_blend_eqn_t ea)
 {
-   if (cfg->color_eqn != ec)
-   {
-      cfg->color_eqn = ec;
+   if (cfg->color_eqn != ec) {
       state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+      /* Changing into/out of advanced blend means changing enable/disable state
+       * for blending, so we need to set dirty.cfg as well as .blend_cfg */
+      if ((cfg->color_eqn & GLXX_ADV_BLEND_EQN_BIT) != (ec & GLXX_ADV_BLEND_EQN_BIT))
+         state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
+
+      cfg->color_eqn = ec;
    }
    if (cfg->alpha_eqn != ea)
    {
-      cfg->alpha_eqn = ea;
       state->dirty.blend_cfg = KHRN_RENDER_STATE_SET_ALL;
+      if ((cfg->alpha_eqn & GLXX_ADV_BLEND_EQN_BIT) != (ea & GLXX_ADV_BLEND_EQN_BIT))
+         state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
+
+      cfg->alpha_eqn = ea;
    }
 }
 
-static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, v3d_blend_eqn_t ec, v3d_blend_eqn_t ea)
+static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, glxx_blend_eqn_t ec, glxx_blend_eqn_t ea)
 {
 #if V3D_HAS_PER_RT_BLEND
    for (unsigned i = 0; i != GLXX_MAX_RENDER_TARGETS; ++i)
@@ -224,21 +210,36 @@ static void set_all_blend_eqns(GLXX_SERVER_STATE_T *state, v3d_blend_eqn_t ec, v
 #endif
 }
 
-GL_APICALL void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) // S
+static bool is_valid_separate_blend(glxx_blend_eqn_t e)
+{
+   return e != GLXX_BLEND_EQN_INVALID && !(e & GLXX_ADV_BLEND_EQN_BIT);
+}
+
+GL_APICALL void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
    if (!state)
       return;
 
-   v3d_blend_eqn_t ec = translate_blend_equation(modeRGB);
-   v3d_blend_eqn_t ea = translate_blend_equation(modeAlpha);
+   glxx_blend_eqn_t ec = translate_blend_equation(modeRGB);
+   glxx_blend_eqn_t ea = translate_blend_equation(modeAlpha);
 
-   if (ec != V3D_BLEND_EQN_INVALID && ea != V3D_BLEND_EQN_INVALID)
+   if (is_valid_separate_blend(ec) && is_valid_separate_blend(ea))
       set_all_blend_eqns(state, ec, ea);
    else
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
    glxx_unlock_server_state();
+}
+
+GL_APICALL void GL_APIENTRY glBlendBarrier(void)
+{
+   /* Nothing to do */
+}
+
+GL_APICALL void GL_APIENTRY glBlendBarrierKHR(void)
+{
+   /* Nothing to do */
 }
 
 GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
@@ -247,12 +248,12 @@ GL_APICALL void GL_APIENTRY glBlendEquation(GLenum mode) // S
    if (!state)
       return;
 
-   v3d_blend_eqn_t eq = translate_blend_equation(mode);
+   glxx_blend_eqn_t eq = translate_blend_equation(mode);
 
-   if (eq == V3D_BLEND_EQN_INVALID)
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   else
+   if (eq != GLXX_BLEND_EQN_INVALID)
       set_all_blend_eqns(state, eq, eq);
+   else
+      glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
    glxx_unlock_server_state();
 }
@@ -269,10 +270,10 @@ static void blend_equation_separate_i(GLuint buf, GLenum modeRGB, GLenum modeAlp
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
-      v3d_blend_eqn_t ec = translate_blend_equation(modeRGB);
-      v3d_blend_eqn_t ea = translate_blend_equation(modeAlpha);
+      glxx_blend_eqn_t ec = translate_blend_equation(modeRGB);
+      glxx_blend_eqn_t ea = translate_blend_equation(modeAlpha);
 
-      if (ec != V3D_BLEND_EQN_INVALID && ea != V3D_BLEND_EQN_INVALID)
+      if (is_valid_separate_blend(ec) && is_valid_separate_blend(ea))
          set_blend_eqn(state, &state->blend.rt_cfgs[buf], ec, ea);
       else
          glxx_server_state_set_error(state, GL_INVALID_ENUM);
@@ -291,12 +292,12 @@ static void blend_equation_i(GLuint buf, GLenum mode)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else
    {
-      v3d_blend_eqn_t eq = translate_blend_equation(mode);
+      glxx_blend_eqn_t eq = translate_blend_equation(mode);
 
-      if (eq == V3D_BLEND_EQN_INVALID)
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      else
+      if (eq != GLXX_BLEND_EQN_INVALID)
          set_blend_eqn(state, &state->blend.rt_cfgs[buf], eq, eq);
+      else
+         glxx_server_state_set_error(state, GL_INVALID_ENUM);
    }
 
    glxx_unlock_server_state();
@@ -938,12 +939,12 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
 
 #if GLXX_HAS_TNG
    case GL_TESS_CONTROL_OUTPUT_VERTICES:
-      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
          goto invalid_op;
       params[0] = linked_program->ir->tess_vertices;
       break;
    case GL_TESS_GEN_MODE:
-      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_EVALUATION))
          goto invalid_op;
       switch (linked_program->ir->tess_mode)
       {
@@ -954,7 +955,7 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       }
       break;
    case GL_TESS_GEN_SPACING:
-      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_EVALUATION))
          goto invalid_op;
       switch (linked_program->ir->tess_spacing)
       {
@@ -965,14 +966,46 @@ GL_APICALL void GL_APIENTRY glGetProgramiv(GLuint p, GLenum pname, GLint *params
       }
       break;
    case GL_TESS_GEN_VERTEX_ORDER:
-      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_EVALUATION))
          goto invalid_op;
       params[0] = linked_program->ir->tess_cw ? GL_CW : GL_CCW;
       break;
    case GL_TESS_GEN_POINT_MODE:
-      if (!linked_program || glsl_program_has_stage(linked_program, SHADER_TESS_CONTROL))
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_TESS_EVALUATION))
          goto invalid_op;
       params[0] = linked_program->ir->tess_point_mode;
+      break;
+   case GL_GEOMETRY_VERTICES_OUT:
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_GEOMETRY))
+         goto invalid_op;
+      params[0] = linked_program->ir->gs_max_vertices;
+      break;
+   case GL_GEOMETRY_INPUT_TYPE:
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_GEOMETRY))
+         goto invalid_op;
+      switch (linked_program->ir->gs_in) {
+         case GS_IN_POINTS:    params[0] = GL_POINTS;              break;
+         case GS_IN_LINES:     params[0] = GL_LINES;               break;
+         case GS_IN_TRIANGLES: params[0] = GL_TRIANGLES;           break;
+         case GS_IN_LINES_ADJ: params[0] = GL_LINES_ADJACENCY;     break;
+         case GS_IN_TRIS_ADJ:  params[0] = GL_TRIANGLES_ADJACENCY; break;
+         default: unreachable();
+      }
+      break;
+   case GL_GEOMETRY_OUTPUT_TYPE:
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_GEOMETRY))
+         goto invalid_op;
+      switch (linked_program->ir->gs_out) {
+         case GS_OUT_POINTS:     params[0] = GL_POINTS;         break;
+         case GS_OUT_LINE_STRIP: params[0] = GL_LINE_STRIP;     break;
+         case GS_OUT_TRI_STRIP:  params[0] = GL_TRIANGLE_STRIP; break;
+         default: unreachable();
+      }
+      break;
+   case GL_GEOMETRY_SHADER_INVOCATIONS:
+      if (!linked_program || !glsl_program_has_stage(linked_program, SHADER_GEOMETRY))
+         goto invalid_op;
+      params[0] = linked_program->ir->gs_n_invocations;
       break;
 #endif
 
@@ -1133,7 +1166,7 @@ GL_APICALL void GL_APIENTRY glLinkProgram(GLuint p)
    program = gl20_get_program(state, p);
    if (!program) goto end;
 
-   if (glxx_tf_program_used(state, program)) {
+   if (glxx_server_program_used_by_any_tf(state, program)) {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    } else {
       gl20_program_link(program);

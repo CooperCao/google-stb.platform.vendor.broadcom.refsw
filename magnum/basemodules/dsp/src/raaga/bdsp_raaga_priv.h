@@ -52,7 +52,6 @@
 #include "bdsp_raaga_types.h"
 #include "bdsp_raaga_fwinterface_priv.h"
 #include "bdsp_raaga_mm_priv.h"
-#include "bdsp_raaga_util.h"
 #include "bdsp_audio_task.h"
 #include "bdsp_raaga_cmdresp_priv.h"
 #include "bdsp_raaga_fwdownload_priv.h"
@@ -64,9 +63,6 @@ BDBG_OBJECT_ID_DECLARE(BDSP_Raaga);
 BDBG_OBJECT_ID_DECLARE(BDSP_RaagaContext);
 BDBG_OBJECT_ID_DECLARE(BDSP_RaagaTask);
 BDBG_OBJECT_ID_DECLARE(BDSP_RaagaExternalInterrupt);
-BDBG_OBJECT_ID_DECLARE(BDSP_RaagaRdbRegister);
-
-
 
 #define BDSP_RAAGA_DSP_INDEX_INTERTASK              0
 
@@ -136,7 +132,6 @@ BDBG_OBJECT_ID_DECLARE(BDSP_RaagaRdbRegister);
 
 
 #define BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP   32
-#define BDSP_RAAGA_RDB_REGISTERS    15
 #define BDSP_ENCODE_OUTPUT_CDB_FIFO     9
 #define BDSP_ENCODE_OUTPUT_ITB_FIFO     10
 #define BDSP_MAX_INTERTASKBUFFER_INPUT_TO_MIXER 3
@@ -252,27 +247,8 @@ typedef struct BDSP_Raaga
     bool                        dspInterrupts[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_MAX_INTERRUPTS_PER_DSP];
     BKNI_MutexHandle            dspInterruptMutex[BDSP_RAAGA_MAX_DSP];
     BLST_S_HEAD(BDSP_RaagaExtInterruptList, BDSP_RaagaExternalInterrupt) interruptList;
-    /* Rdb register handle */
-    bool                        rdbRegisters[BDSP_RAAGA_MAX_DSP][BDSP_RAAGA_RDB_REGISTERS];
-    BKNI_MutexHandle            rdbRegistersMutex[BDSP_RAAGA_MAX_DSP];
-    BLST_S_HEAD(BDSP_RaagaRdbRegisterList, BDSP_RaagaRdbRegister) rdbRegisterList;
     BKNI_MutexHandle            captureMutex;
-
 }BDSP_Raaga;
-
-/* Handle for External interrupt to DSP */
-typedef struct BDSP_RaagaRdbRegister
-{
-    BDBG_OBJECT(BDSP_RaagaRdbRegister)
-    BDSP_RdbRegister    rdbRegister;
-    struct BDSP_Raaga *pDevice;
-    BLST_S_ENTRY(BDSP_RaagaRdbRegister) node;
-    uint32_t    dspIndex;
-    uint32_t    numRegisters;
-    uint32_t    startIndex;
-    BDSP_RdbRegisterInfo RdbRegisterInfo;
-}BDSP_RaagaRdbRegister;
-
 
 /* Handle for External interrupt to DSP */
 typedef struct BDSP_RaagaExternalInterrupt
@@ -471,20 +447,6 @@ typedef struct BDSP_RaagaQueue
     unsigned   dspIndex; /* Index of DSP on which the Queue is created */
 } BDSP_RaagaQueue;
 
- BDBG_OBJECT_ID_DECLARE(BDSP_RaagaTaskStageInput);
-
- typedef struct BDSP_RaagaTaskStageInput
- {
-    BDBG_OBJECT(BDSP_RaagaTaskStageInput)
-    BDSP_TaskStageInput        stageInput;
-    unsigned branchId;
-    unsigned stageId;
-    BDSP_CIT_P_FwStgSrcDstType      inputType;      /* input type */
-    unsigned inputIndex;
-    BDSP_AF_P_sIO_BUFFER  *pIoBuffer;
-    BDSP_AF_P_sIO_GENERIC_BUFFER *pIoGenericBuffer;
- }BDSP_RaagaTaskStageInput;
-
 void BDSP_Raaga_P_Close(
     void *pDeviceHandle);
 
@@ -560,7 +522,7 @@ void BDSP_Raaga_P_GetDefaultTaskStartSettings(
     BDSP_TaskStartSettings *pSettings    /* [out] */
     );
 
-void BDSP_Raaga_GetAlgorithmDefaultSettings(
+void BDSP_Raaga_P_GetAlgorithmDefaultSettings(
     void *pDeviceHandle,
     BDSP_Algorithm algorithm,
     void *pSettingsBuffer,        /* [out] */
@@ -722,12 +684,13 @@ BERR_Code BDSP_Raaga_P_Queue_CommitData( void *pQueueHandle, size_t bytesWritten
 
 BERR_Code BDSP_Raaga_P_Queue_GetBufferAddr(void *pQueueHandle, unsigned numbuffers, void *pBuffer /*[out] */);
 
+#if !B_REFSW_MINIMAL
 BERR_Code BDSP_Raaga_P_AddQueueInput(
                                     void     *pStageHandle,
                                     void     *pQueueHandle,
                                     unsigned *pInputIndex /* [out] */
                                     );
-
+#endif /*!B_REFSW_MINIMAL*/
 
 BERR_Code BDSP_Raaga_P_AddQueueOutput(
                                     void     *pStageHandle,
@@ -897,22 +860,6 @@ BERR_Code BDSP_Raaga_P_FreeExternalInterrupt(
 BERR_Code BDSP_Raaga_P_GetExternalInterruptInfo(
     void *pInterruptHandle,
     BDSP_ExternalInterruptInfo **pInfo
-    );
-
-BERR_Code BDSP_Raaga_P_AllocateRdbRegisters(
-    void *pDeviceHandle,
-    uint32_t dspIndex,
-    uint32_t numRegs,
-    BDSP_RdbRegisterHandle *pRdbRegisterHandle /* out */
-    );
-
-BERR_Code BDSP_Raaga_P_FreeRdbRegisters(
-    void  *pRdbRegisterHandle
-    );
-
-BERR_Code BDSP_Raaga_P_GetRdbRegistersInfo(
-    void *pRdbRegisterHandle,
-    BDSP_RdbRegisterInfo **pInfo    /* out */
     );
 
 BERR_Code BDSP_Raaga_P_InitAudioCaptureInfo(

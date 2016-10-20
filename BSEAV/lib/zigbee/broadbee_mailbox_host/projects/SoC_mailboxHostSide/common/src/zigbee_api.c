@@ -208,8 +208,9 @@ typedef uint8_t NoAppropriateType_t;
 #ifdef SERVER
 
 #define CREATE_SERVER_REQUEST_API_FUNCTION(fId, name, reqType, confType, rpcMsgCode)                \
+        CREATE_NON_RPC_REQUEST_CALLBACK_FUNCTION(fId, name, reqType, confType, rpcMsgCode)           \
         CREATE_SERVER_REQUEST_CALLBACK_FUNCTION(fId, name, reqType, confType, rpcMsgCode)           \
-        CREATE_LIBRARY_REQUEST_FUNCTION(fId, name, reqType, confType)                        \
+        CREATE_NON_RPC_REQUEST_FUNCTION(fId, name, reqType, confType)                        \
         CREATE_SERVER_REQUEST_FUNCTION(fId, name, reqType, confType)
 
 #define CREATE_SERVER_REQUEST_API_FUNCTION_NO_REQUEST(fId, name, reqType, confType, rpcMsgCode)                \
@@ -337,27 +338,41 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
         free(request);                                                                                              \
     }
 
-#define CREATE_LIBRARY_REQUEST_FUNCTION(fId, name, reqType, confType)                                               \
-    void name(reqType *req)                                                                                         \
+/*
+#define INIT_SERVER_LIST_INFO(info, cReq, sReq, msgId, sck)
+    INIT_LIST_HEAD(&(info)->list);
+    info->clientRequest = cReq; // used by RPC
+    info->serverRequest = sReq; // used by both RPC and non-RPC
+    info->fId = msgId;          // used by RPC
+    info->socket = sck;         // used by RPC
+*/
+
+/* This macro can be moved to zigbee_api_server.c */
+#define CREATE_NON_RPC_REQUEST_FUNCTION(fId, name, reqType, confType)                                               \
+    void name(reqType *request)                                                                                         \
     {                                                                                                               \
         List_ServerReq_Info_t *info = malloc(sizeof(List_ServerReq_Info_t) + sizeof(reqType));                      \
-        INIT_SERVER_LIST_INFO(info, g_ServerReqInfo.clientRequest, (unsigned int)req, fId, g_ServerReqInfo.socket)  \
-        memcpy((char*)info->clientRequestData, (char*)req, sizeof(reqType));                                        \
-        info->callback = (void*)req->callback; /* not needed for rpc */                                             \
-        req->callback = server_##name##_callback;                                                                   \
+        INIT_SERVER_LIST_INFO(info, 0, (unsigned int)request, 0, 0)                                                       \
+        memcpy((char*)info->clientRequestData, (char*)request, sizeof(reqType));                                        \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                     \
+        if(functionInfo->reqCallbackOffset != MAIL_INVALID_OFFSET){                                                 \
+            info->callback = *((ConfirmCall_t *)((char*)request + functionInfo->reqCallbackOffset)); /* not needed for rpc */        \
+            *(ConfirmCall_t *)((char*)request + functionInfo->reqCallbackOffset) = (ConfirmCall_t)non_rpc_##name##_callback;\
+        }                                                                                                           \
         if(mailClientAvailablePendingTableEntry()){                                                                 \
             list_add(&info->list, &serverRequestListHeader);                                                        \
-            name##_Call(req);                                                                                       \
+            name##_Call(request);                                                                                       \
         } else                                                                                                      \
             list_add(&info->list, &serverPendingRequestListHeader);                                                 \
     }
 
-#define CREATE_SERVER_REQUEST_FUNCTION(_fId, name, reqType, confType)                                                   \
+/* This macro can be moved to zigbee_api_server.c */
+#define CREATE_SERVER_REQUEST_FUNCTION(fId, name, reqType, confType)                                                   \
     void server_##name(unsigned int *buf, int socket)                                                                   \
     {                                                                                                                   \
         reqType *request = (reqType *)malloc(sizeof(reqType));                                                          \
         memcpy((char*)request, &buf[1], sizeof(reqType));                                                               \
-        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(_fId);                        \
+        const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(fId);                        \
         if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset)                                                   \
         {                                                                                                               \
             SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)(                                               \
@@ -367,9 +382,43 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
             SYS_MemAlloc(dataPointer, size_payload);                                                                    \
             SYS_CopyToPayload(dataPointer, 0, (const void*)&buf[1 + WORDALIGN(sizeof(reqType))], size_payload);         \
         }                                                                                                               \
-        g_ServerReqInfo.clientRequest=buf[0];                                                                           \
-        g_ServerReqInfo.socket=socket;                                                                                  \
-        name(request);                                                                                                  \
+        List_ServerReq_Info_t *info = malloc(sizeof(List_ServerReq_Info_t) + sizeof(reqType));                      \
+        INIT_SERVER_LIST_INFO(info, buf[0], (unsigned int)request, fId, socket)  \
+        memcpy((char*)info->clientRequestData, (char*)request, sizeof(reqType));                                        \
+        if(functionInfo->reqCallbackOffset != MAIL_INVALID_OFFSET){                                                 \
+            *(ConfirmCall_t *)((char*)request + functionInfo->reqCallbackOffset) = (ConfirmCall_t)server_##name##_callback;\
+        }                                                                                                           \
+        if(mailClientAvailablePendingTableEntry()){                                                                 \
+            list_add(&info->list, &serverRequestListHeader);                                                        \
+            name##_Call(request);                                                                                       \
+        } else                                                                                                      \
+            list_add(&info->list, &serverPendingRequestListHeader);                                                 \
+    }
+
+#define CREATE_NON_RPC_REQUEST_CALLBACK_FUNCTION(fId, name, reqType, confType, rpcMsgCode)                          \
+    void non_rpc_##name##_callback(reqType  *request, confType *conf)                                                \
+    {                                                                                                               \
+        int size = 0;                                                                                               \
+        int message_tx[MAX_MSG_SIZE_IN_WORDS];                                                                      \
+                                                                                                                    \
+        printf("ZIGBEE_RPC_API:  invoking %s Callback\n", #name);                                                   \
+        list_head *pos = 0;                                                                                         \
+        int found = 0;                                                                                              \
+        List_ServerReq_Info_t *info = 0;                                                                            \
+        list_for_each(pos, &serverRequestListHeader){                                                               \
+            if((info = GET_PARENT_BY_FIELD(List_ServerReq_Info_t, list, pos))->serverRequest == (int)request)       \
+            {                                                                                                       \
+                found = 1;                                                                                          \
+                list_del(pos);                                                                                      \
+                break;                                                                                              \
+            }                                                                                                       \
+        }                                                                                                           \
+        if(!found){                                                                                                 \
+            printf("can't found the origin pointer\n");                                                             \
+            return;                                                                                                 \
+        }                                                                                                           \
+        ((void(*)(reqType*, confType*))info->callback)((reqType*)info->serverRequest, conf);                    \
+        free(info);                                                                                             \
     }
 
 #define CREATE_SERVER_REQUEST_CALLBACK_FUNCTION(fId, name, reqType, confType, rpcMsgCode)                           \
@@ -394,39 +443,34 @@ void rpcRequestRepostHandler(SYS_SchedulerTaskDescriptor_t *const taskDescr)
             printf("can't found the origin pointer\n");                                                             \
             return;                                                                                                 \
         }                                                                                                           \
-        if (is_rpc_mode) {                                                                                          \
-            message_tx[0] = info->clientRequest;                                                                    \
-            size += 1;                                                                                              \
-            memcpy((char *)&message_tx[size], (char*)info->clientRequestData, sizeof(reqType));                     \
-            size += WORDALIGN(sizeof(reqType));                                                                     \
-            message_tx[size] = (unsigned int)conf;                                                                  \
-            size += 1;                                                                                              \
-            memcpy((char *)&message_tx[size], (char *)conf, sizeof(confType));                                      \
-            size += WORDALIGN(sizeof(confType));                                                                    \
-            const MailServiceFunctionInfo_t *functionInfo = Mail_ServiceGetFunctionInfo(fId);                       \
-            if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){                                         \
-                SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)                                        \
-                                                    ((uint8_t *)conf + functionInfo->confDataPointerOffset);        \
-                int size_payload = SYS_GetPayloadSize(dataPointer);                                                 \
-                SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                        \
-                size += WORDALIGN(size_payload);                                                                    \
-                if(SYS_CheckPayload(dataPointer))                                                                   \
-                    SYS_FreePayload(dataPointer);                                                                   \
-            }                                                                                                       \
-            if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){                                          \
-                SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(                                    \
-                    (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);   \
-                if(SYS_CheckPayload(reqDataPointer))                                                                \
-                    SYS_FreePayload(reqDataPointer);                                                                \
-            }                                                                                                       \
-            free(request);                                                                                          \
-            Zigbee_Rpc_Send(message_tx, size, rpcMsgCode | RPC_RESPONSE, Zigbee_Socket_ServerSend, info->socket);   \
-            free(info);                                                                                             \
-            SYS_SchedulerPostTask(&requestDispatcherTask, 0);                                                       \
-        } else {                                                                                                    \
-            ((void(*)(reqType*, confType*))info->callback)((reqType*)info->serverRequest, conf);                    \
-            free(info);                                                                                             \
+        message_tx[0] = info->clientRequest;                                                                        \
+        size += 1;                                                                                                  \
+        memcpy((char *)&message_tx[size], (char*)info->clientRequestData, sizeof(reqType));                         \
+        size += WORDALIGN(sizeof(reqType));                                                                         \
+        message_tx[size] = (unsigned int)conf;                                                                      \
+        size += 1;                                                                                                  \
+        memcpy((char *)&message_tx[size], (char *)conf, sizeof(confType));                                          \
+        size += WORDALIGN(sizeof(confType));                                                                        \
+        const MailServiceFunctionInfo_t *functionInfo = Mail_ServiceGetFunctionInfo(fId);                           \
+        if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){                                             \
+            SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)                                            \
+                                                ((uint8_t *)conf + functionInfo->confDataPointerOffset);            \
+            int size_payload = SYS_GetPayloadSize(dataPointer);                                                     \
+            SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);                            \
+            size += WORDALIGN(size_payload);                                                                        \
+            if(SYS_CheckPayload(dataPointer))                                                                       \
+                SYS_FreePayload(dataPointer);                                                                       \
         }                                                                                                           \
+        if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){                                              \
+            SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(                                        \
+                (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);       \
+            if(SYS_CheckPayload(reqDataPointer))                                                                    \
+                SYS_FreePayload(reqDataPointer);                                                                    \
+        }                                                                                                           \
+        free(request);                                                                                              \
+        Zigbee_Rpc_Send(message_tx, size, rpcMsgCode | RPC_RESPONSE, Zigbee_Socket_ServerSend, info->socket);       \
+        free(info);                                                                                                 \
+        SYS_SchedulerPostTask(&requestDispatcherTask, 0);                                                           \
     }
 #endif
 
@@ -677,8 +721,7 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_REQ_GET_FID, RF4CE_ZRC1_GetAttribu
 
 CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_REQ_SET_FID, RF4CE_ZRC1_SetAttributesReq, RF4CE_ZRC1_SetAttributeDescr_t, RF4CE_ZRC1_SetAttributeConfParams_t, RPC_C2S_RF4CE_ZRC1_SetAttributesReq)
 
-CREATE_SERVER_REQUEST_API_FUNCTION_NO_REQUEST(TE_ECHO_FID, Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t, RPC_C2S_Mail_TestEngineEcho)
-
+CREATE_SERVER_REQUEST_API_FUNCTION(TE_ECHO_FID, Mail_TestEngineEcho, TE_EchoCommandReqDescr_t, TE_EchoCommandConfParams_t, RPC_C2S_Mail_TestEngineEcho)
 //CREATE_SERVER_REQUEST_API_FUNCTION(SYS_EVENT_SUBSCRIBE_FID, SYS_EventSubscribe, SYS_EventHandlerParams_t, NoAppropriateType_t, RPC_C2S_SYS_EventSubscribe)
 CREATE_SERVER_REQUEST_API_FUNCTION_NO_REQUEST(SYS_EVENT_SUBSCRIBE_FID, sysEventSubscribeHostHandler, SYS_EventHandlerMailParams_t, NoAppropriateType_t, RPC_C2S_SYS_EventSubscribe)
 
@@ -734,7 +777,7 @@ CREATE_SERVER_REQUEST_API_FUNCTION(RF4CE_CTRL_GET_DIAGNOSTIC_FID, RF4CE_Get_Diag
 
 /* End of Phy test staff */
 
-CREATE_SERVER_REQUEST_API_FUNCTION_NO_REQUEST(TE_RESET_FID, Mail_TestEngineReset, TE_ResetCommandReqDescr_t, NoAppropriateType_t, RPC_S2C_Mail_TestEngineReset)
+CREATE_SERVER_REQUEST_API_FUNCTION(TE_RESET_FID, Mail_TestEngineReset, TE_ResetCommandReqDescr_t, NoAppropriateType_t, RPC_S2C_Mail_TestEngineReset)
 
 CREATE_SERVER_INDICATION_API_FUNCTION(SYS_EVENT_NOTIFY_FID, SYS_EventNtfy, SYS_EventNotifyParams_t, NoAppropriateType_t, RPC_S2C_SYS_EVENTNTFY)
 /* NWK staff */
@@ -837,7 +880,7 @@ CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_GET_ZONE_STATUS_RESP_REQ_FI
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_ZONE_STATUS_CHANGED_REQ_FID, ZBPRO_ZCL_SapIasAceZoneStatusChangedReq, ZBPRO_ZCL_SapIasAceZoneStatusChangedReqDescr_t, ZBPRO_ZCL_SapIasAceRespReqConfParams_t, RPC_C2S_ZBPRO_ZCL_SapIasAceZoneStatusChangedReq)
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_PANEL_STATUS_CHANGED_REQ_FID, ZBPRO_ZCL_SapIasAcePanelStatusChangedReq, ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t, ZBPRO_ZCL_SapIasAceRespReqConfParams_t, RPC_C2S_ZBPRO_ZCL_SapIasAcePanelStatusChangedReq)
 CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_START_WARNING_REQ_FID, ZBPRO_ZCL_IASWDCmdStartWarningReq, ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t, ZBPRO_ZCL_IASWDCmdStartWarningConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdStartWarningReq)
-CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_SQUAWK_REQ_FID, ZBPRO_ZCL_IASWDCmdSquawkgReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkgReq)
+CREATE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_SQUAWK_REQ_FID, ZBPRO_ZCL_IASWDCmdSquawkReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkReq)
 CREATE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZCL_IND_IDENTIFY_FID, ZBPRO_ZCL_IdentifyInd, ZBPRO_ZCL_IdentifyIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_IdentifyInd)
 CREATE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZCL_PROFILE_WIDE_CMD_REPORT_ATTRIBUTES_IND_FID, ZBPRO_ZCL_ProfileWideCmdReportAttributesInd, ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_ProfileWideCmdReportAttributesInd)
 CREATE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZCL_GROUPS_CMD_GET_GROUP_MEMBERSHIP_RESPONSE_IND_FID, ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd, ZBPRO_ZCL_GroupsCmdGetGroupMembershipIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd)
@@ -1062,7 +1105,7 @@ CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_GET_ZONE_STATUS_RESP_REQ_FI
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_ZONE_STATUS_CHANGED_REQ_FID, ZBPRO_ZCL_SapIasAceZoneStatusChangedReq, ZBPRO_ZCL_SapIasAceZoneStatusChangedReqDescr_t, ZBPRO_ZCL_SapIasAceRespReqConfParams_t, RPC_C2S_ZBPRO_ZCL_SapIasAceZoneStatusChangedReq)
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_ACE_PANEL_STATUS_CHANGED_REQ_FID, ZBPRO_ZCL_SapIasAcePanelStatusChangedReq, ZBPRO_ZCL_SapIasAcePanelStatusChangedReqDescr_t, ZBPRO_ZCL_SapIasAceRespReqConfParams_t, RPC_C2S_ZBPRO_ZCL_SapIasAcePanelStatusChangedReq)
 CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_START_WARNING_REQ_FID, ZBPRO_ZCL_IASWDCmdStartWarningReq, ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t, ZBPRO_ZCL_IASWDCmdStartWarningConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdStartWarningReq)
-CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_SQUAWK_REQ_FID, ZBPRO_ZCL_IASWDCmdSquawkgReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkgReq)
+CREATE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IAS_WD_CMD_SQUAWK_REQ_FID, ZBPRO_ZCL_IASWDCmdSquawkReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t, RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkReq)
 CREATE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZCL_IND_IDENTIFY_FID, ZBPRO_ZCL_IdentifyInd, ZBPRO_ZCL_IdentifyIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_IdentifyInd)
 CREATE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZCL_PROFILE_WIDE_CMD_REPORT_ATTRIBUTES_IND_FID, ZBPRO_ZCL_ProfileWideCmdReportAttributesInd, ZBPRO_ZCL_ProfileWideCmdReportAttributesIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_ProfileWideCmdReportAttributesInd)
 CREATE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZCL_GROUPS_CMD_GET_GROUP_MEMBERSHIP_RESPONSE_IND_FID, ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd, ZBPRO_ZCL_GroupsCmdGetGroupMembershipIndParams_t, NoAppropriateType_t, RPC_C2S_ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd)
@@ -1110,6 +1153,7 @@ CREATE_SERVER_REQUEST_CALLBACK_FUNCTION(RF4CE_ZRC2_SET_PUSH_BUTTON_STIMULUS_FID,
 
 CREATE_SERVER_REQUEST_CALLBACK_FUNCTION(RF4CE_ZRC2_ENABLE_BINDING_FID, RF4CE_ZRC2_EnableBindingReq, RF4CE_ZRC2_BindingReqDescr_t, RF4CE_ZRC2_BindingConfParams_t, RPC_C2S_RF4CE_ZRC2_EnableBindingReq)
 
+CREATE_NON_RPC_REQUEST_FUNCTION(RF4CE_PROFILE_REQ_UNPAIR_FID, RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
 CREATE_SERVER_REQUEST_FUNCTION(RF4CE_PROFILE_REQ_UNPAIR_FID, RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
 
 /* for non-rpc */
@@ -1210,6 +1254,63 @@ void server_RF4CE_ZRC1_TargetBindReq_callback(RF4CE_ZRC1_BindReqDescr_t  *reques
     free(request);
     Zigbee_Rpc_Send((unsigned int *)message_tx, size, RPC_C2S_RF4CE_ZRC1_TargetBindReq | RPC_RESPONSE, Zigbee_Socket_ServerSend, info->socket);
     SYS_SchedulerPostTask(&requestDispatcherTask, 0);
+}
+
+void non_rpc_RF4CE_UnpairReq_callback(RF4CE_UnpairReqDescr_t  *request, RF4CE_UnpairConfParams_t *conf)
+{
+    int size = 0;
+    int message_tx[MAX_MSG_SIZE_IN_WORDS];
+
+    printf("ZIGBEE_RPC_API:  invoking RF4CE_UnpairReq Callback\n");
+    list_head *pos = 0;
+    int found = 0;
+    List_ServerReq_Info_t *info = 0;
+    if(RF4CE_SUCCESS == conf->status)
+        registerRemoveRegistryInfoForPairRef(request->params.pairingRef);
+
+    list_for_each(pos, &serverRequestListHeader){
+        if((info = GET_PARENT_BY_FIELD(List_ServerReq_Info_t, list, pos))->serverRequest == (int)request)
+        {
+            found = 1;
+            list_del(pos);
+            break;
+        }
+    }
+    if(!found){
+        printf("can't found the origin pointer\n");
+        return;
+    }
+
+    message_tx[0] = info->clientRequest;
+    free(info);
+    size += 1;
+    memcpy((char *)&message_tx[size], (char*)info->clientRequestData, sizeof(RF4CE_UnpairReqDescr_t));
+    size += WORDALIGN(sizeof(RF4CE_UnpairReqDescr_t));
+    message_tx[size] = (unsigned int)conf;
+    size += 1;
+    memcpy((char *)&message_tx[size], (char *)conf, sizeof(RF4CE_UnpairConfParams_t));
+    size += WORDALIGN(sizeof(RF4CE_UnpairConfParams_t));
+    const MailServiceFunctionInfo_t *const functionInfo = Mail_ServiceGetFunctionInfo(RF4CE_PROFILE_REQ_UNPAIR_FID);
+    if(MAIL_INVALID_OFFSET != functionInfo->confDataPointerOffset){
+        SYS_DataPointer_t *const dataPointer = (SYS_DataPointer_t *)
+                                            ((uint8_t *)conf + functionInfo->confDataPointerOffset);
+        int size_payload = SYS_GetPayloadSize(dataPointer);
+        SYS_CopyFromPayload((void*)&message_tx[size], dataPointer, 0, size_payload);
+        size += WORDALIGN(size_payload);
+        if(SYS_CheckPayload(dataPointer))
+           SYS_FreePayload(dataPointer);
+    }
+
+    if(MAIL_INVALID_OFFSET != functionInfo->reqDataPointerOffset){
+        SYS_DataPointer_t *const reqDataPointer = (SYS_DataPointer_t *)(
+            (uint8_t *)request + functionInfo->reqParametersOffset + functionInfo->reqDataPointerOffset);
+        if(SYS_CheckPayload(reqDataPointer))
+           SYS_FreePayload(reqDataPointer);
+    }
+    free(request);
+    Zigbee_Rpc_Send((unsigned int *)message_tx, size, RPC_C2S_RF4CE_UnpairReq | RPC_RESPONSE, Zigbee_Socket_ServerSend, info->socket);
+    SYS_SchedulerPostTask(&requestDispatcherTask, 0);
+
 }
 
 void server_RF4CE_UnpairReq_callback(RF4CE_UnpairReqDescr_t  *request, RF4CE_UnpairConfParams_t *conf)

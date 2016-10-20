@@ -43,17 +43,17 @@
 export LD_LIBRARY_PATH=.:../../../nexus/bin
 BUILDFONT=../../../nexus/bin/buildfont
 
-$BUILDFONT Arialbd.ttf 11 0 default arial_11.bwin_font
-$BUILDFONT Arialbd.ttf 24 1 default arial_black_24_aa.bwin_font
-$BUILDFONT Arialbd.ttf 25 0 default arial_black_25.bwin_font
-$BUILDFONT Arialbd.ttf 18 1 default arial_18_aa.bwin_font
-$BUILDFONT Arialbi.ttf 35 1 default arial_italic_35_aa.bwin_font
-$BUILDFONT verdana.ttf 10 1 default verdana_10.bwin_font
-$BUILDFONT verdana.ttf 12 1 default verdana_12.bwin_font
-$BUILDFONT verdana.ttf 14 1 default verdana_14.bwin_font
-$BUILDFONT verdana.ttf 17 1 default verdana_17.bwin_font
-$BUILDFONT verdana.ttf 18 1 default verdana_18.bwin_font
-$BUILDFONT verdanai.ttf 12 1 default verdanai_12.bwin_font
-$BUILDFONT verdanai.ttf 14 1 default verdanai_14.bwin_font
-$BUILDFONT verdanai.ttf 17 1 default verdanai_17.bwin_font
-$BUILDFONT verdanai.ttf 18 1 default verdanai_18.bwin_font
+$BUILDFONT Arialbd.ttf -size 11 arial_11.bwin_font
+$BUILDFONT Arialbd.ttf -size 24 -aa arial_black_24_aa.bwin_font
+$BUILDFONT Arialbd.ttf -size 25 arial_black_25.bwin_font
+$BUILDFONT Arialbd.ttf -size 18 -aa arial_18_aa.bwin_font
+$BUILDFONT Arialbi.ttf -size 35 -aa arial_italic_35_aa.bwin_font
+$BUILDFONT verdana.ttf -size 10 -aa verdana_10.bwin_font
+$BUILDFONT verdana.ttf -size 12 -aa verdana_12.bwin_font
+$BUILDFONT verdana.ttf -size 14 -aa verdana_14.bwin_font
+$BUILDFONT verdana.ttf -size 17 -aa verdana_17.bwin_font
+$BUILDFONT verdana.ttf -size 18 -aa verdana_18.bwin_font
+$BUILDFONT verdanai.ttf -size 12 -aa verdanai_12.bwin_font
+$BUILDFONT verdanai.ttf -size 14 -aa verdanai_14.bwin_font
+$BUILDFONT verdanai.ttf -size 17 -aa verdanai_17.bwin_font
+$BUILDFONT verdanai.ttf -size 18 -aa verdanai_18.bwin_font

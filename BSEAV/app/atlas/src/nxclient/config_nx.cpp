@@ -60,14 +60,16 @@ CConfigNx::~CConfigNx()
 
 eRet CConfigNx::initResources()
 {
-    NxClient_AllocSettings allocSettings;
-    uint16_t               i              = 0;
-    NEXUS_Error            nerror         = NEXUS_SUCCESS;
-    int                    nStreamers     = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
-    int                    nOutputsHdmi   = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_HDMI);
-    int                    nOutputsRfm    = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_RFM);
-    int                    nStillDecoders = GET_INT(&_cfg, RESOURCE_NUM_STILL_DECODERS);
-    int                    maxMosaics     = 0;
+    NxClient_AllocSettings      allocSettings;
+    uint16_t                    i                 = 0;
+    NEXUS_Error                 nerror            = NEXUS_SUCCESS;
+    int                         nStreamers        = GET_INT(&_cfg, RESOURCE_NUM_STREAMERS);
+    int                         nOutputsHdmi      = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_HDMI);
+    int                         nOutputsRfm       = GET_INT(&_cfg, RESOURCE_NUM_OUTPUTS_RFM);
+    int                         nStillDecoders    = GET_INT(&_cfg, RESOURCE_NUM_STILL_DECODERS);
+    int                         maxMosaics        = 0;
+    bool                        bSupportedDisplay = false;
+    NEXUS_PlatformConfiguration platformConfig;
 
 #ifdef NETAPP_SUPPORT
     int nRemotesBluetooth = GET_INT(&_cfg, RESOURCE_NUM_REMOTES_BLUETOOTH);
@@ -111,10 +113,24 @@ eRet CConfigNx::initResources()
     allocSettings.simpleAudioPlayback = 0;
     allocSettings.inputClient         = 2;
     allocSettings.simpleEncoder       = 0;
-    allocSettings.surfaceClient       = 1;
+
+    {
+        NEXUS_Platform_GetConfiguration(&platformConfig);
+        for (i = 0; i < 2; i++)
+        {
+            bSupportedDisplay |= (true == platformConfig.supportedDisplay[i]);
+        }
+
+        if (true == bSupportedDisplay)
+        {
+            allocSettings.surfaceClient = 1;
+
 #ifdef DCC_SUPPORT
-    allocSettings.surfaceClient++;
+            allocSettings.surfaceClient++;
 #endif
+        }
+    }
+
     nerror = NxClient_Alloc(&allocSettings, &_allocResultsMain);
     CHECK_NEXUS_ERROR_ASSERT("error unable to allocate the minimum number of resources", nerror);
 

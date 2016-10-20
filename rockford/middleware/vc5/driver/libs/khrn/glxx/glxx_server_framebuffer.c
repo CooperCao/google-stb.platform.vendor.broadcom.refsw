@@ -586,7 +586,6 @@ GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
       GLenum pname, GLint* params)
 {
    GLXX_SERVER_STATE_T *state = glxx_lock_server_state_unchanged(OPENGL_ES_ANY);
-   KHRN_IMAGE_T *image;
 
    if (!state)
       return;
@@ -597,21 +596,22 @@ GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
       goto out;
    }
 
-   if (state->bound_renderbuffer == NULL)
+   const GLXX_RENDERBUFFER_T *rb = state->bound_renderbuffer;
+   if (rb == NULL)
    {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       goto out;
    }
 
-   image = state->bound_renderbuffer ? state->bound_renderbuffer->image : NULL;
+   const KHRN_IMAGE_T *image = rb->image;
 
    switch (pname)
    {
    case GL_RENDERBUFFER_WIDTH:
-      params[0] = image ? khrn_image_get_width(image) : 0;
+      params[0] = rb->width_pixels;
       break;
    case GL_RENDERBUFFER_HEIGHT:
-      params[0] = image ? khrn_image_get_height(image) : 0;
+      params[0] = rb->height_pixels;
       break;
    case GL_RENDERBUFFER_INTERNAL_FORMAT:
       params[0] = GL_RGBA4;
@@ -625,8 +625,7 @@ GL_API void GL_APIENTRY glGetRenderbufferParameteriv(GLenum target,
       params[0] = image ? gfx_lfmt_red_bits(image->api_fmt) : 0;
       break;
    case GL_RENDERBUFFER_SAMPLES:
-      /* number of samples of the image currently bound to renderbuffer */
-      params[0] = image ? state->bound_renderbuffer->ms_mode : GLXX_NO_MS;
+      params[0] = rb->ms_mode;
       break;
    case GL_RENDERBUFFER_GREEN_SIZE:
       params[0] = image ? gfx_lfmt_green_bits(image->api_fmt) : 0;

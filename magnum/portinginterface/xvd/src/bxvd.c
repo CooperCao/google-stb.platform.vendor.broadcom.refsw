@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1555,9 +1555,7 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
 
    BDBG_Level eDefaultDebugLevel;
 
-#if BDBG_DEBUG_BUILD
    uint32_t uiProtocolNum;
-#endif
 
    BDBG_ENTER(BXVD_OpenChannel);
 
@@ -1697,6 +1695,16 @@ BERR_Code BXVD_OpenChannel(BXVD_Handle                hXvd,
       pXvdCh->sChSettings.hChannelPictureBlock = pXvdCh->sChSettings.hChannelGeneralBlock;
       pXvdCh->sChSettings.uiChannelPictureBlockOffset = pXvdCh->sChSettings.uiChannelGeneralBlockOffset;
       pXvdCh->sChSettings.uiChannelPictureBlockSize = pXvdCh->sChSettings.uiChannelGeneralBlockSize;
+   }
+
+   for (uiProtocolNum = 0; uiProtocolNum < pXvdCh->sChSettings.uiVideoCmprCount; uiProtocolNum++)
+   {
+      if (pXvdCh->sChSettings.peVideoCmprStdList[uiProtocolNum] == BAVC_VideoCompressionStd_eVC1SimpleMain)
+      {
+         BDBG_MSG(("BXVD_OpenChannel() - Changing BAVC_VideoCompressionStd_eVC1SimpleMain to BAVC_VideoCompressionStd_eVC1"));
+
+         pXvdCh->sChSettings.peVideoCmprStdList[uiProtocolNum] = BAVC_VideoCompressionStd_eVC1;
+      }
    }
 
 #if BDBG_DEBUG_BUILD
@@ -2622,9 +2630,14 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       }
    }
 #endif
+#if  !BXVD_P_CORE_40BIT_ADDRESSIBLE
+#define BXVD_XPT_WR_PTR_OFFSET 4
+#else
+#define BXVD_XPT_WR_PTR_OFFSET 8
+#endif
 
    /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
-   uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read)+4);
+   uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
    uiCDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextReg );
 
    if (uiCDBBase != (uiCDBBase & (~0xff)))
@@ -2660,7 +2673,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
 #endif
 
    /* Calculate the register address for the appropriate context */
-   uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read)-4) + BCHP_PHYSICAL_OFFSET;
+   uiContextReg = ((pXvdCh->sDecodeSettings.pContextMap->CDB_Read) - BXVD_XPT_WR_PTR_OFFSET);
 
    BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context reg base = 0x%0*lx", BXVD_P_DIGITS_IN_LONG, (long)uiContextReg));
 
@@ -2671,7 +2684,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
       for (i=0; i< pXvdCh->sDecodeSettings.uiContextMapExtNum; i++)
       {
          /* Read CDB Base register to verify that the CDB Base is 256 byte aligned. */
-         uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)+4);
+         uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)+BXVD_XPT_WR_PTR_OFFSET);
          uiCDBBase = BXVD_Reg_Read32( pXvdCh->pXvd, uiContextRegExtend[i] );
 
          if (uiCDBBase != (uiCDBBase & (~0xff)))
@@ -2680,7 +2693,7 @@ BERR_Code BXVD_StartDecode(BXVD_ChannelHandle        hXvdChannel,
          }
 
          /* Calculate the register address for the appropriate context */
-         uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-4) + BCHP_PHYSICAL_OFFSET;
+         uiContextRegExtend[i] = ((pXvdCh->sDecodeSettings.aContextMapExtended[i]->CDB_Read)-BXVD_XPT_WR_PTR_OFFSET);
 
          BXVD_DBG_MSG(pXvdCh, ("BXVD_StartDecode() - XPT Rave Context Extended[%d] reg base = 0x%08x",
                                     i, uiContextRegExtend[i]));
@@ -4849,7 +4862,7 @@ void BXVD_SetPictureParameterInfo_isrsafe(BXVD_PictureParameterInfo *pInfo, cons
    pInfo->eFrameRateCode = pstMFDPicture->eFrameRateCode;
    pInfo->eMatrixCoefficients = pstMFDPicture->eMatrixCoefficients;
    pInfo->eTransferCharacteristics = pstMFDPicture->eTransferCharacteristics;
-   pInfo->ePreferredTransferCharacteristics = pstMFDPicture->ePreferredTransferCharacteristics; /* SWSTB-1629 */
+   /*pInfo->ePreferredTransferCharacteristics = pstMFDPicture->ePreferredTransferCharacteristics;*/ /* SWSTB-1629 */
    pInfo->uiSampleAspectRatioX = pstMFDPicture->uiSampleAspectRatioX;
    pInfo->uiSampleAspectRatioY = pstMFDPicture->uiSampleAspectRatioY;
    pInfo->ulSourceHorizontalSize = pstMFDPicture->ulSourceHorizontalSize;
@@ -4870,15 +4883,23 @@ void BXVD_SetPictureParameterInfo_isrsafe(BXVD_PictureParameterInfo *pInfo, cons
    pInfo->bValidAfd = pstMFDPicture->bValidAfd;
    pInfo->uiAfd = pstMFDPicture->ulAfd;
 
-   /* Copy HEVC HDR info */
-   pInfo->ulAvgContentLight = pstMFDPicture->ulAvgContentLight;
-   pInfo->ulMaxContentLight = pstMFDPicture->ulMaxContentLight;
-   pInfo->stDisplayPrimaries[0] = pstMFDPicture->stDisplayPrimaries[0];
-   pInfo->stDisplayPrimaries[1] = pstMFDPicture->stDisplayPrimaries[1];
-   pInfo->stDisplayPrimaries[2] = pstMFDPicture->stDisplayPrimaries[2];
-   pInfo->stWhitePoint = pstMFDPicture->stWhitePoint;
-   pInfo->ulMaxDispMasteringLuma = pstMFDPicture->ulMaxDispMasteringLuma;
-   pInfo->ulMinDispMasteringLuma = pstMFDPicture->ulMinDispMasteringLuma;
+   /* Copy HEVC HDR info.  SWSTB-2902: HDR data is copied directly from
+    * PPB->Unified Picture->MFD structure. The data being returned
+    * in the callback can come from either the Unified Picture or the MFD structure.
+    * Previously it was coming from the MFD structure.  This is broken
+    * when we are returning data for the first picture and it hasn't passed
+    * TSM, i.e the MFD.HDR fields have not been updated in BXDM_PPOUT_P_CalculateVdcData_isr.
+    * So copy the data here from the Unified Picture. */
+
+   pInfo->ulAvgContentLight = pstUnifiedPicture->stHDR.ulAvgContentLight;
+   pInfo->ulMaxContentLight = pstUnifiedPicture->stHDR.ulMaxContentLight;
+   pInfo->stDisplayPrimaries[0] = pstUnifiedPicture->stHDR.stDisplayPrimaries[0];
+   pInfo->stDisplayPrimaries[1] = pstUnifiedPicture->stHDR.stDisplayPrimaries[1];
+   pInfo->stDisplayPrimaries[2] = pstUnifiedPicture->stHDR.stDisplayPrimaries[2];
+   pInfo->stWhitePoint = pstUnifiedPicture->stHDR.stWhitePoint;
+   pInfo->ulMaxDispMasteringLuma = pstUnifiedPicture->stHDR.ulMaxDispMasteringLuma;
+   pInfo->ulMinDispMasteringLuma = pstUnifiedPicture->stHDR.ulMinDispMasteringLuma;
+   pInfo->ePreferredTransferCharacteristics = pstUnifiedPicture->stHDR.uiTransferCharacteristics; /* SWSTB-1629 */
 
    pInfo->uiMacroBlockCntInter = pstUnifiedPicture->stStats.stMacroBlockCount.uiInterCoded;
    pInfo->uiMacroBlockCntIntra = pstUnifiedPicture->stStats.stMacroBlockCount.uiIntraCoded;

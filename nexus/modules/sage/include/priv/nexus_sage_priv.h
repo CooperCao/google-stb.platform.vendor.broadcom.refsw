@@ -43,6 +43,7 @@
 #include "bsagelib.h"
 #include "priv/nexus_core.h"
 #include "bavc_types.h"
+#include "bsagelib_types.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -65,18 +66,22 @@ void NEXUS_Sage_RemoveWatchdogEvent_priv(BKNI_EventHandle event);
 /* Standby/Resume */
 NEXUS_Error NEXUS_SageModule_Standby_priv( bool enabled, const NEXUS_StandbySettings *pSettings);
 
-NEXUS_Error NEXUS_Sage_UpdateUrr(void);
+NEXUS_Error NEXUS_Sage_UpdateHeaps(void);
 NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList);
 void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList);
-NEXUS_Error NEXUS_Sage_UrrToggle(bool enable);
 NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void);
 NEXUS_Error NEXUS_Sage_P_SvpInit(void);
 NEXUS_Error NEXUS_Sage_P_SvpStart(void);
 void NEXUS_Sage_P_SvpStop(bool reset);
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+void NEXUS_Sage_P_SvpUninit(bool reset);
+#else
 void NEXUS_Sage_P_SvpUninit(void);
+#endif
 
 NEXUS_Error NEXUS_Sage_P_ARInit(void);
-void NEXUS_Sage_P_ARUninit(void);
+void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode);
+NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(void *pSettings);
 NEXUS_Error NEXUS_SageModule_P_AddRegion(uint32_t id, NEXUS_Addr offset, uint32_t size);
 NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void);
 

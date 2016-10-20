@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_display_module.h"
@@ -148,6 +140,7 @@ NEXUS_VideoInput_P_ConnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     NEXUS_Module_Lock(pVideo->modules.hdmiInput);
     NEXUS_HdmiInput_VideoConnected_priv((NEXUS_HdmiInputHandle)link->input->source, true);
     NEXUS_HdmiInput_SetFormatChangeCb_priv((NEXUS_HdmiInputHandle)link->input->source, NEXUS_VideoInput_P_CheckFormatChange_isr, link);
+    NEXUS_HdmiInput_SetHdrEvent_priv((NEXUS_HdmiInputHandle)link->input->source, link->hdrInputInfo.inputInfoUpdatedEvent);
     NEXUS_Module_Unlock(pVideo->modules.hdmiInput);
 
     return 0;
@@ -168,6 +161,7 @@ NEXUS_VideoInput_P_DisconnectHdmiInput(NEXUS_VideoInput_P_Link *link)
     NEXUS_Module_Lock(pVideo->modules.hdmiInput);
     NEXUS_HdmiInput_VideoConnected_priv((NEXUS_HdmiInputHandle)link->input->source, false);
     NEXUS_HdmiInput_SetFormatChangeCb_priv((NEXUS_HdmiInputHandle)link->input->source, NULL, NULL);
+    NEXUS_HdmiInput_SetHdrEvent_priv((NEXUS_HdmiInputHandle)link->input->source, NULL);
     NEXUS_Module_Unlock(pVideo->modules.hdmiInput);
 }
 

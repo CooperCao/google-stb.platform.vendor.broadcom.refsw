@@ -98,7 +98,8 @@ typedef enum NEXUS_AudioCodec
     NEXUS_AudioCodec_eIlbc,           /* Internet Low Bitrate Codec (see http://www.webrtc.org/ilbc-freeware)*/
     NEXUS_AudioCodec_eIsac,           /* Internet Speech Audio Codec */
     NEXUS_AudioCodec_eOpus,           /* Opus Audio Codec */
-    NEXUS_AudioCodec_eAls,            /* MPEG-4 Audio Lossless Codec */
+    NEXUS_AudioCodec_eAls,            /* MPEG-4 Audio Lossless Codec - ES */
+    NEXUS_AudioCodec_eAlsLoas,        /* MPEG-4 Audio Lossless Codec - LOAS packed */
     NEXUS_AudioCodec_eAc4,            /* AC-4 Audio Codec */
     NEXUS_AudioCodec_eMax
 } NEXUS_AudioCodec;

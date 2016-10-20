@@ -48,9 +48,9 @@ use bapi_classes;
 
 sub filter_file {
     my $file = shift;
-    return 1 if($file =~ /nexus_base_types_client.h$/ || $file =~ /nexus_base_os.h$/ );
+    return 1 if($file =~ /nexus_base_types_client.h$/ || $file =~ /nexus_base_os.h$/ || $file =~ /nexus_platform_init.h$/);
 
-    if (($file =~ /_init.h$/ && $file !~ /nexus_platform_init.h$/) ||
+    if (($file =~ /_init.h$/ ) ||
         $file =~ /\*/ || # skip not expaneded wildcards
         $file =~ /nexus_base_\w+.h$/) {
         return 0;
@@ -174,9 +174,6 @@ sub main
     }
 
     for $file (@file_list,@ARGV) {
-        next if ($mode ne 'kernelproxy' && $mode ne 'abiverify') && (bapi_classes::skip_thunk($file));
-        #print "bapi_main parsing $file\n";
-
         if( not filter_file($file)) {
             next;
         }

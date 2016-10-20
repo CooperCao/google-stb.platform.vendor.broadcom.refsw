@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:  $
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btnr.h"
@@ -73,12 +93,12 @@ BERR_Code BTNR_3461_SetRfFreq(
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
-    BTNR_P_3461_Settings *pTnrImplData;   
-       
+    BTNR_P_3461_Settings *pTnrImplData;
+
     uint8_t hab[17] = HAB_MSG_HDR(BTNR_ACQUIRE_PARAMS_WRITE, 0xC, BTNR_CORE_TYPE, BTNR_CORE_ID);
     uint8_t bandwidth = 0;
     BSTD_UNUSED(tunerMode);
-    
+
     BDBG_ENTER(BTNR_3461_SetRfFreq);
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
@@ -102,14 +122,14 @@ BERR_Code BTNR_3461_SetRfFreq(
             break;
         case 1700000:
             bandwidth = 5;
-            break;            
+            break;
         default:
             BDBG_ERR(("Invalid bandwidth, valid bandwidths are 8Mhz, 7Mhz, 6Mhz, 5Mhz and 1.7Mhz"));
     }
-    
-    hab[4] |= (bandwidth << 3);    
-    hab[4] |= (BTNR_TunerApplication_eTerrestrial + 1) << 6;  
-    hab[5] = 0x80;    
+
+    hab[4] |= (bandwidth << 3);
+    hab[4] |= (BTNR_TunerApplication_eTerrestrial + 1) << 6;
+    hab[5] = 0x80;
     hab[12] = (rfFreq >> 24);
     hab[13] = (rfFreq >> 16);
     hab[14] = (rfFreq >> 8);
@@ -120,7 +140,7 @@ done:
     BDBG_LEAVE(BTNR_3461_SetRfFreq);
     return retCode;
 }
-            
+
 BERR_Code BTNR_3461_GetRfFreq(
     BTNR_3461_Handle hDev,            /* [in] Device handle */
     uint32_t *rfFreq,                   /* [output] Returns tuner freq., in Hertz */
@@ -168,7 +188,7 @@ BERR_Code BTNR_3461_SetAgcRegVal(
     BSTD_UNUSED(hDev);
     BSTD_UNUSED(regOffset);
     BSTD_UNUSED(agcVal);
-    
+
     return retCode;
 }
 
@@ -176,7 +196,7 @@ BERR_Code BTNR_3461_GetInfo(
     BTNR_3461_Handle hDev,            /* [in] Device handle */
     BTNR_TunerInfo *tnrInfo             /* [out] Tuner information */
     )
-{   
+{
     BTNR_P_3461_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
 
@@ -198,25 +218,25 @@ BERR_Code BTNR_3461_GetPowerSaver(
     BTNR_3461_Handle hDev,                    /* [in] Device handle */
     BTNR_PowerSaverSettings *pwrSettings        /* [in] Power saver settings. */
     )
-{   
+{
     BTNR_P_3461_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
     uint8_t hab[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_READ, 0, BTNR_CORE_TYPE, BTNR_CORE_ID);
-    
+
     BDBG_ENTER(BTNR_3461_GetPowerSaver);
     BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );  
-    
+    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
+
     pTnrImplData = &hDev->settings;
-  
-    CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 9, false, true, 9 )); 
-    
+
+    CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 9, false, true, 9 ));
+
     if(hab[4] == 0xFF)
         pwrSettings->enable = 0;
     else
         pwrSettings->enable = 1;
 
-done:    
+done:
     return retCode;
 }
 
@@ -224,21 +244,21 @@ BERR_Code BTNR_3461_SetPowerSaver(
     BTNR_3461_Handle hDev,                    /* [in] Device handle */
     BTNR_PowerSaverSettings *pwrSettings /* [in] Power saver settings. */
     )
-{   
+{
     BERR_Code retCode = BERR_SUCCESS;
     uint8_t hab[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_ON, 0x0, BTNR_CORE_TYPE, BTNR_CORE_ID);
     uint8_t hab1[5] = HAB_MSG_HDR(BTNR_POWER_CTRL_OFF, 0x0, BTNR_CORE_TYPE, BTNR_CORE_ID);
 
     BDBG_ENTER(BTNR_3461_SetPowerSaver);
     BDBG_ASSERT( hDev );
-    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );    
- 
-    if(pwrSettings->enable) 
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab1, 5, hab1, 0, false, true, 5 ));
-    else        
-        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 0, false, true, 5 ));       
+    BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
-done:    
+    if(pwrSettings->enable)
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab1, 5, hab1, 0, false, true, 5 ));
+    else
+        CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, hab, 5, hab, 0, false, true, 5 ));
+
+done:
     BDBG_LEAVE(BTNR_3461_SetPowerSaver);
     return retCode;
 }
@@ -247,7 +267,7 @@ BERR_Code BTNR_3461_GetSettings(
     BTNR_3461_Handle hDev,    /* [in] Device handle */
     BTNR_Settings *settings     /* [out] TNR settings. */
     )
-{   
+{
     BTNR_P_3461_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
 
@@ -256,7 +276,7 @@ BERR_Code BTNR_3461_GetSettings(
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
     pTnrImplData = &hDev->settings;
-    settings->std = pTnrImplData->std;   
+    settings->std = pTnrImplData->std;
     settings->bandwidth = pTnrImplData->bandwidth;
 
     BDBG_LEAVE(BTNR_3461_GetSettings);
@@ -268,7 +288,7 @@ BERR_Code BTNR_3461_SetSettings(
     BTNR_Settings *settings     /* [in] TNR settings. */
     )
 
-{  
+{
     BTNR_P_3461_Settings *pTnrImplData;
     BERR_Code retCode = BERR_SUCCESS;
 
@@ -277,7 +297,7 @@ BERR_Code BTNR_3461_SetSettings(
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
     pTnrImplData = &hDev->settings;
-    pTnrImplData->std = settings->std;   
+    pTnrImplData->std = settings->std;
     pTnrImplData->bandwidth = settings->bandwidth;
 
     BDBG_LEAVE(BTNR_3461_SetSettings);
@@ -296,13 +316,13 @@ BERR_Code BTNR_3461_GetVersionInfo(
     BDBG_ASSERT( hDev );
     BDBG_ASSERT( hDev->magicId == DEV_MAGIC_ID );
 
-    CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 29, false, true, 29)); 
+    CHK_RETCODE(retCode, BHAB_SendHabCommand(hDev->hHab, buf, 5, buf, 29, false, true, 29));
     pVersionInfo->majorVersion = (buf[4] << 8) | buf[5];
     pVersionInfo->minorVersion = (buf[6] << 8) | buf[7];
     pVersionInfo->buildType = (buf[8] << 8) | buf[9];
     pVersionInfo->buildId = (buf[10] << 8) | buf[11];
-    
-done:    
+
+done:
     BDBG_LEAVE(BTNR_3461_GetVersionInfo);
     return( retCode );
 }

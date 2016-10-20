@@ -229,7 +229,7 @@ BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
    uint32_t val, Q_hi, Q_lo;
    uint8_t i, cap[5];
 
-   /* count nominal = M * frc_n(ndx) / fclk */
+   /* count nominal = M * frc_n(ndx) / fclk, where M=2^16-1, fclk=96e6 */
    uint32_t countNominal[5] = {199713379, 190954017, 187994561, 186991970, 179467839};  /* scaled 16.16 */
 
    /* set timer to max count @ 96MHz */
@@ -245,12 +245,12 @@ BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
 
       /* read rc oscillation count */
       BKNI_Sleep(2);
-      BSRF_P_ReadRegister(h, BCHP_SRFE_ANA_RC_OSC_CNT, &val);
+      BSRF_P_ReadRegister(h, BCHP_SRFE_ANA_RC_OSC_CNT, &val);  /* actual count */
 
-      /* calculate capv(ndxc) = Clng(cnt_act(ndxc)/cnt_nom(ndxc) * (14+capv_nom(ndxc)) - 14) */
+      /* calculate capv(ndxc) = Clng(cnt_act(ndxc)/cnt_nom(ndxc) * (15+capv_nom(ndxc)) - 14) */
       BMTH_HILO_64TO64_Div32(val, 0, countNominal[i], &Q_hi, &Q_lo); /* count scaled up 32.32 for division */
-      val = (Q_lo * 21) - 917504;   /* scaled 16.16 after divide */
-      val = (val + 32768) >> 16;     /* round */
+      val = (Q_lo * 24) - 917504;   /* scaled 16.16 after divide, times 15+capv=24, minus 14 */
+      val = (val + 32768) >> 16;    /* round */
       cap[i] = val & 0xF;           /* 4-bit cap values */
 
       //BKNI_Printf("cap%d=%02X\n", i, cap[i]);
@@ -259,11 +259,7 @@ BERR_Code BSRF_g1_Ana_P_CalibrateCaps(BSRF_ChannelHandle h)
    /* program cap values */
    val = (cap[0] << 28) | (cap[1] << 12) | (cap[2] << 8) | (cap[3] << 4) | cap[4];
    BSRF_P_WriteRegister(h, BCHP_SRFE_ANA_WRITER23_ADC, val);
-
-   if (cap[4] > 7)
-      BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x000000F0, cap[4] << 4);
-   else
-      BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x000000F0, 0x7 << 4);
+   BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x000000F0, cap[1] << 4);  /* same as calC_int1 */
 
    /* power down rc calibration */
    BSRF_P_AndRegister(h, BCHP_SRFE_ANA_WRITER25_ADC, ~0x00800000);

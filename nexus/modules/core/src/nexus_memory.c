@@ -438,6 +438,11 @@ NEXUS_Error NEXUS_Core_HeapMemcIndex_isrsafe(unsigned heapIndex, unsigned *pMemc
     return NEXUS_INVALID_PARAMETER;
 }
 
+unsigned NEXUS_Heap_GetMemcIndex_isrsafe(NEXUS_HeapHandle heap)
+{
+    return heap->settings.memcIndex;
+}
+
 NEXUS_Error NEXUS_Heap_GetStatus_driver_priv( NEXUS_HeapHandle heap, NEXUS_MemoryStatus *pStatus )
 {
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));

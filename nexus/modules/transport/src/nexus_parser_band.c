@@ -507,6 +507,9 @@ void NEXUS_ParserBand_P_GetDefaultSettings(unsigned index, NEXUS_ParserBandSetti
     pSettings->maxDataRate = pTransport->settings.maxDataRate.parserBand[index];
 #endif
     pSettings->forceRestamping = true;
+    NEXUS_CallbackDesc_Init(&pSettings->ccError);
+    NEXUS_CallbackDesc_Init(&pSettings->teiError);
+    NEXUS_CallbackDesc_Init(&pSettings->lengthError);
 }
 
 #if NEXUS_NUM_PARSER_BANDS

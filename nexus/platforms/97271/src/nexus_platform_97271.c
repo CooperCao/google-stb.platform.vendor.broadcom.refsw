@@ -110,7 +110,6 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
-    BCHP_MemoryInfo memInfo;
     NEXUS_PlatformStatus platformStatus;
 
 #if NEXUS_CPU_ARM64
@@ -144,9 +143,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             break;
     }
 
-    BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
-
-    BDBG_WRN(("Initialising %s platform in %s mode with %uMB RAM", board, mode, (unsigned)(memInfo.memc[0].size >> 20)));
+    BDBG_WRN(("Initialising %s platform in %s mode", board, mode));
 
     return NEXUS_SUCCESS;
 }

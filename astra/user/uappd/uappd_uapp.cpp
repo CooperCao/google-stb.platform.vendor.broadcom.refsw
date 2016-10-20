@@ -39,9 +39,16 @@
 #include <cstdlib>
 #include <cstring>
 #include <signal.h>
+#include <sys/wait.h>
+#include <fcntl.h>
 
 #include "uappd_uapp.h"
 #include "uappd_msg.h"
+
+void * coreDumpMem = NULL;
+typedef struct coredump_memregion {
+    unsigned int startAddr,endAddr, offset,flags;
+} coredump_memregion;
 
 void UserAppDmon::uappReap(int pid)
 {
@@ -353,6 +360,98 @@ void UserAppDmon::uappGetIdProc(
     tzioc_msg_send(hClient, pHdr);
 }
 
+void UserAppDmon::uappCoreDumpProc(
+    struct tzioc_msg_hdr *pHdr)
+{
+    int err = 0;
+
+    struct uappd_msg_uapp_coredump_cmd *pCmd =
+        (struct uappd_msg_uapp_coredump_cmd *)TZIOC_MSG_PAYLOAD(pHdr);
+
+    if (pHdr->ulLen != sizeof(*pCmd)) {
+        LOGE("Invalid user app stop cmd received");
+        return;
+    }
+
+    LOGD("User app Core dump cmd received, name %s Addr=0x%x size=0x%x", pCmd->name, pCmd->paddr, pCmd->bytes);
+    // Map physical address
+    coreDumpMem = tzioc_map_paddr(
+        UserAppDmon::hClient,
+        pCmd->paddr,
+        pCmd->bytes,
+        0);
+
+    if (!coreDumpMem) {
+        LOGE("Failed to map physical addr 0x%x, bytes 0x%x",
+            pCmd->paddr, pCmd->bytes);
+        return ;
+    }
+    UserApp *pUApp = NULL;
+    PeerApp *pPApp = NULL;
+
+    try {
+        // Check existing user apps
+        pUApp = uappFindName(pCmd->name);
+
+        if (!pUApp) {
+            LOGE("Failed to find existing user app %s", pCmd->name);
+            throw(-ENOENT);
+        }
+
+        LOGD("Found existing user app %s", pCmd->name);
+
+        // Check existing peer apps
+        pPApp = pUApp->pappFind(pHdr->ucOrig, pCmd->cookie);
+
+        if (!pPApp) {
+            LOGE("Failed to find existing peer app for user app %s", pCmd->name);
+            throw(-ENOENT);
+        }
+
+        LOGD("Found existing peer app for user app %s", pCmd->name);
+
+        // Remove peer app
+        pUApp->pappRmv(pPApp);
+        delete pPApp;
+
+        LOGD("Removed existing peer app for user app %s", pCmd->name);
+
+        // Stop user app process
+        if (pUApp->pappCnt == 0) {
+            err = pUApp->coredump();
+            if (err) {
+                LOGE("Failed to stop user app %s", pCmd->name);
+                throw(err);
+            }
+
+            LOGI("Stopped user app %s", pCmd->name);
+        }
+    }
+    catch (int exception) {
+        err = exception;
+    }
+
+    // Caution: reused the cmd buffer for rpy
+    struct uappd_msg_uapp_coredump_rpy *pRpy =
+        (struct uappd_msg_uapp_coredump_rpy *)TZIOC_MSG_PAYLOAD(pHdr);
+
+    // pRpy->cookie = pCmd->cookie
+    // pRpy->name = pCmd->name
+    pRpy->retVal = err;
+
+    pHdr->ucDest = pHdr->ucOrig;
+    pHdr->ucOrig = TZIOC_CLIENT_ID_UAPPD;
+    pHdr->ulLen  = sizeof(*pRpy);
+
+    tzioc_msg_send(hClient, pHdr);
+
+    // Unmap physical address
+    tzioc_unmap_paddr(
+        UserAppDmon::hClient,
+        pCmd->paddr,
+        pCmd->bytes);
+}
+
 int UserAppDmon::uappAdd(UserApp *pUApp)
 {
     for (uint32_t i = 0; i < UAPP_NUM_MAX; i++) {
@@ -445,6 +544,59 @@ int UserAppDmon::UserApp::terminate()
     }
     return 0;
 }
+
+int UserAppDmon::UserApp::coredump()
+{
+    int status;
+    kill(pid, SIGQUIT);
+    printf("Core Dump : SIQQUIT Returned\n");
+
+    /* Wait for child process to terminate*/
+    waitpid(pid, &status, WNOHANG);
+
+    /*Received Core Dump*/
+    FILE *fd= fopen("Core.core","r");
+    if (fd == nullptr) {
+        LOGE("Failed to open Core file");
+        return -1;
+    }
+    unsigned int * buf = (unsigned int *)coreDumpMem;
+    ssize_t rbytes = fread(buf, sizeof(unsigned long),20,fd);
+    if (rbytes == -1)
+        printf("Could not read Core file\n");
+
+    buf += sizeof(unsigned long) * 20;
+
+    int NumMemSections=0;
+    rbytes = fread(&NumMemSections, sizeof(int),1,fd);
+    if (rbytes == -1)
+        printf("Could not read Num Of mem Sections Core file\n");
+
+    *buf = NumMemSections;
+    buf +=  sizeof(int);
+
+    coredump_memregion *memRegion = (coredump_memregion *)malloc(sizeof(coredump_memregion) * NumMemSections);
+    rbytes = fread(memRegion, sizeof(coredump_memregion),NumMemSections,fd);
+    if (rbytes == -1)
+        printf("Could not read Num Of mem Sections Core file\n");
+
+    memcpy(buf,memRegion,(sizeof(coredump_memregion) * NumMemSections));
+    buf += (sizeof(coredump_memregion) * NumMemSections);
+
+    for(int i=0;i<NumMemSections; i++)
+    {
+        int size = memRegion[i].endAddr - memRegion[i].startAddr + 1;
+        rbytes = fread(buf, size,1,fd);
+        if (rbytes == -1)
+            printf("Could not read Num Of mem Sections Core file\n");
+        buf += size;
+    }
+    free(memRegion);
+    fclose(fd);
+
+    return 0;
+}
+
 
 int UserAppDmon::UserApp::getId()
 {

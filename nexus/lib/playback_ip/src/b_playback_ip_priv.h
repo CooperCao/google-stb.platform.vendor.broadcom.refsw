@@ -1670,7 +1670,8 @@ typedef struct B_PlaybackIp
     bool isPausedFromTrickMode;
     bool beginningOfStreamCallbackIssued; /* set when rewind has reached to the start of the stream and we have issued the callback. This avoids any further callbacks until next rewind operation. */
     bool endOfClientBufferCallbackIssued; /* set when fwd has reached to the end of the current stream buffer and we have issued the callback. This avoids any further callbacks until next fwd operation. */
-    B_PlaybackIpHandle playbackIp2;
+    BLST_Q_ENTRY(B_PlaybackIp) altAudioPlaybackIpListEntry;
+    BLST_Q_HEAD( altAudioPlaybackIpListHead, B_PlaybackIp) altAudioPlaybackIpListHead;        /* list of PlaybackIp contexts per alternate audio */
     B_PlaybackIpState *parentPlaybackIpState;
     bool trickmodeApiActive;
     B_PlaybackIp_EventCallback savedUserCallback;

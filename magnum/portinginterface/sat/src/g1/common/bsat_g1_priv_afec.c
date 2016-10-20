@@ -555,8 +555,10 @@ BERR_Code BSAT_g1_P_AfecOnMonitorLock_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 void BSAT_g1_P_AfecMpegLock_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+
+   BSTD_UNUSED(int_id);
+   BSTD_UNUSED(p);
    /* TBD... */
 }
 
@@ -566,8 +568,10 @@ void BSAT_g1_P_AfecMpegLock_isr(void *p, int int_id)
 ******************************************************************************/
 void BSAT_g1_P_AfecMpegNotLock_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+
+   BSTD_UNUSED(p);
+   BSTD_UNUSED(int_id);
    /* TBD... */
 }
 
@@ -2031,7 +2035,7 @@ BERR_Code BSAT_g1_P_AfecSetOpll_isr(BSAT_ChannelHandle h)
    }
    else
    {
-      BDBG_WRN(("Invalid mode: %08X\n", mode));
+      BDBG_WRN(("Invalid mode: %08X", mode));
       return BERR_INVALID_PARAMETER;
    }
 

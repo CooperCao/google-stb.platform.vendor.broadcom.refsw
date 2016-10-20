@@ -20,7 +20,7 @@ for filename in [
          name = m.group(1)
          value = m.group(2)
          #sys.stderr.write("{}\n".format(name))
-         if glenums.has_key(name):
+         if name in glenums:
             assert glenums[name] == value
          glenums[name] = value
 

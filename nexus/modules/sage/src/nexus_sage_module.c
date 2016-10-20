@@ -46,6 +46,7 @@
 #include "nexus_security_client.h"
 #include "bsagelib_boot.h"
 #include "bkni.h"
+#include "bchp_bsp_glb_control.h"
 
 #include "nexus_dma.h"
 #include "nexus_memory.h"
@@ -785,6 +786,17 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     /* Image Interface */
     void * img_context = NULL;
     BIMG_Interface img_interface;
+    BERR_Code magnum_rc;
+    BSAGElib_BootSettings bootSettings;
+    bool bRunning=false;
+
+    if(!(BREG_Read32(g_pCoreHandles->reg, BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT)
+        & BCHP_BSP_GLB_CONTROL_SCPU_SW_INIT_SCPU_SW_INIT_MASK))
+    {
+        bRunning=true;
+    }
+
+    BDBG_MSG(("SAGE is %s", bRunning ? "RUNNING" : "STOPPED"));
 
     frameworkImg.raw = &g_sage_module.framework;
     blImg.raw = &bl;
@@ -820,30 +832,31 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     rc = NEXUS_Sage_P_SAGELogInit();
     if (rc != NEXUS_SUCCESS) { goto err; }
 
-    /* Put SAGE CPU out of reset */
+    BSAGElib_Boot_GetDefaultSettings(&bootSettings);
+
+    bootSettings.pBootloader = bl.buf;
+    bootSettings.bootloaderSize = bl.len;
+    bootSettings.pFramework = g_sage_module.framework.buf;
+    bootSettings.frameworkSize = g_sage_module.framework.len;
+    bootSettings.pRegionMap = g_sage_module.pRegionMap;
+    bootSettings.regionMapNum = g_sage_module.regionMapNum;
+    bootSettings.logBufferOffset = (uint32_t)g_sage_module.logBufferHeapOffset;
+    bootSettings.logBufferSize = g_sage_module.logBufferHeapLen;
+
+    if(!bRunning)
     {
-        BERR_Code magnum_rc;
-        BSAGElib_BootSettings bootSettings;
-
-        BSAGElib_Boot_GetDefaultSettings(&bootSettings);
-
-        bootSettings.pBootloader = bl.buf;
-        bootSettings.bootloaderSize = bl.len;
-        bootSettings.pFramework = g_sage_module.framework.buf;
-        bootSettings.frameworkSize = g_sage_module.framework.len;
-        bootSettings.pRegionMap = g_sage_module.pRegionMap;
-        bootSettings.regionMapNum = g_sage_module.regionMapNum;
-        bootSettings.logBufferOffset = (uint32_t)g_sage_module.logBufferHeapOffset;
-        bootSettings.logBufferSize = g_sage_module.logBufferHeapLen;
-
+        /* Take SAGE CPU out of reset */
         magnum_rc = BSAGElib_Boot_Launch(g_NEXUS_sageModule.hSAGElib, &bootSettings);
-        if(magnum_rc != BERR_SUCCESS) {
-            rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
-            BDBG_ERR(("%s - BSAGElib_Boot_Launch() fails %d", __FUNCTION__, magnum_rc));
-            goto err;
-        }
+    } else {
+        /* Do some checks, that we can restart w/ SAGE already running */
+        magnum_rc = BSAGElib_Boot_HostReset(g_NEXUS_sageModule.hSAGElib, &bootSettings);
     }
 
+    if(magnum_rc != BERR_SUCCESS) {
+        rc = BERR_TRACE(NEXUS_NOT_INITIALIZED);
+        BDBG_ERR(("%s - BSAGElib_Boot_Launch() fails %d", __FUNCTION__, magnum_rc));
+        goto err;
+    }
 
     /* success */
     g_NEXUS_sageModule.reset = 0;
@@ -852,8 +865,24 @@ NEXUS_Error NEXUS_SageModule_P_Start(void)
     /* Check if SAGE BOOT happened and unblock BSageLib */
     NEXUS_Sage_P_MonitorBoot();
 
-    /* Init AR */
-    NEXUS_Sage_P_ARInit();
+    /* Init AR and system Crit */
+    rc=NEXUS_Sage_P_ARInit();
+    if(rc!=NEXUS_SUCCESS)
+    {
+        rc=BERR_TRACE(rc);
+        goto err;
+    }
+
+    if(bRunning)
+    {
+        /* Need to have SAGE verify region info has not changed.... */
+        rc=NEXUS_Sage_P_SystemCritRestartCheck((void *)&bootSettings);
+        if(rc!=NEXUS_SUCCESS)
+        {
+            rc=BERR_TRACE(rc);
+            goto err;
+        }
+    }
 
     /* Set this event so that everybody else knows SAGE is booted up */
     BKNI_SetEvent(g_NEXUS_sageModule.sageReadyEvent);
@@ -899,7 +928,7 @@ void NEXUS_SageModule_Uninit(void)
 
     NEXUS_LockModule();
 
-    NEXUS_Sage_P_ARUninit();
+    NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
 
     NEXUS_Sage_P_SvpStop(false);
     NEXUS_Sage_P_SvpUninit();

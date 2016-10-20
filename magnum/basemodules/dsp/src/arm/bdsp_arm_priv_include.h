@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -60,18 +60,19 @@
 
 /* BDSP_arm includes */
 #include "bdsp_arm.h"
-#include "bdsp_arm_mm_priv.h"
-#include "bdsp_arm_priv.h"
 #include "bdsp_arm_fw.h"
+#include "bdsp_arm_img.h"
+#include "bdsp_arm_mm_priv.h"
+#include "bdsp_arm_cit_priv.h"
+#include "bdsp_arm_priv.h"
+#include "bdsp_arm_cit_log.h"
+#include "bdsp_arm_fwdownload_priv.h"
 #include "bdsp_arm_cmdresp_priv.h"
 #include "bdsp_arm_dsp_priv.h"
-#include "bdsp_arm_fwdownload_priv.h"
-#include "bdsp_arm_cit_priv.h"
 #include "bdsp_arm_fwinterface_priv.h"
 #include "bdsp_arm_int_priv.h"
 #include "bdsp_arm_fw_settings.h"
 #include "bdsp_arm_fw_algo.h"
-#include "bdsp_arm_img.h"
 #include "bdsp_arm_version.h"
 
 #endif /* BDSP_ARM_PRIV_INCLUDE_H_ */

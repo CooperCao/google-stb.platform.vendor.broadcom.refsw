@@ -1605,7 +1605,14 @@ static BERR_Code BAPE_Decoder_P_Start(
                 format.type = BAPE_DataType_ePcm5_1;
                 break;
             case BAPE_MultichannelFormat_e7_1:
-                format.type = BAPE_DataType_ePcm7_1;
+                if ( BAPE_P_GetCodecMultichannelFormat(pSettings->codec) == BAPE_MultichannelFormat_e7_1 )
+                {
+                    format.type = BAPE_DataType_ePcm7_1;
+                }
+                else
+                {
+                    format.type = BAPE_DataType_ePcm5_1;
+                }
                 break;
             }
         }

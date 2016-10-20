@@ -523,9 +523,10 @@ static void NEXUS_TransportModule_P_Print(void)
         if (p) {
             NEXUS_PlaypumpStatus status;
             if (NEXUS_Playpump_GetStatus(p, &status)) continue;
-            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%)", status.index,
+            BDBG_LOG(("playpump %d: %s, fifo %u/%u(%u%%) %uKB played", status.index,
                 status.started?"started":"stopped",
-                (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0));
+                (unsigned)status.fifoDepth, (unsigned)status.fifoSize, status.fifoSize?(unsigned)(status.fifoDepth*100/status.fifoSize):0,
+                (unsigned)(status.bytesPlayed/1024)));
         }
     }
     #endif
@@ -534,10 +535,12 @@ static void NEXUS_TransportModule_P_Print(void)
             NEXUS_RecpumpStatus status;
             NEXUS_Recpump_P_PidChannel *pid;
             if (NEXUS_Recpump_GetStatus(pTransport->recpump[i], &status)) continue;
-            BDBG_LOG(("recpump %d: %s, RAVE %u, CDB fifo %u/%u(%u%%), ITB fifo %u/%u(%u%%)", status.rave.index,
+            BDBG_LOG(("recpump %d: %s, RAVE %u, CDB fifo %u/%u(%u%%) %uKB recorded, ITB fifo %u/%u(%u%%) %uKB recorded", status.rave.index,
                 status.started?"started":"stopped", status.rave.index,
                 (unsigned)status.data.fifoDepth, (unsigned)status.data.fifoSize, status.data.fifoSize?(unsigned)(status.data.fifoDepth*100/status.data.fifoSize):0,
-                (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize, status.index.fifoSize?(unsigned)(status.index.fifoDepth*100/status.index.fifoSize):0));
+                (unsigned)(status.data.bytesRecorded/1024),
+                (unsigned)status.index.fifoDepth, (unsigned)status.index.fifoSize, status.index.fifoSize?(unsigned)(status.index.fifoDepth*100/status.index.fifoSize):0,
+                (unsigned)(status.index.bytesRecorded/1024)));
 
             for (pid=BLST_S_FIRST(&pTransport->recpump[i]->pid_list); pid; pid=BLST_S_NEXT(pid, link)) {
                 BDBG_LOG(("  added_pidchannel %u", pid->pidChn->hwPidChannel->status.pidChannelIndex));

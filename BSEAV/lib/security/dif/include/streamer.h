@@ -165,6 +165,7 @@ public:
 private:
     void PrivateCopy(void *pDest, const void *pSrc, size_t nSize, bool flush);
 
+    static int s_nAllocatedSecureBuffers;
     NEXUS_DmaHandle m_dmaHandle;
     NEXUS_DmaJobHandle m_dmaJob;
 };
@@ -233,7 +234,7 @@ protected:
     size_t m_internallyPushed;
     size_t m_offset;
     NEXUS_PlaypumpHandle m_playpump;
-    uint8_t* m_playpumpBuffer;
+    IBuffer* m_playpumpBuffer;
     NEXUS_PidChannelHandle m_pidChannel;
 };
 

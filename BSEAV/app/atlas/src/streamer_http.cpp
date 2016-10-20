@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "server_http.h"
 #include "streamer_http.h"
@@ -163,26 +160,25 @@ void CStreamerHttp::setTranscodeOption(const char * str)
 {
     MString urlString = str;
     MString xcodeDetect;
-    int i;
+    int     i;
 
-/*    index = urlString.find('=', 0, true);*/
+    /*    index = urlString.find('=', 0, true);*/
 
-   if ((i = urlString.findRev(".xcode")) != -1)
-   {
-       _enableLuaXcode = true;
-   }
+    if ((i = urlString.findRev(".xcode")) != -1)
+    {
+        _enableLuaXcode = true;
+    }
 
-   if ((i = urlString.findRev(".720p")) != -1)
-   {
-       _xcodeProfile = "720p";
-   }
-   else if((i = urlString.findRev(".480p")) != -1)
-   {
-      _xcodeProfile = "480p";
-   }
-
+    if ((i = urlString.findRev(".720p")) != -1)
+    {
+        _xcodeProfile = "720p";
+    }
+    else
+    if ((i = urlString.findRev(".480p")) != -1)
+    {
+        _xcodeProfile = "480p";
+    }
 } /* setTranscodeOption */
-
 
 void CStreamerHttp::setStreamerInputType(const char * url)
 {
@@ -289,8 +285,8 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
             }
 
             _mediaFileAbsoloutePath = mediaDirectoryPath.s() + requestedUrlPath;
-            _enableLuaXcode = false;
-            _xcodeProfile = "720p";
+            _enableLuaXcode         = false;
+            _xcodeProfile           = "720p";
             if (mUrl.search())
             {
                 setProgram(mUrl.search());
@@ -320,9 +316,9 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
         else
         if (_streamerInputType == eHttpStreamerInputType_Tuner)
         {
-            int     i;
-            int     j;
-            MString requestedUrlPath;
+            int           i;
+            int           j;
+            MString       requestedUrlPath;
             CChannelMgr * pChannelMgr = NULL;
             CChannel *    pChannel    = NULL;
 
@@ -340,7 +336,7 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
                 CHECK_ERROR_GOTO("Do tuner specific operation ------------------------------->", ret, error);
             }
 
-            requestedUrlPath        = MString(_tuneChannelName.s());
+            requestedUrlPath = MString(_tuneChannelName.s());
             /* Setting the flags as per the client request suffixes and creating the requested URL path by removing the suffixes from the url */
 #if B_HAS_DTCP_IP
             if ((i = requestedUrlPath.findRev(".dtcpIp")) != -1) /* If client is requesting with dtcp_ip support ON*/
@@ -370,7 +366,6 @@ eRet CStreamerHttp::open(BIP_HttpRequestHandle hHttpRequest)
             }
 
             pChannel = pChannelMgr->findChannel(requestedUrlPath.s());
-
 
             if (NULL == pChannel)
             {
@@ -584,9 +579,6 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
     BIP_Status             bipStatus      = BIP_SUCCESS;
     BIP_HttpResponseStatus responseStatus = BIP_HttpResponseStatus_e500_InternalServerError;
     int                    i;
-    CModel *               pModel         = NULL;
-
-    pModel        = _pServerHttp->getModel();
 
     /* Create HttpStreamer. */
     {
@@ -771,10 +763,6 @@ eRet CStreamerHttp::start(BIP_HttpRequestHandle hHttpRequest)
     {
         BIP_HttpStreamerOutputSettings streamerOutputSettings;
         BIP_HttpStreamerProtocol       streamerProtocol;
-
-        CServerHttp * pServerHttp;
-
-        pServerHttp = getHttpServer();
 
         BIP_HttpStreamer_GetDefaultOutputSettings(&streamerOutputSettings);
 #if B_HAS_DTCP_IP

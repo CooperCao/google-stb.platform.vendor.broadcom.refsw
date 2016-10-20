@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,134 +70,134 @@
 /***************************************************************************
  *HDMI_RAM - HDMI Tx Packet RAM
  ***************************************************************************/
-#define BCHP_HDMI_RAM_GCP_0                      0x206fac00 /* [RW] Word 0 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_1                      0x206fac04 /* [RW] Word 1 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_2                      0x206fac08 /* [RW] Word 2 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_3                      0x206fac0c /* [RW] Word 3 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_4                      0x206fac10 /* [RW] Word 4 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_5                      0x206fac14 /* [RW] Word 5 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_6                      0x206fac18 /* [RW] Word 6 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_7                      0x206fac1c /* [RW] Word 7 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_GCP_8                      0x206fac20 /* [RW] Word 8 of HDMI General Control Packet */
-#define BCHP_HDMI_RAM_PACKET_1_0                 0x206fac24 /* [RW] Word 0 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_1                 0x206fac28 /* [RW] Word 1 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_2                 0x206fac2c /* [RW] Word 2 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_3                 0x206fac30 /* [RW] Word 3 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_4                 0x206fac34 /* [RW] Word 4 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_5                 0x206fac38 /* [RW] Word 5 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_6                 0x206fac3c /* [RW] Word 6 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_7                 0x206fac40 /* [RW] Word 7 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_1_8                 0x206fac44 /* [RW] Word 8 of RAM Packet 1 */
-#define BCHP_HDMI_RAM_PACKET_2_0                 0x206fac48 /* [RW] Word 0 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_1                 0x206fac4c /* [RW] Word 1 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_2                 0x206fac50 /* [RW] Word 2 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_3                 0x206fac54 /* [RW] Word 3 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_4                 0x206fac58 /* [RW] Word 4 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_5                 0x206fac5c /* [RW] Word 5 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_6                 0x206fac60 /* [RW] Word 6 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_7                 0x206fac64 /* [RW] Word 7 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_2_8                 0x206fac68 /* [RW] Word 8 of RAM Packet 2 */
-#define BCHP_HDMI_RAM_PACKET_3_0                 0x206fac6c /* [RW] Word 0 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_1                 0x206fac70 /* [RW] Word 1 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_2                 0x206fac74 /* [RW] Word 2 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_3                 0x206fac78 /* [RW] Word 3 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_4                 0x206fac7c /* [RW] Word 4 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_5                 0x206fac80 /* [RW] Word 5 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_6                 0x206fac84 /* [RW] Word 6 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_7                 0x206fac88 /* [RW] Word 7 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_3_8                 0x206fac8c /* [RW] Word 8 of RAM Packet 3 */
-#define BCHP_HDMI_RAM_PACKET_4_0                 0x206fac90 /* [RW] Word 0 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_1                 0x206fac94 /* [RW] Word 1 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_2                 0x206fac98 /* [RW] Word 2 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_3                 0x206fac9c /* [RW] Word 3 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_4                 0x206faca0 /* [RW] Word 4 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_5                 0x206faca4 /* [RW] Word 5 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_6                 0x206faca8 /* [RW] Word 6 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_7                 0x206facac /* [RW] Word 7 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_4_8                 0x206facb0 /* [RW] Word 8 of RAM Packet 4 */
-#define BCHP_HDMI_RAM_PACKET_5_0                 0x206facb4 /* [RW] Word 0 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_1                 0x206facb8 /* [RW] Word 1 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_2                 0x206facbc /* [RW] Word 2 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_3                 0x206facc0 /* [RW] Word 3 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_4                 0x206facc4 /* [RW] Word 4 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_5                 0x206facc8 /* [RW] Word 5 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_6                 0x206faccc /* [RW] Word 6 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_7                 0x206facd0 /* [RW] Word 7 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_5_8                 0x206facd4 /* [RW] Word 8 of RAM Packet 5 */
-#define BCHP_HDMI_RAM_PACKET_6_0                 0x206facd8 /* [RW] Word 0 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_1                 0x206facdc /* [RW] Word 1 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_2                 0x206face0 /* [RW] Word 2 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_3                 0x206face4 /* [RW] Word 3 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_4                 0x206face8 /* [RW] Word 4 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_5                 0x206facec /* [RW] Word 5 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_6                 0x206facf0 /* [RW] Word 6 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_7                 0x206facf4 /* [RW] Word 7 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_6_8                 0x206facf8 /* [RW] Word 8 of RAM Packet 6 */
-#define BCHP_HDMI_RAM_PACKET_7_0                 0x206facfc /* [RW] Word 0 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_1                 0x206fad00 /* [RW] Word 1 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_2                 0x206fad04 /* [RW] Word 2 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_3                 0x206fad08 /* [RW] Word 3 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_4                 0x206fad0c /* [RW] Word 4 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_5                 0x206fad10 /* [RW] Word 5 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_6                 0x206fad14 /* [RW] Word 6 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_7                 0x206fad18 /* [RW] Word 7 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_7_8                 0x206fad1c /* [RW] Word 8 of RAM Packet 7 */
-#define BCHP_HDMI_RAM_PACKET_8_0                 0x206fad20 /* [RW] Word 0 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_1                 0x206fad24 /* [RW] Word 1 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_2                 0x206fad28 /* [RW] Word 2 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_3                 0x206fad2c /* [RW] Word 3 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_4                 0x206fad30 /* [RW] Word 4 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_5                 0x206fad34 /* [RW] Word 5 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_6                 0x206fad38 /* [RW] Word 6 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_7                 0x206fad3c /* [RW] Word 7 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_8_8                 0x206fad40 /* [RW] Word 8 of RAM Packet 8 */
-#define BCHP_HDMI_RAM_PACKET_9_0                 0x206fad44 /* [RW] Word 0 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_1                 0x206fad48 /* [RW] Word 1 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_2                 0x206fad4c /* [RW] Word 2 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_3                 0x206fad50 /* [RW] Word 3 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_4                 0x206fad54 /* [RW] Word 4 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_5                 0x206fad58 /* [RW] Word 5 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_6                 0x206fad5c /* [RW] Word 6 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_7                 0x206fad60 /* [RW] Word 7 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_9_8                 0x206fad64 /* [RW] Word 8 of RAM Packet 9 */
-#define BCHP_HDMI_RAM_PACKET_10_0                0x206fad68 /* [RW] Word 0 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_1                0x206fad6c /* [RW] Word 1 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_2                0x206fad70 /* [RW] Word 2 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_3                0x206fad74 /* [RW] Word 3 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_4                0x206fad78 /* [RW] Word 4 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_5                0x206fad7c /* [RW] Word 5 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_6                0x206fad80 /* [RW] Word 6 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_7                0x206fad84 /* [RW] Word 7 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_10_8                0x206fad88 /* [RW] Word 8 of RAM Packet 10 */
-#define BCHP_HDMI_RAM_PACKET_11_0                0x206fad8c /* [RW] Word 0 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_1                0x206fad90 /* [RW] Word 1 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_2                0x206fad94 /* [RW] Word 2 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_3                0x206fad98 /* [RW] Word 3 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_4                0x206fad9c /* [RW] Word 4 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_5                0x206fada0 /* [RW] Word 5 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_6                0x206fada4 /* [RW] Word 6 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_7                0x206fada8 /* [RW] Word 7 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_11_8                0x206fadac /* [RW] Word 8 of RAM Packet 11 */
-#define BCHP_HDMI_RAM_PACKET_12_0                0x206fadb0 /* [RW] Word 0 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_1                0x206fadb4 /* [RW] Word 1 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_2                0x206fadb8 /* [RW] Word 2 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_3                0x206fadbc /* [RW] Word 3 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_4                0x206fadc0 /* [RW] Word 4 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_5                0x206fadc4 /* [RW] Word 5 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_6                0x206fadc8 /* [RW] Word 6 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_7                0x206fadcc /* [RW] Word 7 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_12_8                0x206fadd0 /* [RW] Word 8 of RAM Packet 12 */
-#define BCHP_HDMI_RAM_PACKET_13_0                0x206fadd4 /* [RW] Word 0 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_1                0x206fadd8 /* [RW] Word 1 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_2                0x206faddc /* [RW] Word 2 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_3                0x206fade0 /* [RW] Word 3 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_4                0x206fade4 /* [RW] Word 4 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_5                0x206fade8 /* [RW] Word 5 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_6                0x206fadec /* [RW] Word 6 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_7                0x206fadf0 /* [RW] Word 7 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_13_8                0x206fadf4 /* [RW] Word 8 of RAM Packet 13 */
-#define BCHP_HDMI_RAM_PACKET_RSVD_0              0x206fadf8 /* [RW] Reserved Word */
-#define BCHP_HDMI_RAM_PACKET_RSVD_1              0x206fadfc /* [RW] Reserved Word */
+#define BCHP_HDMI_RAM_GCP_0                      0x206fac00 /* [RW][32] Word 0 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_1                      0x206fac04 /* [RW][32] Word 1 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_2                      0x206fac08 /* [RW][32] Word 2 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_3                      0x206fac0c /* [RW][32] Word 3 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_4                      0x206fac10 /* [RW][32] Word 4 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_5                      0x206fac14 /* [RW][32] Word 5 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_6                      0x206fac18 /* [RW][32] Word 6 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_7                      0x206fac1c /* [RW][32] Word 7 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_GCP_8                      0x206fac20 /* [RW][32] Word 8 of HDMI General Control Packet */
+#define BCHP_HDMI_RAM_PACKET_1_0                 0x206fac24 /* [RW][32] Word 0 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_1                 0x206fac28 /* [RW][32] Word 1 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_2                 0x206fac2c /* [RW][32] Word 2 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_3                 0x206fac30 /* [RW][32] Word 3 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_4                 0x206fac34 /* [RW][32] Word 4 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_5                 0x206fac38 /* [RW][32] Word 5 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_6                 0x206fac3c /* [RW][32] Word 6 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_7                 0x206fac40 /* [RW][32] Word 7 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_1_8                 0x206fac44 /* [RW][32] Word 8 of RAM Packet 1 */
+#define BCHP_HDMI_RAM_PACKET_2_0                 0x206fac48 /* [RW][32] Word 0 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_1                 0x206fac4c /* [RW][32] Word 1 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_2                 0x206fac50 /* [RW][32] Word 2 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_3                 0x206fac54 /* [RW][32] Word 3 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_4                 0x206fac58 /* [RW][32] Word 4 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_5                 0x206fac5c /* [RW][32] Word 5 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_6                 0x206fac60 /* [RW][32] Word 6 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_7                 0x206fac64 /* [RW][32] Word 7 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_2_8                 0x206fac68 /* [RW][32] Word 8 of RAM Packet 2 */
+#define BCHP_HDMI_RAM_PACKET_3_0                 0x206fac6c /* [RW][32] Word 0 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_1                 0x206fac70 /* [RW][32] Word 1 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_2                 0x206fac74 /* [RW][32] Word 2 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_3                 0x206fac78 /* [RW][32] Word 3 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_4                 0x206fac7c /* [RW][32] Word 4 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_5                 0x206fac80 /* [RW][32] Word 5 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_6                 0x206fac84 /* [RW][32] Word 6 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_7                 0x206fac88 /* [RW][32] Word 7 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_3_8                 0x206fac8c /* [RW][32] Word 8 of RAM Packet 3 */
+#define BCHP_HDMI_RAM_PACKET_4_0                 0x206fac90 /* [RW][32] Word 0 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_1                 0x206fac94 /* [RW][32] Word 1 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_2                 0x206fac98 /* [RW][32] Word 2 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_3                 0x206fac9c /* [RW][32] Word 3 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_4                 0x206faca0 /* [RW][32] Word 4 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_5                 0x206faca4 /* [RW][32] Word 5 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_6                 0x206faca8 /* [RW][32] Word 6 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_7                 0x206facac /* [RW][32] Word 7 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_4_8                 0x206facb0 /* [RW][32] Word 8 of RAM Packet 4 */
+#define BCHP_HDMI_RAM_PACKET_5_0                 0x206facb4 /* [RW][32] Word 0 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_1                 0x206facb8 /* [RW][32] Word 1 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_2                 0x206facbc /* [RW][32] Word 2 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_3                 0x206facc0 /* [RW][32] Word 3 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_4                 0x206facc4 /* [RW][32] Word 4 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_5                 0x206facc8 /* [RW][32] Word 5 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_6                 0x206faccc /* [RW][32] Word 6 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_7                 0x206facd0 /* [RW][32] Word 7 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_5_8                 0x206facd4 /* [RW][32] Word 8 of RAM Packet 5 */
+#define BCHP_HDMI_RAM_PACKET_6_0                 0x206facd8 /* [RW][32] Word 0 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_1                 0x206facdc /* [RW][32] Word 1 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_2                 0x206face0 /* [RW][32] Word 2 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_3                 0x206face4 /* [RW][32] Word 3 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_4                 0x206face8 /* [RW][32] Word 4 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_5                 0x206facec /* [RW][32] Word 5 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_6                 0x206facf0 /* [RW][32] Word 6 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_7                 0x206facf4 /* [RW][32] Word 7 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_6_8                 0x206facf8 /* [RW][32] Word 8 of RAM Packet 6 */
+#define BCHP_HDMI_RAM_PACKET_7_0                 0x206facfc /* [RW][32] Word 0 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_1                 0x206fad00 /* [RW][32] Word 1 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_2                 0x206fad04 /* [RW][32] Word 2 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_3                 0x206fad08 /* [RW][32] Word 3 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_4                 0x206fad0c /* [RW][32] Word 4 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_5                 0x206fad10 /* [RW][32] Word 5 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_6                 0x206fad14 /* [RW][32] Word 6 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_7                 0x206fad18 /* [RW][32] Word 7 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_7_8                 0x206fad1c /* [RW][32] Word 8 of RAM Packet 7 */
+#define BCHP_HDMI_RAM_PACKET_8_0                 0x206fad20 /* [RW][32] Word 0 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_1                 0x206fad24 /* [RW][32] Word 1 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_2                 0x206fad28 /* [RW][32] Word 2 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_3                 0x206fad2c /* [RW][32] Word 3 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_4                 0x206fad30 /* [RW][32] Word 4 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_5                 0x206fad34 /* [RW][32] Word 5 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_6                 0x206fad38 /* [RW][32] Word 6 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_7                 0x206fad3c /* [RW][32] Word 7 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_8_8                 0x206fad40 /* [RW][32] Word 8 of RAM Packet 8 */
+#define BCHP_HDMI_RAM_PACKET_9_0                 0x206fad44 /* [RW][32] Word 0 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_1                 0x206fad48 /* [RW][32] Word 1 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_2                 0x206fad4c /* [RW][32] Word 2 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_3                 0x206fad50 /* [RW][32] Word 3 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_4                 0x206fad54 /* [RW][32] Word 4 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_5                 0x206fad58 /* [RW][32] Word 5 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_6                 0x206fad5c /* [RW][32] Word 6 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_7                 0x206fad60 /* [RW][32] Word 7 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_9_8                 0x206fad64 /* [RW][32] Word 8 of RAM Packet 9 */
+#define BCHP_HDMI_RAM_PACKET_10_0                0x206fad68 /* [RW][32] Word 0 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_1                0x206fad6c /* [RW][32] Word 1 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_2                0x206fad70 /* [RW][32] Word 2 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_3                0x206fad74 /* [RW][32] Word 3 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_4                0x206fad78 /* [RW][32] Word 4 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_5                0x206fad7c /* [RW][32] Word 5 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_6                0x206fad80 /* [RW][32] Word 6 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_7                0x206fad84 /* [RW][32] Word 7 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_10_8                0x206fad88 /* [RW][32] Word 8 of RAM Packet 10 */
+#define BCHP_HDMI_RAM_PACKET_11_0                0x206fad8c /* [RW][32] Word 0 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_1                0x206fad90 /* [RW][32] Word 1 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_2                0x206fad94 /* [RW][32] Word 2 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_3                0x206fad98 /* [RW][32] Word 3 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_4                0x206fad9c /* [RW][32] Word 4 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_5                0x206fada0 /* [RW][32] Word 5 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_6                0x206fada4 /* [RW][32] Word 6 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_7                0x206fada8 /* [RW][32] Word 7 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_11_8                0x206fadac /* [RW][32] Word 8 of RAM Packet 11 */
+#define BCHP_HDMI_RAM_PACKET_12_0                0x206fadb0 /* [RW][32] Word 0 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_1                0x206fadb4 /* [RW][32] Word 1 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_2                0x206fadb8 /* [RW][32] Word 2 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_3                0x206fadbc /* [RW][32] Word 3 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_4                0x206fadc0 /* [RW][32] Word 4 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_5                0x206fadc4 /* [RW][32] Word 5 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_6                0x206fadc8 /* [RW][32] Word 6 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_7                0x206fadcc /* [RW][32] Word 7 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_12_8                0x206fadd0 /* [RW][32] Word 8 of RAM Packet 12 */
+#define BCHP_HDMI_RAM_PACKET_13_0                0x206fadd4 /* [RW][32] Word 0 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_1                0x206fadd8 /* [RW][32] Word 1 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_2                0x206faddc /* [RW][32] Word 2 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_3                0x206fade0 /* [RW][32] Word 3 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_4                0x206fade4 /* [RW][32] Word 4 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_5                0x206fade8 /* [RW][32] Word 5 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_6                0x206fadec /* [RW][32] Word 6 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_7                0x206fadf0 /* [RW][32] Word 7 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_13_8                0x206fadf4 /* [RW][32] Word 8 of RAM Packet 13 */
+#define BCHP_HDMI_RAM_PACKET_RSVD_0              0x206fadf8 /* [RW][32] Reserved Word */
+#define BCHP_HDMI_RAM_PACKET_RSVD_1              0x206fadfc /* [RW][32] Reserved Word */
 
 /***************************************************************************
  *GCP_0 - Word 0 of HDMI General Control Packet

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2013 Broadcom Corporation
+ *  Copyright (C) 2010-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -115,6 +115,12 @@ typedef struct NEXUS_P_FileMux_EncoderState {
 } NEXUS_P_FileMux_EncoderState;
 
 #define NEXUS_FILE_MUX_P_MAX_DESCRIPTORS  16
+typedef struct NEXUS_P_FileMux_MemoryBlock {
+    /* BMMA_Handle mma; */
+    BMMA_Block_Handle mmaBlock;
+    NEXUS_MemoryBlockHandle block;
+} NEXUS_P_FileMux_MemoryBlock;
+
 struct NEXUS_FileMux {
     BDBG_OBJECT(NEXUS_FileMux)
     NEXUS_TimerHandle muxTimer;
@@ -149,16 +155,20 @@ struct NEXUS_FileMux {
         NEXUS_P_FileMux_EncoderState audio[NEXUS_MAX_MUX_PIDS];
         NEXUS_P_FileMux_EncoderState video[NEXUS_MAX_MUX_PIDS];
     } state;
-    struct {
-        BMMA_Handle mma;
-        BMMA_Block_Handle mmaBlock;
-        NEXUS_MemoryBlockHandle block;
-    } block;
+    NEXUS_P_FileMux_MemoryBlock videoFrame;
+    NEXUS_P_FileMux_MemoryBlock videoMeta;
+    NEXUS_P_FileMux_MemoryBlock simpleVideoFrame;
+    NEXUS_P_FileMux_MemoryBlock simpleVideoMeta;
+    NEXUS_P_FileMux_MemoryBlock audioFrame;
+    NEXUS_P_FileMux_MemoryBlock audioMeta;
+    NEXUS_P_FileMux_MemoryBlock simpleAudioFrame;
+    NEXUS_P_FileMux_MemoryBlock simpleAudioMeta;
 };
 
 typedef struct NEXUS_FileMux_P_State {
     NEXUS_ModuleHandle module;
     NEXUS_FileMuxModuleSettings config;
+    BMMA_Handle mma;
 } NEXUS_FileMux_P_State;
 
 extern NEXUS_FileMux_P_State g_NEXUS_FileMux_P_State;

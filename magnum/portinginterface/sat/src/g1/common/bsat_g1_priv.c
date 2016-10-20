@@ -1972,7 +1972,7 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
    BERR_Code retCode = BERR_SUCCESS;
    uint32_t stat = 0, addr, val = 0, shift;
    int i, pls_idx = -1, sid_idx = -1, mp_idx = -1;
-   bool bFound = false;
+   bool bFound = false, bRetry = false;
    BSAT_Mode mode;
    uint8_t sid, pls = 0, val8;
 
@@ -2054,6 +2054,7 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
       }
 
       /* find which slot the streamId is in SDS_OI_MPEG_CTL1/2 */
+      retry:
       for (i = 0, bFound = false; !bFound && (i < 8); i++)
       {
          if ((i == 0) || (i == 4))
@@ -2077,9 +2078,16 @@ BERR_Code BSAT_g1_P_GetStreamStatus(BSAT_ChannelHandle h, uint8_t streamId, BSAT
          pStatus->mpegErrorCount = hChn->mpegErrorCountMs[mp_idx];
          pStatus->mpegFrameCount = hChn->mpegFrameCountMs[mp_idx];
       }
-      else
+      else if (pStatus->lock)
       {
-         BDBG_WRN(("streamId 0x%X not found in SDS_OI_MPEG_CTL1/2", streamId));
+         BDBG_WRN(("locked streamId 0x%X not found in SDS_OI_MPEG_CTL1/2", streamId));
+         if (!bRetry)
+         {
+            bRetry = true;
+            BDBG_WRN(("reprogramming stream IDs for mpeg counters..."));
+            BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe(h);
+            goto retry;
+         }
       }
    }
    else

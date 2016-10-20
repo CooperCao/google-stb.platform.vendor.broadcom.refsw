@@ -95,6 +95,11 @@ BDBG_MODULE(dolby_ms12_dualplayback);
 #define EFFECTS_DECODE   2
 #define APPAUDIO_DECODE  3
 
+#define AC4_MODE_SS_SD    0 /**< single stream, single decode */
+#define AC4_MODE_SS_DD_SI 1 /**< single stream, dual decode, single instance */
+#define AC4_MODE_SS_DD_DI 2 /**< single stream, dual decode, dual instance */
+#define AC4_MODE_DS_DD    3 /**< dual stream, dual decode */
+
 #define INVALID_PID     0x1fff
 
 /***************************************************************************
@@ -121,6 +126,14 @@ Certification mode parameters for UDC Decoder
 /* |1111 1xxx xxxx xxxx| */
 #define DOLBY_UDC_OUTPUTMODE_CUSTOM_MASK           (0xf8000000)
 #define DOLBY_UDC_OUTPUTMODE_CUSTOM_SHIFT          (27)
+
+/***************************************************************************
+Summary:
+Certification mode parameters for AC4 Decoder
+***************************************************************************/
+/* |111x xxxx xxxx xxxx| */
+#define DOLBY_AC4_DECODEMODE_MASK                  (0xe0000000)
+#define DOLBY_AC4_DECODEMODE_SHIFT                 (29)
 
 static bool hdmiHdcpEnabled = false;
 static NEXUS_PlatformConfiguration platformConfig;
@@ -278,6 +291,11 @@ struct dolby_digital_plus_command_args {
     int mixerBalance;
     unsigned cut;
     unsigned boost;
+    unsigned ac4PresIdxMain;
+    unsigned ac4PresIdxAssoc;
+    char ac4PresIdMain[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
+    char ac4PresIdAssoc[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];
+    unsigned ac4DecodeMode;
 };
 
 /*--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -513,6 +531,12 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
     value = strchr(input, '=');
     *value = 0;
     value++;
+
+    /* get rid of the endl */
+    if ( strlen(value) > 0 )
+    {
+        value[strlen(value)-1] = 0;
+    }
 
     if ( !strcmp(input, "OUTPUTMODE") )
     {
@@ -944,70 +968,122 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
                 dolby->ac4CodecSettings.codecSettings.ac4.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eRf;
             }
         }
+        else if ( !strcmp(input, "AC4DRCSCALEHI") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi = 100;
+            if ( atoi(value) >= 0 && atoi(value) <= 100 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4DRCSCALELOW") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow = 100;
+            if ( atoi(value) >= 0 && atoi(value) <= 100 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4DRCSCALEHIDOWNMIX") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix = 100;
+            if ( atoi(value) >= 0 && atoi(value) <= 100 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix = atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4DRCSCALELOWDOWNMIX") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix = 100;
+            if ( atoi(value) >= 0 && atoi(value) <= 100 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix = atoi(value);
+            }
+        }
         else if ( !strcmp(input, "AC4PROGSELECT") )
         {
-            if ( atoi(value) > 2 || atoi(value) < 0 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.programSelection = 0;
-            }
-            else
+            dolby->ac4CodecSettings.codecSettings.ac4.programSelection = 0;
+            if ( atoi(value) <= 2 && atoi(value) >= 0 )
             {
                 dolby->ac4CodecSettings.codecSettings.ac4.programSelection = atoi(value);
             }
         }
+        else if ( !strcmp(input, "AC4DECODEMODE") )
+        {
+            dolby->ac4DecodeMode = 0;
+            if ( atoi(value) <= 3 && atoi(value) >= 0 )
+            {
+                dolby->ac4DecodeMode = atoi(value) + 1; /* add 1 for certification mode masking */
+            }
+        }
         else if ( !strcmp(input, "AC4PROGBALANCE") )
         {
-            if ( atoi(value) > 32 || atoi(value) < -32 )
+            dolby->ac4CodecSettings.codecSettings.ac4.programBalance = atoi(value);
+            if ( atoi(value) > 32 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.programBalance = 32;
+            }
+            if ( atoi(value) < -32 )
             {
                 dolby->ac4CodecSettings.codecSettings.ac4.programBalance = -32;
             }
-            else
+        }
+        else if ( !strcmp(input, "AC4PRESINDEXMAIN") )
+        {
+            if ( atoi(value) <= 511 && atoi(value) >= 0 )
             {
-                dolby->ac4CodecSettings.codecSettings.ac4.programBalance = atoi(value);
+                dolby->ac4PresIdxMain = atoi(value);
             }
         }
-        else if ( !strcmp(input, "AC4PRESID") )
+        else if ( !strcmp(input, "AC4PRESINDEXASSOC") )
         {
-            if ( atoi(value) > 511 || atoi(value) < 0 )
+            if ( atoi(value) <= 511 && atoi(value) >= 0 )
             {
-                dolby->ac4CodecSettings.codecSettings.ac4.presentationId = 0;
+                dolby->ac4PresIdxAssoc = atoi(value);
             }
-            else
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.presentationId = atoi(value);
-            }
+        }
+        else if ( !strcmp(input, "AC4PRESIDMAIN") )
+        {
+            strcpy(dolby->ac4PresIdMain, value);
+        }
+        else if ( !strcmp(input, "AC4PRESIDASSOC") )
+        {
+            strcpy(dolby->ac4PresIdAssoc, value);
         }
         else if ( !strcmp(input, "AC4DEAMOUNT") )
         {
-            if ( atoi(value) > 12 || atoi(value) < -12 )
+            dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = atoi(value);
+            if ( atoi(value) > 12 )
             {
-                dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = 0;
+                dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = 12;
             }
-            else
+            if ( atoi(value) < -12 )
             {
-                dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = atoi(value);
+                dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount = -12;
             }
         }
         else if ( !strcmp(input, "AC4PRESSELECT") )
         {
-            if ( atoi(value) > 2 || atoi(value) < 0 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex;
-            }
-            else
+            dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_eAuto;
+            if ( atoi(value) <= 2 && atoi(value) >= 0 )
             {
                 dolby->ac4CodecSettings.codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)atoi(value);
             }
         }
         else if ( !strcmp(input, "AC4ASSOCTYPE") )
         {
-            if ( atoi(value) > 3 || atoi(value) < 0 )
-            {
-                dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
-            }
-            else
+            dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = NEXUS_AudioAc4AssociateType_eNotSpecified;
+            if ( atoi(value) <= 3 && atoi(value) >= 0 )
             {
                 dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)atoi(value);
+            }
+        }
+        else if ( !strcmp(input, "AC4PREFERLANG") )
+        {
+            dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType = false;
+            if ( atoi(value) == 1 )
+            {
+                dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType = true;
             }
         }
         else if ( !strcmp(input, "AC4ASSOCMIXING") )
@@ -1020,11 +1096,25 @@ static void set_config(char *input, struct dolby_digital_plus_command_args *dolb
         }
         else if ( !strcmp(input, "AC4LANGPREF") )
         {
-            memcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, value, 6);
+            if ( strlen(value) <= 1 && atoi(value) == 0 )
+            {
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+            }
+            else
+            {
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, value);
+            }
         }
         else if ( !strcmp(input, "AC4LANGPREF2") )
         {
-            memcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, value, 6);
+            if ( strlen(value) <= 1 && atoi(value) == 0 )
+            {
+                memset(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, 0, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+            }
+            else
+            {
+                strcpy(dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, value);
+            }
         }
         else if ( !strcmp(input, "MIXERBALANCE") )
         {
@@ -1164,6 +1254,8 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
     printf("\t DOWNMIX_MODE = %d\n", (codecSettings.codecSettings.ac3Plus.stereoDownmixMode));
     if ( codecSettings.codec == NEXUS_AudioCodec_eAc3 || codecSettings.codec == NEXUS_AudioCodec_eAc3Plus )
     {
+        printf("DDP/AC3 SETTINGS\n");
+
         printf("\t RFMODE = %d\n", codecSettings.codecSettings.ac3Plus.drcMode);
         printf("\t RFMODE_DOWNMIX = %d\n", codecSettings.codecSettings.ac3Plus.drcModeDownmix);
         printf("\t DRCCUT = %d\n", codecSettings.codecSettings.ac3Plus.cut);
@@ -1173,8 +1265,11 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
         printf("\t SECONDARY_SUBSTREAMID = %d\n", codecSettings.codecSettings.ac3Plus.substreamId);
         printf("\t ATMOS = %d\n", codecSettings.codecSettings.ac3Plus.enableAtmosProcessing);
     }
-    else
+    else if ( codecSettings.codec == NEXUS_AudioCodec_eAacAdts || codecSettings.codec == NEXUS_AudioCodec_eAacLoas ||
+              codecSettings.codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings.codec == NEXUS_AudioCodec_eAacPlusLoas )
     {
+        printf("AAC SETTINGS\n");
+
         printf("\t RFMODE = %d\n", codecSettings.codecSettings.aacPlus.drcMode);
         printf("\t RFMODE_DOWNMIX = %d\n", codecSettings.codecSettings.aacPlus.drcMode);
         printf("\t DRCCUT = %d\n", codecSettings.codecSettings.aacPlus.cut);
@@ -1182,7 +1277,30 @@ static void print_settings(NEXUS_AudioDecoderSettings decodeSettings, NEXUS_Audi
         printf("\t DRCCUT_DOWNMIX = %d\n", codecSettings.codecSettings.aacPlus.cut);
         printf("\t DRCBOOST_DOWNMIX = %d\n", codecSettings.codecSettings.aacPlus.boost);
     }
+    else if ( codecSettings.codec == NEXUS_AudioCodec_eAc4 )
+    {
+        printf("AC4 SETTINGS\n");
 
+        printf("\t PRES INDEX MAIN = %d\n", dolby->ac4PresIdxMain);
+        printf("\t PRES INDEX ASSOC = %d\n", dolby->ac4PresIdxAssoc);
+        printf("\t PRES ID MAIN = %s\n", dolby->ac4PresIdMain);
+        printf("\t PRES ID ASSOC = %s\n", dolby->ac4PresIdAssoc);
+        printf("\t STEREO MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.stereoMode);
+        printf("\t DRC MODE = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcMode);
+        printf("\t DRC SCALEHI = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi);
+        printf("\t DRC SCALELOW = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow);
+        printf("\t DRC SCALEHI DOWNMIX = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix);
+        printf("\t DRC SCALELOW DOWNMIX = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix);
+        printf("\t DOWNMIX MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.drcModeDownmix);
+        printf("\t DECODE MODE = %d\n",dolby->ac4DecodeMode);
+        printf("\t PROGRAM SEL = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.programSelection );
+        printf("\t ASSOC MIXING = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing );
+        printf("\t DE AMOUNT = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount);
+        printf("\t MIXING BALANCE = %d\n",dolby->ac4CodecSettings.codecSettings.ac4.programBalance);
+        printf("\t SELECTION MODE = %d\n", dolby->ac4CodecSettings.codecSettings.ac4.selectionMode);
+        printf("\t PREFERRED LANG1 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection);
+        printf("\t PREFERRED LANG2 = %s\n",dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection);
+    }
     printf("\t MIXERBALANCE = %d\n", dolby->mixerBalance);
 
     printf("\t DAP_ENABLE = %d\n", dolby->enable_dap);
@@ -1795,18 +1913,57 @@ static void translate_args_to_codec_settings(unsigned idx, NEXUS_AudioDecoderHan
     else if ( codecSettings->codec == NEXUS_AudioCodec_eAc4 )
     {
         codecSettings->codecSettings.ac4.certificationMode = 0;
+        if ( dolby->ac4DecodeMode )
+        {
+            codecSettings->codecSettings.ac4.certificationMode |= (dolby->ac4DecodeMode << DOLBY_AC4_DECODEMODE_SHIFT) & DOLBY_AC4_DECODEMODE_MASK;
+        }
         codecSettings->codecSettings.ac4.stereoMode = dolby->ac4CodecSettings.codecSettings.ac4.stereoMode;
         codecSettings->codecSettings.ac4.drcMode = dolby->ac4CodecSettings.codecSettings.ac4.drcMode;
         codecSettings->codecSettings.ac4.drcModeDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcModeDownmix;
+        codecSettings->codecSettings.ac4.drcScaleHi = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHi;
+        codecSettings->codecSettings.ac4.drcScaleLow = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLow;
+        codecSettings->codecSettings.ac4.drcScaleHiDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleHiDownmix;
+        codecSettings->codecSettings.ac4.drcScaleLowDownmix = dolby->ac4CodecSettings.codecSettings.ac4.drcScaleLowDownmix;
         codecSettings->codecSettings.ac4.programSelection = dolby->ac4CodecSettings.codecSettings.ac4.programSelection;
+        /* Set up Codec type Specific params */
+        if ( idx == PRIMARY_DECODE )
+        {
+            /* certification decode mode overrides programSelection */
+            if ( dolby->ac4DecodeMode != 0 )
+            {
+                codecSettings->codecSettings.ac4.programSelection = 0;
+                if ( (dolby->ac4DecodeMode-1) != AC4_MODE_SS_DD_SI )
+                {
+                    codecSettings->codecSettings.ac4.programSelection = 1;
+                }
+            }
+            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxMain;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdMain);
+        }
+        else if ( idx == SECONDARY_DECODE )
+        {
+            /* certification decode mode overrides programSelection */
+            if ( dolby->ac4DecodeMode != 0 )
+            {
+                codecSettings->codecSettings.ac4.programSelection = 2;
+                if( (dolby->ac4DecodeMode-1) == AC4_MODE_DS_DD)
+                {
+                    codecSettings->codecSettings.ac4.programSelection  = 0;
+                }
+            }
+            dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex = dolby->ac4PresIdxAssoc;
+            strcpy(dolby->ac4CodecSettings.codecSettings.ac4.presentationId, dolby->ac4PresIdAssoc);
+        }
         codecSettings->codecSettings.ac4.programBalance = dolby->ac4CodecSettings.codecSettings.ac4.programBalance;
-        codecSettings->codecSettings.ac4.presentationId = dolby->ac4CodecSettings.codecSettings.ac4.presentationId;
+        codecSettings->codecSettings.ac4.presentationIndex = dolby->ac4CodecSettings.codecSettings.ac4.presentationIndex;
+        memcpy(codecSettings->codecSettings.ac4.presentationId, dolby->ac4CodecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
         codecSettings->codecSettings.ac4.dialogEnhancerAmount = dolby->ac4CodecSettings.codecSettings.ac4.dialogEnhancerAmount;
         codecSettings->codecSettings.ac4.selectionMode = dolby->ac4CodecSettings.codecSettings.ac4.selectionMode;
+        codecSettings->codecSettings.ac4.preferLanguageOverAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
         codecSettings->codecSettings.ac4.preferredAssociateType = dolby->ac4CodecSettings.codecSettings.ac4.preferredAssociateType;
         codecSettings->codecSettings.ac4.enableAssociateMixing = dolby->ac4CodecSettings.codecSettings.ac4.enableAssociateMixing;
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, 2);
-        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, 2);
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[0].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[0].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        memcpy(codecSettings->codecSettings.ac4.languagePreference[1].selection, dolby->ac4CodecSettings.codecSettings.ac4.languagePreference[1].selection, sizeof(char) * NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
     }
     else if ( codecSettings->codec == NEXUS_AudioCodec_eAacAdts || codecSettings->codec == NEXUS_AudioCodec_eAacLoas ||
               codecSettings->codec == NEXUS_AudioCodec_eAacPlusAdts || codecSettings->codec == NEXUS_AudioCodec_eAacPlusLoas )
@@ -1897,6 +2054,7 @@ int main(int argc, const char *argv[])
         BDBG_ASSERT(tempDecoder);
         NEXUS_AudioDecoder_GetCodecSettings(tempDecoder, NEXUS_AudioCodec_eAc3Plus, &dolby_args.ac3CodecSettings);
         NEXUS_AudioDecoder_GetCodecSettings(tempDecoder, NEXUS_AudioCodec_eAacPlus, &dolby_args.aacCodecSettings);
+        NEXUS_AudioDecoder_GetCodecSettings(tempDecoder, NEXUS_AudioCodec_eAc4, &dolby_args.ac4CodecSettings);
         NEXUS_AudioDecoder_Close(tempDecoder);
     }
 
@@ -1914,6 +2072,11 @@ int main(int argc, const char *argv[])
     dolby_args.boost = 100;
     /* Dapv2 parameters */
     dolby_args.deqNumBands = 10;
+    dolby_args.ac4PresIdxMain = 0xFFFFFFFF;
+    dolby_args.ac4PresIdxAssoc = 0xFFFFFFFF;
+    dolby_args.ac4PresIdMain[0] = '\0';
+    dolby_args.ac4PresIdAssoc[0] = '\0';
+    dolby_args.ac4DecodeMode = 0;
 
     Intialize_values(&dolby_args.deqFrequency[0], preset_freq[0], dolby_args.deqNumBands);
     Intialize_values((uint32_t *)&dolby_args.deqGain[0], preset_gain[0], dolby_args.deqNumBands);
@@ -2003,7 +2166,7 @@ int main(int argc, const char *argv[])
             NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
             stcSettings.timebase = NEXUS_Timebase_e0;
             stcSettings.mode = NEXUS_StcChannelMode_eAuto;
-			stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
+            stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
             stcChannel[i] = NEXUS_StcChannel_Open(i, &stcSettings);
             BDBG_ASSERT(stcChannel[i]);
             stc = stcChannel[i];
@@ -2273,7 +2436,7 @@ int main(int argc, const char *argv[])
                 case NEXUS_AudioCodec_eAacLoas:
                 case NEXUS_AudioCodec_eAacPlusAdts:
                 case NEXUS_AudioCodec_eAacPlusLoas:
-				case NEXUS_AudioCodec_eAc4:
+                case NEXUS_AudioCodec_eAc4:
                     break;
                 default:
                     if ( audioDecoders[i] )
@@ -3654,9 +3817,9 @@ rbuf_capture_from_rbuf_to_cap_q(rbuf_capture_channel_t *cap)
                                          cap->rbuf_reg_base + 0x08);
         cap->rbuf_prev_rdaddr = baseaddr;
         }
-		if(rbuf_cur_rdaddr == rbuf_cur_wraddr)
-		{
-			cap->rbuf_prev_wraddr = rbuf_cur_wraddr;
+        if(rbuf_cur_rdaddr == rbuf_cur_wraddr)
+        {
+            cap->rbuf_prev_wraddr = rbuf_cur_wraddr;
         }
     }
     /* Extract the wrap bit*/

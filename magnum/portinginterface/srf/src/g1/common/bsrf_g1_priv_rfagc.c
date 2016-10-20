@@ -241,11 +241,11 @@ BERR_Code BSRF_g1_Rfagc_P_SetSettings(BSRF_ChannelHandle h, BSRF_RfAgcSettings s
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_M, count);
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_N, threshold);
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_FRZ_THR, 0x0000000A); /* window freeze threshold */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_CTRL, 0x7000007F);    /* fixed clip threshold */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_CTRL, 0x70000076);    /* fixed clip threshold */
    BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_WIN_CTRL, ~0x00FFFF80, (settings.clipWindowSettings.step & 0x1FFFF) << 7);
 
    /* set rfagc control */
-   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL1, 0xC05CD6CA);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL1, 0xC054D6CA);
    BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_CTRL2, 0x31000732);
 
    if (hChn->bEnableFastDecay)

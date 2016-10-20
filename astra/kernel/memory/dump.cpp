@@ -55,25 +55,52 @@ struct ttblk_t {
     bool no_execute;
 };
 
+typedef struct coredump_memregion {
+    unsigned int startAddr,endAddr, offset,flags;
+} coredump_memregion;
 
-static inline void printblk(struct ttblk_t *cb, uint32_t va)
+static int buf_offset;
+
+static inline void printblk(struct ttblk_t *cb, uint32_t va,void *mem)
 {
-    printf("   %s block %08lx-%08lx  SW:%d MA:0x%x AP:0x%x %s\n",
+    if(mem)
+    {
+        coredump_memregion dump;
+        if(cb->sw_bits != 0x3) {
+            dump.startAddr = cb->start_addr;
+            dump.endAddr = (va - 1);
+            dump.offset = 0;
+            if(cb->access_perms == MEMORY_ACCESS_RW_USER)
+                dump.flags = 0x3 | (!(cb->no_execute)<<3);
+            else if (cb->access_perms == MEMORY_ACCESS_RO_USER)
+                dump.flags = 0x1 | (!(cb->no_execute)<<3);
+            else
+                dump.flags = 0x0;
+
+            memcpy((void *)((int)mem+buf_offset),(void *)&dump,sizeof(coredump_memregion));
+            buf_offset += sizeof(coredump_memregion);
+        }
+    }
+    else
+    {
+        printf("   %s block %08lx-%08lx  SW:%d MA:0x%x AP:0x%x %s\n",
            (cb->mem_attr & 0x7) ? "MEM" : "I/O",
            (long)cb->start_addr, (long)(va - 1),
            cb->sw_bits,
            cb->mem_attr, cb->access_perms,
            (cb->no_execute) ? "No Execute" : "Execute OK");
+    }
 }
 
 
 static void handle_block_valid(struct ttblk_t *cb, uint32_t va, int sw, int attr,
-                               int ap, int nx)
+                               int ap, int nx,void *mem)
 {
     if ((cb->start_addr == 0xFFFFFFFF) ||
         (cb->mem_attr != attr) || (cb->access_perms != ap) || (cb->sw_bits != sw)) {
-        if (cb->start_addr != 0xFFFFFFFF)
-            printblk(cb, va);
+        if (cb->start_addr != 0xFFFFFFFF) {
+            printblk(cb, va,mem);
+        }
         cb->sw_bits = sw;
         cb->start_addr = va;
         cb->mem_attr = attr;
@@ -82,21 +109,21 @@ static void handle_block_valid(struct ttblk_t *cb, uint32_t va, int sw, int attr
     }
 }
 
-static void handle_block_invalid(struct ttblk_t *cb, uint32_t va)
+static void handle_block_invalid(struct ttblk_t *cb, uint32_t va,void *mem)
 {
     if (cb->start_addr != 0xFFFFFFFF) {
-        printblk(cb, va);
+        printblk(cb, va,mem);
         cb->start_addr = 0xFFFFFFFF;
     }
 }
 
-
-void PageTable::dump()
+void PageTable::DumpPageTableInfo(void * mem)
 {
 
     const uint64_t *l1pt = l1Dir;
     struct ttblk_t curblk;
 
+    buf_offset =0;
     memset(&curblk, 0, sizeof(ttblk_t));
     curblk.start_addr = 0xffffffff;
 
@@ -131,7 +158,7 @@ void PageTable::dump()
                         int l2nx = (l2e >> 54) & 0x1;
                         int l2sw = (l2e >> 55) & 0xF;
                         if (!(l2e & 1)) {
-                            handle_block_invalid(&curblk, l2va);
+                            handle_block_invalid(&curblk, l2va,mem);
 
                             continue;
                         }
@@ -157,13 +184,13 @@ void PageTable::dump()
                                 int sw = (l3e >> 55) & 0xF;
                                 /* uint32_t l3pa_l32 = (uint32_t)(l3pa & 0xFFFFFFFF); */
                                 if (!(l3e & 1)) {
-                                    handle_block_invalid(&curblk, l3va);
+                                    handle_block_invalid(&curblk, l3va,mem);
                                     continue;
                                 }
                                 /* printf("Found L3 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
                                 /*        l3_idx, l3va, l3pa_u8, l3pa_l32); */
                                 handle_block_valid(&curblk, l3va, sw, l3mattr, l3ap,
-                                                   l3nx);
+                                                   l3nx,mem);
                                 if (l3pa_u8) {
                                     printf
                                         ("Warning! Can't handle 40-bit addresses yet!\n");
@@ -180,14 +207,14 @@ void PageTable::dump()
                             /* printf("Found L2 block entry %3d VA: %08x, PA: 0x%02x%08x\n", */
                             /*        l2_idx, l2va, l2pa_u8, l2pa_l32); */
                             handle_block_valid(&curblk, l2va, l2sw, l2mattr, l2ap,
-                                               l2nx);
+                                               l2nx,mem);
                         }
                     }
                 }
                 break;
 
             case 0x0:
-                handle_block_invalid(&curblk, l1va);
+                handle_block_invalid(&curblk, l1va,mem);
                 break;
 
             default:
@@ -198,4 +225,14 @@ void PageTable::dump()
         }
     }
 
+}
+
+void PageTable::dump()
+{
+    DumpPageTableInfo(NULL);
+}
+
+void PageTable::dumpInMem(void * mem)
+{
+    DumpPageTableInfo(mem);
 }

@@ -212,30 +212,37 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
         BDBG_MSG(("raw MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[i].memcIndex, i, (unsigned)(osRegion[i].length/(1024*1024)), (unsigned)(osRegion[i].length), BDBG_UINT64_ARG(osRegion[i].base)));
     }
 
-    /* filter out small regions */
-    for(i=0;i<NEXUS_MAX_MEMC;i++) {
-        int maxLength = -1;
-        int minLength = -1;
+    /* filter out all small regions */
+    for(;;) {
+        bool removed = false;
+        for(i=0;i<NEXUS_MAX_MEMC;i++) {
+            int maxLength = -1;
+            int minLength = -1;
 
-        for(j=0;j<last_region;j++) {
-            if(osRegion[j].memcIndex != i) {
-                continue;
+            for(j=0;j<last_region;j++) {
+                if(osRegion[j].memcIndex != i) {
+                    continue;
+                }
+                if(osRegion[j].length==0) {
+                    continue;
+                }
+                if(maxLength<0 || osRegion[j].length > osRegion[maxLength].length) {
+                    maxLength=j;
+                }
+                if(minLength<0 || osRegion[j].length < osRegion[minLength].length) {
+                    minLength=j;
+                }
             }
-            if(osRegion[j].length==0) {
-                continue;
-            }
-            if(maxLength<0 || osRegion[j].length > osRegion[maxLength].length) {
-                maxLength=j;
-            }
-            if(minLength<0 || osRegion[j].length < osRegion[minLength].length) {
-                minLength=j;
+            if(minLength>=0 && maxLength>=0) {
+                if(osRegion[minLength].length < osRegion[maxLength].length / 8 && osRegion[minLength].base < ((uint64_t)1)<<32) {
+                    BDBG_MSG(("removing MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[minLength].memcIndex, j, (unsigned)(osRegion[minLength].length/(1024*1024)), (unsigned)(osRegion[minLength].length), BDBG_UINT64_ARG(osRegion[minLength].base)));
+                    osRegion[minLength].length = 0; /* remove too small region */
+                    removed = true;
+                }
             }
         }
-        if(minLength>=0 && maxLength>=0) {
-            if(osRegion[minLength].length < osRegion[maxLength].length / 8 && osRegion[minLength].base < ((uint64_t)1)<<32) {
-                BDBG_MSG(("removing MEMC%u.%u %uMBytes(%#x) at " BDBG_UINT64_FMT "", osRegion[minLength].memcIndex, j, (unsigned)(osRegion[minLength].length/(1024*1024)), (unsigned)(osRegion[minLength].length), BDBG_UINT64_ARG(osRegion[minLength].base)));
-                osRegion[minLength].length = 0; /* remove too small region */
-            }
+        if(!removed) {
+            break;
         }
     }
     for(i=0;i<NEXUS_MAX_MEMC;i++) {
@@ -276,10 +283,10 @@ static NEXUS_Error NEXUS_Platform_P_SetHostMemoryFromInfo(const nexus_p_memory_i
             j++;
         }
     }
-    for(i=j;i<NEXUS_MAX_MEMC;i++) { /* clear extra regions */
+    last_region = j;
+    for(i=last_region;i<NEXUS_MAX_HEAPS;i++) { /* clear extra regions */
         osRegion[i].length = 0;
     }
-    last_region = j;
     for(i=0;i<NEXUS_MAX_MEMC;i++) { /* assign subIndex */
         unsigned subIndex=0;
         for(j=0;j<last_region;j++) {
@@ -390,6 +397,7 @@ struct NEXUS_Platform_P_AllocatorState {
         BMMA_RangeAllocator_Region firstRegion;
         BMMA_RangeAllocator_Block_Handle heaps[NEXUS_MAX_HEAPS];
         bool realAllocation;
+        bool ignoreFirst;
         struct {
             int regions;
             struct NEXUS_Platform_P_AllocatorRange heapRegion[3*NEXUS_MAX_HEAPS];
@@ -415,6 +423,7 @@ static bool NEXUS_Platform_P_AllocateInRegionOne(const BMMA_RangeAllocator_Regio
         return BMMA_RangeAllocator_AllocateInRegion_InBack(region, size, settings, allocation);
     }
 }
+
 static bool NEXUS_Platform_P_AllocateInRegion(void *context, const BMMA_RangeAllocator_Region *region, size_t size, const BMMA_RangeAllocator_BlockSettings *settings, BMMA_RangeAllocator_Region *allocation)
 {
     struct NEXUS_Platform_P_AllocatorState *state = context;
@@ -427,7 +436,9 @@ static bool NEXUS_Platform_P_AllocateInRegion(void *context, const BMMA_RangeAll
     }
     if(state->allocator.heapSettings->placement.first) {
         if(region->base != state->allocator.firstRegion.base) {
-            return false;
+            if(!state->allocator.ignoreFirst) {
+                 return false;
+            }
         }
 
         if(state->allocator.realAllocation) {
@@ -630,6 +641,7 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
 
     state->allocator.placement.regions = 0;
     state->allocator.realAllocation = realAllocation;
+    state->allocator.ignoreFirst = false;
     BKNI_Memset(state->allocator.heaps, 0, sizeof(state->allocator.heaps));
     BDBG_MSG(("MEMC%u %s heaps", memcIndex, realAllocation?"allocating":"sizing"));
 #if 0
@@ -728,6 +740,12 @@ static NEXUS_Error NEXUS_Platform_P_AllocateBmemHeaps(struct NEXUS_Platform_P_Al
             blockSettings.alignment = heap[heapIndex].alignment;
             state->allocator.heapSettings = &heap[heapIndex];
             rc = BMMA_RangeAllocator_Alloc(allocator, &state->allocator.heaps[heapIndex], heap_size, &blockSettings);
+            if(rc!=BERR_SUCCESS && heap[heapIndex].placement.first) {
+                BDBG_WRN(("Trying to place HEAP[%u] ignoring placement.first", heapIndex));
+                state->allocator.ignoreFirst = true;
+                rc = BMMA_RangeAllocator_Alloc(allocator, &state->allocator.heaps[heapIndex], heap_size, &blockSettings);
+                state->allocator.ignoreFirst = false;
+            }
             if(rc!=BERR_SUCCESS) {
                 BDBG_ERR(("MEMC%u Can't place HEAP[%u] %uMBytes(%u Bytes) with alignment %#x%s", memcIndex, heapIndex, (unsigned)(heap_size/(1024*1024)), (unsigned)heap_size,heap[heapIndex].alignment, heap[heapIndex].placement.sage?" SAGE":""));
                 return BERR_TRACE(rc);

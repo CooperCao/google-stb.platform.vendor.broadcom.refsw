@@ -1,16 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 # run gitprep on all atlas source files
 #   - replace existing files and do not save a backup
 #   - ignore linenoise opensource software
 
 # these call do NOT include ocap directory - add later
-GITPREP="git prep"
-
-if [ "$GITPREP" == "" ]; then
-    printf "ERROR: Unable to find gitprep script - please add location to your path\n"
-    exit 1
-fi
+GITPREP="git prep -u"
 
 # gitprep *.h *.c and *.cpp files
 find . -iregex '.*\.\(c\|cpp\|h\)' \

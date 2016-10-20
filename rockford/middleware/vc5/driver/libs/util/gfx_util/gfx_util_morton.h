@@ -13,6 +13,8 @@ FILE DESCRIPTION
 
 #include "gfx_util.h"
 
+VCOS_EXTERN_C_BEGIN
+
 /* See http://en.wikipedia.org/wiki/Morton_order */
 
 /* y\x 0      1      2      3      4      5      6      7
@@ -64,5 +66,7 @@ extern void gfx_morton_init(GFX_MORTON_STATE_T *state,
  * including the last one */
 extern bool gfx_morton_next(GFX_MORTON_STATE_T *state,
    uint32_t *x, uint32_t *y, bool *last);
+
+VCOS_EXTERN_C_END
 
 #endif

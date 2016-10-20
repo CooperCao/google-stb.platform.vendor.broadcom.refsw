@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -658,14 +658,17 @@ typedef enum NEXUS_AudioAc4AssociateType
 Summary:
 AC4 Presentation Status
 ***************************************************************************/
-#define NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      8
-#define NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH               36
+#define NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH      8
+#define NEXUS_AUDIO_AC4_NUM_LANGUAGES             2
+#define NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH    20
+#define NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH  36
 typedef struct NEXUS_AudioDecoderAc4PresentationStatus
 {
-    unsigned id;                                                        /* Identifier for this Presentation */
+    unsigned index;                                                     /* Index of this Presentation */
+    char id[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH];                    /* Unique Identifier for this Presentation */
     NEXUS_AudioAc4AssociateType associateType;                          /* Describes the contents of the Associate (Secondary) portion of this presenation */
     char name[NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH];                /* Name/Title of the Presentation */
-    char language[NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH];   /* Language of the Presentation */
+    char language[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];                /* Language of the Presentation */
 } NEXUS_AudioDecoderAc4PresentationStatus;
 
 /***************************************************************************
@@ -857,6 +860,7 @@ typedef enum NEXUS_AudioDecoderDolbyDrcMode
     NEXUS_AudioDecoderDolbyDrcMode_eCustomA,
     NEXUS_AudioDecoderDolbyDrcMode_eCustomD,
     NEXUS_AudioDecoderDolbyDrcMode_eOff,
+    NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget,
     NEXUS_AudioDecoderDolbyDrcMode_eMax
 } NEXUS_AudioDecoderDolbyDrcMode;
 
@@ -896,6 +900,12 @@ typedef struct NEXUS_AudioDecoderDolbySettings
 {
     NEXUS_AudioDecoderDolbyDrcMode drcMode; /* DRC mode for multichannel outputs */
     NEXUS_AudioDecoderDolbyDrcMode drcModeDownmix;  /* DRC mode for stereo downmixed data only.  Applicable to MS11 Licensed decoder only. */
+    unsigned customTargetLevel; /* Used with drcMode set to NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget.  Valid values are 0, which will result in DRC disabled,
+                                   23 and 24 which result in outputs of -23 and -24dB */
+    unsigned customTargetLevelDownmix; /* Used with drcModeDownmix set to NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget.  Valid values are 0, which will result in DRC disabled,
+                                          23 and 24 which result in outputs of -23 and -24dB */
+
+
     NEXUS_AudioDecoderDolbyStereoDownmixMode stereoDownmixMode;
 
     uint16_t cut;                       /* Cut factor */
@@ -1155,9 +1165,9 @@ Summary:
 ***************************************************************************/
 typedef enum NEXUS_AudioDecoderAc4PresentationSelectionMode
 {
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_eAuto,
     NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex,
-    NEXUS_AudioDecoderAc4PresentationSelectionMode_eLanguageCode,
-    NEXUS_AudioDecoderAc4PresentationSelectionMode_eAssociateType,
+    NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIdentifier,
     NEXUS_AudioDecoderAc4PresentationSelectionMode_eMax
 } NEXUS_AudioDecoderAc4PresentationSelectionMode;
 
@@ -1169,41 +1179,56 @@ Description:
 These settings control the parameters involved in the decode of AC-4.
 They only apply when the audio type is AC-4
 ***************************************************************************/
-#define NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH      6
-#define NEXUS_AUDIO_AC4_NUM_LANGUAGES             2
 typedef struct NEXUS_AudioDecoderAc4Settings
 {
     NEXUS_AudioDecoderDolbyDrcMode drcMode;         /* DRC (Dynamic Range Compression) Mode */
     NEXUS_AudioDecoderDolbyDrcMode drcModeDownmix;  /* DRC (Dynamic Range Compression) Mode for stereo downmix path */
 
+    uint16_t drcScaleHi;            /* In %, ranges from 0..100 */
+    uint16_t drcScaleLow;           /* In %, ranges from 0..100 */
+    uint16_t drcScaleHiDownmix;     /* In %, ranges from 0..100 */
+    uint16_t drcScaleLowDownmix;    /* In %, ranges from 0..100 */
+
     NEXUS_AudioDecoderStereoDownmixMode stereoMode; /* Stereo Downmix Mode */
 
-    unsigned programSelection;      /* Program Selection for embedded description (substream) program.
-                                       0 (Default) - decode main + description program,
+    unsigned programSelection;      /* Program Selection for current presentation.
+                                       0 (Default) - decode main + associate program,
                                        1 - decode main program only,
-                                       2 - decode description program only. */
+                                       2 - decode associate program only. */
+
     int programBalance;             /* Program balance adjusts the balance between the main and description
                                        programs. This control is for embedded description program only.
                                        Valid values are -32 to 32. -32 is main only, 32 is description only.
                                        Default is -32 */
 
-    unsigned presentationId;        /* Multiple "presentation" groups can exist within a single PID.
-                                       Use this field to pick the desired presentation. Valid values
-                                       are 0 - 511. Default value is 0 */
+    NEXUS_AudioDecoderAc4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the presentation -
+                                                                       Default setting is eAuto, allowing the decoder to choose based on the presence or absense
+                                                                       of Presentation Index or Id, followed by the various personalization parameters.;
+                                                                       eAuto setting should be used for certification testing */
+
+    unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
+                                          To select by presentation index, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIndex
+                                          Valid values are 0 - 511. Default value is 0.
+                                          See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information. */
+
+    char presentationId[NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
+                                                                    To select by presentation Id, set selectionMode = NEXUS_AudioDecoderAc4PresentationSelectionMode_ePresentationIdentifier
+                                                                    This unique id can come in short or long varieties, per the Dolby AC4 spec.
+                                                                    Presentation Ids are obtained from the Stream Status info.
+                                                                    See NEXUS_AudioDecoderStatus/NEXUS_AudioDecoderPresentationStatus for more information */
 
     int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
 
     unsigned certificationMode;     /* for internal use only */
 
-    NEXUS_AudioDecoderAc4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the default presentation -
-                                                                       By default, personalization is off, and the program index will be used */
 
-    /* optional personalization parameters - These parameters allow the user to personalize
-       how the decoder will select the presentation. These parameters can only be changed while decoding is stopped.
-       On the fly changes will not be honored until the next stop/start sequence */
+    /* optional personalization parameters */
+    bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
+                                             Default setting is false (Associate type is prioritized over Language) */
+
     struct {
         char selection[NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
-                                                                   6 characters should be truncated. */
+                                                                   8 characters should be truncated. */
     } languagePreference[NEXUS_AUDIO_AC4_NUM_LANGUAGES];
 
     NEXUS_AudioAc4AssociateType preferredAssociateType;

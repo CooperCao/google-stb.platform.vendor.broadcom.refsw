@@ -66,7 +66,6 @@
 #include "mxmlelement.h"
 #include "bmedia_probe.h"
 #include "record.h"
-#include "mixer.h"
 #include "audio_decode.h"
 
 #ifdef __cplusplus
@@ -125,30 +124,31 @@ public:
     CPid *                           getPid(uint16_t index, ePidType type);
     eRet                             createVideo(MString fileName, MString path);
     void                             setBand(CParserBand * pParserBand) { _pDecodeParserBand = pParserBand; }
+    CParserBand *                    getBand(void)                      { return(_pEncodeParserBand); }
     bool                             hasIndex()                         { return(_currentVideo->hasIndex()); }
     bool                             isActive(void);
     eRet                             openPids(CPidMgr * pPidMgr, bool record);
     void                             dump(void);
-    bool                             isAllocated(void)                                    { return(_allocated); }
+    bool                             isEncoding(void)                                     { return(_encoding); }
     void                             setBoardResources(CBoardResources * pBoardResources) { _pBoardResources = pBoardResources; }
     void                             setPlaybackList(CPlaybackList * pPlaybackList)       { _pPlaybackList = pPlaybackList; }
-    void                             setModel(CModel * pModel) { _pModel = pModel; }
+    void                             setModel(CModel * pModel)                            { _pModel = pModel; }
 protected:
     eRet simple_encoder_create(void);
     void simple_encoder_destroy(void);
     void checkinResources(void);
     eRet createVideo(void);
 
-    bool                              _allocated;
+    bool                              _encoding;
     CVideo *                          _currentVideo;
     CPidMgr                           _pidMgr;
     NEXUS_SimpleEncoderHandle         _encoder;
     NEXUS_SimpleEncoderServerSettings _encoderServerSettings;
     NEXUS_SimpleEncoderStartSettings  _startSettings;
     NEXUS_SimpleEncoderSettings       _encoderSettings;
-    CMixer      *                     _cmixer;
+    NEXUS_AudioMixerHandle            _mixer;
     CParserBand *                     _pDecodeParserBand;
-    CParserBand *                     _pRecordParserBand;
+    CParserBand *                     _pEncodeParserBand;
     CRecord *                         _pRecord;
     CRecpump *                        _pRecpump;
     CPlaypump *                       _pPlaypump[NEXUS_SIMPLE_ENCODER_NUM_PLAYPUMPS];

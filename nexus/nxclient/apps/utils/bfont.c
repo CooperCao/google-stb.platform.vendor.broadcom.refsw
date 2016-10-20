@@ -326,8 +326,12 @@ void bfont_close(bfont_t font)
             BKNI_Free(font->glyph_cache[i].mem);
         }
     }
-    BKNI_Free(font->glyph_cache);
-    BKNI_Free(font->char_map);
+    if (font->glyph_cache) {
+        BKNI_Free(font->glyph_cache);
+    }
+    if (font->char_map) {
+        BKNI_Free(font->char_map);
+    }
     bfont_p_close_freetype_font(font);
     BKNI_Free(font);
 }
@@ -810,15 +814,22 @@ int bfont_measure_text(bfont_t font, const char *text,
     return bfont_p_measure_text(font, text, len, width, height, base, bfont_text_type_utf8);
 }
 
-static bwin_font_glyph *bwin_p_get_glyph(bfont_t font, bfont_char ch)
+#define BDBG_MSG_CACHE(X) /* BDBG_MSG */
+
+/* returns 0 on hit. 'found' is index.
+returns -1 on miss, but 'found' will be the place where it could be inserted */
+static int bwin_p_search_cache(bfont_t font, bfont_char ch, unsigned *found)
 {
     /* binary search */
     unsigned low = 0; /* inclusive */
     unsigned high = font->cache_size; /* exclusive */
     while (high > low) {
         unsigned mid = low + (high-low)/2;
+        BDBG_MSG_CACHE(("cache search: %d %d(%c) %d", low, mid, font->char_map[mid], high));
         if (font->char_map[mid] == ch) {
-            return &font->glyph_cache[mid];
+            BDBG_MSG_CACHE(("cache hit: %c at %d", ch, mid));
+            *found = mid;
+            return 0;
         }
         else if (font->char_map[mid] < ch) {
             low = mid+1;
@@ -826,6 +837,16 @@ static bwin_font_glyph *bwin_p_get_glyph(bfont_t font, bfont_char ch)
         else {
             high = mid;
         }
+    }
+    *found = high;
+    return -1;
+}
+
+static bwin_font_glyph *bwin_p_get_glyph(bfont_t font, bfont_char ch)
+{
+    unsigned i;
+    if (!bwin_p_search_cache(font, ch, &i)) {
+        return &font->glyph_cache[i];
     }
     return bfont_p_get_freetype_glyph(font, ch);
 }
@@ -908,7 +929,7 @@ bfont_t bfont_open_freetype(const struct bfont_open_freetype_settings *psettings
     bfont_t font;
     FT_Library lib;
 
-    font = malloc(sizeof(*font));
+    font = BKNI_Malloc(sizeof(*font));
     if (!font) {
         return NULL;
     }
@@ -923,13 +944,13 @@ bfont_t bfont_open_freetype(const struct bfont_open_freetype_settings *psettings
     rc = FT_New_Face(lib, psettings->filename, 0, &font->face);
     if (rc) {
         BDBG_ERR(("FT_New_Face failed"));
-        free(font);
+        BKNI_Free(font);
         return NULL;
     }
 
     if (FT_Set_Pixel_Sizes(font->face, 0, font->size)) {
         BDBG_ERR(("FT_Set_Pixel_Sizes failed"));
-        free(font);
+        BKNI_Free(font);
         return NULL;
     }
 
@@ -960,6 +981,7 @@ static void bfont_p_close_freetype_font(bfont_t font)
 static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char ch)
 {
     bwin_font_glyph *glyph;
+    unsigned i;
 
     FT_UInt glyph_index = FT_Get_Char_Index(font->face, ch);
     FT_GlyphSlot slot = font->face->glyph;
@@ -988,28 +1010,41 @@ static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char ch)
         }
     }
 
+    if (!bwin_p_search_cache(font, ch, &i)) {
+        BDBG_ERR(("cache error"));
+        return NULL;
+    }
+
     /* now save it to the cache */
     if ((int)font->cache_size == font->cache_maxsize) {
         bwin_font_glyph *temp_glyph_cache;
         bfont_char *temp_char_map;
 
-        /* extend the cache by 10. This doesn't have to be terribly efficient
-        because production systems will run with prerendered fonts. */
-        font->cache_maxsize += 10;
+        /* double the cache */
+        font->cache_maxsize = font->cache_maxsize ? font->cache_maxsize*2:10;
+        BDBG_MSG_CACHE(("increase cache_maxsize to %d", font->cache_maxsize));
 
-        temp_glyph_cache = (bwin_font_glyph *)malloc(font->cache_maxsize * sizeof(bwin_font_glyph));
-        temp_char_map = (bfont_char *)malloc(font->cache_maxsize * sizeof(bfont_char));
-        memcpy(temp_glyph_cache, font->glyph_cache, font->cache_size * sizeof(bwin_font_glyph));
-        memcpy(temp_char_map, font->char_map, font->cache_size * sizeof(bfont_char));
-        free(font->glyph_cache);
-        free(font->char_map);
+        temp_glyph_cache = (bwin_font_glyph *)BKNI_Malloc(font->cache_maxsize * sizeof(bwin_font_glyph));
+        temp_char_map = (bfont_char *)BKNI_Malloc(font->cache_maxsize * sizeof(bfont_char));
+        if (font->cache_size) {
+            BKNI_Memcpy(temp_glyph_cache, font->glyph_cache, i*sizeof(temp_glyph_cache[0]));
+            BKNI_Memcpy(temp_char_map, font->char_map, i*sizeof(temp_char_map[0]));
+            if (i < font->cache_size) {
+                BKNI_Memcpy(&temp_glyph_cache[i+1], &font->glyph_cache[i], (font->cache_size-i)*sizeof(temp_glyph_cache[0]));
+                BKNI_Memcpy(&temp_char_map[i+1], &font->char_map[i], (font->cache_size-i)*sizeof(temp_char_map[0]));
+            }
+            BKNI_Free(font->glyph_cache);
+            BKNI_Free(font->char_map);
+        }
         font->glyph_cache = temp_glyph_cache;
         font->char_map = temp_char_map;
     }
-
-    /* store the glyph and all its metrics */
-    font->char_map[font->cache_size] = ch;
-    glyph = &font->glyph_cache[font->cache_size];
+    else if (i < font->cache_size) {
+        BKNI_Memmove(&font->char_map[i+1], &font->char_map[i], (font->cache_size-i)*sizeof(font->char_map[0]));
+        BKNI_Memmove(&font->glyph_cache[i+1], &font->glyph_cache[i], (font->cache_size-i)*sizeof(font->glyph_cache[0]));
+    }
+    font->char_map[i] = ch;
+    glyph = &font->glyph_cache[i];
     font->cache_size++;
     glyph->left = slot->bitmap_left;
     glyph->top = slot->bitmap_top;
@@ -1017,10 +1052,10 @@ static bwin_font_glyph *bfont_p_get_freetype_glyph(bfont_t font, bfont_char ch)
     glyph->height = slot->bitmap.rows;
     glyph->pitch = slot->bitmap.pitch;
     glyph->advance = slot->advance.x >> 6;
-    glyph->mem = malloc(slot->bitmap.rows * slot->bitmap.pitch);
-    memcpy(glyph->mem, slot->bitmap.buffer, slot->bitmap.rows * slot->bitmap.pitch);
+    glyph->mem = BKNI_Malloc(slot->bitmap.rows * slot->bitmap.pitch);
+    BKNI_Memcpy(glyph->mem, slot->bitmap.buffer, slot->bitmap.rows * slot->bitmap.pitch);
 
-    BDBG_MSG(("font cache add: %c, %d", ch, font->cache_size));
+    BDBG_MSG_CACHE(("font cache add: %c at %d, size %d", ch, i, font->cache_size));
     return glyph;
 }
 #else

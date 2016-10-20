@@ -117,7 +117,7 @@ void Scheduler::init() {
     idleQueue.init();
 #endif
 
-    printf("Scheduler Init Done \n");
+    printf("Scheduler init done \n");
 }
 
 void Scheduler::initSecondaryCpu() {

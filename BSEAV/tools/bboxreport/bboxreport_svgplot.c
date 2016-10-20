@@ -369,7 +369,7 @@ static int DrawWindowDisplay(
 
     displayIdx++;
 
-    free( description );
+    Bsysperf_Free( description );
 
     return( display_box_height + 30 );
 }                                                          /* DrawWindowDisplay */
@@ -394,7 +394,7 @@ static void DrawDecoder(
     DrawSemiCircle( X + width, rect_center, 0 );
     DrawArrow( X + width + 10 /*width of semicircle*/, rect_center+ 10, X + width + ( COLUMN_GAP/4 ), rect_center+ 10, "" ); /*connect decoder with vertical dashed line */
 
-    free( description );
+    Bsysperf_Free( description );
 }                                                          /* DrawDecoder */
 
 const char *get_maxformat_name(

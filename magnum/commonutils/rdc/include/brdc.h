@@ -115,6 +115,17 @@ Summary:
 #define BRDC_SLOT_ERR_ACQUIRE_SEMAPHORE        BERR_MAKE_CODE(BERR_RDC_ID, 5)
 
 /***************************************************************************
+Summary:
+    Symbol BRDC_64BIT_SUPPORT indicates whether or not 64-bit addressing in
+    RULs is supported.
+****************************************************************************/
+#ifdef BCHP_RDC_RUL_opcode_B64_REG_WRITE_IMM
+    #define BRDC_64BIT_SUPPORT 1
+#else
+    #define BRDC_64BIT_SUPPORT 0
+#endif
+
+/***************************************************************************
  * Enums
  ***************************************************************************/
 /***************************************************************************
@@ -456,34 +467,57 @@ Description:
 
 See Also:
 ****************************************************************************/
-#define BRDC_SET_OPCODE(opcode)             ((opcode) << 24)
-#define BRDC_GET_OPCODE(x)                  ((x) & UINT32_C(0xFF000000))
+#define BRDC_SET_OPCODE(opcode)             (((opcode) << BCHP_RDC_RUL_opcode_SHIFT) & BCHP_RDC_RUL_opcode_MASK)
+#define BRDC_GET_OPCODE(x)                  ((x) & (BCHP_RDC_RUL_opcode_MASK))
 
-#define BRDC_OP_NOP_OPCODE                  BRDC_SET_OPCODE(0x0)
-#define BRDC_OP_IMM_TO_REG_OPCODE           BRDC_SET_OPCODE(0x1)
-#define BRDC_OP_VAR_TO_REG_OPCODE           BRDC_SET_OPCODE(0x2)
-#define BRDC_OP_REG_TO_VAR_OPCODE           BRDC_SET_OPCODE(0x3)
-#define BRDC_OP_IMM_TO_VAR_OPCODE           BRDC_SET_OPCODE(0x4)
-#define BRDC_OP_IMMS_TO_REG_OPCODE          BRDC_SET_OPCODE(0x5)
-#define BRDC_OP_IMMS_TO_REGS_OPCODE         BRDC_SET_OPCODE(0x6)
-#define BRDC_OP_REG_TO_REG_OPCODE           BRDC_SET_OPCODE(0x7)
-#define BRDC_OP_REGS_TO_REGS_OPCODE         BRDC_SET_OPCODE(0x8)
-#define BRDC_OP_REG_TO_REGS_OPCODE          BRDC_SET_OPCODE(0x9)
-#define BRDC_OP_REGS_TO_REG_OPCODE          BRDC_SET_OPCODE(0xa)
-#define BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(0xb)
-#define BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(0xc)
-#define BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE    BRDC_SET_OPCODE(0xd)
-#define BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE    BRDC_SET_OPCODE(0xe)
-#define BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(0xf)
-#define BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(0x10)
-#define BRDC_OP_NOT_VAR_TO_VAR_OPCODE       BRDC_SET_OPCODE(0x11)
-#define BRDC_OP_VAR_ROR_TO_VAR_OPCODE       BRDC_SET_OPCODE(0x12)
-#define BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(0x13)
-#define BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(0x14)
-#define BRDC_OP_COND_SKIP_OPCODE            BRDC_SET_OPCODE(0x15)
-#define BRDC_OP_SKIP_OPCODE                 BRDC_SET_OPCODE(0x16)
-#define BRDC_OP_EXIT_OPCODE                 BRDC_SET_OPCODE(0x17)
-#define BRDC_OP_WAIT_EOP_OPCODE             BRDC_SET_OPCODE(0x18)
+#define BRDC_SET_COMMAND_arg(type, arg, r)  (((r) << BCHP_RDC_RUL_##type##_##arg##_SHIFT) & BCHP_RDC_RUL_##type##_##arg##_MASK)
+#define BRDC_GET_COMMAND_arg(type, arg, x)  (((x) &  BCHP_RDC_RUL_##type##_##arg##_MASK) >> BCHP_RDC_RUL_##type##_##arg##_SHIFT)
+
+#define BRDC_OP_NOP_OPCODE                  BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_NOP)
+#define BRDC_OP_IMM_TO_REG_OPCODE           BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_REG_WRITE_IMM)
+#define BRDC_OP_VAR_TO_REG_OPCODE           BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_REG_WRITE)
+#define BRDC_OP_REG_TO_VAR_OPCODE           BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_REG_READ)
+#define BRDC_OP_IMM_TO_VAR_OPCODE           BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_LOAD_IMM)
+#define BRDC_OP_IMMS_TO_REG_OPCODE          BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_WINDOW_WRITE)
+#define BRDC_OP_IMMS_TO_REGS_OPCODE         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_BLOCK_WRITE)
+#define BRDC_OP_REG_TO_REG_OPCODE           BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_WINDOW_COPY)
+#define BRDC_OP_REGS_TO_REGS_OPCODE         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_BLOCK_COPY)
+#define BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_AND)
+#define BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_AND_IMM)
+#define BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE    BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_OR)
+#define BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE    BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_OR_IMM)
+#define BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_XOR)
+#define BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_XOR_IMM)
+#define BRDC_OP_NOT_VAR_TO_VAR_OPCODE       BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_NOT)
+#define BRDC_OP_VAR_ROR_TO_VAR_OPCODE       BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_ROTATE_RIGHT)
+#define BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_SUM)
+#define BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE   BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_SUM_IMM)
+#define BRDC_OP_COND_SKIP_OPCODE            BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_COND_SKIP)
+#define BRDC_OP_SKIP_OPCODE                 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_SKIP)
+#define BRDC_OP_EXIT_OPCODE                 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_EXIT)
+#define BRDC_OP_WAIT_EOP_OPCODE             BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_WAIT_EOP)
+
+#if BRDC_64BIT_SUPPORT
+#define BRDC_OP_IMM_TO_REG_OPCODE64         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_REG_WRITE_IMM)
+#define BRDC_OP_VAR_TO_REG_OPCODE64         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_REG_WRITE)
+#define BRDC_OP_REG_TO_VAR_OPCODE64         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_REG_READ)
+#define BRDC_OP_IMM_TO_VAR_OPCODE64         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_LOAD_IMM)
+#define BRDC_OP_IMMS_TO_REG_OPCODE64        BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_WINDOW_WRITE)
+#define BRDC_OP_IMMS_TO_REGS_OPCODE64       BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_BLOCK_WRITE)
+#define BRDC_OP_REG_TO_REG_OPCODE64         BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_WINDOW_COPY)
+#define BRDC_OP_REGS_TO_REGS_OPCODE64       BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_BLOCK_COPY)
+#define BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_AND)
+#define BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_AND_IMM)
+#define BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64  BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_OR)
+#define BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64  BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_OR_IMM)
+#define BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_XOR)
+#define BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_XOR_IMM)
+#define BRDC_OP_NOT_VAR_TO_VAR_OPCODE64     BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_NOT)
+#define BRDC_OP_VAR_ROR_TO_VAR_OPCODE64     BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_ROTATE_RIGHT)
+#define BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_SUM)
+#define BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64 BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_SUM_IMM)
+#define BRDC_OP_COND_SKIP_OPCODE64          BRDC_SET_OPCODE(BCHP_RDC_RUL_opcode_B64_COND_SKIP)
+#endif
 
 /***************************************************************************
 Summary:
@@ -604,7 +638,8 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 /* this operation is followed by the register to write to (1 dword) */
-#define BRDC_OP_VAR_TO_REG(v)   ( BRDC_OP_VAR_TO_REG_OPCODE | ((v)<<12) )
+#define BRDC_OP_VAR_TO_REG(v)   ( BRDC_OP_VAR_TO_REG_OPCODE | \
+    BRDC_SET_COMMAND_arg(rdc_args, src1, v) )
 
 /***************************************************************************
 Summary:
@@ -633,7 +668,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_REG_TO_VAR(v)   ( BRDC_OP_REG_TO_VAR_OPCODE | (v) )
+#define BRDC_OP_REG_TO_VAR(v)   ( BRDC_OP_REG_TO_VAR_OPCODE | \
+    BRDC_SET_COMMAND_arg(rdc_args, dest, v) )
 
 /***************************************************************************
 Summary:
@@ -660,7 +696,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_IMM_TO_VAR(v)   ( BRDC_OP_IMM_TO_VAR_OPCODE | (v) )
+#define BRDC_OP_IMM_TO_VAR(v)   ( BRDC_OP_IMM_TO_VAR_OPCODE | \
+    BRDC_SET_COMMAND_arg(rdc_args, dest, v) )
 
 /***************************************************************************
 Summary:
@@ -690,7 +727,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_IMMS_TO_REG(num)   ( BRDC_OP_IMMS_TO_REG_OPCODE | ((num)-1) )
+#define BRDC_OP_IMMS_TO_REG(num)   ( BRDC_OP_IMMS_TO_REG_OPCODE | \
+    BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
 
 /***************************************************************************
 Summary:
@@ -729,7 +767,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_IMMS_TO_REGS(num)   ( BRDC_OP_IMMS_TO_REGS_OPCODE | ((num)-1) )
+#define BRDC_OP_IMMS_TO_REGS(num)   ( BRDC_OP_IMMS_TO_REGS_OPCODE | \
+    BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
 
 /***************************************************************************
 Summary:
@@ -762,7 +801,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_REG_TO_REG(num)     ( BRDC_OP_REG_TO_REG_OPCODE | ((num)-1) )
+#define BRDC_OP_REG_TO_REG(num)     ( BRDC_OP_REG_TO_REG_OPCODE | \
+    BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
 
 /***************************************************************************
 Summary:
@@ -794,69 +834,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_REGS_TO_REGS(num)   ( BRDC_OP_REGS_TO_REGS_OPCODE | ((num)-1) )
-
-/***************************************************************************
-Summary:
-    Register to registers command.
-
-Description:
-    Also called window to block copy, this command reads one external
-    register and writes its value into a set of consecutive external
-    registers.
-
-    Following this command is the source address of the register
-    wrapped in the BRDC_REGISTER macro followed by the first register
-    destination address wrapped in the BRDC_REGISTER macro.
-
-    Copy a block of data from a BVN window register to an array
-    of BVN registers.
-        bit 31 - 24 = 9, opcode
-        bit 23 - 12 = 0, reserved
-        bit 11 -  0 = num-1, cnt
-
-Input:
-    num - The number of registers to write to.
-
-Output:
-    Command for RDC list.
-
-See Also:
-    BRDC_REGISTER,
-    BRDC_List_Create,
-    BRDC_List_GetStartAddress_isr
-****************************************************************************/
-#define BRDC_OP_REG_TO_REGS(num)    ( BRDC_OP_REG_TO_REGS_OPCODE | ((num)-1) )
-
-/***************************************************************************
-Summary:
-    Registers to register command.
-
-Description:
-    Also called block to window copy, this command reads from a consecutive
-    set of registers and writes them into one register.
-
-    Following this command is the first address of the source registers
-    wrapped in the BREG_REGISTER macro followed by the destination
-    register address wrapped in the BREG_REGISTER macro.
-
-    Copy a block of data from an array of BVN registers.to a BVN window register.
-        bit 31 - 24 = 0xa, opcode
-        bit 23 - 12 = 0,   reserved
-        bit 11 -  0 = num-1, cnt
-
-Input:
-    num - The number of registers to read from.
-
-Output:
-    Command for RDC list.
-
-See Also:
-    BRDC_REGISTER,
-    BRDC_List_Create,
-    BRDC_List_GetStartAddress_isr
-****************************************************************************/
-#define BRDC_OP_REGS_TO_REG(num)    ( BRDC_OP_REGS_TO_REG_OPCODE | ((num)-1) )
+#define BRDC_OP_REGS_TO_REGS(num)   ( BRDC_OP_REGS_TO_REGS_OPCODE | \
+    BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
 
 /***************************************************************************
 Summary:
@@ -888,7 +867,10 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_AND_VAR_TO_VAR(v1, v2, v3)  \
-    ( BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE | ((v1)<<12) | ((v2)<<6) | (v3) )
+    ( BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
 
 /***************************************************************************
 Summary:
@@ -920,7 +902,9 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_AND_IMM_TO_VAR(v1, v2)  \
-    ( BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE | ((v1)<<12) | (v2) )
+    ( BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
 
 /***************************************************************************
 Summary:
@@ -952,7 +936,10 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_OR_VAR_TO_VAR(v1, v2, v3)  \
-    ( BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE | ((v1)<<12) | ((v2)<<6) | (v3) )
+    ( BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
 
 /***************************************************************************
 Summary:
@@ -984,7 +971,9 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_OR_IMM_TO_VAR(v1, v2)  \
-    ( BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE | ((v1)<<12) | (v2) )
+    ( BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
 
 /***************************************************************************
 Summary:
@@ -1016,7 +1005,10 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_XOR_VAR_TO_VAR(v1, v2, v3)  \
-    ( BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE | ((v1)<<12) | ((v2)<<6) | (v3) )
+    ( BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
 
 /***************************************************************************
 Summary:
@@ -1048,7 +1040,9 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_XOR_IMM_TO_VAR(v1, v2)  \
-    ( BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE | ((v1)<<12) | (v2) )
+    ( BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
 
 /***************************************************************************
 Summary:
@@ -1079,7 +1073,9 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_NOT_VAR_TO_VAR(v1, v2)  \
-    ( BRDC_OP_NOT_VAR_TO_VAR_OPCODE | ((v1)<<12) | (v2) )
+    ( BRDC_OP_NOT_VAR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
 
 /***************************************************************************
 Summary:
@@ -1113,7 +1109,10 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_ROR_TO_VAR(v1, rotate, v2)  \
-    ( BRDC_OP_VAR_ROR_TO_VAR_OPCODE | ((rotate)<<18) | ((v1)<<12) | (v2) )
+    ( BRDC_OP_VAR_ROR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, rotation, rotate) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1,         v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest,         v2) )
 
 /***************************************************************************
 Summary:
@@ -1145,7 +1144,10 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_SUM_VAR_TO_VAR(v1, v2, v3)  \
-    ( BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE | ((v1)<<12) | ((v2)<<6) | (v3) )
+    ( BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
 
 /***************************************************************************
 Summary:
@@ -1176,7 +1178,9 @@ See Also:
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
 #define BRDC_OP_VAR_SUM_IMM_TO_VAR(v1, v2)  \
-    ( BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE | ((v1)<<12) | (v2) )
+    ( BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
 
 /***************************************************************************
 Summary:
@@ -1205,7 +1209,8 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_COND_SKIP(v)   ( BRDC_OP_COND_SKIP_OPCODE | ((v)<<12) )
+#define BRDC_OP_COND_SKIP(v)   ( BRDC_OP_COND_SKIP_OPCODE | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v) )
 
 /***************************************************************************
 Summary:
@@ -1280,7 +1285,91 @@ See Also:
     BRDC_List_Create,
     BRDC_List_GetStartAddress_isr
 ****************************************************************************/
-#define BRDC_OP_WAIT_EOP(v)         ( BRDC_OP_WAIT_EOP_OPCODE | (v))
+#define BRDC_OP_WAIT_EOP(v)         ( BRDC_OP_WAIT_EOP_OPCODE | \
+      BRDC_SET_COMMAND_arg(eop_args, eop, v) )
+
+#if BRDC_64BIT_SUPPORT
+/***************************************************************************
+Summary:
+    64-bit version of above RDC commands.
+
+Description:
+
+Output:
+    64-bit Commands for RDC list.
+
+See Also:
+    BRDC_REGISTER,
+    BRDC_List_Create,
+    BRDC_List_GetStartAddress_isr
+****************************************************************************/
+#define BRDC_OP_IMM_TO_REG64()    BRDC_OP_IMM_TO_REG_OPCODE64
+#define BRDC_OP_VAR_TO_REG64(v)   ( BRDC_OP_VAR_TO_REG_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v) )
+#define BRDC_OP_REG_TO_VAR64(v)   ( BRDC_OP_REG_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v) )
+#define BRDC_OP_IMM_TO_VAR64(v)   ( BRDC_OP_IMM_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v) )
+#define BRDC_OP_IMMS_TO_REG64(num)   ( BRDC_OP_IMMS_TO_REG_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_IMMS_TO_REGS64(num)   ( BRDC_OP_IMMS_TO_REGS_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_REG_TO_REG64(num)     ( BRDC_OP_REG_TO_REG_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_REGS_TO_REGS64(num)   ( BRDC_OP_REGS_TO_REGS_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_REG_TO_REGS64(num)    ( BRDC_OP_REG_TO_REGS_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_REGS_TO_REG64(num)    ( BRDC_OP_REGS_TO_REG_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(reg_args, count, (num)-1) )
+#define BRDC_OP_VAR_AND_VAR_TO_VAR64(v1, v2, v3) \
+    ( BRDC_OP_VAR_AND_VAR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
+#define BRDC_OP_VAR_AND_IMM_TO_VAR64(v1, v2)  \
+    ( BRDC_OP_VAR_AND_IMM_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_VAR_OR_VAR_TO_VAR64(v1, v2, v3)  \
+    ( BRDC_OP_VAR_OR_VAR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
+#define BRDC_OP_VAR_OR_IMM_TO_VAR64(v1, v2)  \
+    ( BRDC_OP_VAR_OR_IMM_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_VAR_XOR_VAR_TO_VAR64(v1, v2, v3)  \
+    ( BRDC_OP_VAR_XOR_VAR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
+#define BRDC_OP_VAR_XOR_IMM_TO_VAR64(v1, v2)  \
+    ( BRDC_OP_VAR_XOR_IMM_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_NOT_VAR_TO_VAR64(v1, v2)  \
+    ( BRDC_OP_NOT_VAR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_VAR_ROR_TO_VAR64(v1, rotate, v2)  \
+    ( BRDC_OP_VAR_ROR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, rotation, rotate) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_VAR_SUM_VAR_TO_VAR64(v1, v2, v3)  \
+    ( BRDC_OP_VAR_SUM_VAR_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, src2, v2) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v3) )
+#define BRDC_OP_VAR_SUM_IMM_TO_VAR64(v1, v2)  \
+    ( BRDC_OP_VAR_SUM_IMM_TO_VAR_OPCODE64 | \
+      BRDC_SET_COMMAND_arg(rdc_args, src1, v1) | \
+      BRDC_SET_COMMAND_arg(rdc_args, dest, v2) )
+#define BRDC_OP_COND_SKIP64(v) \
+    ( BRDC_OP_COND_SKIP_OPCODE64 | BRDC_SET_COMMAND_arg(rdc_args, src1, v) )
+#endif
 
 /***************************************************************************
 Summary:
@@ -1395,7 +1484,7 @@ typedef struct
 
 /***************************************************************************
 Summary:
-    Data structure descibe the slot configuration
+    Data structure describe the slot configuration
 
 Description:
     This data structure describes the slot configuration.  BVDC and upper
@@ -1411,6 +1500,48 @@ typedef struct
     bool               bHighPriority;
 
 } BRDC_Slot_Settings;
+
+/***************************************************************************
+Summary:
+    Some HDR hw blocks (HDMI Tx and ITM) must double-buffer large tables triggered
+    at the same time RDC double buffers the slot addr/count registers.
+
+Description:
+    This enum lists all the HW blocks that need RDC synchronizer's help to double buffer
+    their registers synchronously with the relevant RDC slot.
+
+See Also:
+    BRDC_SyncBlockSettings
+    BRDC_SetSyncBlockSettings_isr
+****************************************************************************/
+typedef enum BRDC_SyncBlockId
+{
+    /*  */
+    BRDC_SyncBlockId_eHdmi0,
+    BRDC_SyncBlockId_eItm0,
+    BRDC_SyncBlockId_eItm1,
+
+    BRDC_SyncBlockId_eMax
+} BRDC_SyncBlockId;
+
+/***************************************************************************
+Summary:
+    Some HDR hw blocks (HDMI Tx and ITM) must double-buffer large tables triggered
+    at the same time RDC double buffers the slot addr/count registers.
+
+Description:
+    This struct links the double-buffer block with the synchronizer associated with the slot.
+
+See Also:
+    BRDC_SyncBlockId
+    BRDC_SetSyncBlockSettings_isr
+****************************************************************************/
+typedef struct BRDC_SyncBlockSettings
+{
+    /* which slot-linked synchronizer will trigger the double-buffer of the block's big table */
+    BRDC_Slot_Handle    hSlot;
+
+} BRDC_SyncBlockSettings;
 
 
 /***************************************************************************
@@ -1584,6 +1715,34 @@ BERR_Code BRDC_Resume
 
 /***************************************************************************
 Summary:
+    Some HDR hw blocks (HDMI Tx and ITM) must double-buffer large tables triggered
+    at the same time RDC double buffers the slot addr/count registers.
+
+Description:
+    This API links the double-buffer hw block with the synchronizer associated with the slot.
+
+    Note, caller must know which slot holds RUL to program this hw block with double-buffer.
+
+Usage:
+    1) When HDMI0 is enabled on a display, the BRDC_SyncBlockId_eHdmi0 needs to link
+      with correct slot's synchronizer, which could be sync-locked MFD source slot or
+      sync-slipped display slot;
+    2) When ITMx is enabled on a window, the BRDC_SyncBlockId_eItmx needs to link with
+      appropriate slot's synchronizer, which could be sync-locked MFD source slot if ITMx
+      is at window writer side or window is sync-locked, or could be display slot if window
+      is sync-slipped and ITMx at window reader side.
+
+See Also:
+    BRDC_SyncBlockId
+    BRDC_SyncBlockSettings
+****************************************************************************/
+BERR_Code BRDC_SetSyncBlockSettings_isr
+    ( BRDC_Handle                      hRdc, /* [in] RDC module handle. */
+      BRDC_SyncBlockId                 eBlock, /* [in] which hw block */
+      const BRDC_SyncBlockSettings    *pSyncBlockSettings ); /* [in] Settings for sync block link. */
+
+/***************************************************************************
+Summary:
     Get a scratch register
 
 Description:
@@ -1639,30 +1798,6 @@ See Also:
 BERR_Code BRDC_FreeScratchReg
     ( BRDC_Handle                      hRdc,   /* [in] Register DMA handle to get scratch register */
       uint32_t                         ulReg );/* [in] Address of the to-be-freed scratch register */
-
-/***************************************************************************
-Summary:
-    Enables same trigger.
-
-Description:
-    Multiple slots using the same trigger are executed before any slots with a
-    different trigger when enabled. Slots are executed without regard for
-    which trigger was fired otherwise.
-
-    Slot 0 has highest priority. Slot 31 has lowest priority.
-
-    Trigger 0 has highest priority. Trigger 20 has lowest priority.
-
-Returns:
-
-See Also:
-    BRDC_Trigger_Execute_isr
-    BRDC_Slot_ExecuteOnTrigger_isr
-    BRDC_Slot_Execute_isr
-****************************************************************************/
-BERR_Code BRDC_EnableSameTrigger_isr
-    ( BRDC_Handle                      hRdc,
-      bool                             bEnable );
 
 /***************************************************************************
 Summary:
@@ -1726,40 +1861,11 @@ Inputs:
 Returns:
 
 See Also:
-    BRDC_GetRdcBlockOut
     BRDC_BlockOut
 ****************************************************************************/
 BERR_Code BRDC_SetRdcBlockOut
     ( BRDC_Handle                      hRdc,
       const BRDC_BlockOut             *pstBlockOut,
-      uint32_t                         ulRegBlock );
-
-/***************************************************************************
-Summary:
-    Gets a register range that is blocked out during RDMA.
-
-Description:
-    If any of the registers specified by this range is part of an RUL during
-    RDMA, these registers will be excluded from the RUL if enabled. If disabled,
-    these registers will be included in the RUL.
-
-Inputs:
-    hRdc           - the RDC handle
-    ulRegBlock     - identifies this register block. A max of 8 blocks are allowed.
-                     The first block id is 0, the last is 7.
-
-Outputs:
-    pstBlockOut    - the register block with the enable/disable info.
-
-Returns:
-
-See Also:
-    BRDC_SetRdcBlockOut
-    BRDC_BlockOut
-****************************************************************************/
-BERR_Code BRDC_GetRdcBlockOut
-    ( BRDC_Handle                      hRdc,
-      BRDC_BlockOut                   *pstBlockOut,
       uint32_t                         ulRegBlock );
 
 /***************************************************************************
@@ -1846,28 +1952,6 @@ BERR_Code BRDC_EnableStcFlag_isr
 
 /***************************************************************************
 Summary:
-    Activates multiple slots on a trigger
-
-Description:
-    Multiple slots using the trigger are executed when a specific trigger fires.
-
-    If you want to execute a slot with a trigger call BRDC_Slot_ExecuteOnTrigger_isr.
-
-    If you want to execute a slot immediately without a trigger call
-    BRDC_Slot_Execute_isr instead.
-
-Returns:
-
-See Also:
-    BRDC_Slot_ExecuteOnTrigger_isr
-    BRDC_Slot_Execute_isr
-****************************************************************************/
-BERR_Code BRDC_Trigger_Execute_isr
-    ( BRDC_Handle                      hRdc,          /* [in] RDC module handle */
-      BRDC_Trigger                     eRDCTrigger ); /* [in] The trigger used to fire the slot */
-
-/***************************************************************************
-Summary:
     Get trigger information
 
 Description:
@@ -1914,7 +1998,6 @@ See Also:
     BRDC_List_GetStartAddress_isr,
     BRDC_Slot_Create,
     BRDC_List_Destroy,
-    BRDC_List_GetMaxEntries_isr,
     BRDC_REGISTER,
     BRDC_OP_NOP,
     BRDC_OP_IMM_TO_REG,
@@ -1925,8 +2008,6 @@ See Also:
     BRDC_OP_BLOCK_IMMS_TO_REGS,
     BRDC_OP_REG_TO_REG_BLOCK,
     BRDC_OP_REGS_TO_REGS,
-    BRDC_OP_REG_TO_REGS,
-    BRDC_OP_REGS_TO_REG,
     BRDC_OP_VAR_AND_VAR_TO_VAR,
     BRDC_OP_VAR_AND_IMM_TO_VAR,
     BRDC_OP_VAR_OR_VAR_TO_VAR,
@@ -1998,7 +2079,6 @@ See Also:
     BRDC_List_Create
     BRDC_Slot_SetList_isr
     BRDC_List_GetNumEntries_isr
-    BRDC_List_GetMaxEntries_isr
     BRDC_List_GetNumEntries_isr
     BRDC_List_SetNumEntries_isr
 ****************************************************************************/
@@ -2017,7 +2097,6 @@ Returns:
 See Also:
     BRDC_List_Create
     BRDC_Slot_SetList_isr
-    BRDC_List_GetMaxEntries_isr
     BRDC_List_SetNumEntries_isr
     BRDC_List_SetNumEntries_isr
     BRDC_List_GetNumEntries_isr
@@ -2025,24 +2104,6 @@ See Also:
 BERR_Code BRDC_List_GetNumEntries_isr
     ( BRDC_List_Handle                 hList, /* [in] List to get the number of entries from. */
       uint32_t                        *pulNumEntries ); /* [out] The number of valid entries in the list */
-
-/***************************************************************************
-Summary:
-    Gets the maximum number of entries in the list
-
-Description:
-
-Returns:
-
-See Also:
-    BRDC_List_Create
-    BRDC_Slot_SetList_isr
-    BRDC_List_SetNumEntries_isr
-****************************************************************************/
-BERR_Code BRDC_List_GetMaxEntries_isr
-    ( BRDC_List_Handle                 hList,     /* [in] List to get the number
-                                                    of entries from. */
-      uint32_t                        *pulMaxEntries ); /* [out] The maximum number of entries in the list */
 
 /***************************************************************************
 Summary:
@@ -2166,6 +2227,30 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
 #define BRDC_Slot_SetConfiguration(hSlot, pSettings) \
     BRDC_Slot_SetConfiguration_isr(hSlot, pSettings)
 
+/***************************************************************************
+Summary:
+    Disarm the slot-linked synchronizer
+
+Description:
+    When certain HDR mode is enabled on HDMI display, there are some synchronization
+    required with HDMI Tx and VDC programming. VDC should disarm the HDMI display's
+    RDC slot-linked synchronizer first, then update the specific HDR table in HDMI Tx and
+    display RUL, finally set the RUL to the display slot and re-arm the slot's synchronizer.
+
+    Note, the slot's synchronizer would be re-armed by BRDC_Slots_SetList_isr.
+
+Input:
+    hSlot - The slot handle.
+
+Output:
+
+Returns:
+
+See Also:
+    BRDC_Slots_SetList_isr
+****************************************************************************/
+BERR_Code BRDC_Slot_DisarmSync_isr
+    ( BRDC_Slot_Handle                 hSlot );
 
 /***************************************************************************
 Summary:

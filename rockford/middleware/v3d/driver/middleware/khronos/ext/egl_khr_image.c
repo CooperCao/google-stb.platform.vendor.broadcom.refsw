@@ -29,30 +29,14 @@ Server-side implementation of the EGLImage extensions for EGL:
 #include "interface/khronos/include/EGL/eglext_brcm.h"
 #include "middleware/khronos/common/2708/khrn_tfconvert_4.h"
 
-#ifdef ANDROID
-#include <cutils/log.h>
-#include <system/window.h>
-#include "gralloc_priv.h"
-#endif
-
 /* */
-void egl_image_term(void *v, uint32_t size)
+void egl_image_term(MEM_HANDLE_T handle)
 {
-   EGL_IMAGE_T *image = (EGL_IMAGE_T *)v;
-   UNUSED(size);
+   EGL_IMAGE_T *egl_image = (EGL_IMAGE_T *)mem_lock(handle, NULL);
 
-   /* if we've run through the failure case, then these won't be created */
-   if (image->update_control_initialized)
-   {
-      vcos_semaphore_delete(&image->lockSemaphore);
-      vcos_semaphore_delete(&image->missedConvFlag);
-      vcos_mutex_delete(&image->dirtyBitsMutex);
-   }
+   MEM_ASSIGN(egl_image->mh_image, MEM_INVALID_HANDLE);
 
-   MEM_ASSIGN(image->mh_image, MEM_INVALID_HANDLE);
-
-   /* BCG_EGLIMAGE_CONVERTER : clean up shadow buffer */
-   MEM_ASSIGN(image->mh_shadow_image, MEM_INVALID_HANDLE);
+   mem_unlock(handle);
 }
 
 /*
@@ -345,6 +329,102 @@ static uint32_t convert_texture_target(EGLenum target)
    }
 }
 
+static MEM_HANDLE_T egl_image_texture_new(GLXX_SHARED_T *shared, EGLenum target, EGLClientBuffer buffer, EGLint texture_level, EGLint *error)
+{
+   MEM_HANDLE_T htexture = glxx_shared_get_texture(shared, (uint32_t)buffer);   /* returns invalid for default texture (0) */
+
+   if (htexture == MEM_INVALID_HANDLE)
+   {
+      *error = EGL_BAD_PARAMETER;
+      return MEM_HANDLE_INVALID;
+   }
+
+   GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(htexture, NULL);
+   bool is_cube = target != EGL_GL_TEXTURE_2D_KHR;
+   switch (texture->target) {
+   case GL_TEXTURE_CUBE_MAP:
+      if (!is_cube)
+         *error = EGL_BAD_PARAMETER;
+      break;
+   case GL_TEXTURE_2D:
+      if (is_cube)
+         *error = EGL_BAD_PARAMETER;
+      break;
+   case GL_TEXTURE_EXTERNAL_OES:
+      /* You can't create eglImages from these */
+      *error = EGL_BAD_PARAMETER;
+      break;
+   default:
+      UNREACHABLE();
+      break;
+   }
+
+   if (*error != EGL_SUCCESS) {
+      mem_unlock(htexture);
+      return MEM_HANDLE_INVALID;
+   }
+
+   MEM_HANDLE_T res = MEM_HANDLE_INVALID;
+   switch (glxx_texture_check_complete(texture))
+   {
+   case COMPLETE:
+   {
+      uint32_t mipmap_count = glxx_texture_get_mipmap_count(texture);
+      if (texture_level < 0 || (uint32_t)texture_level >= mipmap_count)
+         *error = EGL_BAD_PARAMETER;
+      else if (texture->binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || texture->binding_type == TEXTURE_STATE_BOUND_EGLIMAGE)
+         *error = EGL_BAD_ACCESS;
+      else {
+         /* TODO: should we reject certain textures? (e.g. paletted, ETC1) */
+
+         /* At this point we should succeed */
+         MEM_ASSIGN(res, glxx_texture_share_mipmap(texture, convert_texture_target(target), texture_level));
+
+         /*
+         * TODO: should we set the IMAGE_FLAG_BOUND_EGLIMAGE flag
+         * of the other mipmaps?
+         */
+         texture->binding_type = TEXTURE_STATE_BOUND_TEXIMAGE;
+      }
+      break;
+   }
+   case INCOMPLETE:
+      *error = EGL_BAD_PARAMETER;
+      break;
+   case OUT_OF_MEMORY:
+      *error = EGL_BAD_ALLOC;
+      break;
+   default:
+      UNREACHABLE();
+   }
+
+   mem_unlock(htexture);
+
+   return res;
+}
+
+static MEM_HANDLE_T egl_image_renderbuffer_new(GLXX_SHARED_T *shared, EGLClientBuffer buffer, EGLint *error)
+{
+   MEM_HANDLE_T hrenderbuffer = glxx_shared_get_renderbuffer(shared, (uint32_t)buffer, false);
+   if (hrenderbuffer == MEM_INVALID_HANDLE)
+   {
+      *error = EGL_BAD_PARAMETER;
+      return MEM_HANDLE_INVALID;
+   }
+
+   GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(hrenderbuffer, NULL);
+   MEM_HANDLE_T res = MEM_HANDLE_INVALID;
+   if (renderbuffer->mh_storage == MEM_INVALID_HANDLE)
+      *error = EGL_BAD_PARAMETER;
+   else if (!glxx_renderbuffer_unmerge(renderbuffer))
+      *error = EGL_BAD_ALLOC;
+   else
+      MEM_ASSIGN(res, renderbuffer->mh_storage);
+   mem_unlock(hrenderbuffer);
+
+   return res;
+}
+
 int eglCreateImageKHR_impl (
    uint32_t glversion,
    EGL_CONTEXT_ID_T ctx,
@@ -357,8 +437,6 @@ int eglCreateImageKHR_impl (
    EGL_SERVER_STATE_T *eglstate = EGL_GET_SERVER_STATE();
    MEM_HANDLE_T heglimage = MEM_INVALID_HANDLE;
    MEM_HANDLE_T himage = MEM_INVALID_HANDLE;
-   bool himage_acquired = false;
-   EGLClientBuffer refcntbuffer = 0;
 
    /*
     * Preallocate the EGL_IMAGE_T struct and insert it into the map
@@ -376,9 +454,10 @@ int eglCreateImageKHR_impl (
       return 2;
    }
 
-   mem_set_term(heglimage, egl_image_term);
+   mem_set_term(heglimage, egl_image_term, NULL);
    mem_release(heglimage);
 
+   bool platform_client_buffer = false;
    switch (target) {
    case EGL_NATIVE_PIXMAP_KHR:
    {
@@ -387,7 +466,6 @@ int eglCreateImageKHR_impl (
       */
 
       himage = egl_server_platform_create_pixmap_info((uint32_t)buffer, &error);
-      himage_acquired = true;
 
       break;
    }
@@ -411,7 +489,7 @@ int eglCreateImageKHR_impl (
             VG_IMAGE_T *vgimage = (VG_IMAGE_T *)mem_lock(hvgimage, NULL);
 
             if (vg_image_leak(vgimage)) {
-               himage = vgimage->image;
+               MEM_ASSIGN(himage, vgimage->image);
             } else {
                error = EGL_BAD_ALLOC;
             }
@@ -461,93 +539,11 @@ int eglCreateImageKHR_impl (
          case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y_KHR:
          case EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z_KHR:
          case EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z_KHR:
-         {
-            MEM_HANDLE_T htexture = glxx_shared_get_texture(shared, (uint32_t)buffer);   /* returns invalid for default texture (0) */
-            uint32_t buffer = convert_texture_target(target);
-            bool is_cube = target != EGL_GL_TEXTURE_2D_KHR;
-
-            if (htexture == MEM_INVALID_HANDLE)
-               error = EGL_BAD_PARAMETER;
-            else {
-               GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(htexture, NULL);
-
-               switch (texture->target) {
-               case GL_TEXTURE_CUBE_MAP:
-                   if (!is_cube)
-                       error = EGL_BAD_PARAMETER;
-                   break;
-               case GL_TEXTURE_2D:
-                   if (is_cube)
-                       error = EGL_BAD_PARAMETER;
-                   break;
-               case GL_TEXTURE_EXTERNAL_OES:
-                   /* You can't create eglImages from these */
-                   error = EGL_BAD_PARAMETER;
-                   break;
-               default:
-                   UNREACHABLE();
-                   break;
-               }
-
-               if (error != EGL_SUCCESS) {
-                   mem_unlock(htexture);
-                   break;
-               }
-
-               switch (glxx_texture_check_complete(texture))
-               {
-               case COMPLETE:
-               {
-                  uint32_t mipmap_count = glxx_texture_get_mipmap_count(texture);
-                  if (texture_level < 0 || (uint32_t)texture_level >= mipmap_count)
-                     error = EGL_BAD_PARAMETER;
-                  else if (texture->binding_type == TEXTURE_STATE_BOUND_TEXIMAGE || texture->binding_type == TEXTURE_STATE_BOUND_EGLIMAGE)
-                     error = EGL_BAD_ACCESS;
-                  else {
-                     /* TODO: should we reject certain textures? (e.g. paletted, ETC1) */
-
-                     /* At this point we should succeed */
-                     himage = glxx_texture_share_mipmap(texture, buffer, texture_level);
-
-                     /*
-                      * TODO: should we set the IMAGE_FLAG_BOUND_EGLIMAGE flag
-                      * of the other mipmaps?
-                      */
-                     texture->binding_type = TEXTURE_STATE_BOUND_TEXIMAGE;
-                  }
-                  break;
-               }
-               case INCOMPLETE:
-                  error = EGL_BAD_PARAMETER;
-                  break;
-               case OUT_OF_MEMORY:
-                  error = EGL_BAD_ALLOC;
-                  break;
-               default:
-                  UNREACHABLE();
-               }
-
-               mem_unlock(htexture);
-            }
+            himage = egl_image_texture_new(shared, target, buffer, texture_level, &error);
             break;
-         }
          case EGL_GL_RENDERBUFFER_KHR:
-         {
-            MEM_HANDLE_T hrenderbuffer = glxx_shared_get_renderbuffer(shared, (uint32_t)buffer, false);
-            if (hrenderbuffer == MEM_INVALID_HANDLE)
-               error = EGL_BAD_PARAMETER;
-            else {
-               GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(hrenderbuffer, NULL);
-               if (renderbuffer->mh_storage == MEM_INVALID_HANDLE)
-                  error = EGL_BAD_PARAMETER;
-               else if (!glxx_renderbuffer_unmerge(renderbuffer))
-                  error = EGL_BAD_ALLOC;
-               else
-                  himage = renderbuffer->mh_storage;
-               mem_unlock(hrenderbuffer);
-            }
+            himage = egl_image_renderbuffer_new(shared, buffer, &error);
             break;
-         }
          default:
             UNREACHABLE();
          }
@@ -555,82 +551,11 @@ int eglCreateImageKHR_impl (
       }
       break;
    }
-#ifdef EGL_BRCM_image_wrap_bcg
-   case EGL_IMAGE_WRAP_BRCM_BCG:
-   {
-      MEM_HANDLE_T handle;
-      KHRN_IMAGE_FORMAT_T format;
-
-      /* these are only used in the khrn_image_platform_fudge().  They get modified, so need to take a copy here */
-      uint32_t width, height, align;
-      width = ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->width;
-      height = ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->height;
-
-      handle = mem_wrap(((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->storage,
-         ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->offset,
-         ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->height * ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->width,
-         1, MEM_FLAG_DIRECT,
-         "EGL_IMAGE_WRAP_BRCM_BCG");
-
-      switch (((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->format)
-      {
-      case BEGL_BufferFormat_eA8B8G8R8_TFormat:          format = ABGR_8888_TF;          break;
-      case BEGL_BufferFormat_eX8B8G8R8_TFormat:          format = XBGR_8888_TF;          break;
-      case BEGL_BufferFormat_eR5G6B5_TFormat:            format = RGB_565_TF;            break;
-      case BEGL_BufferFormat_eR5G5B5A1_TFormat:          format = RGBA_5551_TF;          break;
-      case BEGL_BufferFormat_eR4G4B4A4_TFormat:          format = RGBA_4444_TF;          break;
-      default:
-         break;
-      }
-
-      /* need to call fudge to adjust TF to LT if the size is such */
-      khrn_image_platform_fudge(&format, &width, &height, &align, IMAGE_CREATE_FLAG_TEXTURE);
-
-      himage = khrn_image_create_from_storage(format,
-         ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->width,
-         ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->height,
-         ((EGL_IMAGE_WRAP_BRCM_BCG_IMAGE_T *)buffer)->stride,
-         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_DISPLAY, false);
-      himage_acquired = true;
-
-      mem_release(handle);
-
-      break;
-   }
-#endif
-#ifdef ANDROID
-   case EGL_NATIVE_BUFFER_ANDROID:
-   {
-      MEM_HANDLE_T handle;
-      void * p;
-      uint32_t offset, w, h, stride;
-      KHRN_IMAGE_FORMAT_T format = ABGR_8888_RSO;
-      android_native_buffer_t *android_buffer = (android_native_buffer_t *)buffer;
-
-      khrn_platform_decode_native(buffer, &w, &h, &stride, &format, &offset, &p);
-
-      handle = mem_wrap(p, offset,
-                        h * stride,
-                        1, MEM_FLAG_DIRECT,
-                        "EGL_NATIVE_BUFFER_ANDROID");
-
-      himage = khrn_image_create_from_storage(format,
-         w, h, stride,
-         MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE, false);
-      himage_acquired = true;
-
-      mem_release(handle);
-
-      refcntbuffer = buffer;
-
-      android_buffer->common.incRef(&android_buffer->common);
-
-      break;
-   }
-#endif
-
    default:
-      error = EGL_BAD_PARAMETER;
+      himage = khrn_platform_image_new(buffer, target, &error);
+      if ((himage != MEM_INVALID_HANDLE) && (error == EGL_SUCCESS))
+         platform_client_buffer = true;
+      break;
    }
 
    vcos_assert(((himage == MEM_INVALID_HANDLE) && (error != EGL_SUCCESS)) ||
@@ -653,26 +578,17 @@ int eglCreateImageKHR_impl (
    }
 
    if (error == EGL_SUCCESS) {
-      EGL_IMAGE_T *eglimage;
+      EGL_IMAGE_T *egl_image;
       vcos_assert(himage != MEM_INVALID_HANDLE);
 
-      eglimage = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
-      eglimage->pid = eglstate->pid;
-      eglimage->buffer = (uint32_t)refcntbuffer;
+      egl_image = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
+      egl_image->pid = eglstate->pid;
+      egl_image->buffer = buffer;
+      egl_image->platform_client_buffer = platform_client_buffer;
 
-      /* BCG_EGLIMAGE_CONVERTER : create shadow and control list buffers */
-      eglimage->mh_shadow_image = MEM_INVALID_HANDLE;
-      eglimage->convertedFrame = ~0;      /* Ensures conversion first time out */
+      MEM_ASSIGN(egl_image->mh_image, himage);
+      MEM_ASSIGN(himage, MEM_INVALID_HANDLE);
 
-      vcos_mutex_create(&eglimage->dirtyBitsMutex, "eglImageMutex");
-      vcos_semaphore_create(&eglimage->lockSemaphore, "eglImageLockSem", 1);
-      vcos_semaphore_create(&eglimage->missedConvFlag, "eglImageMissedConv", 1);
-      /* resources have been correctly allocated, so can be removed */
-      eglimage->update_control_initialized = true;
-
-      MEM_ASSIGN(eglimage->mh_image, himage);
-
-      if (himage_acquired) { mem_release(himage); }
       mem_unlock(heglimage);
 
       results[0] = eglstate->next_eglimage++;
@@ -720,87 +636,19 @@ EGLBoolean eglDestroyImageKHR_impl (EGLImageKHR image)
    MEM_HANDLE_T heglimage;
 
    heglimage = khrn_map_lookup(&state->eglimages, (uint32_t)id);
+
    if (heglimage) {
-#ifdef ANDROID
-      android_native_buffer_t *android_buffer;
-#endif
       KHRN_IMAGE_T *image;
-      EGL_IMAGE_T *eglimage = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
-      MEM_HANDLE_T himage = eglimage->mh_image;
+      EGL_IMAGE_T *egl_image = (EGL_IMAGE_T *)mem_lock(heglimage, NULL);
+      MEM_HANDLE_T himage = egl_image->mh_image;
 
       image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);
 
       khrn_interlock_write_immediate(&image->interlock);
-
-#ifdef ANDROID
-      /* If a regular texture is bound as an eglimage, then this is 0 */
-      if (eglimage->buffer) {
-         android_buffer = (android_native_buffer_t *)eglimage->buffer;
-         /* if android creates any type of window other than EGL_NATIVE_BUFFER_ANDROID then it could be
-            NULL.  The refsw implementation doesnt do this, so its probably not absolutely necessary */
-         if (android_buffer != NULL) {
-            vcos_assert(ANDROID_NATIVE_BUFFER_MAGIC == android_buffer->common.magic);
-            android_buffer->common.decRef(&android_buffer->common);
-         }
-      }
-#endif
 
       mem_unlock(heglimage);
       mem_unlock(himage);
    }
 
    return khrn_map_delete(&state->eglimages, id) ? EGL_TRUE : EGL_FALSE;
-}
-
-bool egl_image_any_tile_dirty(EGL_IMAGE_T *img)
-{
-   uint32_t r;
-
-   if (!img->explicit_updates)
-      return true;   // Always dirty when not using explicit updates
-
-   for (r = 0; r < KHRN_HW_TEX_SIZE_MAX / 64; r++)
-      if (img->dirtyBits.m_rowBits[r] != 0)
-         return true;
-
-   return false;
-}
-
-bool egl_image_is_tile_dirty(EGL_IMAGE_T *img, uint32_t x, uint32_t y)
-{
-   return (!img->explicit_updates) || ((img->dirtyBits.m_rowBits[y] & (1 << x)) != 0);
-}
-
-// Nice macro to set up a table of bit counts
-static const uint8_t BitsSetTable256[256] =
-
-{
-#   define B2(n) n,     n+1,     n+1,     n+2
-#   define B4(n) B2(n), B2(n+1), B2(n+1), B2(n+2)
-#   define B6(n) B4(n), B4(n+1), B4(n+1), B4(n+2)
-   B6(0), B6(1), B6(1), B6(2)
-};
-
-uint32_t egl_image_num_dirty_tiles(EGL_IMAGE_T *img)
-{
-   uint32_t c = 0;
-
-   uint32_t r;
-
-   if (!img->explicit_updates)
-      return (KHRN_HW_TEX_SIZE_MAX / 64) * (KHRN_HW_TEX_SIZE_MAX / 64);
-
-   for (r = 0; r < KHRN_HW_TEX_SIZE_MAX / 64; r++)
-   {
-      uint8_t *p = (uint8_t*)&img->dirtyBits.m_rowBits[r];
-
-#if KHRN_HW_TEX_SIZE_MAX <= 2048
-      c += BitsSetTable256[p[0]] + BitsSetTable256[p[1]] + BitsSetTable256[p[2]] + BitsSetTable256[p[3]];
-#elif KHRN_HW_TEX_SIZE_MAX <= 4096
-      c += BitsSetTable256[p[0]] + BitsSetTable256[p[1]] + BitsSetTable256[p[2]] + BitsSetTable256[p[3]] +
-           BitsSetTable256[p[4]] + BitsSetTable256[p[5]] + BitsSetTable256[p[6]] + BitsSetTable256[p[7]];
-#endif
-   }
-
-   return c;
 }

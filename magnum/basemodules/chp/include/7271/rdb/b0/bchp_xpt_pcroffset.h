@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,842 +70,842 @@
 /***************************************************************************
  *XPT_PCROFFSET - XPT PCROFFSET Control Registers
  ***************************************************************************/
-#define BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS     0x20a08000 /* [RW] PCR INTERRUPT STATUS register for Contexts 3 to 0 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT0_ENABLE     0x20a08004 /* [RW] PCR INTERRUPT ENABLE register for Contexts 3 to 0 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS     0x20a08008 /* [RW] PCR INTERRUPT STATUS register for Contexts 7 to 4 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT1_ENABLE     0x20a0800c /* [RW] PCR INTERRUPT ENABLE register for Contexts 7 to 4 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS     0x20a08010 /* [RW] PCR INTERRUPT STATUS register for Contexts 11 to 8 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT2_ENABLE     0x20a08014 /* [RW] PCR INTERRUPT ENABLE register for Contexts 11 to 8 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS     0x20a08018 /* [RW] PCR INTERRUPT STATUS register for Contexts 15 to 12 */
-#define BCHP_XPT_PCROFFSET_INTERRUPT3_ENABLE     0x20a0801c /* [RW] PCR INTERRUPT ENABLE register for Contexts 15 to 12 */
-#define BCHP_XPT_PCROFFSET_STC_BROADCAST_SEL     0x20a08020 /* [RW] STC Broadcast bus select */
-#define BCHP_XPT_PCROFFSET_STC_MUX_DELAY         0x20a08028 /* [RW] STC Mux Delay */
-#define BCHP_XPT_PCROFFSET_STC_INTERRUPT_STATUS  0x20a08030 /* [RW] STC INTERRUPT STATUS register */
-#define BCHP_XPT_PCROFFSET_STC_INTERRUPT_ENABLE  0x20a08034 /* [RW] STC INTERRUPT ENABLE register */
-#define BCHP_XPT_PCROFFSET_STC0_MATCH            0x20a08040 /* [RW] STC0 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC1_MATCH            0x20a08044 /* [RW] STC1 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC2_MATCH            0x20a08048 /* [RW] STC2 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC3_MATCH            0x20a0804c /* [RW] STC3 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC4_MATCH            0x20a08050 /* [RW] STC4 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC5_MATCH            0x20a08054 /* [RW] STC5 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC6_MATCH            0x20a08058 /* [RW] STC6 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC7_MATCH            0x20a0805c /* [RW] STC7 MATCH register */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_CTRL    0x20a08080 /* [RW] STC Snapshot0 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0         0x20a08084 /* [RO] STC 32-bit Snapshot0 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_HI      0x20a08088 /* [RO] STC 42-bit Snapshot0 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_LO      0x20a0808c /* [RO] STC 42-bit Snapshot0 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_CTRL    0x20a08090 /* [RW] STC Snapshot1 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1         0x20a08094 /* [RO] STC 32-bit Snapshot1 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_HI      0x20a08098 /* [RO] STC 42-bit Snapshot1 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_LO      0x20a0809c /* [RO] STC 42-bit Snapshot1 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_CTRL    0x20a080a0 /* [RW] STC Snapshot2 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2         0x20a080a4 /* [RO] STC 32-bit Snapshot2 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_HI      0x20a080a8 /* [RO] STC 42-bit Snapshot2 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_LO      0x20a080ac /* [RO] STC 42-bit Snapshot2 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_CTRL    0x20a080b0 /* [RW] STC Snapshot3 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3         0x20a080b4 /* [RO] STC 32-bit Snapshot3 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_HI      0x20a080b8 /* [RO] STC 42-bit Snapshot3 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_LO      0x20a080bc /* [RO] STC 42-bit Snapshot3 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_CTRL    0x20a080c0 /* [RW] STC Snapshot4 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4         0x20a080c4 /* [RO] STC 32-bit Snapshot4 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_HI      0x20a080c8 /* [RO] STC 42-bit Snapshot4 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_LO      0x20a080cc /* [RO] STC 42-bit Snapshot4 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_CTRL    0x20a080d0 /* [RW] STC Snapshot5 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5         0x20a080d4 /* [RO] STC 32-bit Snapshot5 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_HI      0x20a080d8 /* [RO] STC 42-bit Snapshot5 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_LO      0x20a080dc /* [RO] STC 42-bit Snapshot5 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_CTRL    0x20a080e0 /* [RW] STC Snapshot6 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6         0x20a080e4 /* [RO] STC 32-bit Snapshot6 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_HI      0x20a080e8 /* [RO] STC 42-bit Snapshot6 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_LO      0x20a080ec /* [RO] STC 42-bit Snapshot6 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_CTRL    0x20a080f0 /* [RW] STC Snapshot7 Control */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7         0x20a080f4 /* [RO] STC 32-bit Snapshot7 */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_HI      0x20a080f8 /* [RO] STC 42-bit Snapshot7 (MSbs) */
-#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_LO      0x20a080fc /* [RO] STC 42-bit Snapshot7 (LSbs) */
-#define BCHP_XPT_PCROFFSET_STC0_CTRL             0x20a08280 /* [RW] STC0 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC0_TIMEBASE_SEL     0x20a08284 /* [RW] STC0 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC0_RATE_CTRL        0x20a08288 /* [RW] STC0 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC0_CAPTURE_PCR_ONCE 0x20a0828c /* [RW] STC0 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC0_HI               0x20a08290 /* [RW] STC0 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC0_LO               0x20a08294 /* [RW] STC0 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC0_INC_HI           0x20a08298 /* [RW] STC0 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC0_INC_LO           0x20a0829c /* [RW] STC0 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC0_INC_TRIG         0x20a082a0 /* [RW] STC0 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC0_AV_WINDOW        0x20a082a4 /* [RW] STC0 AV Window */
-#define BCHP_XPT_PCROFFSET_STC1_CTRL             0x20a082c0 /* [RW] STC1 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC1_TIMEBASE_SEL     0x20a082c4 /* [RW] STC1 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC1_RATE_CTRL        0x20a082c8 /* [RW] STC1 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC1_CAPTURE_PCR_ONCE 0x20a082cc /* [RW] STC1 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC1_HI               0x20a082d0 /* [RW] STC1 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC1_LO               0x20a082d4 /* [RW] STC1 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC1_INC_HI           0x20a082d8 /* [RW] STC1 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC1_INC_LO           0x20a082dc /* [RW] STC1 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC1_INC_TRIG         0x20a082e0 /* [RW] STC1 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC1_AV_WINDOW        0x20a082e4 /* [RW] STC1 AV Window */
-#define BCHP_XPT_PCROFFSET_STC2_CTRL             0x20a08300 /* [RW] STC2 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC2_TIMEBASE_SEL     0x20a08304 /* [RW] STC2 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC2_RATE_CTRL        0x20a08308 /* [RW] STC2 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC2_CAPTURE_PCR_ONCE 0x20a0830c /* [RW] STC2 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC2_HI               0x20a08310 /* [RW] STC2 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC2_LO               0x20a08314 /* [RW] STC2 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC2_INC_HI           0x20a08318 /* [RW] STC2 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC2_INC_LO           0x20a0831c /* [RW] STC2 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC2_INC_TRIG         0x20a08320 /* [RW] STC2 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC2_AV_WINDOW        0x20a08324 /* [RW] STC2 AV Window */
-#define BCHP_XPT_PCROFFSET_STC3_CTRL             0x20a08340 /* [RW] STC3 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC3_TIMEBASE_SEL     0x20a08344 /* [RW] STC3 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC3_RATE_CTRL        0x20a08348 /* [RW] STC3 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC3_CAPTURE_PCR_ONCE 0x20a0834c /* [RW] STC3 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC3_HI               0x20a08350 /* [RW] STC3 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC3_LO               0x20a08354 /* [RW] STC3 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC3_INC_HI           0x20a08358 /* [RW] STC3 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC3_INC_LO           0x20a0835c /* [RW] STC3 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC3_INC_TRIG         0x20a08360 /* [RW] STC3 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC3_AV_WINDOW        0x20a08364 /* [RW] STC3 AV Window */
-#define BCHP_XPT_PCROFFSET_STC4_CTRL             0x20a08380 /* [RW] STC4 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC4_TIMEBASE_SEL     0x20a08384 /* [RW] STC4 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC4_RATE_CTRL        0x20a08388 /* [RW] STC4 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC4_CAPTURE_PCR_ONCE 0x20a0838c /* [RW] STC4 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC4_HI               0x20a08390 /* [RW] STC4 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC4_LO               0x20a08394 /* [RW] STC4 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC4_INC_HI           0x20a08398 /* [RW] STC4 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC4_INC_LO           0x20a0839c /* [RW] STC4 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC4_INC_TRIG         0x20a083a0 /* [RW] STC4 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC4_AV_WINDOW        0x20a083a4 /* [RW] STC4 AV Window */
-#define BCHP_XPT_PCROFFSET_STC5_CTRL             0x20a083c0 /* [RW] STC5 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC5_TIMEBASE_SEL     0x20a083c4 /* [RW] STC5 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC5_RATE_CTRL        0x20a083c8 /* [RW] STC5 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC5_CAPTURE_PCR_ONCE 0x20a083cc /* [RW] STC5 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC5_HI               0x20a083d0 /* [RW] STC5 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC5_LO               0x20a083d4 /* [RW] STC5 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC5_INC_HI           0x20a083d8 /* [RW] STC5 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC5_INC_LO           0x20a083dc /* [RW] STC5 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC5_INC_TRIG         0x20a083e0 /* [RW] STC5 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC5_AV_WINDOW        0x20a083e4 /* [RW] STC5 AV Window */
-#define BCHP_XPT_PCROFFSET_STC6_CTRL             0x20a08400 /* [RW] STC6 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC6_TIMEBASE_SEL     0x20a08404 /* [RW] STC6 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC6_RATE_CTRL        0x20a08408 /* [RW] STC6 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC6_CAPTURE_PCR_ONCE 0x20a0840c /* [RW] STC6 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC6_HI               0x20a08410 /* [RW] STC6 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC6_LO               0x20a08414 /* [RW] STC6 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC6_INC_HI           0x20a08418 /* [RW] STC6 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC6_INC_LO           0x20a0841c /* [RW] STC6 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC6_INC_TRIG         0x20a08420 /* [RW] STC6 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC6_AV_WINDOW        0x20a08424 /* [RW] STC6 AV Window */
-#define BCHP_XPT_PCROFFSET_STC7_CTRL             0x20a08440 /* [RW] STC7 Counter Control */
-#define BCHP_XPT_PCROFFSET_STC7_TIMEBASE_SEL     0x20a08444 /* [RW] STC7 Timebase Select */
-#define BCHP_XPT_PCROFFSET_STC7_RATE_CTRL        0x20a08448 /* [RW] STC7 Counter Increment and Prescale */
-#define BCHP_XPT_PCROFFSET_STC7_CAPTURE_PCR_ONCE 0x20a0844c /* [RW] STC7 Capture PCR once */
-#define BCHP_XPT_PCROFFSET_STC7_HI               0x20a08450 /* [RW] STC7 Counter - Hi value */
-#define BCHP_XPT_PCROFFSET_STC7_LO               0x20a08454 /* [RW] STC7 Counter - Lo value */
-#define BCHP_XPT_PCROFFSET_STC7_INC_HI           0x20a08458 /* [RW] STC7 Counter Ext/Soft Increment Hi */
-#define BCHP_XPT_PCROFFSET_STC7_INC_LO           0x20a0845c /* [RW] STC7 Counter Ext/Soft Increment Lo */
-#define BCHP_XPT_PCROFFSET_STC7_INC_TRIG         0x20a08460 /* [RW] STC7 Counter Soft Increment Trigger */
-#define BCHP_XPT_PCROFFSET_STC7_AV_WINDOW        0x20a08464 /* [RW] STC7 AV Window */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL 0x20a0a000 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_PCR_PID_CH_NUM 0x20a0a004 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATE 0x20a0a008 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATUS 0x20a0a00c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_RD_PTR 0x20a0a010 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_WR_PTR 0x20a0a014 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH0_CH1 0x20a0a018 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH2_CH3 0x20a0a01c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH4_CH5 0x20a0a020 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH6_CH7 0x20a0a024 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATE 0x20a0a028 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET       0x20a0a02c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_VALID 0x20a0a030 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_MAX_ERROR 0x20a0a034 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_THRESHOLD 0x20a0a038 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_FIXED_OFFSET 0x20a0a03c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_PCR_COUNT 0x20a0a040 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_SEND_PCR_BASE 0x20a0a044 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_LAST_PCR_BASE 0x20a0a048 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_0 0x20a0a04c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_1 0x20a0a050 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_2 0x20a0a054 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_3 0x20a0a058 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_4 0x20a0a05c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_5 0x20a0a060 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_6 0x20a0a064 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_7 0x20a0a068 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_8 0x20a0a06c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_9 0x20a0a070 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_10 0x20a0a074 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_11 0x20a0a078 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_12 0x20a0a07c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_13 0x20a0a080 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_14 0x20a0a084 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_15 0x20a0a088 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_16 0x20a0a08c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_17 0x20a0a090 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_18 0x20a0a094 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_19 0x20a0a098 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_20 0x20a0a09c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_21 0x20a0a0a0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_22 0x20a0a0a4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_23 0x20a0a0a8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT0_RESERVED_CFG_0 0x20a0a0ac /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_PCROFFSET_CTRL 0x20a0a0b0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_PCR_PID_CH_NUM 0x20a0a0b4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_STATE 0x20a0a0b8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_STATUS 0x20a0a0bc /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_RD_PTR 0x20a0a0c0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_WR_PTR 0x20a0a0c4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH0_CH1 0x20a0a0c8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH2_CH3 0x20a0a0cc /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH4_CH5 0x20a0a0d0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH6_CH7 0x20a0a0d4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATE 0x20a0a0d8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET       0x20a0a0dc /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_VALID 0x20a0a0e0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_MAX_ERROR 0x20a0a0e4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_THRESHOLD 0x20a0a0e8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_FIXED_OFFSET 0x20a0a0ec /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_PCR_COUNT 0x20a0a0f0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_SEND_PCR_BASE 0x20a0a0f4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_LAST_PCR_BASE 0x20a0a0f8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_0 0x20a0a0fc /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_1 0x20a0a100 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_2 0x20a0a104 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_3 0x20a0a108 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_4 0x20a0a10c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_5 0x20a0a110 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_6 0x20a0a114 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_7 0x20a0a118 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_8 0x20a0a11c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_9 0x20a0a120 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_10 0x20a0a124 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_11 0x20a0a128 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_12 0x20a0a12c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_13 0x20a0a130 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_14 0x20a0a134 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_15 0x20a0a138 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_16 0x20a0a13c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_17 0x20a0a140 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_18 0x20a0a144 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_19 0x20a0a148 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_20 0x20a0a14c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_21 0x20a0a150 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_22 0x20a0a154 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_23 0x20a0a158 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT1_RESERVED_CFG_0 0x20a0a15c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_PCROFFSET_CTRL 0x20a0a160 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_PCR_PID_CH_NUM 0x20a0a164 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_STATE 0x20a0a168 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_STATUS 0x20a0a16c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_RD_PTR 0x20a0a170 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_WR_PTR 0x20a0a174 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH0_CH1 0x20a0a178 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH2_CH3 0x20a0a17c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH4_CH5 0x20a0a180 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH6_CH7 0x20a0a184 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATE 0x20a0a188 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET       0x20a0a18c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_VALID 0x20a0a190 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_MAX_ERROR 0x20a0a194 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_THRESHOLD 0x20a0a198 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_FIXED_OFFSET 0x20a0a19c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_PCR_COUNT 0x20a0a1a0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_SEND_PCR_BASE 0x20a0a1a4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_LAST_PCR_BASE 0x20a0a1a8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_0 0x20a0a1ac /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_1 0x20a0a1b0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_2 0x20a0a1b4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_3 0x20a0a1b8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_4 0x20a0a1bc /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_5 0x20a0a1c0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_6 0x20a0a1c4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_7 0x20a0a1c8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_8 0x20a0a1cc /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_9 0x20a0a1d0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_10 0x20a0a1d4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_11 0x20a0a1d8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_12 0x20a0a1dc /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_13 0x20a0a1e0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_14 0x20a0a1e4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_15 0x20a0a1e8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_16 0x20a0a1ec /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_17 0x20a0a1f0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_18 0x20a0a1f4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_19 0x20a0a1f8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_20 0x20a0a1fc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_21 0x20a0a200 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_22 0x20a0a204 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_23 0x20a0a208 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT2_RESERVED_CFG_0 0x20a0a20c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_PCROFFSET_CTRL 0x20a0a210 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_PCR_PID_CH_NUM 0x20a0a214 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_STATE 0x20a0a218 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_STATUS 0x20a0a21c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_RD_PTR 0x20a0a220 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_WR_PTR 0x20a0a224 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH0_CH1 0x20a0a228 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH2_CH3 0x20a0a22c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH4_CH5 0x20a0a230 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH6_CH7 0x20a0a234 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATE 0x20a0a238 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET       0x20a0a23c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_VALID 0x20a0a240 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_MAX_ERROR 0x20a0a244 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_THRESHOLD 0x20a0a248 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_FIXED_OFFSET 0x20a0a24c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_PCR_COUNT 0x20a0a250 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_SEND_PCR_BASE 0x20a0a254 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_LAST_PCR_BASE 0x20a0a258 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_0 0x20a0a25c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_1 0x20a0a260 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_2 0x20a0a264 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_3 0x20a0a268 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_4 0x20a0a26c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_5 0x20a0a270 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_6 0x20a0a274 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_7 0x20a0a278 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_8 0x20a0a27c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_9 0x20a0a280 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_10 0x20a0a284 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_11 0x20a0a288 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_12 0x20a0a28c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_13 0x20a0a290 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_14 0x20a0a294 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_15 0x20a0a298 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_16 0x20a0a29c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_17 0x20a0a2a0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_18 0x20a0a2a4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_19 0x20a0a2a8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_20 0x20a0a2ac /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_21 0x20a0a2b0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_22 0x20a0a2b4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_23 0x20a0a2b8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT3_RESERVED_CFG_0 0x20a0a2bc /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_PCROFFSET_CTRL 0x20a0a2c0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_PCR_PID_CH_NUM 0x20a0a2c4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_STATE 0x20a0a2c8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_STATUS 0x20a0a2cc /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_RD_PTR 0x20a0a2d0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_WR_PTR 0x20a0a2d4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH0_CH1 0x20a0a2d8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH2_CH3 0x20a0a2dc /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH4_CH5 0x20a0a2e0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH6_CH7 0x20a0a2e4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATE 0x20a0a2e8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET       0x20a0a2ec /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_VALID 0x20a0a2f0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_MAX_ERROR 0x20a0a2f4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_THRESHOLD 0x20a0a2f8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_FIXED_OFFSET 0x20a0a2fc /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_PCR_COUNT 0x20a0a300 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_SEND_PCR_BASE 0x20a0a304 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_LAST_PCR_BASE 0x20a0a308 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_0 0x20a0a30c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_1 0x20a0a310 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_2 0x20a0a314 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_3 0x20a0a318 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_4 0x20a0a31c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_5 0x20a0a320 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_6 0x20a0a324 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_7 0x20a0a328 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_8 0x20a0a32c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_9 0x20a0a330 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_10 0x20a0a334 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_11 0x20a0a338 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_12 0x20a0a33c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_13 0x20a0a340 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_14 0x20a0a344 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_15 0x20a0a348 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_16 0x20a0a34c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_17 0x20a0a350 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_18 0x20a0a354 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_19 0x20a0a358 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_20 0x20a0a35c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_21 0x20a0a360 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_22 0x20a0a364 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_23 0x20a0a368 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT4_RESERVED_CFG_0 0x20a0a36c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_PCROFFSET_CTRL 0x20a0a370 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_PCR_PID_CH_NUM 0x20a0a374 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_STATE 0x20a0a378 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_STATUS 0x20a0a37c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_RD_PTR 0x20a0a380 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_WR_PTR 0x20a0a384 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH0_CH1 0x20a0a388 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH2_CH3 0x20a0a38c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH4_CH5 0x20a0a390 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH6_CH7 0x20a0a394 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATE 0x20a0a398 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET       0x20a0a39c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_VALID 0x20a0a3a0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_MAX_ERROR 0x20a0a3a4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_THRESHOLD 0x20a0a3a8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_FIXED_OFFSET 0x20a0a3ac /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_PCR_COUNT 0x20a0a3b0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_SEND_PCR_BASE 0x20a0a3b4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_LAST_PCR_BASE 0x20a0a3b8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_0 0x20a0a3bc /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_1 0x20a0a3c0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_2 0x20a0a3c4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_3 0x20a0a3c8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_4 0x20a0a3cc /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_5 0x20a0a3d0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_6 0x20a0a3d4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_7 0x20a0a3d8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_8 0x20a0a3dc /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_9 0x20a0a3e0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_10 0x20a0a3e4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_11 0x20a0a3e8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_12 0x20a0a3ec /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_13 0x20a0a3f0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_14 0x20a0a3f4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_15 0x20a0a3f8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_16 0x20a0a3fc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_17 0x20a0a400 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_18 0x20a0a404 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_19 0x20a0a408 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_20 0x20a0a40c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_21 0x20a0a410 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_22 0x20a0a414 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_23 0x20a0a418 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT5_RESERVED_CFG_0 0x20a0a41c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_PCROFFSET_CTRL 0x20a0a420 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_PCR_PID_CH_NUM 0x20a0a424 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_STATE 0x20a0a428 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_STATUS 0x20a0a42c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_RD_PTR 0x20a0a430 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_WR_PTR 0x20a0a434 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH0_CH1 0x20a0a438 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH2_CH3 0x20a0a43c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH4_CH5 0x20a0a440 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH6_CH7 0x20a0a444 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATE 0x20a0a448 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET       0x20a0a44c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_VALID 0x20a0a450 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_MAX_ERROR 0x20a0a454 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_THRESHOLD 0x20a0a458 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_FIXED_OFFSET 0x20a0a45c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_PCR_COUNT 0x20a0a460 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_SEND_PCR_BASE 0x20a0a464 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_LAST_PCR_BASE 0x20a0a468 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_0 0x20a0a46c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_1 0x20a0a470 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_2 0x20a0a474 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_3 0x20a0a478 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_4 0x20a0a47c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_5 0x20a0a480 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_6 0x20a0a484 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_7 0x20a0a488 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_8 0x20a0a48c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_9 0x20a0a490 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_10 0x20a0a494 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_11 0x20a0a498 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_12 0x20a0a49c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_13 0x20a0a4a0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_14 0x20a0a4a4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_15 0x20a0a4a8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_16 0x20a0a4ac /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_17 0x20a0a4b0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_18 0x20a0a4b4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_19 0x20a0a4b8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_20 0x20a0a4bc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_21 0x20a0a4c0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_22 0x20a0a4c4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_23 0x20a0a4c8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT6_RESERVED_CFG_0 0x20a0a4cc /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_PCROFFSET_CTRL 0x20a0a4d0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_PCR_PID_CH_NUM 0x20a0a4d4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_STATE 0x20a0a4d8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_STATUS 0x20a0a4dc /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_RD_PTR 0x20a0a4e0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_WR_PTR 0x20a0a4e4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH0_CH1 0x20a0a4e8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH2_CH3 0x20a0a4ec /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH4_CH5 0x20a0a4f0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH6_CH7 0x20a0a4f4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATE 0x20a0a4f8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET       0x20a0a4fc /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_VALID 0x20a0a500 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_MAX_ERROR 0x20a0a504 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_THRESHOLD 0x20a0a508 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_FIXED_OFFSET 0x20a0a50c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_PCR_COUNT 0x20a0a510 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_SEND_PCR_BASE 0x20a0a514 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_LAST_PCR_BASE 0x20a0a518 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_0 0x20a0a51c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_1 0x20a0a520 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_2 0x20a0a524 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_3 0x20a0a528 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_4 0x20a0a52c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_5 0x20a0a530 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_6 0x20a0a534 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_7 0x20a0a538 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_8 0x20a0a53c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_9 0x20a0a540 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_10 0x20a0a544 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_11 0x20a0a548 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_12 0x20a0a54c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_13 0x20a0a550 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_14 0x20a0a554 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_15 0x20a0a558 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_16 0x20a0a55c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_17 0x20a0a560 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_18 0x20a0a564 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_19 0x20a0a568 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_20 0x20a0a56c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_21 0x20a0a570 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_22 0x20a0a574 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_23 0x20a0a578 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT7_RESERVED_CFG_0 0x20a0a57c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_PCROFFSET_CTRL 0x20a0a580 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_PCR_PID_CH_NUM 0x20a0a584 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_STATE 0x20a0a588 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_STATUS 0x20a0a58c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_RD_PTR 0x20a0a590 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_WR_PTR 0x20a0a594 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH0_CH1 0x20a0a598 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH2_CH3 0x20a0a59c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH4_CH5 0x20a0a5a0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH6_CH7 0x20a0a5a4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATE 0x20a0a5a8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET       0x20a0a5ac /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_VALID 0x20a0a5b0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_MAX_ERROR 0x20a0a5b4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_THRESHOLD 0x20a0a5b8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_FIXED_OFFSET 0x20a0a5bc /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_PCR_COUNT 0x20a0a5c0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_SEND_PCR_BASE 0x20a0a5c4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_LAST_PCR_BASE 0x20a0a5c8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_0 0x20a0a5cc /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_1 0x20a0a5d0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_2 0x20a0a5d4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_3 0x20a0a5d8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_4 0x20a0a5dc /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_5 0x20a0a5e0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_6 0x20a0a5e4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_7 0x20a0a5e8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_8 0x20a0a5ec /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_9 0x20a0a5f0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_10 0x20a0a5f4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_11 0x20a0a5f8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_12 0x20a0a5fc /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_13 0x20a0a600 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_14 0x20a0a604 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_15 0x20a0a608 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_16 0x20a0a60c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_17 0x20a0a610 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_18 0x20a0a614 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_19 0x20a0a618 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_20 0x20a0a61c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_21 0x20a0a620 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_22 0x20a0a624 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_23 0x20a0a628 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT8_RESERVED_CFG_0 0x20a0a62c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_PCROFFSET_CTRL 0x20a0a630 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_PCR_PID_CH_NUM 0x20a0a634 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_STATE 0x20a0a638 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_STATUS 0x20a0a63c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_RD_PTR 0x20a0a640 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_WR_PTR 0x20a0a644 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH0_CH1 0x20a0a648 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH2_CH3 0x20a0a64c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH4_CH5 0x20a0a650 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH6_CH7 0x20a0a654 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATE 0x20a0a658 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET       0x20a0a65c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_VALID 0x20a0a660 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_MAX_ERROR 0x20a0a664 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_THRESHOLD 0x20a0a668 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_FIXED_OFFSET 0x20a0a66c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_PCR_COUNT 0x20a0a670 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_SEND_PCR_BASE 0x20a0a674 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_LAST_PCR_BASE 0x20a0a678 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_0 0x20a0a67c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_1 0x20a0a680 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_2 0x20a0a684 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_3 0x20a0a688 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_4 0x20a0a68c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_5 0x20a0a690 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_6 0x20a0a694 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_7 0x20a0a698 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_8 0x20a0a69c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_9 0x20a0a6a0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_10 0x20a0a6a4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_11 0x20a0a6a8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_12 0x20a0a6ac /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_13 0x20a0a6b0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_14 0x20a0a6b4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_15 0x20a0a6b8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_16 0x20a0a6bc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_17 0x20a0a6c0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_18 0x20a0a6c4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_19 0x20a0a6c8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_20 0x20a0a6cc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_21 0x20a0a6d0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_22 0x20a0a6d4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_23 0x20a0a6d8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT9_RESERVED_CFG_0 0x20a0a6dc /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_PCROFFSET_CTRL 0x20a0a6e0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_PCR_PID_CH_NUM 0x20a0a6e4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_STATE 0x20a0a6e8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_STATUS 0x20a0a6ec /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_RD_PTR 0x20a0a6f0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_WR_PTR 0x20a0a6f4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH0_CH1 0x20a0a6f8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH2_CH3 0x20a0a6fc /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH4_CH5 0x20a0a700 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH6_CH7 0x20a0a704 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATE 0x20a0a708 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET      0x20a0a70c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_VALID 0x20a0a710 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_MAX_ERROR 0x20a0a714 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_THRESHOLD 0x20a0a718 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_FIXED_OFFSET 0x20a0a71c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_PCR_COUNT 0x20a0a720 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_SEND_PCR_BASE 0x20a0a724 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_LAST_PCR_BASE 0x20a0a728 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_0 0x20a0a72c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_1 0x20a0a730 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_2 0x20a0a734 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_3 0x20a0a738 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_4 0x20a0a73c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_5 0x20a0a740 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_6 0x20a0a744 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_7 0x20a0a748 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_8 0x20a0a74c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_9 0x20a0a750 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_10 0x20a0a754 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_11 0x20a0a758 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_12 0x20a0a75c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_13 0x20a0a760 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_14 0x20a0a764 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_15 0x20a0a768 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_16 0x20a0a76c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_17 0x20a0a770 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_18 0x20a0a774 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_19 0x20a0a778 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_20 0x20a0a77c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_21 0x20a0a780 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_22 0x20a0a784 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_23 0x20a0a788 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT10_RESERVED_CFG_0 0x20a0a78c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_PCROFFSET_CTRL 0x20a0a790 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_PCR_PID_CH_NUM 0x20a0a794 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_STATE 0x20a0a798 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_STATUS 0x20a0a79c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_RD_PTR 0x20a0a7a0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_WR_PTR 0x20a0a7a4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH0_CH1 0x20a0a7a8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH2_CH3 0x20a0a7ac /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH4_CH5 0x20a0a7b0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH6_CH7 0x20a0a7b4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATE 0x20a0a7b8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET      0x20a0a7bc /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_VALID 0x20a0a7c0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_MAX_ERROR 0x20a0a7c4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_THRESHOLD 0x20a0a7c8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_FIXED_OFFSET 0x20a0a7cc /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_PCR_COUNT 0x20a0a7d0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_SEND_PCR_BASE 0x20a0a7d4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_LAST_PCR_BASE 0x20a0a7d8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_0 0x20a0a7dc /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_1 0x20a0a7e0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_2 0x20a0a7e4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_3 0x20a0a7e8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_4 0x20a0a7ec /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_5 0x20a0a7f0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_6 0x20a0a7f4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_7 0x20a0a7f8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_8 0x20a0a7fc /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_9 0x20a0a800 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_10 0x20a0a804 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_11 0x20a0a808 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_12 0x20a0a80c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_13 0x20a0a810 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_14 0x20a0a814 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_15 0x20a0a818 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_16 0x20a0a81c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_17 0x20a0a820 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_18 0x20a0a824 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_19 0x20a0a828 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_20 0x20a0a82c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_21 0x20a0a830 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_22 0x20a0a834 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_23 0x20a0a838 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT11_RESERVED_CFG_0 0x20a0a83c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_PCROFFSET_CTRL 0x20a0a840 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_PCR_PID_CH_NUM 0x20a0a844 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_STATE 0x20a0a848 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_STATUS 0x20a0a84c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_RD_PTR 0x20a0a850 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_WR_PTR 0x20a0a854 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH0_CH1 0x20a0a858 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH2_CH3 0x20a0a85c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH4_CH5 0x20a0a860 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH6_CH7 0x20a0a864 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATE 0x20a0a868 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET      0x20a0a86c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_VALID 0x20a0a870 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_MAX_ERROR 0x20a0a874 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_THRESHOLD 0x20a0a878 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_FIXED_OFFSET 0x20a0a87c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_PCR_COUNT 0x20a0a880 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_SEND_PCR_BASE 0x20a0a884 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_LAST_PCR_BASE 0x20a0a888 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_0 0x20a0a88c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_1 0x20a0a890 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_2 0x20a0a894 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_3 0x20a0a898 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_4 0x20a0a89c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_5 0x20a0a8a0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_6 0x20a0a8a4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_7 0x20a0a8a8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_8 0x20a0a8ac /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_9 0x20a0a8b0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_10 0x20a0a8b4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_11 0x20a0a8b8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_12 0x20a0a8bc /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_13 0x20a0a8c0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_14 0x20a0a8c4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_15 0x20a0a8c8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_16 0x20a0a8cc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_17 0x20a0a8d0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_18 0x20a0a8d4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_19 0x20a0a8d8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_20 0x20a0a8dc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_21 0x20a0a8e0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_22 0x20a0a8e4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_23 0x20a0a8e8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT12_RESERVED_CFG_0 0x20a0a8ec /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_PCROFFSET_CTRL 0x20a0a8f0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_PCR_PID_CH_NUM 0x20a0a8f4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_STATE 0x20a0a8f8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_STATUS 0x20a0a8fc /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_RD_PTR 0x20a0a900 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_WR_PTR 0x20a0a904 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH0_CH1 0x20a0a908 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH2_CH3 0x20a0a90c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH4_CH5 0x20a0a910 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH6_CH7 0x20a0a914 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATE 0x20a0a918 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET      0x20a0a91c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_VALID 0x20a0a920 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_MAX_ERROR 0x20a0a924 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_THRESHOLD 0x20a0a928 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_FIXED_OFFSET 0x20a0a92c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_PCR_COUNT 0x20a0a930 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_SEND_PCR_BASE 0x20a0a934 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_LAST_PCR_BASE 0x20a0a938 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_0 0x20a0a93c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_1 0x20a0a940 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_2 0x20a0a944 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_3 0x20a0a948 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_4 0x20a0a94c /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_5 0x20a0a950 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_6 0x20a0a954 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_7 0x20a0a958 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_8 0x20a0a95c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_9 0x20a0a960 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_10 0x20a0a964 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_11 0x20a0a968 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_12 0x20a0a96c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_13 0x20a0a970 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_14 0x20a0a974 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_15 0x20a0a978 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_16 0x20a0a97c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_17 0x20a0a980 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_18 0x20a0a984 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_19 0x20a0a988 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_20 0x20a0a98c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_21 0x20a0a990 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_22 0x20a0a994 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_23 0x20a0a998 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT13_RESERVED_CFG_0 0x20a0a99c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_PCROFFSET_CTRL 0x20a0a9a0 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_PCR_PID_CH_NUM 0x20a0a9a4 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_STATE 0x20a0a9a8 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_STATUS 0x20a0a9ac /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_RD_PTR 0x20a0a9b0 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_WR_PTR 0x20a0a9b4 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH0_CH1 0x20a0a9b8 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH2_CH3 0x20a0a9bc /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH4_CH5 0x20a0a9c0 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH6_CH7 0x20a0a9c4 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATE 0x20a0a9c8 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET      0x20a0a9cc /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_VALID 0x20a0a9d0 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_MAX_ERROR 0x20a0a9d4 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_THRESHOLD 0x20a0a9d8 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_FIXED_OFFSET 0x20a0a9dc /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_PCR_COUNT 0x20a0a9e0 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_SEND_PCR_BASE 0x20a0a9e4 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_LAST_PCR_BASE 0x20a0a9e8 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_0 0x20a0a9ec /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_1 0x20a0a9f0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_2 0x20a0a9f4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_3 0x20a0a9f8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_4 0x20a0a9fc /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_5 0x20a0aa00 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_6 0x20a0aa04 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_7 0x20a0aa08 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_8 0x20a0aa0c /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_9 0x20a0aa10 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_10 0x20a0aa14 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_11 0x20a0aa18 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_12 0x20a0aa1c /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_13 0x20a0aa20 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_14 0x20a0aa24 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_15 0x20a0aa28 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_16 0x20a0aa2c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_17 0x20a0aa30 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_18 0x20a0aa34 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_19 0x20a0aa38 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_20 0x20a0aa3c /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_21 0x20a0aa40 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_22 0x20a0aa44 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_23 0x20a0aa48 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT14_RESERVED_CFG_0 0x20a0aa4c /* [RW] Config Word 43 - RESERVED */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_PCROFFSET_CTRL 0x20a0aa50 /* [RW] Config word 0 - PCROFFSET Main Control */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_PCR_PID_CH_NUM 0x20a0aa54 /* [RW] Config Word 1 - PP_PCR_PID_CH_NUM Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_STATE 0x20a0aa58 /* [RW] Config Word 2 - SPLICE STATE Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_STATUS 0x20a0aa5c /* [RW] Config Word 3 - SPLICE STATUS Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_RD_PTR 0x20a0aa60 /* [RW] Config Word 4 - SPLICE PID Channel Read Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_WR_PTR 0x20a0aa64 /* [RW] Config Word 5 - SPLICE PID Channel Write Pointer */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH0_CH1 0x20a0aa68 /* [RW] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH2_CH3 0x20a0aa6c /* [RW] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH4_CH5 0x20a0aa70 /* [RW] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH6_CH7 0x20a0aa74 /* [RW] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATE 0x20a0aa78 /* [RW] Config Word 10 - OFFSET STATE register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET      0x20a0aa7c /* [RW] Config Word 11 - OFFSET read/write */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_VALID 0x20a0aa80 /* [RW] Config Word 12 - OFFSET Valid */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_MAX_ERROR 0x20a0aa84 /* [RW] Config Word 13 - OFFSET MAX Error */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_THRESHOLD 0x20a0aa88 /* [RW] Config Word 14 - OFFSET Threshold */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_FIXED_OFFSET 0x20a0aa8c /* [RW] Config Word 15 - Fixed OFFSET */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_PCR_COUNT 0x20a0aa90 /* [RW] Config Word 16 - PCR COUNT register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_SEND_PCR_BASE 0x20a0aa94 /* [RW] Config Word 17 - Send PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_LAST_PCR_BASE 0x20a0aa98 /* [RW] Config Word 18 - Last PCR Base Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_0 0x20a0aa9c /* [RW] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_1 0x20a0aaa0 /* [RW] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_2 0x20a0aaa4 /* [RW] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_3 0x20a0aaa8 /* [RW] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_4 0x20a0aaac /* [RW] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_5 0x20a0aab0 /* [RW] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_6 0x20a0aab4 /* [RW] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_7 0x20a0aab8 /* [RW] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_8 0x20a0aabc /* [RW] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_9 0x20a0aac0 /* [RW] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_10 0x20a0aac4 /* [RW] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_11 0x20a0aac8 /* [RW] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_12 0x20a0aacc /* [RW] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_13 0x20a0aad0 /* [RW] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_14 0x20a0aad4 /* [RW] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_15 0x20a0aad8 /* [RW] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_16 0x20a0aadc /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_17 0x20a0aae0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_18 0x20a0aae4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_19 0x20a0aae8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_20 0x20a0aaec /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_21 0x20a0aaf0 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_22 0x20a0aaf4 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_23 0x20a0aaf8 /* [RW] Reserved Register */
-#define BCHP_XPT_PCROFFSET_CONTEXT15_RESERVED_CFG_0 0x20a0aafc /* [RW] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_INTERRUPT0_STATUS     0x20a08000 /* [RW][32] PCR INTERRUPT STATUS register for Contexts 3 to 0 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT0_ENABLE     0x20a08004 /* [RW][32] PCR INTERRUPT ENABLE register for Contexts 3 to 0 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT1_STATUS     0x20a08008 /* [RW][32] PCR INTERRUPT STATUS register for Contexts 7 to 4 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT1_ENABLE     0x20a0800c /* [RW][32] PCR INTERRUPT ENABLE register for Contexts 7 to 4 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT2_STATUS     0x20a08010 /* [RW][32] PCR INTERRUPT STATUS register for Contexts 11 to 8 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT2_ENABLE     0x20a08014 /* [RW][32] PCR INTERRUPT ENABLE register for Contexts 11 to 8 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT3_STATUS     0x20a08018 /* [RW][32] PCR INTERRUPT STATUS register for Contexts 15 to 12 */
+#define BCHP_XPT_PCROFFSET_INTERRUPT3_ENABLE     0x20a0801c /* [RW][32] PCR INTERRUPT ENABLE register for Contexts 15 to 12 */
+#define BCHP_XPT_PCROFFSET_STC_BROADCAST_SEL     0x20a08020 /* [RW][32] STC Broadcast bus select */
+#define BCHP_XPT_PCROFFSET_STC_MUX_DELAY         0x20a08028 /* [RW][32] STC Mux Delay */
+#define BCHP_XPT_PCROFFSET_STC_INTERRUPT_STATUS  0x20a08030 /* [RW][32] STC INTERRUPT STATUS register */
+#define BCHP_XPT_PCROFFSET_STC_INTERRUPT_ENABLE  0x20a08034 /* [RW][32] STC INTERRUPT ENABLE register */
+#define BCHP_XPT_PCROFFSET_STC0_MATCH            0x20a08040 /* [RW][32] STC0 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC1_MATCH            0x20a08044 /* [RW][32] STC1 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC2_MATCH            0x20a08048 /* [RW][32] STC2 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC3_MATCH            0x20a0804c /* [RW][32] STC3 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC4_MATCH            0x20a08050 /* [RW][32] STC4 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC5_MATCH            0x20a08054 /* [RW][32] STC5 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC6_MATCH            0x20a08058 /* [RW][32] STC6 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC7_MATCH            0x20a0805c /* [RW][32] STC7 MATCH register */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_CTRL    0x20a08080 /* [RW][32] STC Snapshot0 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0         0x20a08084 /* [RO][32] STC 32-bit Snapshot0 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_HI      0x20a08088 /* [RO][32] STC 42-bit Snapshot0 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT0_LO      0x20a0808c /* [RO][32] STC 42-bit Snapshot0 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_CTRL    0x20a08090 /* [RW][32] STC Snapshot1 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1         0x20a08094 /* [RO][32] STC 32-bit Snapshot1 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_HI      0x20a08098 /* [RO][32] STC 42-bit Snapshot1 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT1_LO      0x20a0809c /* [RO][32] STC 42-bit Snapshot1 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_CTRL    0x20a080a0 /* [RW][32] STC Snapshot2 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2         0x20a080a4 /* [RO][32] STC 32-bit Snapshot2 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_HI      0x20a080a8 /* [RO][32] STC 42-bit Snapshot2 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT2_LO      0x20a080ac /* [RO][32] STC 42-bit Snapshot2 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_CTRL    0x20a080b0 /* [RW][32] STC Snapshot3 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3         0x20a080b4 /* [RO][32] STC 32-bit Snapshot3 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_HI      0x20a080b8 /* [RO][32] STC 42-bit Snapshot3 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT3_LO      0x20a080bc /* [RO][32] STC 42-bit Snapshot3 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_CTRL    0x20a080c0 /* [RW][32] STC Snapshot4 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4         0x20a080c4 /* [RO][32] STC 32-bit Snapshot4 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_HI      0x20a080c8 /* [RO][32] STC 42-bit Snapshot4 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT4_LO      0x20a080cc /* [RO][32] STC 42-bit Snapshot4 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_CTRL    0x20a080d0 /* [RW][32] STC Snapshot5 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5         0x20a080d4 /* [RO][32] STC 32-bit Snapshot5 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_HI      0x20a080d8 /* [RO][32] STC 42-bit Snapshot5 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT5_LO      0x20a080dc /* [RO][32] STC 42-bit Snapshot5 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_CTRL    0x20a080e0 /* [RW][32] STC Snapshot6 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6         0x20a080e4 /* [RO][32] STC 32-bit Snapshot6 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_HI      0x20a080e8 /* [RO][32] STC 42-bit Snapshot6 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT6_LO      0x20a080ec /* [RO][32] STC 42-bit Snapshot6 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_CTRL    0x20a080f0 /* [RW][32] STC Snapshot7 Control */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7         0x20a080f4 /* [RO][32] STC 32-bit Snapshot7 */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_HI      0x20a080f8 /* [RO][32] STC 42-bit Snapshot7 (MSbs) */
+#define BCHP_XPT_PCROFFSET_STC_SNAPSHOT7_LO      0x20a080fc /* [RO][32] STC 42-bit Snapshot7 (LSbs) */
+#define BCHP_XPT_PCROFFSET_STC0_CTRL             0x20a08280 /* [RW][32] STC0 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC0_TIMEBASE_SEL     0x20a08284 /* [RW][32] STC0 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC0_RATE_CTRL        0x20a08288 /* [RW][32] STC0 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC0_CAPTURE_PCR_ONCE 0x20a0828c /* [RW][32] STC0 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC0_HI               0x20a08290 /* [RW][32] STC0 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC0_LO               0x20a08294 /* [RW][32] STC0 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC0_INC_HI           0x20a08298 /* [RW][32] STC0 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC0_INC_LO           0x20a0829c /* [RW][32] STC0 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC0_INC_TRIG         0x20a082a0 /* [RW][32] STC0 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC0_AV_WINDOW        0x20a082a4 /* [RW][32] STC0 AV Window */
+#define BCHP_XPT_PCROFFSET_STC1_CTRL             0x20a082c0 /* [RW][32] STC1 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC1_TIMEBASE_SEL     0x20a082c4 /* [RW][32] STC1 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC1_RATE_CTRL        0x20a082c8 /* [RW][32] STC1 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC1_CAPTURE_PCR_ONCE 0x20a082cc /* [RW][32] STC1 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC1_HI               0x20a082d0 /* [RW][32] STC1 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC1_LO               0x20a082d4 /* [RW][32] STC1 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC1_INC_HI           0x20a082d8 /* [RW][32] STC1 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC1_INC_LO           0x20a082dc /* [RW][32] STC1 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC1_INC_TRIG         0x20a082e0 /* [RW][32] STC1 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC1_AV_WINDOW        0x20a082e4 /* [RW][32] STC1 AV Window */
+#define BCHP_XPT_PCROFFSET_STC2_CTRL             0x20a08300 /* [RW][32] STC2 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC2_TIMEBASE_SEL     0x20a08304 /* [RW][32] STC2 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC2_RATE_CTRL        0x20a08308 /* [RW][32] STC2 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC2_CAPTURE_PCR_ONCE 0x20a0830c /* [RW][32] STC2 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC2_HI               0x20a08310 /* [RW][32] STC2 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC2_LO               0x20a08314 /* [RW][32] STC2 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC2_INC_HI           0x20a08318 /* [RW][32] STC2 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC2_INC_LO           0x20a0831c /* [RW][32] STC2 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC2_INC_TRIG         0x20a08320 /* [RW][32] STC2 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC2_AV_WINDOW        0x20a08324 /* [RW][32] STC2 AV Window */
+#define BCHP_XPT_PCROFFSET_STC3_CTRL             0x20a08340 /* [RW][32] STC3 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC3_TIMEBASE_SEL     0x20a08344 /* [RW][32] STC3 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC3_RATE_CTRL        0x20a08348 /* [RW][32] STC3 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC3_CAPTURE_PCR_ONCE 0x20a0834c /* [RW][32] STC3 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC3_HI               0x20a08350 /* [RW][32] STC3 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC3_LO               0x20a08354 /* [RW][32] STC3 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC3_INC_HI           0x20a08358 /* [RW][32] STC3 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC3_INC_LO           0x20a0835c /* [RW][32] STC3 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC3_INC_TRIG         0x20a08360 /* [RW][32] STC3 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC3_AV_WINDOW        0x20a08364 /* [RW][32] STC3 AV Window */
+#define BCHP_XPT_PCROFFSET_STC4_CTRL             0x20a08380 /* [RW][32] STC4 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC4_TIMEBASE_SEL     0x20a08384 /* [RW][32] STC4 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC4_RATE_CTRL        0x20a08388 /* [RW][32] STC4 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC4_CAPTURE_PCR_ONCE 0x20a0838c /* [RW][32] STC4 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC4_HI               0x20a08390 /* [RW][32] STC4 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC4_LO               0x20a08394 /* [RW][32] STC4 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC4_INC_HI           0x20a08398 /* [RW][32] STC4 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC4_INC_LO           0x20a0839c /* [RW][32] STC4 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC4_INC_TRIG         0x20a083a0 /* [RW][32] STC4 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC4_AV_WINDOW        0x20a083a4 /* [RW][32] STC4 AV Window */
+#define BCHP_XPT_PCROFFSET_STC5_CTRL             0x20a083c0 /* [RW][32] STC5 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC5_TIMEBASE_SEL     0x20a083c4 /* [RW][32] STC5 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC5_RATE_CTRL        0x20a083c8 /* [RW][32] STC5 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC5_CAPTURE_PCR_ONCE 0x20a083cc /* [RW][32] STC5 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC5_HI               0x20a083d0 /* [RW][32] STC5 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC5_LO               0x20a083d4 /* [RW][32] STC5 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC5_INC_HI           0x20a083d8 /* [RW][32] STC5 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC5_INC_LO           0x20a083dc /* [RW][32] STC5 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC5_INC_TRIG         0x20a083e0 /* [RW][32] STC5 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC5_AV_WINDOW        0x20a083e4 /* [RW][32] STC5 AV Window */
+#define BCHP_XPT_PCROFFSET_STC6_CTRL             0x20a08400 /* [RW][32] STC6 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC6_TIMEBASE_SEL     0x20a08404 /* [RW][32] STC6 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC6_RATE_CTRL        0x20a08408 /* [RW][32] STC6 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC6_CAPTURE_PCR_ONCE 0x20a0840c /* [RW][32] STC6 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC6_HI               0x20a08410 /* [RW][32] STC6 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC6_LO               0x20a08414 /* [RW][32] STC6 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC6_INC_HI           0x20a08418 /* [RW][32] STC6 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC6_INC_LO           0x20a0841c /* [RW][32] STC6 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC6_INC_TRIG         0x20a08420 /* [RW][32] STC6 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC6_AV_WINDOW        0x20a08424 /* [RW][32] STC6 AV Window */
+#define BCHP_XPT_PCROFFSET_STC7_CTRL             0x20a08440 /* [RW][32] STC7 Counter Control */
+#define BCHP_XPT_PCROFFSET_STC7_TIMEBASE_SEL     0x20a08444 /* [RW][32] STC7 Timebase Select */
+#define BCHP_XPT_PCROFFSET_STC7_RATE_CTRL        0x20a08448 /* [RW][32] STC7 Counter Increment and Prescale */
+#define BCHP_XPT_PCROFFSET_STC7_CAPTURE_PCR_ONCE 0x20a0844c /* [RW][32] STC7 Capture PCR once */
+#define BCHP_XPT_PCROFFSET_STC7_HI               0x20a08450 /* [RW][32] STC7 Counter - Hi value */
+#define BCHP_XPT_PCROFFSET_STC7_LO               0x20a08454 /* [RW][32] STC7 Counter - Lo value */
+#define BCHP_XPT_PCROFFSET_STC7_INC_HI           0x20a08458 /* [RW][32] STC7 Counter Ext/Soft Increment Hi */
+#define BCHP_XPT_PCROFFSET_STC7_INC_LO           0x20a0845c /* [RW][32] STC7 Counter Ext/Soft Increment Lo */
+#define BCHP_XPT_PCROFFSET_STC7_INC_TRIG         0x20a08460 /* [RW][32] STC7 Counter Soft Increment Trigger */
+#define BCHP_XPT_PCROFFSET_STC7_AV_WINDOW        0x20a08464 /* [RW][32] STC7 AV Window */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_PCROFFSET_CTRL 0x20a0a000 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_PCR_PID_CH_NUM 0x20a0a004 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATE 0x20a0a008 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_STATUS 0x20a0a00c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_RD_PTR 0x20a0a010 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_WR_PTR 0x20a0a014 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH0_CH1 0x20a0a018 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH2_CH3 0x20a0a01c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH4_CH5 0x20a0a020 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_SPLICE_PID_CH6_CH7 0x20a0a024 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATE 0x20a0a028 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET       0x20a0a02c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_VALID 0x20a0a030 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_MAX_ERROR 0x20a0a034 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_THRESHOLD 0x20a0a038 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_FIXED_OFFSET 0x20a0a03c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_PCR_COUNT 0x20a0a040 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_SEND_PCR_BASE 0x20a0a044 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_PP_LAST_PCR_BASE 0x20a0a048 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_0 0x20a0a04c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_1 0x20a0a050 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_2 0x20a0a054 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_3 0x20a0a058 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_4 0x20a0a05c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_5 0x20a0a060 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_6 0x20a0a064 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_7 0x20a0a068 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_8 0x20a0a06c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_9 0x20a0a070 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_10 0x20a0a074 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_11 0x20a0a078 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_12 0x20a0a07c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_13 0x20a0a080 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_14 0x20a0a084 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_15 0x20a0a088 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_16 0x20a0a08c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_17 0x20a0a090 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_18 0x20a0a094 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_19 0x20a0a098 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_20 0x20a0a09c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_21 0x20a0a0a0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_22 0x20a0a0a4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_OFFSET_STATUS_23 0x20a0a0a8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT0_RESERVED_CFG_0 0x20a0a0ac /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_PCROFFSET_CTRL 0x20a0a0b0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_PCR_PID_CH_NUM 0x20a0a0b4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_STATE 0x20a0a0b8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_STATUS 0x20a0a0bc /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_RD_PTR 0x20a0a0c0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_WR_PTR 0x20a0a0c4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH0_CH1 0x20a0a0c8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH2_CH3 0x20a0a0cc /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH4_CH5 0x20a0a0d0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_SPLICE_PID_CH6_CH7 0x20a0a0d4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATE 0x20a0a0d8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET       0x20a0a0dc /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_VALID 0x20a0a0e0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_MAX_ERROR 0x20a0a0e4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_THRESHOLD 0x20a0a0e8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_FIXED_OFFSET 0x20a0a0ec /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_PCR_COUNT 0x20a0a0f0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_SEND_PCR_BASE 0x20a0a0f4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_PP_LAST_PCR_BASE 0x20a0a0f8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_0 0x20a0a0fc /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_1 0x20a0a100 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_2 0x20a0a104 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_3 0x20a0a108 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_4 0x20a0a10c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_5 0x20a0a110 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_6 0x20a0a114 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_7 0x20a0a118 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_8 0x20a0a11c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_9 0x20a0a120 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_10 0x20a0a124 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_11 0x20a0a128 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_12 0x20a0a12c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_13 0x20a0a130 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_14 0x20a0a134 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_15 0x20a0a138 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_16 0x20a0a13c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_17 0x20a0a140 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_18 0x20a0a144 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_19 0x20a0a148 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_20 0x20a0a14c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_21 0x20a0a150 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_22 0x20a0a154 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_OFFSET_STATUS_23 0x20a0a158 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT1_RESERVED_CFG_0 0x20a0a15c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_PCROFFSET_CTRL 0x20a0a160 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_PCR_PID_CH_NUM 0x20a0a164 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_STATE 0x20a0a168 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_STATUS 0x20a0a16c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_RD_PTR 0x20a0a170 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_WR_PTR 0x20a0a174 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH0_CH1 0x20a0a178 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH2_CH3 0x20a0a17c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH4_CH5 0x20a0a180 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_SPLICE_PID_CH6_CH7 0x20a0a184 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATE 0x20a0a188 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET       0x20a0a18c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_VALID 0x20a0a190 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_MAX_ERROR 0x20a0a194 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_THRESHOLD 0x20a0a198 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_FIXED_OFFSET 0x20a0a19c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_PCR_COUNT 0x20a0a1a0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_SEND_PCR_BASE 0x20a0a1a4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_PP_LAST_PCR_BASE 0x20a0a1a8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_0 0x20a0a1ac /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_1 0x20a0a1b0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_2 0x20a0a1b4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_3 0x20a0a1b8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_4 0x20a0a1bc /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_5 0x20a0a1c0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_6 0x20a0a1c4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_7 0x20a0a1c8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_8 0x20a0a1cc /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_9 0x20a0a1d0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_10 0x20a0a1d4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_11 0x20a0a1d8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_12 0x20a0a1dc /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_13 0x20a0a1e0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_14 0x20a0a1e4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_15 0x20a0a1e8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_16 0x20a0a1ec /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_17 0x20a0a1f0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_18 0x20a0a1f4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_19 0x20a0a1f8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_20 0x20a0a1fc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_21 0x20a0a200 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_22 0x20a0a204 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_OFFSET_STATUS_23 0x20a0a208 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT2_RESERVED_CFG_0 0x20a0a20c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_PCROFFSET_CTRL 0x20a0a210 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_PCR_PID_CH_NUM 0x20a0a214 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_STATE 0x20a0a218 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_STATUS 0x20a0a21c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_RD_PTR 0x20a0a220 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_WR_PTR 0x20a0a224 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH0_CH1 0x20a0a228 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH2_CH3 0x20a0a22c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH4_CH5 0x20a0a230 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_SPLICE_PID_CH6_CH7 0x20a0a234 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATE 0x20a0a238 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET       0x20a0a23c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_VALID 0x20a0a240 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_MAX_ERROR 0x20a0a244 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_THRESHOLD 0x20a0a248 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_FIXED_OFFSET 0x20a0a24c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_PCR_COUNT 0x20a0a250 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_SEND_PCR_BASE 0x20a0a254 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_PP_LAST_PCR_BASE 0x20a0a258 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_0 0x20a0a25c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_1 0x20a0a260 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_2 0x20a0a264 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_3 0x20a0a268 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_4 0x20a0a26c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_5 0x20a0a270 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_6 0x20a0a274 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_7 0x20a0a278 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_8 0x20a0a27c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_9 0x20a0a280 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_10 0x20a0a284 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_11 0x20a0a288 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_12 0x20a0a28c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_13 0x20a0a290 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_14 0x20a0a294 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_15 0x20a0a298 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_16 0x20a0a29c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_17 0x20a0a2a0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_18 0x20a0a2a4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_19 0x20a0a2a8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_20 0x20a0a2ac /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_21 0x20a0a2b0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_22 0x20a0a2b4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_OFFSET_STATUS_23 0x20a0a2b8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT3_RESERVED_CFG_0 0x20a0a2bc /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_PCROFFSET_CTRL 0x20a0a2c0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_PCR_PID_CH_NUM 0x20a0a2c4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_STATE 0x20a0a2c8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_STATUS 0x20a0a2cc /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_RD_PTR 0x20a0a2d0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_WR_PTR 0x20a0a2d4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH0_CH1 0x20a0a2d8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH2_CH3 0x20a0a2dc /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH4_CH5 0x20a0a2e0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_SPLICE_PID_CH6_CH7 0x20a0a2e4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATE 0x20a0a2e8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET       0x20a0a2ec /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_VALID 0x20a0a2f0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_MAX_ERROR 0x20a0a2f4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_THRESHOLD 0x20a0a2f8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_FIXED_OFFSET 0x20a0a2fc /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_PCR_COUNT 0x20a0a300 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_SEND_PCR_BASE 0x20a0a304 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_PP_LAST_PCR_BASE 0x20a0a308 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_0 0x20a0a30c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_1 0x20a0a310 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_2 0x20a0a314 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_3 0x20a0a318 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_4 0x20a0a31c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_5 0x20a0a320 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_6 0x20a0a324 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_7 0x20a0a328 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_8 0x20a0a32c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_9 0x20a0a330 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_10 0x20a0a334 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_11 0x20a0a338 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_12 0x20a0a33c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_13 0x20a0a340 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_14 0x20a0a344 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_15 0x20a0a348 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_16 0x20a0a34c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_17 0x20a0a350 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_18 0x20a0a354 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_19 0x20a0a358 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_20 0x20a0a35c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_21 0x20a0a360 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_22 0x20a0a364 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_OFFSET_STATUS_23 0x20a0a368 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT4_RESERVED_CFG_0 0x20a0a36c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_PCROFFSET_CTRL 0x20a0a370 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_PCR_PID_CH_NUM 0x20a0a374 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_STATE 0x20a0a378 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_STATUS 0x20a0a37c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_RD_PTR 0x20a0a380 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_WR_PTR 0x20a0a384 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH0_CH1 0x20a0a388 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH2_CH3 0x20a0a38c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH4_CH5 0x20a0a390 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_SPLICE_PID_CH6_CH7 0x20a0a394 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATE 0x20a0a398 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET       0x20a0a39c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_VALID 0x20a0a3a0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_MAX_ERROR 0x20a0a3a4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_THRESHOLD 0x20a0a3a8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_FIXED_OFFSET 0x20a0a3ac /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_PCR_COUNT 0x20a0a3b0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_SEND_PCR_BASE 0x20a0a3b4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_PP_LAST_PCR_BASE 0x20a0a3b8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_0 0x20a0a3bc /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_1 0x20a0a3c0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_2 0x20a0a3c4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_3 0x20a0a3c8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_4 0x20a0a3cc /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_5 0x20a0a3d0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_6 0x20a0a3d4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_7 0x20a0a3d8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_8 0x20a0a3dc /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_9 0x20a0a3e0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_10 0x20a0a3e4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_11 0x20a0a3e8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_12 0x20a0a3ec /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_13 0x20a0a3f0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_14 0x20a0a3f4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_15 0x20a0a3f8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_16 0x20a0a3fc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_17 0x20a0a400 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_18 0x20a0a404 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_19 0x20a0a408 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_20 0x20a0a40c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_21 0x20a0a410 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_22 0x20a0a414 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_OFFSET_STATUS_23 0x20a0a418 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT5_RESERVED_CFG_0 0x20a0a41c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_PCROFFSET_CTRL 0x20a0a420 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_PCR_PID_CH_NUM 0x20a0a424 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_STATE 0x20a0a428 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_STATUS 0x20a0a42c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_RD_PTR 0x20a0a430 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_WR_PTR 0x20a0a434 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH0_CH1 0x20a0a438 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH2_CH3 0x20a0a43c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH4_CH5 0x20a0a440 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_SPLICE_PID_CH6_CH7 0x20a0a444 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATE 0x20a0a448 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET       0x20a0a44c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_VALID 0x20a0a450 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_MAX_ERROR 0x20a0a454 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_THRESHOLD 0x20a0a458 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_FIXED_OFFSET 0x20a0a45c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_PCR_COUNT 0x20a0a460 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_SEND_PCR_BASE 0x20a0a464 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_PP_LAST_PCR_BASE 0x20a0a468 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_0 0x20a0a46c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_1 0x20a0a470 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_2 0x20a0a474 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_3 0x20a0a478 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_4 0x20a0a47c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_5 0x20a0a480 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_6 0x20a0a484 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_7 0x20a0a488 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_8 0x20a0a48c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_9 0x20a0a490 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_10 0x20a0a494 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_11 0x20a0a498 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_12 0x20a0a49c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_13 0x20a0a4a0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_14 0x20a0a4a4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_15 0x20a0a4a8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_16 0x20a0a4ac /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_17 0x20a0a4b0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_18 0x20a0a4b4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_19 0x20a0a4b8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_20 0x20a0a4bc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_21 0x20a0a4c0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_22 0x20a0a4c4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_OFFSET_STATUS_23 0x20a0a4c8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT6_RESERVED_CFG_0 0x20a0a4cc /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_PCROFFSET_CTRL 0x20a0a4d0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_PCR_PID_CH_NUM 0x20a0a4d4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_STATE 0x20a0a4d8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_STATUS 0x20a0a4dc /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_RD_PTR 0x20a0a4e0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_WR_PTR 0x20a0a4e4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH0_CH1 0x20a0a4e8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH2_CH3 0x20a0a4ec /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH4_CH5 0x20a0a4f0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_SPLICE_PID_CH6_CH7 0x20a0a4f4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATE 0x20a0a4f8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET       0x20a0a4fc /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_VALID 0x20a0a500 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_MAX_ERROR 0x20a0a504 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_THRESHOLD 0x20a0a508 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_FIXED_OFFSET 0x20a0a50c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_PCR_COUNT 0x20a0a510 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_SEND_PCR_BASE 0x20a0a514 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_PP_LAST_PCR_BASE 0x20a0a518 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_0 0x20a0a51c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_1 0x20a0a520 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_2 0x20a0a524 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_3 0x20a0a528 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_4 0x20a0a52c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_5 0x20a0a530 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_6 0x20a0a534 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_7 0x20a0a538 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_8 0x20a0a53c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_9 0x20a0a540 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_10 0x20a0a544 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_11 0x20a0a548 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_12 0x20a0a54c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_13 0x20a0a550 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_14 0x20a0a554 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_15 0x20a0a558 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_16 0x20a0a55c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_17 0x20a0a560 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_18 0x20a0a564 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_19 0x20a0a568 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_20 0x20a0a56c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_21 0x20a0a570 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_22 0x20a0a574 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_OFFSET_STATUS_23 0x20a0a578 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT7_RESERVED_CFG_0 0x20a0a57c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_PCROFFSET_CTRL 0x20a0a580 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_PCR_PID_CH_NUM 0x20a0a584 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_STATE 0x20a0a588 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_STATUS 0x20a0a58c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_RD_PTR 0x20a0a590 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_WR_PTR 0x20a0a594 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH0_CH1 0x20a0a598 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH2_CH3 0x20a0a59c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH4_CH5 0x20a0a5a0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_SPLICE_PID_CH6_CH7 0x20a0a5a4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATE 0x20a0a5a8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET       0x20a0a5ac /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_VALID 0x20a0a5b0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_MAX_ERROR 0x20a0a5b4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_THRESHOLD 0x20a0a5b8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_FIXED_OFFSET 0x20a0a5bc /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_PCR_COUNT 0x20a0a5c0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_SEND_PCR_BASE 0x20a0a5c4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_PP_LAST_PCR_BASE 0x20a0a5c8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_0 0x20a0a5cc /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_1 0x20a0a5d0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_2 0x20a0a5d4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_3 0x20a0a5d8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_4 0x20a0a5dc /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_5 0x20a0a5e0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_6 0x20a0a5e4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_7 0x20a0a5e8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_8 0x20a0a5ec /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_9 0x20a0a5f0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_10 0x20a0a5f4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_11 0x20a0a5f8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_12 0x20a0a5fc /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_13 0x20a0a600 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_14 0x20a0a604 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_15 0x20a0a608 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_16 0x20a0a60c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_17 0x20a0a610 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_18 0x20a0a614 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_19 0x20a0a618 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_20 0x20a0a61c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_21 0x20a0a620 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_22 0x20a0a624 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_OFFSET_STATUS_23 0x20a0a628 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT8_RESERVED_CFG_0 0x20a0a62c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_PCROFFSET_CTRL 0x20a0a630 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_PCR_PID_CH_NUM 0x20a0a634 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_STATE 0x20a0a638 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_STATUS 0x20a0a63c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_RD_PTR 0x20a0a640 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_WR_PTR 0x20a0a644 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH0_CH1 0x20a0a648 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH2_CH3 0x20a0a64c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH4_CH5 0x20a0a650 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_SPLICE_PID_CH6_CH7 0x20a0a654 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATE 0x20a0a658 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET       0x20a0a65c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_VALID 0x20a0a660 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_MAX_ERROR 0x20a0a664 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_THRESHOLD 0x20a0a668 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_FIXED_OFFSET 0x20a0a66c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_PCR_COUNT 0x20a0a670 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_SEND_PCR_BASE 0x20a0a674 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_PP_LAST_PCR_BASE 0x20a0a678 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_0 0x20a0a67c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_1 0x20a0a680 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_2 0x20a0a684 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_3 0x20a0a688 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_4 0x20a0a68c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_5 0x20a0a690 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_6 0x20a0a694 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_7 0x20a0a698 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_8 0x20a0a69c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_9 0x20a0a6a0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_10 0x20a0a6a4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_11 0x20a0a6a8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_12 0x20a0a6ac /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_13 0x20a0a6b0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_14 0x20a0a6b4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_15 0x20a0a6b8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_16 0x20a0a6bc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_17 0x20a0a6c0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_18 0x20a0a6c4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_19 0x20a0a6c8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_20 0x20a0a6cc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_21 0x20a0a6d0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_22 0x20a0a6d4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_OFFSET_STATUS_23 0x20a0a6d8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT9_RESERVED_CFG_0 0x20a0a6dc /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_PCROFFSET_CTRL 0x20a0a6e0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_PCR_PID_CH_NUM 0x20a0a6e4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_STATE 0x20a0a6e8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_STATUS 0x20a0a6ec /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_RD_PTR 0x20a0a6f0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_WR_PTR 0x20a0a6f4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH0_CH1 0x20a0a6f8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH2_CH3 0x20a0a6fc /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH4_CH5 0x20a0a700 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_SPLICE_PID_CH6_CH7 0x20a0a704 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATE 0x20a0a708 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET      0x20a0a70c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_VALID 0x20a0a710 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_MAX_ERROR 0x20a0a714 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_THRESHOLD 0x20a0a718 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_FIXED_OFFSET 0x20a0a71c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_PCR_COUNT 0x20a0a720 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_SEND_PCR_BASE 0x20a0a724 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_PP_LAST_PCR_BASE 0x20a0a728 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_0 0x20a0a72c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_1 0x20a0a730 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_2 0x20a0a734 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_3 0x20a0a738 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_4 0x20a0a73c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_5 0x20a0a740 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_6 0x20a0a744 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_7 0x20a0a748 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_8 0x20a0a74c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_9 0x20a0a750 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_10 0x20a0a754 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_11 0x20a0a758 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_12 0x20a0a75c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_13 0x20a0a760 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_14 0x20a0a764 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_15 0x20a0a768 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_16 0x20a0a76c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_17 0x20a0a770 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_18 0x20a0a774 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_19 0x20a0a778 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_20 0x20a0a77c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_21 0x20a0a780 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_22 0x20a0a784 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_OFFSET_STATUS_23 0x20a0a788 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT10_RESERVED_CFG_0 0x20a0a78c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_PCROFFSET_CTRL 0x20a0a790 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_PCR_PID_CH_NUM 0x20a0a794 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_STATE 0x20a0a798 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_STATUS 0x20a0a79c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_RD_PTR 0x20a0a7a0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_WR_PTR 0x20a0a7a4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH0_CH1 0x20a0a7a8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH2_CH3 0x20a0a7ac /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH4_CH5 0x20a0a7b0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_SPLICE_PID_CH6_CH7 0x20a0a7b4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATE 0x20a0a7b8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET      0x20a0a7bc /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_VALID 0x20a0a7c0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_MAX_ERROR 0x20a0a7c4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_THRESHOLD 0x20a0a7c8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_FIXED_OFFSET 0x20a0a7cc /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_PCR_COUNT 0x20a0a7d0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_SEND_PCR_BASE 0x20a0a7d4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_PP_LAST_PCR_BASE 0x20a0a7d8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_0 0x20a0a7dc /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_1 0x20a0a7e0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_2 0x20a0a7e4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_3 0x20a0a7e8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_4 0x20a0a7ec /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_5 0x20a0a7f0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_6 0x20a0a7f4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_7 0x20a0a7f8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_8 0x20a0a7fc /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_9 0x20a0a800 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_10 0x20a0a804 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_11 0x20a0a808 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_12 0x20a0a80c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_13 0x20a0a810 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_14 0x20a0a814 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_15 0x20a0a818 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_16 0x20a0a81c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_17 0x20a0a820 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_18 0x20a0a824 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_19 0x20a0a828 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_20 0x20a0a82c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_21 0x20a0a830 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_22 0x20a0a834 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_OFFSET_STATUS_23 0x20a0a838 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT11_RESERVED_CFG_0 0x20a0a83c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_PCROFFSET_CTRL 0x20a0a840 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_PCR_PID_CH_NUM 0x20a0a844 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_STATE 0x20a0a848 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_STATUS 0x20a0a84c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_RD_PTR 0x20a0a850 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_WR_PTR 0x20a0a854 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH0_CH1 0x20a0a858 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH2_CH3 0x20a0a85c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH4_CH5 0x20a0a860 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_SPLICE_PID_CH6_CH7 0x20a0a864 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATE 0x20a0a868 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET      0x20a0a86c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_VALID 0x20a0a870 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_MAX_ERROR 0x20a0a874 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_THRESHOLD 0x20a0a878 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_FIXED_OFFSET 0x20a0a87c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_PCR_COUNT 0x20a0a880 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_SEND_PCR_BASE 0x20a0a884 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_PP_LAST_PCR_BASE 0x20a0a888 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_0 0x20a0a88c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_1 0x20a0a890 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_2 0x20a0a894 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_3 0x20a0a898 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_4 0x20a0a89c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_5 0x20a0a8a0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_6 0x20a0a8a4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_7 0x20a0a8a8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_8 0x20a0a8ac /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_9 0x20a0a8b0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_10 0x20a0a8b4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_11 0x20a0a8b8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_12 0x20a0a8bc /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_13 0x20a0a8c0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_14 0x20a0a8c4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_15 0x20a0a8c8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_16 0x20a0a8cc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_17 0x20a0a8d0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_18 0x20a0a8d4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_19 0x20a0a8d8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_20 0x20a0a8dc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_21 0x20a0a8e0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_22 0x20a0a8e4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_OFFSET_STATUS_23 0x20a0a8e8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT12_RESERVED_CFG_0 0x20a0a8ec /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_PCROFFSET_CTRL 0x20a0a8f0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_PCR_PID_CH_NUM 0x20a0a8f4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_STATE 0x20a0a8f8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_STATUS 0x20a0a8fc /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_RD_PTR 0x20a0a900 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_WR_PTR 0x20a0a904 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH0_CH1 0x20a0a908 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH2_CH3 0x20a0a90c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH4_CH5 0x20a0a910 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_SPLICE_PID_CH6_CH7 0x20a0a914 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATE 0x20a0a918 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET      0x20a0a91c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_VALID 0x20a0a920 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_MAX_ERROR 0x20a0a924 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_THRESHOLD 0x20a0a928 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_FIXED_OFFSET 0x20a0a92c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_PCR_COUNT 0x20a0a930 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_SEND_PCR_BASE 0x20a0a934 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_PP_LAST_PCR_BASE 0x20a0a938 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_0 0x20a0a93c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_1 0x20a0a940 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_2 0x20a0a944 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_3 0x20a0a948 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_4 0x20a0a94c /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_5 0x20a0a950 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_6 0x20a0a954 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_7 0x20a0a958 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_8 0x20a0a95c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_9 0x20a0a960 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_10 0x20a0a964 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_11 0x20a0a968 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_12 0x20a0a96c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_13 0x20a0a970 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_14 0x20a0a974 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_15 0x20a0a978 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_16 0x20a0a97c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_17 0x20a0a980 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_18 0x20a0a984 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_19 0x20a0a988 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_20 0x20a0a98c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_21 0x20a0a990 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_22 0x20a0a994 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_OFFSET_STATUS_23 0x20a0a998 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT13_RESERVED_CFG_0 0x20a0a99c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_PCROFFSET_CTRL 0x20a0a9a0 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_PCR_PID_CH_NUM 0x20a0a9a4 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_STATE 0x20a0a9a8 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_STATUS 0x20a0a9ac /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_RD_PTR 0x20a0a9b0 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_WR_PTR 0x20a0a9b4 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH0_CH1 0x20a0a9b8 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH2_CH3 0x20a0a9bc /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH4_CH5 0x20a0a9c0 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_SPLICE_PID_CH6_CH7 0x20a0a9c4 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATE 0x20a0a9c8 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET      0x20a0a9cc /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_VALID 0x20a0a9d0 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_MAX_ERROR 0x20a0a9d4 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_THRESHOLD 0x20a0a9d8 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_FIXED_OFFSET 0x20a0a9dc /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_PCR_COUNT 0x20a0a9e0 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_SEND_PCR_BASE 0x20a0a9e4 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_PP_LAST_PCR_BASE 0x20a0a9e8 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_0 0x20a0a9ec /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_1 0x20a0a9f0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_2 0x20a0a9f4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_3 0x20a0a9f8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_4 0x20a0a9fc /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_5 0x20a0aa00 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_6 0x20a0aa04 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_7 0x20a0aa08 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_8 0x20a0aa0c /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_9 0x20a0aa10 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_10 0x20a0aa14 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_11 0x20a0aa18 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_12 0x20a0aa1c /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_13 0x20a0aa20 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_14 0x20a0aa24 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_15 0x20a0aa28 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_16 0x20a0aa2c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_17 0x20a0aa30 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_18 0x20a0aa34 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_19 0x20a0aa38 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_20 0x20a0aa3c /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_21 0x20a0aa40 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_22 0x20a0aa44 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_OFFSET_STATUS_23 0x20a0aa48 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT14_RESERVED_CFG_0 0x20a0aa4c /* [RW][32] Config Word 43 - RESERVED */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_PCROFFSET_CTRL 0x20a0aa50 /* [RW][32] Config word 0 - PCROFFSET Main Control */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_PCR_PID_CH_NUM 0x20a0aa54 /* [RW][32] Config Word 1 - PP_PCR_PID_CH_NUM Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_STATE 0x20a0aa58 /* [RW][32] Config Word 2 - SPLICE STATE Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_STATUS 0x20a0aa5c /* [RW][32] Config Word 3 - SPLICE STATUS Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_RD_PTR 0x20a0aa60 /* [RW][32] Config Word 4 - SPLICE PID Channel Read Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_WR_PTR 0x20a0aa64 /* [RW][32] Config Word 5 - SPLICE PID Channel Write Pointer */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH0_CH1 0x20a0aa68 /* [RW][32] Config Word 6 - NEXT SPLICE PCR PID Channel 0 and Channel 1 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH2_CH3 0x20a0aa6c /* [RW][32] Config Word 7 - NEXT SPLICE PCR PID Channel 2 and Channel 3 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH4_CH5 0x20a0aa70 /* [RW][32] Config Word 8 - NEXT SPLICE PCR PID Channel 4 and Channel 5 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_SPLICE_PID_CH6_CH7 0x20a0aa74 /* [RW][32] Config Word 9 - NEXT SPLICE PCR PID Channel 6 and Channel 7 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATE 0x20a0aa78 /* [RW][32] Config Word 10 - OFFSET STATE register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET      0x20a0aa7c /* [RW][32] Config Word 11 - OFFSET read/write */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_VALID 0x20a0aa80 /* [RW][32] Config Word 12 - OFFSET Valid */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_MAX_ERROR 0x20a0aa84 /* [RW][32] Config Word 13 - OFFSET MAX Error */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_THRESHOLD 0x20a0aa88 /* [RW][32] Config Word 14 - OFFSET Threshold */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_FIXED_OFFSET 0x20a0aa8c /* [RW][32] Config Word 15 - Fixed OFFSET */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_PCR_COUNT 0x20a0aa90 /* [RW][32] Config Word 16 - PCR COUNT register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_SEND_PCR_BASE 0x20a0aa94 /* [RW][32] Config Word 17 - Send PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_PP_LAST_PCR_BASE 0x20a0aa98 /* [RW][32] Config Word 18 - Last PCR Base Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_0 0x20a0aa9c /* [RW][32] Config Word 19 - OFFSET STATUS 0 for PID channel 0 to 31 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_1 0x20a0aaa0 /* [RW][32] Config Word 20 - OFFSET STATUS 1 for PID channel 32 to 63 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_2 0x20a0aaa4 /* [RW][32] Config Word 21 - OFFSET STATUS 2 for PID channel 64 to 95 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_3 0x20a0aaa8 /* [RW][32] Config Word 22 - OFFSET STATUS 3 for PID channel 96 to 127 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_4 0x20a0aaac /* [RW][32] Config Word 23 - OFFSET STATUS 4 for PID channel 128 to 159 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_5 0x20a0aab0 /* [RW][32] Config Word 24 - OFFSET STATUS 5 for PID channel 160 to 191 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_6 0x20a0aab4 /* [RW][32] Config Word 25 - OFFSET STATUS 6 for PID channel 192 to 223 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_7 0x20a0aab8 /* [RW][32] Config Word 26 - OFFSET STATUS 7 for PID channel 224 to 255 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_8 0x20a0aabc /* [RW][32] Config Word 27 - OFFSET STATUS 8 for PID channel 256 to 287 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_9 0x20a0aac0 /* [RW][32] Config Word 28 - OFFSET STATUS 9 for PID channel 288 to 319 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_10 0x20a0aac4 /* [RW][32] Config Word 29 - OFFSET STATUS 10 for PID channel 320 to 351 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_11 0x20a0aac8 /* [RW][32] Config Word 30 - OFFSET STATUS 11 for PID channel 352 to 383 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_12 0x20a0aacc /* [RW][32] Config Word 31 - OFFSET STATUS 12 for PID channel 384 to 415 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_13 0x20a0aad0 /* [RW][32] Config Word 32 - OFFSET STATUS 13 for PID channel 416 to 447 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_14 0x20a0aad4 /* [RW][32] Config Word 33 - OFFSET STATUS 14 for PID channel 448 to 479 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_15 0x20a0aad8 /* [RW][32] Config Word 34 - OFFSET STATUS 15 for PID channel 480 to 511 */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_16 0x20a0aadc /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_17 0x20a0aae0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_18 0x20a0aae4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_19 0x20a0aae8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_20 0x20a0aaec /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_21 0x20a0aaf0 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_22 0x20a0aaf4 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_OFFSET_STATUS_23 0x20a0aaf8 /* [RW][32] Reserved Register */
+#define BCHP_XPT_PCROFFSET_CONTEXT15_RESERVED_CFG_0 0x20a0aafc /* [RW][32] Config Word 43 - RESERVED */
 
 /***************************************************************************
  *INTERRUPT0_STATUS - PCR INTERRUPT STATUS register for Contexts 3 to 0

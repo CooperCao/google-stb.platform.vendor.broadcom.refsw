@@ -11,6 +11,7 @@ sampler2DMSArray       float       2   Y     N      N    GL_SAMPLER_2D_MULTISAMP
 sampler3D              float       3   N     N      N    GL_SAMPLER_3D
 samplerCube            float       3   N     N      Y    GL_SAMPLER_CUBE
 samplerCubeArray       float       3   Y     N      Y    GL_SAMPLER_CUBE_MAP_ARRAY
+samplerBuffer          float       1   N     N      N    GL_SAMPLER_BUFFER
 sampler2DArrayShadow   float       2   Y     Y      N    GL_SAMPLER_2D_ARRAY_SHADOW
 sampler2DShadow        float       2   N     Y      N    GL_SAMPLER_2D_SHADOW
 samplerCubeShadow      float       3   N     Y      Y    GL_SAMPLER_CUBE_SHADOW
@@ -24,6 +25,7 @@ isampler2DMSArray      int         2   Y     N      N    GL_INT_SAMPLER_2D_MULTI
 isampler3D             int         3   N     N      N    GL_INT_SAMPLER_3D
 isamplerCube           int         3   N     N      Y    GL_INT_SAMPLER_CUBE
 isamplerCubeArray      int         3   Y     N      Y    GL_INT_SAMPLER_CUBE_MAP_ARRAY
+isamplerBuffer         int         1   N     N      N    GL_INT_SAMPLER_BUFFER
 usampler1D             uint        1   N     N      N    GL_UNSIGNED_INT_SAMPLER_1D_BRCM
 usampler1DArray        uint        1   Y     N      N    GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM
 usampler2D             uint        2   N     N      N    GL_UNSIGNED_INT_SAMPLER_2D
@@ -33,4 +35,5 @@ usampler2DMSArray      uint        2   Y     N      N    GL_UNSIGNED_INT_SAMPLER
 usampler3D             uint        3   N     N      N    GL_UNSIGNED_INT_SAMPLER_3D
 usamplerCube           uint        3   N     N      Y    GL_UNSIGNED_INT_SAMPLER_CUBE
 usamplerCubeArray      uint        3   Y     N      Y    GL_UNSIGNED_INT_SAMPLER_CUBE_MAP_ARRAY
+usamplerBuffer         uint        1   N     N      N    GL_UNSIGNED_INT_SAMPLER_BUFFER
 samplerExternalOES     float       2   N     N      N    GL_SAMPLER_EXTERNAL_OES

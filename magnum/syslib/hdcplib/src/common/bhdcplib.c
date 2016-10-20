@@ -905,6 +905,7 @@ done:
 }
 
 
+#if !B_REFSW_MINIMAL
 BERR_Code BHDCPlib_GetAuthenticationState(BHDCPlib_Handle hHDCPlib, BHDCPlib_State *eAuthenticationState)
 {
 	BDBG_ENTER(BHDCPlib_GetAuthenticationState);
@@ -916,6 +917,7 @@ BERR_Code BHDCPlib_GetAuthenticationState(BHDCPlib_Handle hHDCPlib, BHDCPlib_Sta
 	BDBG_LEAVE(BHDCPlib_GetAuthenticationState);
 	return BERR_SUCCESS;
 }
+#endif
 
 
 BERR_Code BHDCPlib_GetHdcpStatus(BHDCPlib_Handle hHDCPlib, BHDCPlib_Status *stHdcpStatus)

@@ -337,7 +337,7 @@ static BERR_Code BAPE_P_SetNcoFreq_isr( BAPE_Handle handle, BAPE_Nco nco, unsign
     return BERR_SUCCESS;
 }
 
-BERR_Code BAPE_P_GetNcoConfiguration(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig)
+BERR_Code BAPE_P_GetNcoConfiguration_isrsafe(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig)
 {
     unsigned ncoIndex = nco - BAPE_Nco_e0;
 

@@ -48,6 +48,7 @@
 #include "bchp_common.h"
 #include "bchp_sun_top_ctrl.h"
 #include "bchp_memc_offsets_priv.h"
+#include "bchp_aon_ctrl.h"
 
 BDBG_MODULE(BCHP);
 
@@ -189,37 +190,6 @@ void *BCHP_GetAvsHandle(
     return( result );
 }
 
-#if BCHP_CHIP == 7405
-/* this silicon uses SUN_TOP_CTRL_STRAP_VALUE_0 and its strap_ddr_configuration, strap_ddr0_device_config, and
-strap_ddr1_device_config fields which are not generic. */
-BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
-{
-    BSTD_UNUSED(hReg);
-
-    pInfo->memc[0].offset = BCHP_P_MEMC_0_OFFSET;
-    pInfo->memc[0].ulStripeWidth = BCHP_INVALID_STRIPE_WIDTH;
-
-#ifdef BCHP_S_MEMC_1_REG_START
-    pInfo->memc[1].offset = BCHP_P_MEMC_1_OFFSET;
-    pInfo->memc[1].ulStripeWidth = BCHP_INVALID_STRIPE_WIDTH;
-#endif
-
-#ifdef BCHP_S_MEMC_2_REG_START
-    pInfo->memc[2].offset = BCHP_P_MEMC_2_OFFSET;
-    pInfo->memc[2].ulStripeWidth = BCHP_INVALID_STRIPE_WIDTH;
-#endif
-
-    return BERR_SUCCESS;
-}
-BERR_Code BCHP_P_GetDefaultFeature(const BCHP_Handle hChip, const BCHP_Feature eFeature, void *pFeatureValue)
-{
-    BSTD_UNUSED(hChip);
-    BSTD_UNUSED(eFeature);
-    BSTD_UNUSED(pFeatureValue);
-    return BERR_TRACE(BERR_NOT_SUPPORTED);
-}
-#else
-
 /* NOTE: do not add BCHP_CHIP list here. instead, use #if defined(RDB MACRO) where the RDB macros come from bchp_common.h.
 There are three register fields to define per MEMC:
     DEVICE_TECH = size (computed with computeDeviceTech)
@@ -333,6 +303,18 @@ There are three register fields to define per MEMC:
 #endif
 #endif
 
+#if defined BCHP_MEMC_GEN_0_REG_START
+#include "bchp_memc_gen_0.h"
+#endif
+#if defined BCHP_MEMC_GEN_1_REG_START
+#include "bchp_memc_gen_1.h"
+#endif
+#if defined BCHP_MEMC_GEN_2_REG_START
+#include "bchp_memc_gen_2.h"
+#endif
+#define BCHP_P_SCB_V8               0xB200
+#define BCHP_P_SCB_V5               0xB100
+
 static unsigned computeDeviceTech(unsigned index)
 {
     unsigned size = 256;
@@ -373,7 +355,6 @@ static unsigned computeDramDeviceType(unsigned value)
     return value;
 #endif
 }
-
 
 static BERR_Code BCHP_P_GetStripeMemoryInfo(BCHP_MemoryInfo *pstMemoryInfo)
 {
@@ -473,7 +454,6 @@ static BERR_Code BCHP_P_GetStripeMemoryInfo(BCHP_MemoryInfo *pstMemoryInfo)
          break;
 
        case BCHP_DramType_eDDR4:
-       case BCHP_DramType_eLPDDR4:
          switch ( pstMemoryInfo->memc[i].width )
          {
             case 16:
@@ -495,6 +475,13 @@ static BERR_Code BCHP_P_GetStripeMemoryInfo(BCHP_MemoryInfo *pstMemoryInfo)
                rc = BERR_TRACE( BERR_NOT_SUPPORTED );
          }
          break;
+
+      case BCHP_DramType_eLPDDR4:
+               pstMemoryInfo->memc[i].ulPageSize     = 4096;
+               pstMemoryInfo->memc[i].ulStripeWidth  = 256;
+               pstMemoryInfo->memc[i].ulMbMultiplier = 8;
+               pstMemoryInfo->memc[i].ulMbRemainder  = 3;
+               break;
 
       case BCHP_DramType_eGDDR5M:
       case BCHP_DramType_eGDDR5:
@@ -678,7 +665,52 @@ static BERR_Code BCHP_P_GetStripeMemoryInfo(BCHP_MemoryInfo *pstMemoryInfo)
 
    return BERR_TRACE( rc );
 }
-BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
+
+static void BCHP_P_GetMemoryShuffleInfo(
+    BREG_Handle hReg,
+    unsigned memcId,
+    uint32_t regOffset,
+    BCHP_MemoryInfo *pInfo)
+{
+    uint32_t regValue;
+
+    /* get memc SCB/MAP version and blindshuffle */
+    /* MEMC_GEN_0_CORE_REV_ID tells SCB version and MAP version for shuffle:
+    if (coreID < B1.0) {
+        scbVersion = SCB4; blindShuffle = false;
+        mapVersion = MAP2; shuffleMap = NoShuffle;
+    } else if (coreID < B2.0) {
+        scbVersion = SCB5; blindShuffle = false;
+        mapVersion = MAP5; shuffleMap = ShuffleMap5;
+    } else {
+        scbVersion = SCB8; blindShuffle = true;
+        switch(DRAM_MAP_ENCODING) {
+        case 0: mapVersion = MAP2: shuffleMap = NoShuffle; break;
+        case 1: mapVersion = MAP5: shuffleMap = ShuffleMap5; break;
+        case 2: mapVersion = MAP8: shuffleMap = ShuffleMap8; break;
+      }
+    }
+     */
+    regValue = BREG_Read32(hReg, BCHP_MEMC_GEN_0_CORE_REV_ID + regOffset);
+    regValue &= (
+        BCHP_MASK(MEMC_GEN_0_CORE_REV_ID, ARCH_REV_ID) |
+        BCHP_MASK(MEMC_GEN_0_CORE_REV_ID, CFG_REV_ID));
+    if(regValue < BCHP_P_SCB_V5) {
+        pInfo->memc[memcId].blindShuffle = false;
+        pInfo->memc[memcId].mapVer = BCHP_ScbMapVer_eMap2;
+    } else if(regValue < BCHP_P_SCB_V8) {
+        pInfo->memc[memcId].blindShuffle = false;
+        pInfo->memc[memcId].mapVer = BCHP_ScbMapVer_eMap5;
+    } else {
+        pInfo->memc[memcId].blindShuffle = true; /* SCB v8 has blind shuffle */
+#if defined BCHP_MEMC_GEN_0_CORE_OPTIONS_DRAM_MAP_ENCODING_MASK
+        regValue = BREG_Read32(hReg, BCHP_MEMC_GEN_0_CORE_OPTIONS + regOffset);
+        pInfo->memc[memcId].mapVer = BCHP_GET_FIELD_DATA(regValue, MEMC_GEN_0_CORE_OPTIONS, DRAM_MAP_ENCODING);
+#endif
+    }
+}
+
+BERR_Code BCHP_GetMemoryInfo_PreInit(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
 {
     uint32_t regValue;
     unsigned i;
@@ -701,9 +733,26 @@ BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     regValue = BREG_Read32(hReg, BCHP_MEMC_0_DRAM_TYPE_REG);
     pInfo->memc[0].type = computeDramDeviceType(BCHP_GET_FIELD_DATA(regValue, MEMC_0_DRAM_TYPE_REG, MEMC_0_DRAM_TYPE_FIELD));
     pInfo->memc[0].ddr3Capable = (pInfo->memc[0].type == BCHP_DramType_eDDR3);
-#endif
-    pInfo->memc[0].offset = BCHP_P_MEMC_0_OFFSET;
-#if BCHP_CHIP != 11360
+
+    /* get memc SCB/MAP version and blindshuffle */
+    /* MEMC_GEN_0_CORE_REV_ID tells SCB version and MAP version for shuffle:
+    if (coreID < B1.0) {
+        scbVersion = SCB4; blindShuffle = false;
+        mapVersion = MAP2; shuffleMap = NoShuffle;
+    } else if (coreID < B2.0) {
+        scbVersion = SCB5; blindShuffle = false;
+        mapVersion = MAP5; shuffleMap = ShuffleMap5;
+    } else {
+        scbVersion = SCB8; blindShuffle = true;
+        switch(DRAM_MAP_ENCODING) {
+        case 0: mapVersion = MAP2: shuffleMap = NoShuffle; break;
+        case 1: mapVersion = MAP5: shuffleMap = ShuffleMap5; break;
+        case 2: mapVersion = MAP8: shuffleMap = ShuffleMap8; break;
+      }
+    }
+     */
+    BCHP_P_GetMemoryShuffleInfo(hReg, 0, 0, pInfo);
+
 #if defined MEMC_1_WIDTH_REG
     regValue = BREG_Read32(hReg, BCHP_MEMC_1_WIDTH_REG);
     pInfo->memc[1].width = computeMemWidth(BCHP_GET_FIELD_DATA(regValue, MEMC_1_WIDTH_REG, MEMC_1_WIDTH_FIELD));
@@ -722,7 +771,9 @@ BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     pInfo->memc[1].type = computeDramDeviceType(BCHP_GET_FIELD_DATA(regValue, MEMC_1_DRAM_TYPE_REG, MEMC_1_DRAM_TYPE_FIELD));
     pInfo->memc[1].ddr3Capable = (pInfo->memc[1].type == BCHP_DramType_eDDR3);
 #endif
-    pInfo->memc[1].offset = BCHP_P_MEMC_1_OFFSET;
+#if defined BCHP_MEMC_GEN_1_CORE_REV_ID
+    BCHP_P_GetMemoryShuffleInfo(hReg, 1, BCHP_MEMC_GEN_1_CORE_REV_ID - BCHP_MEMC_GEN_0_CORE_REV_ID, pInfo);
+#endif
 #endif
 
 #if defined MEMC_2_WIDTH_REG
@@ -735,39 +786,16 @@ BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     regValue = BREG_Read32(hReg, BCHP_MEMC_2_DRAM_TYPE_REG);
     pInfo->memc[2].type = computeDramDeviceType(BCHP_GET_FIELD_DATA(regValue, MEMC_2_DRAM_TYPE_REG, MEMC_2_DRAM_TYPE_FIELD));
     pInfo->memc[2].ddr3Capable = (pInfo->memc[2].type == BCHP_DramType_eDDR3);
-    pInfo->memc[2].offset = BCHP_P_MEMC_2_OFFSET;
+#if defined BCHP_MEMC_GEN_2_CORE_REV_ID
+    BCHP_P_GetMemoryShuffleInfo(hReg, 2, BCHP_MEMC_GEN_2_CORE_REV_ID - BCHP_MEMC_GEN_0_CORE_REV_ID, pInfo);
+#endif
 #endif
 
-#if BCHP_CHIP == 7445
-/* TEMP: 7445 2 MEMC bondouts have bad reset value for MEMC2 size */
-    switch (BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID) >> 8) {
-    case 0x725200:
-    case 0x72520:
-    case 0x744800:
-    case 0x74480:
-    case 0x744900:
-    case 0x74490:
-        pInfo->memc[2].width = 0; /* will short circuit for loop below */
-        pInfo->memc[2].offset = 0;
-        break;
-    default:
-        break;
-    }
-#elif BCHP_CHIP==7439
-    switch (BREG_Read32(hReg, BCHP_SUN_TOP_CTRL_PRODUCT_ID) >> 8) {
-       case 0x725110:
-       case 0x72511:
-         pInfo->memc[1].width = 0; /* will short circuit for loop below */
-         pInfo->memc[1].offset = 0;
-         break;
-      default:
-         break;
-    }
-#endif
     for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
         BDBG_ASSERT(pInfo->memc[i].width >= pInfo->memc[i].deviceWidth);
         pInfo->memc[i].size = pInfo->memc[i].deviceTech / 8 * (pInfo->memc[i].width/pInfo->memc[i].deviceWidth) * 1024 * 1024;
-        BDBG_MSG(("MEMC%d: offset " BDBG_UINT64_FMT " %d MB, %d bits", i, BDBG_UINT64_ARG(pInfo->memc[i].offset), (unsigned)(pInfo->memc[i].size / 1024 / 1024), pInfo->memc[i].width));
+        BDBG_MSG(("MEMC%d: %d MB, %d bits", i, (unsigned)(pInfo->memc[i].size / 1024 / 1024), pInfo->memc[i].width));
+        BDBG_MSG(("mapVer: %d, blindShuffle: %d", pInfo->memc[i].mapVer, pInfo->memc[i].blindShuffle));
     }
 #else
     /* Generic MEMC */
@@ -781,6 +809,55 @@ BERR_Code BCHP_GetMemoryInfo(BREG_Handle hReg, BCHP_MemoryInfo *pInfo)
     return BERR_SUCCESS;
 }
 
+BERR_Code BCHP_GetMemoryInfo(BCHP_Handle hChip, BCHP_MemoryInfo *pInfo)
+{
+    BERR_Code rc = BERR_SUCCESS;
+#if BCHP_UNIFIED_IMPL
+    unsigned i;
+#endif
+    if (!hChip->memoryInfoSet) {
+        rc = BCHP_GetMemoryInfo_PreInit(hChip->regHandle, &hChip->memoryInfo);
+        if (rc) return BERR_TRACE(rc);
+        hChip->memoryInfoSet = true;
+    } else {
+        BKNI_Memcpy((void*)pInfo, (void*)&hChip->memoryInfo, sizeof(BCHP_MemoryInfo));
+    }
+#if BCHP_UNIFIED_IMPL
+    for (i=0;i < (sizeof(pInfo->memc)/sizeof(pInfo->memc[0])) && pInfo->memc[i].width;i++) {
+        if (hChip->openSettings.memoryLayout.memc[i].size == 0) {
+            pInfo->memc[i].size = 0;
+        }
+    }
+#endif
+    return rc;
+}
+
+
+BSTD_DeviceOffset BCHP_ShuffleStripedPixelOffset(BCHP_Handle hChp, unsigned memcIdx, BSTD_DeviceOffset offset)
+{
+    BCHP_MemoryInfo *pInfo = &hChp->memoryInfo;
+    bool scbBitExtract = false; \
+    unsigned shift = (pInfo->memc[memcIdx].ulStripeWidth == 256)? 9 : 8;
+
+    /* SCB8.0/MAP8.0: When (ByteAddr[8] ^ ByteAddr[9]) == 1, ByteAddr[5] is inverted */
+    if(pInfo->memc[memcIdx].mapVer == BCHP_ScbMapVer_eMap8) {
+        scbBitExtract = (((offset)>>9) & 1) ^ (((offset)>>8) & 1);
+    }
+    /* MAP5.0:
+        For 128B stripe width, When GWORD[4](or ByteAddr[8]) == 1, ByteAddr[5] is inverted;
+        For 256B stripe width, When GWORD[5](or ByteAddr[9]) == 1, ByteAddr[5] is inverted;*/
+    else if(pInfo->memc[memcIdx].mapVer == BCHP_ScbMapVer_eMap5) {
+        scbBitExtract = ((offset)>>shift) & 1;
+    }
+    if(scbBitExtract) offset ^= 0x20; /* GWORD[1] (or byteAddr[5]) inversion, i.e., shuffle-map */
+    /* blind shuffle applied to SCB8/MAP8 always: swap DWord order within JWord. */
+    if(pInfo->memc[memcIdx].blindShuffle) offset =
+        ((offset) & (~(BSTD_DeviceOffset)0x1F)) +
+        ((offset) & 3) +
+        0x1C - ((offset) & 0x1C);
+    return offset;
+}
+
 BERR_Code BCHP_P_GetDefaultFeature
     ( const BCHP_Handle                hChip,
       const BCHP_Feature               eFeature,
@@ -791,7 +868,7 @@ BERR_Code BCHP_P_GetDefaultFeature
         if (!hChip->regHandle) {
             return BERR_TRACE(BERR_NOT_AVAILABLE);
         }
-        rc = BCHP_GetMemoryInfo(hChip->regHandle, &hChip->memoryInfo);
+        rc = BCHP_GetMemoryInfo(hChip, &hChip->memoryInfo);
         if (rc) return BERR_TRACE(rc);
         hChip->memoryInfoSet = true;
     }
@@ -859,7 +936,6 @@ BERR_Code BCHP_P_GetDefaultFeature
     }
     return rc;
 }
-#endif
 
 void BCHP_GetInfo( BCHP_Handle hChip, BCHP_Info *pInfo )
 {
@@ -1042,6 +1118,7 @@ BCHP_Handle BCHP_P_Open(const BCHP_OpenSettings *pSettings, const struct BCHP_P_
         pChip->info.familyId = val >> 8;
     }
 
+    BCHP_GetMemoryInfo(pChip, &pChip->memoryInfo);
     return pChip;
 }
 
@@ -1054,5 +1131,23 @@ void BCHP_GetDefaultOpenSettings( BCHP_OpenSettings *pSettings )
 #endif
 
 BDBG_OBJECT_ID(BCHP);
+
+bool BCHP_OffsetOnMemc( BCHP_Handle chp, BSTD_DeviceOffset offset, unsigned memcIndex )
+{
+#if BCHP_UNIFIED_IMPL
+    unsigned i;
+    for (i=0;i<BCHP_MAX_MEMC_REGIONS;i++) {
+        if (offset >= chp->openSettings.memoryLayout.memc[memcIndex].region[i].addr &&
+            offset < chp->openSettings.memoryLayout.memc[memcIndex].region[i].addr + chp->openSettings.memoryLayout.memc[memcIndex].region[i].size) return true;
+    }
+    return false;
+#else
+    BSTD_UNUSED(chp);
+    BSTD_UNUSED(offset);
+    BSTD_UNUSED(memcIndex);
+    /* can't know */
+    return true;
+#endif
+}
 
 /* end of file */

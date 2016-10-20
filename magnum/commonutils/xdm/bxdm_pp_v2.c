@@ -678,9 +678,9 @@ static void BXDM_PP_S_STCTrickModeDetection_isr(
          {
             /* The STC has not changed, so we're in an STC pause */
             eCalculatedSTCTrickMode = BXDM_PictureProvider_P_STCTrickMode_ePause;
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Pause Detected",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Pause Detected",
                                     hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                    BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
 
             /* SW7445-2544: this is a very narrow fix for when the STC stalls in NRT mode.
              * The IC (ignore cadence) flag was being set on the picture after the stall.
@@ -723,18 +723,18 @@ static void BXDM_PP_S_STCTrickModeDetection_isr(
                /* The STC has incremented slower than expected, so we
                 * are in STC slow motion */
                eCalculatedSTCTrickMode = BXDM_PictureProvider_P_STCTrickMode_eSlowMotion;
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Slow Motion Detected",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Slow Motion Detected",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
             }
             else if ( iDeltaStcDiff > 0 )
             {
                /* The STC has incremented faster than expected, so we
                 * are in STC fast forward */
                eCalculatedSTCTrickMode = BXDM_PictureProvider_P_STCTrickMode_eFastForward;
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Fast Forward Detected",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Fast Forward Detected",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
             }
          }
       }
@@ -753,11 +753,11 @@ static void BXDM_PP_S_STCTrickModeDetection_isr(
             /* We haven't calculated the same STC trick mode for 2
              * vsyncs in a row, so override the reported stc trick
              * mode to be the same as the previous vsync */
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Trick Mode Override (%d -> %d)",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] STC Trick Mode Override (%d -> %d)",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        pLocalState->eSTCTrickMode,
-                                       hXdmPP->stDMState.stDecode.eLastReportedSTCTrickMode );
+                                       hXdmPP->stDMState.stDecode.eLastReportedSTCTrickMode ));
 
             pLocalState->eSTCTrickMode = hXdmPP->stDMState.stDecode.eLastReportedSTCTrickMode;
          }
@@ -879,11 +879,11 @@ static void BXDM_PP_S_SnapShotXvdState_isr(
 
             hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole += hXdmPP->stDMConfig.uiPTSOffset;
 
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] entering trick mode, virtual STC was reset: uiSlowMotionRate:%08x vSTC:%08x",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_ePPV2, "%x:[%02x.xxx] entering trick mode, virtual STC was reset: uiSlowMotionRate:%08x vSTC:%08x",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        pLocalState->uiSlowMotionRate,
-                                       hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole );
+                                       hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole ));
          }
 
       }
@@ -1089,23 +1089,23 @@ static void BXDM_PP_S_SnapShotXvdState_isr(
    {
       if ( 0 == hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset )
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%x:[%02x.xxx] Adding STC jitter correction offset (dStcPts = %d/%d, stc=%08x)",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eDBG, "%x:[%02x.xxx] Adding STC jitter correction offset (dStcPts = %d/%d, stc=%08x)",
                                     hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                     BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                     pstPreviousPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceEvaluated,
                                     pstPreviousPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceActual,
-                                    pLocalState->uiStcSnapshot );
+                                    pLocalState->uiStcSnapshot ));
 
          hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset = -(4*pLocalState->uiSTCJitterThreshold);
       }
       else
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, "%x:[%02x.xxx] Removing STC jitter correction offset (dStcPts = %d/%d, stc=%08x)",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eDBG, "%x:[%02x.xxx] Removing STC jitter correction offset (dStcPts = %d/%d, stc=%08x)",
                                     hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                     BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                     pstPreviousPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceEvaluated,
                                     pstPreviousPicture->stPicParms.stTSM.stDynamic.iStcPtsDifferenceActual,
-                                    pLocalState->uiStcSnapshot );
+                                    pLocalState->uiStcSnapshot ));
          hXdmPP->stDMState.stDecode.iStcJitterCorrectionOffset = 0;
       }
     }
@@ -1220,11 +1220,11 @@ static void BXDM_PP_S_SnapShotFirmwareState_isr(
            && ( BAVC_Polarity_eFrame != pLocalState->eVsyncPolarity )
            && ( hXdmPP->stDMState.stDecode.ePreviousVsyncPolarity == pLocalState->eVsyncPolarity ) )
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.xxx] Same polarity (%s) seen two vsync's in a row",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.xxx] Same polarity (%s) seen two vsync's in a row",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                        ( BAVC_Polarity_eTopField == pLocalState->eVsyncPolarity ) ? "top" : "bottom"
-                                       );
+                                       ));
 
          pLocalState->bRepeatedVsyncPolarity = true;
       }
@@ -2326,11 +2326,11 @@ BXDM_PictureProvider_StartDecode_isr(
        */
       if ( NULL != hXdmPP->stDMState.stChannel.stSelectedPicture.pstUnifiedPicture )
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.%03x] %s: CCM was changed to mute, release last picture",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.%03x] %s: CCM was changed to mute, release last picture",
                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                              hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                             __FUNCTION__ );
+                             __FUNCTION__ ));
 
          BXDM_PPQM_P_ReleasePicture_isr( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture );
       }
@@ -2464,11 +2464,11 @@ BXDM_PictureProvider_StopDecode_isr(
    {
       if ( NULL != hXdmPP->stDMState.stChannel.stSelectedPicture.pstUnifiedPicture )
       {
-         BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.%03x] %s: bHoldLastPicture is false, release last picture",
+         BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eQM, " %x:[%02x.%03x] %s: bHoldLastPicture is false, release last picture",
                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                              hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                             __FUNCTION__  );
+                             __FUNCTION__  ));
 
          BXDM_PPQM_P_ReleasePicture_isr( hXdmPP, &hXdmPP->stDMState.stChannel.stSelectedPicture );
       }
@@ -2485,11 +2485,11 @@ BXDM_PictureProvider_StopDecode_isr(
    if ( false == hXdmPP->stDMState.stDecode.bFirstPPBSeen )
    {
       BKNI_Memset(&hXdmPP->stDMConfig.stClipTimeSettings, 0, sizeof( BXDM_PictureProvider_ClipTimeSettings ));
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eDBG, " %x:[%02x.%03x] %s: clearing clip request",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eDBG, " %x:[%02x.%03x] %s: clearing clip request",
                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                           hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.uiPPBIndex & 0xFFF,
-                          __FUNCTION__  );
+                          __FUNCTION__  ));
    }
 
    /* PR55616: setting "bFirstPPBSeen" to false will disable the

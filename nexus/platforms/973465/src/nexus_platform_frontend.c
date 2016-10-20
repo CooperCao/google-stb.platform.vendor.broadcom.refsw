@@ -331,7 +331,6 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendUserParameters userParams;
     unsigned i=0;
     uint8_t data;
-    unsigned j;
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
 
     NEXUS_Frontend_GetDefault7346Settings(&settings);
@@ -384,6 +383,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_VOLTAGE_REG_CH], ISL9492_CH1_I2C_ADDR, 0x00, (const uint8_t *) &data, 1);
     data = 0x78;
     NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_VOLTAGE_REG_CH], ISL9492_CH1_I2C_ADDR, 0x00, (const uint8_t *) &data, 1);
+    return NEXUS_SUCCESS;
 }
 #endif
 

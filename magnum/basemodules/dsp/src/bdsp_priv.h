@@ -60,25 +60,17 @@ typedef struct BDSP_Device
     void (*close)(void *pDeviceHandle);
     void (*initialize)(void *pDeviceHandle);
     void (*getStatus)(void *pDeviceHandle, BDSP_Status *pStatus);
-    BERR_Code (*getDebugLog)(void *pDeviceHandle, char *pBuffer, size_t bufferLength);
     void (*getDefaultContextSettings)(void *pDeviceHandle,BDSP_ContextType contextType, BDSP_ContextCreateSettings *pSettings);
     BERR_Code (*createContext)(void *pDeviceHandle, const BDSP_ContextCreateSettings *pSettings, BDSP_ContextHandle *pContext);
     BERR_Code (*powerStandby)(void *pDeviceHandle, BDSP_StandbySettings     *pSettings);
     BERR_Code (*powerResume)(void *pDeviceHandle);
     void (*getAlgorithmInfo)(BDSP_Algorithm algorithm, BDSP_AlgorithmInfo *pInfo);
-    void (*getAlgorithmDefaultSettings)(void *pDeviceHandle, BDSP_Algorithm algorithm, void *pSettingsBuffer, size_t settingsSize);
-
 
     /* Below functions provide external interrupt handles to SW */
     BERR_Code (*allocateExternalInterrupt)(void *pDeviceHandle, uint32_t dspIndex, BDSP_ExternalInterruptHandle *pInterruptHandle);
     BERR_Code (*freeExternalInterrupt)(void  *pInterruptHandle);
     BERR_Code (*getExternalInterruptInfo)(void *pInterruptHandle, BDSP_ExternalInterruptInfo **pInfo);
-    /* Below functions provide RDB register handles to SW */
-    BERR_Code (*allocateRdbRegister)(void *pDeviceHandle, uint32_t dspIndex, uint32_t numRegs, BDSP_RdbRegisterHandle *pRdbRegisterHandle);
-    BERR_Code (*freeRdbRegister)(void  *pRdbRegisterHandle);
-    BERR_Code (*getRdbRegisterInfo)(void *pRdbRegisterHandle, BDSP_RdbRegisterInfo **pInfo);
     BERR_Code (*processAudioCapture)(void *pDeviceHandle);
-
 }BDSP_Device;
 
 void BDSP_P_InitDevice(
@@ -142,7 +134,9 @@ typedef struct BDSP_Stage
     BERR_Code (*addOutputStage)(void *pSrcStageHandle, BDSP_DataType dataType, void *pDstStageHandle, unsigned *pSourceInputIndex, unsigned *pDestinationInputIndex);
     BERR_Code (*addInterTaskBufferInput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_InterTaskBuffer *pBufferHandle, unsigned *pInputIndex);
     BERR_Code (*addInterTaskBufferOutput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_InterTaskBuffer *pBufferHandle, unsigned *pOutputIndex);
+#if !B_REFSW_MINIMAL
     void (*removeOutput)(void *pStageHandle, unsigned outputIndex);
+#endif /*!B_REFSW_MINIMAL*/
     void (*removeAllOutputs)(void *pStageHandle);
 
     BERR_Code (*addFmmInput)(void *pStageHandle, BDSP_DataType dataType, const BDSP_FmmBufferDescriptor *pDescriptor, unsigned *pOutputIndex);
@@ -151,7 +145,9 @@ typedef struct BDSP_Stage
     void (*removeAllInputs)(void *pStageHandle);
 
     BERR_Code (*addQueueOutput)(void *pStageHandle, void *pQueueHandle, unsigned *pOutputIndex);
+#if !B_REFSW_MINIMAL
     BERR_Code (*addQueueInput)(void *pStageHandle, void *pQueueHandle, unsigned *pInputIndex);
+#endif /*!B_REFSW_MINIMAL*/
     BERR_Code (*getVideoEncodeDatasyncSettings)(void *pStageHandle, BDSP_VideoEncodeTaskDatasyncSettings *pSettings);
     BERR_Code (*setVideoEncodeDatasyncSettings)(void *pStageHandle, const BDSP_VideoEncodeTaskDatasyncSettings *pSettings);
 
@@ -260,27 +256,6 @@ typedef struct BDSP_ExternalInterrupt
     void * pExtInterruptHandle;
 
 }BDSP_ExternalInterrupt;
-
-BDBG_OBJECT_ID_DECLARE(BDSP_RdbRegister);
-
-/* Handle for a RDB register */
-typedef struct BDSP_RdbRegister
-{
-    BDBG_OBJECT(BDSP_RdbRegister)
-    BDSP_Handle hDsp;
-    void * pRdbRegisterHandle;
-}BDSP_RdbRegister;
-
-
-BDBG_OBJECT_ID_DECLARE(BDSP_TaskStageInput);
-
-
-typedef struct BDSP_TaskStageInput
-{
-    BDBG_OBJECT(BDSP_TaskStageInput)
-    BDSP_TaskHandle task;
-    void *pStageInputHandle;
-}BDSP_TaskStageInput;
 
 void BDSP_P_InitTask(
     BDSP_Task *pTask,

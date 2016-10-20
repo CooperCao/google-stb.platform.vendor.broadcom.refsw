@@ -1,41 +1,43 @@
-/******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ ***************************************************************************/
 #include "bhdm.h"
 #include "../common/bhdm_priv.h"
 #include "bhdm_scdc.h"
@@ -90,6 +92,13 @@ BERR_Code BHDM_SCDC_Initialize(
                goto done ;
        }
 
+	/* Manufacturer Data only needed at Initialization */
+	/* no known Receivers that populate information */
+	{
+		BHDM_SCDC_ManufacturerData stManufacturerData ;
+		BHDM_SCDC_ReadManufacturerData(hHDMI, &stManufacturerData) ;
+	}
+
 	if (!hHDMI->bAutoI2cMode)
 	{
 		i2cHandle = hHDMI->hI2cRegHandle ;
@@ -126,10 +135,7 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 {
 	BERR_Code rc = BERR_SUCCESS ;
 	BHDM_SCDC_ManufacturerData manufacturerData ;
-	uint8_t i, items ;
-
-#define SCDC_MANUFACTURER_DATA_OFFSET1(field) \
-	((uint8_t *) &manufacturerData.field - (uint8_t *) &manufacturerData )
+	uint8_t i, items;
 
 #define SCDC_MANUFACTURER_DATA_OFFSET(structure, field) \
 	((uint8_t *) &structure.field - (uint8_t *) &structure )
@@ -186,9 +192,34 @@ BERR_Code BHDM_SCDC_ReadManufacturerData(
 			goto done ;
 		}
 
-		BDBG_MSG(("[0x%02x] %-20s  = 0x%02x",
-			scdcManufacturerDataMap[i].offset, scdcManufacturerDataMap[i].name,
-			* ((uint8_t *) &manufacturerData + scdcManufacturerDataMap[i].structOffset))) ;
+#if BDBG_DEBUG_BUILD
+		if (scdcManufacturerDataMap[i].length > 1)
+		{
+			int j ;
+			char *pchDebugMsg ;
+			uint8_t DebugMsgLength, offset = 0 ;
+
+			DebugMsgLength = sizeof(uint8_t) * 3 * scdcManufacturerDataMap[i].length ;
+			pchDebugMsg = BKNI_Malloc(DebugMsgLength) ;
+
+			for (j = 0 ; j < scdcManufacturerDataMap[i].length ; j++)
+			{
+				offset += BKNI_Snprintf(pchDebugMsg+offset, DebugMsgLength - offset, "%02X ",
+					* ((uint8_t *) &manufacturerData + scdcManufacturerDataMap[i].structOffset+j)) ;
+			}
+			BDBG_MSG(("[0x%02x] %-20s  = %s ",
+				scdcManufacturerDataMap[i].offset,
+				scdcManufacturerDataMap[i].name, pchDebugMsg)) ;
+
+			BKNI_Free(pchDebugMsg) ;
+		}
+		else
+		{
+			BDBG_MSG(("[0x%02x] %-20s  = 0x%02x",
+				scdcManufacturerDataMap[i].offset, scdcManufacturerDataMap[i].name,
+				* ((uint8_t *) &manufacturerData + scdcManufacturerDataMap[i].structOffset))) ;
+		}
+#endif
 	}
 
 	BKNI_Memcpy(pManufacturerData, &manufacturerData, sizeof(BHDM_SCDC_ManufacturerData)) ;
@@ -226,6 +257,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	BERR_Code rc = BERR_SUCCESS ;
 	BREG_I2C_Handle i2cHandle ;
 	BHDM_SCDC_StatusControlData statusControlData ;
+
 	uint8_t checksum ;
 	uint8_t i, items, temp ;
 
@@ -234,13 +266,18 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 
 	static const BHDM_SCDC_DataMap scdcStatusControlDataMap[] =
 	{
+#if 0
+		/* read/write of SCDC versions done in SCDC_Initialize */
 		{"Sink Version", BHDM_SCDC_SINK_VERSION, 1, SCDC_DATA_OFFSET(statusControlData, SinkVersion)},
 		{"Source Version", BHDM_SCDC_SOURCE_VERSION, 1, SCDC_DATA_OFFSET(statusControlData, SourceVersion)},
+
+		/* Updated Status continually read by hardware */
 		{"Updated_0", BHDM_SCDC_UPDATE_0, 1,	SCDC_DATA_OFFSET(statusControlData, Update_0)},
 		{"Updated_1", BHDM_SCDC_UPDATE_1, 1,	SCDC_DATA_OFFSET(statusControlData, Update_1)},
-
+#endif
 
 		{"TMDS Config", BHDM_SCDC_TMDS_CONFIG, 1, SCDC_DATA_OFFSET(statusControlData, TMDSConfig)},
+
 		{"Scramble Status", BHDM_SCDC_SCRAMBLER_STATUS, 1, SCDC_DATA_OFFSET(statusControlData, RxScramblerStatus)},
 
 		{"Config_0", BHDM_SCDC_CONFIG_0, 1, SCDC_DATA_OFFSET(statusControlData, Config_0)},
@@ -248,15 +285,7 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 		{"Status_Flags_0", BHDM_SCDC_STATUS_FLAGS_0, 1, SCDC_DATA_OFFSET(statusControlData, StatusFlags_0)},
 		{"Status_Flags_1", BHDM_SCDC_STATUS_FLAGS_1, 1, SCDC_DATA_OFFSET(statusControlData, StatusFlags_1)},
 
-		{"Err_Det_0_L", BHDM_SCDC_ERR_DET_0_L,	 1, SCDC_DATA_OFFSET(statusControlData, ch[0].Err_L)},
-		{"Err_Det_0_H", BHDM_SCDC_ERR_DET_0_H,	 1, SCDC_DATA_OFFSET(statusControlData, ch[0].Err_H)},
-
-		{"Err_Det_1_L", BHDM_SCDC_ERR_DET_1_L,	 1, SCDC_DATA_OFFSET(statusControlData, ch[1].Err_L)},
-		{"Err_Det_1_H", BHDM_SCDC_ERR_DET_1_H,	 1, SCDC_DATA_OFFSET(statusControlData, ch[1].Err_H)},
-
-		{"Err_Det_2_L", BHDM_SCDC_ERR_DET_2_L,	 1, SCDC_DATA_OFFSET(statusControlData, ch[2].Err_L)},
-		{"Err_Det_2_H", BHDM_SCDC_ERR_DET_2_H,	 1, SCDC_DATA_OFFSET(statusControlData, ch[2].Err_H)},
-		{"Err_Det_Checksum", BHDM_SCDC_ERR_DET_CHECKSUM, 1, SCDC_DATA_OFFSET(statusControlData, ErrorDetectionChecksum)},
+		{"CED Block", BHDM_SCDC_CED_OFFSET, BHDM_SCDC_CED_LENGTH , SCDC_DATA_OFFSET(statusControlData, ch[0].Err_L)},
 
 		{"Test_Config_0", BHDM_SCDC_TEST_CONFIG_0, 1, SCDC_DATA_OFFSET(statusControlData, TestConfig_0)}
 	} ;
@@ -275,7 +304,6 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	}
 
 
-	i = 0 ;
 	items = sizeof(scdcStatusControlDataMap) / sizeof(BHDM_SCDC_DataMap) ;
 	i2cHandle = hHDMI->hI2cRegHandle ;
 
@@ -289,9 +317,34 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 			goto done ;
 		}
 
-		BDBG_MSG(("[0x%02x] %-20s  = 0x%02x",
-			scdcStatusControlDataMap[i].offset, scdcStatusControlDataMap[i].name,
-			* ((uint8_t *) &statusControlData + scdcStatusControlDataMap[i].structOffset))) ;
+#if BDBG_DEBUG_BUILD
+		if (scdcStatusControlDataMap[i].length > 1)
+		{
+			int j ;
+			char *pchDebugMsg ;
+			uint8_t DebugMsgLength, offset = 0 ;
+
+			DebugMsgLength = sizeof(uint8_t) * 3 * scdcStatusControlDataMap[i].length ;
+			pchDebugMsg = BKNI_Malloc(DebugMsgLength) ;
+
+			for (j = 0 ; j < scdcStatusControlDataMap[i].length ; j++)
+			{
+				offset += BKNI_Snprintf(pchDebugMsg+offset, DebugMsgLength - offset, "%02X ",
+					* ((uint8_t *) &scdcStatusControlDataMap + scdcStatusControlDataMap[i].structOffset+j)) ;
+			}
+			BDBG_MSG(("[0x%02x] %-20s  = %s ",
+				scdcStatusControlDataMap[i].offset,
+				scdcStatusControlDataMap[i].name, pchDebugMsg)) ;
+
+			BKNI_Free(pchDebugMsg) ;
+		}
+		else
+		{
+			BDBG_MSG(("[0x%02x] %-20s  = 0x%02x",
+				scdcStatusControlDataMap[i].offset, scdcStatusControlDataMap[i].name,
+				* ((uint8_t *) &statusControlData + scdcStatusControlDataMap[i].structOffset))) ;
+		}
+#endif
 	}
 
 
@@ -300,36 +353,41 @@ BERR_Code BHDM_SCDC_ReadStatusControlData(
 	for (i = 0 ; i < 3 ; i++)
 	{
 		statusControlData.ch[i].valid =
-			statusControlData.ch[i].Err_H & BHDM_SCDC_ERR_DET_0_H_MASK_VALID ;
+			statusControlData.ch[i].Err_H & BHDM_SCDC_ERR_DET_CH_MASK_VALID ;
 		statusControlData.ch[i].errorCount =
 			(uint16_t) ((statusControlData.ch[i].Err_H & 0x7F) << 8)  | (uint16_t) (statusControlData.ch[i].Err_L) ;
 		checksum = checksum + (statusControlData.ch[i].Err_H & 0x7F) ;
 		checksum = checksum + (statusControlData.ch[i].Err_L) ;
 
-		BDBG_MSG(("CH%d: Valid =  %d  Error Count %u", i,
-			statusControlData.ch[i].valid, statusControlData.ch[i].errorCount)) ;
+		BDBG_MSG(("CH%d: Valid =  %s  Error Count %u", i,
+			statusControlData.ch[i].valid ? "Yes" : "No", statusControlData.ch[i].errorCount)) ;
 	}
 
 	checksum = checksum + statusControlData.ErrorDetectionChecksum ;
 	checksum = checksum % 256 ;
 
+#if BDBG_DEBUG_BUILD
 	/* report any detected errors if valid status/checksum read */
 	if (checksum)
 	{
-		BDBG_MSG(("Invalid CED checksum: Read: %02X Calc: %02X ",
+		BDBG_WRN(("Invalid CED checksum: Read: %02X Calc: %02X ",
 			statusControlData.ErrorDetectionChecksum, checksum)) ;
 	}
 	else if ((statusControlData.ch[0].valid && statusControlData.ch[0].errorCount)
 	|| (statusControlData.ch[1].valid && statusControlData.ch[1].errorCount)
 	|| (statusControlData.ch[2].valid && statusControlData.ch[2].errorCount))
 	{
-		BDBG_WRN(("CH0: Valid =  %s  Error Count %d",
-			statusControlData.ch[0].valid ? "Yes" : "No", statusControlData.ch[0].errorCount)) ;
-		BDBG_WRN(("CH1: Valid =  %s  Error Count %d",
-			statusControlData.ch[1].valid ? "Yes" : "No", statusControlData.ch[1].errorCount)) ;
-		BDBG_WRN(("CH2: Valid =  %s  Error Count %d",
-			statusControlData.ch[2].valid ? "Yes" : "No", statusControlData.ch[2].errorCount)) ;
+		BDBG_WRN(("CH0: Valid = %s  Error Count %d",
+			statusControlData.ch[0].valid ? "Yes" : "No",
+			statusControlData.ch[0].errorCount)) ;
+		BDBG_WRN(("CH1: Valid = %s  Error Count %d",
+			statusControlData.ch[1].valid ? "Yes" : "No",
+			statusControlData.ch[1].errorCount)) ;
+		BDBG_WRN(("CH2: Valid = %s  Error Count %d",
+			statusControlData.ch[2].valid ? "Yes" : "No",
+			statusControlData.ch[2].errorCount)) ;
 	}
+#endif
 
 	*pStatusControlData = statusControlData ;
 	hHDMI->stStatusControlData = statusControlData ;
@@ -380,7 +438,7 @@ void BHDM_SCDC_GetScrambleConfiguration(BHDM_Handle hHDMI, BHDM_ScrambleConfig *
 		rc =  BHDM_P_BREG_I2C_Read(hHDMI,
 			BHDM_AUTO_I2C_P_SCDC_SLAVE_ADDR, BHDM_SCDC_SCRAMBLER_STATUS,
 			&rxStatusFlags, 1) ;
-		if (rc) {BERR_TRACE(rc); return ;}
+		if (rc) {(void)BERR_TRACE(rc); return ;}
 	}
 
 	pstScrambleConfig->rxStatusFlags_Scramble =
@@ -531,7 +589,7 @@ void BHDM_SCDC_P_ProcessUpdate_isr(const BHDM_Handle hHDMI)
 
 	case BHDM_AUTO_I2C_P_READ_DATA_eEDID :
 		BDBG_ERR(("EDID Read incorrectly routed to SCDC Process Update function")) ;
-		BERR_TRACE(BERR_INVALID_PARAMETER) ;
+		(void)BERR_TRACE(BERR_INVALID_PARAMETER) ;
 		break ;
 
 	case BHDM_AUTO_I2C_P_READ_DATA_eNone :

@@ -18,7 +18,7 @@ Implementation of OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbu
 
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
-
+#include "middleware/khronos/glxx/glxx_server.h"
 
 static KHRN_IMAGE_FORMAT_T convert_format(GLenum format);
 static GLXX_RENDERBUFFER_TYPE_T convert_renderbuffer_type(GLenum format);
@@ -34,14 +34,14 @@ void glxx_renderbuffer_init(GLXX_RENDERBUFFER_T *renderbuffer, int32_t name)
    vcos_assert(renderbuffer->mh_ms_storage == MEM_INVALID_HANDLE);
 }
 
-void glxx_renderbuffer_term(void *v, uint32_t size)
+void glxx_renderbuffer_term(MEM_HANDLE_T handle)
 {
-   GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)v;
-
-   UNUSED(size);
+   GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(handle, NULL);
 
    MEM_ASSIGN(renderbuffer->mh_storage, MEM_INVALID_HANDLE);
    MEM_ASSIGN(renderbuffer->mh_ms_storage, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
 static KHRN_IMAGE_FORMAT_T convert_format(GLenum format)
@@ -88,9 +88,6 @@ static KHRN_IMAGE_FORMAT_T convert_format(GLenum format)
 bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GLsizei samples,
    GLenum internalformat, GLuint width, GLuint height, bool secure)
 {
-   // Image size factor for multisample render buffer
-   static const GLuint MS_SIZE_FACTOR = 2;
-
    KHRN_IMAGE_FORMAT_T format = convert_format(internalformat);
    GLXX_RENDERBUFFER_TYPE_T type = convert_renderbuffer_type(internalformat);
    KHRN_IMAGE_T *oldimage = (KHRN_IMAGE_T *)mem_maybe_lock(renderbuffer->mh_storage, NULL);
@@ -105,10 +102,8 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
       renderbuffer->samples != samples;
    mem_maybe_unlock(renderbuffer->mh_storage);
 
-   if (imagechanged)
-   {
+   if (imagechanged) {
       uint32_t flags = 0;
-      MEM_HANDLE_T hnew;
 
 #ifdef DEBUG
       flags = IMAGE_CREATE_FLAG_ONE;
@@ -116,67 +111,58 @@ bool glxx_renderbuffer_storage_multisample(GLXX_RENDERBUFFER_T *renderbuffer, GL
       if (type == RB_COLOR_T) flags |= IMAGE_CREATE_FLAG_TEXTURE;
       if (glxx_framebuffer_hw_support(format)) flags |= IMAGE_CREATE_FLAG_RENDER_TARGET;
 
-      // If it is a multisample render buffer
-      if (samples != 0)
-      {
-         // In the case of a colour attachment we need:
-         // * a multisample buffer
-         // * a resolved buffer
-         // In the case of depth or stencil attachment we only need one
-         // buffer as it is never resolved
+      // Clamp the number of samples to 0 (non-multisample) or 4 (multisample)
+      // 1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
+      // (Written based on the wording of the OpenGL 1.5 specification.)
+      samples = samples ? GLXX_CONFIG_SAMPLES : 0;
 
-         if (type == RB_COLOR_T)
-         {
-            // Allocate the resolve buffer if it is a colour render buffer
-            hnew = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
-            if (hnew == MEM_INVALID_HANDLE)
-               return false;
-            MEM_ASSIGN(renderbuffer->mh_storage, hnew);
-            mem_release(hnew);
+      if (type == RB_COLOR_T) {
+         // Default state for renderbuffer object
+         renderbuffer->type = RB_NEW_T;
+         renderbuffer->samples = 0;
+         MEM_ASSIGN(renderbuffer->mh_storage, MEM_HANDLE_INVALID);
+         MEM_ASSIGN(renderbuffer->mh_ms_storage, MEM_HANDLE_INVALID);
 
-            // Allocate the multisample buffer which is stored in the renderbuffer
-            hnew = khrn_image_create(COL_32_TLBD, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height,
-                                 IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
-         }
-         else
-            // Allocate the multisample buffer which is stored in the renderbuffer
-            hnew = khrn_image_create(format, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height, flags, secure); /* todo: check usage flags */
-
-         if (hnew == MEM_INVALID_HANDLE)
-            return false;
-         MEM_ASSIGN(renderbuffer->mh_ms_storage, hnew);
-         mem_release(hnew);
-      }
-      else
-      {  // Non-multisample render buffer
          // Allocate the resolve buffer if it is a colour render buffer
-         hnew = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
-         if (hnew == MEM_INVALID_HANDLE)
+         MEM_HANDLE_T image = khrn_image_create(format, width, height, flags, secure); /* todo: check usage flags */
+         if (image == MEM_INVALID_HANDLE)
             return false;
-         MEM_ASSIGN(renderbuffer->mh_storage, hnew);
-         mem_release(hnew);
-         MEM_ASSIGN(renderbuffer->mh_ms_storage, MEM_INVALID_HANDLE);
+         MEM_ASSIGN(renderbuffer->mh_storage, image);
+         mem_release(image);
+
+         if (samples) {
+            // Allocate the multisample buffer which is stored in the renderbuffer
+            MEM_HANDLE_T ms_image = glxx_image_create_ms(COL_32_TLBD, width, height,
+               IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
+
+            // If the ms image fails to allocate, invalidate the resolve just allocated above
+            if (ms_image == MEM_INVALID_HANDLE) {
+               MEM_ASSIGN(renderbuffer->mh_storage, MEM_HANDLE_INVALID);
+               return false;
+            }
+            MEM_ASSIGN(renderbuffer->mh_ms_storage, ms_image);
+            mem_release(ms_image);
+         }
+      }
+      else {
+         // Color handled above, this is depth/stencil only.  Only push into the none ms mode reguardless
+         // as depths are not resolved
+         MEM_HANDLE_T(*image_create)(KHRN_IMAGE_FORMAT_T format, uint32_t width, uint32_t height,
+            KHRN_IMAGE_CREATE_FLAG_T flags, bool secure);
+         image_create = (samples) ? glxx_image_create_ms : khrn_image_create;
+
+         MEM_HANDLE_T image = image_create(format, width, height, flags, secure); /* todo: check usage flags */
+         if (image == MEM_INVALID_HANDLE)
+            return false;
+         MEM_ASSIGN(renderbuffer->mh_storage, image);
+         mem_release(image);
       }
 
       renderbuffer->type = type;
-
-      // Clamp the number of samples to 0 (non-multisample) or 4(multisample)
-      // 1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
-      // (Written based on the wording of the OpenGL 1.5 specification.)
-      if (samples == 0)
-         renderbuffer->samples = 0;
-      else
-         renderbuffer->samples = GLXX_CONFIG_SAMPLES;
+      renderbuffer->samples = samples;
    }
 
    return true;
-}
-
-bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer, GLenum internalformat,
-   GLuint width, GLuint height, bool secure)
-{
-   GLsizei samples = 0;
-   return glxx_renderbuffer_storage_multisample(renderbuffer, samples, internalformat, width, height, secure);
 }
 
 static bool valid_image(KHRN_IMAGE_T *image)

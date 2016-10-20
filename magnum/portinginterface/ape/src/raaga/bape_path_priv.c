@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1122,9 +1122,9 @@ void BAPE_Connector_P_SetMute(
 
         if ( pNode->inputMute )
         {
-            /* Stop once we've found a node that can handle this operation */
             pNode->inputMute(pNode, pConnection, muted);
-            return;
+            /* continue as there may be other nodes using this connector */
+            continue;
         }
         else
         {
@@ -1262,7 +1262,7 @@ void BAPE_PathNode_P_FindConsumersBySubtype(
 Summary:
 Search for outputs on this path
 ***************************************************************************/
-void BAPE_PathNode_P_GetConnectedOutputs(
+void BAPE_PathNode_P_GetConnectedOutputs_isrsafe(
     BAPE_PathNode *pNode,
     unsigned maxOutputs,
     unsigned *pNumFound,        /* [out] */

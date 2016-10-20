@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -131,24 +131,24 @@ static const BVDC_P_CscCoeffs *const s_aGFD_MC_AlphaBlend_Tbl[] =
 const BVDC_P_CscLRangeAdj s_CMP_LRangeAdj_Gfx_1886_to_2084 = BVDC_P_MAKE_CMP_NL_LR_ADJ
     (  3, /* number of points */
        /*     x,        y,            m,  e */
-	   0.000000, 0.000000, 0.6400000000, -5,
-	   1.000000, 0.020000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1,
-	   1.000000, 1.000000, 0.5000000000,  1 );
+       0.000000, 0.000000, 0.6400000000, -5,
+       1.000000, 0.020000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1,
+       1.000000, 1.000000, 0.5000000000,  1 );
 
 extern const BVDC_P_CscLRangeAdj s_CMP_LRangeAdj_Identity;
 
 const BVDC_P_CscLRangeAdj * const s_aaCMP_LRangeAdj_Gfx_Tbl[4] =
 {
     /* BAVC_HDMI_DRM_EOTF_eSDR */
-	&s_CMP_LRangeAdj_Identity,            /* BAVC_HDMI_DRM_EOTF_eSDR */
-	&s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eHDR */
-	&s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-	&s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eFuture */
+    &s_CMP_LRangeAdj_Identity,            /* BAVC_HDMI_DRM_EOTF_eSDR */
+    &s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eHDR */
+    &s_CMP_LRangeAdj_Gfx_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
+    &s_CMP_LRangeAdj_Identity             /* BAVC_HDMI_DRM_EOTF_eFuture */
 };
 
 extern const BVDC_P_CscAbCoeffs  s_CMP_AB_Identity;
@@ -157,8 +157,8 @@ extern const BVDC_P_CscAbCoeffs *const s_aCMP_MA_Tbl[];
 extern const BVDC_P_CscCoeffs *const s_aCMP_MC_Tbl[];
 extern const BVDC_P_CscAbCoeffs * const s_aaCMP_MB_Tbl[][7];
 
-extern uint8_t s_aCMP_CSC_NL2L_Tbl[];
-extern uint8_t s_aCMP_CSC_L2NL_Tbl[];
+extern const uint8_t s_aCMP_CSC_NL2L_Tbl[];
+extern const uint8_t s_aCMP_CSC_L2NL_Tbl[];
 
 #endif /* #if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)) */
 

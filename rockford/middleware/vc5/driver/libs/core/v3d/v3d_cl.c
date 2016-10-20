@@ -12,6 +12,7 @@ FILE DESCRIPTION
 #include "v3d_cl.h"
 #include "libs/core/lfmt/lfmt.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -21,22 +22,11 @@ bool v3d_prim_mode_is_patch(v3d_prim_mode_t prim_mode)
       && prim_mode <= V3D_PRIM_MODE_PATCH32;
 }
 
-v3d_prim_type_t v3d_prim_type_from_tess_type(v3d_cl_tess_type_t tess_type)
-{
-   switch(tess_type)
-   {
-      case V3D_CL_TESS_TYPE_TRIANGLE: return V3D_PRIM_TYPE_TRI;
-      case V3D_CL_TESS_TYPE_QUAD: return V3D_PRIM_TYPE_TRI;
-      case V3D_CL_TESS_TYPE_ISOLINES: return V3D_PRIM_TYPE_LINE;
-      default: unreachable();
-   }
-}
-
-v3d_prim_type_t v3d_prim_type_from_mode(v3d_prim_mode_t prim_mode)
+uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode, bool tg_enabled)
 {
    if(v3d_prim_mode_is_patch(prim_mode))
    {
-      return V3D_PRIM_TYPE_PATCH1 + (prim_mode - V3D_PRIM_MODE_PATCH1);
+      return 1 + (prim_mode - V3D_PRIM_MODE_PATCH1);
    }
 
    switch (prim_mode) {
@@ -44,7 +34,7 @@ v3d_prim_type_t v3d_prim_type_from_mode(v3d_prim_mode_t prim_mode)
 #if !V3D_HAS_NEW_TF
    case V3D_PRIM_MODE_POINTS_TF:
 #endif
-      return V3D_PRIM_TYPE_POINT;
+      return 1;
    case V3D_PRIM_MODE_LINES:
    case V3D_PRIM_MODE_LINE_LOOP:
    case V3D_PRIM_MODE_LINE_STRIP:
@@ -53,7 +43,7 @@ v3d_prim_type_t v3d_prim_type_from_mode(v3d_prim_mode_t prim_mode)
    case V3D_PRIM_MODE_LINE_LOOP_TF:
    case V3D_PRIM_MODE_LINE_STRIP_TF:
 #endif
-      return V3D_PRIM_TYPE_LINE;
+      return 2;
    case V3D_PRIM_MODE_TRIS:
    case V3D_PRIM_MODE_TRI_STRIP:
    case V3D_PRIM_MODE_TRI_FAN:
@@ -62,44 +52,49 @@ v3d_prim_type_t v3d_prim_type_from_mode(v3d_prim_mode_t prim_mode)
    case V3D_PRIM_MODE_TRI_STRIP_TF:
    case V3D_PRIM_MODE_TRI_FAN_TF:
 #endif
-      return V3D_PRIM_TYPE_TRI;
+      return 3;
+   /* When tess and geom aren't enabled we drop adjacency information from
+    * with-adjacency prim lists */
+   case V3D_PRIM_MODE_LINES_ADJ:
+   case V3D_PRIM_MODE_LINE_STRIP_ADJ:
+      return tg_enabled ? 4 : 2;
+   case V3D_PRIM_MODE_TRIS_ADJ:
+   case V3D_PRIM_MODE_TRI_STRIP_ADJ:
+      return tg_enabled ? 6 : 3;
    default:
       unreachable();
+      return 1;
    }
 }
 
-uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode)
+uint32_t v3d_tess_type_num_verts(v3d_cl_tess_type_t tess_type)
 {
-   return v3d_prim_type_num_verts(v3d_prim_type_from_mode(prim_mode));
-}
-
-bool v3d_prim_type_is_patch(v3d_prim_type_t prim_type)
-{
-   return prim_type >= V3D_PRIM_TYPE_PATCH1
-      && prim_type <= V3D_PRIM_TYPE_PATCH32;
-}
-
-uint32_t v3d_prim_type_num_verts(v3d_prim_type_t prim_type)
-{
-   if(v3d_prim_type_is_patch(prim_type))
+   switch(tess_type)
    {
-      return (prim_type - V3D_PRIM_TYPE_PATCH1) + 1;
-   }
-
-   switch (prim_type) {
-   case V3D_PRIM_TYPE_POINT:  return 1;
-   case V3D_PRIM_TYPE_LINE:   return 2;
-   case V3D_PRIM_TYPE_TRI:    return 3;
-   default:                   not_impl(); return 0;
+      case V3D_CL_TESS_TYPE_TRIANGLE: return 3;
+      case V3D_CL_TESS_TYPE_QUAD: return 3;
+      case V3D_CL_TESS_TYPE_ISOLINES: return 2;
+      default: unreachable();
    }
 }
 
-// http://confluence.broadcom.com/display/MobileMultimedia/GFX+VC5+TLB+Design+Specification
-//
+uint32_t v3d_geom_prim_type_num_verts(v3d_cl_geom_prim_type_t type)
+{
+   switch(type)
+   {
+      case V3D_CL_GEOM_PRIM_TYPE_POINTS: return 1;
+      case V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP: return 2;
+      case V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP: return 3;
+      default: unreachable();
+   }
+}
+
 void v3d_pixel_format_internal_type_and_bpp(
    v3d_rt_type_t *type, v3d_rt_bpp_t *bpp,
    v3d_pixel_format_t pixel_format)
 {
+   /* See http://confluence.broadcom.com/x/qwLKB */
+
    switch (pixel_format) {
 
    case V3D_PIXEL_FORMAT_A1_BGR5:
@@ -240,13 +235,11 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
       break;
    case V3D_RT_TYPE_8:
       assert(bpp == V3D_RT_BPP_32);
-      {
-         float f[4];
-         int i;
-         for (i=0; i<4; i++) f[i] = gfx_float_from_bits(col[i]);
-
-         packed[0] = gfx_float4_to_unorm8888(f);
-      }
+      packed[0] = gfx_pack_8888(
+         gfx_float_to_unorm8(gfx_float_from_bits(col[0])),
+         gfx_float_to_unorm8(gfx_float_from_bits(col[1])),
+         gfx_float_to_unorm8(gfx_float_from_bits(col[2])),
+         gfx_float_to_unorm8(gfx_float_from_bits(col[3])));
       break;
    case V3D_RT_TYPE_16I:
    case V3D_RT_TYPE_16UI:
@@ -267,13 +260,13 @@ void v3d_pack_clear_color(uint32_t packed[4], const uint32_t col[4],
       switch (bpp) {
       case V3D_RT_BPP_64:
          packed[1] = gfx_pack_1616(
-            gfx_bits_to_float16(col[2]),
-            gfx_bits_to_float16(col[3]));
+            gfx_floatbits_to_float16(col[2]),
+            gfx_floatbits_to_float16(col[3]));
          /* Fall through */
       case V3D_RT_BPP_32:
          packed[0] = gfx_pack_1616(
-            gfx_bits_to_float16(col[0]),
-            gfx_bits_to_float16(col[1]));
+            gfx_floatbits_to_float16(col[0]),
+            gfx_floatbits_to_float16(col[1]));
          break;
       default:
          unreachable();

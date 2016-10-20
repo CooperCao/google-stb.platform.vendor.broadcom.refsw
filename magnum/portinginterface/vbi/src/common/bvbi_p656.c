@@ -74,9 +74,8 @@ typedef BERR_Code (*BVBI_P_P656_AncilParser) (
 static BVBI_P_SupportedVideo BVBI_P_PALorNTSC_isr (BFMT_VideoFmt eVideoFormat);
 
 static BERR_Code BVBI_P_P656_Alloc   (
-    BMEM_Handle hMem, uint8_t** i656data, size_t nBytes);
-static void      BVBI_P_P656_DeAlloc (
-    BMEM_Handle hMem, uint8_t** i656data);
+    BMMA_Heap_Handle hMmaHeap, BVBI_P_MmaData* pHmmaData, size_t nBytes);
+static void      BVBI_P_P656_DeAlloc (BVBI_P_MmaData* pHmmaData);
 
 /* The array of parsers.  The implied index is the enum BVBI_656Fmt. */
 static BERR_Code BVBI_P_P656_SAA7113Parser (
@@ -119,7 +118,7 @@ static uint32_t BVBI_P_P656_MoveWSS_isr (
     bool isPal, uint16_t* usWSSData);
 static uint32_t BVBI_P_P656_MoveTT_isr  (
     uint8_t* vbiData, BVBI_SMPTE291M_Description* pktInfo,
-    bool isPal, BVBI_P_TTData* TTData);
+    bool isPal, size_t* pLastByteUsed, BVBI_P_TTData* TTData);
 /* TODO: VPS mover */
 
 /* Various parity bit checkers */
@@ -169,54 +168,39 @@ static const unsigned char P_bitParity[256] = {
  */
 BERR_Code BVBI_P_P656_Init ( BVBI_P_Decode_Handle* pVbi_Dec )
 {
-    void* cached_ptr;
     BVBI_P_Handle* pVbi = pVbi_Dec->pVbi;
-    BMEM_Handle hMem = pVbi->hMem;
     BERR_Code eErr = BERR_SUCCESS;
 
     /* Allocate space for double buffering ITU-R 656 ancillary data */
     if ((eErr = BERR_TRACE (BVBI_P_P656_Alloc (
-        pVbi->hMem, &pVbi_Dec->top656Data, pVbi->in656bufferSize))) !=
+        pVbi->hMmaHeap, &pVbi_Dec->top656Data, pVbi->in656bufferSize))) !=
             BERR_SUCCESS)
     {
         goto init_done;
     }
     if ((eErr = BERR_TRACE (BVBI_P_P656_Alloc (
-        pVbi->hMem, &pVbi_Dec->bot656Data, pVbi->in656bufferSize))) !=
+        pVbi->hMmaHeap, &pVbi_Dec->bot656Data, pVbi->in656bufferSize))) !=
             BERR_SUCCESS)
     {
         goto init_done;
     }
 
-    /* Zero out the data */
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached (
-        hMem, pVbi_Dec->top656Data, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        goto init_done;
-    }
-    BKNI_Memset (cached_ptr, 0, pVbi->in656bufferSize);
-    BMEM_FlushCache (hMem, cached_ptr, pVbi->in656bufferSize);
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached (
-        hMem, pVbi_Dec->bot656Data, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        goto init_done;
-    }
-    BKNI_Memset (cached_ptr, 0, pVbi->in656bufferSize);
-    BMEM_FlushCache (hMem, cached_ptr, pVbi->in656bufferSize);
+    BKNI_Memset (pVbi_Dec->top656Data.pSwAccess, 0, pVbi->in656bufferSize);
+    BVBI_P_MmaFlush_isrsafe (&(pVbi_Dec->top656Data), pVbi->in656bufferSize);
+    BKNI_Memset (pVbi_Dec->bot656Data.pSwAccess, 0, pVbi->in656bufferSize);
+    BVBI_P_MmaFlush_isrsafe (&(pVbi_Dec->bot656Data), pVbi->in656bufferSize);
 
 init_done:
 
     if (eErr != BERR_SUCCESS)
     {
-        if (pVbi_Dec->top656Data != NULL)
+        if (pVbi_Dec->top656Data.handle != NULL)
         {
-            BVBI_P_P656_DeAlloc (hMem, &(pVbi_Dec->top656Data));
+            BVBI_P_P656_DeAlloc (&(pVbi_Dec->top656Data));
         }
-        if (pVbi_Dec->bot656Data != NULL)
+        if (pVbi_Dec->bot656Data.handle != NULL)
         {
-            BVBI_P_P656_DeAlloc (hMem, &(pVbi_Dec->bot656Data));
+            BVBI_P_P656_DeAlloc (&(pVbi_Dec->bot656Data));
         }
     }
     return eErr;
@@ -227,11 +211,9 @@ init_done:
  */
 void BVBI_P_P656_DeInit ( BVBI_P_Decode_Handle* pVbi_Dec )
 {
-    BVBI_P_Handle* pVbi = pVbi_Dec->pVbi;
-
     /* Release space for double buffering ITU-R 656 ancillary data */
-    BVBI_P_P656_DeAlloc (pVbi->hMem, &pVbi_Dec->top656Data);
-    BVBI_P_P656_DeAlloc (pVbi->hMem, &pVbi_Dec->bot656Data);
+    BVBI_P_P656_DeAlloc (&pVbi_Dec->top656Data);
+    BVBI_P_P656_DeAlloc (&pVbi_Dec->bot656Data);
 }
 
 
@@ -243,9 +225,8 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
     BVBI_P_Decode_Handle* pVbi_Dec,
     BVBI_P_Field_Handle* pVbi_Fld)
 {
-    uint8_t* rawData;
+    BVBI_P_MmaData* rawData;
     uint8_t* currData;
-    void* cached_ptr;
     uint8_t* vbiData;
     int currLength;
     int lineWidth;
@@ -255,8 +236,7 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
     BVBI_P_P656_AncilParser ancilParser;
     BVBI_SMPTE291M_Description pktInfo;
     BVBI_P_TTData* ttData;
-    BMEM_Handle hMem = pVbi_Dec->pVbi->hMem;
-    BERR_Code eErr = BERR_SUCCESS;
+    size_t lastByteUsed = 0;
     uint32_t ulErrInfo = 0x0;
 
     BDBG_ENTER (BVBI_P_P656_Process_Data_isr);
@@ -265,10 +245,10 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
     switch (polarity)
     {
     case BAVC_Polarity_eTopField:
-        rawData = pVbi_Dec->top656Data;
+        rawData = &(pVbi_Dec->top656Data);
         break;
     case BAVC_Polarity_eBotField:
-        rawData = pVbi_Dec->bot656Data;
+        rawData = &(pVbi_Dec->bot656Data);
         break;
     default:
         BDBG_LEAVE (BVBI_P_P656_Process_Data_isr);
@@ -276,17 +256,11 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
         break;
     }
 
-    /* Use cached memory interface to DRAM */
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached_isr (
-        hMem, rawData, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        return eErr;
-    }
-    BMEM_FlushCache_isr (hMem, cached_ptr, pVbi_Dec->pVbi->in656bufferSize);
+    /* Flush cached memory to DRAM */
+    BVBI_P_MmaFlush_isrsafe (rawData, pVbi_Dec->pVbi->in656bufferSize);
 
     /* Will process captured data in multiple passes */
-    currData = (uint8_t*)cached_ptr;
+    currData = (uint8_t*)(rawData->pSwAccess);
     currLength = pVbi_Dec->pVbi->in656bufferSize;
 
     /* Determine if PAL or NTSC (for teletext, mostly). */
@@ -315,7 +289,7 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
     ttData->ucLineSize = lineWidth;
     ttData->ucLines = 0;
     if (ttData->ucDataSize > 0)
-        *(uint32_t*)(ttData->pucData) = 0x00000000;
+        *(uint32_t*)(ttData->mmaData.pSwAccess) = 0x00000000;
 
     /* Determine which ancillary data parser to use */
     ancilParser = AncilParserArray[pVbi_Dec->curr.e656Format];
@@ -356,7 +330,7 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
                  (pktInfo.vbiType == BVBI_656_VbiType_NABTS)))
             {
                 ulErrInfo = BVBI_P_P656_MoveTT_isr (
-                    vbiData, &pktInfo, isPal, ttData);
+                    vbiData, &pktInfo, isPal, &lastByteUsed, ttData);
                 if ((ulErrInfo & BVBI_LINE_ERROR_TELETEXT_NODATA) == 0)
                     pVbi_Fld->ulWhichPresent |= BVBI_P_SELECT_TT;
                 pVbi_Fld->ulErrInfo |= ulErrInfo;
@@ -370,6 +344,9 @@ BERR_Code BVBI_P_P656_Process_Data_isr (
         if (currLength < 5)
             break;
     }
+
+    /* Flush the teletext data */
+    BVBI_P_MmaFlush_isrsafe (&(ttData->mmaData), lastByteUsed);
 
     BDBG_LEAVE (BVBI_P_P656_Process_Data_isr);
     return BERR_SUCCESS;
@@ -396,30 +373,17 @@ uint8_t BVBI_P_p656_SetEEbits (uint8_t arg)
  *
  */
 static BERR_Code BVBI_P_P656_Alloc (
-    BMEM_Handle hMem, uint8_t** i656data, size_t nBytes)
+    BMMA_Heap_Handle hMmaHeap, BVBI_P_MmaData* pHmmaData, size_t nBytes)
 {
-    *i656data =
-        (uint8_t*)(BMEM_AllocAligned (
-            hMem,
-            nBytes,
-            5,
-            0));
-    if (!(*i656data))
-    {
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-    }
-
-    return BERR_SUCCESS;
+    return BVBI_P_MmaAlloc (hMmaHeap, nBytes, 32, pHmmaData);
 }
 
 /***************************************************************************
  *
  */
-static void BVBI_P_P656_DeAlloc (
-    BMEM_Handle hMem, uint8_t** i656data)
+static void BVBI_P_P656_DeAlloc (BVBI_P_MmaData* pHmmaData)
 {
-    BMEM_Free (hMem, *i656data);
-    *i656data = 0;
+    BVBI_P_MmaFree (pHmmaData);
 }
 
 
@@ -1198,12 +1162,14 @@ static uint32_t BVBI_P_P656_MoveWSS_isr  (
  */
 static uint32_t BVBI_P_P656_MoveTT_isr  (
     uint8_t* vbiData, BVBI_SMPTE291M_Description* pktInfo,
-    bool isPal, BVBI_P_TTData* TTData)
+    bool isPal, size_t* pLastByte, BVBI_P_TTData* TTData)
 {
     int startLine;
     int numLines;
     int lineOffset;
     int ttSize;
+    size_t lastByte;
+    uint8_t* pucdata;
     uint8_t* start;
 
     /* Calculate region of valid teletext */
@@ -1225,17 +1191,21 @@ static uint32_t BVBI_P_P656_MoveTT_isr  (
             return BVBI_LINE_ERROR_TELETEXT_NODATA;
     }
 
-    *(uint32_t*)(TTData->pucData) |= (uint32_t)(1 << lineOffset);
+    pucdata = (uint8_t*)(TTData->mmaData.pSwAccess);
+    *(uint32_t*)pucdata |= (uint32_t)(1 << lineOffset);
+    lastByte = sizeof (uint32_t);
     if (TTData->ucLines < (lineOffset + 1))
         TTData->ucLines = lineOffset + 1;
 
     /* Copy the data itself, but check for buffer overflow */
-    start = TTData->pucData + (1 + (lineOffset * ttSize));
-    if ((start + ttSize) > (TTData->pucData + ttSize))
+    start = pucdata + (1 + (lineOffset * ttSize));
+    if ((start + ttSize) > (pucdata + TTData->ucDataSize))
     {
         return BVBI_LINE_ERROR_FLDH_CONFLICT;
     }
     BKNI_Memcpy (start, vbiData, ttSize);
+    lastByte = (start - pucdata) + ttSize;
+    if (lastByte > (*pLastByte)) *pLastByte = lastByte;
 
     /* Success! */
     return 0;

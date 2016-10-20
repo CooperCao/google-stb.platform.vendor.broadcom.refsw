@@ -6,6 +6,9 @@ All rights reserved.
 #include "glxx_hw.h"
 #include "../common/khrn_counters.h"
 #include "../common/khrn_render_state.h"
+#include "libs/util/log/log.h"
+
+LOG_DEFAULT_CAT("glxx_hw_clear")
 
 /* Clears buffers (glClear). Chooses either drawing a rectangle or hw clear
  * during tile rendering.
@@ -104,7 +107,7 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
    bool stencil_full_clear = full_rect && clear->stencil && ((state->stencil_mask.front & 0xff) == 0xff);
 
    // Discard CL if possible
-   bool keep_cl = khrn_fmem_get_common_persist(&rs->fmem)->occlusion_query_list != NULL || rs->tf_used || rs->base.has_buffer_writes;
+   bool keep_cl = khrn_fmem_has_queries(&rs->fmem) || rs->tf.used || rs->base.has_buffer_writes;
    if (!keep_cl)
    {
       for (unsigned b = 0; b < rs->installed_fb.rt_count; ++b)
@@ -157,6 +160,17 @@ bool glxx_hw_clear(GLXX_SERVER_STATE_T *state, GLXX_CLEAR_T *clear)
       else
          use_draw_rect = true;
    }
+#if V3D_HAS_NEW_TLB_CFG
+   /* Fast-clearing depth & loading stencil (or vice-versa) does not work
+    * properly (see GFXH-1461).
+    * Fall back to draw-rect clear if we might hit that case... */
+   if ((clear->stencil && glxx_bufstate_might_need_load(rs->depth_buffer_state)) ||
+         (clear->depth && glxx_bufstate_might_need_load(rs->stencil_buffer_state)))
+      use_draw_rect = true;
+#endif
+
+   log_trace("%s color_mask=0x%x%s%s", use_draw_rect ? "draw_rect" : "fast",
+      clear->color_buffer_mask, clear->depth ? " depth" : "", clear->stencil ? " stencil" : "");
 
    if (use_draw_rect)
    {

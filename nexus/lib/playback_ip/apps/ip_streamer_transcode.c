@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -906,10 +906,10 @@ B_IpStreamer_SetupSystemData(
         switch(ipStreamerCtx->cfg.transcode.outAudioCodec) {
             case NEXUS_AudioCodec_eMpeg:         audioStreamType = 0x4; break;
             case NEXUS_AudioCodec_eMp3:          audioStreamType = 0x4; break;
-            case NEXUS_AudioCodec_eAac:          audioStreamType = 0xf; break; /* ADTS */
-            case NEXUS_AudioCodec_eAacPlus:      audioStreamType = 0x11; break;/* LOAS */
-                                                 /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-            case NEXUS_AudioCodec_eAacPlusAdts:  audioStreamType = 0x11; break;
+            case NEXUS_AudioCodec_eAacAdts:      audioStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacPlusAdts:  audioStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacLoas:      audioStreamType = 0x11; break;/* LOAS */
+            case NEXUS_AudioCodec_eAacPlusLoas:  audioStreamType = 0x11; break;/* LOAS */
             case NEXUS_AudioCodec_eAc3:          audioStreamType = 0x81; break;
             default: BDBG_ERR(("Audio encoder codec %d is not supported!", ipStreamerCtx->cfg.transcode.outAudioCodec)); goto error;
         }

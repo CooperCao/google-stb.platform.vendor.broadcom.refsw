@@ -107,13 +107,9 @@ BERR_Code BDSP_Arm_Open(
     pArm->device.powerStandby= NULL; /* BDSP_Arm_P_PowerStandby; */
     pArm->device.powerResume= NULL; /* BDSP_Arm_P_PowerResume; */
     pArm->device.getAlgorithmInfo= BDSP_Arm_P_GetAlgorithmInfo;
-    pArm->device.getAlgorithmDefaultSettings = NULL; /* BDSP_Arm_GetAlgorithmDefaultSettings;*/
     pArm->device.allocateExternalInterrupt = NULL; /* BDSP_Arm_P_AllocateExternalInterrupt;*/
     pArm->device.freeExternalInterrupt = NULL; /* BDSP_Arm_P_FreeExternalInterrupt;*/
     pArm->device.getExternalInterruptInfo = NULL; /* BDSP_Arm_P_GetExternalInterruptInfo;*/
-    pArm->device.allocateRdbRegister = NULL; /* BDSP_Arm_P_AllocateRdbRegisters;*/
-    pArm->device.freeRdbRegister = NULL; /* BDSP_Arm_P_FreeRdbRegisters;*/
-    pArm->device.getRdbRegisterInfo = NULL; /* BDSP_Arm_P_GetRdbRegistersInfo;*/
     pArm->device.processAudioCapture = NULL; /* BDSP_Arm_P_ProcessAudioCapture;*/
 
 

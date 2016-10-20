@@ -74,6 +74,7 @@ static const uint8_t privilegedClients[] = {
 
     /* OS */
     BMRC_Monitor_HwBlock_eEBI,
+    BMRC_Monitor_HwBlock_eASP,
     BMRC_Monitor_HwBlock_eETHERNET,
     BMRC_Monitor_HwBlock_eFLASH,
     BMRC_Monitor_HwBlock_eIEEE_1394,

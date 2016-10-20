@@ -45,7 +45,7 @@
 #
 # N/A
 #
-# A0 and B0 have identical box mode files
+# A0, B0, and C0 have identical box mode files
 BCHP_CHIP_OVERRIDE:=7250
 BCHP_VER_LOWER_OVERRIDE:=b0
 

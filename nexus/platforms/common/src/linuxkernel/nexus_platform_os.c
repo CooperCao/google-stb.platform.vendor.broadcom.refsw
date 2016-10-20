@@ -145,7 +145,7 @@ interrupt code.
 */
 
 typedef void (*b_bare_os_special_interrupt_handler)(int linux_irq);
-#define BDBG_MSG_IRQ(X) /* BDBG_MSG(X) */
+#define BDBG_MSG_IRQ(X) /*BDBG_MSG(X)*/
 
 #define NUM_IRQS (32*NEXUS_NUM_L1_REGISTERS)
 /* b_bare_os L1 interrupts are 0-based. linux is 1-based. */
@@ -598,8 +598,19 @@ NEXUS_Platform_P_Isr(unsigned long data)
                 }
             }
         }
-    }
 
+        /* Now, restore any disabled virtual and shared gpio interrupts (masking not required) */
+        spin_lock_irqsave(&state->lock, flags);
+        if (NEXUS_Platform_P_VirtualIrqSupported())
+        {
+            b_virtual_irq_reenable_irqs_spinlocked();
+        }
+        if (NEXUS_Platform_P_SharedGpioSupported())
+        {
+            b_shared_gpio_reenable_irqs_spinlocked();
+        }
+        spin_unlock_irqrestore(&state->lock, flags);
+    }
 
 done:
     return;
@@ -759,7 +770,7 @@ void NEXUS_Platform_P_MonitorOS(void)
     BKNI_LeaveCriticalSection();
 }
 
-static void NEXUS_Platform_P_SetmaskL1(unsigned l1, unsigned disable)
+static void NEXUS_Platform_P_SetmaskL1(unsigned l1, bool disable)
 {
     struct b_bare_interrupt_state *state = &b_bare_interrupt_state;
     unsigned reg = l1/32;
@@ -794,8 +805,9 @@ NEXUS_Error NEXUS_Platform_P_EnableInterrupt_isr( unsigned irqNum)
     if (entry->virtual)
     {
         BDBG_MSG(("connect virtual interrupt %s (%d, %p)", entry->name, entry->shared, entry->special_handler));
-        entry->taskletEnabled = false;
         entry->enabled = true;
+        entry->taskletEnabled = false; /* leave tasklet disabled, because all handling done in another layer */
+        entry->requested = false; /* leave requested false, because all handling done in another layer */
         spin_unlock_irqrestore(&state->lock, flags);
         return 0;
     }
@@ -961,6 +973,11 @@ void NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(const NEXUS_Core_PreInitState *p
 
     if (systemRegister)
     {
+#if defined(CONFIG_ARM) && (BRCMSTB_H_VERSION == 8) && ((BCHP_CHIP == 7260) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7271))
+        /* This is a workaround for an issue inside of the 4.1-1.3 kernel release which fails
+         * to handle address mappings for chips with BCHP_PHYSICAL_OFFSET of 0xD0000000. */
+        reg &= ~0x20000000;
+#endif
         retValue = brcmstb_update32(reg, mask, value);
         if (retValue)
         {
@@ -1254,7 +1271,7 @@ void NEXUS_Platform_P_UninitializeThermalMonitor(void)
 #if NEXUS_HAS_GPIO
 #include "b_shared_gpio.h"
 
-static void NEXUS_Platform_P_FireGpioL2(int aon)
+static void NEXUS_Platform_P_FireGpioL2(bool aon)
 {
     if (NEXUS_Platform_P_VirtualIrqSupported())
     {
@@ -1288,8 +1305,8 @@ static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_mo
 #define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
 #define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
 #define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (NEXUS_NUM_L1_REGISTERS)
-#define B_VIRTUAL_IRQ_MASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 1)
-#define B_VIRTUAL_IRQ_UNMASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, 0)
+#define B_VIRTUAL_IRQ_MASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, true)
+#define B_VIRTUAL_IRQ_UNMASK_L1(L1) NEXUS_Platform_P_SetmaskL1(L1, false)
 #define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) NEXUS_Platform_P_SetL1Status(L1)
 #define B_VIRTUAL_IRQ_INC_L1(L1)
 #define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() tasklet_hi_schedule(&NEXUS_Platform_P_IsrTasklet)
@@ -1302,3 +1319,7 @@ static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_mo
 #define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
 #include "b_shared_gpio.inc"
 #endif
+
+#define B_OS_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&b_bare_interrupt_state.lock, flags)
+#define B_OS_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&b_bare_interrupt_state.lock, flags)
+#include "b_os_irq.inc"

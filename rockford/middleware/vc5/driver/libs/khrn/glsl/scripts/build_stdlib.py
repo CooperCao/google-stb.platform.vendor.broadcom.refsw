@@ -219,12 +219,14 @@ extension_props = { "GL_OES_EGL_IMAGE_EXTERNAL",
                     "GL_OES_STANDARD_DERIVATIVES",
                     "GL_EXT_SHADER_INTEGER_MIX",
                     "GL_OES_TEXTURE_CUBE_MAP_ARRAY",
+                    "GL_OES_TEXTURE_BUFFER",
                     "GL_OES_TEXTURE_STORAGE_MULTISAMPLE_2D_ARRAY",
                     "GL_OES_SHADER_IMAGE_ATOMIC",
                     "GL_OES_GPU_SHADER5",
                     "GL_OES_SAMPLE_VARIABLES",
                     "GL_OES_TESSELLATION_SHADER",
                     "GL_OES_GEOMETRY_SHADER",
+                    "GL_OES_PRIMITIVE_BOUNDING_BOX",
                     "GL_EXT_PRIMITIVE_BOUNDING_BOX"}
 
 def get_prop_enum(index, props):

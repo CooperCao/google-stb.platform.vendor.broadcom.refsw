@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -145,13 +145,13 @@ void BDSP_Arm_P_Validate_Open_settings(void *pDeviceHandle)
 
 uint32_t BDSP_ARM_P_CheckSum(void *ImgStart,uint32_t ui32ChunkLen)
 {
-	uint32_t i,sum=0;
-	uint8_t *data = ImgStart;
-	for(i=0;i<ui32ChunkLen;i++)
-	{
-		sum += data[i];
-	}
-	return sum;
+    uint32_t i,sum=0;
+    uint8_t *data = ImgStart;
+    for(i=0;i<ui32ChunkLen;i++)
+    {
+        sum += data[i];
+    }
+    return sum;
 
 }
 
@@ -159,33 +159,33 @@ BERR_Code BDSP_Arm_P_DownloadFwToAstra(BTEE_ClientHandle hClient,BDSP_Arm *pDevi
 {
     BERR_Code ret = BERR_SUCCESS;
 
-	BTEE_FileHandle pFile;
-	uint32_t BytesWritten;
-	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
+    BTEE_FileHandle pFile;
+    uint32_t BytesWritten;
+    BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
 
-	/* Open file in Astra for writing system elf file */
-	ret = BTEE_File_Open(hClient,"/armdsp_system.elf",(O_WRONLY|O_CREAT),&pFile);
+    /* Open file in Astra for writing system elf file */
+    ret = BTEE_File_Open(hClient,"/armdsp_system.elf",(O_WRONLY|O_CREAT),&pFile);
     if (ret)
-	{
+    {
         BDBG_ERR(("failed to open file in astra for image %d",ImgId));
         return BERR_TRACE(ret);
     }
 
-	/* Write the system elf file */
-	ret = BTEE_File_Write(pFile,pimgCache->offset,pimgCache->size,&BytesWritten);
+    /* Write the system elf file */
+    ret = BTEE_File_Write(pFile,pimgCache->offset,pimgCache->size,&BytesWritten);
     if (ret)
-	{
+    {
         BDBG_ERR(("failed writing to file in astra for image %d",ImgId));
         return BERR_TRACE(ret);
     }
 
-	/*Check if the write was correct */
-	if(BytesWritten != pimgCache->size)
+    /*Check if the write was correct */
+    if(BytesWritten != pimgCache->size)
     {
       BDBG_ERR(("FW Image (Id =%#x) not downloaded properly. Bytes written is %d, expected was %d",ImgId,BytesWritten,pimgCache->size));
     }
 
-	BTEE_File_Close(pFile);
+    BTEE_File_Close(pFile);
 
     return ret;
 
@@ -196,33 +196,33 @@ BERR_Code BDSP_Arm_P_DownloadHbcMonitorToAstra(BTEE_ClientHandle hClient,BDSP_Ar
 {
     BERR_Code ret = BERR_SUCCESS;
 
-	BTEE_FileHandle pFile;
-	uint32_t BytesWritten;
-	BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
+    BTEE_FileHandle pFile;
+    uint32_t BytesWritten;
+    BDSP_ArmImgCacheEntry *pimgCache = &pDevice->imgCache[ImgId];
 
-	/* Open file in Astra for writing system elf file */
-	ret = BTEE_File_Open(hClient,"/hbc_monitor.elf",(O_WRONLY|O_CREAT),&pFile);
+    /* Open file in Astra for writing system elf file */
+    ret = BTEE_File_Open(hClient,"/hbc_monitor.elf",(O_WRONLY|O_CREAT),&pFile);
     if (ret)
-	{
+    {
         BDBG_ERR(("failed to open file in astra for image %d",ImgId));
         return BERR_TRACE(ret);
     }
 
-	/* Write the system elf file */
-	ret = BTEE_File_Write(pFile,pimgCache->offset,pimgCache->size,&BytesWritten);
+    /* Write the system elf file */
+    ret = BTEE_File_Write(pFile,pimgCache->offset,pimgCache->size,&BytesWritten);
     if (ret)
-	{
+    {
         BDBG_ERR(("failed writing to file in astra for image %d",ImgId));
         return BERR_TRACE(ret);
     }
 
-	/*Check if the write was correct */
-	if(BytesWritten != pimgCache->size)
+    /*Check if the write was correct */
+    if(BytesWritten != pimgCache->size)
     {
       BDBG_ERR(("FW Image (Id =%#x) not downloaded properly. Bytes written is %d, expected was %d",ImgId,BytesWritten,pimgCache->size));
     }
 
-	BTEE_File_Close(pFile);
+    BTEE_File_Close(pFile);
 
     return ret;
 
@@ -231,73 +231,73 @@ BERR_Code BDSP_Arm_P_DownloadHbcMonitorToAstra(BTEE_ClientHandle hClient,BDSP_Ar
 BERR_Code BDSP_Arm_P_StartHbcMonitor(BDSP_Arm *pDevice)
 {
     BERR_Code ret = BERR_SUCCESS;
-	BTEE_ConnectionSettings sConnectionSettings;
+    BTEE_ConnectionSettings sConnectionSettings;
 
     BDBG_ENTER(BDSP_Arm_P_StartHbcMonitor);
 
-	if (pDevice->deviceWatchdogFlag == false)
-	{
-		/* Download HBC monitor code to astra */
-		ret = BDSP_Arm_P_DownloadHbcMonitorToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eHbcMonitorCode);
-		if (BERR_SUCCESS != ret) {
-			BDBG_ERR(("failed to download hbc_monitor"));
-			goto err_hbc_dwnld;
-		}
-	}
-	/* Start HBC monitor */
-	ret = BTEE_Application_Open(
-				pDevice->armDspApp.hClient,
-				"hbc_monitor",
-				"/hbc_monitor.elf",
-				&pDevice->armDspApp.hHbcApplication);
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        /* Download HBC monitor code to astra */
+        ret = BDSP_Arm_P_DownloadHbcMonitorToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eHbcMonitorCode);
+        if (BERR_SUCCESS != ret) {
+            BDBG_ERR(("failed to download hbc_monitor"));
+            goto err_hbc_dwnld;
+        }
+    }
+    /* Start HBC monitor */
+    ret = BTEE_Application_Open(
+                pDevice->armDspApp.hClient,
+                "hbc_monitor",
+                "/hbc_monitor.elf",
+                &pDevice->armDspApp.hHbcApplication);
 
-	if (BERR_SUCCESS != ret) {
-		BDBG_ERR(("failed to start hbc_monitor"));
-		goto err_hbc_peer_start;
-	}
+    if (BERR_SUCCESS != ret) {
+        BDBG_ERR(("failed to start hbc_monitor"));
+        goto err_hbc_peer_start;
+    }
 
-	/* Create a connection */
-	BTEE_Connection_GetDefaultSettings(
-				pDevice->armDspApp.hClient,
-				&sConnectionSettings	/* [out] */
-				);
-	ret = BTEE_Connection_Open(
-				pDevice->armDspApp.hHbcApplication,
-				"hbc_monitor",
-				&sConnectionSettings,	/* */
-				&pDevice->armDspApp.hHbcConnection /* [out] Connection Handle */
-				);
-	if (BERR_SUCCESS != ret) {
-		BDBG_ERR(("failed to open HBC connection"));
-		goto err_open_hbc_connection;
-	}
+    /* Create a connection */
+    BTEE_Connection_GetDefaultSettings(
+                pDevice->armDspApp.hClient,
+                &sConnectionSettings    /* [out] */
+                );
+    ret = BTEE_Connection_Open(
+                pDevice->armDspApp.hHbcApplication,
+                "hbc_monitor",
+                &sConnectionSettings,   /* */
+                &pDevice->armDspApp.hHbcConnection /* [out] Connection Handle */
+                );
+    if (BERR_SUCCESS != ret) {
+        BDBG_ERR(("failed to open HBC connection"));
+        goto err_open_hbc_connection;
+    }
 
-	/* Send HBC params msg */
-	{
-		/* Create msg */
-		BDSP_ArmDspSystemCmd sCmd;
-		sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
+    /* Send HBC params msg */
+    {
+        /* Create msg */
+        BDSP_ArmDspSystemCmd sCmd;
+        sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
 
-		/* Physical address of command and generic responce queue */
-		BDSP_MEM_P_ConvertAddressToOffset(
-				pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
-		BDSP_MEM_P_ConvertAddressToOffset(
-				pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
+        /* Physical address of command and generic responce queue */
+        BDSP_MEM_P_ConvertAddressToOffset(
+                pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
+        BDSP_MEM_P_ConvertAddressToOffset(
+                pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
 
-		/*Send msg */
-		ret = BTEE_Connection_SendMessage(
-			pDevice->armDspApp.hHbcConnection,
-			&sCmd,
-			sizeof(BDSP_ArmDspSystemCmd)
-			);
-		if (BERR_SUCCESS != ret) {
-			BDBG_ERR(("failed to sending msg"));
-			goto err_sending_hbc_info_msg;
-		}
+        /*Send msg */
+        ret = BTEE_Connection_SendMessage(
+            pDevice->armDspApp.hHbcConnection,
+            &sCmd,
+            sizeof(BDSP_ArmDspSystemCmd)
+            );
+        if (BERR_SUCCESS != ret) {
+            BDBG_ERR(("failed to sending msg"));
+            goto err_sending_hbc_info_msg;
+        }
 
-	}
+    }
 
-	goto start_hbc_success;
+    goto start_hbc_success;
 
 err_hbc_dwnld:
 
@@ -338,7 +338,7 @@ BERR_Code BDSP_Arm_P_Open(
     uint32_t ui32NumEntries = 0;
 
     BTEE_ClientCreateSettings sClientSettings;
-	BTEE_ConnectionSettings sConnectionSettings;
+    BTEE_ConnectionSettings sConnectionSettings;
 
     BDBG_ENTER(BDSP_Arm_P_Open);
     BDBG_OBJECT_ASSERT(pDevice, BDSP_Arm);
@@ -355,8 +355,8 @@ BERR_Code BDSP_Arm_P_Open(
     ret = BKNI_CreateMutex(&(pDevice->armInterfaceQHndlMutex));
     BDBG_ASSERT(ret == BERR_SUCCESS);
 
-	ret = BKNI_CreateMutex(&(pDevice->captureMutex));
-	BDBG_ASSERT(ret == BERR_SUCCESS);
+    ret = BKNI_CreateMutex(&(pDevice->captureMutex));
+    BDBG_ASSERT(ret == BERR_SUCCESS);
 
     ret = BKNI_CreateMutex(&(pDevice->watchdogMutex));
     BDBG_ASSERT(ret == BERR_SUCCESS);
@@ -384,99 +384,99 @@ BERR_Code BDSP_Arm_P_Open(
         }
     }
 
-	    ret = BDSP_Arm_P_AllocateInitMemory (pDeviceHandle);
-	    if (ret != BERR_SUCCESS)
-	    {
-	        ret = BERR_TRACE(ret);
-	        goto err_allocate_initmem;
-	    }
-	    ret = BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
-	    if (ret != BERR_SUCCESS)
-	    {
-	        ret = BERR_TRACE(ret);
-	        goto err_allocate_scratchISmem;
-	    }
+        ret = BDSP_Arm_P_AllocateInitMemory (pDeviceHandle);
+        if (ret != BERR_SUCCESS)
+        {
+            ret = BERR_TRACE(ret);
+            goto err_allocate_initmem;
+        }
+        ret = BDSP_Arm_MM_P_CalcandAllocScratchISbufferReq(pDevice);/*allocation of =DSP scratch+InterstageIO+IO Generic*/
+        if (ret != BERR_SUCCESS)
+        {
+            ret = BERR_TRACE(ret);
+            goto err_allocate_scratchISmem;
+        }
     }
-	if (!((pDevice->settings.authenticationEnabled == true)
+    if (!((pDevice->settings.authenticationEnabled == true)
         && (pDevice->deviceWatchdogFlag == true)))
     {
-	    /* Code Download */
-	    ret = BDSP_Arm_P_Alloc_DwnldFwExec(pDeviceHandle);
-	    if (ret != BERR_SUCCESS)
-	    {
-	        ret = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
-	        goto err_downloadfw;
-	    }
-	}
-	if (pDevice->deviceWatchdogFlag == true)
-	{
-		hMsgQueue =  pDevice->hCmdQueue;
-	}
+        /* Code Download */
+        ret = BDSP_Arm_P_Alloc_DwnldFwExec(pDeviceHandle);
+        if (ret != BERR_SUCCESS)
+        {
+            ret = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
+            goto err_downloadfw;
+        }
+    }
+    if (pDevice->deviceWatchdogFlag == true)
+    {
+        hMsgQueue =  pDevice->hCmdQueue;
+    }
 
-	/*Command Queue*/
-	if(pDevice->deviceWatchdogFlag)
-	{
-		ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
-	}
-	else
-	{
-	    /*Command Queue*/
-		ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.cmdQueueParams),&hMsgQueue);
-	}
+    /*Command Queue*/
+    if(pDevice->deviceWatchdogFlag)
+    {
+        ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
+    }
+    else
+    {
+        /*Command Queue*/
+        ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.cmdQueueParams),&hMsgQueue);
+    }
     if (BERR_SUCCESS != ret)
     {
         BDBG_ERR(("BDSP_ARM_P_Open: Command queue creation failed!"));
         goto err_create_cmdqueue;
     }
 
-	if (pDevice->deviceWatchdogFlag == false)
-	{
-		pDevice->hCmdQueue = hMsgQueue;
-	}
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        pDevice->hCmdQueue = hMsgQueue;
+    }
 
-	if (pDevice->deviceWatchdogFlag == true)
-	{
-		hMsgQueue = pDevice->hGenRspQueue;
-	}
-	/*Generic response Queue*/
-	if(pDevice->deviceWatchdogFlag)
-	{
-		ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
-	}
-	else
-	{
-		/*Generic response Queue*/
-		ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.genRspQueueParams), &hMsgQueue);
-	}
+    if (pDevice->deviceWatchdogFlag == true)
+    {
+        hMsgQueue = pDevice->hGenRspQueue;
+    }
+    /*Generic response Queue*/
+    if(pDevice->deviceWatchdogFlag)
+    {
+        ret = BDSP_Arm_P_InitMsgQueue(pDevice,hMsgQueue);
+    }
+    else
+    {
+        /*Generic response Queue*/
+        ret = BDSP_Arm_P_CreateMsgQueue(pDevice, &(pDevice->memInfo.genRspQueueParams), &hMsgQueue);
+    }
     if (BERR_SUCCESS != ret)
     {
         BDBG_ERR(("BDSP_ARM_P_Open: Generic Response queue creation failed!"));
         goto err_create_genqueue;
     }
-	if (pDevice->deviceWatchdogFlag == false)
-	{
-	    pDevice->hGenRspQueue = hMsgQueue;
-	}
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        pDevice->hGenRspQueue = hMsgQueue;
+    }
 
 
 
-	if (pDevice->deviceWatchdogFlag == true)
-	{
-		pDevice->psHbcInfo->hbcValid = 2;
-	}
+    if (pDevice->deviceWatchdogFlag == true)
+    {
+        pDevice->psHbcInfo->hbcValid = 2;
+    }
 
-	if (pDevice->deviceWatchdogFlag == false)
-	{
-		/* Event created for Device level acknowledgment to be recieved from ARM/Asrtra*/
-		ret = BKNI_CreateEvent(&(pDevice->hDeviceEvent));
-		if (BERR_SUCCESS != ret)
-		{
-			BDBG_ERR(("BDSP_Arm_P_Open: Unable to create event"));
-			ret = BERR_TRACE(ret);
-			goto err_event_create;
-		}
-	}
-	BKNI_ResetEvent(pDevice->hDeviceEvent);
+    if (pDevice->deviceWatchdogFlag == false)
+    {
+        /* Event created for Device level acknowledgment to be recieved from ARM/Asrtra*/
+        ret = BKNI_CreateEvent(&(pDevice->hDeviceEvent));
+        if (BERR_SUCCESS != ret)
+        {
+            BDBG_ERR(("BDSP_Arm_P_Open: Unable to create event"));
+            ret = BERR_TRACE(ret);
+            goto err_event_create;
+        }
+    }
+    BKNI_ResetEvent(pDevice->hDeviceEvent);
 
 
     {
@@ -499,21 +499,21 @@ BERR_Code BDSP_Arm_P_Open(
 
         if(pDevice->settings.authenticationEnabled == false)
         {
-			ret = BDSP_Arm_P_StartHbcMonitor(pDevice);
-			if (BERR_SUCCESS != ret) {
-					BDBG_ERR(("failed to start hbc_monitor"));
-					goto err_hbc_start;
-			}
+            ret = BDSP_Arm_P_StartHbcMonitor(pDevice);
+            if (BERR_SUCCESS != ret) {
+                    BDBG_ERR(("failed to start hbc_monitor"));
+                    goto err_hbc_start;
+            }
 
-			if (pDevice->deviceWatchdogFlag == false)
-			{
-		        /* Write the downloaded application code into Astra secure memory */
-		        ret = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
-		        if (BERR_SUCCESS != ret) {
-		            BDBG_ERR(("failed to start armdsp_system"));
-		            goto err_armdsp_dwnld;
-		        }
-			}
+            if (pDevice->deviceWatchdogFlag == false)
+            {
+                /* Write the downloaded application code into Astra secure memory */
+                ret = BDSP_Arm_P_DownloadFwToAstra(pDevice->armDspApp.hClient,pDevice,BDSP_ARM_SystemImgId_eSystemCode);
+                if (BERR_SUCCESS != ret) {
+                    BDBG_ERR(("failed to start armdsp_system"));
+                    goto err_armdsp_dwnld;
+                }
+            }
 
             ret = BTEE_Application_Open(
                 pDevice->armDspApp.hClient,
@@ -525,70 +525,70 @@ BERR_Code BDSP_Arm_P_Open(
                 BDBG_ERR(("failed to start armdsp_system"));
                 goto err_peer_start;
             }
-			/*SR_TBD: This msg queue connection will not be required once Async and Sync msg que is done through connection */
-			/* Create a connection */
-			BTEE_Connection_GetDefaultSettings(
-				pDevice->armDspApp.hClient,
-				&sConnectionSettings	/* [out] */
-				);
-			ret = BTEE_Connection_Open(
-			    pDevice->armDspApp.hApplication,
-			    "armdsp_system",
-			    &sConnectionSettings,   /* */
-			    &pDevice->armDspApp.hConnection /* [out] Connection Handle */
-			    );
-			if (BERR_SUCCESS != ret) {
+            /*SR_TBD: This msg queue connection will not be required once Async and Sync msg que is done through connection */
+            /* Create a connection */
+            BTEE_Connection_GetDefaultSettings(
+                pDevice->armDspApp.hClient,
+                &sConnectionSettings    /* [out] */
+                );
+            ret = BTEE_Connection_Open(
+                pDevice->armDspApp.hApplication,
+                "armdsp_system",
+                &sConnectionSettings,   /* */
+                &pDevice->armDspApp.hConnection /* [out] Connection Handle */
+                );
+            if (BERR_SUCCESS != ret) {
                 BDBG_ERR(("failed to open connection"));
                 goto err_open_connection;
             }
 
-			/* Send msg with Sync and Async command queue*/
-			{
-				/* Create msg */
-				BDSP_ArmDspSystemCmd sCmd;
+            /* Send msg with Sync and Async command queue*/
+            {
+                /* Create msg */
+                BDSP_ArmDspSystemCmd sCmd;
 
-				/* Send HBC params msg */
-				sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
+                /* Send HBC params msg */
+                sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_HBC_INFO;
 
-				/* Physical address of command and generic responce queue */
-				BDSP_MEM_P_ConvertAddressToOffset(
-						pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
-				BDSP_MEM_P_ConvertAddressToOffset(
-						pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
+                /* Physical address of command and generic responce queue */
+                BDSP_MEM_P_ConvertAddressToOffset(
+                        pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbcValid,(void *)&(sCmd.uCommand.sHbcParams.hbcValidDramAddr));
+                BDSP_MEM_P_ConvertAddressToOffset(
+                        pDevice->memHandle,(void *)&pDevice->psHbcInfo->hbc,(void *)&(sCmd.uCommand.sHbcParams.hbcDramAddr));
 
-				/*Send msg */
-				ret = BTEE_Connection_SendMessage(
-					pDevice->armDspApp.hConnection,
-					&sCmd,
-					sizeof(BDSP_ArmDspSystemCmd)
-					);
-				if (BERR_SUCCESS != ret) {
-					BDBG_ERR(("BDSP_ARM_P_Open: failed to sending HBC info msg"));
-					goto err_sending_msg;
-				}
-				sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_INIT_PARAMS;
+                /*Send msg */
+                ret = BTEE_Connection_SendMessage(
+                    pDevice->armDspApp.hConnection,
+                    &sCmd,
+                    sizeof(BDSP_ArmDspSystemCmd)
+                    );
+                if (BERR_SUCCESS != ret) {
+                    BDBG_ERR(("BDSP_ARM_P_Open: failed to sending HBC info msg"));
+                    goto err_sending_msg;
+                }
+                sCmd.eArmSysMsg = BDSP_ARM_DSP_MSG_INIT_PARAMS;
 
-				/* Physical address of command and generic responce queue */
-				BDSP_MEM_P_ConvertAddressToOffset(
-						pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hCmdQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.cmdQueueHandlePhyAddr);
-				BDSP_MEM_P_ConvertAddressToOffset(
-						pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hGenRspQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.genRspQueueHandlePhyAddr);
-				BDSP_MEM_P_ConvertAddressToOffset(
-						pDevice->memHandle,(void *)pDevice->armInterfaceQHndl,&sCmd.uCommand.sInitParams.QueueHandleArryPhyAddr);
-				sCmd.uCommand.sInitParams.ui32NumQueueHandle = BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE;
+                /* Physical address of command and generic responce queue */
+                BDSP_MEM_P_ConvertAddressToOffset(
+                        pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hCmdQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.cmdQueueHandlePhyAddr);
+                BDSP_MEM_P_ConvertAddressToOffset(
+                        pDevice->memHandle,(void *)&pDevice->armInterfaceQHndl[pDevice->hGenRspQueue->MsgQueueHandleIndex],&sCmd.uCommand.sInitParams.genRspQueueHandlePhyAddr);
+                BDSP_MEM_P_ConvertAddressToOffset(
+                        pDevice->memHandle,(void *)pDevice->armInterfaceQHndl,&sCmd.uCommand.sInitParams.QueueHandleArryPhyAddr);
+                sCmd.uCommand.sInitParams.ui32NumQueueHandle = BDSP_ARM_NUM_INTERFACE_QUEUE_HANDLE;
 
-				/*Send msg */
-				ret = BTEE_Connection_SendMessage(
-				    pDevice->armDspApp.hConnection,
-				    &sCmd,
-				    sizeof(BDSP_ArmDspSystemCmd)
-				    );
-				if (BERR_SUCCESS != ret) {
-	                BDBG_ERR(("BDSP_ARM_P_Open: failed to sending init params msg"));
-	                goto err_sending_msg;
-	            }
+                /*Send msg */
+                ret = BTEE_Connection_SendMessage(
+                    pDevice->armDspApp.hConnection,
+                    &sCmd,
+                    sizeof(BDSP_ArmDspSystemCmd)
+                    );
+                if (BERR_SUCCESS != ret) {
+                    BDBG_ERR(("BDSP_ARM_P_Open: failed to sending init params msg"));
+                    goto err_sending_msg;
+                }
 
-			}
+            }
             BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_DEVICE*sizeof(BDSP_MAP_Table_Entry)));
             BDSP_Arm_P_RetrieveEntriesToMap(&(pDevice->sDeviceMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_DEVICE);
             ret = BDSP_ARM_P_SendMapCommand(pDeviceHandle, &MapTable[0], ui32NumEntries);
@@ -722,7 +722,7 @@ void BDSP_Arm_P_Close(
     BKNI_DestroyMutex(pDevice->taskDetails.taskIdMutex);
     BKNI_DestroyMutex(pDevice->captureMutex);
     BKNI_DestroyMutex(pDevice->armInterfaceQHndlMutex);
-	BKNI_DestroyMutex(pDevice->watchdogMutex);
+    BKNI_DestroyMutex(pDevice->watchdogMutex);
 
     /* Invalidate and free the device structure */
     BDBG_OBJECT_DESTROY(pDevice, BDSP_Arm);
@@ -1468,9 +1468,8 @@ BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
 
     pDevice = pArmTask->pContext->pDevice;
 
-    BDSP_Arm_P_AnalyseCit(pDevice->memHandle, psWorkingTaskCitBuffAddr_Cached);
-
     BDSP_MEM_P_FlushCache(pDevice->memHandle, (void *)psWorkingTaskCitBuffAddr_Cached, sizeof(*psWorkingTaskCitBuffAddr_Cached));
+    BDSP_Arm_P_Analyse_CIT(pArmTask, true);
 
     /*Prepare command to stop the task */
     psCommand->sCommandHeader.ui32CommandID = BDSP_RECONFIGURATION_COMMAND_ID;
@@ -1529,11 +1528,11 @@ BERR_Code BDSP_Arm_P_SendCitReconfigCommand(
         goto end;
     }
 #else
-	BSTD_UNUSED(eMsgType);
-	BSTD_UNUSED(sRsp);
+    BSTD_UNUSED(eMsgType);
+    BSTD_UNUSED(sRsp);
 #endif
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     BDBG_LEAVE(BDSP_Arm_P_SendCitReconfigCommand);
     return err;
@@ -2689,7 +2688,9 @@ BERR_Code BDSP_Arm_P_CreateStage(
     pStage->stage.addFmmOutput = BDSP_Arm_P_AddFmmOutput;
     pStage->stage.addRaveOutput = NULL;
     pStage->stage.addOutputStage = BDSP_Arm_P_AddOutputStage;
+#if !B_REFSW_MINIMAL
     pStage->stage.removeOutput = BDSP_Arm_P_RemoveOutput;
+#endif /*!B_REFSW_MINIMAL*/
     pStage->stage.removeAllOutputs = BDSP_Arm_P_RemoveAllOutputs;
     pStage->stage.addFmmInput = NULL;
     pStage->stage.addRaveInput = NULL;
@@ -2699,7 +2700,9 @@ BERR_Code BDSP_Arm_P_CreateStage(
     pStage->stage.addInterTaskBufferInput = BDSP_Arm_P_AddInterTaskBufferInput;
     pStage->stage.addInterTaskBufferOutput = BDSP_Arm_P_AddInterTaskBufferOutput;
 
+#if !B_REFSW_MINIMAL
     pStage->stage.addQueueInput = NULL;
+#endif /*!B_REFSW_MINIMAL*/
 #ifdef BDSP_QUEUE_DEBUG
     pStage->stage.addQueueOutput = BDSP_Arm_P_AddQueueOutput;
 #endif /* BDSP_QUEUE_DEBUG */
@@ -2866,14 +2869,14 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
 
     BDBG_ASSERT(pArmStage->algorithm < BDSP_Algorithm_eMax);
 
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
-	BKNI_Memset(psCommand, 0, sizeof(*psCommand));
+    BKNI_Memset(psCommand, 0, sizeof(*psCommand));
 
     if (pArmStage->running)
     {
@@ -2900,7 +2903,7 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
     if ( err )
     {
         err = BERR_TRACE(err);
-		goto end;
+        goto end;
     }
 
     if (pArmStage->running)
@@ -2963,7 +2966,7 @@ BERR_Code BDSP_Arm_P_SetStageSettings(
 #endif
     }
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     return err;
 }
@@ -3122,14 +3125,14 @@ BERR_Code BDSP_Arm_P_SetDatasyncSettings_isr(
     BDBG_OBJECT_ASSERT(pArmStage, BDSP_ArmStage);
     BDBG_ASSERT(pSettings);
 
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
-	BKNI_Memset(psCommand, 0, sizeof(*psCommand));
+    BKNI_Memset(psCommand, 0, sizeof(*psCommand));
 
     /*HOST Buffer details */
     pConfigBuf      = (void *)((uint8_t *)pArmStage->sDramUserConfigSpareBuffer.pDramBufferAddress + pArmStage->sFrameSyncOffset.ui32UserCfgOffset);
@@ -3188,7 +3191,7 @@ BERR_Code BDSP_Arm_P_SetDatasyncSettings_isr(
         }
     }
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     return err;
 }
@@ -3511,18 +3514,18 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
 
     BDBG_ENTER(BDSP_ARM_P_SendMapCommand);
 
-	if(ui32NumEntries == 0)
-	{
-		BDBG_MSG(("BDSP_ARM_P_SendMapCommand: Number of entries send to MAP is ZERO"));
-		return err;
-	}
+    if(ui32NumEntries == 0)
+    {
+        BDBG_MSG(("BDSP_ARM_P_SendMapCommand: Number of entries send to MAP is ZERO"));
+        return err;
+    }
 
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
     pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.pBaseAddr;
     if(NULL == pMapTable)
@@ -3555,19 +3558,19 @@ BERR_Code BDSP_ARM_P_SendMapCommand(
     {
         BDBG_ERR(("BDSP_ARM_P_SendMapCommand: MAP Command failed!"));
         err = BERR_TRACE(err);
-		goto end;
+        goto end;
     }
 
-	/* Wait for Ack_Response_Received event w/ timeout */
-	err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
-	if (BERR_TIMEOUT == err)
-	{
-		BDBG_ERR(("BDSP_ARM_P_SendMapCommand: MAP_CMD ACK timeout!"));
-		err = BERR_TRACE(err);
-		goto end;
-	}
+    /* Wait for Ack_Response_Received event w/ timeout */
+    err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
+    if (BERR_TIMEOUT == err)
+    {
+        BDBG_ERR(("BDSP_ARM_P_SendMapCommand: MAP_CMD ACK timeout!"));
+        err = BERR_TRACE(err);
+        goto end;
+    }
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     BDBG_LEAVE(BDSP_ARM_P_SendMapCommand);
     return err;
@@ -3587,18 +3590,18 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
 
     BDBG_ENTER(BDSP_ARM_P_SendUnMapCommand);
 
-	if(ui32NumEntries == 0)
-	{
-		BDBG_MSG(("BDSP_ARM_P_SendUnMapCommand: Number of entries send to UNMAP is ZERO"));
-		return err;
-	}
+    if(ui32NumEntries == 0)
+    {
+        BDBG_MSG(("BDSP_ARM_P_SendUnMapCommand: Number of entries send to UNMAP is ZERO"));
+        return err;
+    }
 
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
     pMapTable = (BDSP_MAP_Table *)pDevice->memInfo.sMapTable.pBaseAddr;
     if(NULL == pMapTable)
@@ -3615,38 +3618,38 @@ BERR_Code BDSP_ARM_P_SendUnMapCommand(
     BDSP_MEM_P_ConvertAddressToOffset(
         pDevice->memHandle, pDevice->memInfo.sMapTable.pBaseAddr, &physAddress);
 
-	if(pDevice->deviceWatchdogFlag == false)
-	{
-	    psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_UNMAP_COMMAND_ID;
-	    psCommand->sCommandHeader.ui32CommandCounter = 0;
-	    psCommand->sCommandHeader.ui32TaskID = 0;
-	    psCommand->sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
-	    psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
+    if(pDevice->deviceWatchdogFlag == false)
+    {
+        psCommand->sCommandHeader.ui32CommandID = BDSP_ARM_UNMAP_COMMAND_ID;
+        psCommand->sCommandHeader.ui32CommandCounter = 0;
+        psCommand->sCommandHeader.ui32TaskID = 0;
+        psCommand->sCommandHeader.eResponseType = BDSP_P_ResponseType_eNone;
+        psCommand->sCommandHeader.ui32CommandSizeInBytes =  sizeof(BDSP_Arm_P_Command);
 
-	    psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
-	    /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
+        psCommand->uCommand.sUnMapCommand.ui32NumEntries        = ui32NumEntries;
+        /*sCommand.uCommand.sUnMapCommand.ui32HostUnMapTableAddr= physAddress;*/ /*CDN_TBD*/
 
-	    BKNI_ResetEvent(pDevice->hDeviceEvent);
-	    err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
+        BKNI_ResetEvent(pDevice->hDeviceEvent);
+        err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)NULL);
 
-	    if (BERR_SUCCESS != err)
-	    {
-	        BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UnMAP Command failed!"));
-	        err = BERR_TRACE(err);
-			goto end;
-	    }
+        if (BERR_SUCCESS != err)
+        {
+            BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UnMAP Command failed!"));
+            err = BERR_TRACE(err);
+            goto end;
+        }
 
-		/* Wait for Ack_Response_Received event w/ timeout */
-		err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
-		if (BERR_TIMEOUT == err)
-		{
-			BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
-			err = BERR_TRACE(err);
-			goto end;
-		}
-	}
+        /* Wait for Ack_Response_Received event w/ timeout */
+        err = BKNI_WaitForEvent(pDevice->hDeviceEvent, BDSP_ARM_START_STOP_EVENT_TIMEOUT_IN_MS);
+        if (BERR_TIMEOUT == err)
+        {
+            BDBG_ERR(("BDSP_ARM_P_SendUnMapCommand: UNMAP_CMD ACK timeout!"));
+            err = BERR_TRACE(err);
+            goto end;
+        }
+    }
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     BDBG_LEAVE(BDSP_ARM_P_SendUnMapCommand);
     return err;
@@ -3658,17 +3661,17 @@ BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
 {
     BERR_Code   err = BERR_SUCCESS;
     BDSP_ArmTask *pArmTask = (BDSP_ArmTask *)pTaskHandle;
-	BDSP_MAP_Table_Entry *pMapTable = NULL;
+    BDSP_MAP_Table_Entry *pMapTable = NULL;
     uint32_t ui32NumEntries = 0, ui32NumStageIterationEntries = 0;
 
     BDBG_ENTER(BDSP_ARM_P_PrepareAndSendMapCommand);
 
-	pMapTable = (BDSP_MAP_Table_Entry *)BKNI_Malloc(BDSP_ARM_MAX_MAP_TABLE_ENTRY*sizeof(BDSP_MAP_Table_Entry));
-	if ( NULL == pMapTable )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_maptable;
-	}
+    pMapTable = (BDSP_MAP_Table_Entry *)BKNI_Malloc(BDSP_ARM_MAX_MAP_TABLE_ENTRY*sizeof(BDSP_MAP_Table_Entry));
+    if ( NULL == pMapTable )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_maptable;
+    }
 
     BKNI_Memset(pMapTable,0,(BDSP_ARM_MAX_MAP_TABLE_ENTRY*sizeof(BDSP_MAP_Table_Entry)));
 
@@ -3696,7 +3699,7 @@ BERR_Code BDSP_ARM_P_PrepareAndSendMapCommand(
         BDBG_ERR(("BDSP_ARM_P_Open: Send ARM MAP Command failed!!!!"));
     }
 
-	BKNI_Free(pMapTable);
+    BKNI_Free(pMapTable);
 err_malloc_maptable:
     BDBG_LEAVE(BDSP_ARM_P_PrepareAndSendMapCommand);
     return err;
@@ -3935,12 +3938,12 @@ BERR_Code BDSP_Arm_P_StartTask(
 
     BDBG_MSG(("Start task: DSP %d",pArmTask->settings.dspIndex));
 
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
     BKNI_Memset(psCommand,0,sizeof(*psCommand));
     BKNI_Memset(&sRsp,0,sizeof(sRsp));
@@ -3987,18 +3990,18 @@ BERR_Code BDSP_Arm_P_StartTask(
     }
     BDSP_ARM_STAGE_TRAVERSE_LOOP_END(pStageIterator)
 
-	/*Keep this Download Time FWExec during Start time, as only then all info related to stages of a Task will be known
-	Previously it was done based on the Task create settings, where the branch info was known, now it will be done based on the Stage handles.*/
-	if (false == pDevice->memInfo.sDwnldMemInfo.IsImagePreLoaded)
-	{
-		/* Download the firmware binaries required by the complete network */
-		err = BDSP_Arm_P_DownloadStartTimeFWExec((void*)pArmContext, (void*)pStartSettings->primaryStage->pStageHandle);
-		if ( BERR_SUCCESS !=err )
-		{
-			err = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
-			goto err_download_fw;
-		}
-	}
+    /*Keep this Download Time FWExec during Start time, as only then all info related to stages of a Task will be known
+    Previously it was done based on the Task create settings, where the branch info was known, now it will be done based on the Stage handles.*/
+    if (false == pDevice->memInfo.sDwnldMemInfo.IsImagePreLoaded)
+    {
+        /* Download the firmware binaries required by the complete network */
+        err = BDSP_Arm_P_DownloadStartTimeFWExec((void*)pArmContext, (void*)pStartSettings->primaryStage->pStageHandle);
+        if ( BERR_SUCCESS !=err )
+        {
+            err = BERR_TRACE(BDSP_ERR_DOWNLOAD_FAILED);
+            goto err_download_fw;
+        }
+    }
 
     /* Initialize to eDisable by default */
     psCommand->uCommand.sStartTask.eOpenGateAtStart = BDSP_AF_P_eDisable;
@@ -4040,7 +4043,7 @@ BERR_Code BDSP_Arm_P_StartTask(
     if( err != BERR_SUCCESS)
         return BERR_TRACE(err);
 
-    BDSP_P_AnalyseCit(pDevice->memHandle,(BDSP_AF_P_sTASK_CONFIG *) &(pArmTask->citOutput.sCit));
+    BDSP_Arm_P_Analyse_CIT(pArmTask, false);
 
     /* Download CIT structure into DSP/RUNNING CIT Buffer DRAM */
     err = BDSP_P_CopyDataToDram(
@@ -4277,7 +4280,7 @@ BERR_Code BDSP_Arm_P_StartTask(
         pArmTask->lastEventType = psCommand->sCommandHeader.ui32CommandID;
         BKNI_ResetEvent(pArmTask->hEvent);
 
-        BDBG_MSG(("\n"));
+        BDBG_MSG(("==========================================="));
         BDBG_MSG(("===========Command information============="));
         BDBG_MSG(("==========================================="));
         BDBG_MSG(("sCommand.uCommand.sStartTask.eTaskAlgoType = %d",psCommand->uCommand.sStartTask.eTaskAlgoType));
@@ -4293,7 +4296,8 @@ BERR_Code BDSP_Arm_P_StartTask(
         BDBG_MSG(("sCommand.uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes = %d",psCommand->uCommand.sStartTask.sDramStackBuffer.ui32BufferSizeInBytes));
         BDBG_MSG(("sCommand.uCommand.sStartTask.ui32EventEnableMask = %d",psCommand->uCommand.sStartTask.ui32EventEnableMask));
         BDBG_MSG(("sCommand.uCommand.sStartTask.ePPMCorrEnable = %d",psCommand->uCommand.sStartTask.ePPMCorrEnable));
-        BDBG_MSG(("sCommand.uCommand.sStartTask.eOpenGateAtStart = %d\n\n",psCommand->uCommand.sStartTask.eOpenGateAtStart));
+        BDBG_MSG(("sCommand.uCommand.sStartTask.eOpenGateAtStart = %d",psCommand->uCommand.sStartTask.eOpenGateAtStart));
+        BDBG_MSG(("==========================================="));
 
         err = BDSP_Arm_P_SendCommand(pDevice->hCmdQueue, psCommand,(void *)pArmTask);
         /*Accept the other Commands , After posting Start task Command */
@@ -4360,7 +4364,7 @@ err_gen_citinput:
 err_download_fw:
     pDevice->taskDetails.numActiveTasks--;
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     BDBG_LEAVE(BDSP_Arm_P_StartTask);
     return err;
@@ -4382,12 +4386,12 @@ BERR_Code BDSP_Arm_P_StopTask(
     BDBG_ENTER(BDSP_Arm_P_StopTask);
 
     BDBG_OBJECT_ASSERT(pArmTask, BDSP_ArmTask);
-	psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
-	if ( NULL == psCommand )
-	{
-		err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc_command;
-	}
+    psCommand = BKNI_Malloc(sizeof(BDSP_Arm_P_Command));
+    if ( NULL == psCommand )
+    {
+        err = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc_command;
+    }
 
     BKNI_Memset(psCommand,0,sizeof(*psCommand));
     BKNI_Memset(&sRsp,0,sizeof(sRsp));
@@ -4502,50 +4506,50 @@ BERR_Code BDSP_Arm_P_StopTask(
 
     }
 
-	{
-		BDSP_ARM_CIT_P_Output	    *psCitOp   = &(pArmTask->citOutput);
-		BDSP_ARM_AF_P_sNODE_CONFIG	*psNodeCfg = &(psCitOp->sCit.sNodeConfig[1]);
-		void *pAddr = NULL;
-		BERR_Code   err1 = BERR_SUCCESS;
-		BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
-		BDSP_MAP_Table_Entry MapTable[((BDSP_ARM_MAX_ALLOC_STAGE>BDSP_ARM_MAX_ALLOC_TASK)? BDSP_ARM_MAX_ALLOC_STAGE: BDSP_ARM_MAX_ALLOC_TASK)];
-		uint32_t ui32NumEntries = 0;
+    {
+        BDSP_ARM_CIT_P_Output       *psCitOp   = &(pArmTask->citOutput);
+        BDSP_ARM_AF_P_sNODE_CONFIG  *psNodeCfg = &(psCitOp->sCit.sNodeConfig[1]);
+        void *pAddr = NULL;
+        BERR_Code   err1 = BERR_SUCCESS;
+        BDSP_ArmStage *pArmStage = (BDSP_ArmStage *)pArmTask->startSettings.primaryStage->pStageHandle;
+        BDSP_MAP_Table_Entry MapTable[((BDSP_ARM_MAX_ALLOC_STAGE>BDSP_ARM_MAX_ALLOC_TASK)? BDSP_ARM_MAX_ALLOC_STAGE: BDSP_ARM_MAX_ALLOC_TASK)];
+        uint32_t ui32NumEntries = 0;
 
-		/*Added Specially for ARM */
-		BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
-		BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
-		err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
-		if (BERR_SUCCESS != err)
-		{
-			BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command failed!!!!"));
-		}
+        /*Added Specially for ARM */
+        BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_STAGE*sizeof(BDSP_MAP_Table_Entry)));
+        BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmStage->sStageMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_STAGE);
+        err = BDSP_ARM_P_SendUnMapCommand(pArmStage->pContext->pDevice, &MapTable[0], ui32NumEntries);
+        if (BERR_SUCCESS != err)
+        {
+            BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command failed!!!!"));
+        }
 
-		BDSP_MEM_P_ConvertOffsetToCacheAddress(pDevice->memHandle,
-			psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress,
-			&pAddr);
+        BDSP_MEM_P_ConvertOffsetToCacheAddress(pDevice->memHandle,
+            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress,
+            &pAddr);
 
-		err1 = BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle,
-			&(pArmStage->sStageMapTable[0]),
-			pAddr,
-			BDSP_ARM_MAX_ALLOC_STAGE);
+        err1 = BDSP_Arm_P_DeleteEntry_MapTable(pDevice->memHandle,
+            &(pArmStage->sStageMapTable[0]),
+            pAddr,
+            BDSP_ARM_MAX_ALLOC_STAGE);
 
-		if (BERR_SUCCESS != err1)
-		{
-			BDBG_ERR(("BDSP_Arm_P_StopTask: Unable to delete entry form the Table for LUT of NODE-1 which was a hack put-in in NODE CONFIG"));
-		}
+        if (BERR_SUCCESS != err1)
+        {
+            BDBG_ERR(("BDSP_Arm_P_StopTask: Unable to delete entry form the Table for LUT of NODE-1 which was a hack put-in in NODE CONFIG"));
+        }
 
-		if(pArmContext->contextWatchdogFlag == true)
-		{
-			BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_TASK*sizeof(BDSP_MAP_Table_Entry)));
-			BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmTask->sTaskMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_TASK);
-			err = BDSP_ARM_P_SendUnMapCommand(pArmTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
-			if (BERR_SUCCESS != err)
-			{
-				BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command for task failed!!!!"));
-			}
-		}
+        if(pArmContext->contextWatchdogFlag == true)
+        {
+            BKNI_Memset(MapTable,0,(BDSP_ARM_MAX_ALLOC_TASK*sizeof(BDSP_MAP_Table_Entry)));
+            BDSP_Arm_P_RetrieveEntriesToUnMap(&(pArmTask->sTaskMapTable[0]), &MapTable[0], &ui32NumEntries, BDSP_ARM_MAX_ALLOC_TASK);
+            err = BDSP_ARM_P_SendUnMapCommand(pArmTask->pContext->pDevice, &MapTable[0], ui32NumEntries);
+            if (BERR_SUCCESS != err)
+            {
+                BDBG_ERR(("BDSP_Arm_P_StopTask: Send ARM UNMAP Command for task failed!!!!"));
+            }
+        }
 
-	}
+    }
     pArmTask->commandCounter     = 0;
 
     if((pArmContext->contextWatchdogFlag == false)||(pDevice->settings.authenticationEnabled == true))
@@ -4565,26 +4569,26 @@ BERR_Code BDSP_Arm_P_StopTask(
     /*pArmTask->paused=false;
     pArmTask->decLocked=false;*/
 
-	if((pDevice->deviceWatchdogFlag == false) && (pArmContext->contextWatchdogFlag == true))
-	{
-		/* This is done to take care of stop task which is in watchdog recovery but device open has already happened.
-			 Imagine the scenario of both VEE and APE involved.
-				   Book keeping functionalities like unregistering themselves from the Device is already happened at RaagaOpen
-				   Stop Task now just need to clear the startsettings */
-			BKNI_Memset((void *)&pArmTask->startSettings, 0, sizeof(pArmTask->startSettings));
-	}
+    if((pDevice->deviceWatchdogFlag == false) && (pArmContext->contextWatchdogFlag == true))
+    {
+        /* This is done to take care of stop task which is in watchdog recovery but device open has already happened.
+             Imagine the scenario of both VEE and APE involved.
+                   Book keeping functionalities like unregistering themselves from the Device is already happened at RaagaOpen
+                   Stop Task now just need to clear the startsettings */
+            BKNI_Memset((void *)&pArmTask->startSettings, 0, sizeof(pArmTask->startSettings));
+    }
 
 
     BKNI_DestroyEvent(pArmTask->hEvent);
 end:
-	BKNI_Free(psCommand);
+    BKNI_Free(psCommand);
 err_malloc_command:
     BDBG_LEAVE(BDSP_Arm_P_StopTask);
     return err;
 }
 
 /***********************************************************************
-Name        :   BDSP_Arm_GetAlgorithmDefaultSettings
+Name        :   BDSP_Arm_P_GetAlgorithmDefaultSettings
 
 Type        :   PI Interface
 
@@ -4598,7 +4602,7 @@ Return      :   None
 Functionality   :   Return the Default UserConfig of the algorithm requested by the PI.
 ***********************************************************************/
 
-void BDSP_Arm_GetAlgorithmDefaultSettings(
+void BDSP_Arm_P_GetAlgorithmDefaultSettings(
     void *pDeviceHandle,
     BDSP_Algorithm algorithm,
     void *pSettingsBuffer,        /* [out] */
@@ -4741,7 +4745,7 @@ BERR_Code BDSP_Arm_P_SetAlgorithm(
         BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle,
             pArmStage->sDramUserConfigBuffer.ui32DramBufferAddress, (void **)&pUserCfgAddr);
 
-        BDSP_Arm_GetAlgorithmDefaultSettings((void *)pDevice,
+        BDSP_Arm_P_GetAlgorithmDefaultSettings((void *)pDevice,
                     pArmStage->algorithm,
                     pUserCfgAddr,
                     pAlgoInfo->userConfigSize);

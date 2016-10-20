@@ -618,15 +618,15 @@ int initialize_state(int argc, char **argv)
     g_cmd_options.timeout = 5; /* seconds */
     g_cmd_options._auto=false;
     g_cmd_options.ir_wakeup=true;
-    g_cmd_options.uhf_wakeup=true;
-    g_cmd_options.xpt_wakeup=true;
+    g_cmd_options.uhf_wakeup=false;
+    g_cmd_options.xpt_wakeup=false;
     g_cmd_options.cec_wakeup=true;
     g_cmd_options.gpio_wakeup=true;
     g_cmd_options.kpd_wakeup=false;
-    g_cmd_options.eth_wol_wakeup=true;
-    g_cmd_options.moca_wol_wakeup=true;
+    g_cmd_options.eth_wol_wakeup=false;
+    g_cmd_options.moca_wol_wakeup=false;
     g_cmd_options.ethoff=false;
-    g_cmd_options.mocaoff=false;
+    g_cmd_options.mocaoff=true;
     g_cmd_options.sataoff=true;
     g_cmd_options.standby_flags=0;
 
@@ -634,6 +634,7 @@ int initialize_state(int argc, char **argv)
     BKNI_Memset(&g_DeviceState, 0, sizeof(g_DeviceState));
     g_DeviceState.source[0] = eInputSourceFile;
     g_DeviceState.playfile[0] = "videos/cnnticker.mpg";
+    g_DeviceState.gpio_pin = 1;
 
     if(!parse_cmdline_args(argc, argv)) return 0;
 

@@ -303,7 +303,7 @@ void param_quals_from_list(Qualifiers *q, ParamQualifier *param_qual, QualList *
 }
 
 /* TODO: Qualifier validation happens in too many places at the moment. */
-void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier **uniform_lq, LayoutQualifier **buffer_lq) {
+void qualifiers_process_default(QualList *l, SymbolTable *table, DeclDefaultState *dflt) {
    if (!g_InGlobalScope)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Default qualifiers only valid at global scope");
 
@@ -319,17 +319,14 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier
    if (sq == STORAGE_UNIFORM || sq == STORAGE_BUFFER) {
       Qualifiers q;
       qualifiers_from_list(&q, l);
-      if (q.lq && (q.lq->qualified & ~UNIF_QUALED))
-         glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Invalid default interface qualification");
+      if (!q.lq || !(q.lq->qualified & UNIF_QUALED)) return;
 
-      if (sq == STORAGE_UNIFORM)
-         *uniform_lq = glsl_create_mixed_lq(q.lq, *uniform_lq);
-      if (sq == STORAGE_BUFFER)
-         *buffer_lq = glsl_create_mixed_lq(q.lq, *buffer_lq);
+      uint32_t *d = (sq == STORAGE_UNIFORM) ? &dflt->uniform_layout : &dflt->buffer_layout;
+      *d  = glsl_layout_combine_block_bits(*d, q.lq->unif_bits);
    }
 
    if (sq == STORAGE_IN) {
-      bool seen_local_size = false;
+      bool seen_local_size   = false;
       unsigned local_size[3] = { 1, 1, 1};
 
       for (QualListNode *n = l->head; n; n=n->next) {
@@ -352,14 +349,6 @@ void qualifiers_process_default(QualList *l, SymbolTable *table, LayoutQualifier
                   glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Inconsistent workgroup size declarations");
             }
          } else {
-            static const unsigned max_size[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
-                                                  GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
-                                                  GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
-            for (int i=0; i<3; i++) {
-               if (local_size[i] > max_size[i])
-                  glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "local size %d exceeds maximum %d", local_size[i], max_size[i]);
-            }
-
             /* Add this declaration to the symbol table */
             Qualifiers q = { .invariant = false,
                              .lq = NULL,

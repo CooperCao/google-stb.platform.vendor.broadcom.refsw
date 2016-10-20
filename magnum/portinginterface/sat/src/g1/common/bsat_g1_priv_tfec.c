@@ -454,11 +454,10 @@ void BSAT_g1_P_TfecSync_isr(void *p, int int_id)
    BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   BSTD_UNUSED(int_id);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eBaud); /* disable sync timeout */
    BSAT_g1_P_TfecEnableSyncInterrupt_isr(h, false);
-
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
 
 #ifdef BSAT_DEBUG_ACQ_TIME
 BSAT_g1_P_GetAcquisitionTimerValue_isr(h, &t1);

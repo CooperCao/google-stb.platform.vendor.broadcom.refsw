@@ -39,13 +39,21 @@
 
 #ifndef NEXUS_SAGE_IMAGE_H__
 #define NEXUS_SAGE_IMAGE_H__
-
+#include "bsagelib_types.h"
 #include "bimg.h"
 
 #define SAGE_IMG_BUFFER_SIZE (64*1024)
 
 typedef enum SAGE_IMAGE_FirmwareID
 {
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+	SAGE_IMAGE_FirmwareID_eBootLoader_Development = 0,	 /* Development (ZS) chip-compatible SAGE boot loader image */
+	SAGE_IMAGE_FirmwareID_eOS_App_Development,			/* Development (ZS) chip-compatible SAGE OS/APP image */
+	SAGE_IMAGE_FirmwareID_eBootLoader,					 /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
+	SAGE_IMAGE_FirmwareID_eOS_App,						 /* Production (ZB or customer specific) chip-compatible SAGE OS/APP image */
+	/* Add additional image IDs ABOVE this line */
+	SAGE_IMAGE_FirmwareID_Max
+#else
         SAGE_IMAGE_FirmwareID_eBootLoader_Development = 0,   /* Development (ZS) chip-compatible SAGE boot loader image */
         SAGE_IMAGE_FirmwareID_eFramework_Development,          /* Development (ZS) chip-compatible SAGE Framework image */
         SAGE_IMAGE_FirmwareID_eBootLoader,                   /* Production (ZB or customer specific) chip-compatible SAGE boot loader image */
@@ -56,6 +64,7 @@ typedef enum SAGE_IMAGE_FirmwareID
         SAGE_IMAGE_FirmwareID_eSage_TA_AR,                  /* Production (ZB or customer specific) chip-compatible  Anti-Rollback TA*/
         /* Add additional image IDs ABOVE this line */
         SAGE_IMAGE_FirmwareID_Max
+#endif
 } SAGE_IMAGE_FirmwareID;
 
 extern void *SAGE_IMAGE_Context;

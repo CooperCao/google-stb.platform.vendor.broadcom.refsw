@@ -250,7 +250,7 @@ void Effect::ParseOptions(const std::string &str)
       if (semi != (int)str.npos)
       {
          std::string line = str.substr(start, semi - start);
-         
+
          int equal = line.find_first_of("=");
          string l = ParseUtils::StripWhite(line.substr(0, equal - 1));
          string r = ParseUtils::StripWhite(line.substr(equal + 1, line.npos));
@@ -381,13 +381,24 @@ void Effect::ParseLine(const std::string &in)
       iss >> token;
       if (token == "}")
       {
-         m_passes[m_passNumber]->Program().SetPrograms(m_vertShader, m_fragShader, m_defines);
+         m_passes[m_passNumber]->Program().SetPrograms(
+            m_vertShader,
+            m_fragShader,
+            m_tessControlShader,
+            m_tessEvaluationShader,
+            m_geometryShader,
+            m_defines);
          m_state = ePASS_OR_OPTIONS;
       }
       else if (token == "SEMANTICS" || token == "STATE" || token == "SAMPLER_2D" || token == "SAMPLER_CUBE" ||
 #ifdef BSG_USE_ES3
                token == "SAMPLER_3D" ||
                token == "SAMPLER_2D_ARRAY" ||
+#endif
+#ifdef BSG_USE_ES32
+               token == "TESS_CONTROL_SHADER" ||
+               token == "TESS_EVALUATION_SHADER" ||
+               token == "GEOMETRY_SHADER" ||
 #endif
                token == "VERTEX_SHADER" || token == "FRAGMENT_SHADER")
       {
@@ -448,6 +459,14 @@ void Effect::ParseLine(const std::string &in)
                   m_vertShader = m_captureText;
                else if (m_captureBlock == "FRAGMENT_SHADER")
                   m_fragShader = m_captureText;
+#ifdef BSG_USE_ES32
+               else if (m_captureBlock == "TESS_CONTROL_SHADER")
+                  m_tessControlShader = m_captureText;
+               else if (m_captureBlock == "TESS_EVALUATION_SHADER")
+                  m_tessEvaluationShader = m_captureText;
+               else if (m_captureBlock == "GEOMETRY_SHADER")
+                  m_geometryShader = m_captureText;
+#endif
                else if (m_captureBlock == "SAMPLER_2D")
                   m_passes[m_passNumber]->Samplers().Parse(m_captureText, SamplerSemantics::eSAMPLER_2D, m_samplerName);
 #ifdef BSG_USE_ES3

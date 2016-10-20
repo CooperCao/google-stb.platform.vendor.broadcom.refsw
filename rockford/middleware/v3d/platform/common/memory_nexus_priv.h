@@ -11,10 +11,13 @@ This illustrates one way in which the abstract memory interface might be
 implemented. You can replace this with your own custom version if preferred.
 =============================================================================*/
 
-#ifndef MEMORY_NEXUS_PRIV_H
-#define MEMORY_NEXUS_PRIV_H
+#pragma once
 
 #define STRIP_HEIGHT 16
+
+#include "default_nexus.h"
+#include "nexus_memory.h"
+#include "nexus_platform.h"
 
 enum
 {
@@ -48,9 +51,15 @@ typedef struct
    BKNI_EventHandle        checkpointEvent;
    BKNI_EventHandle        packetSpaceAvailableEvent;
    NEXUS_Graphics2DHandle  gfx;
+   NEXUS_Graphics2DHandle  gfxSecure;
    NEXUS_MemoryBlockHandle yuvScratch;
    NEXUS_Addr              yuvScratchPhys;
-#endif
-} NXPL_MemoryData;
+   NEXUS_MemoryBlockHandle yuvScratchSecure;
+   NEXUS_Addr              yuvScratchPhysSecure;
 
-#endif /* MEMORY_NEXUS_PRIV_H */
+#endif
+
+   void                    *translationTable;
+   uint32_t                filecnt;
+   BEGL_MemoryInterface    *memInterface;
+} NXPL_MemoryData;

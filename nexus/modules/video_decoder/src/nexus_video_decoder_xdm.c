@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -179,7 +179,10 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_Initialize(NEXUS_VideoDecoderHandle decoder
     BDBG_MSG(("NEXUS_VideoDecoder_P_Xdm_Initialize: %p", (void*)decoder));
     BKNI_Memset(&decoder->xdm, 0, sizeof(decoder->xdm));
 
-    decoder->device = &g_NEXUS_videoDecoderXvdDevices[0];
+    decoder->device = nexus_video_decoder_p_any_device();
+    if (!decoder->device) {
+        return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+    }
     displayInterrupt = decoder->device->hXdmDih[BXVD_DisplayInterrupt_eOne];
 
     BXDM_PictureProvider_GetDefaultSettings(&pictureProviderSettings);
@@ -529,9 +532,14 @@ NEXUS_Error NEXUS_VideoDecoder_P_Xdm_ApplySettings(NEXUS_VideoDecoderHandle vide
         if (rc) return BERR_TRACE(rc);
     }
     if (force || pSettings->scanMode != videoDecoder->settings.scanMode) {
-        BDBG_CWARNING(NEXUS_VideoDecoderScanMode_eMax == (NEXUS_VideoDecoderScanMode)BXDM_PictureProvider_1080pScanMode_eMax);
+        BXVD_1080pScanMode mode;
+        switch (pSettings->scanMode) {
+        case NEXUS_VideoDecoderScanMode_eAuto:  mode = BXVD_1080pScanMode_eDefault; break;
+        case NEXUS_VideoDecoderScanMode_e1080p: mode = BXVD_1080pScanMode_eAdvanced; break;
+        default: return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
         BKNI_EnterCriticalSection();
-        rc = BXDM_PictureProvider_Set1080pScanMode_isr(videoDecoder->xdm.pictureProvider, pSettings->scanMode);
+        rc = BXDM_PictureProvider_Set1080pScanMode_isr(videoDecoder->xdm.pictureProvider, mode);
         BKNI_LeaveCriticalSection();
         if (rc) return BERR_TRACE(rc);
     }

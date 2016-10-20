@@ -26,11 +26,14 @@ V3D_DIR ?= $(NEXUS_TOP)/../rockford/middleware/v3d/driver
 
 CFLAGS += \
 	-fpic -DPIC \
+	-std=c99 \
 	-I. \
 	-I$(V3D_DIR)/interface/khronos/include \
 	-I$(NEXUS_TOP)/../BSEAV/lib/zlib \
 	-I$(NEXUS_TOP)/../BSEAV/lib/libpng \
 	-DBCHP_CHIP=$(BCHP_CHIP) \
+	-D_XOPEN_SOURCE=600 \
+	-D_GNU_SOURCE \
 	-Wunused-parameter \
 	-Wsign-compare \
 	-Wclobbered \
@@ -71,11 +74,16 @@ ifeq ($(USE_MMA),1)
 CFLAGS += -DUSE_MMA
 endif
 
+ifeq ($(KHRN_AUTOCLIF),1)
+	CFLAGS += -DKHRN_AUTOCLIF
+endif
+
 SOURCES =	default_nexus.c \
 			../common/memory_nexus.c \
 			../common/packet_rgba.c \
 			../common/packet_yv12.c \
-			../common/hardware_nexus.c
+			../common/hardware_nexus.c \
+			../common/autoclif.c
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 

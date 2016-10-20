@@ -60,15 +60,6 @@ GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1
 
 endif
 
-ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),0)
-ifeq ($(ANDROID_BUILD),y)
-CMNDRM_DIR := 65nm-askm/android/${BUILD_MODE}
-else
-CMNDRM_DIR := 65nm-askm/${BUILD_MODE}
-CFLAGS += -DCOMMON_DRM_65NM_CHIP=1
-endif
-endif
-
 ifeq ($(findstring $(NEXUS_SECURITY_ZEUS_VERSION_MAJOR), 1 2), $(NEXUS_SECURITY_ZEUS_VERSION_MAJOR))
 ifeq ($(ANDROID_BUILD),y)
 CMNDRM_DIR := Zeus20/android/${BUILD_MODE}

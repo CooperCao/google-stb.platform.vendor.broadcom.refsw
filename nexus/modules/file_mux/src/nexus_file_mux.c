@@ -54,7 +54,6 @@ BDBG_OBJECT_ID(NEXUS_FileMux);
 
 NEXUS_FileMux_P_State g_NEXUS_FileMux_P_State;
 static void NEXUS_FileMux_P_DoMux(NEXUS_FileMuxHandle mux);
-static void NEXUS_P_DestroyMma(NEXUS_FileMuxHandle mux);
 
 void
 NEXUS_FileMuxModule_GetDefaultSettings( NEXUS_FileMuxModuleSettings *pSettings)
@@ -68,6 +67,7 @@ NEXUS_FileMuxModule_Init( const NEXUS_FileMuxModuleSettings *pSettings)
 {
     NEXUS_Error rc;
     NEXUS_ModuleSettings moduleSettings;
+    BMMA_CreateSettings mmaCreateSettings;
 
     BSTD_UNUSED(pSettings);
 
@@ -76,11 +76,17 @@ NEXUS_FileMuxModule_Init( const NEXUS_FileMuxModuleSettings *pSettings)
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eHigh;
     g_NEXUS_FileMux_P_State.module = NEXUS_Module_Create("file_mux", &moduleSettings);
-    if(g_NEXUS_FileMux_P_State.module == NULL) { rc = BERR_TRACE(BERR_OS_ERROR); goto error; }
+    if(g_NEXUS_FileMux_P_State.module == NULL) { rc = BERR_TRACE(BERR_OS_ERROR); goto error_module; }
+
+    BMMA_GetDefaultCreateSettings(&mmaCreateSettings);
+    rc = BMMA_Create(&g_NEXUS_FileMux_P_State.mma, &mmaCreateSettings);
+    if (rc!=BERR_SUCCESS) {rc = BERR_TRACE(rc); goto error_mma;}
 
     return g_NEXUS_FileMux_P_State.module;
 
-error:
+error_mma:
+    NEXUS_Module_Destroy(g_NEXUS_FileMux_P_State.module);
+error_module:
     return NULL;
 }
 
@@ -88,6 +94,8 @@ void
 NEXUS_FileMuxModule_Uninit(void)
 {
     if(g_NEXUS_FileMux_P_State.module==NULL) {return;}
+
+    BMMA_Destroy(g_NEXUS_FileMux_P_State.mma);
 
     NEXUS_Module_Destroy(g_NEXUS_FileMux_P_State.module);
     g_NEXUS_FileMux_P_State.module = NULL;
@@ -395,6 +403,7 @@ NEXUS_FileMux_GetDefaultCreateSettings( NEXUS_FileMuxCreateSettings *pSettings )
     NEXUS_P_FileMux_GetDefaultCreateSettings_MP4(pSettings);
     NEXUS_P_FileMux_GetDefaultCreateSettings_ASF(pSettings);
     NEXUS_P_FileMux_GetDefaultCreateSettings_PES(pSettings);
+    NEXUS_CallbackDesc_Init(&pSettings->finished);
 
     return;
 }
@@ -538,6 +547,62 @@ NEXUS_P_FileMux_ManagedPtr_Release(NEXUS_P_FileMux_ManagedPtr *managed)
     return;
 }
 
+static void NEXUS_P_FileMux_MemoryBlock_Init(NEXUS_P_FileMux_MemoryBlock *muxBlock)
+{
+    muxBlock->mmaBlock = NULL;
+    muxBlock->block = NULL;
+    return;
+}
+
+static void NEXUS_P_FileMux_MemoryBlock_Release(NEXUS_P_FileMux_MemoryBlock *muxBlock)
+{
+    if (muxBlock->mmaBlock) {
+        BMMA_Free(muxBlock->mmaBlock);
+        muxBlock->mmaBlock = NULL;
+        NEXUS_MemoryBlock_Unlock(muxBlock->block);
+        NEXUS_MemoryBlock_UnlockOffset(muxBlock->block);
+        muxBlock->block = NULL;
+    }
+    return;
+}
+
+static BMMA_Block_Handle NEXUS_P_FileMux_MemoryBlock_Attach(NEXUS_P_FileMux_MemoryBlock *muxBlock, NEXUS_MemoryBlockHandle block)
+{
+    NEXUS_MemoryBlockProperties prop;
+    int rc;
+    void *addr;
+    NEXUS_Addr offset;
+
+    if (muxBlock->block == block) {
+        return muxBlock->mmaBlock;
+    }
+    NEXUS_P_FileMux_MemoryBlock_Release(muxBlock);
+
+    rc = NEXUS_MemoryBlock_LockOffset(block, &offset);
+    if (rc) {BERR_TRACE(rc); goto err_lockoffset;}
+    rc = NEXUS_MemoryBlock_Lock(block, &addr);
+    if (rc) {BERR_TRACE(rc); goto err_lock;}
+
+    NEXUS_MemoryBlock_GetProperties(block, &prop);
+
+    muxBlock->mmaBlock = BMMA_Block_Create(g_NEXUS_FileMux_P_State.mma, offset, prop.size, addr);
+    if (muxBlock->mmaBlock) {
+        muxBlock->block = block;
+    }
+    else {
+        goto err_create;
+    }
+    return muxBlock->mmaBlock;
+
+err_create:
+    NEXUS_MemoryBlock_Unlock(block);
+err_lock:
+    NEXUS_MemoryBlock_UnlockOffset(block);
+err_lockoffset:
+    return NULL;
+}
+
+
 NEXUS_FileMuxHandle
 NEXUS_FileMux_Create( const NEXUS_FileMuxCreateSettings *pSettings )
 {
@@ -555,6 +620,16 @@ NEXUS_FileMux_Create( const NEXUS_FileMuxCreateSettings *pSettings )
     BKNI_Memset(mux, 0, sizeof(*mux));
     BDBG_OBJECT_SET(mux, NEXUS_FileMux);
     mux->createSettings = *pSettings;
+
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->videoFrame);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->videoMeta);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->simpleVideoFrame);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->simpleVideoMeta);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->audioFrame);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->audioMeta);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->simpleAudioFrame);
+    NEXUS_P_FileMux_MemoryBlock_Init(&mux->simpleAudioMeta);
+
     NEXUS_P_FileMux_TempStorage_Init(&mux->tempStorage, mux);
 
     mux->finishedCallback = NEXUS_TaskCallback_Create(mux, NULL);
@@ -618,7 +693,6 @@ NEXUS_FileMux_Destroy(NEXUS_FileMuxHandle mux)
     NEXUS_P_FileMux_Destroy_IVF(mux);
     NEXUS_P_FileMux_Destroy_PES(mux);
     NEXUS_P_FileMux_Destroy_ASF(mux);
-    NEXUS_P_DestroyMma(mux);
     BDBG_OBJECT_DESTROY(mux, NEXUS_FileMux);
     BKNI_Free(mux);
     return;
@@ -735,69 +809,6 @@ NEXUS_FileMux_P_ConsumeVideoBufferDescriptors( void *context, size_t numDescript
     return BERR_TRACE(rc);
 }
 
-static void NEXUS_P_DestroyMmaBlock(NEXUS_FileMuxHandle mux)
-{
-    if (mux->block.mmaBlock) {
-        BMMA_Free(mux->block.mmaBlock);
-        mux->block.mmaBlock = NULL;
-        NEXUS_MemoryBlock_Unlock(mux->block.block);
-        NEXUS_MemoryBlock_UnlockOffset(mux->block.block);
-        mux->block.block = NULL;
-    }
-}
-
-static BMMA_Block_Handle NEXUS_P_CreateMmaBlock(NEXUS_FileMuxHandle mux, NEXUS_MemoryBlockHandle block)
-{
-    NEXUS_MemoryBlockProperties prop;
-    int rc;
-    void *addr;
-    NEXUS_Addr offset;
-
-    if (mux->block.block == block) {
-        return mux->block.mmaBlock;
-    }
-    NEXUS_P_DestroyMmaBlock(mux);
-    if (!mux->block.mma) {
-        BMMA_CreateSettings createSettings;
-        BMMA_GetDefaultCreateSettings(&createSettings);
-        rc = BMMA_Create(&mux->block.mma, &createSettings);
-        if (rc) {BERR_TRACE(rc); return NULL;}
-    }
-
-    rc = NEXUS_MemoryBlock_LockOffset(block, &offset);
-    if (rc) {BERR_TRACE(rc); goto err_lockoffset;}
-    rc = NEXUS_MemoryBlock_Lock(block, &addr);
-    if (rc) {BERR_TRACE(rc); goto err_lock;}
-
-    NEXUS_MemoryBlock_GetProperties(block, &prop);
-
-    mux->block.mmaBlock = BMMA_Block_Create(mux->block.mma, offset, prop.size, addr);
-    if (mux->block.mmaBlock) {
-        mux->block.block = block;
-    }
-    else {
-        goto err_create;
-    }
-    return mux->block.mmaBlock;
-
-err_create:
-    NEXUS_MemoryBlock_Unlock(block);
-err_lock:
-    NEXUS_MemoryBlock_UnlockOffset(block);
-err_lockoffset:
-    return NULL;
-}
-
-static void NEXUS_P_DestroyMma(NEXUS_FileMuxHandle mux)
-{
-
-    NEXUS_P_DestroyMmaBlock(mux);
-    if (mux->block.mma) {
-        BMMA_Destroy(mux->block.mma);
-        mux->block.mma = NULL;
-    }
-}
-
 static BERR_Code
 NEXUS_FileMux_P_GetVideoBufferStatus( void *context, BMUXlib_CompressedBufferStatus *status)
 {
@@ -814,16 +825,16 @@ NEXUS_FileMux_P_GetVideoBufferStatus( void *context, BMUXlib_CompressedBufferSta
         NEXUS_VideoEncoderStatus encoderStatus;
         NEXUS_VideoEncoder_GetStatus(videoEncoder, &encoderStatus);
 
-        status->hFrameBufferBlock = NEXUS_P_CreateMmaBlock(video->mux, encoderStatus.bufferBlock);
-        status->hMetadataBufferBlock = NEXUS_P_CreateMmaBlock(video->mux, encoderStatus.metadataBufferBlock);
+        status->hFrameBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&video->mux->videoFrame, encoderStatus.bufferBlock);
+        status->hMetadataBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&video->mux->videoMeta, encoderStatus.metadataBufferBlock);
     }
 #if NEXUS_HAS_SIMPLE_DECODER
     else if(simpleEncoder) {
         NEXUS_SimpleEncoderStatus simpleEncoderStatus;
 
         NEXUS_SimpleEncoder_GetStatus(simpleEncoder, &simpleEncoderStatus);
-        status->hFrameBufferBlock = NEXUS_P_CreateMmaBlock(video->mux, simpleEncoderStatus.video.bufferBlock);
-        status->hMetadataBufferBlock = NEXUS_P_CreateMmaBlock(video->mux, simpleEncoderStatus.video.metadataBufferBlock);
+        status->hFrameBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&video->mux->simpleVideoFrame, simpleEncoderStatus.video.bufferBlock);
+        status->hMetadataBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&video->mux->simpleVideoMeta, simpleEncoderStatus.video.metadataBufferBlock);
     }
 #endif
     else {
@@ -916,16 +927,16 @@ NEXUS_FileMux_P_GetAudioBufferStatus(
         NEXUS_AudioMuxOutputStatus encoderStatus;
         NEXUS_AudioMuxOutput_GetStatus(audioMuxOutput, &encoderStatus);
 
-        status->hFrameBufferBlock = NEXUS_P_CreateMmaBlock(audio->mux, encoderStatus.bufferBlock);
-        status->hMetadataBufferBlock = NEXUS_P_CreateMmaBlock(audio->mux, encoderStatus.metadataBufferBlock);
+        status->hFrameBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&audio->mux->audioFrame, encoderStatus.bufferBlock);
+        status->hMetadataBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&audio->mux->audioMeta, encoderStatus.metadataBufferBlock);
     }
 #if NEXUS_HAS_SIMPLE_DECODER
     else if(simpleEncoder) {
         NEXUS_SimpleEncoderStatus simpleEncoderStatus;
 
         NEXUS_SimpleEncoder_GetStatus(simpleEncoder, &simpleEncoderStatus);
-        status->hFrameBufferBlock = NEXUS_P_CreateMmaBlock(audio->mux, simpleEncoderStatus.audio.bufferBlock);
-        status->hMetadataBufferBlock = NEXUS_P_CreateMmaBlock(audio->mux, simpleEncoderStatus.audio.metadataBufferBlock);
+        status->hFrameBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&audio->mux->simpleAudioFrame, simpleEncoderStatus.audio.bufferBlock);
+        status->hMetadataBufferBlock = NEXUS_P_FileMux_MemoryBlock_Attach(&audio->mux->simpleAudioMeta, simpleEncoderStatus.audio.metadataBufferBlock);
     }
 #endif
     else {
@@ -1395,6 +1406,15 @@ NEXUS_FileMux_Stop(NEXUS_FileMuxHandle mux)
         NEXUS_P_FileMux_ManagedPtr_Release(&mux->state.video[i].frame);
         NEXUS_P_FileMux_ManagedPtr_Release(&mux->state.video[i].meta);
     }
+
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->videoFrame);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->videoMeta);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->simpleVideoFrame);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->simpleVideoMeta);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->audioFrame);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->audioMeta);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->simpleAudioFrame);
+    NEXUS_P_FileMux_MemoryBlock_Release(&mux->simpleAudioMeta);
     return;
 
 error:

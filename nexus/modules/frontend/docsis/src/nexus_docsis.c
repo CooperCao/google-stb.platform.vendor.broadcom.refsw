@@ -191,7 +191,9 @@ NEXUS_FrontendDeviceHandle NEXUS_Docsis_OpenDevice(
 
     if (numDsChannels >> EXTERNAL_FRONTEND_NUMBER_OFFSET) {
         has_3128 = true;
-        mtsif_chained = ((BCHP_CHIP==7445)||(BCHP_CHIP==7439)); /* 3128 via MTSIF can be daisy-chained or connected directly to host */ /* TODO: not a good practice of (BCHP_CHIP==7445), need from platfrom info passed here to decide*/
+#if BCHP_CHIP==7445 || BCHP_CHIP==7439
+        mtsif_chained = 1; /* 3128 via MTSIF can be daisy-chained or connected directly to host */ /* TODO: not a good practice of (BCHP_CHIP==7445), need from platfrom info passed here to decide*/
+#endif
         BDBG_WRN(("numDSChannels:0x%x, chained", numDsChannels));
         numDsChannels &= 0xff;
     }
@@ -305,6 +307,7 @@ NEXUS_FrontendDeviceHandle NEXUS_Docsis_OpenDevice(
                 if (hDevice->pGenericDeviceHandle->chainedConfig==NULL) {
                     goto errorInit;
                 }
+                BKNI_Memset(hDevice->pGenericDeviceHandle->chainedConfig, 0, sizeof(NEXUS_FrontendDeviceMtsifConfig));
 
                 hDevice->pGenericDeviceHandle->chainedConfig->mxt = mxt_3128;
 

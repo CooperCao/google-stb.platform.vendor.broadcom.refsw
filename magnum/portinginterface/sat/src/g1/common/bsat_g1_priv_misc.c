@@ -98,50 +98,6 @@ void BSAT_g1_P_ToggleBit_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t ma
 
 
 /******************************************************************************
- BSAT_g1_P_IncrementInterruptCounter_isr()
-******************************************************************************/
-void BSAT_g1_P_IncrementInterruptCounter_isr(BSAT_ChannelHandle h, BSAT_g1_IntID idx)
-{
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-
-   hChn->irqCount[idx]++;
-}
-
-
-/******************************************************************************
- BSAT_g1_ResetInterruptCounters()
-******************************************************************************/
-void BSAT_g1_ResetInterruptCounters(BSAT_ChannelHandle h)
-{
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   int i;
-
-   BKNI_EnterCriticalSection();
-   for (i = 0; i < BSAT_g1_MaxIntID; i++)
-      hChn->irqCount[i] = 0;
-   BKNI_LeaveCriticalSection();
-}
-
-
-/******************************************************************************
- BSAT_g1_GetInterruptCount()
-******************************************************************************/
-BERR_Code BSAT_g1_GetInterruptCount(BSAT_ChannelHandle h, BSAT_g1_IntID idx, uint32_t *pCount)
-{
-   BERR_Code retCode = BERR_SUCCESS;
-   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-
-   if (idx >= BSAT_g1_MaxIntID)
-   {
-      BERR_TRACE(retCode = BERR_INVALID_PARAMETER);
-   }
-   else
-      *pCount = hChn->irqCount[idx];
-   return retCode;
-}
-
-
-/******************************************************************************
  BSAT_g1_P_GetTraceInfo()
 ******************************************************************************/
 BERR_Code BSAT_g1_P_GetTraceInfo(BSAT_ChannelHandle h, BSAT_TraceInfo *pBuffer)

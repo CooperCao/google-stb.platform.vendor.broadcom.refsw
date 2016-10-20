@@ -3742,8 +3742,8 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
     uint8_t                status  = 0;
     uint8_t                byte  = 0;
     uint32_t               version = 0;
-    unsigned               versionScheme = 0;  /* 0 for old, 1 for new */
-    unsigned               bfwEpoch = 0;
+    uint8_t                versionScheme = 0;  /* 0 for old, 1 for new */
+    uint8_t                bfwEpoch = 0;
     char                   message[128] = "";
     int                    bytesLeft = 0;
 
@@ -3784,8 +3784,8 @@ BERR_Code  loadBspVersion( BHSM_Handle hHsm )
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     BHSM_BspMsg_Get8( hMsg, BCMD_CommonBufferFields_eVersionScheme, &byte );
    #endif
-    versionScheme = (unsigned)(byte & 0x0F);
-    bfwEpoch      = (unsigned)(byte >> 4  );
+    versionScheme = byte & 0x0F;    /* 4 bits */
+    bfwEpoch      = byte >> 4;      /* 4 bits */
     /* Deteremine the Firmware versions  */
     BHSM_BspMsg_Get32( hMsg, BCMD_CommonBufferFields_eVerNum, &version );
 

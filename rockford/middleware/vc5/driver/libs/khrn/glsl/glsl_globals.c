@@ -8,7 +8,9 @@ Module   :
 FILE DESCRIPTION
 =============================================================================*/
 
-#include "glsl_common.h"
+#include <stdbool.h>
+
+#include "glsl_ir_program.h"
 #include "glsl_globals.h"
 
 int g_ShaderVersion;

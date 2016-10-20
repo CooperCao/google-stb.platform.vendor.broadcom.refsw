@@ -207,7 +207,6 @@ static Dataflow *get_lt_ut_offset(const df_base_detail *df_bd,
 static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
       Dataflow *x, Dataflow *y, Dataflow *z, Dataflow *elem_no)
 {
-
    df_img_info img;
    img.lx_swizzling = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_SWIZZLING);
    img.lx_addr = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_LX_ADDR);
@@ -246,15 +245,13 @@ static Dataflow  *construct_dataflow_img_addr(Dataflow *sampler, GFX_LFMT_T fmt,
    offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset, get_offset_inside_utile(x, y, &df_bd));
 
    //offset +=  z * img_slice_pitch;
-   if (z != NULL)
-   {
+   if (z != NULL) {
       offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset,
-               glsl_dataflow_construct_binary_op(DATAFLOW_MUL, z,img.lx_slice_pitch));
+                  glsl_dataflow_construct_binary_op(DATAFLOW_MUL, z,img.lx_slice_pitch));
    }
 
    // offset += elem_no * arr_stride
-   if (elem_no)
-   {
+   if (elem_no) {
       Dataflow *arr_stride = glsl_dataflow_construct_image_info_param(sampler, IMAGE_INFO_ARR_STRIDE);
       offset = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, offset,
             glsl_dataflow_construct_binary_op(DATAFLOW_MUL, elem_no, arr_stride));

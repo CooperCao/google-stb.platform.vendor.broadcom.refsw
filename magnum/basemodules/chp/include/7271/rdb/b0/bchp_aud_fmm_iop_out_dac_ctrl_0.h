@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,38 +70,38 @@
 /***************************************************************************
  *AUD_FMM_IOP_OUT_DAC_CTRL_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_STREAM_CFG_0 0x20cb0c00 /* [RW] Stream configuration */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_DAC_CROSSBAR 0x20cb0c10 /* [RW] DAC crossbar control */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0 0x20cb0c20 /* [RW] ADAC IF Control Reg 0 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_0 0x20cb0c30 /* [RW] ANALOG_DAC_Control Reg 0 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1 0x20cb0c34 /* [RW] ANALOG_DAC_Control Reg 1 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2 0x20cb0c38 /* [RW] ANALOG_DAC_Control Reg 2 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3 0x20cb0c3c /* [RO] ANALOG_DAC_Control Reg 3 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_A_L 0x20cb0c40 /* [RW] HS_DSM_DITHER_CTL_A_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_A_L 0x20cb0c44 /* [RW] HS_DSM_DITHER_SEED_S0_A_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_A_L 0x20cb0c48 /* [RW] HS_DSM_DITHER_SEED_S1_A_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_A_L 0x20cb0c4c /* [RW] HS_DSM_DITHER_SEED_S2_A_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_B_L 0x20cb0c50 /* [RW] HS_DSM_DITHER_CTL_B_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_B_L 0x20cb0c54 /* [RW] HS_DSM_DITHER_SEED_S0_B_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_B_L 0x20cb0c58 /* [RW] HS_DSM_DITHER_SEED_S1_B_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_B_L 0x20cb0c5c /* [RW] HS_DSM_DITHER_SEED_S2_B_L */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_A_R 0x20cb0c60 /* [RW] HS_DSM_DITHER_CTL_A_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_A_R 0x20cb0c64 /* [RW] HS_DSM_DITHER_SEED_S0_A_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_A_R 0x20cb0c68 /* [RW] HS_DSM_DITHER_SEED_S1_A_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_A_R 0x20cb0c6c /* [RW] HS_DSM_DITHER_SEED_S2_A_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_B_R 0x20cb0c70 /* [RW] HS_DSM_DITHER_CTL_B_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_B_R 0x20cb0c74 /* [RW] HS_DSM_DITHER_SEED_S0_B_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_B_R 0x20cb0c78 /* [RW] HS_DSM_DITHER_SEED_S1_B_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_B_R 0x20cb0c7c /* [RW] HS_DSM_DITHER_SEED_S2_B_R */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DIAG_CTL 0x20cb0c80 /* [RW] HS_DSM_DIAG_CTL */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_STB_CONFIG 0x20cb0c84 /* [RW] STB_CONFIG */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DEM_CTRL 0x20cb0c88 /* [RW] HS_DEM_CTRL */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM1  0x20cb0c8c /* [RW] HS_DSM1 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM2  0x20cb0c90 /* [RW] HS_DSM2 */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_MISC_CTRL 0x20cb0c94 /* [RW] HS_DSM_MISC_CTRL */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_DEBUG_FCI_INTERFACE 0x20cb0c98 /* [RW] HIFIDAC Downstream FCI Interface Configuration for debug */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_CNTR_0 0x20cb0c9c /* [RW] Analog DAC related counters */
-#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_CNTR_STATUS_0 0x20cb0ca0 /* [RO] Analog DAC related counter status */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_STREAM_CFG_0 0x20cb0c00 /* [RW][32] Stream configuration */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_DAC_CROSSBAR 0x20cb0c10 /* [RW][32] DAC crossbar control */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ADAC_IF_REG_0 0x20cb0c20 /* [RW][32] ADAC IF Control Reg 0 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_0 0x20cb0c30 /* [RW][32] ANALOG_DAC_Control Reg 0 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_1 0x20cb0c34 /* [RW][32] ANALOG_DAC_Control Reg 1 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_2 0x20cb0c38 /* [RW][32] ANALOG_DAC_Control Reg 2 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_REG_3 0x20cb0c3c /* [RO][32] ANALOG_DAC_Control Reg 3 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_A_L 0x20cb0c40 /* [RW][32] HS_DSM_DITHER_CTL_A_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_A_L 0x20cb0c44 /* [RW][32] HS_DSM_DITHER_SEED_S0_A_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_A_L 0x20cb0c48 /* [RW][32] HS_DSM_DITHER_SEED_S1_A_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_A_L 0x20cb0c4c /* [RW][32] HS_DSM_DITHER_SEED_S2_A_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_B_L 0x20cb0c50 /* [RW][32] HS_DSM_DITHER_CTL_B_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_B_L 0x20cb0c54 /* [RW][32] HS_DSM_DITHER_SEED_S0_B_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_B_L 0x20cb0c58 /* [RW][32] HS_DSM_DITHER_SEED_S1_B_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_B_L 0x20cb0c5c /* [RW][32] HS_DSM_DITHER_SEED_S2_B_L */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_A_R 0x20cb0c60 /* [RW][32] HS_DSM_DITHER_CTL_A_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_A_R 0x20cb0c64 /* [RW][32] HS_DSM_DITHER_SEED_S0_A_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_A_R 0x20cb0c68 /* [RW][32] HS_DSM_DITHER_SEED_S1_A_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_A_R 0x20cb0c6c /* [RW][32] HS_DSM_DITHER_SEED_S2_A_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_CTL_B_R 0x20cb0c70 /* [RW][32] HS_DSM_DITHER_CTL_B_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S0_B_R 0x20cb0c74 /* [RW][32] HS_DSM_DITHER_SEED_S0_B_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S1_B_R 0x20cb0c78 /* [RW][32] HS_DSM_DITHER_SEED_S1_B_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DITHER_SEED_S2_B_R 0x20cb0c7c /* [RW][32] HS_DSM_DITHER_SEED_S2_B_R */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_DIAG_CTL 0x20cb0c80 /* [RW][32] HS_DSM_DIAG_CTL */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_STB_CONFIG 0x20cb0c84 /* [RW][32] STB_CONFIG */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DEM_CTRL 0x20cb0c88 /* [RW][32] HS_DEM_CTRL */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM1  0x20cb0c8c /* [RW][32] HS_DSM1 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM2  0x20cb0c90 /* [RW][32] HS_DSM2 */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_HS_DSM_MISC_CTRL 0x20cb0c94 /* [RW][32] HS_DSM_MISC_CTRL */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_DEBUG_FCI_INTERFACE 0x20cb0c98 /* [RW][32] HIFIDAC Downstream FCI Interface Configuration for debug */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_CNTR_0 0x20cb0c9c /* [RW][32] Analog DAC related counters */
+#define BCHP_AUD_FMM_IOP_OUT_DAC_CTRL_0_ANALOG_CTRL_CNTR_STATUS_0 0x20cb0ca0 /* [RO][32] Analog DAC related counter status */
 
 /***************************************************************************
  *STREAM_CFG_0 - Stream configuration

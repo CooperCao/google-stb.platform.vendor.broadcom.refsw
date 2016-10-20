@@ -43,14 +43,15 @@
 #include "bint.h"
 #include "breg_mem.h"
 
-#define BHSM_ZEUS_VERSION_CALC(major,minor) (((major)<<16)|(minor))
+#define BHSM_ZEUS_VERSION_CALC(major,minor)            ((((major) & 0xFF)<<16) | (((minor) & 0xFF)<<8)                      )
+#define BHSM_ZEUS_VERSION_CALC_3(major,minor,subMinor) ((((major) & 0xFF)<<16) | (((minor) & 0xFF)<<8) | ((subMinor) & 0xFF))
 
 #if BHSM_ZEUS_VER_MAJOR < 1
     #error This header is only for Zeus chips.
 #endif
 
 /* These platforms have basic ASKM support */
-#define BHSM_ZEUS_VERSION     BHSM_ZEUS_VERSION_CALC(BHSM_ZEUS_VER_MAJOR,BHSM_ZEUS_VER_MINOR)
+#define BHSM_ZEUS_VERSION BHSM_ZEUS_VERSION_CALC_3(BHSM_ZEUS_VER_MAJOR,BHSM_ZEUS_VER_MINOR,BHSM_ZEUS_VER_SUBMINOR)
 
 /*    DEPRECATED  The following are replaced by BHSM_ZEUS_VERSION, BHSM_ZEUS_VER_MAJOR, and BHSM_ZEUS_VER_MINOR */
 #define HSM_IS_ASKM 1
@@ -226,6 +227,12 @@ BERR_Code BHSM_SubmitRawCommand (
     unsigned            *pOutputParamLenInWord, /* in-out */
     uint32_t            *pOutputParamsBuf );
 
+
+void BHSM_MemcpySwap (
+    unsigned char *pDest,
+    unsigned char *pData,
+    unsigned int  len,
+    bool swap );
 
 #ifdef __cplusplus
 }

@@ -88,7 +88,6 @@ extern "C" {
 
 /* accessor macros for ESCR */
 #define BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc, _useDts) ( (_useDts) ? BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(_inputDesc) : BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID(_inputDesc) )
-#define BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(_inputDesc, _useDts) ( (_useDts) ? ((uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS(_inputDesc) * 300)): BMUXLIB_INPUT_DESCRIPTOR_ESCR(_inputDesc) )
 
 /**************/
 /* Signatures */
@@ -694,6 +693,10 @@ typedef struct BMUXlib_TS_P_Context
          BMUXlib_TS_Status stStatus;
 
          unsigned uiCurrentSegmentCount;
+
+         bool bTimingOffsetValid;
+         uint32_t uiTimingOffsetIn27Mhz;
+         uint64_t uiTimingOffsetIn90Khz;
       } status;
 
 } BMUXlib_TS_P_Context;
@@ -752,6 +755,24 @@ void
 BMUXlib_TS_P_SeedPCR(
          BMUXlib_TS_Handle hMuxTS
          );
+
+uint64_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   );
+
+uint64_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_DTS(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   );
+
+uint32_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   );
 
 #ifdef __cplusplus
 }

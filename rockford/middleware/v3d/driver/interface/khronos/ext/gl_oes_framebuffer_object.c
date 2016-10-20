@@ -13,14 +13,10 @@ http://www.khronos.org/registry/gles/extensions/OES/OES_framebuffer_object.txt
 #define GL_GLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_client_mangle.h"
-
 #include "interface/khronos/common/khrn_int_common.h"
-
 #include "interface/khronos/glxx/glxx_client.h"
-
 #include "interface/khronos/glxx/glxx_int_impl.h"
 #include "interface/khronos/glxx/gl11_int_impl.h"
-
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES/glext.h"
 
@@ -28,7 +24,8 @@ extern GLboolean glxx_client_IsRenderbuffer(GLuint renderbuffer);
 extern void glxx_client_BindRenderbuffer(GLenum target, GLuint renderbuffer);
 extern void glxx_client_DeleteRenderbuffers(GLsizei n, const GLuint *renderbuffers);
 extern void glxx_client_GenRenderbuffers(GLsizei n, GLuint *renderbuffers);
-extern void glxx_client_RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height);
+extern void glxx_client_RenderbufferStorageMultisample(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height);
 extern void glxx_client_GetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params);
 extern GLboolean glxx_client_IsFramebuffer(GLuint framebuffer);
 extern void glxx_client_BindFramebuffer(GLenum target, GLuint framebuffer);
@@ -62,7 +59,7 @@ GL_API void GL_APIENTRY glGenRenderbuffersOES (GLsizei n, GLuint* renderbuffers)
 
 GL_API void GL_APIENTRY glRenderbufferStorageOES (GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
 {
-   glxx_client_RenderbufferStorage(target, internalformat, width, height);
+   glxx_client_RenderbufferStorageMultisample(target, 0, internalformat, width, height);
 }
 
 GL_API void GL_APIENTRY glGetRenderbufferParameterivOES (GLenum target, GLenum pname, GLint* params)

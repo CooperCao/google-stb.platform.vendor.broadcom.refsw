@@ -654,9 +654,13 @@ static NEXUS_Error NEXUS_SimpleStcChannel_P_SetSettings(NEXUS_SimpleStcChannelHa
     /* now customize the stcSettings based on the mode */
     switch (pSettings->mode) {
         case NEXUS_StcChannelMode_eAuto:
-            /* DVR is freerun, so timebase is a don't care */
             settings.timebase = NEXUS_Timebase_eInvalid;
             settings.autoConfigTimebase = false;
+            NEXUS_Timebase_GetSettings(settings.timebase, &timebaseSettings);
+            if (timebaseSettings.sourceType != NEXUS_TimebaseSourceType_eFreeRun) {
+                timebaseSettings.sourceType = NEXUS_TimebaseSourceType_eFreeRun;
+                manualTimebaseConfig = true;
+            }
             break;
         case NEXUS_StcChannelMode_ePcr:
             /* manage timebase through system-wide settings, not individual client control */
@@ -851,9 +855,6 @@ static NEXUS_Error apply_settings(NEXUS_SimpleStcChannelHandle handle)
         if (temp_rc) rc = BERR_TRACE(temp_rc);
         rc = NEXUS_SimpleStcChannel_SetSettings(handle, &handle->settings);
         if (temp_rc) rc = BERR_TRACE(temp_rc);
-        /* do not set handle->state.stc; instead, invalidate. */
-        rc = NEXUS_SimpleStcChannel_Invalidate(handle);
-        if (temp_rc) rc = BERR_TRACE(temp_rc);
     }
 
     return rc;
@@ -862,20 +863,20 @@ static NEXUS_Error apply_settings(NEXUS_SimpleStcChannelHandle handle)
 static void init_decoder_stc_status(NEXUS_SimpleStcChannelDecoderStatus * pStatus)
 {
     BKNI_Memset(pStatus, 0, sizeof(NEXUS_SimpleStcChannelDecoderStatus));
-    pStatus->stcIndex = -1;
+    pStatus->stc.index = -1;
 }
 
 static int resolve_stc_index(NEXUS_SimpleStcChannelDecoderStatus * videoStatus, NEXUS_SimpleStcChannelDecoderStatus * audioStatus)
 {
     int stcIndex = -1;
 
-    if (videoStatus->connected && videoStatus->stcIndex != -1)
+    if (videoStatus->connected && videoStatus->stc.index != -1)
     {
-        stcIndex = videoStatus->stcIndex;
+        stcIndex = videoStatus->stc.index;
     }
-    else if (audioStatus->connected && audioStatus->stcIndex != -1)
+    else if (audioStatus->connected && audioStatus->stc.index != -1)
     {
-        stcIndex = audioStatus->stcIndex;
+        stcIndex = audioStatus->stc.index;
     }
     else if (videoStatus->primer)
     {
@@ -918,11 +919,11 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
     BDBG_MSG(("%p: video %s:%s:%d; audio %s:%s:%d; primer:%s",
         (void *)handle,
         videoStatus.connected ? "connected" : "disconnected",
-        videoStatus.started ? "started" : "stopped",
-        videoStatus.stcIndex,
+        videoStatus.stc.active ? "active" : "inactive",
+        videoStatus.stc.index,
         audioStatus.connected ? "connected" : "disconnected",
-        audioStatus.started ? "started" : "stopped",
-        audioStatus.stcIndex,
+        audioStatus.stc.active ? "active" : "inactive",
+        audioStatus.stc.index,
         videoStatus.primer ? "priming" : "not priming"
         ));
 
@@ -935,13 +936,13 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 
     /* non-realtime encoding requires stcChannelAudio */
     if (videoStatus.connected && audioStatus.connected
-        && videoStatus.stcIndex >= 0 && audioStatus.stcIndex >= 0
-        && videoStatus.stcIndex != audioStatus.stcIndex
+        && videoStatus.stc.index >= 0 && audioStatus.stc.index >= 0
+        && videoStatus.stc.index != audioStatus.stc.index
         && videoStatus.encoder.nonRealTime)
     {
         if (!handle->stcChannelAudio) {
             NEXUS_StcChannel_GetDefaultSettings(0, &settings);
-            settings.stcIndex = audioStatus.stcIndex;
+            settings.stcIndex = audioStatus.stc.index;
             settings.autoConfigTimebase = false;
             handle->stcChannelAudio = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
             if (!handle->stcChannelAudio) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
@@ -958,25 +959,24 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
 
     if (videoStatus.connected || videoStatus.primer || audioStatus.connected)
     {
+        /* get what we think the new stc index would be */
+        int stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
+
+        if (stcIndex == -1) { rc = BERR_TRACE(NEXUS_NOT_SUPPORTED); goto end; }
+
         if (handle->stcChannel)
         {
             NEXUS_StcChannel_GetSettings(handle->stcChannel, &settings);
             BDBG_ASSERT(settings.stcIndex != -1);
 
-            /*
-             * stc channel already allocated, check stc index compatibility
-             */
-            if ((videoStatus.connected && videoStatus.stcIndex >= 0 && videoStatus.stcIndex != settings.stcIndex)
-                ||
-                (audioStatus.connected && audioStatus.stcIndex >= 0 && audioStatus.stcIndex != settings.stcIndex)
-                ||
-                (videoStatus.primer && settings.stcIndex != 0))
+            /* stc channel already allocated, check stc index compatibility */
+            if ((stcIndex != settings.stcIndex) || (videoStatus.primer && stcIndex != 0))
             {
                 /*
                  * stcIndex cannot change after open on older platforms, and can't reopen stc channel
                  * if any decoders or primers are started
                  */
-                if (!videoStatus.started && !videoStatus.primer && !audioStatus.started)
+                if (!videoStatus.stc.active && !videoStatus.primer && !audioStatus.stc.active)
                 {
                     /* keep current settings, except index */
                     set_astm_stc(handle, NULL);
@@ -984,37 +984,28 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
                     handle->stcChannel = NULL;
 
                     /* open new channel with correct index */
-                    settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
-                    if (settings.stcIndex != -1)
-                    {
-                        settings.autoConfigTimebase = false;
-                        handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
-                        if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
-                        BDBG_MSG(("%p re-open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
-                    }
+                    settings.stcIndex = stcIndex;
+                    settings.autoConfigTimebase = false;
+                    handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
+                    if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
+                    BDBG_MSG(("%p re-open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
                 }
                 else
                 {
 #if NEXUS_NUM_MOSAIC_DECODES > 0
-                    int oldStcIndex;
                     /*
                      * stc channel now supports deferred index change
                      * this depends on # mosaic decodes because in the PI
                      * the ability to change stc index also depends on a similar
                      * flag: BXPT_HAS_MOSAIC_SUPPORT.
                      */
-                    oldStcIndex = settings.stcIndex;
-                    settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
-                    if (settings.stcIndex != -1)
-                    {
-                        settings.autoConfigTimebase = false;
-                        rc = NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
-                        BDBG_MSG(("%p stc index change %p: %d -> %d for %p,%p", (void *)handle, (void *)handle->stcChannel, oldStcIndex, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
-                        if (rc) { rc = BERR_TRACE(rc); }
-                    }
+                    BDBG_MSG(("%p stc index change %p: %d -> %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, stcIndex, (void *)handle->video, (void *)handle->audio));
+                    settings.stcIndex = stcIndex;
+                    settings.autoConfigTimebase = false;
+                    rc = NEXUS_StcChannel_SetSettings(handle->stcChannel, &settings);
+                    if (rc) { rc = BERR_TRACE(rc); }
 #else
-                    BDBG_ERR(("%p: StcIndex mismatch after decoder start: StcChannel %d, VideoDecoder %p StcIndex %d; INVALID use case", handle,
-                        settings.stcIndex, handle->video, videoStatus.stcIndex));
+                    BDBG_ERR(("%p: StcIndex mismatch after decoder start: old %d, new %d; INVALID use case", handle, settings.stcIndex, stcIndex));
                     BDBG_ERR(("Please stop decoders before coupling them via stc channel"));
                     BDBG_ERR(("It is likely that you will experience subtle problems in the current state"));
                     rc = NEXUS_INVALID_PARAMETER;
@@ -1027,15 +1018,12 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
             /* no stc channel allocated yet */
 
             NEXUS_StcChannel_GetDefaultSettings(0, &settings);
-            settings.stcIndex = resolve_stc_index(&videoStatus, &audioStatus);
-            if (settings.stcIndex != -1)
-            {
-                /* open new channel with correct index */
-                settings.autoConfigTimebase = false;
-                handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
-                if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
-                BDBG_MSG(("%p open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
-            }
+            /* open new channel with correct index */
+            settings.stcIndex = stcIndex;
+            settings.autoConfigTimebase = false;
+            handle->stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &settings);
+            if (!handle->stcChannel) { rc = BERR_TRACE(NEXUS_NOT_AVAILABLE); }
+            BDBG_MSG(("%p open %p: %d for %p,%p", (void *)handle, (void *)handle->stcChannel, settings.stcIndex, (void *)handle->video, (void *)handle->audio));
         }
     }
     else
@@ -1068,6 +1056,7 @@ static NEXUS_Error resolve_server_stc(NEXUS_SimpleStcChannelHandle handle)
         NEXUS_StcChannel_SetPairSettings(handle->stcChannel, handle->stcChannelAudio, &stcAudioVideoPair);
     }
 
+end:
     return rc;
 }
 

@@ -557,6 +557,12 @@ void NEXUS_HdmiInput_P_PacketChange_isr(void *context, int param2, void *data)
         NEXUS_HdmiInput_P_SetHdmiFormat_isr(hdmiInput, data) ;
         NEXUS_IsrCallback_Fire_isr(hdmiInput->vendorSpecificInfoFrameChanged);
         break;
+    case BAVC_HDMI_PacketType_eDrmInfoFrame:
+        if (hdmiInput->hdrPacketEvent)
+        {
+            BKNI_SetEvent_isr(hdmiInput->hdrPacketEvent) ;
+        }
+        break;
     case BAVC_HDMI_PacketType_eAudioContentProtection:
         NEXUS_IsrCallback_Fire_isr(hdmiInput->audioContentProtectionChanged);
         break;
@@ -1026,6 +1032,76 @@ NEXUS_Error NEXUS_HdmiInput_GetVendorSpecificInfoFrameData( NEXUS_HdmiInputHandl
     return rc ;
 }
 
+
+NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(NEXUS_HdmiInputHandle hdmiInput,
+	NEXUS_HdmiDynamicRangeMasteringInfoFrame * pDrmInfoFrame)
+{
+    BERR_Code rc = BERR_SUCCESS ;
+    BAVC_HDMI_DRMInfoFrame drmInfoFrame ;
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+
+    if (!hdmiInput->videoConnected)
+    {
+        rc = BERR_TRACE(NEXUS_UNKNOWN) ;
+        return rc ;
+    }
+
+    BKNI_Memset(pDrmInfoFrame, 0, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+    rc = BHDR_GetDrmiInfoFrameData(hdmiInput->hdr, &drmInfoFrame);
+    if (rc)
+    {
+        BDBG_WRN(("Unable to get DRM InfoFrame")) ;
+        goto done ;
+    }
+
+    pDrmInfoFrame->eotf = drmInfoFrame.eEOTF ;
+    if (drmInfoFrame.eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
+    {
+        pDrmInfoFrame->metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1 ;
+
+        /* color */
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.x =
+            drmInfoFrame.Type1.DisplayPrimaries[0].X ;
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.redPrimary.y=
+            drmInfoFrame.Type1.DisplayPrimaries[0].Y;
+
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.x =
+            drmInfoFrame.Type1.DisplayPrimaries[1].X ;
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.greenPrimary.y=
+            drmInfoFrame.Type1.DisplayPrimaries[1].Y;
+
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.x =
+            drmInfoFrame.Type1.DisplayPrimaries[2].X ;
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.bluePrimary.y=
+            drmInfoFrame.Type1.DisplayPrimaries[2].Y;
+
+
+        /* white point */
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.x =
+            drmInfoFrame.Type1.WhitePoint.X ;
+        pDrmInfoFrame->metadata.typeSettings.type1.masteringDisplayColorVolume.whitePoint.y =
+            drmInfoFrame.Type1.WhitePoint.Y ;
+
+        /* luminance??? */
+
+        /* light level */
+        pDrmInfoFrame->metadata.typeSettings.type1.contentLightLevel.max =
+			drmInfoFrame.Type1.MaxContentLightLevel ;
+        pDrmInfoFrame->metadata.typeSettings.type1.contentLightLevel.maxFrameAverage =
+			drmInfoFrame.Type1.MaxFrameAverageLightLevel ;
+    }
+    else
+    {
+        BDBG_ERR(("Unknown Meta Data Type: %d", pDrmInfoFrame->metadata.type)) ;
+        rc = BERR_TRACE(NEXUS_UNKNOWN) ;
+        goto done ;
+    }
+
+done:
+	return rc ;
+}
+
+
 NEXUS_Error NEXUS_HdmiInput_GetAudioContentProtection( NEXUS_HdmiInputHandle hdmiInput, NEXUS_HdmiAudioContentProtection *pAcp )
 {
     BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
@@ -1034,7 +1110,8 @@ NEXUS_Error NEXUS_HdmiInput_GetAudioContentProtection( NEXUS_HdmiInputHandle hdm
     if (!hdmiInput->videoConnected)
         return NEXUS_UNKNOWN ;
 
-    return BHDR_GetAudioContentProtection(hdmiInput->hdr, (BAVC_HDMI_ACP*)pAcp);
+    BHDR_GetAudioContentProtection(hdmiInput->hdr, (BAVC_HDMI_ACP*)pAcp);
+    return NEXUS_SUCCESS ;
 }
 
 NEXUS_Error NEXUS_HdmiInput_GetAudioClockRegeneration( NEXUS_HdmiInputHandle hdmiInput, NEXUS_HdmiAudioClockRegeneration *pAudioClockRegeneration )
@@ -1120,6 +1197,18 @@ void NEXUS_HdmiInput_SetFormatChangeCb_priv(
     hdmiInput->pPcFormatCallbackParam = pFuncParam;
     BKNI_LeaveCriticalSection();
 }
+
+
+void NEXUS_HdmiInput_SetHdrEvent_priv(
+    NEXUS_HdmiInputHandle hdmiInput,
+    BKNI_EventHandle notifyHdrPacketEvent
+    )
+{
+    NEXUS_ASSERT_MODULE();
+    BDBG_OBJECT_ASSERT(hdmiInput, NEXUS_HdmiInput);
+    hdmiInput->hdrPacketEvent = notifyHdrPacketEvent ;
+}
+
 
 static void NEXUS_HdmiInput_P_ReleaseHotPlug(void *context)
 {

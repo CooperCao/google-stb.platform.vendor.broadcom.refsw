@@ -786,7 +786,9 @@ const BXPT_P_RegisterRange XPT_REG_SAVE_LIST[] =
     { "XPT_FE_IB0_CTRL",                         BCHP_XPT_FE_IB0_CTRL,                              BCHP_XPT_FE_IB0_CTRL2 },
     { "XPT_FE_IB1_CTRL",                         BCHP_XPT_FE_IB1_CTRL,                              BCHP_XPT_FE_IB1_CTRL2 },
     { "XPT_FE_IB2_CTRL",                         BCHP_XPT_FE_IB2_CTRL,                              BCHP_XPT_FE_IB2_CTRL2 },
+#if (BCHP_CHIP!=7260 )
     { "XPT_FE_IB3_CTRL",                         BCHP_XPT_FE_IB3_CTRL,                              BCHP_XPT_FE_IB3_CTRL2 },
+#endif
     { "XPT_FE_IB11_CTRL",                        BCHP_XPT_FE_IB11_CTRL,                             BCHP_XPT_FE_IB11_CTRL2 },
     { "XPT_FE_IB12_CTRL",                        BCHP_XPT_FE_IB12_CTRL,                             BCHP_XPT_FE_IB12_CTRL2 },
     { "XPT_FE_MINI_PID_PARSER0_CTRL1",           BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1,                BCHP_XPT_FE_MINI_PID_PARSER15_ALL_PASS_CTRL },

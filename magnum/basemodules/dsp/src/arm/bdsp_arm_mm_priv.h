@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -40,13 +40,12 @@
 #ifndef BDSP_ARM_MM_PRIV_H_
 #define BDSP_ARM_MM_PRIV_H_
 
-#include "bdsp_arm_cit_priv.h"
-
 #define BDSP_ARM_MAX_MSGS_PER_QUEUE           10
 #define BDSP_ARM_MAX_ASYNC_MSGS_PER_QUEUE     40
 #define BDSP_ARM_MAX_DECODE_CTXT 4
 #define BDSP_ARM_MAX_ENCODE_CTXT 2
 #define BDSP_ARM_MAX_ZERO_CTXT 0
+#define BDSP_ARM_MAX_BRANCH   1
 
 /* MAX_DWNLD_BUFS will be the max of the above defines.I have kept it slightly more  */
 #define BDSP_ARM_MAX_DWNLD_BUFS BDSP_ARM_MAX_DECODE_CTXT + BDSP_ARM_MAX_ENCODE_CTXT

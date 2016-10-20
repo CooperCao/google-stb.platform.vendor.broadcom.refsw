@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,37 +70,37 @@
 /***************************************************************************
  *AVS_HW_MNTR - AVS HW Monitor Core
  ***************************************************************************/
-#define BCHP_AVS_HW_MNTR_SW_CONTROLS             0x204d2000 /* [RW] Software control command registers for AVS */
-#define BCHP_AVS_HW_MNTR_SW_MEASUREMENT_UNIT_BUSY 0x204d2004 /* [RO] Indicate measurement unit is busy and SW should not de-assert sw_takeover while this is asserted */
-#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_PVT_MNTR 0x204d2008 /* [RW] Software to reset the pvt monitors measurements' valid bits in RO registers */
-#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_CEN_ROSC_0 0x204d200c /* [RW] Software to reset the central roscs measurements' valid bits in RO registers */
-#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_CEN_ROSC_1 0x204d2010 /* [RW] Software to reset the central roscs measurements' valid bits in RO registers */
-#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_POW_WDOG 0x204d2034 /* [RW] Software to reset the power watchdog measurment's valid bits in RO registers */
-#define BCHP_AVS_HW_MNTR_SEQUENCER_INIT          0x204d2038 /* [RW] Initialize the sensor sequencer */
-#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_PVT_MNTR 0x204d203c /* [RW] Indicate which PVT Monitor measurements should  be masked(skipped) in the measurement sequence */
-#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_CEN_ROSC_0 0x204d2040 /* [RW] Indicate which central ring oscillators should  be masked(skipped) in the measurement sequence */
-#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_CEN_ROSC_1 0x204d2044 /* [RW] Indicate which central ring oscillators should  be masked(skipped) in the measurement sequence */
-#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_PVT_MNTR 0x204d2068 /* [RW] Enabling/Disabling PVT monitor */
-#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_CEN_ROSC_0 0x204d206c /* [RW] Enabling/Disabling of central ring oscillators */
-#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_CEN_ROSC_1 0x204d2070 /* [RW] Enabling/Disabling of central ring oscillators */
-#define BCHP_AVS_HW_MNTR_ROSC_MEASUREMENT_TIME_CONTROL 0x204d2074 /* [RW] Control the time taken for a rosc/pwd measurement */
-#define BCHP_AVS_HW_MNTR_ROSC_COUNTING_MODE      0x204d2078 /* [RW] Control the counting event for rosc signal counter */
-#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN   0x204d207c /* [RW] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
-#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_1 0x204d2080 /* [RW] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
-#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_2 0x204d2084 /* [RW] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
-#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_3 0x204d2088 /* [RW] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
-#define BCHP_AVS_HW_MNTR_INTERRUPT_SW_MEASUREMENT_DONE_EN 0x204d208c /* [RW] Enable to trigger an interrupt when the measurement is done */
-#define BCHP_AVS_HW_MNTR_LAST_MEASURED_SENSOR    0x204d2090 /* [RO] The last sensor that has been measured */
-#define BCHP_AVS_HW_MNTR_AVS_INTERRUPT_FLAGS     0x204d2094 /* [RO] Indicate AVS interrupts status whether they are triggered or not */
-#define BCHP_AVS_HW_MNTR_AVS_INTERRUPT_FLAGS_CLEAR 0x204d2098 /* [RW] Software to clear the respective AVS interrupt flags */
-#define BCHP_AVS_HW_MNTR_AVS_REGISTERS_LOCKS     0x204d20ac /* [RW] To lock read/write accesses to AVS sensors and regulators registers for security purpose */
-#define BCHP_AVS_HW_MNTR_TEMPERATURE_RESET_ENABLE 0x204d20b0 /* [RW] Software to enable chip's temperature monitoring and temperature reset */
-#define BCHP_AVS_HW_MNTR_TEMPERATURE_THRESHOLD   0x204d20b4 /* [RW] Threshold value for chip's temperature monitoring */
-#define BCHP_AVS_HW_MNTR_IDLE_STATE_0_CEN_ROSC_0 0x204d20b8 /* [RW] Set the output value of ring oscillators when not enabled. */
-#define BCHP_AVS_HW_MNTR_IDLE_STATE_0_CEN_ROSC_1 0x204d20bc /* [RW] Set the output value of ring oscillators when not enabled. */
-#define BCHP_AVS_HW_MNTR_ADC_SETTLING_TIME       0x204d20c0 /* [RW] Define the number of samples output by ADC to skip following the change in ADC source select */
-#define BCHP_AVS_HW_MNTR_AVS_SPARE_0             0x204d20c4 /* [RW] Spare register 0 for AVS HW MONITOR core */
-#define BCHP_AVS_HW_MNTR_AVS_SPARE_1             0x204d20c8 /* [RW] Spare register 1 for AVS HW MONITOR core */
+#define BCHP_AVS_HW_MNTR_SW_CONTROLS             0x204d2000 /* [RW][32] Software control command registers for AVS */
+#define BCHP_AVS_HW_MNTR_SW_MEASUREMENT_UNIT_BUSY 0x204d2004 /* [RO][32] Indicate measurement unit is busy and SW should not de-assert sw_takeover while this is asserted */
+#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_PVT_MNTR 0x204d2008 /* [RW][32] Software to reset the pvt monitors measurements' valid bits in RO registers */
+#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_CEN_ROSC_0 0x204d200c /* [RW][32] Software to reset the central roscs measurements' valid bits in RO registers */
+#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_CEN_ROSC_1 0x204d2010 /* [RW][32] Software to reset the central roscs measurements' valid bits in RO registers */
+#define BCHP_AVS_HW_MNTR_MEASUREMENTS_INIT_POW_WDOG 0x204d2034 /* [RW][32] Software to reset the power watchdog measurment's valid bits in RO registers */
+#define BCHP_AVS_HW_MNTR_SEQUENCER_INIT          0x204d2038 /* [RW][32] Initialize the sensor sequencer */
+#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_PVT_MNTR 0x204d203c /* [RW][32] Indicate which PVT Monitor measurements should  be masked(skipped) in the measurement sequence */
+#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_CEN_ROSC_0 0x204d2040 /* [RW][32] Indicate which central ring oscillators should  be masked(skipped) in the measurement sequence */
+#define BCHP_AVS_HW_MNTR_SEQUENCER_MASK_CEN_ROSC_1 0x204d2044 /* [RW][32] Indicate which central ring oscillators should  be masked(skipped) in the measurement sequence */
+#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_PVT_MNTR 0x204d2068 /* [RW][32] Enabling/Disabling PVT monitor */
+#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_CEN_ROSC_0 0x204d206c /* [RW][32] Enabling/Disabling of central ring oscillators */
+#define BCHP_AVS_HW_MNTR_ENABLE_DEFAULT_CEN_ROSC_1 0x204d2070 /* [RW][32] Enabling/Disabling of central ring oscillators */
+#define BCHP_AVS_HW_MNTR_ROSC_MEASUREMENT_TIME_CONTROL 0x204d2074 /* [RW][32] Control the time taken for a rosc/pwd measurement */
+#define BCHP_AVS_HW_MNTR_ROSC_COUNTING_MODE      0x204d2078 /* [RW][32] Control the counting event for rosc signal counter */
+#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN   0x204d207c /* [RW][32] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
+#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_1 0x204d2080 /* [RW][32] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
+#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_2 0x204d2084 /* [RW][32] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
+#define BCHP_AVS_HW_MNTR_INTERRUPT_POW_WDOG_EN_3 0x204d2088 /* [RW][32] Software to program a mask(1 bit per PWD) to indicate which PWD signals may trigger an interrupt */
+#define BCHP_AVS_HW_MNTR_INTERRUPT_SW_MEASUREMENT_DONE_EN 0x204d208c /* [RW][32] Enable to trigger an interrupt when the measurement is done */
+#define BCHP_AVS_HW_MNTR_LAST_MEASURED_SENSOR    0x204d2090 /* [RO][32] The last sensor that has been measured */
+#define BCHP_AVS_HW_MNTR_AVS_INTERRUPT_FLAGS     0x204d2094 /* [RO][32] Indicate AVS interrupts status whether they are triggered or not */
+#define BCHP_AVS_HW_MNTR_AVS_INTERRUPT_FLAGS_CLEAR 0x204d2098 /* [RW][32] Software to clear the respective AVS interrupt flags */
+#define BCHP_AVS_HW_MNTR_AVS_REGISTERS_LOCKS     0x204d20ac /* [RW][32] To lock read/write accesses to AVS sensors and regulators registers for security purpose */
+#define BCHP_AVS_HW_MNTR_TEMPERATURE_RESET_ENABLE 0x204d20b0 /* [RW][32] Software to enable chip's temperature monitoring and temperature reset */
+#define BCHP_AVS_HW_MNTR_TEMPERATURE_THRESHOLD   0x204d20b4 /* [RW][32] Threshold value for chip's temperature monitoring */
+#define BCHP_AVS_HW_MNTR_IDLE_STATE_0_CEN_ROSC_0 0x204d20b8 /* [RW][32] Set the output value of ring oscillators when not enabled. */
+#define BCHP_AVS_HW_MNTR_IDLE_STATE_0_CEN_ROSC_1 0x204d20bc /* [RW][32] Set the output value of ring oscillators when not enabled. */
+#define BCHP_AVS_HW_MNTR_ADC_SETTLING_TIME       0x204d20c0 /* [RW][32] Define the number of samples output by ADC to skip following the change in ADC source select */
+#define BCHP_AVS_HW_MNTR_AVS_SPARE_0             0x204d20c4 /* [RW][32] Spare register 0 for AVS HW MONITOR core */
+#define BCHP_AVS_HW_MNTR_AVS_SPARE_1             0x204d20c8 /* [RW][32] Spare register 1 for AVS HW MONITOR core */
 
 /***************************************************************************
  *SW_CONTROLS - Software control command registers for AVS

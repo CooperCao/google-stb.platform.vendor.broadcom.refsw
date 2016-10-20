@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,16 @@
 #define MEDIA_PLAYER_H__
 
 #include "nexus_types.h"
+#if NEXUS_HAS_PLAYBACK
 #include "nexus_playback.h"
+#else
+typedef unsigned NEXUS_PlaybackLoopMode;
+typedef unsigned NEXUS_PlaybackSettings;
+typedef unsigned NEXUS_PlaybackStatus;
+typedef unsigned NEXUS_AudioDecoderDolbyDrcMode;
+typedef unsigned NEXUS_SimpleStcChannelSyncMode;
+typedef void *NEXUS_SimpleVideoDecoderHandle;
+#endif
 #include "dvr_crypto.h"
 #include "nxclient.h"
 #if B_REFSW_TR69C_SUPPORT
@@ -134,6 +143,7 @@ typedef struct media_player_start_settings
         NEXUS_VideoCodec codec; /* override probe */
         unsigned fifoSize;
         bool secure;
+        NEXUS_VideoDecoderScanMode scanMode;
     } video;
     NEXUS_TransportType transportType; /* override probe */
     struct {
@@ -150,6 +160,7 @@ typedef struct media_player_start_settings
     const char  *additional_headers;/* Additional HTTP headers that app wants to include in the outgoing Get Request. Terminate each header with "\0xd\0xa". */
     NEXUS_PlaybackSettings playbackSettings;
     media_player_settings  mediaPlayerSettings;
+    bool astm;
 } media_player_start_settings;
 
 

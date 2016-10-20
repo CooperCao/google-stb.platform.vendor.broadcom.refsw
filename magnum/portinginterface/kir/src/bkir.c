@@ -2503,7 +2503,7 @@ BERR_Code BKIR_Read(
 }
 #endif
 
-BERR_Code BKIR_IsRepeated_isr(
+BERR_Code BKIR_IsRepeated_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *repeatFlag     /* [out] flag to remote A repeat condition */
     )
@@ -2517,7 +2517,7 @@ BERR_Code BKIR_IsRepeated_isr(
     return( retCode );
 }
 
-BERR_Code BKIR_IsPreambleA(
+BERR_Code BKIR_IsPreambleA_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
     )
@@ -2531,7 +2531,7 @@ BERR_Code BKIR_IsPreambleA(
     return( retCode );
 }
 
-BERR_Code BKIR_IsPreambleB(
+BERR_Code BKIR_IsPreambleB_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *preambleFlag   /* [out] flag to remote A repeat condition */
     )
@@ -2548,10 +2548,13 @@ BERR_Code BKIR_IsPreambleB(
 void BKIR_GetLastKey(
     BKIR_ChannelHandle hChn,  /* [in] Device channel handle */
     uint32_t *code,           /* [out] lower 32-bits of returned code */
-    uint32_t *codeHigh        /* [out] upper 32-bits of returned code */
+    uint32_t *codeHigh,       /* [out] upper 32-bits of returned code */
+    bool *preambleA,          /* [out] flag for preamble A */
+    bool *preambleB           /* [out] flag for preamble B */
     )
 {
     BKIR_Handle hDev;
+    uint32_t lval;
 
     BDBG_OBJECT_ASSERT(hChn, BKIR_ChannelHandle);
 
@@ -2559,6 +2562,11 @@ void BKIR_GetLastKey(
 
     *code     = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA0);
     *codeHigh = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_DATA1);
+
+    lval = BREG_Read32(hDev->hRegister, hChn->coreOffset + BCHP_KBD1_STATUS);
+
+    *preambleA = (lval & BCHP_KBD1_STATUS_cir_pa_MASK) ? true : false;
+    *preambleB = (lval & BCHP_KBD1_STATUS_cir_pb_MASK) ? true : false;
 }
 
 void BKIR_SetCustomDeviceType (

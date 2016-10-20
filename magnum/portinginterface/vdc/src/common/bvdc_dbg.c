@@ -51,7 +51,6 @@
 #include "bvdc_scaler_priv.h"
 #include "bvdc_dnr_priv.h"
 #include "bvdc_hscaler_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_mcdi_priv.h"
 #include "bvdc_anr_priv.h"
@@ -311,9 +310,7 @@ void BVDC_Dbg_Window_GetDebugStatus
     {
         uint32_t i;
         const BVDC_P_IntCbTbl *pIntCb;
-#if (BVDC_SUPPORT_BVN_DEBUG && BDBG_DEBUG_BUILD)
-        BVDC_P_PictureNode    *pPicture;
-#endif
+
         for(i = 0; i < BVDC_BvnError_eMaxCount; i++)
         {
             if(hWindow->hCompositor->hVdc->aulBvnErrCnt[i] != 0)
@@ -352,7 +349,6 @@ void BVDC_Dbg_Window_GetDebugStatus
                         (hWindow->stCurResource.hPlayback && (hWindow->stCurResource.hPlayback->eId + BVDC_BvnError_eMfd_0 == i)) || /* includes MFD and VFD */
                         (hWindow->stCurResource.hScaler && (hWindow->stCurResource.hScaler->eId + BVDC_BvnError_eScl_0  == i)) ||
                         (hWindow->stCurResource.hDnr && (hWindow->stCurResource.hDnr->eId + BVDC_BvnError_eDnr_0  == i)) ||
-                        (hWindow->stCurResource.hMad32 && (hWindow->stCurResource.hMad32->eId + BVDC_BvnError_eMad_0 == i)) ||
                         (hWindow->stCurResource.hHscaler && (hWindow->stCurResource.hHscaler->eId + BVDC_BvnError_eHscl_0 == i)))
                     {
                         ulBvnErrCount += hWindow->hCompositor->hVdc->aulBvnErrCnt[i];
@@ -375,23 +371,6 @@ void BVDC_Dbg_Window_GetDebugStatus
             }
         }
         pDbgInfo->ulNumErr = ulBvnErrCount;
-#if (BVDC_SUPPORT_BVN_DEBUG && BDBG_DEBUG_BUILD)
-        if (BVDC_P_SRC_IS_VFD(hWindow->stCurInfo.hSource->eId))
-        {
-            pPicture = &hWindow->stCurInfo.hSource->hVfdFeeder->stPicture;
-        }
-        else
-        {
-            pPicture = hWindow->pCurWriterNode;
-        }
-        hWindow->hCompositor->hVdc->bLog = true;
-        if (BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
-        {
-            BKNI_EnterCriticalSection();
-            BVDC_P_Window_DumpRects_isr(hWindow, pPicture);
-            BKNI_LeaveCriticalSection();
-        }
-#endif
     }
 
     {
@@ -455,41 +434,6 @@ void BVDC_Dbg_Source_GetDebugStatus
         pDbgInfo->ulNumErr = ulBvnErrCount;
     }
 
-    {
-        uint32_t j;
-        BVDC_Window_Handle hWindow;
-
-        for (j=0; j<BVDC_P_MAX_WINDOW_COUNT; j++)
-        {
-            hWindow = hSource->ahWindow[j];
-            if (BVDC_P_STATE_IS_ACTIVE(hWindow))
-            {
-                BVDC_P_PictureNode   *pPicture;
-
-                if (BVDC_P_SRC_IS_VFD(hSource->eId))
-                {
-                    pPicture = &hSource->hVfdFeeder->stPicture;
-                }
-                else
-                {
-                    pPicture = hWindow->pCurWriterNode;
-                }
-
-#if (BVDC_SUPPORT_BVN_DEBUG && BDBG_DEBUG_BUILD)
-                hWindow->hCompositor->hVdc->bLog = true;
-                if (BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId))
-                {
-                    BKNI_EnterCriticalSection();
-                    BVDC_P_Window_DumpRects_isr(hWindow, pPicture);
-                    BKNI_LeaveCriticalSection();
-                }
-#else
-                BSTD_UNUSED(pPicture);
-#endif
-            }
-        }
-    }
-
     return;
 }
 
@@ -550,18 +494,13 @@ BERR_Code BVDC_Dbg_MaskBvnErrorCb
             break;
 
         case BVDC_Bvn_eDnr:
-            if(ulModuleIdx >=(BVDC_BvnError_eMad_0 - BVDC_BvnError_eDnr_0))
+            if(ulModuleIdx >=(BVDC_BvnError_eXsrc_0 - BVDC_BvnError_eDnr_0))
             {
                 eStatus = BERR_INVALID_PARAMETER;
                 return (eStatus);
             }
 
             eBvnErrModule = BVDC_BvnError_eDnr_0 + ulModuleIdx;
-            break;
-
-        case BVDC_Bvn_eMad:
-            eBvnErrModule = BVDC_BvnError_eMad_0;
-            BSTD_UNUSED(ulModuleIdx);
             break;
 
         case BVDC_Bvn_eMvp:

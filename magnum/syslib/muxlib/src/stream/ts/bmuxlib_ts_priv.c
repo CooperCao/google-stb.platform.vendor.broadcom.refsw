@@ -58,6 +58,7 @@ BDBG_FILE_MODULE(BMUXLIB_TS_SYSDATA);
 BDBG_FILE_MODULE(BMUXLIB_TS_PCR);
 BDBG_FILE_MODULE(BMUXLIB_TS_MTU);
 BDBG_FILE_MODULE(BMUXLIB_TS_UD_RQ);    /* release Q debug */
+BDBG_FILE_MODULE(BMUXLIB_TS_SEED);
 
 const BMUXlib_TS_P_PESHeader s_stDefaultPESHeader =
 {
@@ -258,6 +259,76 @@ const BMUXlib_TS_P_TSPacket s_stDefaultBTPPacket =
     0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF,0xFF
  },
 };
+
+uint64_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   )
+{
+   uint64_t uiDescriptorPTS = BMUXLIB_INPUT_DESCRIPTOR_PTS( pstDescriptor );
+
+   if ( true == hMuxTS->status.bTimingOffsetValid )
+   {
+      uint64_t uiOldTimestamp = uiDescriptorPTS;
+      uiDescriptorPTS += hMuxTS->status.uiTimingOffsetIn90Khz;
+      uiDescriptorPTS = (( uiDescriptorPTS >> 32 ) & 0x1 ) | (uiDescriptorPTS & 0xFFFFFFFF);
+      BDBG_MODULE_MSG(BMUXLIB_TS_SEED, ("PTS: %08x%08x --> %08x%08x",
+         (uint32_t) (uiOldTimestamp >> 32), (uint32_t)(uiOldTimestamp & 0xFFFFFFFF),
+         (uint32_t) (uiDescriptorPTS >> 32), (uint32_t) (uiDescriptorPTS & 0xFFFFFFFF)
+         ));
+   }
+
+   return uiDescriptorPTS;
+}
+
+uint64_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_DTS(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   )
+{
+   uint64_t uiDescriptorDTS = BMUXLIB_INPUT_DESCRIPTOR_DTS( pstDescriptor );
+
+   if ( true == hMuxTS->status.bTimingOffsetValid )
+   {
+      uint64_t uiOldTimestamp = uiDescriptorDTS;
+      uiDescriptorDTS += hMuxTS->status.uiTimingOffsetIn90Khz;
+      uiDescriptorDTS = (( uiDescriptorDTS >> 32 ) & 0x1 ) | (uiDescriptorDTS & 0xFFFFFFFF);
+      BDBG_MODULE_MSG(BMUXLIB_TS_SEED, ("DTS: %08x%08x --> %08x%08x",
+         (uint32_t) (uiOldTimestamp >> 32), (uint32_t)(uiOldTimestamp & 0xFFFFFFFF),
+         (uint32_t) (uiDescriptorDTS >> 32), (uint32_t) (uiDescriptorDTS & 0xFFFFFFFF)
+         ));
+   }
+
+   return uiDescriptorDTS;
+}
+
+uint32_t
+BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR(
+   BMUXlib_TS_Handle hMuxTS,
+   const BMUXlib_Input_Descriptor *pstDescriptor
+   )
+{
+   uint32_t uiDescriptorESCR = BMUXLIB_INPUT_DESCRIPTOR_ESCR( pstDescriptor );
+
+   if ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode )
+   {
+      uiDescriptorESCR = (uint32_t)(BMUXLIB_INPUT_DESCRIPTOR_DTS( pstDescriptor ) * 300);
+   }
+
+   if ( true == hMuxTS->status.bTimingOffsetValid )
+   {
+      uint32_t uiOldTimestamp = uiDescriptorESCR;
+      uiDescriptorESCR += hMuxTS->status.uiTimingOffsetIn27Mhz;
+      BDBG_MODULE_MSG(BMUXLIB_TS_SEED, ("ESCR: %08x --> %08x",
+         uiOldTimestamp,
+         uiDescriptorESCR
+         ));
+   }
+
+   return uiDescriptorESCR;
+}
 
 /*************************/
 /* Private Mux Functions */
@@ -893,15 +964,21 @@ const BMUXlib_TS_P_SourceType BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXlib_Input_
 
 BERR_Code
 BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
+         BMUXlib_TS_Handle hMuxTS,
          const BMUXlib_Input_Descriptor *pstDescriptor,
          BMUXlib_P_PESInfo *pstPESInfo,
-         bool bSupportTTS,
-         bool bUsePtsAsESCR,
          bool bPESPacking
         )
 {
+   bool bSupportTTS = false;
+   bool bUsePtsAsESCR = false;
+
+   BDBG_ASSERT( hMuxTS );
    BDBG_ASSERT( pstDescriptor );
    BDBG_ASSERT( pstPESInfo );
+
+   bSupportTTS = hMuxTS->status.stStartSettings.bSupportTTS;
+   bUsePtsAsESCR = ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode );
 
    BKNI_Memset(
             pstPESInfo,
@@ -911,10 +988,10 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
 
    /* Common */
    pstPESInfo->bPTSValid = BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( pstDescriptor );
-   pstPESInfo->uiPTS = BMUXLIB_INPUT_DESCRIPTOR_PTS ( pstDescriptor );
+   pstPESInfo->uiPTS = BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS ( hMuxTS, pstDescriptor );
 
    pstPESInfo->bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( pstDescriptor, bUsePtsAsESCR );
-   pstPESInfo->uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( pstDescriptor, bUsePtsAsESCR );
+   pstPESInfo->uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, pstDescriptor );
 
    pstPESInfo->bTicksPerBitValid = BMUXLIB_INPUT_DESCRIPTOR_IS_TICKS_PER_BIT_VALID ( pstDescriptor );
    pstPESInfo->uiTicksPerBit = BMUXLIB_INPUT_DESCRIPTOR_TICKS_PER_BIT( pstDescriptor );
@@ -931,7 +1008,7 @@ BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
    {
       case BMUXlib_TS_P_SourceType_eVideo:
          pstPESInfo->bDTSValid = BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID( pstDescriptor );
-         pstPESInfo->uiDTS = BMUXLIB_INPUT_DESCRIPTOR_VIDEO_DTS( pstDescriptor );
+         pstPESInfo->uiDTS = BMUXLIB_TS_P_INPUT_DESCRIPTOR_DTS( hMuxTS, pstDescriptor );
 
          if ( true == bSupportTTS )
          {
@@ -2169,12 +2246,13 @@ BMUXlib_TS_P_ProcessSystemData(
 
             if ( hMuxTS->status.stPCRInfo.hPCRFile )
             {
+               BDBG_INT64_DEC_BUF(PCRBase);
                fprintf(
                   hMuxTS->status.stPCRInfo.hPCRFile,
-                  "%u,%u,%llu,%u,%u,%u,%u\n",
+                  "%u,%u,"BDBG_INT64_DEC_FMT",%u,%u,%u,%u\n",
                   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiNextPacketPacingTimestamp,
                   pstCurrentTransportDescriptor->stTsMuxDescriptorConfig.uiPacket2PacketTimestampDelta,
-                  hMuxTS->status.stPCRInfo.uiBase,
+                  BDBG_INT64_DEC_ARG(PCRBase,hMuxTS->status.stPCRInfo.uiBase),
                   hMuxTS->status.stPCRInfo.uiExtension,
                   (unsigned) pstCurrentTransportDescriptor,
                   (unsigned) pstCurrentTransportDescriptorMetaData->pBufferAddress,
@@ -2510,6 +2588,54 @@ BMUXlib_TS_P_ProcessNewBuffers(
          }
       }
 
+      if ( false == hMuxTS->status.bTimingOffsetValid )
+      {
+         if ( ( true == hMuxTS->status.stStartSettings.bNonRealTimeMode )
+            && ( true == hMuxTS->status.stStartSettings.stNonRealTimeSettings.bInitialVideoPTSValid ) )
+         {
+            /* Determine PTS offset by finding first video PTS on the input */
+
+            BMUXlib_Input_Handle hVideoInput = hMuxTS->status.stInputMetaData[hMuxTS->status.stInputIndexLUT.uiVideo[0]].hInput;
+            unsigned uiDescriptorCount = 0;
+            unsigned i;
+            BDBG_ASSERT( NULL != hVideoInput );
+
+            uiDescriptorCount = BMUXlib_Input_GetDescriptorCount( hVideoInput );
+
+            for ( i = 0; i < uiDescriptorCount; i++ )
+            {
+               BMUXlib_Input_Descriptor stDescriptor;
+
+               BDBG_ASSERT( BMUXlib_Input_PeekAtDescriptor( hVideoInput, i, &stDescriptor ) );
+
+               if ( ( true == BMUXLIB_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor ) )
+                  && ( true == BMUXLIB_INPUT_DESCRIPTOR_IS_PTS_VALID( &stDescriptor ) ) )
+               {
+                  hMuxTS->status.uiTimingOffsetIn90Khz = hMuxTS->status.stStartSettings.stNonRealTimeSettings.uiInitialVideoPTS - BMUXLIB_INPUT_DESCRIPTOR_PTS( &stDescriptor );
+                  hMuxTS->status.uiTimingOffsetIn27Mhz = (uint32_t) (hMuxTS->status.uiTimingOffsetIn90Khz*300) & 0xFFFFFFFF;
+                  BDBG_MODULE_MSG(BMUXLIB_TS_SEED, ("PTS Seed (%08x%08x --> %08x%08x) (%08x%08x, %08x)",
+                     (uint32_t) (BMUXLIB_INPUT_DESCRIPTOR_PTS( &stDescriptor ) >> 32),
+                     (uint32_t) BMUXLIB_INPUT_DESCRIPTOR_PTS( &stDescriptor ),
+                     (uint32_t) (hMuxTS->status.stStartSettings.stNonRealTimeSettings.uiInitialVideoPTS >> 32),
+                     (uint32_t) hMuxTS->status.stStartSettings.stNonRealTimeSettings.uiInitialVideoPTS,
+                     (uint32_t) (hMuxTS->status.uiTimingOffsetIn90Khz >> 32),
+                     (uint32_t) hMuxTS->status.uiTimingOffsetIn90Khz,
+                     hMuxTS->status.uiTimingOffsetIn27Mhz
+                  ));
+
+                  hMuxTS->status.bTimingOffsetValid = true;
+                  break;
+               }
+            }
+         }
+         else
+         {
+            hMuxTS->status.uiTimingOffsetIn27Mhz = 0;
+            hMuxTS->status.uiTimingOffsetIn90Khz = 0;
+            hMuxTS->status.bTimingOffsetValid = false;
+         }
+      }
+
       /* NOTE: if we are waiting for all inputs (e.g. NRT mode) then when an input is selected, it will be guaranteed
          to have the lowest timing (ESCR or DTS) */
       if ( NULL != hSelectedInput )
@@ -2540,7 +2666,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
             if (BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID(&stDescriptor, (BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode)))
             {
                /* NOTE: need both PTS and ESCR to be valid to record the earliest timing for PCR seeding */
-               uint32_t uiCurrentESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
+               uint32_t uiCurrentESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor );
                /* determine the desired "pre-offset" prior to the first media
                   set the PCRs to go out at least 3 PCR intervals prior to the first media
                   NOTE: This is done to ensure we have at least 2 PCRs *prior* to the media to allow time
@@ -2571,7 +2697,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   hMuxTS->status.stPCRInfo.bEarliestESCRValid = true;
 
                   /* also need to record the PTS corresponding to this ESCR (needed to set the PCR) */
-                  hMuxTS->status.stPCRInfo.uiEarliestPTS =  BMUXLIB_INPUT_DESCRIPTOR_PTS(&stDescriptor);
+                  hMuxTS->status.stPCRInfo.uiEarliestPTS =  BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS( hMuxTS, &stDescriptor);
                   hMuxTS->status.stPCRInfo.bEarliestPTSValid =  bPTSValid;
                   BDBG_MODULE_MSG(BMUXLIB_TS_PCR, ("Updating Earliest Timing: ESCR (adjusted) = %x, PTS = "BDBG_UINT64_FMT" (valid=%d)",
                         uiTargetESCR, BDBG_UINT64_ARG(hMuxTS->status.stPCRInfo.uiEarliestPTS), hMuxTS->status.stPCRInfo.bEarliestPTSValid));
@@ -2772,7 +2898,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                if ( BERR_SUCCESS != BERR_TRACE(BMUXlib_TS_P_InsertNULLTransportDescriptor(
                         hMuxTS,
                         pInputMetadata->uiTransportChannelIndex,
-                        BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) ),
+                        BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor ),
                         0,
                         BMUXlib_TS_P_DataType_eCDB,
                         BMUXLIB_TS_P_InputDescriptorTypeLUT[BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor )],
@@ -2806,11 +2932,10 @@ BMUXlib_TS_P_ProcessNewBuffers(
                   BMUXlib_P_PESInfo stPESInfo;
 
                   BMUXlib_TS_P_PopulatePESInfoFromInputDescriptor(
+                           hMuxTS,
                            &stDescriptor,
                            &stPESInfo,
-                           hMuxTS->status.stStartSettings.bSupportTTS,
-                           ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ),
-                           ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) ) ? hMuxTS->status.stStartSettings.audio[hMuxTS->status.stInputMetaData[pInputMetadata->uiInputIndex].uiPIDIndex].bEnablePESPacking : false
+                           ( BMUXlib_Input_Type_eAudio == BMUXLIB_INPUT_DESCRIPTOR_TYPE( &stDescriptor ) ) ? hMuxTS->status.stStartSettings.audio[pInputMetadata->uiPIDIndex].bEnablePESPacking : false
                            );
 
                   stPESInfo.uiTransportChannelIndex = pInputMetadata->uiTransportChannelIndex;
@@ -2993,7 +3118,7 @@ BMUXlib_TS_P_ProcessNewBuffers(
                stBPPInfo.bInputIndexValid = true;
 
                stBPPInfo.bESCRValid = BMUXLIB_TS_P_INPUT_DESCRIPTOR_IS_ESCR_VALID( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
-               stBPPInfo.uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( &stDescriptor, ( BMUXlib_TS_InterleaveMode_ePTS == hMuxTS->status.stStartSettings.eInterleaveMode ) );
+               stBPPInfo.uiESCR = BMUXLIB_TS_P_INPUT_DESCRIPTOR_ESCR( hMuxTS, &stDescriptor );
 
                stBPPInfo.bPacket2PacketDeltaValid = true;
                stBPPInfo.uiPacket2PacketDelta = 0;

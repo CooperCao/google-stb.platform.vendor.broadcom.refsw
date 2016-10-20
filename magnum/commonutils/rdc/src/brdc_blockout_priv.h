@@ -62,11 +62,13 @@ BERR_Code BRDC_P_ValidateBlockOutRegisters
     ( const BRDC_BlockOut *pstBlockOut,
       uint32_t             ulNumRegBlocks );
 
+#if(!BRDC_P_SUPPORT_HW_BLOCKOUT)
 bool BRDC_P_IsRdcBlockOutEnabled_isr
     ( BRDC_Handle           hRdc );
 
 BERR_Code BRDC_P_ParseAndReplaceRul_isr
     ( BRDC_List_Handle hList);
+#endif
 
 #ifdef __cplusplus
 }

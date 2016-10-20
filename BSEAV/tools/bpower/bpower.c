@@ -45,9 +45,11 @@
 #include <errno.h>
 #include <stdbool.h>
 #include <fcntl.h>
+#include <sys/utsname.h>
 #include "bmemperf_info.h"
 #include "bmemperf.h"
 #include "bpower_utils.h"
+#include "bmemperf_lib.h"
 #include "bmemperf_utils.h"
 #include "bthermal.h"
 
@@ -69,9 +71,14 @@ int main(
     int              getShrinkList   = 0;
     int              epochSeconds    = 0;
     int              tzOffset        = 0;
+    int              DvfsControl     = 0;
+    int              GovernorSetting = 0;
+    bmemperf_version_info versionInfo;
+    struct           utsname uname_info;
     BTHERMAL_DEVICE  bthermal_devices;
 
     memset( &bthermal_devices, 0, sizeof(bthermal_devices) );
+    memset( &versionInfo, 0, sizeof( versionInfo ));
 
     printf( "Content-type: text/html%c%c", 10, 10 );
 
@@ -86,6 +93,8 @@ int main(
         scanForInt( queryString, "getshrinklist=", &getShrinkList );
         scanForInt( queryString, "GetThermal=", &GetThermal );
         scanForStr( queryString, "GetThermalScale=", sizeof(GetThermalScaleStr), GetThermalScaleStr );
+        scanForInt( queryString, "DvfsControl=", &DvfsControl );
+        scanForInt( queryString, "GovernorSetting=", &GovernorSetting );
         if (strcmp(GetThermalScaleStr, "F") == 0 )
         {
             GetThermalScale = BTHERMAL_FAHRENHEIT;
@@ -95,6 +104,29 @@ int main(
             GetThermalScale = BTHERMAL_CELCIUS;
         }
         /*printf("~DEBUG~GetThermalScale (%u)~", GetThermalScale );*/
+    }
+
+    /* if browser provided a new date/time value; this only happens once during initialization */
+    if (epochSeconds)
+    {
+        struct timeval now          = {1400000000, 0};
+
+        strncpy( versionInfo.platform, getPlatform(), sizeof( versionInfo.platform ) - 1 );
+        strncpy( versionInfo.platVersion, getPlatformVersion(), sizeof( versionInfo.platVersion ) - 1 );
+        versionInfo.majorVersion   = MAJOR_VERSION;
+        versionInfo.minorVersion   = MINOR_VERSION;
+        printf( "~PLATFORM~%s", versionInfo.platform );
+        printf( "~PLATVER~%s", versionInfo.platVersion );
+        printf( "~variant~%s~", getProductIdStr() );
+        printf( "~VERSION~Ver: %u.%u~", versionInfo.majorVersion, versionInfo.minorVersion );
+
+        uname(&uname_info);
+        printf("~UNAME~%d-bit %s %s~", (sizeof(char*) == 8)?64:32, uname_info.machine , uname_info.release );
+
+        now.tv_sec = epochSeconds - ( tzOffset * 60 );
+        settimeofday( &now, NULL );
+        usleep( 200 );
+        /*fflush(stdout);fflush(stderr);*/
     }
 
     /* if clock tree has been requested via the checkbox on the html page */
@@ -119,7 +151,7 @@ int main(
             printf( "~" );
 
             FPRINTF( stderr, "(%p) free'ed ... %s\n", (void *)clockTree, __FUNCTION__ );
-            free( clockTree );
+            Bsysperf_Free( clockTree );
         }
         else
         {
@@ -137,7 +169,7 @@ int main(
         if (shrinkList)
         {
             printf( "~SHRINKLIST~%s~", shrinkList );
-            free( shrinkList );
+            Bsysperf_Free( shrinkList );
         }
     }
 
@@ -169,7 +201,8 @@ int main(
                 bthermal_settings[GetThermalScale].degrees_per_pixel ) - 9 );
         }
     }
-    else if ( GetThermal == 2)
+
+    if ( GetThermal == 2)
     {
         int currentTemperature = bthermal_get_temperature(0);
         float temp = bthermal_convert_to_scale( currentTemperature, GetThermalScale );
@@ -186,6 +219,62 @@ int main(
         }
         printf( "~GetThermalTemperature~%d~", currentX );
     }
+
+    if ( DvfsControl == 1)
+    {
+        int       cpu           = 0;
+        int       numCpusConf   = 0;
+        long int  cpu_freq_int  = 0;
+        char      cpu_frequencies_supported[128];
+
+        numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
+        if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
+        {
+            numCpusConf = BMEMPERF_MAX_NUM_CPUS;
+        }
+
+        printf( "~DvfsControl~" );
+        printf( "<table cols=9 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
+
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
+        printf( "<tr style=\"outline: thin solid\" ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>");
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor1 value=1 onclick=\"MyClick(event);\" >Conservative</td>" );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor2 value=2 onclick=\"MyClick(event);\" >Performance</td>" );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor3 value=3 onclick=\"MyClick(event);\" >Power Save</td>" );
+        printf( "</tr></table></td></tr>" );
+
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Frequencies Supported" );
+        printf( "<tr bgcolor=lightgray style=\"outline: thin solid\" >");
+        printf( "<td align=center style=\"border-right: 1px black solid;\" >CPU</td>");
+        printf( "<td align=left style=\"border-right: 1px black solid;\" >Frequencies Supported</td>" );
+        printf( "<td align=center > Current</td></tr>" );
+        for (cpu = 0; cpu < numCpusConf; cpu++)
+        {
+            cpu_freq_int = get_cpu_frequency(cpu) * 1000;
+            memset( cpu_frequencies_supported, 0, sizeof(cpu_frequencies_supported) );
+
+            get_cpu_frequencies_supported( cpu, cpu_frequencies_supported, sizeof(cpu_frequencies_supported) );
+
+            printf("<tr><td class=black_allborders align=center >%d</td><td class=black_allborders >%s</td>",
+                    cpu, cpu_frequencies_supported );
+            printf("<td class=black_allborders align=center >%ld</td></tr>", cpu_freq_int );
+        }
+
+        printf( "</table>~" ); /* end DvfsControl */
+
+        printf( "~GovernorSetting~%d~", get_governor_control( 0 ) );
+    }
+
+    if ( GovernorSetting )
+    {
+        printf( "~GovernorSetting~%d~", GovernorSetting );
+        set_governor_control ( 0, GovernorSetting );
+    }
+
+    printf( "~STBTIME~%s~", DayMonDateYear( 0 ));
 
     return( 0 );
 } /* main */

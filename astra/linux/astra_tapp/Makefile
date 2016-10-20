@@ -103,7 +103,11 @@ CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
 CPPFLAGS    += -std=c++11
 CPPFLAGS    += -D_GNU_SOURCE
 
+ifeq (y,$(DEBUG_ENABLE_COREDUMP))
+LDFLAGS     := -pthread -lrt -lbfd -liberty $(LIBC) -L$(ROOTDIR)/lib/binutils/bfd/. -L$(ROOTDIR)/lib/binutils/libiberty/.
+else
 LDFLAGS     := -pthread -lrt
+endif
 
 vpath %.S   $(SRC_DIRS)
 vpath %.c   $(SRC_DIRS)
@@ -136,7 +140,7 @@ $(BIN_DIRS):
 $(USER_APP): $(USER_APP).elf
 
 $(USER_APP).elf: $(DEP_LIBS) $(OBJS)
-	$(LINUX_USER_ARMGNU)-g++ $(LDFLAGS) $(OBJS) $(foreach dlib,$(DEP_LIBS),$(dlib)/$(dlib).a) -o $@
+	$(LINUX_USER_ARMGNU)-g++ $(OBJS) $(foreach dlib,$(DEP_LIBS),$(dlib)/$(dlib).a) $(LDFLAGS) -o $@
 
 .PHONY: $(DEP_LIBS)
 

@@ -260,133 +260,82 @@ install_sublibs_server:  $(foreach   lib,$(BIP_SERVER_LIB_SUBLIBS),install_$(lib
 ###############################################################################
 #  Define build/clean/install targets for each individual sub-library.
 ###############################################################################
-#  b_os Targets  ("b_os", "clean_b_os", "install_b_os").
+#  b_os Targets
 ###############################################################################
-.PHONY: b_os
-b_os:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... b_os]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/os
-	$(B_TRACE_RECIPE_END)
+include $(NEXUS_TOP)/lib/os/b_os_lib_targets.inc
 
-.PHONY: clean_b_os
-clean_b_os:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... b_os]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/os clean
-	$(B_TRACE_RECIPE_END)
-
-.PHONY: install_b_os
-install_b_os:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... b_os]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/os install
-	$(B_TRACE_RECIPE_END)
-
-#########################################################################################
-#  livemedia Targets  ("livemedia", "clean_livemedia", "install_livemedia").
-#########################################################################################
-# Suppress LiveMedia Output for non VERBOSE builds
-ifeq ($(VERBOSE),)
-    REDIR_LIVEMEDIA := &> /dev/null
-else
-    REDIR_LIVEMEDIA :=
+ifneq ($(B_BUILD_DEPS),n)
+    B_OS_BUILD := b_os_lib_target_build
+    B_OS_CLEAN := b_os_lib_target_clean_all
+    B_OS_INSTALL := $(B_OS_BUILD)
 endif
 
-.PHONY: livemedia
-livemedia:
-    ifneq ($(LIVEMEDIA_SUPPORT),n)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Build... livemedia]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia         $(REDIR_LIVEMEDIA)
-		$(B_TRACE_RECIPE_END)
-    endif #LIVEMEDIA_SUPPORT
-
-.PHONY: clean_livemedia
-clean_livemedia:
-    ifneq ($(LIVEMEDIA_SUPPORT),n)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Clean... livemedia]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia  clean  $(REDIR_LIVEMEDIA)
-		$(B_TRACE_RECIPE_END)
-    endif #LIVEMEDIA_SUPPORT
-
-.PHONY: install_livemedia
-install_livemedia:  livemedia
-    #  No "install" target for livemedia
+.PHONY: b_os clean_b_os install_b_os
+b_os: $(B_OS_BUILD)
+clean_b_os: $(B_OS_CLEAN)
+install_b_os: $(B_OS_INSTALL)
 
 #########################################################################################
-#  blive_ext Targets  ("blive_ext", "clean_blive_ext", "install_blive_ext").
+#  livemedia Targets
 #########################################################################################
-.PHONY: blive_ext
-blive_ext:          livemedia  # Can't build blive_ext until livemedia is build
-    ifneq ($(LIVEMEDIA_SUPPORT),n)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Build... blive_ext]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia/blive_ext/build
-		$(B_TRACE_RECIPE_END)
-    endif #LIVEMEDIA_SUPPORT
+# Suppress LiveMedia Output for non VERBOSE builds
+ifneq ($(LIVEMEDIA_SUPPORT),n)
 
-.PHONY: clean_blive_ext
-clean_blive_ext:
-    ifneq ($(LIVEMEDIA_SUPPORT),n)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Clean... blive_ext]"
-		$(Q_)$(MAKE)        -C $(NEXUS_TOP)/../BSEAV/lib/livemedia/blive_ext/build clean
-		$(B_TRACE_RECIPE_END)
-    endif #LIVEMEDIA_SUPPORT
+    include $(BSEAV)/lib/livemedia/b_livemedia_targets.inc
+    include $(BSEAV)/lib/livemedia/blive_ext/build/b_blive_ext_targets.inc
 
-.PHONY: install_blive_ext
-install_blive_ext:      install_livemedia
-    #  No "install" target for blive_ext
+    ifneq ($(B_BUILD_DEPS),n)
+        B_LIVEMEDIA_BUILD := b_livemedia_target_build
+        B_LIVEMEDIA_CLEAN := b_livemedia_target_clean_all
+        B_LIVEMEDIA_INSTALL := $(B_LIVEMEDIA_BUILD)
+
+        B_BLIVE_EXT_BUILD := b_blive_ext_target_build
+        B_BLIVE_EXT_CLEAN := b_blive_ext_target_clean_all
+        B_BLIVE_EXT_INSTALL := $(B_BLIVE_EXT_BUILD)
+    endif
+endif
+
+.PHONY: livemedia clean_livemedia install_livemedia
+livemedia: $(B_LIVEMEDIA_BUILD)
+clean_livemedia: $(B_LIVEMEDIA_CLEAN)
+install_livemedia: $(B_LIVEMEDIA_INSTALL)
+
+.PHONY: blive_ext clean_blive_ext install_blive_ext
+blive_ext: $(B_BLIVE_EXT_BUILD)
+clean_blive_ext: $(B_BLIVE_EXT_CLEAN)
+install_blive_ext: $(B_BLIVE_EXT_INSTALL)
 
 #################################################################################################
-#  tshdrbuilder Targets  ("tshdrbuilder", "clean_tshdrbuilder", "install_tshdrbuilder").
+#  tshdrbuilder Targets
 #################################################################################################
-.PHONY: tshdrbuilder
-tshdrbuilder:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... tshdrbuilder]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder
-	$(B_TRACE_RECIPE_END)
+include $(BSEAV)/lib/tshdrbuilder/b_tshdrbuilder_targets.inc
 
-.PHONY: clean_tshdrbuilder
-clean_tshdrbuilder:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... tshdrbuilder]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder clean
-	$(B_TRACE_RECIPE_END)
+ifneq ($(B_BUILD_DEPS),n)
+    B_TSHDRBUILDER_BUILD := b_tshdrbuilder_target_build
+    B_TSHDRBUILDER_CLEAN := b_tshdrbuilder_target_clean_all
+    B_TSHDRBUILDER_INSTALL := $(B_TSHDRBUILDER_BUILD)
+endif
 
-.PHONY: install_tshdrbuilder
-install_tshdrbuilder:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... tshdrbuilder]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/tshdrbuilder install
-	$(B_TRACE_RECIPE_END)
+.PHONY: tshdrbuilder clean_tshdrbuilder install_tshdrbuilder
+tshdrbuilder: $(B_TSHDRBUILDER_BUILD)
+clean_tshdrbuilder: $(B_TSHDRBUILDER_CLEAN)
+install_tshdrbuilder: $(B_TSHDRBUILDER_INSTALL)
 
 ###############################################################################
 #  psip Targets  ("psip", "clean_psip", "install_psip").
 ###############################################################################
-.PHONY: psip
-psip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... psip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../rockford/lib/psip
-	$(B_TRACE_RECIPE_END)
+include $(BSEAV)/../rockford/lib/psip/b_psip_targets.inc
 
-.PHONY: clean_psip
-clean_psip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... psip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../rockford/lib/psip clean
-	$(B_TRACE_RECIPE_END)
+ifneq ($(B_BUILD_DEPS),n)
+    B_PSIP_BUILD := b_psip_target_build
+    B_PSIP_CLEAN := b_psip_target_clean_all
+    B_PSIP_INSTALL := $(B_PSIP_BUILD)
+endif
 
-.PHONY: install_psip
-install_psip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... psip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../rockford/lib/psip install
-	$(B_TRACE_RECIPE_END)
+.PHONY: psip clean_psip install_psip
+psip: $(B_PSIP_BUILD)
+clean_psip: $(B_PSIP_CLEAN)
+install_psip: $(B_PSIP_INSTALL)
 
 ###############################################################################
 #  openssl Targets  ("openssl", "clean_openssl", "install_openssl").
@@ -399,6 +348,8 @@ install_psip:
 #  that requires that OpenSSL gets rebuild, then they will need to do a
 #  "make openssl_veryclean" that will force it to be rebuilt.
 ###############################################################################
+
+include $(BSEAV)/lib/openssl/b_openssl_targets.inc
 
 # Build a list of places that we need to put the test CA certificate "host.cert".
 SSL_CERT_FILE := host.cert
@@ -426,98 +377,41 @@ ifneq ($(SSL_CERT_FILE_DEST_LIST),)
 		$(B_TRACE_RECIPE_END)
 endif
 
+ifneq ($(B_BUILD_DEPS),n)
+     B_OPENSSL_BUILD := b_openssl_target_build
+     B_OPENSSL_CLEAN := b_openssl_target_clean_all
+     B_OPENSSL_INSTALL := $(B_OPENSSL_BUILD)
+endif
 
-.PHONY: openssl
+.PHONY: openssl clean_openssl install_openssl
 
-ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
-    # Don't bother with the OpenSSL make if the its ".so" files exist.
-    openssl:  $(NEXUS_BIN_DIR)/libcrypto.so  $(NEXUS_BIN_DIR)/libssl.so \
-              $(SSL_CERT_FILE_DEST_LIST)
-else
-    openssl:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Skipping... OpenSSL]"
-	$(B_TRACE_RECIPE_END)
-endif   #  ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
+openssl:  $(B_OPENSSL_BUILD) $(SSL_CERT_FILE_DEST_LIST)
 
-# If the OpenSSL libraries are missing from NEXUS_BIN_DIR, then copy them from the OpenSSL install dir.
-# Note the use of a "pattern rule" so that the recipe will only run once to generate both targets.
-$(NEXUS_BIN_DIR)/%crypto.so  $(NEXUS_BIN_DIR)/%ssl.so:   $(B_OPENSSL_LIB_INSTALL_DIR)/%crypto.so  $(B_OPENSSL_LIB_INSTALL_DIR)/%ssl.so
-    ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Install... OpenSSL]"
-		${Q_}$(MKDIR) -p $(NEXUS_BIN_DIR)
-		${Q_}$(CP) -fP $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.so*   $(NEXUS_BIN_DIR)
-		${Q_}$(CP) -fP $(B_OPENSSL_LIB_INSTALL_DIR)/libssl.so*      $(NEXUS_BIN_DIR)
-        # export B_OPENSSL_BUILD_COMPLETED=y To prevent submakes from rebuilding OpenSSL
-		$(eval export B_OPENSSL_BUILD_COMPLETED=y)
-		$(B_TRACE_RECIPE_END)
-    endif   #  ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
-
-# If the OpenSSL ".so" files are missing from the OpenSSL install dir, then we'll run the OpenSSL make.
-# Again, use a "pattern rule" because running the recipe once will generate all (both) of the targets.
-$(B_OPENSSL_LIB_INSTALL_DIR)/%crypto.so $(B_OPENSSL_LIB_INSTALL_DIR)/%ssl.so:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... OpenSSL]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/openssl
-	$(B_TRACE_RECIPE_END)
-
-.PHONY: clean_openssl
-clean_openssl:
+clean_openssl: $(B_OPENSSL_CLEAN)
 ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
 	$(B_TRACE_RECIPE_BEGIN)
 	@echo "[Clean... OpenSSL]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/openssl clean
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/../BSEAV/lib/openssl target-clean
 	$(Q_)rm -f $(SSL_CERT_FILE_DEST_LIST)
 	$(B_TRACE_RECIPE_END)
 endif   #  ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
 
-.PHONY: install_openssl
-# Don't bother with the OpenSSL make if its ".so" files exist (we'll just assume that they're up to date
-# since supposedly "OpenSSL never changes".
-ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
-    install_openssl: $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.so  $(B_OPENSSL_LIB_INSTALL_DIR)/libssl.so \
-                     $(SSL_CERT_FILE_DEST_LIST)
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Install... OpenSSL]"
-		${Q_}$(MKDIR) -p $(NEXUS_BIN_DIR)
-		${Q_}$(CP) -fP $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.so*   $(NEXUS_BIN_DIR)
-		${Q_}$(CP) -fP $(B_OPENSSL_LIB_INSTALL_DIR)/libssl.so*      $(NEXUS_BIN_DIR)
-        # export B_OPENSSL_BUILD_COMPLETED=y To prevent submakes from rebuilding OpenSSL
-		$(eval export B_OPENSSL_BUILD_COMPLETED=y)
-		$(B_TRACE_RECIPE_END)
-else
-    install_openssl:
-		$(B_TRACE_RECIPE_BEGIN)
-		@echo "[Skipping... OpenSSL]"
-		$(B_TRACE_RECIPE_END)
-endif   #  ifneq ($(BIP_OPENSSL_LIB_MAYBE),)
+install_openssl: openssl
 
 ###########################################################################################
 #  playback_ip Targets  ("playback_ip", "clean_playback_ip", "install_playback_ip").
 ###########################################################################################
-.PHONY: playback_ip
-playback_ip:   b_os livemedia blive_ext tshdrbuilder psip openssl
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... playback_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/playback_ip
-	$(B_TRACE_RECIPE_END)
+include $(NEXUS_TOP)/lib/playback_ip/b_playback_ip_targets.inc
 
-.PHONY: clean_playback_ip
-clean_playback_ip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... playback_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/playback_ip clean
-	$(B_TRACE_RECIPE_END)
+ifneq ($(B_BUILD_DEPS),n)
+    B_PLAYBACK_IP_BUILD := b_playback_ip_target_build
+    B_PLAYBACK_IP_CLEAN := b_playback_ip_target_clean
+    B_PLAYBACK_IP_INSTALL := $(B_PLAYBACK_IP_BUILD)
+endif
 
-.PHONY: install_playback_ip
-install_playback_ip:        install_b_os install_livemedia install_blive_ext install_tshdrbuilder install_psip install_openssl
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... playback_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/playback_ip install
-	$(B_TRACE_RECIPE_END)
-
+.PHONY: playback_ip clean_playback_ip install_playback_ip
+playback_ip: $(B_PLAYBACK_IP_BUILD)
+clean_playback_ip: $(B_PLAYBACK_IP_CLEAN)
+install_playback_ip: $(B_PLAYBACK_IP_INSTALL)
 
 ###########################################################################################
 #  dtcp_ip Targets  ("dtcp_ip", "clean_dtcp_ip", "install_dtcp_ip").
@@ -525,45 +419,37 @@ install_playback_ip:        install_b_os install_livemedia install_blive_ext ins
 
 #  The following variables were set appropriately in bip_lib.inc.
 #    BIP_DTCP_IP_LIB_DIR_NAME:  either "dtcp_ip" or "dtcp_ip_sage"
-#    BIP_OPENSSL_LIB_MAYBE:  either "" or "openssl"
 
-.PHONY: dtcp_ip
-dtcp_ip:   $(if $(BIP_OPENSSL_LIB_MAYBE),openssl,)
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... dtcp_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME)
-	$(B_TRACE_RECIPE_END)
+.PHONY: dtcp_ip clean_dtcp_ip install_dtcp_ip
 
-.PHONY: clean_dtcp_ip
-clean_dtcp_ip:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... dtcp_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME) clean
-	$(B_TRACE_RECIPE_END)
+ifneq ($(B_BUILD_DEPS),n)
+include $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME)/b_$(BIP_DTCP_IP_LIB_DIR_NAME)_targets.inc
+B_DTCP_IP_BUILD += b_$(BIP_DTCP_IP_LIB_DIR_NAME)_target_build
+B_DTCP_IP_CLEAN += b_$(BIP_DTCP_IP_LIB_DIR_NAME)_target_clean
+B_DTCP_IP_INSTALL = $(B_DTCP_IP_BUILD)
+endif
 
-.PHONY: install_dtcp_ip
-install_dtcp_ip:   $(if $(BIP_OPENSSL_LIB_MAYBE),install_openssl,)
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Install... dtcp_ip]"
-	$(Q_)$(MAKE)            -C $(NEXUS_TOP)/lib/$(BIP_DTCP_IP_LIB_DIR_NAME) install
-	$(B_TRACE_RECIPE_END)
+dtcp_ip: $(B_DTCP_IP_BUILD)
+clean_dtcp_ip: $(B_DTCP_IP_CLEAN)
+install_dtcp_ip: $(B_DTCP_IP_INSTALL)
 
 ###############################################################################
 #  dtcp_ip_ext Targets  ("dtcp_ip_ext", "clean_dtcp_ip_ext").
 ###############################################################################
-.PHONY: dtcp_ip_ext
-dtcp_ip_ext: openssl  dtcp_ip
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Build... dtcp_ip_ext]"
-	$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/security/third_party/dtcp_ip install
-	$(B_TRACE_RECIPE_END)
+.PHONY: dtcp_ip_ext clean_dtcp_ip_ext
 
-.PHONY: clean_dtcp_ip_ext
-clean_dtcp_ip_ext:
-	$(B_TRACE_RECIPE_BEGIN)
-	@echo "[Clean... dtcp_ip_ext]"
-	$(Q_)$(MAKE) -C $(NEXUS_TOP)/../BSEAV/lib/security/third_party/dtcp_ip clean
-	$(B_TRACE_RECIPE_END)
+ifneq ($(B_BUILD_DEPS),n)
+include $(BSEAV)/lib/security/third_party/dtcp_ip/b_dtcp_ip_vendor_targets.inc
+B_DTCP_IP_EXT_BUILD += b_dtcp_ip_vendor_target_build
+B_DTCP_IP_EXT_CLEAN += b_dtcp_ip_vendor_target_clean
+B_DTCP_IP_EXT_INSTALL = $(B_DTCP_IP_BUILD)
+# Ensure dtcp and dependencies are built first regardless of dtcp type
+b_dtcp_ip_vendor_target_build: b_$(BIP_DTCP_IP_LIB_DIR_NAME)_target_build
+endif
+
+dtcp_ip_ext: $(B_DTCP_IP_EXT_BUILD)
+
+clean_dtcp_ip_ext: $(B_DTCP_IP_EXT_CLEAN)
 
 ########################################################################################
 #  Define build targets to generate BIP's HTML documentation.

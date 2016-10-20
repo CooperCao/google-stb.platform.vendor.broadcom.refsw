@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *MT_DDC_REQ - CBUS Translation Layer DDC Requester Registers
  ***************************************************************************/
-#define BCHP_MT_DDC_REQ_CTRL                     0x20d83d00 /* [WO] DDC Requester Control Register */
-#define BCHP_MT_DDC_REQ_CFG_0                    0x20d83d04 /* [RW] DDC Requester Configuration Register 0 */
-#define BCHP_MT_DDC_REQ_CFG_1                    0x20d83d08 /* [RW] DDC Requester Configuration Register 1 */
-#define BCHP_MT_DDC_REQ_STATUS                   0x20d83d0c /* [RO] DDC Requester Status Register */
-#define BCHP_MT_DDC_REQ_PACKET_00_01             0x20d83d40 /* [RW] Packet 00 and 01 */
-#define BCHP_MT_DDC_REQ_PACKET_02_03             0x20d83d44 /* [RW] Packet 02 and 03 */
-#define BCHP_MT_DDC_REQ_PACKET_04_05             0x20d83d48 /* [RW] Packet 04 and 05 */
-#define BCHP_MT_DDC_REQ_PACKET_06_07             0x20d83d4c /* [RW] Packet 06 and 07 */
-#define BCHP_MT_DDC_REQ_PACKET_08_09             0x20d83d50 /* [RW] Packet 08 and 09 */
-#define BCHP_MT_DDC_REQ_PACKET_10_11             0x20d83d54 /* [RW] Packet 10 and 11 */
-#define BCHP_MT_DDC_REQ_PACKET_12_13             0x20d83d58 /* [RW] Packet 12 and 13 */
-#define BCHP_MT_DDC_REQ_PACKET_14_15             0x20d83d5c /* [RW] Packet 14 and 15 */
-#define BCHP_MT_DDC_REQ_PACKET_16_17             0x20d83d60 /* [RW] Packet 16 and 17 */
-#define BCHP_MT_DDC_REQ_PACKET_18_19             0x20d83d64 /* [RW] Packet 18 and 19 */
-#define BCHP_MT_DDC_REQ_PACKET_20_21             0x20d83d68 /* [RW] Packet 20 and 21 */
-#define BCHP_MT_DDC_REQ_PACKET_22_23             0x20d83d6c /* [RW] Packet 22 and 23 */
+#define BCHP_MT_DDC_REQ_CTRL                     0x20d83d00 /* [WO][32] DDC Requester Control Register */
+#define BCHP_MT_DDC_REQ_CFG_0                    0x20d83d04 /* [RW][32] DDC Requester Configuration Register 0 */
+#define BCHP_MT_DDC_REQ_CFG_1                    0x20d83d08 /* [RW][32] DDC Requester Configuration Register 1 */
+#define BCHP_MT_DDC_REQ_STATUS                   0x20d83d0c /* [RO][32] DDC Requester Status Register */
+#define BCHP_MT_DDC_REQ_PACKET_00_01             0x20d83d40 /* [RW][32] Packet 00 and 01 */
+#define BCHP_MT_DDC_REQ_PACKET_02_03             0x20d83d44 /* [RW][32] Packet 02 and 03 */
+#define BCHP_MT_DDC_REQ_PACKET_04_05             0x20d83d48 /* [RW][32] Packet 04 and 05 */
+#define BCHP_MT_DDC_REQ_PACKET_06_07             0x20d83d4c /* [RW][32] Packet 06 and 07 */
+#define BCHP_MT_DDC_REQ_PACKET_08_09             0x20d83d50 /* [RW][32] Packet 08 and 09 */
+#define BCHP_MT_DDC_REQ_PACKET_10_11             0x20d83d54 /* [RW][32] Packet 10 and 11 */
+#define BCHP_MT_DDC_REQ_PACKET_12_13             0x20d83d58 /* [RW][32] Packet 12 and 13 */
+#define BCHP_MT_DDC_REQ_PACKET_14_15             0x20d83d5c /* [RW][32] Packet 14 and 15 */
+#define BCHP_MT_DDC_REQ_PACKET_16_17             0x20d83d60 /* [RW][32] Packet 16 and 17 */
+#define BCHP_MT_DDC_REQ_PACKET_18_19             0x20d83d64 /* [RW][32] Packet 18 and 19 */
+#define BCHP_MT_DDC_REQ_PACKET_20_21             0x20d83d68 /* [RW][32] Packet 20 and 21 */
+#define BCHP_MT_DDC_REQ_PACKET_22_23             0x20d83d6c /* [RW][32] Packet 22 and 23 */
 
 /***************************************************************************
  *CTRL - DDC Requester Control Register

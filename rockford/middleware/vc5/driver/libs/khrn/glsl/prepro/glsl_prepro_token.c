@@ -46,16 +46,16 @@ void glsl_token_malloc_print()
 }
 #endif
 
-static Token *token_alloc(void)   /* clean */
+static Token *token_alloc(void)
 {
 #ifdef TOKEN_DEBUG
    malloc_info.token += sizeof(Token);
    malloc_info.total += sizeof(Token);
 #endif
-   return (Token *)malloc_fast(sizeof(Token));
+   return malloc_fast(sizeof(Token));
 }
 
-Token *glsl_token_construct(TokenType type, TokenData data)    // clean
+Token *glsl_token_construct(TokenType type, TokenData data)
 {
    Token *token = token_alloc();
 
@@ -92,24 +92,18 @@ Token *glsl_token_construct_intconst(int i) {
    return glsl_token_construct(INTCONSTANT, data);
 }
 
-Token *glsl_lex_ppnumber(Token *token)
+TokenType glsl_lex_ppnumber(const char *s, uint32_t *value)
 {
-   assert(token->type == PPNUMBER);
-
-   uint32_t value;
-   int number_type = numlex(token->data.s, &value);
+   int number_type = numlex(s, value);
    if (number_type == NUM_INVALID)
-      glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, "invalid numeric constant \"%s\"", token->data.s);
+      glsl_compile_error(ERROR_LEXER_PARSER, 1, g_LineNumber, "invalid numeric constant \"%s\"", s);
 
    switch(number_type) {
-      case NUM_INT:   token->type = INTCONSTANT; break;
-      case NUM_UINT:  token->type = UINTCONSTANT; break;
-      case NUM_FLOAT: token->type = FLOATCONSTANT; break;
-      default: unreachable();
+      case NUM_INT:   return INTCONSTANT;
+      case NUM_UINT:  return UINTCONSTANT;
+      case NUM_FLOAT: return FLOATCONSTANT;
+      default: unreachable(); return 0;
    }
-   token->data.v = value;
-
-   return token;
 }
 
 bool glsl_token_equals(Token *t1, Token *t2)   // clean

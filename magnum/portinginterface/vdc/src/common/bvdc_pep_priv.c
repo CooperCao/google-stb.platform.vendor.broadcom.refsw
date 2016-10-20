@@ -42,7 +42,6 @@
 #include "bvdc_source_priv.h"
 #include "bvdc_pep_priv.h"
 #include "bvdc_tnt_priv.h"
-#include "bvdc_hist_priv.h"
 
 BDBG_MODULE(BVDC_PEP);
 BDBG_OBJECT_ID(BVDC_PEP);
@@ -164,7 +163,6 @@ static void BVDC_P_Cab_BuildRul_isr
  *  BVDC_P_Lab_BuildRul_isr
  *  Builds LAB block
  **************************************************************************/
-#ifndef BVDC_P_SUPPORT_NO_LAB
 static void BVDC_P_Lab_BuildRul_isr
     ( const BVDC_Window_Handle     hWindow,
       BVDC_P_Pep_Handle            hPep,
@@ -235,12 +233,10 @@ static void BVDC_P_Lab_BuildRul_isr
     BDBG_LEAVE(BVDC_P_Lab_BuildRul_isr);
     return;
 }
-#endif
 #endif /* (BVDC_P_SUPPORT_PEP) */
 
 
 #if(BVDC_P_SUPPORT_HIST)
-#if(BVDC_P_SUPPORT_HIST_VER == BVDC_P_SUPPORT_HIST_VER_1)
 /*************************************************************************
  *  {secret}
  *  BVDC_P_Histo_BuildRul_isr
@@ -318,12 +314,10 @@ void BVDC_P_Histo_UpdateHistoData_isr
  **************************************************************************/
 static void BVDC_P_Pep_ReadHistoData_isr
     ( const BVDC_Window_Handle     hWindow,
-      BVDC_P_Pep_Handle            hPep,
-      const BVDC_P_HistContext    *pHist )
+      BVDC_P_Pep_Handle            hPep )
 {
     uint32_t id;
 
-    BSTD_UNUSED(pHist);
     BSTD_UNUSED(hWindow);
     BDBG_ENTER(BVDC_P_Pep_ReadHistoData_isr);
     BDBG_OBJECT_ASSERT(hPep, BVDC_PEP);
@@ -341,8 +335,6 @@ static void BVDC_P_Pep_ReadHistoData_isr
 
     BDBG_LEAVE(BVDC_P_Pep_ReadHistoData_isr);
 }
-
-#endif /* BVDC_P_SUPPORT_HIST_VER */
 #endif /* BVDC_P_SUPPORT_HIST */
 
 
@@ -572,14 +564,13 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
 
 
 #if(BVDC_P_SUPPORT_HIST)
-#if(BVDC_P_SUPPORT_HIST_VER <= BVDC_P_SUPPORT_HIST_VER_1)
     /* Process HIST data here */
     /* Old PEP arch, histogram data is read every frame */
     if(hPep->bProcessHist == true)
     {
         /* Build RUL to reset histogram every other field and collect  */
         /* the histogram the alternate field */
-        BVDC_P_Pep_ReadHistoData_isr(hWindow, hPep, NULL);
+        BVDC_P_Pep_ReadHistoData_isr(hWindow, hPep);
 
         /* Reset histogram and min_max */
         *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
@@ -606,7 +597,6 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
     {
         hPep->bProcessHist = true;
     }
-#endif /* BVDC_P_SUPPORT_HIST_VER */
 #endif /* BVDC_P_SUPPORT_HIST */
 
 #if(BVDC_P_SUPPORT_PEP)
@@ -628,7 +618,6 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
     }
     else
     {
-#ifndef BVDC_P_SUPPORT_NO_LAB
         uint32_t id = 0;
 
         if(pCurInfo->bContrastStretch || hPep->bLoadLabTable)
@@ -701,13 +690,13 @@ static void BVDC_P_Pep_BuildVsyncRul_isr
             BKNI_Memcpy((void*)pList->pulCurrent, (void*)&hPep->aulLabTable[0], BVDC_P_LAB_TABLE_SIZE * sizeof(uint32_t));
             pList->pulCurrent += BVDC_P_LAB_TABLE_SIZE;
         }
-#endif
         hPep->bProcessCab = true;
     }
 
 #else
     BSTD_UNUSED(hPep);
     BSTD_UNUSED(pList);
+    BSTD_UNUSED(pCurInfo);
 #endif /* BVDC_P_SUPPORT_PEP */
 
     BDBG_LEAVE(BVDC_P_Pep_BuildVsyncRul_isr);
@@ -742,7 +731,7 @@ void BVDC_P_Pep_BuildRul_isr
     BDBG_OBJECT_ASSERT(hWindow->stCurResource.hPep, BVDC_PEP);
     bInitial |= hWindow->stCurResource.hPep->bInitial;
 
-#if (BVDC_P_SUPPORT_HIST && BVDC_P_SUPPORT_HIST_VER <= BVDC_P_SUPPORT_HIST_VER_1)
+#if (BVDC_P_SUPPORT_HIST)
     if(pCurDirty->stBits.bHistoRect || bInitial)
     {
         BVDC_P_Histo_BuildRul_isr(hWindow, hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced, pList);
@@ -764,9 +753,7 @@ void BVDC_P_Pep_BuildRul_isr
 
     if(pCurDirty->stBits.bLabAdjust || bInitial || hWindow->stCurResource.hPep->bLabCtrlPending)
     {
-#ifndef BVDC_P_SUPPORT_NO_LAB
         BVDC_P_Lab_BuildRul_isr(hWindow, hWindow->stCurResource.hPep, pList);
-#endif
         pCurDirty->stBits.bLabAdjust = BVDC_P_CLEAN;
     }
 
@@ -828,126 +815,6 @@ void BVDC_P_Pep_SetInfo_isr
 
         hPep->bHardStart = true;
     }
-}
-
-
-/*************************************************************************
- *  {secret}
- *  BVDC_P_Tab_BuildRul_isr
- *  Builds TAB block
- **************************************************************************/
-void BVDC_P_Tab_BuildRul_isr
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_P_ListInfo             *pList )
-{
-    BVDC_P_Window_Info    *pCurInfo;
-
-    BDBG_ENTER(BVDC_P_Tab_BuildRul_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    /* Only C0_V0 has PEP */
-    BDBG_ASSERT(BVDC_P_WindowId_eComp0_V0 == hWindow->eId);
-
-    /* Get current pointer to RUL */
-    pCurInfo = &hWindow->stCurInfo;
-
-#if (BVDC_P_SUPPORT_TAB)
-    if(pCurInfo->bSharpnessEnable)
-    {
-        BDBG_MSG(("TAB Sharpness = %d => Peak Setting = %d, Peak Scale = %d",
-                   pCurInfo->sSharpness, pCurInfo->ulSharpnessPeakSetting,
-                   pCurInfo->ulSharpnessPeakScale));
-
-        /* Build RUL */
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_CONFIGURATION_REG);
-        *pList->pulCurrent++ =
-            ((pCurInfo->stSplitScreenSetting.eSharpness == BVDC_SplitScreenMode_eDisable) ?
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DEMO_ENABLE, DISABLE) :
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DEMO_ENABLE, ENABLE)) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, TAB_ENABLE, NORMAL) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, LUMA_MEDIAN, ONE_TAP_LUMA_MEDIAN) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, CHROMA_MEDIAN, THREE_TAP_CHROMA_MEDIAN) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DISABLE_CHROMA_LUMA, DISABLE) |
-            BCHP_FIELD_DATA(TAB_0_CONFIGURATION_REG, CHROMA_LUMA_SETTING, 0x0) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DISABLE_CHROMA_CHROMA, DISABLE) |
-            BCHP_FIELD_DATA(TAB_0_CONFIGURATION_REG, CHROMA_CHROMA_SETTING, 0x0);
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_LUMA_PEAK_CORRECTION_REG);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(TAB_0_LUMA_PEAK_CORRECTION_REG, OLD_CORE_FUNCTION, 0)    |
-            BCHP_FIELD_DATA(TAB_0_LUMA_PEAK_CORRECTION_REG, OVERSHOOT,         0xFF) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_PEAK_CORRECTION_REG, PEAKCORE,          0x10) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_PEAK_CORRECTION_REG, PEAK_SCALE,        pCurInfo->ulSharpnessPeakScale) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_PEAK_CORRECTION_REG, PEAK_SETTING,      pCurInfo->ulSharpnessPeakSetting);
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_LUMA_EDGE_ENHANCEMENT_REG);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(TAB_0_LUMA_EDGE_ENHANCEMENT_REG, EDGECORE, 0x3) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_EDGE_ENHANCEMENT_REG, EDGEMAX, 0x14) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_EDGE_ENHANCEMENT_REG, EDGE_SCALE, 0x6) |
-            BCHP_FIELD_DATA(TAB_0_LUMA_EDGE_ENHANCEMENT_REG, EDGE_SETTING, 0x0);
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_CHROMA_PEAKING_REG);
-        *pList->pulCurrent++ =
-            BCHP_FIELD_DATA(TAB_0_CHROMA_PEAKING_REG, SATCORE, 0x0) |
-            BCHP_FIELD_DATA(TAB_0_CHROMA_PEAKING_REG, SATMAX, 0x14) |
-            BCHP_FIELD_ENUM(TAB_0_CHROMA_PEAKING_REG, SAT_SETTING, DISABLE) |
-            BCHP_FIELD_DATA(TAB_0_CHROMA_PEAKING_REG, SATSCALE, 0x6);
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_CHROMA_MODULATED_FILTER_REG);
-        *pList->pulCurrent++ = 0x55150501;
-
-        /* Setting up the demo mode register */
-        if(pCurInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable)
-        {
-            uint32_t ulBoundary = (hWindow->stSrcCnt.ulWidth < hWindow->stAdjSclOut.ulWidth) ?
-                                  (hWindow->stSrcCnt.ulWidth / 2) :
-                                  (hWindow->stAdjSclOut.ulWidth / 2);
-            uint32_t ulDemoSide = (pCurInfo->stSplitScreenSetting.eSharpness == BVDC_SplitScreenMode_eLeft) ?
-                                   BCHP_TAB_0_DEMO_SETTING_REG_DEMO_L_R_LEFT :
-                                   BCHP_TAB_0_DEMO_SETTING_REG_DEMO_L_R_RIGHT;
-
-            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_DEMO_SETTING_REG);
-            *pList->pulCurrent++ =
-                BCHP_FIELD_DATA(TAB_0_DEMO_SETTING_REG, DEMO_L_R, ulDemoSide) |
-                BCHP_FIELD_DATA(TAB_0_DEMO_SETTING_REG, DEMO_BOUNDARY, ulBoundary);
-
-            BDBG_MSG(("TAB Demo Mode: L_R = %s, BOUNDARY = %d",
-                      ((ulDemoSide == BCHP_TAB_0_DEMO_SETTING_REG_DEMO_L_R_LEFT) ? "L" : "R"),
-                      ulBoundary));
-        }
-    }
-    else
-    {
-        /* Bypass TAB */
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_CONFIGURATION_REG);
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DEMO_ENABLE, DISABLE) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, TAB_ENABLE, BYPASS_IN_OUT) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DISABLE_CHROMA_LUMA, DISABLE) |
-            BCHP_FIELD_ENUM(TAB_0_CONFIGURATION_REG, DISABLE_CHROMA_CHROMA, DISABLE));
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_TAB_0_CHROMA_PEAKING_REG);
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_ENUM(TAB_0_CHROMA_PEAKING_REG, SAT_SETTING, DISABLE));
-    }
-
-#else
-    BSTD_UNUSED(pList);
-#endif /* (BVDC_P_SUPPORT_TAB) */
-
-    pCurInfo->stDirty.stBits.bTabAdjust = false;
-
-    BDBG_LEAVE(BVDC_P_Tab_BuildRul_isr);
-    return;
 }
 
 /* End of File */

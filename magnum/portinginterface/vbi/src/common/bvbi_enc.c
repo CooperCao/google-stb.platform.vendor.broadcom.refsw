@@ -62,12 +62,15 @@ static BERR_Code BVBI_P_Encode_Set_VBI (
     bool bEnabled,
     uint32_t ulSelect_Standard);
 
+#if !B_REFSW_MINIMAL
 static BERR_Code BVBI_P_Encode_Get_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool* pbEnabled,
     uint32_t ulSelect_Standard);
+#endif
 
 #if (BVBI_NUM_PTVEC > 0) /** { **/
+#if !B_REFSW_MINIMAL
 static BERR_Code BVBI_P_Encode_656_Set_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool bEnabled,
@@ -77,10 +80,12 @@ static BERR_Code BVBI_P_Encode_656_Get_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool* pbEnabled,
     uint32_t ulSelect_Standard);
+#endif
 #endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 static BERR_Code BVBI_P_Encode_XSER_Set_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool bEnabled,
@@ -90,6 +95,7 @@ static BERR_Code BVBI_P_Encode_XSER_Get_VBI (
     BVBI_Encode_Handle encodeHandle,
     bool* pbEnabled,
     uint32_t ulSelect_Standard);
+#endif
 
 #endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
 
@@ -243,12 +249,7 @@ BERR_Code BVBI_Encode_Create (
     pVbi_Enc->curr.amolType                 = BVBI_AMOL_Type_I;
     pVbi_Enc->curr.scteType                 = BVBI_SCTE_Type_CCONLY;
     pVbi_Enc->curr.eCsc                     = BVBI_CSC_SCTE_NTSCYIQ;
-#if defined(BVBI_P_CGMSAE_VER1) || defined(BVBI_P_CGMSAE_VER2) || \
-    defined(BVBI_P_CGMSAE_VER4)
-    pVbi_Enc->curr.bCea805dStyle            = false;
-#else
     pVbi_Enc->curr.bCea805dStyle            = true;
-#endif
     pVbi_Enc->curr.bPR18010_bad_line_number = false;
     pVbi_Enc->curr.xserSettings             = *BVBI_P_GetDefaultXserSettings();
 
@@ -290,13 +291,6 @@ BERR_Code BVBI_Encode_Create (
     /* Next state is the same as current state for now. */
     pVbi_Enc->next = pVbi_Enc->curr;
 
-    /* Special initialization for CGMS */
-#ifdef P_CGMS_SOFTWARE_CRC
-    pVbi_Enc->last_cgms_user = 0;
-    pVbi_Enc->last_cgms_formatted =
-        BVPI_P_CGMS_format_data_isr (pVbi_Enc->last_cgms_user);
-#endif
-
     if (pSettings->bSupportTeletext)
     {
         /* Initialize teletext pointers for LCO */
@@ -308,7 +302,8 @@ BERR_Code BVBI_Encode_Create (
         }
         BKNI_Memset((void*)pttDataT, 0x0, sizeof(BVBI_P_TTData));
         eErr = BVBI_P_TTData_Alloc (
-            pVbi->hMem, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH, pttDataT);
+            pVbi->hMmaHeap, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH,
+            pttDataT);
         if (eErr != BERR_SUCCESS)
         {
             eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -323,7 +318,8 @@ BERR_Code BVBI_Encode_Create (
         }
         BKNI_Memset((void*)pttDataB, 0x0, sizeof(BVBI_P_TTData));
         eErr = BVBI_P_TTData_Alloc (
-            pVbi->hMem, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH, pttDataB);
+            pVbi->hMmaHeap, BVBI_TT_MAX_LINES, BVBI_TT_MAX_LINELENGTH,
+            pttDataB);
         if (eErr != BERR_SUCCESS)
         {
             eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -334,7 +330,7 @@ BERR_Code BVBI_Encode_Create (
 #if (BVBI_NUM_SCTEE > 0)  /** { **/
     /* Allocate empty space for SCTE data */
     eErr = BVBI_P_Encode_AllocScte (
-        pVbi->hMem,
+        pVbi->hMmaHeap,
         pVbi_Enc->hTopScteNrtv,
         pVbi_Enc->hBotScteNrtv,
         pVbi_Enc->hTopScteMono,
@@ -378,12 +374,12 @@ BERR_Code BVBI_Encode_Create (
     {
         if (NULL != pttDataB)
         {
-            BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttDataB);
+            BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttDataB);
             BKNI_Free ((void*)pttDataB);
         }
         if (NULL != pttDataT)
         {
-            BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttDataT);
+            BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttDataT);
             BKNI_Free ((void*)pttDataT);
         }
         if (NULL != pVbi_Enc)
@@ -441,21 +437,21 @@ BERR_Code BVBI_Encode_Destroy(BVBI_Encode_Handle encodeHandle)
     {
         BVBI_P_LCOP_DESTROY (pVbi_Enc, topTTDataO, &pVbi->ttFreelist, clink);
         pttData = BVBI_P_LCOP_GET (pVbi_Enc, topTTDataO);
-        BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttData);
+        BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttData);
         BKNI_Free ((void*)pttData);
         BVBI_P_LCOP_DESTROY (pVbi_Enc, botTTDataO, &pVbi->ttFreelist, clink);
         pttData = BVBI_P_LCOP_GET (pVbi_Enc, botTTDataO);
-        BVBI_P_TTData_Alloc (pVbi->hMem, 0, 0, pttData);
+        BVBI_P_TTData_Alloc (pVbi->hMmaHeap, 0, 0, pttData);
         BKNI_Free ((void*)pttData);
     }
 #if (BVBI_NUM_SCTEE > 0)  /** { **/
     BVBI_P_Encode_FreeScte (
-        pVbi->hMem,
+        pVbi->hMmaHeap,
         pVbi_Enc->hTopScteNrtv,
         pVbi_Enc->hBotScteNrtv,
         pVbi_Enc->hTopScteMono,
         pVbi_Enc->hBotScteMono,
-        &pVbi_Enc->sctePamData
+        pVbi_Enc->sctePamData
     );
 #endif /** } BVBI_NUM_SCTEE **/
 
@@ -647,6 +643,7 @@ BERR_Code BVBI_Encode_SetSCTEOptions(
 }
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -675,6 +672,7 @@ BERR_Code BVBI_Encode_GetAMOLOptions(
     BDBG_LEAVE(BVBI_Encode_GetAMOLOptions);
     return BERR_SUCCESS;
 }
+#endif
 
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 /***************************************************************************
@@ -728,6 +726,7 @@ BERR_Code BVBI_Encode_SetVideoFormat (
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -743,6 +742,7 @@ BERR_Code BVBI_Encode_SetHdmiPixelRepetition(
     BDBG_LEAVE(BVBI_Encode_SetHdmiPixelRepetition);
     return BERR_SUCCESS;
 }
+#endif
 
 #if !B_REFSW_MINIMAL
 /***************************************************************************
@@ -878,14 +878,6 @@ BERR_Code BVBI_Encode_SetCGMSBstyle(
     /* check parameters */
     pVbi_Enc = encodeHandle;
     BDBG_OBJECT_ASSERT (pVbi_Enc, BVBI_ENC);
-#if !defined(BVBI_P_CGMSAE_VER3) && !defined(BVBI_P_CGMSAE_VER5)
-    if (bCea805dStyle)
-    {
-        BDBG_ERR(("CGMS-B not supported by VEC hardware"));
-        BDBG_LEAVE(BVBI_Encode_GetCGMSBstyle);
-        return BERR_TRACE (BERR_NOT_SUPPORTED);
-    }
-#endif
 
     /* Remember format as requested */
     pVbi_Enc->next.bCea805dStyle = bCea805dStyle;
@@ -894,6 +886,7 @@ BERR_Code BVBI_Encode_SetCGMSBstyle(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -919,9 +912,11 @@ BERR_Code BVBI_Encode_GetCGMSBstyle(BVBI_Encode_Handle encodeHandle,
     BDBG_LEAVE(BVBI_Encode_SetCGMSBstyle);
     return BERR_SUCCESS;
 }
+#endif
 
 #if (BVBI_NUM_PTVEC > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -958,7 +953,9 @@ BERR_Code BVBI_Encode_656_SetFormat(BVBI_Encode_Handle encodeHandle,
     BDBG_LEAVE(BVBI_Encode_656_SetFormat);
     return BERR_SUCCESS;
 }
+#endif
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -986,11 +983,13 @@ BERR_Code BVBI_Encode_656_GetFormat(BVBI_Encode_Handle encodeHandle,
     BDBG_LEAVE(BVBI_Encode_656_GetFormat);
     return BERR_SUCCESS;
 }
+#endif
 
 #endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -1020,7 +1019,9 @@ BERR_Code BVBI_Encode_XSER_SetOptions (
     BDBG_LEAVE (BVBI_Encode_XSER_SetOptions);
     return BERR_SUCCESS;
 }
+#endif
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -1030,7 +1031,7 @@ BERR_Code BVBI_Encode_XSER_GetOptions (
 {
     BVBI_P_Encode_Handle* pVbi_Enc = NULL;
 
-    BDBG_ENTER(BVBI_P_Encode_XSER_Get_VBI);
+    BDBG_ENTER(BVBI_P_Encode_XSER_GetOptions);
 
     /* check parameters */
     pVbi_Enc = encodeHandle;
@@ -1045,9 +1046,10 @@ BERR_Code BVBI_Encode_XSER_GetOptions (
     *pSettings = pVbi_Enc->curr.xserSettings;
 
     /* Success */
-    BDBG_LEAVE (BVBI_P_Encode_XSER_Get_VBI);
+    BDBG_LEAVE (BVBI_P_Encode_XSER_GetOptions);
     return BERR_SUCCESS;
 }
+#endif
 
 #endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
 
@@ -1121,22 +1123,8 @@ BERR_Code BVBI_Encode_Data_isr (
             /* Avoid a lengthy calculation if possible */
             /* Transform data from user format to encoder format */
             uint32_t ulData = pVbi_Fld->ulCGMSData;
-#ifdef P_CGMS_SOFTWARE_CRC
-            if (ulData == pVbi_Enc->last_cgms_user)
-            {
-                ulData = pVbi_Enc->last_cgms_formatted;
-            }
-            else
-            {
-                pVbi_Enc->last_cgms_user = ulData;
-                if (pVbi_Enc->curr.eVideoFormat != BFMT_VideoFmt_e576p_50Hz)
-                    ulData = BVPI_P_CGMS_format_data_isr (ulData);
-                pVbi_Enc->last_cgms_formatted = ulData;
-            }
-#else
             if (pVbi_Enc->curr.eVideoFormat != BFMT_VideoFmt_e576p_50Hz)
                 ulData = BVPI_P_CGMS_format_data_isr (ulData);
-#endif
 
             (void)BVBI_P_CGMSA_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
@@ -1145,8 +1133,6 @@ BERR_Code BVBI_Encode_Data_isr (
                     polarity,
                     ulData );
         }
-#if defined(BVBI_P_CGMSAE_VER2) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)  /** { **/
         if ( (whatActive               & BVBI_P_SELECT_CGMSB          ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_CGMSB          ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_CGMS_NOENCODE)    )
@@ -1158,7 +1144,6 @@ BERR_Code BVBI_Encode_Data_isr (
                     polarity,
                     *(pVbi_Fld->pCgmsbDatum));
         }
-#endif /** } **/
         if ( (whatActive               & BVBI_P_SELECT_WSS           ) &&
              (pVbi_Fld->ulWhichPresent & BVBI_P_SELECT_WSS           ) &&
              !(pVbi_Fld->ulErrInfo     & BVBI_LINE_ERROR_WSS_NOENCODE)    )
@@ -1204,7 +1189,6 @@ BERR_Code BVBI_Encode_Data_isr (
             }
             (void)BVBI_P_TT_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
-                    pVbi_Enc->pVbi->hMem,
                     BVBI_P_is656_isr(pVbi_Enc->eDest),
                     pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eTTE],
                     currentState->eVideoFormat,
@@ -1263,15 +1247,14 @@ BERR_Code BVBI_Encode_Data_isr (
         {
             (void)BVBI_P_SCTE_Encode_Data_isr (
                     pVbi_Enc->pVbi->hReg,
-                    pVbi_Enc->pVbi->hMem,
                     BVBI_P_is656_isr(pVbi_Enc->eDest),
                     pVbi_Enc->curr.hwCoreIndex[BVBI_P_EncCoreType_eSCTE],
                     currentState->eVideoFormat,
                     polarity,
                     currentState->scteType,
                     pVbi_Fld->pPScteData,
-                    pVbi_Enc->hTopScteNrtv,
-                    pVbi_Enc->hBotScteNrtv,
+                    &pVbi_Enc->hTopScteNrtv,
+                    &pVbi_Enc->hBotScteNrtv,
                     pVbi_Enc->hTopScteMono,
                     pVbi_Enc->hBotScteMono,
                     &pVbi_Enc->sctePamData);
@@ -1403,8 +1386,6 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
                 goto done;
         }
     }
-#if defined(BVBI_P_CGMSAE_VER2) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)  /** { **/
     isActive = ((nextActive & BVBI_P_SELECT_CGMSB) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_CGMSB))
@@ -1425,7 +1406,6 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
                 goto done;
         }
     }
-#endif /** } **/
     isActive = ((nextActive & BVBI_P_SELECT_WSS) != 0);
     if (force ||
         BVBI_P_Encode_IsDirty (pVbi_Enc, nextActive, BVBI_P_SELECT_WSS))
@@ -1480,7 +1460,6 @@ static BERR_Code BVBI_P_Encode_ApplyChanges (
         /* coverity[var_deref_model: FALSE] */
         eErr = BERR_TRACE (BVBI_P_TT_Enc_Program (
             pVbi->hReg,
-            pVbi->hMem,
             BVBI_P_is656_isr(pVbi_Enc->eDest),
             hwCoreIndex[BVBI_P_EncCoreType_eTTE],
             isActive,
@@ -1645,16 +1624,6 @@ BERR_Code BVBI_Encode_SetCGMSA(BVBI_Encode_Handle encodeHandle, bool bEnabled)
 }
 BERR_Code BVBI_Encode_SetCGMSB(BVBI_Encode_Handle encodeHandle, bool bEnabled)
 {
-#if defined(BVBI_P_CGMSAE_VER2) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)  /** { **/
-#else
-    BSTD_UNUSED(encodeHandle);
-    if (bEnabled)
-    {
-        BDBG_ERR(("No CGMS-B hardware feature"));
-        return BERR_TRACE(BVBI_ERR_HW_UNSUPPORTED);
-    }
-#endif
     return BVBI_P_Encode_Set_VBI (encodeHandle, bEnabled, BVBI_P_SELECT_CGMSB);
 }
 BERR_Code BVBI_Encode_SetWSS(BVBI_Encode_Handle encodeHandle, bool bEnabled)
@@ -1718,11 +1687,13 @@ BERR_Code BVBI_Encode_SetAMOL(
 #endif
     return BVBI_P_Encode_Set_VBI (encodeHandle, bEnabled, BVBI_P_SELECT_AMOL);
 }
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_SetMCC(
     BVBI_Encode_Handle encodeHandle, bool bEnabled)
 {
     return BVBI_P_Encode_Set_VBI (encodeHandle, bEnabled, BVBI_P_SELECT_MCC);
 }
+#endif
 
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_SetSCTE(
@@ -1741,6 +1712,7 @@ BERR_Code BVBI_Encode_SetSCTE(
 }
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_GetCC(BVBI_Encode_Handle encodeHandle, bool* pbEnabled)
 {
     return BVBI_P_Encode_Get_VBI (encodeHandle, pbEnabled, BVBI_P_SELECT_CC);
@@ -1781,6 +1753,7 @@ BERR_Code BVBI_Encode_GetMCC(
 {
     return BVBI_P_Encode_Get_VBI (encodeHandle, pbEnabled, BVBI_P_SELECT_MCC);
 }
+#endif
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_GetSCTE(
     BVBI_Encode_Handle encodeHandle, bool* pbEnabled)
@@ -1791,6 +1764,7 @@ BERR_Code BVBI_Encode_GetSCTE(
 
 #if (BVBI_NUM_PTVEC > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_656_SetCC(BVBI_Encode_Handle encodeHandle, bool bEnabled)
 {
     return BVBI_P_Encode_656_Set_VBI (encodeHandle, bEnabled, BVBI_P_SELECT_CC);
@@ -1822,6 +1796,7 @@ BERR_Code BVBI_Encode_656_SetMCC(
     return BVBI_P_Encode_656_Set_VBI (
         encodeHandle, bEnabled, BVBI_P_SELECT_MCC);
 }
+#endif
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_656_SetSCTE(
     BVBI_Encode_Handle encodeHandle, bool bEnabled)
@@ -1831,6 +1806,7 @@ BERR_Code BVBI_Encode_656_SetSCTE(
 }
 #endif /** } (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) **/
 
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_656_GetCC(
     BVBI_Encode_Handle encodeHandle, bool* pbEnabled)
 {
@@ -1867,6 +1843,7 @@ BERR_Code BVBI_Encode_656_GetMCC(
     return BVBI_P_Encode_656_Get_VBI (
         encodeHandle, pbEnabled, BVBI_P_SELECT_MCC);
 }
+#endif
 #if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 BERR_Code BVBI_Encode_656_GetSCTE(
     BVBI_Encode_Handle encodeHandle, bool* pbEnabled)
@@ -1879,6 +1856,7 @@ BERR_Code BVBI_Encode_656_GetSCTE(
 #endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
+#if !B_REFSW_MINIMAL
 BERR_Code BVBI_Encode_XSER_SetTeletext(
     BVBI_Encode_Handle encodeHandle, bool bEnabled)
 {
@@ -1891,6 +1869,7 @@ BERR_Code BVBI_Encode_XSER_GetTeletext(
     return BVBI_P_Encode_XSER_Get_VBI (
         encodeHandle, pbEnabled, BVBI_P_SELECT_TT);
 }
+#endif
 #endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
 
 /***************************************************************************
@@ -1967,6 +1946,7 @@ static BERR_Code BVBI_P_Encode_Set_VBI(
     return BERR_SUCCESS;
 }
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -1996,9 +1976,11 @@ static BERR_Code BVBI_P_Encode_Get_VBI(
     BDBG_LEAVE(BVBI_P_Encode_Get_VBI);
     return BERR_SUCCESS;
 }
+#endif
 
 #if (BVBI_NUM_PTVEC > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2067,7 +2049,9 @@ static BERR_Code BVBI_P_Encode_656_Set_VBI(
     BDBG_LEAVE(BVBI_P_Encode_656_Set_VBI);
     return BERR_SUCCESS;
 }
+#endif
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2097,11 +2081,13 @@ static BERR_Code BVBI_P_Encode_656_Get_VBI(
     BDBG_LEAVE(BVBI_P_Encode_656_Get_VBI);
     return BERR_SUCCESS;
 }
+#endif
 
 #endif /** } (BVBI_NUM_PTVEC > 0) **/
 
 #if (BVBI_P_HAS_XSER_TT > 0) /** { **/
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2131,7 +2117,9 @@ static BERR_Code BVBI_P_Encode_XSER_Set_VBI(
     BDBG_LEAVE(BVBI_P_Encode_XSER_Set_VBI);
     return BERR_SUCCESS;
 }
+#endif
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2161,6 +2149,7 @@ static BERR_Code BVBI_P_Encode_XSER_Get_VBI(
     BDBG_LEAVE(BVBI_P_Encode_XSER_Get_VBI);
     return BERR_SUCCESS;
 }
+#endif
 
 #endif /** } (BVBI_P_HAS_XSER_TT > 0) **/
 

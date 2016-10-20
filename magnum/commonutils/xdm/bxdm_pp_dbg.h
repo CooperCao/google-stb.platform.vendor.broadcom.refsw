@@ -141,12 +141,13 @@ void BXDM_PPDBG_P_PrintDMConfig_isr(
    bool bLastCall
    );
 
-void BXDM_MODULE_MSG_isr(
+void BXDM_MODULE_MSG_pp_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
    const BXDM_Debug_MsgType eMessageType,
    char * format,
    ...
    );
+#define BXDM_MODULE_MSG_isr(format) BXDM_MODULE_MSG_pp_isr format
 
 
 #elif BDBG_DEBUG_BUILD && BXDM_DEBUG_FIFO
@@ -172,7 +173,7 @@ void BXDM_MODULE_MSG_isr(
 #define BXDM_PPDBG_P_PrintSelectionModeOverride_isr   BXDM_PPDFIFO_P_PrintSelectionModeOverride_isr
 #define BXDM_PPDBG_P_PrintEndSelectionModeOverride_isr   BXDM_PPDFIFO_P_PrintEndSelectionModeOverride_isr
 
-#define BXDM_MODULE_MSG_isr BXDM_PPDFIFO_P_QueString_isr
+#define BXDM_MODULE_MSG_isr(format) BXDM_PPDFIFO_P_QueString_isr format
 
 
 #else
@@ -195,7 +196,7 @@ void BXDM_MODULE_MSG_isr(
 #define BXDM_PPDBG_P_PrintUnifiedPicture_isr( hXdmPP, pLocalState, pstPicture )
 #define BXDM_PPDBG_P_PrintDMConfig_isr( hXdmPP, pLocalState, bLastCall )
 
-#define BXDM_MODULE_MSG_isr
+#define BXDM_MODULE_MSG_isr(format) (void)0
 
 #endif
 

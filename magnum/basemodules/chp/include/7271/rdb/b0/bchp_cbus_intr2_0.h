@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *CBUS_INTR2_0 - Level 2 Interrupt Registers 0
  ***************************************************************************/
-#define BCHP_CBUS_INTR2_0_CPU_STATUS             0x20d83800 /* [RO] CPU Interrupt Status Register */
-#define BCHP_CBUS_INTR2_0_CPU_SET                0x20d83804 /* [WO] CPU Interrupt Set Register */
-#define BCHP_CBUS_INTR2_0_CPU_CLEAR              0x20d83808 /* [WO] CPU Interrupt Clear Register */
-#define BCHP_CBUS_INTR2_0_CPU_MASK_STATUS        0x20d8380c /* [RO] CPU Interrupt Mask Status Register */
-#define BCHP_CBUS_INTR2_0_CPU_MASK_SET           0x20d83810 /* [WO] CPU Interrupt Mask Set Register */
-#define BCHP_CBUS_INTR2_0_CPU_MASK_CLEAR         0x20d83814 /* [WO] CPU Interrupt Mask Clear Register */
-#define BCHP_CBUS_INTR2_0_PCI_STATUS             0x20d83818 /* [RO] PCI Interrupt Status Register */
-#define BCHP_CBUS_INTR2_0_PCI_SET                0x20d8381c /* [WO] PCI Interrupt Set Register */
-#define BCHP_CBUS_INTR2_0_PCI_CLEAR              0x20d83820 /* [WO] PCI Interrupt Clear Register */
-#define BCHP_CBUS_INTR2_0_PCI_MASK_STATUS        0x20d83824 /* [RO] PCI Interrupt Mask Status Register */
-#define BCHP_CBUS_INTR2_0_PCI_MASK_SET           0x20d83828 /* [WO] PCI Interrupt Mask Set Register */
-#define BCHP_CBUS_INTR2_0_PCI_MASK_CLEAR         0x20d8382c /* [WO] PCI Interrupt Mask Clear Register */
+#define BCHP_CBUS_INTR2_0_CPU_STATUS             0x20d83800 /* [RO][32] CPU Interrupt Status Register */
+#define BCHP_CBUS_INTR2_0_CPU_SET                0x20d83804 /* [WO][32] CPU Interrupt Set Register */
+#define BCHP_CBUS_INTR2_0_CPU_CLEAR              0x20d83808 /* [WO][32] CPU Interrupt Clear Register */
+#define BCHP_CBUS_INTR2_0_CPU_MASK_STATUS        0x20d8380c /* [RO][32] CPU Interrupt Mask Status Register */
+#define BCHP_CBUS_INTR2_0_CPU_MASK_SET           0x20d83810 /* [WO][32] CPU Interrupt Mask Set Register */
+#define BCHP_CBUS_INTR2_0_CPU_MASK_CLEAR         0x20d83814 /* [WO][32] CPU Interrupt Mask Clear Register */
+#define BCHP_CBUS_INTR2_0_PCI_STATUS             0x20d83818 /* [RO][32] PCI Interrupt Status Register */
+#define BCHP_CBUS_INTR2_0_PCI_SET                0x20d8381c /* [WO][32] PCI Interrupt Set Register */
+#define BCHP_CBUS_INTR2_0_PCI_CLEAR              0x20d83820 /* [WO][32] PCI Interrupt Clear Register */
+#define BCHP_CBUS_INTR2_0_PCI_MASK_STATUS        0x20d83824 /* [RO][32] PCI Interrupt Mask Status Register */
+#define BCHP_CBUS_INTR2_0_PCI_MASK_SET           0x20d83828 /* [WO][32] PCI Interrupt Mask Set Register */
+#define BCHP_CBUS_INTR2_0_PCI_MASK_CLEAR         0x20d8382c /* [WO][32] PCI Interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS - CPU Interrupt Status Register

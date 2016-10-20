@@ -69,6 +69,12 @@ typedef enum
    BEGL_BufferUsage_eSwapChain2
 } BEGL_BufferUsage;
 
+typedef enum
+{
+   BEGL_Increment = 0,
+   BEGL_Decrement
+} BEGL_RefCountMode;
+
 typedef void  *BEGL_BufferHandle;     /* Opaque as far as driver is concerned. Only the app/lib knows the actual type. */
 typedef void  *BEGL_DisplayHandle;    /* Opaque 'display' handle (required by EGL) */
 typedef void  *BEGL_WindowHandle;     /* Opaque 'window' handle (required by EGL) */
@@ -227,7 +233,7 @@ typedef struct
    BEGL_Error (*DefaultOrientation)(void *context);
 
    /* used to decode a native format when you have an eglImage provided by the system */
-   BEGL_Error (*DecodeNativeFormat)(void *context, uint32_t nativeFormat, BEGL_BufferSettings *outSettings);
+   BEGL_Error (*DecodeNativeFormat)(void *context, void *buffer, BEGL_BufferSettings *outSettings);
 
    /* used for EGL_NATIVE_VISUAL_ID, returns a platform dependent visual ID from the config */
    BEGL_Error (*GetNativeFormat)(void *context, BEGL_BufferFormat bufferFormat, uint32_t *outNativeFormat);
@@ -236,6 +242,12 @@ typedef struct
       driver.  Could also be used in NEXUS to remove the need for an app to explicitly call it's platform
       registration */
    BEGL_Error (*SetDisplayID)(void *context, uint32_t displayID, uint32_t *outEglDisplayID);
+
+   /* some platforms require resources to be locked/unlocked on taking references */
+   BEGL_Error (*SurfaceChangeRefCount)(void *context, void *buffer, BEGL_RefCountMode incOrDec);
+
+   /* needed if you want to support a particular egl image target */
+   BEGL_Error (*SurfaceVerifyImageTarget)(void *context, void *buffer, uint32_t eglTarget);
 
    /* DEPRECATED - no longer called. See WindowUndisplay() instead. */
    BEGL_Error (*BufferDisplayFinish)(void *context);

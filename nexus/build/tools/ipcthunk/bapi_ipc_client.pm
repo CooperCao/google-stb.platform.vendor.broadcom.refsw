@@ -1,7 +1,7 @@
 #!/usr/bin/perl
-#     (c)2004-2012 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2003 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# File Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 # 
 #############################################################################
 use strict;
@@ -141,11 +131,13 @@ sub generate
         }
         print FILE "    if (__n<sizeof(out_data->header)+sizeof(out_data->data.$func->{FUNCNAME}.out) - sizeof(out_data->data.$func->{FUNCNAME}.out.variable_params)) {__rc=BERR_TRACE(-1);goto err_call;}\n";
 
-        bapi_util::print_code \*FILE, $attr->{proxy_post_success}, "    ";
-
         if ($func->{RETTYPE} ne "void") {
             print FILE "    __result = out_data->data.$func->{FUNCNAME}.out.__retval;\n";
         }
+        if ($func->{RETTYPE} eq "NEXUS_Error" && defined $attr->{proxy_post_success}) {
+            print FILE "    if (__result) {goto err_call;}\n";
+        }
+        bapi_util::print_code \*FILE, $attr->{proxy_post_success}, "    ";
 
         print FILE "\n";
         print FILE "err_call:\n";

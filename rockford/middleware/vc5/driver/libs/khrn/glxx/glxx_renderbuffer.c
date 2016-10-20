@@ -122,6 +122,9 @@ bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
 
    if (imagechanged)
    {
+      renderbuffer->width_pixels = width_pixels;
+      renderbuffer->height_pixels = height_pixels;
+
       if (width_samples == 0 || height_samples == 0) {
          KHRN_MEM_ASSIGN(renderbuffer->image, NULL);
          renderbuffer->ms_mode = GLXX_NO_MS;

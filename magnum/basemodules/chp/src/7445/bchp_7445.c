@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * Revision History:
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -26,18 +46,8 @@
 #include "bchp_priv.h"
 #include "bchp_7445.h"
 #include "bchp_sun_top_ctrl.h"
-#include "bchp_sun_gisb_arb.h"
-#include "bchp_memc_ddr_0.h"
-#include "bchp_memc_ddr_1.h"
-#include "bchp_memc_ddr_2.h"
-#include "bchp_memc_arb_0.h"
 #include "bchp_pwr.h"
 #include "bchp_vice2_l2_1.h"
-#include "bchp_avs_ro_registers_0.h"
-#include "bchp_avs.h"
-#include "bchp_v3d_gca.h"
-#include "bchp_v3d_dbg.h"
-#include "bchp_v3d_ctl.h"
 #include "bchp_vice2_misc_0.h"
 #include "bchp_vice2_misc_1.h"
 
@@ -77,9 +87,6 @@ static BERR_Code BCHP_P_GetFeature
       const BCHP_Feature               eFeature,
       void                            *pFeatureValue );
 
-static BERR_Code BCHP_P_ResetMagnumCores
-    ( const BCHP_Handle                hChip );
-
 BERR_Code BCHP_Open7445
     ( BCHP_Handle                     *phChip,
       BREG_Handle                      hRegister )
@@ -107,8 +114,6 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     }
     pChip->pGetFeatureFunc  = BCHP_P_GetFeature;
 
-    BCHP_P_ResetMagnumCores( pChip );
-
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
     if (rc) {
@@ -126,27 +131,6 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
 
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
-
-    /* Clear AVD/SVD shutdown enable bit */
-#if BCHP_PWR_RESOURCE_AVD0
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
-#endif
-    /* TDB
-    BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
-    */
-#if BCHP_PWR_RESOURCE_AVD0
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
-#endif
-
-#if BCHP_PWR_RESOURCE_AVD1
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD1);
-#endif
-    /* TDB
-    BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_1_SOFTSHUTDOWN_CTRL_REG, 0x0);
-    */
-#if BCHP_PWR_RESOURCE_AVD1
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD1);
-#endif
 
 #if BCHP_PWR_RESOURCE_VICE
     BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_VICE);
@@ -260,203 +244,4 @@ static BERR_Code BCHP_P_GetFeature
     return rc;
 }
 
-
-#if !defined(EMULATION)
-#ifdef BCHP_PWR_HAS_RESOURCES
-#include "bchp_pwr_resources_priv.h"
-#endif
-#include "bchp_raaga_dsp_misc.h"
-#include "bchp_raaga_dsp_misc_1.h"
-
-/* SW workaround to ensure we can hit the Raaga SW_INIT safely */
-static void BCHP_P_ResetRaagaCore(const BCHP_Handle hChip, const BREG_Handle hReg)
-{
-    uint32_t val;
-
-    BSTD_UNUSED(hChip);
-
-    /* unconditionally turn on everything that's needed to do the register write below.
-       we don't know what power state we were left in. BCHP_PWR_Open() will later turn stuff off as needed */
-#if BCHP_PWR_HW_PLL_RAAGA
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA, true);
-#endif
-#if BCHP_PWR_HW_PLL_RAAGA_PLL_CH0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA_PLL_CH0, true);
-#endif
-#if BCHP_PWR_HW_PLL_RAAGA_PLL_CH1
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA_PLL_CH1, true);
-#endif
-#if BCHP_PWR_HW_RAAGA0_CLK
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_CLK, true);
-#endif
-#if BCHP_PWR_HW_RAAGA0_DSP
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_DSP, true);
-#endif
-#if BCHP_PWR_HW_RAAGA1_CLK
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_CLK, true);
-#endif
-#if BCHP_PWR_HW_RAAGA1_DSP
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_DSP, true);
-#endif
-#if BCHP_PWR_HW_RAAGA0_SRAM
-    /* BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_SRAM, true); */
-#endif
-#if BCHP_PWR_HW_RAAGA1_SRAM
-    /* BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_SRAM, true); */
-#endif
-
-    val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT) ;
-    val = (val & ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT)))|
-     (BCHP_FIELD_DATA(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT,1));
-    BREG_Write32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
-
-    val = BREG_Read32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT);
-    val &= ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, INIT_PROC_B));
-    BREG_Write32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
-
-    val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_1_SOFT_INIT) ;
-    val = (val & ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT)))|
-     (BCHP_FIELD_DATA(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT,1));
-    BREG_Write32(hReg,BCHP_RAAGA_DSP_MISC_1_SOFT_INIT, val);
-
-    val = BREG_Read32(hReg, BCHP_RAAGA_DSP_MISC_1_SOFT_INIT);
-    val &= ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, INIT_PROC_B));
-    BREG_Write32(hReg, BCHP_RAAGA_DSP_MISC_1_SOFT_INIT, val);
-
-#if BCHP_PWR_HW_RAAGA0_SRAM
-    /* BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_SRAM, false); */
-#endif
-#if BCHP_PWR_HW_RAAGA1_SRAM
-    /* BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_SRAM, false); */
-#endif
-#if BCHP_PWR_HW_RAAGA0_CLK
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_CLK, false);
-#endif
-#if BCHP_PWR_HW_RAAGA0_DSP
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_DSP, false);
-#endif
-#if BCHP_PWR_HW_RAAGA1_CLK
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_CLK, false);
-#endif
-#if BCHP_PWR_HW_RAAGA1_DSP
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA1_DSP, false);
-#endif
-#if BCHP_PWR_HW_PLL_RAAGA_PLL_CH0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA_PLL_CH0, false);
-#endif
-#if BCHP_PWR_HW_PLL_RAAGA_PLL_CH1
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA_PLL_CH1, false);
-#endif
-#if BCHP_PWR_HW_PLL_RAAGA
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_RAAGA, false);
-#endif
-
-    return;
-
-}
-
-static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg )
-{
-    BREG_Handle  hRegister = hChip->regHandle;
-    BSTD_UNUSED(hReg);
-
-#if BCHP_PWR_HW_PLL_MOCA_CH3
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_MOCA_CH3, true);
-#endif
-#if BCHP_PWR_HW_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, true);
-#endif
-#if BCHP_PWR_HW_V3D_SRAM
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_SRAM, true);
-#endif
-
-    BREG_Write32( hRegister, BCHP_V3D_GCA_SAFE_SHUTDOWN,
-        BCHP_FIELD_DATA( V3D_GCA_SAFE_SHUTDOWN, SAFE_SHUTDOWN_EN,   1 ));
-
-    /* poll loop to shutdown the GCA so SCB/MCP traffic is correctly handled prior to
-       sw_init */
-    /* both SAFE_SHUTDOWN_ACK1 & SAFE_SHUTDOWN_ACK (bits 0 & 1) */
-    while( BREG_Read32( hRegister, BCHP_V3D_GCA_SAFE_SHUTDOWN_ACK) != 0x3 )
-    {};
-
-    /* clear any pending interrupts */
-    BREG_Write32( hRegister, BCHP_V3D_CTL_INTCTL, ~0);
-    BREG_Write32( hRegister, BCHP_V3D_DBG_DBQITC, ~0);
-
-#if BCHP_PWR_HW_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, false);
-#endif
-#if BCHP_PWR_HW_V3D_SRAM
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_SRAM, false);
-#endif
-#if BCHP_PWR_HW_PLL_MOCA_CH3
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_PLL_MOCA_CH3, false);
-#endif
-}
-#endif
-
-/***************************************************************************
- * {private}
- *
- */
-static BERR_Code BCHP_P_ResetMagnumCores
-    ( const BCHP_Handle                hChip )
-{
-
-    BREG_Handle  hRegister = hChip->regHandle;
-#if !defined(EMULATION)
-    BCHP_P_ResetRaagaCore(hChip, hRegister); /* must be done first before all other cores. */
-    BCHP_P_ResetV3dCore(hChip, hRegister);
-#endif
-    /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
-    /* Note, SW_INIT set/clear registers don't need read-modify-write. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, xpt_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, hvd0_sw_init,   1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, hvd1_sw_init,   1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, vec_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, aio_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, bvn_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, raaga0_sw_init, 1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, raaga1_sw_init, 1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, gfx_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, dvp_ht_sw_init, 1));
-
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, vice20_sw_init, 1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, vice21_sw_init, 1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, hvd2_sw_init,   1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, v3d_top_sw_init,1 ));
-
-    BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,
-          BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, sid_sw_init, 1 )
-         );
-
-    /* Now clear the reset. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR,
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, xpt_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, hvd0_sw_init,   1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, hvd1_sw_init,   1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, vec_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, aio_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, bvn_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga0_sw_init, 1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga1_sw_init, 1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, gfx_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, dvp_ht_sw_init, 1));
-
-        BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, vice20_sw_init, 1 ) |
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, vice21_sw_init, 1 ) |
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, hvd2_sw_init,   1 ) |
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, v3d_top_sw_init,1 ));
-
-        BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
-           BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, sid_sw_init, 1)
-         );
-
-    return BERR_SUCCESS;
-}
-
 /* End of File */
-

@@ -1,51 +1,43 @@
 /******************************************************************************
- *    (c)2008-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
- * and may only be used, duplicated, modified or distributed pursuant to the terms and
- * conditions of a separate, written license agreement executed between you and Broadcom
- * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- * no license (express or implied), right to use, or waiver of any kind with respect to the
- * Software, and Broadcom expressly reserves all rights in and to the Software and all
- * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its
+ * licensors, and may only be used, duplicated, modified or distributed pursuant
+ * to the terms and conditions of a separate, written license agreement executed
+ * between you and Broadcom (an "Authorized License").  Except as set forth in
+ * an Authorized License, Broadcom grants no license (express or implied), right
+ * to use, or waiver of any kind with respect to the Software, and Broadcom
+ * expressly reserves all rights in and to the Software and all intellectual
+ * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1. This program, including its structure, sequence and organization,
+ *    constitutes the valuable trade secrets of Broadcom, and you shall use all
+ *    reasonable efforts to protect the confidentiality thereof, and to use
+ *    this information only in connection with your use of Broadcom integrated
+ *    circuit products.
  *
- * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- * USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+ *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+ *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+ *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+ *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+ *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- *****************************************************************************/
+ * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+ *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+ *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+ *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+ *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+ *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+ *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ ******************************************************************************/
 /* Nexus example app: playback and decode */
 
 #include "nexus_platform.h"
@@ -138,6 +130,14 @@ void print_usage(void) {
 			printf("     used to relocate mdat box at finalization stage for mp4 file mux.\n");
 			printf("     The larger reloc buffer size, the quicker mp4 file mux can finish.\n");
 			printf("     for example, 1MB reloc buffer finishes much faster than default 128 KB.\n");
+			printf("  -in FILE    - specify input file (in current directory if full path not specified)\n");
+			printf("  -out FILE   - specify output file (in current directory if full path not specified)\n");
+			printf("  -duration N - number of seconds to transcode before moving on to next iteration\n");
+			printf("                (if -duration not specified, will prompt the user to continue)\n");
+			printf("  -repeat N   - number of iterations to perform\n");
+			printf("      NOTE: if -duration given and -repeat is not given, it will quit after the first iteration\n");
+			printf("      repeat count is ignored if no duration given\n");
+			printf("  -temp DIR   - specify the directory to use for temporary files (default = 'videos')\n");
 }
 
 int main(int argc, char **argv)
@@ -207,12 +207,15 @@ int main(int argc, char **argv)
     const char *fname = "videos/testjun26_188.mpg";
 #endif
     const char *mp4File = "videos/stream.mp4";
+    const char *temp_dir = "videos";
 
     int i = 0;
     int iteration = 1;
     char key;
     bool bProgressiveDownload = false;
     unsigned relocBufSize = 0;
+    unsigned duration = 0;
+    unsigned max_iterations = 0;
 
     for(i=0; i<argc; i++) {
         if(!strcmp("-h",argv[i])) {
@@ -227,9 +230,31 @@ int main(int argc, char **argv)
             relocBufSize = strtoul(argv[++i], NULL, 0);
             fprintf(stderr, "Relocation buffer size = %u bytes.\n", relocBufSize);
         }
+        if (!strcmp("-in", argv[i]) && (i+1 < argc)) {
+            fname = argv[++i];
+            fprintf(stderr, "Transcoding file %s\n", fname);
+        }
+        if (!strcmp("-out", argv[i]) && (i+1 < argc)) {
+            mp4File = argv[++i];
+            fprintf(stderr, "Output to file %s\n", mp4File);
+        }
+        if(!strcmp("-duration", argv[i]) && (i+1 < argc)) {
+            duration = strtoul(argv[++i], NULL, 0);
+        }
+        if(!strcmp("-repeat", argv[i]) && (i+1 < argc)) {
+            max_iterations = strtoul(argv[++i], NULL, 0);
+        }
+        if (!strcmp("-temp", argv[i]) && (i+1 < argc)) {
+            temp_dir = argv[++i];
+            fprintf(stderr, "Using directory %s for temporary files\n", temp_dir);
+        }
     }
     i = 0;
-
+    if (max_iterations && !duration)
+    {
+      max_iterations = 0; /* ignore repeat count if no duration specified */
+      fprintf(stderr, "Missing -duration; ignoring -repeat\n");
+    }
     NEXUS_Platform_GetDefaultSettings(&platformSettings);
     platformSettings.openFrontend = false;
     NEXUS_Platform_Init(&platformSettings);
@@ -607,7 +632,7 @@ again:
 #endif
     muxConfig.audio[0].muxOutput = audioMuxOutput;
 #endif
-    snprintf(muxConfig.tempDir, sizeof(muxConfig.tempDir), "videos");
+    snprintf(muxConfig.tempDir, sizeof(muxConfig.tempDir), temp_dir);
     muxOutput = NEXUS_MuxFile_OpenPosix(mp4File);
     if (!muxOutput) {
         fprintf(stderr, "can't open file:%s\n", mp4File);
@@ -644,9 +669,16 @@ again:
     NEXUS_VideoEncoder_Start(videoEncoder, &videoEncoderStartConfig);
 #endif
 
-    /* Playback state machine is driven from inside Nexus. */
-    printf("Press ENTER to continue; type 'q' to quit\n");
-    key = getchar();
+    if (duration)
+    {
+        BKNI_Sleep(duration*1000);
+    }
+    else
+    {
+      /* Playback state machine is driven from inside Nexus. */
+      printf("Press ENTER to continue; type 'q' to quit\n");
+      key = getchar();
+    }
 
     /* Bring down system */
     NEXUS_Playback_Stop(playback);
@@ -737,13 +769,12 @@ again:
     NEXUS_StcChannel_Close(stcChannel);
     NEXUS_StcChannel_Close(stcChannelTranscode);
 
-    if(key != 'q')
+    i = iteration++%TEST_ITERATIONS;
+    if (((duration == 0) && (key != 'q')) || ((unsigned)iteration <= max_iterations))
     {
-        i = iteration++%TEST_ITERATIONS;
-        BDBG_WRN(("Start %d iteration.....", iteration));
-        goto again;
+       BDBG_WRN(("Start %d iteration.....", iteration));
+       goto again;
     }
-
     NEXUS_Platform_Uninit();
 
 #endif

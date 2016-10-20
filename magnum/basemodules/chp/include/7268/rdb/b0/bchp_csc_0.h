@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,18 +70,18 @@
 /***************************************************************************
  *CSC_0 - Color Space Converter CSC_0
  ***************************************************************************/
-#define BCHP_CSC_0_CSC_REV_ID                    0x206e2380 /* [RO] Revision ID register */
-#define BCHP_CSC_0_CSC_MODE                      0x206e2388 /* [RW] Color space converter mode register */
-#define BCHP_CSC_0_CSC_MIN_MAX                   0x206e238c /* [RW] Color space converter min_max clamp register */
-#define BCHP_CSC_0_CSC_COEFF_C01_C00             0x206e2390 /* [RW] Video Encoder Color Matrix coefficients c01 and c00 */
-#define BCHP_CSC_0_CSC_COEFF_C03_C02             0x206e2394 /* [RW] Video Encoder Color Matrix coefficients c03 and c02 */
-#define BCHP_CSC_0_CSC_COEFF_C11_C10             0x206e2398 /* [RW] Video Encoder Color Matrix coefficients c11 and c10 */
-#define BCHP_CSC_0_CSC_COEFF_C13_C12             0x206e239c /* [RW] Video Encoder Color Matrix coefficients c13 and c12 */
-#define BCHP_CSC_0_CSC_COEFF_C21_C20             0x206e23a0 /* [RW] Video Encoder Color Matrix coefficients c21 and c20 */
-#define BCHP_CSC_0_CSC_COEFF_C23_C22             0x206e23a4 /* [RW] Video Encoder Color Matrix coefficients c23 and c22 */
-#define BCHP_CSC_0_DITHER_CONTROL                0x206e23a8 /* [RW] Color Space Converter Dither Control */
-#define BCHP_CSC_0_DITHER_LFSR                   0x206e23ac /* [RW] Color Space Converter Dither LFSR Control */
-#define BCHP_CSC_0_DITHER_LFSR_INIT              0x206e23b0 /* [RW] Color Space Converter Dither LFSR Init value and control */
+#define BCHP_CSC_0_CSC_REV_ID                    0x206e2380 /* [RO][32] Revision ID register */
+#define BCHP_CSC_0_CSC_MODE                      0x206e2388 /* [RW][32] Color space converter mode register */
+#define BCHP_CSC_0_CSC_MIN_MAX                   0x206e238c /* [RW][32] Color space converter min_max clamp register */
+#define BCHP_CSC_0_CSC_COEFF_C01_C00             0x206e2390 /* [RW][32] Video Encoder Color Matrix coefficients c01 and c00 */
+#define BCHP_CSC_0_CSC_COEFF_C03_C02             0x206e2394 /* [RW][32] Video Encoder Color Matrix coefficients c03 and c02 */
+#define BCHP_CSC_0_CSC_COEFF_C11_C10             0x206e2398 /* [RW][32] Video Encoder Color Matrix coefficients c11 and c10 */
+#define BCHP_CSC_0_CSC_COEFF_C13_C12             0x206e239c /* [RW][32] Video Encoder Color Matrix coefficients c13 and c12 */
+#define BCHP_CSC_0_CSC_COEFF_C21_C20             0x206e23a0 /* [RW][32] Video Encoder Color Matrix coefficients c21 and c20 */
+#define BCHP_CSC_0_CSC_COEFF_C23_C22             0x206e23a4 /* [RW][32] Video Encoder Color Matrix coefficients c23 and c22 */
+#define BCHP_CSC_0_DITHER_CONTROL                0x206e23a8 /* [RW][32] Color Space Converter Dither Control */
+#define BCHP_CSC_0_DITHER_LFSR                   0x206e23ac /* [RW][32] Color Space Converter Dither LFSR Control */
+#define BCHP_CSC_0_DITHER_LFSR_INIT              0x206e23b0 /* [RW][32] Color Space Converter Dither LFSR Init value and control */
 
 /***************************************************************************
  *CSC_REV_ID - Revision ID register

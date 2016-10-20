@@ -101,6 +101,7 @@ NEXUS_StreamMux_GetDefaultCreateSettings( NEXUS_StreamMuxCreateSettings *pSettin
     BMUXlib_TS_GetDefaultCreateSettings(&muxCreateSettings);
     pSettings->memoryConfiguration.systemBufferSize = muxCreateSettings.stMemoryConfig.uiSystemBufferSize;
     pSettings->memoryConfiguration.sharedBufferSize = muxCreateSettings.stMemoryConfig.uiSharedBufferSize;
+    NEXUS_CallbackDesc_Init(&pSettings->finished);
     return;
 }
 
@@ -223,6 +224,8 @@ NEXUS_StreamMux_GetDefaultStartSettings(NEXUS_StreamMuxStartSettings *pSettings)
     pSettings->supportTts = muxStartSettings->bSupportTTS;
     pSettings->interleaveMode = muxStartSettings->eInterleaveMode;
     pSettings->insertPtsOnlyOnFirstKeyFrameOfSegment = muxStartSettings->bInsertPtsOnlyOnFirstKeyFrameOfSegment;
+    pSettings->useInitialPts = muxStartSettings->stNonRealTimeSettings.bInitialVideoPTSValid;
+    pSettings->initialPts = ( muxStartSettings->stNonRealTimeSettings.uiInitialVideoPTS >> 1 );
     BDBG_ASSERT(g_NEXUS_StreamMux_P_State.functionData.NEXUS_StreamMux_GetDefaultStartSettings.cookie == NEXUS_StreamMux_GetDefaultStartSettings);
     return;
 }
@@ -700,6 +703,8 @@ NEXUS_StreamMux_Start( NEXUS_StreamMuxHandle mux, const NEXUS_StreamMuxStartSett
     mux->muxStartSettings.bSupportTTS = pSettings->supportTts;
     mux->muxStartSettings.eInterleaveMode = pSettings->interleaveMode;
     mux->muxStartSettings.bInsertPtsOnlyOnFirstKeyFrameOfSegment = pSettings->insertPtsOnlyOnFirstKeyFrameOfSegment;
+    mux->muxStartSettings.stNonRealTimeSettings.bInitialVideoPTSValid = pSettings->useInitialPts;
+    mux->muxStartSettings.stNonRealTimeSettings.uiInitialVideoPTS = ( ( (uint64_t) pSettings->initialPts ) << 1 );
 
     channel=0;
     mux->muxStartSettings.uiNumValidVideoPIDs = 0;

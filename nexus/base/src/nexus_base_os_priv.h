@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2012 Broadcom Corporation
+*  Copyright (C) 2010-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_BASE_OS_PRIV_H__
 #define NEXUS_BASE_OS_PRIV_H__
@@ -66,12 +56,13 @@ typedef struct NEXUS_P_ThreadInfo {
     NEXUS_ThreadHandle nexusThread; /* not NULL for threads created using NEXUS_Thread_Create */
     const char *pThreadName;
     struct b_objdb_client *client;
+    unsigned threadNo; /* monotonically increasing number */
+    bool busy;
+    unsigned idleCount;
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     BLIFO_HEAD(NEXUS_P_LockStack, NEXUS_P_LockEntry) stack;
     NEXUS_P_LockEntry locks[NEXUS_P_BASE_MAX_LOCKS];
 #endif
-    unsigned index;
-    bool internal;
 } NEXUS_P_ThreadInfo;
 
 /* NEXUS_P_ThreadInfo_Init is implemented generically */
@@ -87,6 +78,5 @@ NEXUS_P_ThreadInfo *NEXUS_Base_P_Thread_GetInfo(void *threadId); /* return threa
 
 /* following two functions could be used by OS layer if it uses native thread local storage */
 NEXUS_P_ThreadInfo *NEXUS_Base_P_AllocateThreadInfo(void *threadId);  /* this function would return NEXUS_P_ThreadInfo allocated from the internal store */
-void NEXUS_Base_P_TickThreadInfo(NEXUS_P_ThreadInfo *threadInfo); /* this function would mark internally allocated  threadInfo as actively used */
 
 #endif

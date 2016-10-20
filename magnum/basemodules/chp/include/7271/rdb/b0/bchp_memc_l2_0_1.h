@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:49:03 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:51:54 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,24 +70,24 @@
 /***************************************************************************
  *MEMC_L2_0_1 - MEMSYS L2_1 Interrupt Controller Registers
  ***************************************************************************/
-#define BCHP_MEMC_L2_0_1_CPU_STATUS              0x21103200 /* [RO] CPU interrupt Status Register */
-#define BCHP_MEMC_L2_0_1_CPU_SET                 0x21103204 /* [WO] CPU interrupt Set Register */
-#define BCHP_MEMC_L2_0_1_CPU_CLEAR               0x21103208 /* [WO] CPU interrupt Clear Register */
-#define BCHP_MEMC_L2_0_1_CPU_MASK_STATUS         0x2110320c /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_MEMC_L2_0_1_CPU_MASK_SET            0x21103210 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_MEMC_L2_0_1_CPU_MASK_CLEAR          0x21103214 /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_MEMC_L2_0_1_PCI_STATUS              0x21103218 /* [RO] PCI interrupt Status Register */
-#define BCHP_MEMC_L2_0_1_PCI_SET                 0x2110321c /* [WO] PCI interrupt Set Register */
-#define BCHP_MEMC_L2_0_1_PCI_CLEAR               0x21103220 /* [WO] PCI interrupt Clear Register */
-#define BCHP_MEMC_L2_0_1_PCI_MASK_STATUS         0x21103224 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_MEMC_L2_0_1_PCI_MASK_SET            0x21103228 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_MEMC_L2_0_1_PCI_MASK_CLEAR          0x2110322c /* [WO] PCI interrupt Mask Clear Register */
-#define BCHP_MEMC_L2_0_1_SCPU_STATUS             0x21103230 /* [RO] SCPU interrupt Status Register */
-#define BCHP_MEMC_L2_0_1_SCPU_SET                0x21103234 /* [WO] SCPU interrupt Set Register */
-#define BCHP_MEMC_L2_0_1_SCPU_CLEAR              0x21103238 /* [WO] SCPU interrupt Clear Register */
-#define BCHP_MEMC_L2_0_1_SCPU_MASK_STATUS        0x2110323c /* [RO] SCPU interrupt Mask Status Register */
-#define BCHP_MEMC_L2_0_1_SCPU_MASK_SET           0x21103240 /* [WO] SCPU interrupt Mask Set Register */
-#define BCHP_MEMC_L2_0_1_SCPU_MASK_CLEAR         0x21103244 /* [WO] SCPU interrupt Mask Clear Register */
+#define BCHP_MEMC_L2_0_1_CPU_STATUS              0x21103200 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_MEMC_L2_0_1_CPU_SET                 0x21103204 /* [WO][32] CPU interrupt Set Register */
+#define BCHP_MEMC_L2_0_1_CPU_CLEAR               0x21103208 /* [WO][32] CPU interrupt Clear Register */
+#define BCHP_MEMC_L2_0_1_CPU_MASK_STATUS         0x2110320c /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_MEMC_L2_0_1_CPU_MASK_SET            0x21103210 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_MEMC_L2_0_1_CPU_MASK_CLEAR          0x21103214 /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_MEMC_L2_0_1_PCI_STATUS              0x21103218 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_MEMC_L2_0_1_PCI_SET                 0x2110321c /* [WO][32] PCI interrupt Set Register */
+#define BCHP_MEMC_L2_0_1_PCI_CLEAR               0x21103220 /* [WO][32] PCI interrupt Clear Register */
+#define BCHP_MEMC_L2_0_1_PCI_MASK_STATUS         0x21103224 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_MEMC_L2_0_1_PCI_MASK_SET            0x21103228 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_MEMC_L2_0_1_PCI_MASK_CLEAR          0x2110322c /* [WO][32] PCI interrupt Mask Clear Register */
+#define BCHP_MEMC_L2_0_1_SCPU_STATUS             0x21103230 /* [RO][32] SCPU interrupt Status Register */
+#define BCHP_MEMC_L2_0_1_SCPU_SET                0x21103234 /* [WO][32] SCPU interrupt Set Register */
+#define BCHP_MEMC_L2_0_1_SCPU_CLEAR              0x21103238 /* [WO][32] SCPU interrupt Clear Register */
+#define BCHP_MEMC_L2_0_1_SCPU_MASK_STATUS        0x2110323c /* [RO][32] SCPU interrupt Mask Status Register */
+#define BCHP_MEMC_L2_0_1_SCPU_MASK_SET           0x21103240 /* [WO][32] SCPU interrupt Mask Set Register */
+#define BCHP_MEMC_L2_0_1_SCPU_MASK_CLEAR         0x21103244 /* [WO][32] SCPU interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS - CPU interrupt Status Register

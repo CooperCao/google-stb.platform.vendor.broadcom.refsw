@@ -41,7 +41,6 @@
 #include "bvdc_compositor_priv.h"
 #include "bvdc_source_priv.h"
 #include "bvdc_pep_priv.h"
-#include "bvdc_hist_priv.h"
 #if (BVDC_P_SUPPORT_PEP_VER == BVDC_P_SUPPORT_PEP_VER_4)
 #include "bchp_vivid_cmp_0.h"
 #endif

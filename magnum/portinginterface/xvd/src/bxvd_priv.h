@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -662,8 +662,9 @@ typedef struct BXVD_P_Context
   uint32_t             uiAVDCoreFreq;
 
   /* Instruction base addresses for outer and inner loop */
-  uint32_t             uiOuterLoopInstructionBase;
-  uint32_t             uiInnerLoopInstructionBase;
+
+  unsigned long        uiOuterLoopInstructionBase;
+  unsigned long        uiInnerLoopInstructionBase;
 
   /* End of code addresses for outer and inner loop */
   uint32_t             uiOuterLoopEOC;
@@ -671,30 +672,31 @@ typedef struct BXVD_P_Context
 
 #if BXVD_P_HEVD_DUAL_PIPE_PRESENT
   /* Inner Loop 2 Instruction base and end of code */
-  uint32_t             uiInnerLoop2InstructionBase;
+  unsigned long        uiInnerLoop2InstructionBase;
   uint32_t             uiInnerLoop2EOC;
 #endif
 
+
 #if BXVD_P_SVD_PRESENT
   /* Base Layer Instruction base and end of code */
-  uint32_t             uiBaseInstructionBase;
+  unsigned long        uiBaseInstructionBase;
   uint32_t             uiBaseEOC;
 #endif
 
   /* Outer loop communication vector. This is the same as uiOuterLoopEOC */
-  uint32_t             uiCmdBufferVector;
+  unsigned long        uiCmdBufferVector;
 
   /* Pointers to FW/XVD shared memory for Picture buffers and FW internal data structs */
 
   BMMA_Block_Handle    hFWGenMemBlock;
   unsigned long        uiFWGenMemBaseVirtAddr;
-  uint32_t             uiFWGenMemBaseUncachedVirtAddr;
+  unsigned long        uiFWGenMemBaseUncachedVirtAddr;
   unsigned long        uiFWGenMemBasePhyAddr;
   uint32_t             uiFWGenMemSize;
 
 #if BXVD_P_CAPTURE_RVC
   BMMA_Block_Handle    hFWRvcBlock;
-  uint32_t             uiFWRvcBaseVirtAddr;
+  unsigned long        uiFWRvcBaseVirtAddr;
   unsigned long        uiFWRvcBasePhyAddr;
 #endif
 
@@ -991,14 +993,6 @@ typedef struct BXVD_P_Channel
    uint32_t uiSerialNumber;
 
 } BXVD_P_Channel;
-
-/* This may be unnecessary and removed later */
-typedef struct
-{
-  unsigned long next;
-  unsigned long ulType;
-  unsigned long ulSize;
-} BXVD_P_UserData;
 
 typedef enum BXVD_P_VideoAtomIndex
 {

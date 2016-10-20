@@ -44,11 +44,35 @@ Khronos memory management API.
 #endif
 
 /*
+A MEM_HANDLE_T refers to a movable block of memory.
+
+The only way to get a MEM_HANDLE_T is to call mem_alloc.
+
+The MEM_HANDLE_T you get is immutable and remains valid until its reference
+count reaches 0.
+
+A MEM_HANDLE_T has an initial reference count of 1. This can be incremented
+by calling mem_acquire and decremented by calling mem_release.
+*/
+
+/*
+MEM_ZERO_SIZE_HANDLE is a preallocated handle to a zero-size block of memory
+MEM_EMPTY_STRING_HANDLE is a preallocated handle to a block of memory containing the empty string
+
+MEM_HANDLE_INVALID is the equivalent of NULL for MEM_HANDLE_Ts -- no valid
+MEM_HANDLE_T will ever equal MEM_HANDLE_INVALID.
+*/
+
+typedef uintptr_t MEM_HANDLE_T;
+#define MEM_HANDLE_INVALID 0
+#define MEM_INVALID_HANDLE 0
+
+/*
    A MEM_HANDLE_T may optionally have a terminator. This is a function that will
    be called just before the MEM_HANDLE_T becomes invalid: see mem_release.
 */
 
-typedef void (*MEM_TERM_T)(void *, uint32_t);
+typedef void (*MEM_TERM_T)(MEM_HANDLE_T);
 
 typedef struct {
 
@@ -65,8 +89,9 @@ typedef struct {
    uint32_t allocedSize;
    const char *desc;
    MEM_TERM_T term;
+   void *param;         /* optional parameter passed with the term */
 
-   void * ptr;          /* actual allocation (virtual address) or in the case of MMA the block handle */
+   void *ptr;           /* actual allocation (virtual address) or in the case of MMA the block handle */
 
    /* these are filled in on MMA systems when the block is first locked */
    uintptr_t blockOffset;      /* cached offset for this block */
@@ -144,30 +169,6 @@ void * mem_map_uncached_to_cached(void *virt);
 /******************************************************************************
 Movable memory core API
 ******************************************************************************/
-
-/*
-   A MEM_HANDLE_T refers to a movable block of memory.
-
-   The only way to get a MEM_HANDLE_T is to call mem_alloc.
-
-   The MEM_HANDLE_T you get is immutable and remains valid until its reference
-   count reaches 0.
-
-   A MEM_HANDLE_T has an initial reference count of 1. This can be incremented
-   by calling mem_acquire and decremented by calling mem_release.
-*/
-
-/*
-   MEM_ZERO_SIZE_HANDLE is a preallocated handle to a zero-size block of memory
-   MEM_EMPTY_STRING_HANDLE is a preallocated handle to a block of memory containing the empty string
-
-   MEM_HANDLE_INVALID is the equivalent of NULL for MEM_HANDLE_Ts -- no valid
-   MEM_HANDLE_T will ever equal MEM_HANDLE_INVALID.
-*/
-
-typedef uintptr_t MEM_HANDLE_T;
-#define MEM_HANDLE_INVALID 0
-#define MEM_INVALID_HANDLE 0
 
 /*
    Flags are set once in mem_alloc -- they do not change over the lifetime of
@@ -399,7 +400,7 @@ static RCM_INLINE void mem_acquire(MEM_HANDLE_T handle)
    - The reference count of the MEM_HANDLE_T is decremented.
 */
 
-extern void mem_release_inner(MEM_HEADER_T *header);
+extern void mem_release_inner(MEM_HANDLE_T handle);
 
 static RCM_INLINE void mem_release(MEM_HANDLE_T handle)
 {
@@ -412,7 +413,7 @@ static RCM_INLINE void mem_release(MEM_HANDLE_T handle)
    ref_count = vcos_atomic_decrement( &h->ref_count );
 
    if (ref_count == 0)
-      mem_release_inner(h);
+      mem_release_inner(handle);
 }
 
 /*
@@ -462,6 +463,34 @@ static RCM_INLINE uint32_t mem_get_size(MEM_HANDLE_T handle)
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    vcos_assert(h->magic == MAGIC);
    return h->size;
+}
+
+/*
+void *mem_get_param(MEM_HANDLE_T handle);
+
+The param which was installed as part of the mem_set_term() is
+returned
+
+Implementation notes:
+
+-
+
+Preconditions:
+
+handle is not MEM_HANDLE_INVALID
+
+Postconditions:
+
+Invariants preserved:
+
+-
+*/
+
+static RCM_INLINE void *mem_get_param(MEM_HANDLE_T handle)
+{
+   MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
+   vcos_assert(h->magic == MAGIC);
+   return h->param;
 }
 
 /*
@@ -556,7 +585,7 @@ extern void mem_set_desc(
    const char *desc);
 
 /*
-   void mem_set_term(MEM_HANDLE_T handle, MEM_TERM_T term)
+   void mem_set_term(MEM_HANDLE_T handle, MEM_TERM_T term, void *param)
 
    The MEM_HANDLE_T's terminator is set to term (if term was NULL, the
    MEM_HANDLE_T no longer has a terminator).
@@ -575,13 +604,11 @@ extern void mem_set_desc(
    term must be NULL or a pointer to a function compatible with the MEM_TERM_T
    type:
 
-      void *term(void *v, uint32_t size)
+      void *term(MEM_HANDLE_T handle)
 
    if term is not NULL, its precondition must be no stronger than the following:
        is only called from memory manager internals during destruction of an object of type X
-       v is a valid pointer to a (possibly uninitialised or partially initialised*) object of type X
-       memory management invariants for v are satisfied
-       size == sizeof(type X)
+       handle is an (possibly uninitialised or partially initialised*) object of type X
 
    if term is not NULL, its postcondition must be at least as strong as the following:
        Frees any references to resources that are referred to by the object of type X
@@ -594,7 +621,8 @@ extern void mem_set_desc(
 
 extern void mem_set_term(
    MEM_HANDLE_T handle,
-   MEM_TERM_T term);
+   MEM_TERM_T term,
+   void *param);
 
 /*
    Preconditions:
@@ -832,7 +860,7 @@ static RCM_INLINE void mem_maybe_unlock(MEM_HANDLE_T handle)
 extern void mem_flush_cache(void);
 extern void mem_flush_cache_range(void * p, size_t numBytes);
 extern void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc,
-                       uint16_t width, uint16_t height, int32_t stride);
+                       uint16_t width, uint16_t height, int32_t stride, int32_t dstStride, bool secure);
 
 /******************************************************************************
 header/link
@@ -841,4 +869,12 @@ header/link
 extern MEM_HANDLE_T MEM_ZERO_SIZE_HANDLE;
 extern MEM_HANDLE_T MEM_EMPTY_STRING_HANDLE;
 
-#endif
+/******************************************************************************
+special interface only for KHRN_AUTOCLIF
+******************************************************************************/
+extern void *autoclif_addr_to_ptr(uint32_t addr);
+extern uint32_t autoclif_ptr_to_addr(void *p);
+extern const char *autoclif_get_clif_filename(void);
+extern void autoclif_reset(void);
+
+#endif /* COMMON_MEM_H */

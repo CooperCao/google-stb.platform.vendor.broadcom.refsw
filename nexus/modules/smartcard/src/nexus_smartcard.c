@@ -162,6 +162,7 @@ void NEXUS_Smartcard_GetDefaultSettings(NEXUS_SmartcardSettings *pSettings)
     pSettings->atrReceiveTime.value = 40000;
     pSettings->atrReceiveTime.unit = NEXUS_TimerUnit_eClk;
     pSettings->resetCycles = 42000;
+    NEXUS_CallbackDesc_Init(&pSettings->cardCallback);
 }
 
 void NEXUS_Smartcard_GetSettings(NEXUS_SmartcardHandle smartcard, NEXUS_SmartcardSettings *pSettings)

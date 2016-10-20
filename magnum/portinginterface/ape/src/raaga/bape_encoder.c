@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1017,15 +1017,17 @@ static BERR_Code BAPE_Encoder_P_ApplyAacSettings(BAPE_EncoderHandle handle)
         BAPE_DSP_P_SET_VARIABLE(userConfig, eAacEncodeComplexity, pSettings->complexity);
     }
 
-    /* In the case of AAC-LC set the Encode type to MPEG 2 due to compatability with certain receivers/TVs */
+    /* In the case of AAC-LC/AAC-LC+SBR aka AAC+ backed in ADTS set the Encode type to MPEG-2
+       due to compatability with certain receivers/TVs. Also this keeps things in line for
+       SCTE 193-1 and ISO/IEC 13818-1 */
     switch ( handle->settings.codec )
     {
         case BAVC_AudioCompressionStd_eAacAdts:
+        case BAVC_AudioCompressionStd_eAacPlusAdts:
             BAPE_DSP_P_SET_VARIABLE(userConfig, eAacEncodeAdtsMpegType, BDSP_Raaga_Audio_AacEncodeAdtsMpeg2);
             break;
         default:
         case BAVC_AudioCompressionStd_eAacLoas:
-        case BAVC_AudioCompressionStd_eAacPlusAdts:
         case BAVC_AudioCompressionStd_eAacPlusLoas:
             BAPE_DSP_P_SET_VARIABLE(userConfig, eAacEncodeAdtsMpegType, BDSP_Raaga_Audio_AacEncodeAdtsMpeg4);
             break;

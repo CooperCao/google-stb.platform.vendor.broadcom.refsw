@@ -788,7 +788,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eSrcPostProc */
 		{
 			0x0000045e,
-			0x00000465,
+			0x00000466,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eDdbmPostProc */
@@ -836,7 +836,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAvlPostProc */
 		{
 			0x00000519,
-			0x0000051d,
+			0x0000051e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_ePl2PostProc */
@@ -956,7 +956,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
 		{
 			0x0000065e,
-			0x00000676,
+			0x00000677,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */

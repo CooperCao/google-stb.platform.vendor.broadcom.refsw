@@ -1,5 +1,6 @@
 /*=============================================================================
-Copyright (c) 2012 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2012 Broadcom.
+
 All rights reserved.
 
 Project  :  Spyhook
@@ -47,9 +48,9 @@ Allow intercept from GL library
 #include <unistd.h>
 #endif
 
-#include <platform.h>
 #include <map>
 
+#include "platform.h"
 #include "packet.h"
 #include "remote.h"
 #include "control.h"

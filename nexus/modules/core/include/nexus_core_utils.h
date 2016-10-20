@@ -126,7 +126,7 @@ void NEXUS_StopCallbacks_tagged( /* attr{local=true} */
     void *interfaceHandle,
     const char *pFileName, unsigned lineNumber, const char *pFunctionName
     );
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define NEXUS_StopCallbacks(interfaceHandle) NEXUS_StopCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, __func__)
 #else
 #define NEXUS_StopCallbacks(interfaceHandle) NEXUS_StopCallbacks_tagged(interfaceHandle, NULL, 0, NULL)
@@ -145,7 +145,7 @@ void NEXUS_StartCallbacks_tagged( /* attr{local=true} */
     void *interfaceHandle,
     const char *pFileName, unsigned lineNumber, const char *pFunctionName
     );
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define NEXUS_StartCallbacks(interfaceHandle) NEXUS_StartCallbacks_tagged(interfaceHandle, BSTD_FILE, BSTD_LINE, __func__)
 #else
 #define NEXUS_StartCallbacks(interfaceHandle) NEXUS_StartCallbacks_tagged(interfaceHandle, NULL, 0, NULL)
@@ -202,22 +202,16 @@ void NEXUS_KeySlot_Destroy(
     
 typedef void *NEXUS_KeySlotTag;
 
-void NEXUS_KeySlot_SetTag(
-    NEXUS_KeySlotHandle keyslot,
-    NEXUS_KeySlotTag tag
-    );
-
-void NEXUS_KeySlot_GetTag(
-    NEXUS_KeySlotHandle keyslot,
-    NEXUS_KeySlotTag *pTag
-    );
-
 void NEXUS_KeySlot_GetInfo(
     NEXUS_KeySlotHandle keyslot,
     NEXUS_SecurityKeySlotInfo *pKeyslotInfo
     );
 
 #include "nexus_core_priv.h"
+
+/* not supported */
+#define NEXUS_KeySlot_SetTag(keyslot,tag)
+#define NEXUS_KeySlot_GetTag(keyslot,pTag)
 
 #ifdef __cplusplus
 }

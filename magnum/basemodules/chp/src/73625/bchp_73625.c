@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -52,7 +69,7 @@ BDBG_MODULE(BCHP);
  */
 static const struct BCHP_P_Info s_aChipInfoTable[] =
 {
-	/* Chip Family contains the major and minor revs */
+    /* Chip Family contains the major and minor revs */
 #if BCHP_VER == BCHP_VER_A0
    {0x07362500},
 #else
@@ -96,7 +113,7 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
 
     if(!phChip)
     {
-        BDBG_ERR(("Invalid parameter\n"));
+        BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -113,7 +130,7 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     pChip->pGetFeatureFunc  = BCHP_P_GetFeature;
 
     BCHP_P_ResetMagnumCores( pChip );
-	/* Note: PWR_Open MUST go here (before AvsOpen) */
+    /* Note: PWR_Open MUST go here (before AvsOpen) */
 
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
@@ -135,42 +152,42 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
 
-	 ulChipIdReg = BREG_Read32(pChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
+     ulChipIdReg = BREG_Read32(pChip->regHandle, BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID);
 
 #if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-	BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
 #endif
 
-	/* Clear AVD/SVD shutdown enable bit */
+    /* Clear AVD/SVD shutdown enable bit */
 #if 0 /* Check whether this is required ? */
-	BREG_Write32(pChip->regHandle, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
+    BREG_Write32(pChip->regHandle, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
 #endif
 
     /* TODO: Bring up the clocks */
     BDBG_MSG(("Hack Hack,programming BCHP_SUN_GISB_ARB_REQ_MASK, this should be done in CFE"));
     /* This mask controls which clients can be GISB master. */
 
-	ulVal = BREG_Read32(pChip->regHandle, BCHP_SUN_GISB_ARB_REQ_MASK);
-	ulVal &= ~( BCHP_MASK(SUN_GISB_ARB_REQ_MASK, avd_0) |
-			BCHP_MASK(SUN_GISB_ARB_REQ_MASK, raaga) |
-			BCHP_MASK(SUN_GISB_ARB_REQ_MASK, rdc) );
-	BREG_Write32(pChip->regHandle, BCHP_SUN_GISB_ARB_REQ_MASK, ulVal);
+    ulVal = BREG_Read32(pChip->regHandle, BCHP_SUN_GISB_ARB_REQ_MASK);
+    ulVal &= ~( BCHP_MASK(SUN_GISB_ARB_REQ_MASK, avd_0) |
+            BCHP_MASK(SUN_GISB_ARB_REQ_MASK, raaga) |
+            BCHP_MASK(SUN_GISB_ARB_REQ_MASK, rdc) );
+    BREG_Write32(pChip->regHandle, BCHP_SUN_GISB_ARB_REQ_MASK, ulVal);
 
     /* increase tuner LDO voltage */
 
-	ulVal = BREG_Read32(pChip->regHandle, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1);
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl, 0x70));
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_pwrdn, 0));
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1));
-	BREG_Write32(pChip->regHandle, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ulVal);
+    ulVal = BREG_Read32(pChip->regHandle, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1);
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl, 0x70));
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_pwrdn, 0));
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1));
+    BREG_Write32(pChip->regHandle, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ulVal);
 
-	/* Set M2MC clk to 324M */
-	ulVal = BREG_Read32 (pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
-	ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
-	BREG_Write32(pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
+    /* Set M2MC clk to 324M */
+    ulVal = BREG_Read32 (pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
+    ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
+    BREG_Write32(pChip->regHandle, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
 
 #if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-	BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
 #endif
 
     BDBG_LEAVE(BCHP_Open73625);
@@ -214,8 +231,8 @@ static BERR_Code BCHP_P_GetFeature
 
     case BCHP_Feature_eMacrovisionCapable:
         /* macrovision capable? (bool) */
-		*(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
-			SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_macrovision_disable) ? false : true;
+        *(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
+            SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_macrovision_disable) ? false : true;
         rc = BERR_SUCCESS;
         break;
 
@@ -297,7 +314,7 @@ static BERR_Code BCHP_P_ResetMagnumCores
 
 {
     BCHP_P_ResetRaagaCore(hChip, hChip->regHandle);
-	/* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
+    /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
     /* Note, SW_INIT set/clear registers don't need read-modify-write. */
     BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
            BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, xpt_sw_init, 1 )

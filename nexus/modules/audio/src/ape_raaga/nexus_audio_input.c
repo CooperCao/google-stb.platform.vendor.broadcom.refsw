@@ -401,6 +401,19 @@ NEXUS_AudioInputFormat NEXUS_AudioInput_P_GetFormat_isrsafe(NEXUS_AudioInputHand
     return format;
 }
 
+static void NEXUS_AudioInput_P_SetDefaultInputVolume(NEXUS_AudioInputData *pData)
+{
+    int i, j;
+    for ( i = 0; i < BAPE_Channel_eMax; i++ )
+    {
+        for ( j = 0; j < BAPE_Channel_eMax; j++ )
+        {
+            pData->inputVolume.coefficients[i][j] = (i==j)?BAPE_VOLUME_NORMAL:BAPE_VOLUME_MIN;
+        }
+    }
+    pData->inputVolume.muted = false;
+}
+
 static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInputHandle input)
 {
     NEXUS_AudioInputData *pData;
@@ -412,7 +425,6 @@ static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInputHandl
     pData = BKNI_Malloc(sizeof(NEXUS_AudioInputData));
     if ( NULL != pData )
     {
-        int i, j;
         BDBG_OBJECT_SET(pData, NEXUS_AudioInputData);
         input->pMixerData = pData;
         pData->pConnector = input;
@@ -421,14 +433,7 @@ static NEXUS_AudioInputData *NEXUS_AudioInput_P_CreateData(NEXUS_AudioInputHandl
         BLST_Q_INIT(&pData->outputList);
         BLST_Q_INIT(&pData->mixerList);
 
-        for ( i = 0; i < BAPE_Channel_eMax; i++ )
-        {
-            for ( j = 0; j < BAPE_Channel_eMax; j++ )
-            {
-                pData->inputVolume.coefficients[i][j] = (i==j)?BAPE_VOLUME_NORMAL:BAPE_VOLUME_MIN;
-            }
-        }
-        pData->inputVolume.muted = false;
+        NEXUS_AudioInput_P_SetDefaultInputVolume(pData);
     }
 
     return pData;
@@ -490,6 +495,10 @@ NEXUS_Error NEXUS_AudioInput_P_AddInput(NEXUS_AudioInputHandle destination, NEXU
     {
         /* Must allocate data on the first connection */
         pSourceData = NEXUS_AudioInput_P_CreateData(source);
+    }
+    else
+    {
+        NEXUS_AudioInput_P_SetDefaultInputVolume(pSourceData);
     }
     BDBG_OBJECT_ASSERT(pSourceData, NEXUS_AudioInputData);
 
@@ -2796,19 +2805,30 @@ NEXUS_AudioMixerHandle NEXUS_AudioInput_P_LocateMixer(
 }
 
 NEXUS_AudioInputHandle NEXUS_AudioInput_P_LocateDownstream(
-    NEXUS_AudioInputHandle source
+    NEXUS_AudioInputHandle source,
+    NEXUS_AudioInputHandle hLastAudioInput
     )
 {
     NEXUS_AudioDownstreamNode *pNode;
     NEXUS_AudioInputData *pInputData = source->pMixerData;
     if ( NULL != pInputData )
     {
+        bool lastInputFound = false;
+
         for ( pNode = BLST_Q_FIRST(&pInputData->downstreamList);
             NULL != pNode;
             pNode = BLST_Q_NEXT(pNode, downstreamNode) )
         {
-            if (pNode->pDownstreamObject){
-                return pNode->pDownstreamObject;
+            if (pNode->pDownstreamObject)
+            {
+                if (lastInputFound || hLastAudioInput == NULL)
+                {
+                    return pNode->pDownstreamObject;
+                }
+                if ( hLastAudioInput && pNode->pDownstreamObject == hLastAudioInput )
+                {
+                    lastInputFound = true;
+                }
             }
         }
     }

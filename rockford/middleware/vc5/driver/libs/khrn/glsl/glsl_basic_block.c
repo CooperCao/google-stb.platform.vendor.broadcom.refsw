@@ -98,7 +98,7 @@ static Dataflow **basic_block_get_scalar_values(BasicBlock *basic_block, const S
                default: assert(0); df_type = DF_INVALID;  break;
             }
          } else if (glsl_prim_is_prim_atomic_type(&primitiveTypes[type_index])) {
-            df_type = DF_INT;
+            df_type = DF_UINT;
          } else if (glsl_prim_is_prim_image_type(&primitiveTypes[type_index])) {
             PrimSamplerInfo *psi = glsl_prim_get_image_info(type_index);
             PrimitiveTypeIndex ret_basic_type = primitiveScalarTypeIndices[psi->return_type];

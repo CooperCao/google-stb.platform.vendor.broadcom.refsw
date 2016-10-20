@@ -14,8 +14,11 @@ FILE DESCRIPTION
 #include <stdint.h>
 #include <stdbool.h>
 
-#include "vcos_types.h"
 #include "libs/core/v3d/v3d_ver.h"
+
+#define GLSL_SHADER_VERSION(major, minor, es) (((100 * (major)) + (minor))  + ((es) ? 1000000 : 0))
+#define GLSL_SHADER_VERSION_NUMBER(version) ((version) >= 1000000 ? ((version) - 1000000) : (version))
+#define GLSL_SHADER_VERSION_IS_ES(version) ((version) >= 1000000 ? 1 : 0)
 
 // Enumerations.
 
@@ -94,6 +97,27 @@ typedef enum
    FMT_RGBA8UI,
    FMT_R32UI,
 } FormatQualifier;
+
+typedef enum
+{
+   ADV_BLEND_NONE           = 0,
+   ADV_BLEND_MULTIPLY       = 1 << 0,
+   ADV_BLEND_SCREEN         = 1 << 1,
+   ADV_BLEND_OVERLAY        = 1 << 2,
+   ADV_BLEND_DARKEN         = 1 << 3,
+   ADV_BLEND_LIGHTEN        = 1 << 4,
+   ADV_BLEND_COLORDODGE     = 1 << 5,
+   ADV_BLEND_COLORBURN      = 1 << 6,
+   ADV_BLEND_HARDLIGHT      = 1 << 7,
+   ADV_BLEND_SOFTLIGHT      = 1 << 8,
+   ADV_BLEND_DIFFERENCE     = 1 << 9,
+   ADV_BLEND_EXCLUSION      = 1 << 10,
+   ADV_BLEND_HSL_HUE        = 1 << 11,
+   ADV_BLEND_HSL_SATURATION = 1 << 12,
+   ADV_BLEND_HSL_COLOR      = 1 << 13,
+   ADV_BLEND_HSL_LUMINOSITY = 1 << 14,
+   ADV_BLEND_ALL_EQUATIONS  = 0xffffffff,
+} AdvancedBlendQualifier;
 
 typedef struct _LayoutQualifier
 {

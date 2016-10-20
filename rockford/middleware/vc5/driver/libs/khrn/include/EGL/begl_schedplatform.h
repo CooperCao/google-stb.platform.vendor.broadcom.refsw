@@ -92,6 +92,8 @@ typedef struct BEGL_SchedInterface
 
    void               (*SetMMUContext)(void *context, uint64_t physAddr, uint32_t maxVirtAddr, int64_t unsecureBinTranslation, int64_t secureBinTranslation, uint64_t platformToken);
 
+   bool               (*ExplicitSync)(void *context);
+
    void                 *context;
    BEGL_MemoryInterface *memIface;
 

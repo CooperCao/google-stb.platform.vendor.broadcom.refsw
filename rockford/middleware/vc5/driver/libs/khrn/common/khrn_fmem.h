@@ -13,6 +13,7 @@ generated each frame as HW input.
 #define KHRN_FMEM_4_H
 
 #include "khrn_fmem_pool.h"
+#include "khrn_tile_state.h"
 #include "khrn_fmem_debug_info.h"
 #include "khrn_uintptr_vector.h"
 #include "khrn_res_interlock.h"
@@ -33,33 +34,7 @@ typedef struct
    size_t current;
 } KHRN_FMEM_BLOCK_T;
 
-struct glxx_query;
-
-/* Do not change this unless you know what you are doing. See the comments
- * above the definition of V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
- * for why. */
-#define KHRN_CLE_OCCLUSION_QUERY_COUNT V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_COUNTERS
-
-struct khrn_occlusion_query_block
-{
-   /* query_values must be KHRN_CLE_QUERY_BLOCK_ALIGN aligned. So it's at the
-    * start of the structure and we make sure the structure is sufficiently
-    * aligned when allocating. */
-#define KHRN_CLE_OCCLUSION_QUERY_BLOCK_ALIGN V3D_OCCLUSION_QUERY_COUNTER_FIRST_CORE_CACHE_LINE_ALIGN
-   uint32_t query_values[V3D_MAX_CORES * KHRN_CLE_OCCLUSION_QUERY_COUNT];
-
-   struct
-   {
-      struct glxx_query* obj;
-      uint64_t instance;
-   }query [KHRN_CLE_OCCLUSION_QUERY_COUNT];
-
-   unsigned count;
-
-   struct khrn_occlusion_query_block* prev;
-};
-
-typedef struct khrn_occlusion_query_block KHRN_OCCLUSION_QUERY_BLOCK_T;
+typedef struct glxx_query_block glxx_query_block;
 
 /* Precious things of the FMEM that need to live longer than the render state
    reside in khrn_fmem_common_persist, which is cleaned up when the
@@ -72,10 +47,15 @@ typedef struct
    struct fmem_debug_info_vector debug_info;
 #endif
    KHRN_UINTPTR_VECTOR_T client_handles;  // client-allocated handles
-   KHRN_OCCLUSION_QUERY_BLOCK_T *occlusion_query_list; // allocation for this list comes form fmem_data
+
+   glxx_query_block *occlusion_query_list;
+#if V3D_HAS_NEW_TF
+   glxx_query_block *prim_counts_query_list;
+#endif
 
    gmem_handle_t bin_tile_state[V3D_MAX_CORES];
    unsigned num_bin_tile_states;
+   khrn_shared_tile_state* bin_shared_tile_state;
 
 }khrn_fmem_common_persist;
 
@@ -290,8 +270,15 @@ extern bool khrn_fmem_record_fence_to_signal(KHRN_FMEM_T *fmem,
 extern bool khrn_fmem_record_fence_to_depend_on(KHRN_FMEM_T *fmem,
       KHRN_FENCE_T *fence);
 
-void khrn_fmem_new_occlusion_query_entry(KHRN_FMEM_T *fmem,
-      KHRN_OCCLUSION_QUERY_BLOCK_T **block, unsigned *index);
+static inline bool khrn_fmem_has_queries(KHRN_FMEM_T *fmem)
+{
+   khrn_fmem_common_persist *common = khrn_fmem_get_common_persist(fmem);
+   bool res =  common->occlusion_query_list != NULL;
+#if V3D_HAS_NEW_TF
+   res = res || (common->prim_counts_query_list != NULL);
+#endif
+   return res;
+}
 
 VCOS_EXTERN_C_END
 

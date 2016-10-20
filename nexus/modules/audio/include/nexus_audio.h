@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,22 +35,16 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *      Audio Module Global Routines
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #ifndef NEXUS_AUDIO_H__
 #define NEXUS_AUDIO_H__
 
 #include "nexus_types.h"
+#include "nexus_audio_output.h"
+#include "nexus_audio_dsp.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -318,9 +312,98 @@ typedef struct NEXUS_AudioBufferDescriptor
     unsigned wrapBufferSize;        /* Buffer size after wraparound in bytes */        
 } NEXUS_AudioBufferDescriptor;
 
+
+/***************************************************************************
+Summary:
+Audio Module Usage Settings
+**************************************************************************/
+typedef struct NEXUS_AudioModuleUsageSettings
+{
+    unsigned maxIndependentDelay;                     /* max independent output delay [0-500] milliseconds.
+                                                         This value affects the size of the decoder's output buffers. */
+    unsigned maxDecoderOutputChannels;                /* max decoder output channel count. specify 6 for 5.1 ch, 8 for 7.1 ch.
+                                                         This value affects the size of the decoder's output buffers. */
+    unsigned maxDecoderOutputSamplerate;              /* max decoder output samplerate [48000, 96000] Hz.
+                                                         This value affects the size of the decoder's output buffers. */
+
+    NEXUS_AudioDolbyCodecVersion dolbyCodecVersion;   /* several versions of Dolby codecs (AC3, AAC, DDP) exist on our
+                                                         system, but only one type is used in a given product, specified
+                                                         by compile time defines */
+
+    bool decodeCodecEnabled [NEXUS_AudioCodec_eMax];  /* specify true for each decoder codec that will be enabled */
+    bool encodeCodecEnabled [NEXUS_AudioCodec_eMax];  /* specify true for each encoder codec that will be enabled */
+    bool postProcessingEnabled[NEXUS_AudioPostProcessing_eMax]; /* specify true for each post processing algo that will be enabled */
+    unsigned numDecoders;                             /* specify the number of parallel audio decoders required.
+                                                         Default will be NEXUS_NUM_AUDIO_DECODERS */
+    unsigned numEncoders;                             /* specify the number of parallel audio encoders required.
+                                                         Default will be NEXUS_NUM_VIDEO_ENCODERS */
+    unsigned numPassthroughDecoders;                  /* number of IEC-61937 passthrough that will be supported over SPDIF and/or HDMI. */
+    unsigned numHbrPassthroughDecoders;               /* number of HBR passthroughs enabled (Dolby TrueHD and/or
+                                                         DTS HD MA passthrough over HDMI) */
+
+    unsigned numDspMixers;                            /* specify the number of DSP mixers the system will use.
+                                                         Examples of usage cases that require a dsp mixer - MS10/11 mixing, transcode.
+                                                         Each transcode requires one dsp mixer.
+                                                         Each MS10/11 instance requires one dsp mixer.
+                                                         Ex: MS11 + 4 transcodes, where one transcode sources
+                                                         the MS11 path would require 4 dsp mixers */
+    unsigned numPostProcessing;                       /* specify the worst case number of post processing
+                                                         stages that will run simultaneously */
+    unsigned numEchoCancellers;                       /* specify the number of echo cancellers required */
+} NEXUS_AudioModuleUsageSettings;
+
+
+/***************************************************************************
+Summary:
+Audio Module Settings
+**************************************************************************/
+typedef struct NEXUS_AudioModuleSettings
+{
+    unsigned maxAudioDspTasks;          /* Maximum number of audio tasks that will run on the DSP concurrently */
+    unsigned maxIndependentDelay;       /* Maximum output delay value in ms.  */
+    unsigned maxPcmSampleRate;          /* Maximum PCM output sample rate in Hz. */
+
+    bool watchdogEnabled;               /* If true, watchdog recovery is enabled */
+    bool independentDelay;              /* If true, independent delay is enabled */
+    bool routeInputsToDsp;              /* If true, external inputs such as I2S, AnalogAudioDecoder, or RfAudioDecoder will
+                                           route to the DSP if the input's Start() routine is called.  Otherwise, the input
+                                           will route to the audio hardware and bypass the DSP.  This defaults to true
+                                           for DTV platforms and false for STB platforms.  If false, you can still route inputs
+                                           to the DSP by passing the connector to NEXUS_AudioDecoder_Start(). */
+    unsigned numPcmBuffers;             /* Number of PCM audio buffers required. */
+    unsigned numCompressedBuffers;      /* Number of discrete compressed decoder output buffers required.  This is the
+                                           number of outputs that will receive discrete compressed content running at up to 48kHz.
+                                           Independent delay does not affect this number, only different content sources. */
+    unsigned numCompressed4xBuffers;    /* Number of discrete compressed decoder output buffers required.  This is the
+                                           number of outputs that will receive discrete compressed content running at up to 192kHz.
+                                           Independent delay does not affect this number, only different content sources. */
+    unsigned numCompressed16xBuffers;   /* Number of discrete compressed decoder output buffers required.  This is the
+                                           number of outputs that will receive discrete compressed content running at up to 768kHz (HDMI HBR).
+                                           Independent delay does not affect this number, only different content sources. */
+    unsigned numRfEncodedPcmBuffers;    /* Number of discrete RF encoded PCM buffers required.  This is the
+                                           number of outputs that will receive discrete RF encoded PCM content running at up to 192kHz (BTSC).
+                                           Independent delay does not affect this number, only different content sources. */
+
+    NEXUS_AudioOutputPll defaultPll;    /* Default PLL for outputs.  Default=0.  */
+
+    unsigned heapIndex;                 /* Optional.  If set, the audio buffers will be allocated in this heap by default. */
+    unsigned firmwareHeapIndex;         /* Optional.  If set, the DSP Firmware images will be loaded in this heap. */
+
+    NEXUS_AudioDspDebugSettings dspDebugSettings;   /* DSP Debug settings */
+
+    NEXUS_AudioDspAlgorithmSettings dspAlgorithmSettings; /* DSP Algorithm settings */
+
+    NEXUS_AudioLoudnessEquivalenceMode loudnessMode;    /* Loudness equivalence mode.  Default is
+                                                           NEXUS_AudioLoudnessEquivalenceMode_eNone */
+    bool allowSpdif4xCompressed;        /* allow 61937x4 mode over SPDIF interface - used for special applications, many AVRs
+                                            do not support this mode */
+    bool allowI2sCompressed;            /* allow 61937 and 61937x4 mode over i2s interface - used for special applications,
+                                            typically sending to another chip/dsp/fpga etc.  This should be disabled
+                                            if i2s is connected to an external DAC */
+} NEXUS_AudioModuleSettings;
+
 #ifdef __cplusplus
 }
 #endif
 
 #endif /* #ifndef NEXUS_AUDIO_H__ */
-

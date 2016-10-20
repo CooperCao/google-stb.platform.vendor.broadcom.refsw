@@ -1,27 +1,40 @@
-/*************************************************************************
-*     (c)2005-2014 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* [File Description:]
-*
-* Revision History:
-*
- * $brcm_Log: $
- * 
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btnr.h"
@@ -45,11 +58,11 @@ BDBG_MODULE(btnr_3x7x);
 #define DEV_MAGIC_ID                    ((BERR_TNR_ID<<16) | 0xFACE)
 
 /******************************************************************************
-* BTNR_3x7x_Open() 
+* BTNR_3x7x_Open()
 ******************************************************************************/
 BERR_Code BTNR_3x7x_Open(
     BTNR_Handle *phDev,                 /* [output] Returns handle */
-    BTNR_3x7x_Settings *pSettings, /* [Input] settings structure */ 
+    BTNR_3x7x_Settings *pSettings, /* [Input] settings structure */
     BREG_Handle hRegister
     )
 {
@@ -59,16 +72,16 @@ BERR_Code BTNR_3x7x_Open(
     uint32_t BufSrc;
     void *cached_ptr, *tmpAddress;
     BDBG_ENTER(BTNR_3x7x_Open);
-  
+
        BDBG_MSG(("BTNR_3x7x_Open"));
-    
+
     hDev = NULL;
     /* Alloc memory from the system heap */
     h3x7xDev = (BTNR_3x7x_Handle) BKNI_Malloc( sizeof( BTNR_P_3x7x_Handle ) );
     if( h3x7xDev == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BTNR_3x7x_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BTNR_3x7x_Open: BKNI_malloc() failed"));
         goto done;
     }
 	/*, need to intialize it, otherwise the hDev->hTmr can be no zero */
@@ -79,7 +92,7 @@ BERR_Code BTNR_3x7x_Open(
     if( hDev == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BTNR_3x7x_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BTNR_3x7x_Open: BKNI_malloc() failed"));
         BKNI_Free( h3x7xDev );
         goto done;
     }
@@ -133,14 +146,14 @@ BERR_Code BTNR_3x7x_Open(
     hDev->pGetPowerSaver = (BTNR_GetPowerSaverFunc) BTNR_3x7x_GetPowerSaver;
     hDev->pSetPowerSaver = (BTNR_SetPowerSaverFunc) BTNR_3x7x_SetPowerSaver;
     hDev->pGetSettings = (BTNR_GetSettingsFunc) BTNR_3x7x_GetSettings;
-    hDev->pSetSettings = (BTNR_SetSettingsFunc) BTNR_3x7x_SetSettings;   
+    hDev->pSetSettings = (BTNR_SetSettingsFunc) BTNR_3x7x_SetSettings;
 
     BKNI_CreateEvent(&(h3x7xDev->hIntEvent));
 
 #if 0
-                BREG_Write32(h3x7xDev->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,  0x00000080); 
-                BREG_Write32(h3x7xDev->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,  0x00000080); 
-                
+                BREG_Write32(h3x7xDev->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,  0x00000080);
+                BREG_Write32(h3x7xDev->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,  0x00000080);
+
                 BREG_WriteField(h3x7xDev->hRegister, UFE_AFE_TNR0_PWRUP_01, i_pwrup_BIAS, 1);
                 BREG_WriteField(h3x7xDev->hRegister, UFE_AFE_TNR0_PWRUP_01, i_pwrup_SDADC_REG1p0, 0x1);
                 BREG_WriteField(h3x7xDev->hRegister, UFE_AFE_TNR0_PWRUP_02, PHY_PLL_master_PWRUP, 0x1);
@@ -149,7 +162,7 @@ BERR_Code BTNR_3x7x_Open(
     BREG_Write32(hRegister, BCHP_UFE_MISC2_CLK_RESET, 0x0);
     BREG_Write32(hRegister, BCHP_SDADC_CTRL_PWRUP, 0x3);
     BREG_Write32(hRegister, BCHP_SDADC_CTRL_RESET, 0x0);
-                
+
 
                 /* power down the UFE reg */
                 BREG_WriteField(h3x7xDev->hRegister, UFE_AFE_TNR0_PWRUP_01, i_pwrup_SDADC_REG1p0, 0x0);
@@ -217,7 +230,7 @@ BERR_Code BTNR_3x7x_ProcessInterruptEvent(BTNR_Handle hTnrDev)
 
     hDev->pTunerParams->BTNR_BBS_Params.BBSConnectMode &= (~BTNR_BBSConnectMode_EnableStatus);
   }
- 
+
   if (hDev->pTunerParams->BTNR_BBS_Params.BBSConnectMode & BTNR_BBSConnectMode_Tune)
   {
     hDev->pTunerParams->BTNR_BBS_Params.BBSConnectMode &= (~BTNR_BBSConnectMode_Tune);
@@ -360,10 +373,10 @@ BERR_Code BTNR_3x7x_Get_RF_Status(BTNR_Handle hTnrDev, BTNR_3x7x_RfStatus_t *RfC
     RfCallbackStatus->Total_Mix_After_ADC = hTnr->pTunerParams->BTNR_Local_Params.Total_Mix_After_ADC;
     RfCallbackStatus->PreADC_Gain_x256db  = hTnr->pTunerStatus->Tuner_PreADC_Gain_x256db;
     RfCallbackStatus->PostADC_Gain_x256db = hTnr->pTunerParams->BTNR_Local_Params.PostADC_Gain_x256db;
-    RfCallbackStatus->External_Gain_x256db = hTnr->pTunerStatus->External_Gain_x256db;  
+    RfCallbackStatus->External_Gain_x256db = hTnr->pTunerStatus->External_Gain_x256db;
 
     RfCallbackStatus->RF_Offset = hTnr->pTunerParams->BTNR_Local_Params.RF_Offset;
-    RfCallbackStatus->Symbol_Rate = hTnr->pTunerParams->BTNR_Local_Params.Symbol_Rate ;  
+    RfCallbackStatus->Symbol_Rate = hTnr->pTunerParams->BTNR_Local_Params.Symbol_Rate ;
 
     return BERR_SUCCESS;
 }
@@ -410,8 +423,8 @@ BERR_Code BTNR_3x7x_SetExternalGain(BTNR_Handle hTnrDev, const BTNR_3x7x_Externa
 {
     BTNR_P_3x7x_Handle *hTnr = (BTNR_P_3x7x_Handle *)(hTnrDev->hDevImpl);
 
-    hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Bypassable = (pGain_Params->externalGainBypassable*256)/100; 
-    hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Total      = (pGain_Params->externalGainTotal*256)/100; 
+    hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Bypassable = (pGain_Params->externalGainBypassable*256)/100;
+    hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Total      = (pGain_Params->externalGainTotal*256)/100;
     BDBG_MSG(("BTNR_3x7x_SetExternalGain: ExternalGain_Bypassabl =%d  ExternalGain_Total =%d", pGain_Params->externalGainBypassable, pGain_Params->externalGainTotal));
     return BERR_SUCCESS;
 }
@@ -423,8 +436,8 @@ Summary:
 BERR_Code BTNR_3x7x_GetExternalGain(BTNR_Handle hTnrDev, BTNR_3x7x_ExternalGainSettings * pGain_Params)
 {
     BTNR_P_3x7x_Handle *hTnr = (BTNR_P_3x7x_Handle *)(hTnrDev->hDevImpl);
-    pGain_Params->externalGainBypassable = (hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Bypassable*100)/256 ; 
-    pGain_Params->externalGainTotal      = (hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Total*100)/256      ; 
+    pGain_Params->externalGainBypassable = (hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Bypassable*100)/256 ;
+    pGain_Params->externalGainTotal      = (hTnr->pTunerParams->BTNR_Gain_Params.ExternalGain_Total*100)/256      ;
 
     return BERR_SUCCESS;
 }

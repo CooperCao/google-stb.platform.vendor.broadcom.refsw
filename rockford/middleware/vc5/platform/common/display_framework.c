@@ -9,7 +9,7 @@ All rights reserved.
 #include <string.h>
 #include <assert.h>
 
-static unsigned wait_sync(struct DisplayFramework *df, unsigned swap_interval)
+static unsigned wait_sync(DisplayFramework *df, unsigned swap_interval)
 {
    while(swap_interval && DisplayInterface_WaitSync(df->display_interface))
    {
@@ -18,8 +18,8 @@ static unsigned wait_sync(struct DisplayFramework *df, unsigned swap_interval)
    return swap_interval;
 }
 
-static void display_surface(struct DisplayFramework *df,
-      struct SwapchainSurface *surface)
+static void display_surface(DisplayFramework *df,
+      SwapchainSurface *surface)
 {
    void *native_surface = surface->native_surface;
 
@@ -42,12 +42,12 @@ static void display_surface(struct DisplayFramework *df,
 
 static void *display_thread_func(void *p)
 {
-   struct DisplayFramework *df = (struct DisplayFramework *) p;
+   DisplayFramework *df = (DisplayFramework *) p;
 
    /* main thread can proceed */
    pthread_barrier_wait(&df->barrier);
 
-   struct SwapchainSurface *surface;
+   SwapchainSurface *surface;
    while ((surface = SwapchainDequeueDisplaySurface(&df->swapchain)) != NULL)
    {
       if (FenceInterface_Wait(df->fence_interface,
@@ -68,10 +68,10 @@ static void *display_thread_func(void *p)
    return NULL;
 }
 
-bool DisplayFramework_Start(struct DisplayFramework *df,
-      const struct DisplayInterface *display_interface,
-      const struct FenceInterface *fence_interface,
-      const struct SurfaceInterface *surface_interface,
+bool DisplayFramework_Start(DisplayFramework *df,
+      const DisplayInterface *display_interface,
+      const FenceInterface *fence_interface,
+      const SurfaceInterface *surface_interface,
       uint32_t width, uint32_t height, uint32_t swapchain_count)
 {
    /* sanity check */
@@ -111,7 +111,7 @@ bool DisplayFramework_Start(struct DisplayFramework *df,
    return false;
 }
 
-void DisplayFramework_Stop(struct DisplayFramework *df)
+void DisplayFramework_Stop(DisplayFramework *df)
 {
    if (df)
    {
@@ -132,7 +132,7 @@ void DisplayFramework_Stop(struct DisplayFramework *df)
    }
 }
 
-void *DisplayFramework_GetNextSurface(struct DisplayFramework *df,
+void *DisplayFramework_GetNextSurface(DisplayFramework *df,
       BEGL_BufferFormat format, bool secure, int *fence)
 {
    assert(df != NULL);
@@ -144,7 +144,7 @@ void *DisplayFramework_GetNextSurface(struct DisplayFramework *df,
          .format = format,
    };
 
-   struct SwapchainSurface *surface = SwapchainDequeueRenderSurface(
+   SwapchainSurface *surface = SwapchainDequeueRenderSurface(
          &df->swapchain, &requested, secure);
    if (surface)
    {
@@ -175,14 +175,14 @@ void *DisplayFramework_GetNextSurface(struct DisplayFramework *df,
    return NULL;
 }
 
-void DisplayFramework_DisplaySurface(struct DisplayFramework *df,
+void DisplayFramework_DisplaySurface(DisplayFramework *df,
       void *surface, int fence, uint32_t swap_interval)
 {
    assert(df != NULL);
    assert(surface != NULL);
 
-   struct SwapchainSurface *s = container_of(surface,
-         struct SwapchainSurface, native_surface);
+   SwapchainSurface *s = container_of(surface,
+         SwapchainSurface, native_surface);
 
    s->render_fence = fence;
    s->swap_interval = swap_interval;
@@ -190,14 +190,14 @@ void DisplayFramework_DisplaySurface(struct DisplayFramework *df,
    SwapchainEnqueueDisplaySurface(&df->swapchain, s);
 }
 
-void DisplayFramework_CancelSurface(struct DisplayFramework *df,
+void DisplayFramework_CancelSurface(DisplayFramework *df,
       void *surface, int fence)
 {
    assert(df != NULL);
    assert(surface != NULL);
 
-   struct SwapchainSurface *s = container_of(surface,
-         struct SwapchainSurface, native_surface);
+   SwapchainSurface *s = container_of(surface,
+         SwapchainSurface, native_surface);
 
    s->render_fence = fence;
 

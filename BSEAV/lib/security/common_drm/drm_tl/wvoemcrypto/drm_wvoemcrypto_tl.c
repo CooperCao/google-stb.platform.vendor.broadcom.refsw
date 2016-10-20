@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bstd.h"
@@ -44,6 +43,7 @@
 #include <string.h>
 #include <errno.h>
 
+#include "nexus_platform.h"
 #include "nexus_memory.h"
 #include "nexus_platform_client.h"
 #include "nexus_random_number.h"
@@ -118,13 +118,19 @@ static uint8_t *gPadding = NULL;
 #define BTP_SIZE 188
 
 /* Scatter/gather definitions */
-static DmaBlockInfo_t **gWvDmaBlockInfoList;
+static DmaBlockInfo_t **gWvEncDmaBlockInfoList;
+static NEXUS_DmaJobBlockSettings *gWvClrDmaJobBlockSettingsList;
+
+static uint32_t gWvClrNumDmaBlocks;
+static BKNI_EventHandle gWVClrEvent;
+static NEXUS_DmaHandle gWVClrDma;
+static NEXUS_DmaJobHandle gWVClrJob;
+static BKNI_MutexHandle gWVClrMutex;
+static bool gWVClrQueued;
+
 #define MAX_SG_DMA_BLOCKS DRM_COMMON_TL_MAX_DMA_BLOCKS
 #define WV_OEMCRYPTO_FIRST_SUBSAMPLE 1
 #define WV_OEMCRYPTO_LAST_SUBSAMPLE 2
-
-/* Enable Scatter/gather by default */
-static bool scatterGatherEnabled = true;
 
 static DrmRC DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory,
                                               uint32_t *pUsageTableSharedMemorySize);
@@ -240,14 +246,37 @@ DrmRC DRM_WVOemCrypto_UnInit(int *wvRc)
 
     if(gHostSessionCtx != NULL)
     {
-        free(gHostSessionCtx);
+        BKNI_Free(gHostSessionCtx);
         gHostSessionCtx = NULL;
     }
 
-    if(gWvDmaBlockInfoList != NULL)
+    if(gWvEncDmaBlockInfoList != NULL)
     {
-        free(gWvDmaBlockInfoList);
-        gWvDmaBlockInfoList = NULL;
+        BKNI_Free(gWvEncDmaBlockInfoList);
+        gWvEncDmaBlockInfoList = NULL;
+    }
+
+    if(gWVClrDma != NULL)
+    {
+        if(gWVClrJob != NULL)
+        {
+            NEXUS_DmaJob_Destroy(gWVClrJob);
+            gWVClrJob = NULL;
+        }
+        NEXUS_Dma_Close(gWVClrDma);
+        gWVClrDma = NULL;
+    }
+
+    if (gWvClrDmaJobBlockSettingsList != NULL)
+    {
+        BKNI_Free(gWvClrDmaJobBlockSettingsList);
+        gWvClrDmaJobBlockSettingsList = NULL;
+    }
+
+    if (gWVClrMutex != NULL)
+    {
+        BKNI_DestroyMutex(gWVClrMutex);
+        gWVClrMutex = NULL;
     }
 
     BDBG_LEAVE(DRM_WVOemCrypto_UnInit);
@@ -379,6 +408,27 @@ DrmRC DRM_WVOemCrypto_Initialize(Drm_WVOemCryptoParamSettings_t *pWvOemCryptoPar
         }
     }
 
+    if (gWvClrDmaJobBlockSettingsList == NULL)
+    {
+        gWvClrDmaJobBlockSettingsList = BKNI_Malloc(MAX_SG_DMA_BLOCKS * sizeof(NEXUS_DmaJobBlockSettings));
+        if(gWvClrDmaJobBlockSettingsList == NULL)
+        {
+            BDBG_ERR(("%s - Error allocationg memory for DMA Job block settings", __FUNCTION__ ));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+        BKNI_Memset(gWvClrDmaJobBlockSettingsList, 0x0, MAX_SG_DMA_BLOCKS * sizeof(NEXUS_DmaJobBlockSettings));
+    }
+
+    if(gWVClrMutex == NULL)
+    {
+        if(BKNI_CreateMutex(&gWVClrMutex) != BERR_SUCCESS)
+        {
+            BDBG_ERR(("%s - Error calling creating mutex", __FUNCTION__));
+            goto ErrorExit;
+        }
+    }
+
 ErrorExit:
 
     if(container != NULL)
@@ -473,33 +523,35 @@ DrmRC DRM_WVOemCrypto_OpenSession(uint32_t* session,int *wvRc)
     if(gNumSessions == 0)
     {
         rc = DRM_WVOemCrypto_GetMaxNumberOfSessions(&gNumSessions, wvRc);
-        if(rc != Drm_Success)
+        if(rc != Drm_Success || gNumSessions == 0)
         {
-            BDBG_ERR(("%s - Error obtaining maximum number of sessions (0x%08x)", __FUNCTION__, container->basicOut[0]));
+            BDBG_ERR(("%s - Error obtaining maximum number of sessions (%d)", __FUNCTION__, gNumSessions));
             goto ErrorExit;
         }
     }
 
     if(gHostSessionCtx == NULL)
     {
-        gHostSessionCtx = calloc(gNumSessions, sizeof(Drm_WVOemCryptoHostSessionCtx_t));
+        gHostSessionCtx = BKNI_Malloc(gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
         if(gHostSessionCtx == NULL)
         {
             BDBG_ERR(("%s - Error allocating memory for session context", __FUNCTION__ ));
             rc = Drm_Err;
             goto ErrorExit;
         }
+        BKNI_Memset(gHostSessionCtx, 0x0, gNumSessions * sizeof(Drm_WVOemCryptoHostSessionCtx_t));
     }
 
-    if(gWvDmaBlockInfoList == NULL)
+    if(gWvEncDmaBlockInfoList == NULL)
     {
-        gWvDmaBlockInfoList = calloc(gNumSessions, sizeof(DmaBlockInfo_t *));
-        if(gWvDmaBlockInfoList == NULL)
+        gWvEncDmaBlockInfoList = BKNI_Malloc(gNumSessions * sizeof(DmaBlockInfo_t *));
+        if(gWvEncDmaBlockInfoList == NULL)
         {
             BDBG_ERR(("%s - Error allocationg memory for DMA block list", __FUNCTION__ ));
             rc = Drm_Err;
             goto ErrorExit;
         }
+        BKNI_Memset(gWvEncDmaBlockInfoList, 0x0, gNumSessions * sizeof(DmaBlockInfo_t *));
     }
 
 ErrorExit:
@@ -580,9 +632,9 @@ DrmRC drm_WVOemCrypto_CloseSession(uint32_t session,int *wvRc)
         }
     }
 
-    if (scatterGatherEnabled && (gWvDmaBlockInfoList[session] != NULL)) {
-        SRAI_Memory_Free((uint8_t*)gWvDmaBlockInfoList[session]);
-        gWvDmaBlockInfoList[session] = NULL;
+    if (gWvEncDmaBlockInfoList[session] != NULL) {
+        SRAI_Memory_Free((uint8_t*)gWvEncDmaBlockInfoList[session]);
+        gWvEncDmaBlockInfoList[session] = NULL;
     }
 
 ErrorExit:
@@ -1852,75 +1904,235 @@ void DRM_WVOemcrypto_EndianSwap(unsigned int *x)
         (*x<<24);
 }
 
-static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure(uint8_t* data_buffer,
-                                                uint8_t *out_buffer,
-                                                uint32_t data_length,
-                                                uint32_t* out_sz,
-                                                uint32_t *block_offset,
-                                                uint32_t session)
+static void drm_WVOemCrypto_P_Complete(void *context, int param)
 {
-    DrmRC  rc = Drm_Success;
-    DmaBlockInfo_t dmaBlock[3];
-    int nb_blks = 0;
+    BSTD_UNUSED(param);
+    BKNI_SetEvent((BKNI_EventHandle)context);
+}
 
-    BDBG_MSG(("%s - Entered", __FUNCTION__));
+static DrmRC drm_WVOemCrypto_P_Wait_Clear_Transfer(void)
+{
+    NEXUS_DmaJobStatus status;
+    NEXUS_Error nexus_rc;
+    DrmRC drm_rc = Drm_Success;
 
-    if ( gHostSessionCtx[session].btp_info.btp_sage_buffer != NULL )
+    if (gWVClrEvent == NULL || gWVClrDma == NULL || gWVClrJob == NULL)
     {
-        /* BTP block */
-        dmaBlock[nb_blks].pDstData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
-        dmaBlock[nb_blks].pSrcData = gHostSessionCtx[session].btp_info.btp_sage_buffer;
-        dmaBlock[nb_blks].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
-        dmaBlock[nb_blks].sg_start = true;
-        dmaBlock[nb_blks].sg_end = true;
-        nb_blks ++;
-    }
-
-    if(*block_offset != 0)
-    {
-        dmaBlock[nb_blks].pDstData = gPadding;
-        dmaBlock[nb_blks].pSrcData = gPadding;
-        dmaBlock[nb_blks].uiDataSize = *block_offset;
-        dmaBlock[nb_blks].sg_start = true;
-        dmaBlock[nb_blks].sg_end = false;
-        nb_blks ++;
-    }
-
-    /* set DMA parameters */
-    dmaBlock[nb_blks].pDstData = out_buffer;
-    dmaBlock[nb_blks].pSrcData = data_buffer;
-    dmaBlock[nb_blks].uiDataSize = data_length;
-    dmaBlock[nb_blks].sg_start = false;
-    dmaBlock[nb_blks].sg_end = true;
-    nb_blks ++;
-
-    dmaBlock[0].sg_start =true;
-
-    gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = dmaBlock;
-    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = nb_blks;
-
-    BDBG_MSG(("%s nb_blks=%d",__FUNCTION__, nb_blks));
-    BDBG_MSG(("%s padding=0x%x blkOff=%d", __FUNCTION__, gPadding, *block_offset));
-    BDBG_MSG(("%s data_buffer=0x%x length=%d", __FUNCTION__, data_buffer, data_length));
-
-    /*start M2M transfer*/
-    rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true, true );
-    if(rc != Drm_Success)
-    {
-        BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed 0x%x", __FUNCTION__, rc));
+        /* Simply warn no job pending to wait upon */
+        BDBG_WRN(("%s: No DMA job pending", __FUNCTION__));
         goto ErrorExit;
     }
-    *out_sz = data_length;
+
+    BKNI_WaitForEvent(gWVClrEvent, BKNI_INFINITE);
+
+    nexus_rc = NEXUS_DmaJob_GetStatus(gWVClrJob, &status);
+    if (nexus_rc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s: DmaJob_GetStatus err=%d", __FUNCTION__, nexus_rc));
+        drm_rc = Drm_NexusErr;
+        goto ErrorExit;
+    }
+
+    if (status.currentState != NEXUS_DmaJobState_eComplete ) {
+        BDBG_ERR(("%s - NEXUS_DmaJob_ProcessBlocks failed", __FUNCTION__ ));
+        drm_rc = Drm_NexusErr;
+        goto ErrorExit;
+    }
 
 ErrorExit:
-    return rc;
 
+    gWVClrQueued = false;
+
+    if(gWVClrDma != NULL) {
+        if(gWVClrJob != NULL) {
+            NEXUS_DmaJob_Destroy(gWVClrJob);
+            gWVClrJob = NULL;
+        }
+        NEXUS_Dma_Close(gWVClrDma);
+        gWVClrDma = NULL;
+    }
+
+    return drm_rc;
+}
+
+static DrmRC drm_WVOemCrypto_P_Transfer_Clear_Buffer(void)
+{
+    NEXUS_DmaJobSettings dmaJobSettings;
+    NEXUS_DmaJobBlockSettings *blockSettings;
+    NEXUS_Error nexus_rc;
+    DrmRC drm_rc = Drm_Success;
+    unsigned int i;
+
+    if (gWvClrNumDmaBlocks == 0)
+    {
+        /* Return with warning if there is nothing to transfer */
+        BDBG_WRN(("%s: No valid data to transfer", __FUNCTION__));
+        goto ErrorExit;
+    }
+
+    if (gWVClrQueued || gWVClrDma != NULL || gWVClrJob != NULL)
+    {
+        BDBG_WRN(("%s: DMA did not finish, forcing wait", __FUNCTION__));
+        drm_rc = drm_WVOemCrypto_P_Wait_Clear_Transfer();
+        if (drm_rc != Drm_Success)
+        {
+            BDBG_ERR(("%s: Failed to verify DMA transfer complete", __FUNCTION__));
+            goto ErrorExit;
+        }
+    }
+
+    if (gWVClrEvent == NULL)
+    {
+        BKNI_CreateEvent(&gWVClrEvent);
+        if (gWVClrEvent == NULL)
+        {
+            BDBG_ERR(("%s: Failed to create event", __FUNCTION__));
+            drm_rc = Drm_Err;
+            goto ErrorExit;
+        }
+    }
+
+    gWVClrDma = NEXUS_Dma_Open(NEXUS_ANY_ID, NULL);
+    if (gWVClrDma == NULL)
+    {
+        BDBG_ERR(("%s: Failed to NEXUS_Dma_Open !!!", __FUNCTION__));
+        drm_rc = Drm_NexusErr;
+        goto ErrorExit;
+    }
+
+    NEXUS_DmaJob_GetDefaultSettings(&dmaJobSettings);
+    dmaJobSettings.completionCallback.callback = drm_WVOemCrypto_P_Complete;
+    dmaJobSettings.completionCallback.context = gWVClrEvent;
+    dmaJobSettings.bypassKeySlot = NEXUS_BypassKeySlot_eGR2R;
+    dmaJobSettings.numBlocks = gWvClrNumDmaBlocks;
+    gWVClrJob = NEXUS_DmaJob_Create(gWVClrDma, &dmaJobSettings);
+
+    if (gWVClrJob == NULL)
+    {
+        BDBG_ERR(("%s: Failed to NEXUS_DmaJob_Create !!!", __FUNCTION__));
+        drm_rc = Drm_NexusErr;
+        goto ErrorExit;
+    }
+
+    blockSettings = &gWvClrDmaJobBlockSettingsList[gWvClrNumDmaBlocks];
+
+    /* start DMA transfer when last subsample or beyond MAX */
+    BDBG_MSG(("%s  nb_blks=%d",  __FUNCTION__, gWvClrNumDmaBlocks));
+
+    blockSettings->scatterGatherCryptoEnd = true;
+
+    /* cache flush on source address if needed */
+    for (i = 0; i < gWvClrNumDmaBlocks; i++)
+    {
+        blockSettings = &gWvClrDmaJobBlockSettingsList[i];
+        if (!blockSettings->cached)
+        {
+            NEXUS_FlushCache(blockSettings->pSrcAddr, blockSettings->blockSize);
+        }
+    }
+
+    nexus_rc = NEXUS_DmaJob_ProcessBlocks(gWVClrJob, gWvClrDmaJobBlockSettingsList, gWvClrNumDmaBlocks);
+    if (nexus_rc == NEXUS_DMA_QUEUED)
+    {
+        /* Exit here as DMA has not finished yet.
+         * Expect a call to drm_WVOemCrypto_P_Wait_Clear_Transfer()
+         */
+        gWVClrQueued = true;
+        gWvClrNumDmaBlocks= 0;
+        return drm_rc;
+
+    } else if (nexus_rc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s: error in dma transfer, err:%d", __FUNCTION__, nexus_rc));
+        drm_rc = Drm_NexusErr;
+        goto ErrorExit;
+    }
+
+    /* reset the number of blocks */
+    gWvClrNumDmaBlocks= 0;
+
+ErrorExit:
+    if(gWVClrDma != NULL)
+    {
+        if(gWVClrJob != NULL)
+        {
+            NEXUS_DmaJob_Destroy(gWVClrJob);
+            gWVClrJob = NULL;
+        }
+        NEXUS_Dma_Close(gWVClrDma);
+        gWVClrDma = NULL;
+    }
+
+    return drm_rc;
+}
+
+static DrmRC drm_WVOemCrypto_P_CopyBuffer_Secure_SG(
+    uint8_t *destination,
+    const uint8_t *data_addr,
+    uint32_t data_length,
+    uint32_t subsample_flags,
+    bool block_wait)
+{
+    bool isFirstSubsample = false;
+    bool isLastSubsample = false;
+    NEXUS_DmaJobSettings dmaJobSettings;
+    NEXUS_DmaJobBlockSettings *blockSettings;
+    DrmRC rc = Drm_Success;
+    unsigned int i;
+
+    isFirstSubsample = subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE;
+    isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
+
+    BKNI_AcquireMutex(gWVClrMutex);
+
+    blockSettings = &gWvClrDmaJobBlockSettingsList[gWvClrNumDmaBlocks];
+    BDBG_MSG(("%s: entry#=%d, data_addr=0x%08x, len=%d, isFirstSubsample=%d, isLast=%d",
+        __FUNCTION__, gWvClrNumDmaBlocks, data_addr, data_length, isFirstSubsample, isLastSubsample));
+
+    NEXUS_DmaJob_GetDefaultBlockSettings(blockSettings);
+    blockSettings->pDestAddr = destination;
+    blockSettings->pSrcAddr = data_addr;
+    blockSettings->blockSize = data_length;
+    blockSettings->scatterGatherCryptoStart = (gWvClrNumDmaBlocks == 0);
+    blockSettings->scatterGatherCryptoEnd = false;
+    blockSettings->cached = false;
+
+    gWvClrNumDmaBlocks++;
+
+    if (!isLastSubsample && gWvClrNumDmaBlocks < MAX_SG_DMA_BLOCKS)
+    {
+        /* Exit allowing dma blocks to queue up */
+        BKNI_ReleaseMutex(gWVClrMutex);
+        return Drm_Success;
+    }
+    else
+    {
+        rc = drm_WVOemCrypto_P_Transfer_Clear_Buffer();
+        if (rc != Drm_Success)
+        {
+            BDBG_ERR(("%s: Unable to initiate DMA transfer",__FUNCTION__));
+            goto ErrorExit;
+        }
+
+        if (block_wait && gWVClrQueued)
+        {
+            rc = drm_WVOemCrypto_P_Wait_Clear_Transfer();
+            if (rc != Drm_Success)
+            {
+                BDBG_ERR(("%s: Failed to verify DMA transfer complete", __FUNCTION__));
+                goto ErrorExit;
+            }
+        }
+    }
+
+ErrorExit:
+    BKNI_ReleaseMutex(gWVClrMutex);
+    return rc;
 }
 
 static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
                                                     uint8_t *out_addr,
                                                     uint32_t data_length,
                                                     uint32_t subsample_flags,
+                                                    uint32_t *block_offset,
                                                     uint32_t session)
 {
     bool isFirstSubsample = false;
@@ -1929,22 +2141,23 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
     uint32_t dmaBlockIdx;
     DrmRC rc;
 
-    BDBG_ASSERT(scatterGatherEnabled); /* this is a programming error */
     isFirstSubsample = subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE;
     isLastSubsample = subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE;
 
     /* Allocate the dma block memory if it doesn't exist yet */
-    blockInfo = gWvDmaBlockInfoList[session];
+    blockInfo = gWvEncDmaBlockInfoList[session];
     if (blockInfo == NULL) {
         blockInfo = (DmaBlockInfo_t *)SRAI_Memory_Allocate(sizeof(DmaBlockInfo_t) * MAX_SG_DMA_BLOCKS, SRAI_MemoryType_Shared);
         if (blockInfo == NULL) {
             BDBG_ERR(("%s: error allocating dma blockinfo memory", __FUNCTION__));
             return Drm_Err;
         }
-        gWvDmaBlockInfoList[session] = blockInfo;
+        gWvEncDmaBlockInfoList[session] = blockInfo;
     }
 
+    dmaBlockIdx = gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
     BDBG_MSG(("%s  session=%d, data_addr=0x%08x, len=%d, isFirstSubsample=%d, isLast=%d",  __FUNCTION__, session, data_addr,data_length, isFirstSubsample, isLastSubsample ));
+
     if (isFirstSubsample) {
         dmaBlockIdx = 0;
 
@@ -1956,16 +2169,19 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
             blockInfo[dmaBlockIdx].uiDataSize = gHostSessionCtx[session].btp_info.btp_sage_size;
             blockInfo[dmaBlockIdx].sg_start = true;
             blockInfo[dmaBlockIdx].sg_end = true;
-            ++dmaBlockIdx;
+            dmaBlockIdx++;
         }
-        gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
-    }
 
-    /* Fill up sg structure */
-    dmaBlockIdx = gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
-    if (dmaBlockIdx == MAX_SG_DMA_BLOCKS) {
-        BDBG_ERR(("%s: exceeded maximum number (%d) of blocks per dma s/g job", __FUNCTION__, MAX_SG_DMA_BLOCKS));
-        return Drm_Err;
+        if (*block_offset != 0) {
+            /* Add padding for correct IV counter */
+            BDBG_ASSERT(dmaBlockIdx < (MAX_SG_DMA_BLOCKS - 1));
+            blockInfo[dmaBlockIdx].pDstData = gPadding;
+            blockInfo[dmaBlockIdx].pSrcData = gPadding;
+            blockInfo[dmaBlockIdx].uiDataSize = *block_offset;
+            blockInfo[dmaBlockIdx].sg_start = true;
+            blockInfo[dmaBlockIdx].sg_end = false;
+            dmaBlockIdx++;
+        }
     }
 
     blockInfo[dmaBlockIdx].pDstData = out_addr;
@@ -1973,19 +2189,20 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
     blockInfo[dmaBlockIdx].uiDataSize = data_length;
     blockInfo[dmaBlockIdx].sg_start = (dmaBlockIdx == 1);
     blockInfo[dmaBlockIdx].sg_end = isLastSubsample;
-    ++gHostSessionCtx[session].drmCommonOpStruct.num_dma_block;
+    dmaBlockIdx++;
+    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = dmaBlockIdx;
 
-    if (!isLastSubsample)
+    if (!isLastSubsample && dmaBlockIdx < MAX_SG_DMA_BLOCKS)
     {
-       /* only have the dma blocks built */
+        /* only have the dma blocks built */
         return Drm_Success;
     }
     else
     {
-        /*start M2M transfer only when it is the last subsample*/
-        gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvDmaBlockInfoList[session];
+        /*start M2M transfer only when it is the last subsample or blockInfo is full*/
+        gHostSessionCtx[session].drmCommonOpStruct.pDmaBlock = gWvEncDmaBlockInfoList[session];
 
-        BDBG_MSG(("%s  session[%d] , nb_blks=%d",  __FUNCTION__, session, gHostSessionCtx[session].drmCommonOpStruct.num_dma_block));
+        BDBG_MSG(("%s: session[%d], nb_blks=%d", __FUNCTION__, session, dmaBlockIdx));
 
         rc = DRM_Common_TL_M2mOperation(&gHostSessionCtx[session].drmCommonOpStruct, true, true);
         if(rc != Drm_Success)
@@ -1993,9 +2210,10 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR_Secure_SG(uint8_t *data_addr,
             BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed 0x%x", __FUNCTION__, rc));
             return rc;
         }
-        BDBG_MSG(("%s - Decrypted %d dma blocks", __FUNCTION__,
-               gHostSessionCtx[session].drmCommonOpStruct.num_dma_block ));
-        }
+
+        BDBG_MSG(("%s - Decrypted %d dma blocks", __FUNCTION__, dmaBlockIdx));
+        gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
+    }
 
     return rc;
 }
@@ -2011,7 +2229,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
     uint32_t cipher_data_len_aligned = 0;
     DrmRC  rc = Drm_Success;
     DmaBlockInfo_t dmaBlock[2];
-    uint8_t *output1 = NULL;
+    uint8_t *output = NULL;
     uint8_t *pInputData = NULL;
     uint32_t dmaBlockIdx = 0;
 
@@ -2053,8 +2271,8 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
 
 
     /* Allocate output memory */
-    output1 = SRAI_Memory_Allocate(cipher_data_len_aligned, SRAI_MemoryType_Shared);
-    if(output1 == NULL)
+    output = SRAI_Memory_Allocate(cipher_data_len_aligned, SRAI_MemoryType_Shared);
+    if(output == NULL)
     {
         BDBG_ERR(("%s: %d Out of memory\n", __FUNCTION__, __LINE__));
         rc = Drm_Err;
@@ -2076,7 +2294,7 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
         ++dmaBlockIdx;
     }
 
-    dmaBlock[dmaBlockIdx].pDstData = output1;
+    dmaBlock[dmaBlockIdx].pDstData = output;
     dmaBlock[dmaBlockIdx].pSrcData = pInputData;
     dmaBlock[dmaBlockIdx].uiDataSize = cipher_data_len_aligned;
     dmaBlock[dmaBlockIdx].sg_start = true;
@@ -2093,16 +2311,16 @@ static DrmRC drm_WVOemCrypto_P_DecryptCTR(const uint8_t* cipher_data,
         BDBG_ERR(("%s - Call to 'DRM_Common_TL_M2mOperation' failed", __FUNCTION__));
         goto ErrorExit;
     }
-    BKNI_Memcpy(clear_data,output1+*block_offset,cipher_data_length);
-
+    BKNI_Memcpy(clear_data,output+*block_offset,cipher_data_length);
+    gHostSessionCtx[session].drmCommonOpStruct.num_dma_block = 0;
 
     *out_sz = cipher_data_length;
 ErrorExit:
 
 
-    if(output1)
+    if(output)
     {
-        SRAI_Memory_Free(output1);
+        SRAI_Memory_Free(output);
     }
 
     if(pInputData)
@@ -2199,21 +2417,28 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         goto ErrorExit;
     }
 
-
     if (!is_encrypted)
     {
         if (isSecureDecrypt) {
-            BDBG_ERR(("%s: clear data came with secure setting!!", __FUNCTION__));
-            *wvRc = SAGE_OEMCrypto_ERROR_UNKNOWN_FAILURE;
-            goto ErrorExit;
+            bool block_wait = (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0);
+            rc = drm_WVOemCrypto_P_CopyBuffer_Secure_SG(out_buffer, data_addr, data_length, subsample_flags, block_wait);
         }
-        BKNI_Memcpy(out_buffer,data_addr, data_length);
-        return Drm_Success;
+        else
+        {
+            BKNI_Memcpy(out_buffer,data_addr, data_length);
+            rc = Drm_Success;
+        }
+        return rc;
     }
 
+    /* In the case the DMA job was sent mid subsample, set flag for first subsample */
+    if (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
+    {
+        subsample_flags |= WV_OEMCRYPTO_FIRST_SUBSAMPLE;
+    }
 
-    /* For s/g, we only need to load the iv for the first subsample */
-    if(!scatterGatherEnabled || !isSecureDecrypt || (subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE))
+    /* Load the IV on the first subsample */
+    if(subsample_flags & WV_OEMCRYPTO_FIRST_SUBSAMPLE)
     {
         container = SRAI_Container_Allocate();
         if(container == NULL)
@@ -2288,21 +2513,13 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
     }
 
     /* Now kickoff dma */
-    BDBG_MSG(("%s:now call drm_WVOemCrypto_P_DecryptCTR ",__FUNCTION__));
+    BDBG_MSG(("%s:now call drm_WVOemCrypto_P_DecryptCTR",__FUNCTION__));
     if(isSecureDecrypt)
     {
-        if(scatterGatherEnabled &&
-            drm_WVOemCrypto_P_DecryptCTR_Secure_SG((uint8_t *)data_addr, out_buffer, data_length, subsample_flags, session) != Drm_Success)
+        if(drm_WVOemCrypto_P_DecryptCTR_Secure_SG((uint8_t *)data_addr, out_buffer,
+            data_length, subsample_flags, &block_offset, session) != Drm_Success)
         {
             BDBG_ERR(("%s: decryption failed for SG Secure Buffer Type",__FUNCTION__));
-            rc = Drm_Err;
-            *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
-            goto ErrorExit;
-        }
-        else if(!scatterGatherEnabled &&
-             drm_WVOemCrypto_P_DecryptCTR_Secure((uint8_t *)data_addr, out_buffer, data_length, out_sz, &block_offset,session) != Drm_Success)
-        {
-            BDBG_ERR(("%s: decryption failed for Secure Buffer Type",__FUNCTION__));
             rc = Drm_Err;
             *wvRc = SAGE_OEMCrypto_ERROR_DECRYPT_FAILED;
             goto ErrorExit;
@@ -2319,7 +2536,21 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
         }
     }
 
-    if (subsample_flags & WV_OEMCRYPTO_LAST_SUBSAMPLE)
+    /* If the clear buffer DMA job is queued, wait for completion here */
+    BKNI_AcquireMutex(gWVClrMutex);
+    if (gWVClrQueued)
+    {
+        rc = drm_WVOemCrypto_P_Wait_Clear_Transfer();
+        if (rc != Drm_Success)
+        {
+            BDBG_ERR(("%s: Failed to verify DMA transfer complete", __FUNCTION__));
+        }
+    }
+    BKNI_ReleaseMutex(gWVClrMutex);
+
+ErrorExit:
+    /* Free the BTP buffer if a DMA job was executed */
+    if (gHostSessionCtx[session].drmCommonOpStruct.num_dma_block == 0)
     {
         /* M2m Dma transfer happens at the last subsample */
         if ( gHostSessionCtx[session].btp_info.btp_sage_buffer )
@@ -2331,7 +2562,6 @@ DrmRC drm_WVOemCrypto_DecryptCTR(uint32_t session,
     }
     dump(out_buffer,*out_sz,"clear buffer from :");
 
-ErrorExit:
     BDBG_MSG(("%s:free the container",__FUNCTION__));
 
     if(container != NULL)
@@ -2353,7 +2583,6 @@ ErrorExit:
     BDBG_LEAVE(drm_WVOemCrypto_DecryptCTR);
 
     return rc;
-
 }
 
 /********************************************************************************************************
@@ -2540,7 +2769,7 @@ This function may be called simultaneously with any session functions.
 **********************************************************************************************************************/
 
 DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
-                                  uint32_t* idLength,
+                                  size_t* idLength,
                                   int* wvRc)
 {
     DrmRC rc = Drm_Success;
@@ -2665,7 +2894,7 @@ Threading:
 This function may be called simultaneously with any session functions.
 *********************************************************************************************************************/
 DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
-                                 uint32_t* keyDataLength,
+                                 size_t* keyDataLength,
                                  int *wvRc)
 {
     DrmRC rc = Drm_Success;
@@ -3065,7 +3294,7 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
                                              uint32_t enc_rsa_key_length,
                                              const uint8_t* enc_rsa_key_iv,
                                              uint8_t* wrapped_rsa_key,
-                                             uint32_t*  wrapped_rsa_key_length,
+                                             size_t*  wrapped_rsa_key_length,
                                              int *wvRc)
 {
     DrmRC rc = Drm_Success;
@@ -3411,7 +3640,7 @@ DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
                                                const uint8_t* message,
                                                uint32_t message_length,
                                                uint8_t* signature,
-                                               uint32_t* signature_length,
+                                               size_t* signature_length,
                                                WvOemCryptoRSA_Padding_Scheme padding_scheme,
                                                int *wvRc)
 {
@@ -4185,7 +4414,7 @@ DrmRC drm_WVOemCrypto_Generic_Sign(uint32_t session,
                                        uint32_t buffer_length,
                                        int algorithm,
                                        uint8_t* signature,
-                                       uint32_t* signature_length,
+                                       size_t* signature_length,
                                        int *wvRc)
 {
     DrmRC rc = Drm_Success;
@@ -4786,7 +5015,7 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
                                   const uint8_t *pst,
                                   uint32_t pst_length,
                                   WvOEMCryptoPstReport *buffer,
-                                  uint32_t *buffer_length,
+                                  size_t *buffer_length,
                                   int *wvRc)
 {
     DrmRC rc = Drm_Success;
@@ -5302,89 +5531,129 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
     uint32_t filesize = 0;
     uint32_t read_size = 0;
     uint8_t *usage_table_buff = NULL;
-    bool bOnlyUsageTableBackupExits = false;
+    bool bOnlyUsageTableBackupExists = false;
     char *pActiveUsageTableFilePath = NULL;
     uint8_t digest[32] = {0x00};
+    bool integrity_valid = false;
 
     BDBG_ENTER(DRM_WvOemCrypto_P_ReadUsageTable);
 
     /* if module uses a bin file - read it and add it to the container */
-
     BDBG_MSG(("%s - Attempting to read Usage Table at filepath '%s'", __FUNCTION__, USAGE_TABLE_FILE_PATH));
+
+    /* Verify backup file accessible */
+    if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
+    {
+        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
+        bOnlyUsageTableBackupExists = false;
+        /* Continue onwards as main usage table may still be accessible */
+    }
+    else
+    {
+        bOnlyUsageTableBackupExists = true;
+    }
+
     if(access(USAGE_TABLE_FILE_PATH, R_OK|W_OK) != 0)
     {
-        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s), verifying backup...", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
-        if(access(USAGE_TABLE_BACKUP_FILE_PATH, R_OK|W_OK) != 0)
+        BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_FILE_PATH, strerror(errno)));
+        if(!bOnlyUsageTableBackupExists)
         {
             BDBG_ERR(("%s - '%s' not detected or file is not read/writeable (errno = %s)", __FUNCTION__, USAGE_TABLE_BACKUP_FILE_PATH, strerror(errno)));
             rc = Drm_FileErr;
             goto ErrorExit;
         }
-        bOnlyUsageTableBackupExits = true;
-        pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+        else
+        {
+            pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+        }
     }
-    else{
+    else
+    {
         pActiveUsageTableFilePath = USAGE_TABLE_FILE_PATH;
     }
 
-    /*
-     * determine file size and read
-     * */
-    rc = DRM_Common_P_GetFileSize(pActiveUsageTableFilePath, &filesize);
-    if(rc != Drm_Success)
+    while(!integrity_valid)
     {
-        BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    DRM_Common_MemoryAllocate(&usage_table_buff, filesize);
-    if(usage_table_buff == NULL)
-    {
-        BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
-        rc = Drm_MemErr;
-        goto ErrorExit;
-    }
-
-    fptr = fopen(pActiveUsageTableFilePath, "rb");
-    if(fptr == NULL)
-    {
-        BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    read_size = fread(usage_table_buff, 1, filesize, fptr);
-    if(read_size != filesize)
-    {
-        BDBG_ERR(("%s - Error reading Usage Table file size (%u != %u)", __FUNCTION__, read_size, filesize));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    /*
-     * Verify integrity before sending to SAGE
-     * */
-    rc = DRM_Common_SwSha256(usage_table_buff, digest, filesize-SHA256_DIGEST_SIZE);
-    if(rc != Drm_Success)
-    {
-        BDBG_ERR(("%s - Error calculating SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
-
-    if(BKNI_Memcmp(digest, &usage_table_buff[filesize-SHA256_DIGEST_SIZE], SHA256_DIGEST_SIZE) != 0)
-    {
-        BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
-
-        /* What if this is the backup?!  start from scratch (erase both)?! fail out?! */
-        if(bOnlyUsageTableBackupExits == true){
-            BDBG_ERR(("%s - Invalid state", __FUNCTION__));
+        /*
+         * determine file size and read
+         * */
+        rc = DRM_Common_P_GetFileSize(pActiveUsageTableFilePath, &filesize);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error determine file size of bin file", __FUNCTION__));
+            rc = Drm_Err;
+            goto ErrorExit;
         }
-        rc = Drm_Err;
-        goto ErrorExit;
-    }
 
+        DRM_Common_MemoryAllocate(&usage_table_buff, filesize);
+        if(usage_table_buff == NULL)
+        {
+            BDBG_ERR(("%s - Error allocating '%u' bytes", __FUNCTION__, filesize));
+            rc = Drm_MemErr;
+            goto ErrorExit;
+        }
+
+        fptr = fopen(pActiveUsageTableFilePath, "rb");
+        if(fptr == NULL)
+        {
+            BDBG_ERR(("%s - Error opening drm bin file (%s)", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        read_size = fread(usage_table_buff, 1, filesize, fptr);
+        if(read_size != filesize)
+        {
+            BDBG_ERR(("%s - Error reading Usage Table file size (%u != %u)", __FUNCTION__, read_size, filesize));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        /*
+         * Verify integrity before sending to SAGE
+         * */
+        rc = DRM_Common_SwSha256(usage_table_buff, digest, filesize-SHA256_DIGEST_SIZE);
+        if(rc != Drm_Success)
+        {
+            BDBG_ERR(("%s - Error calculating SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
+            rc = Drm_Err;
+            goto ErrorExit;
+        }
+
+        if(BKNI_Memcmp(digest, &usage_table_buff[filesize-SHA256_DIGEST_SIZE], SHA256_DIGEST_SIZE) != 0)
+        {
+            BDBG_ERR(("%s - Error comparing SHA of '%s'", __FUNCTION__, pActiveUsageTableFilePath));
+
+            if(!bOnlyUsageTableBackupExists ||
+                !strncmp(pActiveUsageTableFilePath, USAGE_TABLE_BACKUP_FILE_PATH, strlen(USAGE_TABLE_BACKUP_FILE_PATH)))
+            {
+                /* Usage tables corrupted, we need to wipe and recreate */
+                rc = Drm_FileErr;
+                goto ErrorExit;
+            }
+            else
+            {
+                /* Time to call for backup */
+                if(usage_table_buff != NULL)
+                {
+                    DRM_Common_MemoryFree(usage_table_buff);
+                    usage_table_buff = NULL;
+                }
+                if(fptr != NULL)
+                {
+                    fclose(fptr);
+                    fptr = NULL;
+                }
+                filesize = 0;
+                BKNI_Memset(digest, 0x00, 32);
+                pActiveUsageTableFilePath = USAGE_TABLE_BACKUP_FILE_PATH;
+            }
+        }
+        else
+        {
+            integrity_valid = true;
+        }
+    }
 
     /*
      * see if MAX_USAGE_TABLE_SIZE will fit in detected file
@@ -5403,12 +5672,14 @@ DRM_WvOemCrypto_P_ReadUsageTable(uint8_t *pUsageTableSharedMemory, uint32_t *pUs
 ErrorExit:
 
 
-    if(usage_table_buff != NULL){
+    if(usage_table_buff != NULL)
+    {
         DRM_Common_MemoryFree(usage_table_buff);
         usage_table_buff = NULL;
     }
 
-    if(fptr != NULL){
+    if(fptr != NULL)
+    {
         fclose(fptr);
         fptr = NULL;
     }
@@ -5645,11 +5916,14 @@ This function is not called simultaneously with any other functions
 *********************************************************************************************************/
 DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
                            const uint8_t* data_addr,
-                           uint32_t data_length
+                           uint32_t data_length,
+                           Drm_WVOemCryptoBufferType_t buffer_type,
+                           uint32_t subsample_flags
                            )
 {
-
+    bool isSecureDecrypt = (buffer_type == Drm_WVOEMCrypto_BufferType_Secure);
     DrmRC rc = Drm_Success;
+
     if(data_addr == NULL)
     {
         BDBG_ERR(("%s - source buffer is NULL", __FUNCTION__));
@@ -5672,8 +5946,16 @@ DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
         rc = Drm_Err;
         goto ErrorExit;
     }
-    BDBG_MSG(("%s: Copying the buffer....",__FUNCTION__));
-    BKNI_Memcpy(destination,data_addr, data_length);
+    BDBG_MSG(("%s: Copying the buffer isSecureDecrypt %d....",__FUNCTION__, isSecureDecrypt));
+    if (!isSecureDecrypt)
+    {
+       BKNI_Memcpy(destination,data_addr, data_length);
+    }
+    else
+    {
+        rc = drm_WVOemCrypto_P_CopyBuffer_Secure_SG(destination, data_addr,
+            data_length, subsample_flags, true);
+    }
 
 ErrorExit:
     return rc;

@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2008-2013 Broadcom Corporation
+#  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,22 +35,13 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
-#
 #############################################################################
 use strict;
 use lib "../common";
 use bapi_parse_c;
 use bapi_common;
 use bapi_classes;
+use bapi_main;
 
 my $class_file = shift @ARGV;
 my $file;
@@ -72,7 +63,7 @@ foreach $file (@ARGV) {
     }
     
     if ($parsing_headers) {
-        next if (bapi_classes::skip_thunk($file));
+        next unless (bapi_main::filter_file($file));
         #print "kernelproxy/class_list.pl parsing $file\n";
     
         push @funcs, bapi_parse_c::get_func_prototypes $file;

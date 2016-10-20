@@ -45,9 +45,22 @@
 #include <signal.h>
 #include <stdlib.h>
 #include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <net/if_arp.h>
+#include <sys/ioctl.h>
 #include <arpa/inet.h>
+
+#include <ifaddrs.h>
+#include <netpacket/packet.h>
+
+#include <net/if.h>
+
 #include "error_macro.h"
 #include "asp_connx_migration_api.h"
+
 
 static void myPrint(char *string)
 {
@@ -201,9 +214,207 @@ error:
     return -EINVAL;
 }
 
+#if 0
+/* the following flag should be defined in if_arp.h file.
+   TODO: later removed them.*/
+#define ATF_INUSE   0x01    /* entry in use */
+#define ATF_COM     0x02    /* completed entry (enaddr valid) */
+#define ATF_PERM    0x04    /* permanent entry */
+#define ATF_PUBL    0x08    /* publish entry (respond for other host) */
+#define ATF_USETRAILERS 0x10    /* has requested trailers */
+
+#endif
+
+#define ATF_PROXY   0x20    /* Do PROXY arp */
+
+static int getIpAddressForAnInterface(
+    const char *pInterfacename,
+    struct sockaddr_in *pFindAddr
+    )
+{
+    int fd = -1;
+    struct ifreq ifr;
+    int rc ;
+
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+
+    /* TODO:Right now I only support IPv4 ip address. */
+    ifr.ifr_addr.sa_family = AF_INET;
+
+    strncpy( ifr.ifr_name, pInterfacename, IFNAMSIZ-1);
+
+    rc = ioctl( fd, SIOCGIFADDR, &ifr);
+    if (rc < 0)
+    {
+        /* no ip address available for this interface*/
+        if(fd != -1)
+        {
+            close(fd);
+        }
+        return -1;
+    }
+
+    pFindAddr->sin_addr = ((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr;
+
+    fprintf(stdout, "\n Interface name is %s and corresponding ip address is %s\n", pInterfacename, inet_ntoa(pFindAddr->sin_addr));
+
+    close(fd);
+    return 0;
+}
+
+static int getMacAddressesForLocalHost(
+            SocketState *pSocketState,
+            char        **ppInterfacename   /* out: this function will alllocate memeory and populate this memeber.*/
+            )
+{
+    struct ifaddrs *ifaddr = NULL;
+    struct ifaddrs *ifeach = NULL;
+    struct sockaddr_in findAddr;
+    int rc;
+
+    struct sockaddr_in *sin = &pSocketState->localIpAddr;
+
+    memset(&findAddr, 0, sizeof( struct sockaddr_in));
+
+    rc = getifaddrs(&ifaddr);
+    if(rc == -1)
+    {
+        fprintf(stdout,"%s: getifaddrs() failed.", __FUNCTION__);
+    }
+    else
+    {
+        for (ifeach = ifaddr; ifeach != NULL; ifeach = ifeach->ifa_next)
+        {
+            if( (ifeach->ifa_addr) && (ifeach->ifa_addr->sa_family == AF_PACKET) )
+            {
+                struct sockaddr_ll *sockaddr = (struct sockaddr_ll *)ifeach->ifa_addr;
+
+                rc = getIpAddressForAnInterface(
+                                           ifeach->ifa_name,
+                                           &findAddr
+                                           );
+                if(rc < 0)
+                {
+                   fprintf(stdout, "\n No Ip address for this interface so skip this interface=%s..\n", ifeach->ifa_name);
+
+                }
+                else if( (sin->sin_addr.s_addr == findAddr.sin_addr.s_addr) /*&& (sin->sin_family == ifeach->ifa_addr->sa_family) */)
+                {
+                    /* Also save the interface name which will be needed to determine remote mac address.
+                       This says local ip got a request on this interface.*/
+                    *ppInterfacename  = calloc((strlen(ifeach->ifa_name) + 2), 1);
+
+                    *ppInterfacename = strncpy(*ppInterfacename, ifeach->ifa_name, (strlen(ifeach->ifa_name) + 1));
+
+                    fprintf(stdout, "\n =============== Interface name = |%s|======\n", *ppInterfacename);
+
+                    {
+                        pSocketState->localMacAddress[0] = sockaddr->sll_addr[0];
+                        pSocketState->localMacAddress[1] = sockaddr->sll_addr[1];
+                        pSocketState->localMacAddress[2] = sockaddr->sll_addr[2];
+                        pSocketState->localMacAddress[3] = sockaddr->sll_addr[3];
+                        pSocketState->localMacAddress[4] = sockaddr->sll_addr[4];
+                        pSocketState->localMacAddress[5] = sockaddr->sll_addr[5];
+                        pSocketState->localMacAddress[6] = '\0';
+                        fprintf(stdout, "\n%s:  MAC address of Local host  is ===============> %02X:%02X:%02X:%02X:%02X:%02X\n", __FUNCTION__,
+                               pSocketState->localMacAddress[0], pSocketState->localMacAddress[1],
+                               pSocketState->localMacAddress[2], pSocketState->localMacAddress[3],
+                               pSocketState->localMacAddress[4], pSocketState->localMacAddress[5]
+                               );
+
+                    }
+                }
+            }
+        }
+
+        freeifaddrs(ifaddr);
+    }
+
+    return 0;
+}
+
+static int getRemoteMacAddress(
+    SocketState *pSocketState,
+    const char *pInterfacename, /* in */
+    unsigned char *pRemoteHostMacAddr   /* out. this a part of asp_managerHandle structure memeber of unsigned char remoteHostMacAddr[8] ,
+                                            so no need of any memory allocation. We just need to populate it.*/
+    )
+{
+    int sockFd = -1;
+    struct arpreq arpreq;
+    unsigned char *eap;
+    struct sockaddr_in *soutTemp;
+    int rc;
+    struct in_addr ipaddr;
+
+    memset(&arpreq, 0, sizeof(arpreq));
+
+    /*strcpy(arpreq.arp_dev,"eth0");*/
+    strncpy(arpreq.arp_dev, pInterfacename, (strlen(pInterfacename )+1)); /* without interface name in this case we get the errno 19 , which is #define ENODEV      19  No such device */
+
+    soutTemp = (struct sockaddr_in *) &arpreq.arp_pa;
+    soutTemp->sin_family = AF_INET;
+    /*ipaddr = inet_addr("192.168.10.141");*/
+    /*inet_aton("192.168.10.191", &ipaddr);*/
+    ipaddr = pSocketState->remoteIpAddr.sin_addr;
+    soutTemp->sin_addr = ipaddr;/*sin->sin_addr.s_addr; arp table doesn't show any entry for the anvl dummy address 192.168.10.191 */
+
+    sockFd = socket(AF_INET, SOCK_DGRAM, 0);
+    if(sockFd < 0)
+    {
+       fprintf(stdout, "\n Not able to create socket, errno=%d\n",errno);
+       goto error;
+    }
+
+    rc = ioctl( sockFd, SIOCGARP, &arpreq);
+    if (rc < 0)
+    {
+       fprintf(stdout, "\n Not able to find remote mac address, ioctl failed, errno=%d\n",errno);
+       goto error;
+    }
+
+    if (arpreq.arp_flags & ATF_COM)
+    {
+       eap = (unsigned char *) &arpreq.arp_ha.sa_data[0];
+
+       pRemoteHostMacAddr[0] = pSocketState->remoteMacAddress[0] = eap[0];
+       pRemoteHostMacAddr[1] = pSocketState->remoteMacAddress[1] = eap[1];
+       pRemoteHostMacAddr[2] = pSocketState->remoteMacAddress[2] = eap[2];
+       pRemoteHostMacAddr[3] = pSocketState->remoteMacAddress[3] = eap[3];
+       pRemoteHostMacAddr[4] = pSocketState->remoteMacAddress[4] = eap[4];
+       pRemoteHostMacAddr[5] = pSocketState->remoteMacAddress[5] = eap[5];
+       pRemoteHostMacAddr[6] = pSocketState->remoteMacAddress[6] = '\0';
+
+       fprintf(stdout, "\n%s: MAC address of Remote client is ================>: %02X:%02X:%02X:%02X:%02X:%02X\n", __FUNCTION__,
+               pSocketState->remoteMacAddress[0], pSocketState->remoteMacAddress[1],
+               pSocketState->remoteMacAddress[2], pSocketState->remoteMacAddress[3],
+               pSocketState->remoteMacAddress[4], pSocketState->remoteMacAddress[5]
+               );
+
+       if (arpreq.arp_flags & ATF_PERM) fprintf(stdout," PERM\n");
+       if (arpreq.arp_flags & ATF_PUBL) fprintf(stdout, "PUBLISHED\n");
+       if (arpreq.arp_flags & ATF_USETRAILERS) fprintf(stdout," TRAILERS\n");
+       if (arpreq.arp_flags & ATF_PROXY) fprintf(stdout," PROXY\n");
+       printf("\n");
+    }
+
+    close(sockFd);
+
+    return 0;
+error:
+    if(sockFd != -1)
+    {
+        close(sockFd);
+    }
+    return -1;
+}
+
+
 int ASP_ConnxMigration_GetTcpStateFromLinux(
-    int socketFd,               /* in:  fd of socket to be offloaded from host to ASP. */
-    SocketState *pSocketState   /* out: associated socket state. */
+    int             socketFd,           /* in: fd of socket to be offloaded from host to ASP. */
+    SocketState     *pSocketState,      /* out: associated socket state. */
+    char            **ppInterfacename,    /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
+    unsigned char   *pRemoteHostMacAddr /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
     )
 {
     int i;
@@ -222,6 +433,10 @@ int ASP_ConnxMigration_GetTcpStateFromLinux(
     printf("%s: RemoteIpAddr:Port %s:%d \n", __FUNCTION__, inet_ntoa(pSocketState->remoteIpAddr.sin_addr), ntohs(pSocketState->remoteIpAddr.sin_port));
 
     setNetFilterRule(pSocketState);
+
+    rc = getMacAddressesForLocalHost( pSocketState, ppInterfacename);
+
+    rc = getRemoteMacAddress(pSocketState, *ppInterfacename, pRemoteHostMacAddr );
 
     rc = tcpFreezeSocket(socketFd);
     CHECK_ERR_NZ_GOTO("tcpFreezeSocket Failed...", rc, error);
@@ -243,6 +458,7 @@ int ASP_ConnxMigration_GetTcpStateFromLinux(
 
     rc = tcpGetMaxSegSize(socketFd, &pSocketState->tcpState.maxSegSize);
     CHECK_ERR_NZ_GOTO("tcpGetMaxSegSize Failed ...", rc, error);
+
 
     i = snprintf(string, sizeof(string)-1, "TCP State before Offload: seq %u, ack %u, mss %d",
             pSocketState->tcpState.seq, pSocketState->tcpState.ack, pSocketState->tcpState.maxSegSize);

@@ -216,7 +216,7 @@ typedef enum {
 
 /* Operations on incomplete textures */
 extern void glxx_texture_init(GLXX_TEXTURE_T *texture, int32_t name, GLenum target);
-extern void glxx_texture_term(void *v, uint32_t size);
+extern void glxx_texture_term(MEM_HANDLE_T handle);
 
 extern bool glxx_texture_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t level,
    uint32_t width, uint32_t height, GLenum fmt,

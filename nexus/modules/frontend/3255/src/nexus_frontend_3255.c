@@ -1,55 +1,40 @@
-/***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
-*
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Frontend 3255
-*    APIs to open, close, and setup initial settings for a BCM3255
-*    Frontend Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
 #include "priv/nexus_transport_priv.h"
@@ -635,8 +620,8 @@ static NEXUS_Error NEXUS_Frontend_P_3255QamChannelTune(
         params.symbolRate = NEXUS_Frontend_P_GetDefaultQamSymbolRate(pSettings->mode, pSettings->annex);
     }
 
-    callbackDesc.param = chn_num;
     NEXUS_CallbackHandler_PrepareCallback(channelHandle->lockDriverCBHandler, callbackDesc);
+    callbackDesc.param = chn_num;
     NEXUS_TaskCallback_Set(channelHandle->lockDriverCallback, &callbackDesc);
     NEXUS_TaskCallback_Set(channelHandle->lockAppCallback, &(pSettings->lockCallback));
     NEXUS_TaskCallback_Set(channelHandle->asyncStatusAppCallback, &(pSettings->asyncStatusReadyCallback));
@@ -940,46 +925,46 @@ static void NEXUS_Frontend_P_Process3255DeviceRpcNotification(
                 }
             }
             break;
-		case BRPC_DevId_ECM_DS0:
-		case BRPC_DevId_ECM_DS1:
-		case BRPC_DevId_ECM_DS2:
-		case BRPC_DevId_ECM_DS3:
-		case BRPC_DevId_ECM_DS4:
-		case BRPC_DevId_ECM_DS5:
-		case BRPC_DevId_ECM_DS6:
-		case BRPC_DevId_ECM_DS7:
-		case BRPC_DevId_ECM_DS8:
-		case BRPC_DevId_ECM_DS9:
-		case BRPC_DevId_ECM_DS10:
-		case BRPC_DevId_ECM_DS11:
-		case BRPC_DevId_ECM_DS12:
-		case BRPC_DevId_ECM_DS13:
-		case BRPC_DevId_ECM_DS14:
-		case BRPC_DevId_ECM_DS15:
-			id = device_id - BRPC_DevId_ECM_DS0;
-			rpc_event = BRPC_GET_NOTIFICATION_EVENT(event);
-			BDBG_MSG(("channel id %u",id));
-			channelHandle = NEXUS_Frontend_P_Get3255ChannelHandle(deviceHandle,id);
-			if (channelHandle)
-			{
-				if (rpc_event == BRPC_Notification_Event_DsChannelPower)
-				{
-					BDBG_MSG((" got DS power notification"));
-					channelHandle->ads_status.status.dsChannelPower = BRPC_GET_DS_POWER(event);
-					if (channelHandle->ads_status.statusCallback)
-						NEXUS_TaskCallback_Fire(channelHandle->ads_status.statusCallback);
-					if (channelHandle->asyncStatusAppCallback)
-						NEXUS_TaskCallback_Fire(channelHandle->asyncStatusAppCallback);
-				}
-				else
-				{
-					if (channelHandle->tune_started == true) /* only handle notification when tuner is active*/
-					{
-						BADS_ProcessNotification(channelHandle->ads_chn, event);
-					}
-				}
-			}
-			break;
+        case BRPC_DevId_ECM_DS0:
+        case BRPC_DevId_ECM_DS1:
+        case BRPC_DevId_ECM_DS2:
+        case BRPC_DevId_ECM_DS3:
+        case BRPC_DevId_ECM_DS4:
+        case BRPC_DevId_ECM_DS5:
+        case BRPC_DevId_ECM_DS6:
+        case BRPC_DevId_ECM_DS7:
+        case BRPC_DevId_ECM_DS8:
+        case BRPC_DevId_ECM_DS9:
+        case BRPC_DevId_ECM_DS10:
+        case BRPC_DevId_ECM_DS11:
+        case BRPC_DevId_ECM_DS12:
+        case BRPC_DevId_ECM_DS13:
+        case BRPC_DevId_ECM_DS14:
+        case BRPC_DevId_ECM_DS15:
+            id = device_id - BRPC_DevId_ECM_DS0;
+            rpc_event = BRPC_GET_NOTIFICATION_EVENT(event);
+            BDBG_MSG(("channel id %u",id));
+            channelHandle = NEXUS_Frontend_P_Get3255ChannelHandle(deviceHandle,id);
+            if (channelHandle)
+            {
+                if (rpc_event == BRPC_Notification_Event_DsChannelPower)
+                {
+                    BDBG_MSG((" got DS power notification"));
+                    channelHandle->ads_status.status.dsChannelPower = BRPC_GET_DS_POWER(event);
+                    if (channelHandle->ads_status.statusCallback)
+                        NEXUS_TaskCallback_Fire(channelHandle->ads_status.statusCallback);
+                    if (channelHandle->asyncStatusAppCallback)
+                        NEXUS_TaskCallback_Fire(channelHandle->asyncStatusAppCallback);
+                }
+                else
+                {
+                    if (channelHandle->tune_started == true) /* only handle notification when tuner is active*/
+                    {
+                        BADS_ProcessNotification(channelHandle->ads_chn, event);
+                    }
+                }
+            }
+            break;
 #if defined(NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT)
     case BRPC_DevId_3255_OB0:
             if(deviceHandle->frontendHandle[deviceHandle->oobFrontendIndex])
@@ -1017,22 +1002,22 @@ static void NEXUS_Frontend_P_Process3255DeviceRpcNotification(
         case BRPC_DevId_3255_TNR5:
         case BRPC_DevId_3255_TNR6:
         case BRPC_DevId_3255_TNR7:
-		case BRPC_DevId_ECM_TNR0:
-		case BRPC_DevId_ECM_TNR1:
-		case BRPC_DevId_ECM_TNR2:
-		case BRPC_DevId_ECM_TNR3:
-		case BRPC_DevId_ECM_TNR4:
-		case BRPC_DevId_ECM_TNR5:
-		case BRPC_DevId_ECM_TNR6:
-		case BRPC_DevId_ECM_TNR7:
-		case BRPC_DevId_ECM_TNR8:
-		case BRPC_DevId_ECM_TNR9:
-		case BRPC_DevId_ECM_TNR10:
-		case BRPC_DevId_ECM_TNR11:
-		case BRPC_DevId_ECM_TNR12:
-		case BRPC_DevId_ECM_TNR13:
-		case BRPC_DevId_ECM_TNR14:
-		case BRPC_DevId_ECM_TNR15:
+        case BRPC_DevId_ECM_TNR0:
+        case BRPC_DevId_ECM_TNR1:
+        case BRPC_DevId_ECM_TNR2:
+        case BRPC_DevId_ECM_TNR3:
+        case BRPC_DevId_ECM_TNR4:
+        case BRPC_DevId_ECM_TNR5:
+        case BRPC_DevId_ECM_TNR6:
+        case BRPC_DevId_ECM_TNR7:
+        case BRPC_DevId_ECM_TNR8:
+        case BRPC_DevId_ECM_TNR9:
+        case BRPC_DevId_ECM_TNR10:
+        case BRPC_DevId_ECM_TNR11:
+        case BRPC_DevId_ECM_TNR12:
+        case BRPC_DevId_ECM_TNR13:
+        case BRPC_DevId_ECM_TNR14:
+        case BRPC_DevId_ECM_TNR15:
         default:
             BDBG_WRN((" unknown notification from 3255 device %d", device_id));
     }
@@ -1046,7 +1031,7 @@ static void NEXUS_Frontend_3255DeviceRpcNotificationThread(void *arg)
     while(deviceHandle->rpc_notification_enabled) {
         BRPC_CheckNotification(deviceHandle->rpc_handle,  &device_id, &event, 100);
         if (BRPC_GET_NOTIFICATION_EVENT(event)) {
-            BDBG_MSG(("check_rpc(): notified by server (device_id = %08x) event is %x\n", device_id, event));
+            BDBG_MSG(("check_rpc(): notified by server (device_id = %08x) event is %x", device_id, event));
             NEXUS_LockModule();
             NEXUS_Frontend_P_Process3255DeviceRpcNotification(device_id, event, arg);
             NEXUS_UnlockModule();
@@ -1083,13 +1068,13 @@ static NEXUS_Error NEXUS_Frontend_P_Open3255Channels(NEXUS_3255DeviceHandle devi
     for (i=0;i<deviceHandle->numOfQamFrontends;i++)
     {
         NEXUS_3255ChannelHandle channelHandle = deviceHandle->frontendHandle[i]->pDeviceHandle;
-		rc = BADS_GetVersion(deviceHandle->ads, &version);
-		if (rc != BERR_SUCCESS) goto err_init;
+        rc = BADS_GetVersion(deviceHandle->ads, &version);
+        if (rc != BERR_SUCCESS) goto err_init;
         rc = BTNR_3255Ib_GetDefaultSettings(&tnr3255_cfg, NULL);
         if (rc != BERR_SUCCESS) goto err_init;
         tnr3255_cfg.hGeneric = deviceHandle->rpc_handle;
         tnr3255_cfg.ifFreq = BTNR_3255Ib_SETTINGS_IFFREQ;
-		tnr3255_cfg.devId += (version.minVer <= 0x9) ? channelHandle->chn_num : (BRPC_DevId_ECM_TNR0 - BRPC_DevId_3255_TNR0 + channelHandle->chn_num);
+        tnr3255_cfg.devId += (version.minVer <= 0x9) ? channelHandle->chn_num : (BRPC_DevId_ECM_TNR0 - BRPC_DevId_3255_TNR0 + channelHandle->chn_num);
         rc =  BTNR_3255Ib_Open(&channelHandle->tnr, NULL, NULL, NULL, &tnr3255_cfg);
         if (rc != BERR_SUCCESS) goto err_init;
     }
@@ -1484,16 +1469,16 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
 
     if (deviceHandle->currentPowerState == pSettings->mode)
     {
-        BDBG_ERR(("3255 Device already in standby mode: %d \n", pSettings->mode));
-    	return NEXUS_SUCCESS;
+        BDBG_ERR(("3255 Device already in standby mode: %d", pSettings->mode));
+        return NEXUS_SUCCESS;
     }
 
     Param.devId = BRPC_DevId_3255;
 
     if ((pSettings->mode == NEXUS_StandbyMode_ePassive) || (pSettings->mode == NEXUS_StandbyMode_eDeepSleep))
-    	Param.mode = BRPC_ECM_PowerMode_Standby1;
+        Param.mode = BRPC_ECM_PowerMode_Standby1;
     else if ((pSettings->mode == NEXUS_StandbyMode_eActive) || (pSettings->mode == NEXUS_StandbyMode_eOn))
-    	Param.mode = BRPC_ECM_PowerMode_On;
+        Param.mode = BRPC_ECM_PowerMode_On;
     else
     {
         BDBG_ERR((" Unsupported standby mode"));
@@ -1501,10 +1486,10 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
     }
 
     retCode = BRPC_CallProc(deviceHandle->rpc_handle, BRPC_ProcId_ECM_PowerSaver,
-			(const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);
+            (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);
     if (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS )
     {
-    	BDBG_ERR((" Unable to transistion to Standby mode "));
+        BDBG_ERR((" Unable to transistion to Standby mode "));
         return NEXUS_INVALID_PARAMETER;
     }
 
@@ -1740,7 +1725,7 @@ NEXUS_3255DeviceHandle NEXUS_Frontend_Open3255Device(
     }
     else
     {
-    	if (bonded_ch == 0) BDBG_MSG(("no docsis bonded channel exists"));
+        if (bonded_ch == 0) BDBG_MSG(("no docsis bonded channel exists"));
         else BDBG_MSG(("docsis bonded channels 0-%u",bonded_ch-1));
     }
     deviceHandle->numDocsisChannels = bonded_ch;
@@ -1876,11 +1861,11 @@ oob_done:
             goto err_init;
         }
         /* start RPC notification thread*/
-	deviceHandle->rpc_notification_enabled = true;
+    deviceHandle->rpc_notification_enabled = true;
     if (NEXUS_GetEnv("no_3255") != NULL){
-		BDBG_WRN(("Disabling RPC notification since 3255 is not used"));
-			deviceHandle->rpc_notification_enabled = false;
-	}
+        BDBG_WRN(("Disabling RPC notification since 3255 is not used"));
+            deviceHandle->rpc_notification_enabled = false;
+    }
 
     NEXUS_Thread_GetDefaultSettings(&thread_settings);
         /* TODO:: set correct thread priority*/
@@ -2131,32 +2116,33 @@ void NEXUS_Frontend_GetDefault3255ChannelSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->channelNumber = 0;
     pSettings->enableTsmfSupport = false;
+    NEXUS_CallbackDesc_Init(&pSettings->docsisStateChange);
     return;
 }
 
 static NEXUS_Error NEXUS_Frontend_P_3255TransmitDebugPacket(void* handle, NEXUS_FrontendDebugPacketType type,const uint8_t *pBuffer, size_t size)
 {
-	NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
-	NEXUS_3255DeviceHandle deviceHandle = channelHandle->deviceHandle;
-	NEXUS_Error rc = NEXUS_SUCCESS;
-	BERR_Code retCode = BERR_SUCCESS;
+    NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
+    NEXUS_3255DeviceHandle deviceHandle = channelHandle->deviceHandle;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BERR_Code retCode = BERR_SUCCESS;
 
-	/* The Starvue transmit packet size is fixed at 54 bytes */
-	if ((handle == NULL) || (pBuffer == NULL) || (size != 54) || (type != NEXUS_FrontendDebugPacketType_eOob))
-	{
-		BDBG_ERR(("Parameters is not valid\n"));
-		return NEXUS_INVALID_PARAMETER;
-	}
-	BDBG_ASSERT(channelHandle);
-	BDBG_ASSERT(deviceHandle);
-	BDBG_ASSERT(deviceHandle->aus);
+    /* The Starvue transmit packet size is fixed at 54 bytes */
+    if ((handle == NULL) || (pBuffer == NULL) || (size != 54) || (type != NEXUS_FrontendDebugPacketType_eOob))
+    {
+        BDBG_ERR(("Parameters is not valid"));
+        return NEXUS_INVALID_PARAMETER;
+    }
+    BDBG_ASSERT(channelHandle);
+    BDBG_ASSERT(deviceHandle);
+    BDBG_ASSERT(deviceHandle->aus);
 
-	retCode = BAUS_TransmitStarvuePkt(deviceHandle->aus, (uint8_t *)pBuffer, size);
-	if (retCode != BERR_SUCCESS){
-		BDBG_ERR(("NOT SUCCESS\n"));
-		rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)? NEXUS_OUT_OF_DEVICE_MEMORY : NEXUS_INVALID_PARAMETER;
-	}
-	return rc;
+    retCode = BAUS_TransmitStarvuePkt(deviceHandle->aus, (uint8_t *)pBuffer, size);
+    if (retCode != BERR_SUCCESS){
+        BDBG_ERR(("NOT SUCCESS"));
+        rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)? NEXUS_OUT_OF_DEVICE_MEMORY : NEXUS_INVALID_PARAMETER;
+    }
+    return rc;
 }
 
 NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
@@ -2191,13 +2177,13 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
     /* Establish device capabilities */
     if ( deviceHandle->channelCapabilities[pSettings->channelNumber].channelType == NEXUS_3255ChannelType_eInBand)
     {
-		rc = BADS_GetVersion(deviceHandle->ads, &version);
-		if (rc != BERR_SUCCESS) goto err_init;
+        rc = BADS_GetVersion(deviceHandle->ads, &version);
+        if (rc != BERR_SUCCESS) goto err_init;
         rc = BTNR_3255Ib_GetDefaultSettings(&tnr3255_cfg, NULL);
         if (rc != BERR_SUCCESS) goto err_init;
         tnr3255_cfg.hGeneric = deviceHandle->rpc_handle;
         tnr3255_cfg.ifFreq = BTNR_3255Ib_SETTINGS_IFFREQ;
-		tnr3255_cfg.devId += (version.minVer <= 0x9) ? chn_num : (BRPC_DevId_ECM_TNR0 - BRPC_DevId_3255_TNR0 + chn_num);
+        tnr3255_cfg.devId += (version.minVer <= 0x9) ? chn_num : (BRPC_DevId_ECM_TNR0 - BRPC_DevId_3255_TNR0 + chn_num);
         rc =  BTNR_3255Ib_Open(&channelHandle->tnr, NULL, NULL, NULL, &tnr3255_cfg);
         if (rc != BERR_SUCCESS) goto err_init;
 
@@ -2227,7 +2213,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
         frontendHandle->standby = NEXUS_Frontend_P_3255Standby;
         frontendHandle->requestQamAsyncStatus = NEXUS_Frontend_P_3255_RequestAsyncQamStatus;
         frontendHandle->getQamAsyncStatus = NEXUS_Frontend_P_3255_GetAsyncQamStatus;
-		frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
+        frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
         deviceHandle->numOfQamFrontends++;
         BDBG_MSG(("deviceHandle->numOfQamFrontends %u",deviceHandle->numOfQamFrontends));
     }
@@ -2250,7 +2236,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
         frontendHandle->getTemperature = NEXUS_Frontend_P_3255GetTemperature;
         frontendHandle->standby = NEXUS_Frontend_P_3255Standby;
         deviceHandle->oobFrontendIndex = deviceHandle->numOfFrontends;
-		frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
+        frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
     }
     #endif
 
@@ -2444,7 +2430,7 @@ NEXUS_Error NEXUS_Frontend_GetDocsisChannelStatus(
 
     if (docsisChannel >= deviceHandle->numDocsisChannels)
     {
-	BDBG_ERR(("Invalid Docsis Index: %u \n", docsisChannel));
+        BDBG_ERR(("Invalid Docsis Index: %u", docsisChannel));
         return NEXUS_INVALID_PARAMETER;
     }
 
@@ -2604,7 +2590,7 @@ NEXUS_Error NEXUS_Frontend_Set3255LockStatusForHostChannels(
                 return NEXUS_INVALID_PARAMETER;
         }
 
-	deviceHandle->NonCmControlledVideoChLockStatus = lockStatus;
+    deviceHandle->NonCmControlledVideoChLockStatus = lockStatus;
 
     return ret;
 }
@@ -2616,10 +2602,10 @@ NEXUS_Error NEXUS_Frontend_Config3255Lna(
         NEXUS_Error ret = NEXUS_SUCCESS;
         BERR_Code retCode = BERR_SUCCESS;
         BERR_Code retVal;
-	BRPC_Param_ECM_DoLnaReConfig Param;
+    BRPC_Param_ECM_DoLnaReConfig Param;
         NEXUS_3255DeviceHandle deviceHandle = (NEXUS_3255DeviceHandle)handle;
 
-	Param.devId = BRPC_DevId_3255;
+    Param.devId = BRPC_DevId_3255;
 
         retCode = BRPC_CallProc(deviceHandle->rpc_handle, BRPC_ProcId_ECM_DoLnaReConfig,
                                                         (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);

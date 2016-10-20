@@ -47,51 +47,26 @@
  *
  * This file should only be included from bcm_driver.c
  */
-void b_shared_gpio_enable_irqs(void)
+void b_shared_gpio_reset_irqs(void)
 {
-    unsigned i, j;
-
-    if (!g_shared_gpio_state.initialized) { BERR_TRACE(-EINVAL); return; }
-
-    for(i=0;i<sizeof(g_shared_gpio_state.banks)/sizeof(g_shared_gpio_state.banks[0]);i++)
-    {
-        for (j=0;j<sizeof(g_shared_gpio_state.banks[i].pins)/sizeof(g_shared_gpio_state.banks[i].pins[0]);j++)
-        {
-            if(g_shared_gpio_state.banks[i].pins[j].irq.linux_irq)
-            {
-                if(!g_shared_gpio_state.banks[i].pins[j].irq.disabled && !g_shared_gpio_state.banks[i].pins[j].irq.linux_enabled)
-                {
-                    if (g_brcm_gpio_verbose) PINFO("gpio irq enable %#x:%u linux irq %u\n", g_shared_gpio_state.banks[i].base_address, g_shared_gpio_state.banks[i].pins[j].shift, g_shared_gpio_state.banks[i].pins[j].irq.linux_irq);
-                    g_shared_gpio_state.banks[i].pins[j].irq.linux_enabled = true;
-                    enable_irq(g_shared_gpio_state.banks[i].pins[j].irq.linux_irq);
-                }
-            }
-        }
-    }
-}
-
-void b_shared_gpio_reenable_irqs(void)
-{
-    unsigned i, j;
+    unsigned b, p;
     unsigned long flags;
+    struct b_shared_gpio_bank * bank;
+    struct b_shared_gpio_pin * pin;
 
     if (!g_shared_gpio_state.initialized) { BERR_TRACE(-EINVAL); return; }
 
-    for(i=0;i<sizeof(g_shared_gpio_state.banks)/sizeof(g_shared_gpio_state.banks[0]);i++)
+    /* TODO: reset to insmod state */
+
+    for(b = 0; b < sizeof(g_shared_gpio_state.banks)/sizeof(g_shared_gpio_state.banks[0]); b++)
     {
-        for (j=0;j<sizeof(g_shared_gpio_state.banks[i].pins)/sizeof(g_shared_gpio_state.banks[i].pins[0]);j++)
+        bank = &g_shared_gpio_state.banks[b];
+        for (p = 0; p < sizeof(bank->pins)/sizeof(bank->pins[0]); p++)
         {
-            if (g_shared_gpio_state.banks[i].pins[j].irq.linux_irq)
-            {
-                B_SHARED_GPIO_SPIN_LOCK(flags);
-                if(!g_shared_gpio_state.banks[i].pins[j].irq.linux_enabled)
-                {
-                    if (g_brcm_gpio_verbose) PINFO("gpio reenable %#x:%u linux irq %u\n", g_shared_gpio_state.banks[i].base_address, g_shared_gpio_state.banks[i].pins[j].shift, g_shared_gpio_state.banks[i].pins[j].irq.linux_irq);
-                    g_shared_gpio_state.banks[i].pins[j].irq.linux_enabled = true;
-                    enable_irq(g_shared_gpio_state.banks[i].pins[j].irq.linux_irq);
-                }
-                B_SHARED_GPIO_SPIN_UNLOCK(flags);
-            }
+            pin = &bank->pins[p];
+            B_SHARED_GPIO_SPIN_LOCK(flags);
+            b_os_irq_set_enable_spinlocked_tagged(&pin->irq.base, true, "shgpio reset", __LINE__);
+            B_SHARED_GPIO_SPIN_UNLOCK(flags);
         }
     }
 }

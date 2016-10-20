@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,21 +70,21 @@
 /***************************************************************************
  *AUD_FMM_IOP_OUT_SPDIF_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0 0x20cb0200 /* [RW] Stream configuration */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CTRL  0x20cb0220 /* [RW] SPDIF Control */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_0 0x20cb0224 /* [RW] Channel status bits word_0 */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_1 0x20cb0228 /* [RW] Channel status bits word_1 */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_2 0x20cb022c /* [RW] Channel status bits word_2 */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST 0x20cb0230 /* [RW] Stream ramp and pause/null burst control */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE 0x20cb0234 /* [RW] ramp steps in overwite mode */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG 0x20cb0240 /* [RW] SPDIF formatter configuration */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_MCLK_CFG_0  0x20cb0260 /* [RW] MCLK configuration */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS  0x20cb0270 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS_SET 0x20cb0274 /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS_CLEAR 0x20cb0278 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK    0x20cb027c /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK_SET 0x20cb0280 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK_CLEAR 0x20cb0284 /* [WO] Mask Clear Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0 0x20cb0200 /* [RW][32] Stream configuration */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CTRL  0x20cb0220 /* [RW][32] SPDIF Control */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_0 0x20cb0224 /* [RW][32] Channel status bits word_0 */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_1 0x20cb0228 /* [RW][32] Channel status bits word_1 */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_CHANSTAT_2 0x20cb022c /* [RW][32] Channel status bits word_2 */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_BURST 0x20cb0230 /* [RW][32] Stream ramp and pause/null burst control */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_RAMP_STEP_IN_OVERWRITE_MODE 0x20cb0234 /* [RW][32] ramp steps in overwite mode */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG 0x20cb0240 /* [RW][32] SPDIF formatter configuration */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_MCLK_CFG_0  0x20cb0260 /* [RW][32] MCLK configuration */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS  0x20cb0270 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS_SET 0x20cb0274 /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_STATUS_CLEAR 0x20cb0278 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK    0x20cb027c /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK_SET 0x20cb0280 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_IOP_OUT_SPDIF_0_ESR_MASK_CLEAR 0x20cb0284 /* [WO][32] Mask Clear Register */
 
 /***************************************************************************
  *STREAM_CFG_0 - Stream configuration

@@ -868,9 +868,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         tunerGpioSettings.mode = NEXUS_GpioMode_eInput;
         tunerGpioSettings.interruptMode = NEXUS_GpioInterrupt_eLow;
 
-#if defined NEXUS_USE_7449_SV || defined NEXUS_USE_7439_SV
-        gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 60, &tunerGpioSettings);
-#elif NEXUS_USE_7252S_VMS_SFF
+#if NEXUS_USE_7252S_VMS_SFF
         gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 103, &tunerGpioSettings);
 #elif NEXUS_NUM_FRONTEND_CARD_SLOTS
         gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eStandard, 82, &tunerGpioSettings);

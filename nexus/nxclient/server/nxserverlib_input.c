@@ -41,7 +41,7 @@
 BDBG_MODULE(nxserverlib_input);
 
 #if NEXUS_HAS_INPUT_ROUTER
-static size_t get_ir_event( NEXUS_IrInputHandle irInput, unsigned mode, NEXUS_InputRouterCode *pCode )
+static size_t get_ir_event(unsigned index, NEXUS_IrInputHandle irInput, unsigned mode, NEXUS_InputRouterCode *pCode )
 {
     NEXUS_Error rc;
     size_t n = 0;
@@ -54,10 +54,11 @@ static size_t get_ir_event( NEXUS_IrInputHandle irInput, unsigned mode, NEXUS_In
             NEXUS_InputRouter_GetDefaultCode(pCode);
             pCode->deviceType = NEXUS_InputRouterDevice_eIrInput;
             pCode->filterMask = 1<<pCode->deviceType;
-            pCode->data.irInput.index = 0;
+            pCode->data.irInput.index = index;
             pCode->data.irInput.code = irEvent.code;
             pCode->data.irInput.repeat = irEvent.repeat;
             pCode->data.irInput.mode = mode;
+            pCode->data.irInput.event = irEvent;
         } else {
             n = 0;
         }
@@ -106,7 +107,10 @@ static void nxserverlib_p_input_callback(void *context, int param)
         {
             case NEXUS_InputRouterDevice_eIrInput:
                 for (i=0;i<NXSERVER_IR_INPUTS;i++) {
-                    if (get_ir_event(session->input.irInput[i], session->server->settings.session[session->index].ir_input.mode[i], &code)) foundCode = true;
+                    if (get_ir_event(i, session->input.irInput[i], session->server->settings.session[session->index].ir_input.mode[i], &code)) {
+                        foundCode = true;
+                        break;
+                    }
                 }
                 break;
 #if NEXUS_HAS_KEYPAD

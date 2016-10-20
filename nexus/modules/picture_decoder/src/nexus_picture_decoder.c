@@ -397,6 +397,10 @@ void NEXUS_PictureDecoder_P_ProcessSidError( NEXUS_PictureDecoderHandle decoder 
             BDBG_WRN(("%s dimensions w=%d h=%d exceeds maximum decodes w=%d h=%d, cannot decode" , imageType[imgIdx] ,
                 decoder->decodeState.status.header.width, decoder->decodeState.status.header.height ,st_RevisionInfo.ui32_JpegMaxWidth ,st_RevisionInfo.ui32_JpegMaxWidth ));
             break;
+        case BSID_ERR_INSUFFICIENT_INPUT_DATA:
+            /* Most images will have header data within first 128k. Anomalous files may have large metadata exceeding this. buffersize = filesize confirms decodeable */
+            BDBG_WRN(("Failed to decode image header due to input buffer being too small. Increase openSettings.bufferSize to size of image file" ));
+            break;
     }
 }
 
@@ -785,8 +789,8 @@ NEXUS_PictureDecoder_Start(NEXUS_PictureDecoderHandle decoder, const NEXUS_Pictu
         BDBG_MSG(("imageSize(%d) > bufferSize(%d), small buffer decode enabled" , decoder->startSettings.imageSize, decoder->openSettings.bufferSize ));
     }
 
-    NEXUS_Module_TaskCallback_Set(decoder->pictureParsedCallback, &decoder->startSettings.pictureParsed);
-    NEXUS_Module_TaskCallback_Set(decoder->segmentDecodedCallback, &decoder->startSettings.segmentDecoded);
+    NEXUS_TaskCallback_Set(decoder->pictureParsedCallback, &decoder->startSettings.pictureParsed);
+    NEXUS_TaskCallback_Set(decoder->segmentDecodedCallback, &decoder->startSettings.segmentDecoded);
     decoder->state = NEXUS_PictureDecoder_P_eWaitingData;
 
     if(decoder->wr_offset>0) {
@@ -812,8 +816,8 @@ NEXUS_PictureDecoder_Stop(NEXUS_PictureDecoderHandle decoder)
         return; /* currently, not an error. */
     }
 
-    NEXUS_Module_TaskCallback_Set(decoder->pictureParsedCallback, NULL);
-    NEXUS_Module_TaskCallback_Set(decoder->segmentDecodedCallback, NULL);
+    NEXUS_TaskCallback_Set(decoder->pictureParsedCallback, NULL);
+    NEXUS_TaskCallback_Set(decoder->segmentDecodedCallback, NULL);
 
     if ( decoder->state == NEXUS_PictureDecoder_P_eDecoding ||
          decoder->state == NEXUS_PictureDecoder_P_eStreamInfo ||

@@ -63,8 +63,6 @@ typedef struct NEXUS_Ipc_Header {
    int result; /* ipc system rc, not the function's rc */
 } NEXUS_Ipc_Header;
 
-/* unit type for IPC, variable size arrays would use this type, and would be aligned to size of this type */
-typedef unsigned long NEXUS_Ipc_Unit;
 
 /**
 Intermediate physical addressed used to translate addresses between processes.

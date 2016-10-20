@@ -1,7 +1,7 @@
 ##############################################################################
-#    (c)2011-2013 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 
@@ -202,7 +194,7 @@ ifeq ($(findstring 7364,$(BDSQ_CHIP)),7364)
 
 # If chip version not specified, select a default
 ifeq ($(BDSQ_7364_VER),)
-BDSQ_7364_VER := A0
+BDSQ_7364_VER := C0
 endif
 
 BDSQ_7364_VER_UPPER := $(strip $(BDSQ_7364_VER))

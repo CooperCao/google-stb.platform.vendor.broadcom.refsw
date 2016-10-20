@@ -108,7 +108,7 @@ BERR_Code BVBI_Field_Create (
         goto BVBI_Field_Create_Done;
     }
     BKNI_Memset((void*)pttData, 0x0, sizeof(BVBI_P_TTData));
-    BVBI_P_TTData_Alloc (pVbi_Fld->pVbi->hMem, 0, 0, pttData);
+    BVBI_P_TTData_Alloc (pVbi_Fld->pVbi->hMmaHeap, 0, 0, pttData);
     BVBI_P_LCOP_CREATE (pVbi_Fld, TTDataO, pttData, clink);
     pVbi_Fld->pVPSData = 0x0;
     pVbi_Fld->pGSData = 0x0;
@@ -168,16 +168,11 @@ BERR_Code BVBI_Field_TT_Allocate(
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-#ifdef BVBI_P_TTE_WA15
-    if (ucMaxLines !=0)
-        ucMaxLines = BVBI_TT_MAX_LINES;
-#endif
-
     /* (Re)allocate TT data as necessary */
     BVBI_P_LCOP_WRITE (pVbi_Fld, TTDataO, &pVbi_Fld->pVbi->ttFreelist, clink);
     pttData = BVBI_P_LCOP_GET (pVbi_Fld, TTDataO);
     eErr = BERR_TRACE (BVBI_P_TTData_Alloc (
-        pVbi_Fld->pVbi->hMem, ucMaxLines, ucLineSize, pttData));
+        pVbi_Fld->pVbi->hMmaHeap, ucMaxLines, ucLineSize, pttData));
     if (eErr != BERR_SUCCESS)
     {
         BDBG_LEAVE(BVBI_Field_TT_Allocate);
@@ -402,7 +397,7 @@ BERR_Code BVBI_Field_SCTE_Allocate(
         /* Internal standard for SCTE data allocation */
         eStatus =
             BVBI_P_SCTEData_Alloc (
-                pVbi_Fld->pVbi->hMem, cc_size, scteEnableNrtv, pam_size,
+                pVbi_Fld->pVbi->hMmaHeap, cc_size, scteEnableNrtv, pam_size,
                 scteEnableMono, pVbi_Fld->pPScteData);
         }
     else /* no data is requested */
@@ -413,7 +408,7 @@ BERR_Code BVBI_Field_SCTE_Allocate(
             /* Internal standard for SCTE data de-allocation */
             eStatus =
                 BVBI_P_SCTEData_Alloc (
-                    pVbi_Fld->pVbi->hMem, 0, false, 0, false,
+                    pVbi_Fld->pVbi->hMmaHeap, 0, false, 0, false,
                     pVbi_Fld->pPScteData);
             if (eStatus != BERR_SUCCESS)
             {
@@ -490,7 +485,7 @@ BERR_Code BVBI_Field_Destroy(BVBI_Field_Handle fieldHandle)
     /* Deallocate bulky data if necessary */
     BVBI_P_LCOP_DESTROY (pVbi_Fld, TTDataO, &pVbi_Fld->pVbi->ttFreelist, clink);
     pttData = BVBI_P_LCOP_GET (pVbi_Fld, TTDataO);
-    BVBI_P_TTData_Alloc (pVbi_Fld->pVbi->hMem, 0, 0, pttData);
+    BVBI_P_TTData_Alloc (pVbi_Fld->pVbi->hMmaHeap, 0, 0, pttData);
     BKNI_Free ((void*)pttData);
     BVBI_Field_MCC_Allocate (fieldHandle, false);
     BVBI_Field_AMOL_Allocate(fieldHandle, BVBI_AMOL_Type_None);

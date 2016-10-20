@@ -25,7 +25,6 @@ FILE DESCRIPTION
 #include "glsl_primitive_types.auto.h"
 #include "glsl_stdlib.auto.h"
 #include "glsl_symbols.h"
-#include "glsl_trace.h"
 #include "glsl_layout.h"
 
 //
@@ -262,7 +261,7 @@ static void reject_ins_outs(const Statement *s) {
    for (QualListNode *n = s->u.var_decl.quals->head; n; n=n->next) {
       if (n->q->flavour == QUAL_STORAGE && ( n->q->u.storage == STORAGE_IN ||
                                              n->q->u.storage == STORAGE_OUT  ) )
-         glsl_compile_error(ERROR_SEMANTIC, 15, s->line_num, "in and out invalid in compute shaders");
+         glsl_compile_error(ERROR_SEMANTIC, 10, s->line_num, "in and out invalid in compute shaders");
    }
 }
 
@@ -286,7 +285,7 @@ static void validate_qualifier_default(const Statement *s, ShaderFlavour flavour
                   break;
                case LQ_TRIANGLES:
                   if (sq != STORAGE_IN || (flavour != SHADER_TESS_EVALUATION && flavour != SHADER_GEOMETRY))
-                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'trianlges'qualifier only valid for tess evaluation or geometry input");
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'triangles' qualifier only valid for tess evaluation or geometry input");
                   break;
                case LQ_QUADS:
                case LQ_ISOLINES:
@@ -336,6 +335,27 @@ static void validate_qualifier_default(const Statement *s, ShaderFlavour flavour
                   if (flavour != SHADER_GEOMETRY || sq != STORAGE_OUT)
                      glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "'max_vertices' only valid for geometry output");
                   break;
+               case LQ_BLEND_SUPPORT_MULTIPLY:
+               case LQ_BLEND_SUPPORT_SCREEN:
+               case LQ_BLEND_SUPPORT_OVERLAY:
+               case LQ_BLEND_SUPPORT_DARKEN:
+               case LQ_BLEND_SUPPORT_LIGHTEN:
+               case LQ_BLEND_SUPPORT_COLORDODGE:
+               case LQ_BLEND_SUPPORT_COLORBURN:
+               case LQ_BLEND_SUPPORT_HARDLIGHT:
+               case LQ_BLEND_SUPPORT_SOFTLIGHT:
+               case LQ_BLEND_SUPPORT_DIFFERENCE:
+               case LQ_BLEND_SUPPORT_EXCLUSION:
+               case LQ_BLEND_SUPPORT_HSL_HUE:
+               case LQ_BLEND_SUPPORT_HSL_SATURATION:
+               case LQ_BLEND_SUPPORT_HSL_COLOR:
+               case LQ_BLEND_SUPPORT_HSL_LUMINOSITY:
+               case LQ_BLEND_SUPPORT_ALL_EQUATIONS:
+                  if (flavour != SHADER_FRAGMENT || sq != STORAGE_OUT)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Advanced blending qualifiers only valid for fragment output");
+                  if (version < GLSL_SHADER_VERSION(3,20,1) && glsl_ext_status(GLSL_EXT_BLEND_EQUATION_ADVANCED) == GLSL_DISABLED)
+                     glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Advanced blending requires GLSL 3.2 or extension enabled");
+                  break;
                default:
                   glsl_compile_error(ERROR_CUSTOM, 15, s->line_num, "Layout qualifier not valid for default declarations");
             }
@@ -375,7 +395,7 @@ static void validate_qualifier_augment(const Statement *s, ShaderFlavour flavour
    if (invariant > 0) {
       for (SymbolListNode *n = s->u.qualifier_augment.vars->head; n; n=n->next) {
          if(!invariant_decl_valid(n->s, flavour, version))
-            glsl_compile_error(ERROR_SEMANTIC, 34, s->line_num, "%s", n->s->name);
+            glsl_compile_error(ERROR_SEMANTIC, 9, s->line_num, "%s", n->s->name);
       }
    }
 }
@@ -463,7 +483,7 @@ static void ensure_arg_n_const(Symbol *called, ExprChain *args, int n) {
    /* Functions arguments are 1 based, so get the n-1-th expression */
    Expr *arg = expr_chain_get_expr(args, n-1);
    if (!arg->compile_time_value)
-      glsl_compile_error(ERROR_SEMANTIC, 15, arg->line_num, "in argument to function %s", called->name);
+      glsl_compile_error(ERROR_SEMANTIC, 10, arg->line_num, "in argument to function %s", called->name);
 }
 
 static void epostv_validate(Expr *e, void *data) {
@@ -624,7 +644,7 @@ static void epostv_validate(Expr *e, void *data) {
       if (aggregate_type->flavour == SYMBOL_BLOCK_TYPE && !e->u.subscript.subscript->compile_time_value) {
          bool shader5 = d->version >= GLSL_SHADER_VERSION(3,20,1) || glsl_ext_status(GLSL_EXT_GPU_SHADER5) != GLSL_DISABLED;
          if (!shader5 || e->u.subscript.aggregate->u.instance.symbol->u.var_instance.storage_qual == STORAGE_BUFFER)
-            glsl_compile_error(ERROR_SEMANTIC, 15, e->line_num, "indexing array of interface blocks");
+            glsl_compile_error(ERROR_SEMANTIC, 10, e->line_num, "indexing array of interface blocks");
       }
    }
 }
@@ -640,7 +660,7 @@ static void epostv_check_recursion(Expr *e, void *data) {
    SymbolList *active = data;
    if (e->flavour == EXPR_FUNCTION_CALL) {
       if (glsl_symbol_list_contains(active, e->u.function_call.function))
-         glsl_compile_error(ERROR_SEMANTIC, 30, e->line_num, "recursive call to function <%s>", e->u.function_call.function->name);
+         glsl_compile_error(ERROR_SEMANTIC, 18, e->line_num, "recursive call to function <%s>", e->u.function_call.function->name);
 
       function_check_recursion(e->u.function_call.function, active);
    }
@@ -778,7 +798,7 @@ Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscri
       if (subscript->type == &primitiveTypes[PRIM_INT]) {
          int v = const_signed_from_value(subscript->compile_time_value[0]);
          if (v < 0) {
-            glsl_compile_error(ERROR_SEMANTIC, 20, line_num, "array subscript (%d) cannot be negative", v);
+            glsl_compile_error(ERROR_SEMANTIC, 12, line_num, "array subscript (%d) cannot be negative", v);
             return NULL;
          }
       }
@@ -787,7 +807,7 @@ Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscri
 
       // Bounds check. aggregate_size == 0 for unsized SSBO arrays
       if (aggregate_size > 0 && subscript_value >= aggregate_size) {
-         glsl_compile_error(ERROR_SEMANTIC, 20, line_num, "subscript %d beyond array bound %d",
+         glsl_compile_error(ERROR_SEMANTIC, 12, line_num, "subscript %d beyond array bound %d",
                                                           subscript_value, aggregate_size-1);
          return NULL;
       }
@@ -1264,11 +1284,11 @@ Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const ch
          primitive_flags = primitiveTypeFlags[aggregate->type->u.primitive_type.index];
 
          if (!(primitive_flags & PRIM_VECTOR_TYPE))
-            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%s does not support swizzling", aggregate->type->name);
+            glsl_compile_error(ERROR_SEMANTIC, 14, line_num, "%s does not support swizzling", aggregate->type->name);
 
          int len = strlen(field);
          if (len > MAX_SWIZZLE_FIELD_COUNT)
-            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%s too long", field);
+            glsl_compile_error(ERROR_SEMANTIC, 14, line_num, "%s too long", field);
 
          // Decode swizzle into swizzle_slots[].
          int seen_xyzw = 0, seen_rgba = 0, seen_stpq = 0;
@@ -1285,20 +1305,20 @@ Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const ch
                   break;
 
                default:
-                  glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "%c not a swizzle", field[i]);
+                  glsl_compile_error(ERROR_SEMANTIC, 14, line_num, "%c not a swizzle", field[i]);
                   return NULL;
             }
             expr->u.swizzle.swizzle_slots[i] = swizzle_value(field[i]);
             if (expr->u.swizzle.swizzle_slots[i] >= primitiveTypes[aggregate->type->u.primitive_type.index].scalar_count)
             {
-               glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "component too large for aggregate");
+               glsl_compile_error(ERROR_SEMANTIC, 14, line_num, "component too large for aggregate");
                return NULL;
             }
          }
 
          if ((seen_xyzw != len) && (seen_rgba != len) && (seen_stpq != len))
          {
-            glsl_compile_error(ERROR_SEMANTIC, 26, line_num, "Elements must be from the same set");
+            glsl_compile_error(ERROR_SEMANTIC, 14, line_num, "Elements must be from the same set");
             return NULL;
          }
 
@@ -1323,7 +1343,7 @@ Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const ch
    }
 
    // Illegal field selector.
-   glsl_compile_error(ERROR_SEMANTIC, 26, line_num, NULL);
+   glsl_compile_error(ERROR_SEMANTIC, 14, line_num, NULL);
    return NULL;
 }
 
@@ -1355,7 +1375,7 @@ Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, int line_num, Expr *oper
          //  applied to constants.
          if (!glsl_is_lvalue(operand)) {
             // Not an l-value.
-            glsl_compile_error(ERROR_SEMANTIC, 27, line_num, NULL);
+            glsl_compile_error(ERROR_SEMANTIC, 15, line_num, NULL);
             return NULL;
          }
          /* Fall through */
@@ -2065,7 +2085,7 @@ Expr *glsl_expr_construct_assign_op(int line_num, Expr *lvalue, Expr *rvalue)
    expr->compile_time_value = NULL;
 
    if (!glsl_is_lvalue(lvalue))
-      glsl_compile_error(ERROR_SEMANTIC, 27, line_num, NULL);
+      glsl_compile_error(ERROR_SEMANTIC, 15, line_num, NULL);
 
    if (!glsl_shallow_match_nonfunction_types(lvalue->type, rvalue->type))
       glsl_compile_error(ERROR_SEMANTIC, 1, line_num, NULL);

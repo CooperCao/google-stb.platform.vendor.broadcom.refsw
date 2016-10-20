@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,7 +53,6 @@ CModel::CModel(const char * strName) :
     _pChannelMgr(NULL),
     _pGraphics(NULL),
     _fullScreenWindowType(eWindowType_Main),
-    _pMixer(NULL),
     _pVideoDecode(NULL),
     _pStillDecode(NULL),
     _pThumbExtractor(NULL),
@@ -66,6 +65,8 @@ CModel::CModel(const char * strName) :
     _id(0),
     _bPip(false),
     _bPipEnabled(false),
+    _bipTranscodeEnabled(false),
+    _ipTranscodeProfile(0),
     _bPipSwapped(false),
     _bScanSaveOffer(false),
     _pPower(NULL),
@@ -102,7 +103,7 @@ CModel::CModel(const char * strName) :
 #ifndef NXCLIENT_SUPPORT
     _simpleVideoDecoderServer = NEXUS_SimpleVideoDecoderServer_Create();
     _simpleAudioDecoderServer = NEXUS_SimpleAudioDecoderServer_Create();
-    _simpleEncoderServer = NEXUS_SimpleEncoderServer_Create();
+    _simpleEncoderServer      = NEXUS_SimpleEncoderServer_Create();
 #endif
 
     _irRemoteList.clear();
@@ -337,14 +338,15 @@ void CModel::setCurrentChannel(
         windowType = _fullScreenWindowType;
     }
 
-    if ((NULL != _currentChannel[windowType]) &&
+    if ((NULL != pChannel) &&
+        (NULL != _currentChannel[windowType]) &&
         (false == _currentChannel[windowType]->isStopAllowed()))
     {
         /* non stoppable channels are those that exist in the channel list.
-           only channel list channels are saved as the last channel.
-           last channel does not make sense for stoppable channels because
-           they are not a part of a channel list.  one example of a
-           stoppable channel is discovered ip channels. */
+         * only channel list channels are saved as the last channel.
+         * last channel does not make sense for stoppable channels because
+         * they are not a part of a channel list.  one example of a
+         * stoppable channel is discovered ip channels. */
         _lastChannel[windowType] = _currentChannel[windowType];
     }
 
@@ -438,7 +440,7 @@ void CModel::resetChannelHistory()
         _deferredChannelNum[i].clear();
 
         _pDeferredChannel[i] = NULL;
-        _currentChannel[i]   = getChannelMgr()->getFirstChannel((eWindowType)i);
+        _currentChannel[i]   = NULL;
         _lastChannel[i]      = NULL;
     }
 }

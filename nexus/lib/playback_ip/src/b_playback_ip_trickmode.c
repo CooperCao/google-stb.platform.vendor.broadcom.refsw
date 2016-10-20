@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,7 +50,7 @@ BDBG_MODULE(b_playback_ip_trickmode);
 
 static B_PlaybackIpError trickModePlay_locked( B_PlaybackIpHandle playback_ip);
 static B_PlaybackIpError trickModeTrick_locked(B_PlaybackIpHandle playback_ip, B_PlaybackIpTrickModesSettings *ipTrickModeSettings);
-static B_PlaybackIpError trickModeFrameAdvance_locked( B_PlaybackIpHandle playback_ip, bool forward);
+static B_PlaybackIpError trickModeFrameAdvance_locked( B_PlaybackIpHandle playback_ip, bool forward, bool seekPositionValid, unsigned int seekPositionInMs);
 static B_PlaybackIpError trickModeSeek_locked( B_PlaybackIpHandle playback_ip, B_PlaybackIpTrickModesSettings *ipTrickModeSettings);
 static void trickModeThread( void *data);
 
@@ -449,12 +449,24 @@ updateNexusAudioDecodersState(
              ));
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleAudioDecoder) {
-        if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioTrickSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
-            rc = B_ERROR_UNKNOWN;
+        int i;
+        if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
+            for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
+                if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoders[i], &audioTrickSettings) != NEXUS_SUCCESS) {
+                    BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                    rc = B_ERROR_UNKNOWN;
+                }
+                BDBG_MSG(("%s: NEXUS_AudioDecoder_SetTrickState() handle=%p i=%d\n", __FUNCTION__, (void *)playback_ip->nexusHandles.simpleAudioDecoders[i], i));
+            }
         }
-        else
-            rc = B_ERROR_SUCCESS;
+        else {
+            /* For backward compatibility since App didn't specify the simpleAudioDecoderCount, just update the current SimpleAudioDecoder handle. */
+            if (NEXUS_SimpleAudioDecoder_SetTrickState(playback_ip->nexusHandles.simpleAudioDecoder, &audioTrickSettings) != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: NEXUS_AudioDecoder_SetTrickState() failed for primary audio decoder \n", __FUNCTION__));
+                rc = B_ERROR_UNKNOWN;
+            }
+        }
+        rc = B_ERROR_SUCCESS;
     }
     else
 #endif
@@ -607,12 +619,6 @@ updateNexusPlaypumpDecodersState(
         /* reset the STC rate to normal rate just incase it was modified last time */
         stcIncrement = NEXUS_NORMAL_DECODE_RATE;
         stcPreScale = NEXUS_NORMAL_DECODE_RATE-1; /* STC HW adds 1 */
-    }
-
-    /* update set the STC rate */
-    if (updateNexusStcSettings(playback_ip, stcIncrement, stcPreScale) != B_ERROR_SUCCESS) {
-        BDBG_ERR(("%s: ERROR: failed to set the stc rate to: incremen %u, prescale %u during trickmode transition", __FUNCTION__, stcIncrement, stcPreScale));
-        return B_ERROR_UNKNOWN;
     }
 
     /* update audio decoder state to match the given trickmode: audio decoder trickmode settings are calculated in this function */
@@ -790,6 +796,12 @@ updateNexusPlaypumpDecodersState(
         }
 #endif
 
+    }
+
+    /* update set the STC rate */
+    if (updateNexusStcSettings(playback_ip, stcIncrement, stcPreScale) != B_ERROR_SUCCESS) {
+        BDBG_ERR(("%s: ERROR: failed to set the stc rate to: incremen %u, prescale %u during trickmode transition", __FUNCTION__, stcIncrement, stcPreScale));
+        return B_ERROR_UNKNOWN;
     }
 
     BDBG_MSG(("%s: Trick play settings are sucessfully applied to Nexus AV decoders and Playpump", __FUNCTION__));
@@ -1033,24 +1045,11 @@ B_PlaybackIp_PauseHttp(
         ipTrickModeSettings->rate = 0;
         ipTrickModeSettings->frameRepeat = 0;
         ipTrickModeSettings->decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
-        if (ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseConnectionStalling) {
-            /* in connection stalling case, we could use STC trickmode to freeze the STC */
-            /* however, this current breaks this case: Playing -> Pause -> Seek ==> should update to new position & Pause there */
-            /* Using STC based pause doesn't allow decoder to just advance one frame */
-
-            /* Using decoder pause allows us to seek to new position and then do a frame advance to show the next position */
-            /* So we are not using STC pause & instead using decoder based pause!!! */
-
-            /* TODo: Also, note, after bit more testing, these 3 if conditions dont do anything different and thus can be combined! */
-            playback_ip->hwStcTrickMode = false;
-            playback_ip->speedNumerator = 0;
-            playback_ip->speedDenominator = 1;
-        }
-        else if (ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseDisconnectAndSeek) {
-            /* since we have to disconnect the connection and reconnect to the server at the current location, */
-            /* assuming that server may not be able to send the stream from the same point, so we are currently flushing */
-            /* in that case, we can't do stc trickmode and rather rely on decoders to pause & resume. */
-            playback_ip->hwStcTrickMode = false;
+        if (ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseConnectionStalling || ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseDisconnectAndSeek) {
+            /* In connection stalling case, we are now using freeze STC to achieve Pause. */
+            /* Earlier we used to use decoder based pause but that has an issue when Audio Primers are enabled. */
+            /* Current implementation of primers doesn't support trickmodes and thus we have to use STC to pause them. */
+            playback_ip->hwStcTrickMode = true;
             playback_ip->speedNumerator = 0;
             playback_ip->speedDenominator = 1;
         }
@@ -1061,9 +1060,9 @@ B_PlaybackIp_PauseHttp(
             playback_ip->speedDenominator = 1;
         }
 
-        BDBG_MSG(("%s: Pause Method: %s, Pause using %s, speedNumerator %d, speedDenominator %d", __FUNCTION__,
+        BDBG_MSG(("%s: Pause Method: %s, Pause using STC Pause, speedNumerator %d, speedDenominator %d", __FUNCTION__,
                     (ipTrickModeSettings->pauseMethod == B_PlaybackIpPauseMethod_UseConnectionStalling) ? "Connection Stalling":"Disconnection & Seek",
-                    playback_ip->hwStcTrickMode?"STC Pause":"Decoders Pause", playback_ip->speedNumerator, playback_ip->speedDenominator));
+                    playback_ip->speedNumerator, playback_ip->speedDenominator));
         if ((rc = updateNexusPlaypumpDecodersState(playback_ip, ipTrickModeSettings)) != B_ERROR_SUCCESS) {
             BDBG_ERR(("%s: ERROR: failed to update nexus av decoder state during pause transition", __FUNCTION__));
             goto error;
@@ -1304,8 +1303,7 @@ B_PlaybackIp_PlayHttp(
         }
         BDBG_MSG(("%s: resuming position %0.3f, reOpenSocket %d", __FUNCTION__, playPosition/1000., playback_ip->reOpenSocket));
 
-        if (playback_ip->reOpenSocket == true || playback_ip->ipTrickModeSettings.method == B_PlaybackIpTrickModesMethod_UseRvuSpec || playback_ip->frameRewindCalled == true)
-        {
+        if (playback_ip->reOpenSocket == true || playback_ip->ipTrickModeSettings.method == B_PlaybackIpTrickModesMethod_UseRvuSpec || playback_ip->frameRewindCalled == true) {
             playback_ip->frameRewindCalled = false;
             /* reconnect to server for both trickmode case (other than when rate is 2) & pause w/ disconnect case */
             timeSeekRangeBegin = playPosition/1000.;
@@ -1596,85 +1594,18 @@ B_PlaybackIp_SeekHttp(
         /* using Nexus Playpump to feed data, so server must support time seek */
         BDBG_MSG(("%s: currentState %d, seekPosition %lu", __FUNCTION__, currentState, seekPosition));
         if (currentState == B_PlaybackIpState_ePaused) {
-            double timeSeekRangeBegin;
-            double timeSeekRangeEnd;
-            /* logic for seeking during paused state */
-            timeSeekRangeBegin = seekPosition/1000.;
-            /* NOTE: we dont send end time anymore, as it confuses some servers if our time is slightly larger than the actual duration */
-            timeSeekRangeEnd = 0.;
-            /* build & send the new HTTP Get request to server so that it will send data from new time position */
-            if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, 1 /* play speed */, NULL /*playSpeedString */)) != B_ERROR_SUCCESS) {
-                BDBG_ERR(("%s: Failed to update server about the trick play transition\n", __FUNCTION__));
-                goto error;
-            }
-            /* clear the seek position, so that next play will start from the already seeked point */
-            playback_ip->seekPosition = 0;
-
-            /* flush the current pipeline so frame advance will show new frame */
-            if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
-                BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
-                rc = B_ERROR_UNKNOWN;
-                goto error;
-            }
 
             /* we reset the media start time flag as it will get set again during the 1st PTS interrupt */
             playback_ip->mediaStartTimeNoted = false;
 
-            /* since we are in paused state, we need to resume playpump so that new data can be feed to the decoders */
-            if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, false) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to enable pause", __FUNCTION__));
+            if (trickModeFrameAdvance_locked(playback_ip, true /* forward */, true /* seekPositionValid */, seekPosition) != B_ERROR_SUCCESS) {
+                BDBG_ERR(("%s: ERROR: trickModeFrameAdvance_locked() Failed", __FUNCTION__));
                 rc = B_ERROR_UNKNOWN;
                 goto error;
             }
-            if (playback_ip->nexusHandles.playpump2) {
-                if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump2, false) != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s: NEXUS_Playpump_SetPause() for playpump2 failed to enable pause", __FUNCTION__));
-                    rc = B_ERROR_UNKNOWN;
-                    goto error;
-                }
-            }
-            /* allow Ip_PlayPump thread to feed some more data from the socket */
-            playback_ip->playback_state = B_PlaybackIpState_ePlaying;
-            unlock_ip_session(playback_ip);
-            /* TODO: this sleep seems too long, look into this */
-            BKNI_Sleep(1000);
-            /* data for 1 frame worth should be fed to decoder by now, so get the control back from Feeder thread */
-            lock_ip_session(playback_ip);
-            playback_ip->playback_state = B_PlaybackIpState_ePaused;
-
-            if (playback_ip->nexusHandles.videoDecoder) {
-                /* advance one frame to show the new seeked position */
-                if (NEXUS_VideoDecoder_FrameAdvance(playback_ip->nexusHandles.videoDecoder) != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s: ERROR: NEXUS_VideoDecoder_FrameAdvance() Failed \n", __FUNCTION__));
-                    rc = B_ERROR_UNKNOWN;
-                    goto error;
-                }
-                BDBG_MSG(("%s: Displayed the frame from the seeked position using NEXUS_VideoDecoder_FrameAdvance()", __FUNCTION__));
-            }
-            /* re-pause the playpump so that it doesn't expect or feed anymore data */
-            if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, true) != NEXUS_SUCCESS) {
-                BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to disable pause", __FUNCTION__));
-                rc = B_ERROR_UNKNOWN;
-                goto error;
-            }
-            if (playback_ip->nexusHandles.playpump2) {
-                if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump2, true) != NEXUS_SUCCESS) {
-                    BDBG_ERR(("%s: NEXUS_Playpump_SetPause() for playpump2 failed to disable pause", __FUNCTION__));
-                    rc = B_ERROR_UNKNOWN;
-                    goto error;
-                }
-            }
-
-            /* close the current socket */
-            if (playback_ip->netIo.shutdown && !playback_ip->serverClosed)
-                playback_ip->netIo.shutdown(playback_ip->securityHandle, 0);
-            /* set flag to reconnect at the pause time */
-            close(playback_ip->socketState.fd);
-            playback_ip->socketState.fd = -1;
-            playback_ip->reOpenSocket = true;
-            BDBG_MSG(("%s: Completed Seek During Pause", __FUNCTION__));
         }
         playback_ip->trickmodeCalled = false;
+        playback_ip->frameRewindCalled = false;
         rc = B_ERROR_SUCCESS;
     }
 error:
@@ -1821,7 +1752,7 @@ trickModeThread(
             playback_ip->trickModeStatus = trickModeTrick_locked(playback_ip, &playback_ip->ipTrickModeSettings);
         }
         else if (playback_ip->frameAdvanceApiActive == true) {
-            playback_ip->trickModeStatus = trickModeFrameAdvance_locked(playback_ip, playback_ip->forward);
+            playback_ip->trickModeStatus = trickModeFrameAdvance_locked(playback_ip, playback_ip->forward, false /*seekPositionValid*/, 0);
         }
         else if (playback_ip->playApiActive == true) {
             playback_ip->trickModeStatus = trickModePlay_locked(playback_ip);
@@ -2348,9 +2279,159 @@ error:
     return rc;
 }
 
+static bool getNextPts(
+    B_PlaybackIpHandle playback_ip,
+    unsigned *pNextPts
+    )
+{
+    bool foundValidPts = false;
+    NEXUS_Error nrc = NEXUS_INVALID_PARAMETER;
+    int i;
+
+    BDBG_ASSERT(pNextPts);
+    *pNextPts = 0;
+
+    /* Loop around 10 times so that next frame can be buffered up if needed. */
+    for (i=0; i<10; i++) {
+        if (playback_ip->nexusHandles.videoDecoder) {
+            nrc = NEXUS_VideoDecoder_GetNextPts(playback_ip->nexusHandles.videoDecoder, pNextPts);
+        }
+        else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+            nrc = NEXUS_SimpleVideoDecoder_GetNextPts(playback_ip->nexusHandles.simpleVideoDecoder, pNextPts);
+        }
+        if (nrc == NEXUS_SUCCESS) {
+            /* Picture queue has the next frame w/ valid PTS, so break. */
+            foundValidPts = true;
+            BDBG_MSG(("%s: Valid Next PTS=%08x in loops=%d", __FUNCTION__, *pNextPts, i));
+            break;
+        }
+        else {
+            /* Next frame is not in the picture queue yet, sleep a bit and retry. */
+            BKNI_Sleep(10);
+        }
+    }
+    if (foundValidPts == false) BDBG_WRN(("%s: NEXUS Video Decoder's GetNextPts called failed over %d attempts", __FUNCTION__, i));
+    return (foundValidPts);
+} /* getNextPts */
+
+static bool updateStcToNextPts(
+    B_PlaybackIpHandle playback_ip,
+    unsigned nextPts
+    )
+{
+    uint32_t currentStc = 0, updatedStc = 0;
+    bool updatedStcToNextPts = false;
+    NEXUS_Error nrc = NEXUS_SUCCESS;
+
+    if ( playback_ip->nexusHandles.stcChannel) {
+        NEXUS_StcChannelSettings stcSettings;
+
+        NEXUS_StcChannel_GetStc(playback_ip->nexusHandles.stcChannel, &currentStc);
+        NEXUS_StcChannel_GetSettings(playback_ip->nexusHandles.stcChannel, &stcSettings);
+
+        updatedStc = nextPts + stcSettings.modeSettings.Auto.offsetThreshold;
+
+        nrc = NEXUS_StcChannel_SetStc(playback_ip->nexusHandles.stcChannel, updatedStc);
+    }
+    else if (playback_ip->nexusHandles.simpleStcChannel) {
+        NEXUS_SimpleStcChannelSettings stcSettings;
+
+        NEXUS_SimpleStcChannel_GetStc(playback_ip->nexusHandles.simpleStcChannel, &currentStc);
+        NEXUS_SimpleStcChannel_GetSettings(playback_ip->nexusHandles.simpleStcChannel, &stcSettings);
+
+        updatedStc = nextPts + stcSettings.modeSettings.Auto.offsetThreshold;
+        nrc = NEXUS_SimpleStcChannel_SetStc(playback_ip->nexusHandles.simpleStcChannel, updatedStc);
+    }
+
+    if (nrc == NEXUS_SUCCESS) {
+        BDBG_MSG(("%s: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", __FUNCTION__, currentStc, nextPts, updatedStc));
+        updatedStcToNextPts = true;
+    }
+    else {
+        BDBG_ERR(("%s: Failed to update STC: currentStc=0x%x nextPts=0x%x, updatedStc=0x%x", __FUNCTION__, currentStc, nextPts, updatedStc));
+    }
+    return (updatedStcToNextPts);
+} /* updateStcToNextPts */
+
+static bool getCurrentDisplayedCount(
+    B_PlaybackIpHandle playback_ip,
+    unsigned int *pCurNumDisplayed
+    )
+{
+    NEXUS_Error nrc = NEXUS_SUCCESS;
+    NEXUS_VideoDecoderStatus status;
+
+    status.numDisplayed = 0;
+    *pCurNumDisplayed = 0;
+    if (playback_ip->nexusHandles.videoDecoder) {
+        nrc = NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &status);
+    }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        nrc = NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status);
+    }
+    if (nrc == NEXUS_SUCCESS) {
+        *pCurNumDisplayed = status.numDisplayed;
+        BDBG_MSG(("%s: VideoDecoderStatus, curNumDisplayed=%d", __FUNCTION__, *pCurNumDisplayed));
+        return true;
+    }
+    else {
+        BDBG_WRN(("%s: Failed to get VideoDecoderStatus, nrc=%d", __FUNCTION__, nrc));
+        return false;
+    }
+} /* getCurrentDisplayedCount */
+
+static bool displayOneFrame(
+    B_PlaybackIpHandle playback_ip,
+    unsigned int curNumDisplayed
+    )
+{
+    NEXUS_Error nrc = NEXUS_SUCCESS;
+    NEXUS_VideoDecoderStatus status;
+
+    /* Loop around 10 times to see if next frame can be displayed, otherwise just log a warning! */
+    status.numDisplayed = 0;
+
+    if (playback_ip->nexusHandles.videoDecoder) {
+        nrc = NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &status);
+    }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        nrc = NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &status);
+    }
+    if (nrc == NEXUS_SUCCESS && status.numDisplayed && status.numDisplayed > curNumDisplayed) {
+        BDBG_MSG(("%s: Displayed one frame: numDisplayed cur=%u new=%u", __FUNCTION__, curNumDisplayed, status.numDisplayed));
+        return (true);
+    }
+    else {
+        BDBG_MSG(("%s: Didn't Displayed one frame: numDisplayed cur=%u new=%u", __FUNCTION__, curNumDisplayed, status.numDisplayed));
+        return (false);
+    }
+} /* displayOneFrame */
+
+static NEXUS_Error frameAdvanceUsingNexusVideoDecoder(
+    B_PlaybackIpHandle playback_ip
+    )
+{
+    NEXUS_Error nrc = NEXUS_SUCCESS;
+    if (playback_ip->nexusHandles.videoDecoder) {
+        nrc = NEXUS_VideoDecoder_FrameAdvance(playback_ip->nexusHandles.videoDecoder);
+    }
+    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
+        nrc = NEXUS_SimpleVideoDecoder_FrameAdvance(playback_ip->nexusHandles.simpleVideoDecoder);
+    }
+    if (nrc != NEXUS_SUCCESS) {
+        BDBG_ERR(("%s: ERROR: %s() Failed", __FUNCTION__, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
+    }
+    else {
+        BDBG_MSG(("%s: %s() successfull!", __FUNCTION__, playback_ip->nexusHandles.videoDecoder?"NEXUS_VideoDecoder_FrameAdvance":"NEXUS_SimpleVideoDecoder_FrameAdvance" ));
+    }
+    return (nrc);
+}
+
 B_PlaybackIpError trickModeFrameAdvance_locked(
     B_PlaybackIpHandle playback_ip,
-    bool forward
+    bool forward,
+    bool seekPositionValid,
+    unsigned int seekPositionInMs
     )
 {
     B_PlaybackIpError rc = B_ERROR_UNKNOWN;
@@ -2360,6 +2441,11 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
     NEXUS_PlaybackPosition currentPosition;
     bool reOpenedSocket = false;
     NEXUS_VideoDecoderTrickState videoDecoderTrickSettings;
+    bool oneFrameDisplayed = false;
+    unsigned int nextPts;
+    unsigned int curNumDisplayed;
+    int i;
+    bool freezeStc = false;
 
     /* note: caller has already locked the session */
 
@@ -2371,13 +2457,21 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
 
     /* Check if we need to re-establish connection w/ the server. */
     if (playback_ip->reOpenSocket == true ||  /* Previous Player operation may have closed the connection (such as Pause w/ Disconnect), */
-            forward == false ||               /* Forward is false, meaning app wants us to display a frame in the backward direction. */
-            playback_ip->frameRewindCalled )  /* Or, forward is not false & previous operation was Frame Rewind, so we will need to re-connect to go in the forward direction. */
+            forward == false ||               /* Forward is false, meaning app wants us to display a frame in the backward direction, */
+            playback_ip->frameRewindCalled || /* Forward is not false & previous operation was Frame Rewind, so we will need to re-connect to go in the forward direction. */
+            playback_ip->trickmodeCalled ||   /* Previous operation was a trickmode, so we will need to re-connect w/ the server, */
+            seekPositionValid                 /* Or, frameAdvance is being called via the Seek() as Seek was called after pausing. */
+       )
     {
         /* Need to re-connect to the server, determine the exact position that we need to use. */
-        if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
-            BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
-            goto error;
+        if (seekPositionValid) {
+            currentPosition = seekPositionInMs;
+        }
+        else {
+            if (B_PlaybackIp_HttpGetCurrentPlaybackPosition(playback_ip, &currentPosition) != B_ERROR_SUCCESS) {
+                BDBG_WRN(("%s: Failed to determine the current playback position", __FUNCTION__));
+                goto error;
+            }
         }
         BDBG_MSG(("%s: current position %0.3f", __FUNCTION__, currentPosition/1000.));
 
@@ -2400,66 +2494,68 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         /* build & send the new HTTP Get request to server so that it will send stream at new time position */
         timeSeekRangeBegin = currentPosition/1000.;
         timeSeekRangeEnd = 0.;
-        BDBG_MSG(("%s: reOpenSocket because %s", __FUNCTION__, (playback_ip->reOpenSocket ? "it was closed" : !forward? "we are doing frame reverse":"Previous Operation was Frame Reverse & Now it is Frame Advance" ) ));
+        BDBG_MSG(("%s: Re-Open Socket: reOpenSocket=%s forward=%s frameRewindCalled=%s trickModeCalled=%s seekPositionValid=%s",
+                    __FUNCTION__, playback_ip->reOpenSocket?"Y":"N", forward?"Y":"N", playback_ip->frameRewindCalled?"Y":"N", playback_ip->trickmodeCalled?"Y":"N", seekPositionValid?"Y":"N" ));
+
         if ((rc = http_do_server_trick_modes_socket_transition(playback_ip, timeSeekRangeBegin, timeSeekRangeEnd, 1 /* play speed */, forward?"1":"-1" /*playSpeedString */)) != B_ERROR_SUCCESS) {
-            BDBG_ERR(("%s: Failed to update server about the trick play transition\n", __FUNCTION__));
+            BDBG_ERR(("%s: Failed to update server about the trick play transition", __FUNCTION__));
             goto error;
         }
         playback_ip->reOpenSocket = false;
         reOpenedSocket = true;
     }
 
-    /* Check if we should flush the current playpump & decoder buffers. */
-    if (!forward || playback_ip->frameRewindCalled || playback_ip->trickmodeCalled) {
-        /* For going back a frame, doing a frame advance from the previous frame reverse, or when previous operation was a fwd trickmode (which may cause i-frames to buffer up), */
-        /* we need to flush the AV decoders & Nexus playpump buffers so that we cleanly play a frame from the current position. */
+    /* If we had to reconnect to the server, Flush the AV Buffers & Re-configure the Decoders. */
+    if (reOpenedSocket) {
         if (B_PlaybackIp_UtilsFlushAvPipeline(playback_ip)) {
             BDBG_ERR(("%s: ERROR: Failed to flush the AV pipeline\n", __FUNCTION__));
             rc = B_ERROR_UNKNOWN;
             goto error;
         }
-        BDBG_MSG(("%s: Flushed Playpump & AV Decoders for Frame Reverse mode!", __FUNCTION__));
-    }
+        BDBG_MSG(("%s: Flushed Playpump & AV Decoders!", __FUNCTION__));
 
-    BDBG_MSG(("%s: Reset VideoDecoder configuration to correctly play a frame in %s direction", __FUNCTION__, forward?"forward": "reverse"));
-    if (playback_ip->nexusHandles.videoDecoder)
-        NEXUS_VideoDecoder_GetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings);
-    else
-        NEXUS_SimpleVideoDecoder_GetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings);
-    if (forward) {
-        videoDecoderTrickSettings.rate = 0;
-        videoDecoderTrickSettings.stcTrickEnabled = false;
-        videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
-        videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eDisabled;
-        videoDecoderTrickSettings.topFieldOnly = false;
-        videoDecoderTrickSettings.hostTrickModesEnabled = false;
-        videoDecoderTrickSettings.reverseFields = false;
-        videoDecoderTrickSettings.forceStopped = false;
-    }
-    else {
-        videoDecoderTrickSettings.rate = 0;
-        videoDecoderTrickSettings.stcTrickEnabled = false;
-        videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eI;
-        videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eDisabled;
-        videoDecoderTrickSettings.topFieldOnly = true;
-        videoDecoderTrickSettings.hostTrickModesEnabled = true;
-        videoDecoderTrickSettings.reverseFields = true;
-    }
-    if (playback_ip->nexusHandles.videoDecoder) {
-        if (NEXUS_VideoDecoder_SetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", __FUNCTION__));
-            rc = B_ERROR_UNKNOWN;
-            goto error;
+        /* Re-configure the Video Decoder. */
+        BDBG_MSG(("%s: Reset VideoDecoder configuration to correctly play a frame in %s direction", __FUNCTION__, forward?"forward": "reverse"));
+        if (playback_ip->nexusHandles.videoDecoder)
+            NEXUS_VideoDecoder_GetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings);
+        else
+            NEXUS_SimpleVideoDecoder_GetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings);
+        if (forward) {
+            videoDecoderTrickSettings.rate = NEXUS_NORMAL_DECODE_RATE;
+            videoDecoderTrickSettings.stcTrickEnabled = false;
+            videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eAll;
+            videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eEnabled;
+            videoDecoderTrickSettings.topFieldOnly = false;
+            videoDecoderTrickSettings.hostTrickModesEnabled = false;
+            videoDecoderTrickSettings.reverseFields = false;
+            videoDecoderTrickSettings.forceStopped = false;
+            videoDecoderTrickSettings.dqtEnabled = false;
         }
-    }
-    else {
-        if (NEXUS_SimpleVideoDecoder_SetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_SetTrickState() failed \n", __FUNCTION__));
-            rc = B_ERROR_UNKNOWN;
-            goto error;
+        else {
+            videoDecoderTrickSettings.rate = 0;
+            videoDecoderTrickSettings.stcTrickEnabled = false;
+            videoDecoderTrickSettings.decodeMode = NEXUS_VideoDecoderDecodeMode_eI;
+            videoDecoderTrickSettings.tsmEnabled = NEXUS_TsmMode_eDisabled;
+            videoDecoderTrickSettings.topFieldOnly = true;
+            videoDecoderTrickSettings.hostTrickModesEnabled = true;
+            videoDecoderTrickSettings.reverseFields = true;
         }
+        if (playback_ip->nexusHandles.videoDecoder) {
+            if (NEXUS_VideoDecoder_SetTrickState(playback_ip->nexusHandles.videoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: NEXUS_VideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                rc = B_ERROR_UNKNOWN;
+                goto error;
+            }
+        }
+        else {
+            if (NEXUS_SimpleVideoDecoder_SetTrickState(playback_ip->nexusHandles.simpleVideoDecoder, &videoDecoderTrickSettings) != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: NEXUS_SimpleVideoDecoder_SetTrickState() failed \n", __FUNCTION__));
+                rc = B_ERROR_UNKNOWN;
+                goto error;
+            }
+        }
+        BDBG_MSG(("%s: Successfully configured video decoder!", __FUNCTION__));
     }
-    BDBG_MSG(("%s: Successfully configured video decoder!", __FUNCTION__));
 
     /* Check if we need to feed little bit of data to the decoders. */
     if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, false) != NEXUS_SUCCESS) {
@@ -2468,9 +2564,10 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         goto error;
     }
 
-    {
-        /* Allow Ip_PlayPump thread to feed some more data from the socket. */
+    if (reOpenedSocket) {
+        /* Since we have re-connected to the server, we will need to allow Feeder thread to read new AV data & feed it to the decoders. */
         /* This way decoders can then either do a frame advance or reverse on this stream. */
+        /* Temporarily change state to playing & release the lock, so that the feeder thread can run. */
         playback_ip->playback_state = B_PlaybackIpState_ePlaying;
         unlock_ip_session(playback_ip);
         BKNI_Sleep(1000);
@@ -2479,24 +2576,60 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
         playback_ip->playback_state = B_PlaybackIpState_eEnteringTrickMode;
     }
 
-    /* And finally, tell the video decoder to play 1 frame. */
-    if (playback_ip->nexusHandles.videoDecoder) {
-        /* advance one frame to show the new seeked position */
-        if (NEXUS_VideoDecoder_FrameAdvance(playback_ip->nexusHandles.videoDecoder) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: NEXUS_VideoDecoder_FrameAdvance() Failed \n", __FUNCTION__));
-            rc = B_ERROR_UNKNOWN;
-            goto error;
-        }
-        BDBG_MSG(("%s: Displayed the frame from current position NEXUS_VideoDecoder_FrameAdvance()", __FUNCTION__));
+    /* Try to display one frame in the requested direction. */
+
+    /* Note the current displayed picture count. */
+    if (getCurrentDisplayedCount( playback_ip, &curNumDisplayed) == false) {
+        BDBG_ERR(("%s: getCurrentDisplayedCount failed!", __FUNCTION__));
+        goto error;
     }
-    else if (playback_ip->nexusHandles.simpleVideoDecoder) {
-        /* advance one frame to show the new seeked position */
-        if (NEXUS_SimpleVideoDecoder_FrameAdvance(playback_ip->nexusHandles.simpleVideoDecoder) != NEXUS_SUCCESS) {
-            BDBG_ERR(("%s: ERROR: NEXUS_SimpleVideoDecoder_FrameAdvance() Failed \n", __FUNCTION__));
-            rc = B_ERROR_UNKNOWN;
+
+    if (!forward) {
+        /* In reverse direction, we only get I-frame from the server and thus rely on decoder to display this frame. */
+        /* Since Frame Advance requires us to Pause the Decoders (which is done using STC Pause as Audio Primers dont support Decoder Pause), */
+        /* we unpause the STC here so that Video Decoder can display the 1-frame in the reverse direction. */
+        if (updateNexusStcSettings(playback_ip, 1, 0) != B_ERROR_SUCCESS) {
+            BDBG_ERR(("%s: ERROR: failed to set the stc rate to FrameAdvance transition", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: Displayed the frame from current position NEXUS_SimpleVideoDecoder_FrameAdvance()", __FUNCTION__));
+        freezeStc = true;
+    }
+
+    /* Now Display a frame. */
+    for (i=0; i<10; i++) {
+        if (forward) {
+            /* Get the Next PTS from the Video Decoder's picture Q, this may need little time if we dont have pre-buffered or pre-decoded frames in the queue. */
+            if (getNextPts(playback_ip, &nextPts) == false) {
+                BDBG_ERR(("%s: getNextPts failed!", __FUNCTION__));
+                goto error;
+            }
+
+            /* Update STC to the PTS of the next Frame, this will allow DM to display one frame. */
+            if (updateStcToNextPts(playback_ip, nextPts) == false) {
+                BDBG_ERR(("%s: updateStcToNextPts failed!", __FUNCTION__));
+                goto error;
+            }
+        }
+        else {
+            /* In reverse direction, we only get I-frames from the server and thus rely decoder to play 1 frame in the reverse direction. */
+            if (frameAdvanceUsingNexusVideoDecoder(playback_ip) != NEXUS_SUCCESS) {
+                BDBG_ERR(("%s: ERROR: frameAdvanceUsingNexusVideoDecoder()", __FUNCTION__));
+                goto error;
+            }
+        }
+        /* Wait one frame time & then Check if 1 frame is displayed. */
+        BKNI_Sleep(17);
+
+        /* Check if Decoder displayed a frame. */
+        if (displayOneFrame(playback_ip, curNumDisplayed) == true) {
+            BDBG_MSG(("%s: displayOneFrame in %d loop attempts in %s direction!", __FUNCTION__, i, forward?"forward":"reverse"));
+            oneFrameDisplayed = true;
+            break;
+        }
+    }
+
+    if (!oneFrameDisplayed) {
+        BDBG_WRN(("%s: Failed to FrameAdvance by one frame in %d attempts, curNumDisplayed cur=%u", __FUNCTION__, i, curNumDisplayed ));
     }
     if (!forward) {
         playback_ip->frameRewindCalled = true;
@@ -2514,6 +2647,12 @@ B_PlaybackIpError trickModeFrameAdvance_locked(
     rc = B_ERROR_SUCCESS;
 
 error:
+    if (freezeStc) {
+        if (updateNexusStcSettings(playback_ip, 0, 0) != B_ERROR_SUCCESS) {
+            BDBG_ERR(("%s: ERROR: Failed to freeze the STC!", __FUNCTION__));
+        }
+    }
+
     if (NEXUS_Playpump_SetPause(playback_ip->nexusHandles.playpump, true) != NEXUS_SUCCESS) {
         BDBG_ERR(("%s: NEXUS_Playpump_SetPause() failed to pause it!", __FUNCTION__));
         rc = B_ERROR_UNKNOWN;
@@ -2594,7 +2733,7 @@ B_PlaybackIpError B_PlaybackIp_FrameAdvance(
     }
     else {
         /* frameAdvance function is being called in the non-blocking mode, just call the function to do the actual work. */
-        rc = trickModeFrameAdvance_locked(playback_ip, playback_ip->forward);
+        rc = trickModeFrameAdvance_locked(playback_ip, playback_ip->forward, false /* seekPositionValid */, 0);
         unlock_ip_session(playback_ip);
     }
 

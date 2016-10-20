@@ -55,37 +55,6 @@ BDBG_FILE_MODULE(pxlval);
       (((c1) & 0xFF) <<  8) | (((c0) & 0xFF) << 0) )
 #endif
 
-#if (BCHP_CHIP==7271) || (BCHP_CHIP==7268)
-    #define SCB_8_0    1
-#elif (BCHP_CHIP==7445) || (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || (BCHP_CHIP==7145) || \
-    (BCHP_CHIP==74371) || (BCHP_CHIP==7439) || (BCHP_CHIP==7445) || (BCHP_CHIP==7364) || (BCHP_CHIP==7250)
-    #define MAP_5_0    1
-#endif
-
-/* SCB8.0/MAP8.0: When (ByteAddr[8] ^ ByteAddr[9]) == 1, ByteAddr[5] is inverted */
-#if SCB_8_0 /* MAP 8.0 jword address shuffling */
-    #define SCB_BIT_EXTRACT(VALUE, MSB, LSB)  (((VALUE>>9) & 1) ^ ((VALUE>>8) & 1))
-#elif MAP_5_0 /* MAP 5.0 jword address shuffling */
-    #define SCB_BIT_EXTRACT(VALUE, MSB, LSB)  ((VALUE>>LSB) & ((1<<(MSB-LSB+1))-1))
-#else /* no jword address shuffling for old chips */
-    #define SCB_BIT_EXTRACT(VALUE, MSB, LSB)  (0)
-#endif
-#define SCB_MAP_ADDR_SHUFFLE(addr, MSB, LSB) (SCB_BIT_EXTRACT(addr, MSB, LSB)?((addr) ^ 0x20):(addr))
-
-/* SCB8.0 requires sw blind shuffling for striped pixel clients (HVD-DBLK/MFD/VIP/M2MC-stripe):
-      DWord order swap within JWord.
- */
-#define SCB_BLIND_SHUFFLE(addr) (\
-    ((addr) & (~0x1F)) + \
-    ((addr) & 3) + \
-    0x1C - ((addr) & 0x1C)) /* DWord address within JWord */
-
-#if SCB_8_0
-    #define SCB_MOD_ADDR(addr) SCB_BLIND_SHUFFLE(addr)
-#else
-    #define SCB_MOD_ADDR(addr) (addr)
-#endif
-
 void NEXUS_Graphics2D_GetDefaultStripeBlitSettings(
     NEXUS_Graphics2DStripeBlitSettings *pSettings /* [out] */
     )
@@ -100,13 +69,14 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
 {
     bool interlaced;
     unsigned xi, yi, surfaceOffset;
-    unsigned offsetY=0, offsetC=0, stripeNum;
+    BSTD_DeviceOffset offsetY=0, offsetC=0;
+    unsigned stripeNum;
     unsigned shuffleBit;
     unsigned lumaBufSize, chromaBufSize, totalByteWidth;
     unsigned luma32bit, chroma32bit;
     void *ptr;
-    char *pvLumaStartAddress, *pvChromaStartAddress;
-    char *pvSurface;
+    uint8_t *pvLumaStartAddress, *pvChromaStartAddress;
+    uint8_t *pvSurface;
     NEXUS_SurfaceMemory surfaceMem;
     NEXUS_SurfaceCreateSettings surfaceSettings;
     NEXUS_StripedSurfaceCreateSettings picCfg;
@@ -142,6 +112,7 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
     }
     pvLumaStartAddress = ptr;
     pvLumaStartAddress += picCfg.lumaBufferOffset;
+
     if( NEXUS_SUCCESS != NEXUS_MemoryBlock_Lock(picCfg.chromaBuffer, &ptr) ||
         !NEXUS_P_CpuAccessibleAddress(ptr) ) {
         NEXUS_MemoryBlock_Unlock(picCfg.lumaBuffer);
@@ -194,7 +165,10 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
 
             /* store luma byte */
             BDBG_ASSERT( offsetY < lumaBufSize);
-            offsetY = SCB_MAP_ADDR_SHUFFLE(offsetY, shuffleBit, shuffleBit);
+
+            /* Note: the stripe surface is always aligned in 1K pages, so the address shuffling
+               can be applied only to the surface offset address. */
+            offsetY = BCHP_ShuffleStripedPixelOffset(g_NEXUS_pCoreHandles->chp, NEXUS_Heap_GetMemcIndex_isrsafe(picCfg.lumaHeap), offsetY);
 
             /* Y0Cr0Y1Cb0Y2Cr2Y3Cb2 -> Y0Y1Y2Y3 and Cr0Cb0Cr2Cb2 */
             luma32bit = BTST_MAKE_32BIT(pvSurface[surfaceOffset], pvSurface[surfaceOffset+2],
@@ -206,11 +180,11 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
             BDBG_MODULE_MSG(pxlval, ("src[%x]: %x %x %x %x, %x %x %x %x", surfaceOffset, pvSurface[surfaceOffset], pvSurface[surfaceOffset+2],
                 pvSurface[surfaceOffset+4], pvSurface[surfaceOffset+6], pvSurface[surfaceOffset+1], pvSurface[surfaceOffset+3],
                 pvSurface[surfaceOffset+5], pvSurface[surfaceOffset+7]));
-            BDBG_MODULE_MSG(pxlval, ("dst[%x]", offsetY));
+            BDBG_MODULE_MSG(pxlval, ("dst["BDBG_UINT64_FMT"]", BDBG_UINT64_ARG(offsetY)));
 
             /* Write luma */
             /* NOTE: mpeg feeder is in big-endian if it's mpeg format data!!! assume cpu is little endian */
-            *(uint32_t*)(pvLumaStartAddress + SCB_MOD_ADDR(offsetY)) = luma32bit;
+            *(uint32_t*)(pvLumaStartAddress + offsetY) = luma32bit;
 
             /* store 4:2:0 chroma (point sample for now); TODO: add better 422->420 chroma filter */
             if((yi & 1) == 0)
@@ -224,10 +198,10 @@ NEXUS_Error NEXUS_Graphics2D_StripeBlit(
                 BDBG_ASSERT( offsetC < chromaBufSize);
 
                 /* NOTE: mpeg feeder is in big-endian if it's mpeg format data!!! */
-                offsetC = SCB_MAP_ADDR_SHUFFLE(offsetC, shuffleBit, shuffleBit);
+                offsetC = BCHP_ShuffleStripedPixelOffset(g_NEXUS_pCoreHandles->chp, NEXUS_Heap_GetMemcIndex_isrsafe(picCfg.chromaHeap), offsetC);
 
                 /* Write chroma */
-                *(uint32_t*)(pvChromaStartAddress + SCB_MOD_ADDR(offsetC)) = chroma32bit;
+                *(uint32_t*)(pvChromaStartAddress + offsetC) = chroma32bit;
             }
         }
     }

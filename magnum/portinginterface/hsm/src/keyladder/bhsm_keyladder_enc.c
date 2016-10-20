@@ -144,12 +144,17 @@ BERR_Code BHSM_AllocateVKL(
         pAllocVkl->allocVKL  = reusableVkl;
         hHsm->vkl[reusableVkl].free = false;
         hHsm->vkl[reusableVkl].neverUsed = false;
+        hHsm->vkl[reusableVkl].custSubMode = pAllocVkl->customerSubMode;
+        hHsm->vkl[reusableVkl].client = pAllocVkl->client;
+
     }
     else if( foundNeverUsedVkl )
     {
         pAllocVkl->allocVKL = neverUsedVkl;
         hHsm->vkl[neverUsedVkl].free = false;
         hHsm->vkl[neverUsedVkl].neverUsed = false;
+        hHsm->vkl[neverUsedVkl].custSubMode = pAllocVkl->customerSubMode;
+        hHsm->vkl[neverUsedVkl].client = pAllocVkl->client;
     }
     else
     {
@@ -339,7 +344,8 @@ BERR_Code BHSM_GenerateRouteKey(
     }
 
     /* Checking if the Vkl Id is allocated or hardcoded */
-    if(BHSM_RemapVklId ( pGrk->virtualKeyLadderID ) >= BHSM_MAX_VKL )
+    if( pGrk->keyLadderSelect != BCMD_KeyLadderSelection_eReserved2 &&
+        BHSM_RemapVklId ( pGrk->virtualKeyLadderID ) >= BHSM_MAX_VKL )
     {
         /* invalid virtual keyladder ID specified. */
         return BERR_TRACE(BHSM_STATUS_INPUT_PARM_ERR );
@@ -489,7 +495,10 @@ BERR_Code BHSM_GenerateRouteKey(
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eCusKeySelH, byte );
 
     BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eKeyVarH, pGrk->ucKeyVarHigh );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eVKLID, BHSM_RemapVklId(pGrk->virtualKeyLadderID ));
+    if( pGrk->keyLadderSelect !=  BCMD_KeyLadderSelection_eReserved2 )
+    {
+        BHSM_BspMsg_Pack8( hMsg, BCMD_GenKey_InCmd_eVKLID, BHSM_RemapVklId(pGrk->virtualKeyLadderID ));
+    }
 
     #if ( BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2) )
     if( pGrk->keyTweak == BHSM_KeyTweak_eDupleConnect )
@@ -701,8 +710,11 @@ BERR_Code BHSM_GenerateRouteKey(
     }
 
     /* The command was successful, so update the VKL-CustSubMode association */
-    hHsm->vkl[BHSM_RemapVklId (pGrk->virtualKeyLadderID )].custSubMode = pGrk->customerSubMode;
-    hHsm->vkl[BHSM_RemapVklId (pGrk->virtualKeyLadderID )].client      = pGrk->client;
+    if( pGrk->keyLadderSelect != BCMD_KeyLadderSelection_eReserved2 )
+    {
+        hHsm->vkl[BHSM_RemapVklId (pGrk->virtualKeyLadderID )].custSubMode = pGrk->customerSubMode;
+        hHsm->vkl[BHSM_RemapVklId (pGrk->virtualKeyLadderID )].client      = pGrk->client;
+    }
 
 BHSM_P_DONE_LABEL:
 

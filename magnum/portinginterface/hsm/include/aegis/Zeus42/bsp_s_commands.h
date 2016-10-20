@@ -194,7 +194,7 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eRESERVED_93 = 0x5d,
     BCMD_cmdType_eReserved94  =  0x5e,
     BCMD_cmdType_eRESERVED_94 = 0x5e,
-    BCMD_cmdType_eRESERVED_95 = 0x5f,
+    BCMD_cmdType_eRPMB_PROG_USEKEYMOD = 0x5f,
     BCMD_cmdType_eReserved96  =  0x60,
     BCMD_cmdType_eRESERVED_96 = 0x60,
     BCMD_cmdType_eAllocateKeySlot = 0x61,
@@ -211,6 +211,10 @@ typedef enum BCMD_cmdType_e
     BCMD_cmdType_eReserved103  =  0x67,
     BCMD_cmdType_eRESERVED_103 = 0x67,
     BCMD_cmdType_ePCIE_Window_Size = 0x68,
+    BCMD_cmdType_eRPMB_KEYGEN = 0x69,
+    BCMD_cmdType_eDISABLE_RPMB_HMAC = 0x6a,
+    BCMD_cmdType_eSCTE52_Decrypt_Protection_Key = 0x6b,
+    BCMD_cmdType_eSCTE52_Load_CW = 0x6c,
 
 
 

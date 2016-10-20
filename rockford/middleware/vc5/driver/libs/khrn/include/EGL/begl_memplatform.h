@@ -29,13 +29,13 @@ typedef enum
 /* These must match gmem usage flags */
 typedef enum
 {
-   BEGL_USAGE_CPU_READ          = 1 << 0,
-   BEGL_USAGE_CPU_WRITE         = 1 << 1,
-   BEGL_USAGE_V3D_READ          = 1 << 2,
-   BEGL_USAGE_V3D_WRITE         = 1 << 3,
-   BEGL_USAGE_HINT_CPU_UNCACHED = 1 << 5,
-   BEGL_USAGE_HINT_DYNAMIC      = 1 << 6,
-   BEGL_USAGE_SECURE            = 1 << 7,
+   BEGL_USAGE_CPU_READ     = 1 << 0,
+   BEGL_USAGE_CPU_WRITE    = 1 << 1,
+   BEGL_USAGE_V3D_READ     = 1 << 2,
+   BEGL_USAGE_V3D_WRITE    = 1 << 3,
+   BEGL_USAGE_COHERENT     = 1 << 5,
+   BEGL_USAGE_HINT_DYNAMIC = 1 << 6,
+   BEGL_USAGE_SECURE       = 1 << 7,
 } BEGL_MemAllocFlags;
 
 typedef void *BEGL_MemHandle;

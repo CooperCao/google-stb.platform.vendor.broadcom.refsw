@@ -91,9 +91,11 @@ typedef struct _Phy_Test_Set_Channel_ReqDescr_t{
 }Phy_Test_Set_Channel_ReqDescr_t;
 
 typedef enum{
-    RF4CE_CTRL_ANTENNA_1 = 1,
-    RF4CE_CTRL_ANTENNA_2 = 2,
-    RF4CE_CTRL_ANTENNA_1_2 = 3
+    RF4CE_ANTENNA_TX_ANT1_RX_ANT1 = 0,		 /**< enum	Antenna #1 for both Tx and Rx */
+    RF4CE_ANTENNA_TX_ANT2_RX_ANT2,			 /**< enum	Antenna #2 for both Tx and Rx */
+    RF4CE_ANTENNA_TX_ANT1_RX_ANT2,			 /**< enum	Antenna #1 for Tx, #2 for Rx */
+    RF4CE_ANTENNA_TX_ANT2_RX_ANT1,			 /**< enum	Antenna #2 for Tx, #1 for Rx */
+    RF4CE_ANTENNA_TX_DIVERSITY_RX_DIVERSITY,  /**< enum	Antenna-diversity mode*/
 }RF4CE_CTRL_ANTENNA;
 
 

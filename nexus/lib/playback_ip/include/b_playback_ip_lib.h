@@ -396,7 +396,7 @@ typedef struct B_PlaybackIpPsiInfo
 #endif
     bool hlsSessionEnabled;                     /* set if current session is being receiving using HTTP Live Streaming (HLS) Protocol */
     bool mpegDashSessionEnabled;                /* set if current session is being receiving using MPEG-DASH Protocol */
-#define AUDIO_PID_MAX_COUNT  (16)
+#define AUDIO_PID_MAX_COUNT  (8)
     int extraAudioPid[AUDIO_PID_MAX_COUNT];
     NEXUS_AudioCodec extraAudioCodec[AUDIO_PID_MAX_COUNT];
     int extraAudioPidsCount;
@@ -455,7 +455,7 @@ typedef struct B_PlaybackIpNexusHandles
     NEXUS_PlaybackHandle playback;          /* required for HTTP based sessions */
     NEXUS_VideoDecoderHandle videoDecoder;  /* required if video decode is enabled else must be NULL */
     NEXUS_SimpleVideoDecoderHandle simpleVideoDecoder;  /* alternative solution for when video decoder is not available */
-    NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;  /* alternative solution for when audio decoder is not available */
+    NEXUS_SimpleAudioDecoderHandle simpleAudioDecoder;  /* currently active audio decoder handle that is being played. */
     NEXUS_AudioDecoderHandle primaryAudioDecoder;   /* required if audio decode is enabled else must be NULL */
     NEXUS_AudioDecoderHandle secondaryAudioDecoder; /* required if audio decode is enabled else must be NULL */
     NEXUS_StcChannelHandle stcChannel;      /* required for video & audio enabled streams */
@@ -471,6 +471,8 @@ typedef struct B_PlaybackIpNexusHandles
 
     NEXUS_SimpleAudioDecoderStartSettings   simpleAudioStartSettings;
     NEXUS_SimpleVideoDecoderStartSettings   simpleVideoStartSettings;
+    NEXUS_SimpleAudioDecoderHandle          simpleAudioDecoders[AUDIO_PID_MAX_COUNT]; /* List of all SimpleAudioDecoderHandles that are Opened, set when Audio Primers are enabled. */
+    int simpleAudioDecoderCount; /* Count of all SimpleAudioDecoderHandles that are Opened. */
 } B_PlaybackIpNexusHandles;
 #endif /* DMS_CROSS_PLATFORMS */
 /**
@@ -959,6 +961,7 @@ typedef struct B_PlaybackIpHlsAltAudioRenditionInfo
     const char *language;               /* string containing 3 ASCII codes (+1 for NULL char) for audio language code associated w/ this audio. */
     const char *groupId;                /* groupId of the alternate audio. */
     NEXUS_TransportType containerType;  /* container type of the audio stream. */
+    NEXUS_PlaypumpHandle hPlaypump;     /* playpump handle, set only if additionalAltAudioInfo are being specified. */
 } B_PlaybackIpHlsAltAudioRenditionInfo;
 
 /**
@@ -985,6 +988,8 @@ typedef struct B_PlaybackIpSessionStartSettings
     bool startPaused;                         /* Flag to indicate that app is starting in the paused mode. App will need to call B_PlaybackIp_Play() to resume playing. */
     bool monitorPsi;                          /* Flag to indicate if PBIP should monitor the PSI changes during runtime. */
     bool musicChannelWithVideoStills;         /* Flag to indicate if app is playing a music channel w/ video stills. Enables PBIP to use position using audio PTS. */
+    int additionalAltAudioRenditionInfoCount; /* Count of additional alternate audio renditions that App wants to simultaneously start, for audio priming reason. */
+    B_PlaybackIpHlsAltAudioRenditionInfo additionalAltAudioInfo[AUDIO_PID_MAX_COUNT]; /* Additional AltAudioRenditionInfo array. */
 } B_PlaybackIpSessionStartSettings;
 
 /**

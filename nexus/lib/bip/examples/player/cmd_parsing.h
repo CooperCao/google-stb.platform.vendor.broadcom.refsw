@@ -40,6 +40,8 @@
 
 #ifndef NXCLIENT_SUPPORT
 #include "nexus_platform.h"
+#else
+#include "nxclient.h"
 #endif
 
 #include "bip.h"
@@ -123,6 +125,9 @@ typedef struct AppCtx
 #ifdef NXCLIENT_SUPPORT
     /* Cached Handles. */
     unsigned                        connectId;
+    NxClient_AllocResults           allocResults;
+    unsigned                        audioConnectId;
+    NxClient_AllocResults           audioAllocResults;
     NEXUS_SimpleVideoDecoderHandle  hSimpleVideoDecoder;
     NEXUS_SimpleAudioDecoderHandle  hSimpleAudioDecoder;
     NEXUS_SimpleStcChannelHandle    hSimpleStcChannel;
@@ -157,6 +162,8 @@ typedef struct AppCtx
     int                             audioDecoderLatencyMode;
     int                             disablePrecisionLipsync;
     int                             stcSyncMode;
+    bool                            disableTsm;
+    bool                            enableAudioPrimer;
 } AppCtx;
 
 void unInitAppCtx( AppCtx *pAppCtx);

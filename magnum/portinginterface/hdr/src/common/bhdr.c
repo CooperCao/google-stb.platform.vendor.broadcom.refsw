@@ -1,41 +1,43 @@
-/******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+/***************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ ***************************************************************************/
 #include "bhdr_config.h"
 #include "bhdr_debug.h"
 
@@ -169,6 +171,7 @@ static const CSBitsMaiFormatLookup FsLookupTable[] =
 } ;
 
 
+#define BHDR_P_MaiAudioFormat_IDLE 0x00
 #define BHDR_P_MaiAudioFormat_PCM_2CH 0xFE
 #define BHDR_P_MaiAudioFormat_PCM_3CH 0x03
 #define BHDR_P_MaiAudioFormat_PCM_6CH 0x86
@@ -534,7 +537,7 @@ BERR_Code BHDR_Open(
 	/* settings for recalculation of SR up to BHDR_CONFIG_CONSECUTIVE_SR_CALCS times */
 	hHDR->uiConsecutiveSampleRateCalculations = 0 ;
 	hHDR->uiPreviousMaiSampleRate = 0 ;
-	hHDR->uiPreviousMaiAudioFormat = BHDR_P_MaiAudioFormat_PCM_2CH ;
+	hHDR->uiPreviousMaiAudioFormat = BHDR_P_MaiAudioFormat_IDLE ;
 	hHDR->uiPreviousMaiSampleWidth = 16 ;
 
 
@@ -1635,6 +1638,7 @@ void BHDR_P_HandleInterrupt_isr(
 	uint32_t Register ;
 	uint32_t ulOffset ;
 	uint16_t BStatus = 0 ;
+	BERR_Code rc ;
 
 	BDBG_ENTER(BHDR_P_HandleInterrupt_isr) ;
 
@@ -1768,9 +1772,12 @@ void BHDR_P_HandleInterrupt_isr(
 
 
 	case MAKE_INTR_ENUM(CHANNEL_STATUS_UPDATE) :
+		BDBG_MSG(("Channel Status Update...")) ;
 #if BHDR_CONFIG_UPDATE_MAI_ON_VSYNC == 0
 		BHDR_P_GetChannelStatusBits_isr(hHDR, &hHDR->stChannelStatus) ;
 #endif
+		rc = BHDR_P_ConfigureAudioMaiBus_isr(hHDR) ;
+		if (rc) { rc = BERR_TRACE(rc) ; }
 
  		BKNI_SetEvent(hHDR->BHDR_Event_AudioChannelStatusUpdate) ;
 
@@ -1834,6 +1841,7 @@ void BHDR_P_HandleInterrupt_isr(
 #endif
 		BDBG_MSG(("CH%d AvMuteMode: %d AV MUTE Update from %d to %d",
 			hHDR->eCoreId, AvMuteMode, hHDR->AvMute, AvMute)) ;
+                BSTD_UNUSED(AvMuteMode);
 
 		AvMuteChange =  (hHDR->AvMute != AvMute) ;
 		hHDR->AvMute = AvMute ;
@@ -1960,90 +1968,10 @@ BERR_Code BHDR_InitializePacketRAM(
 /******************************************************************************
 Summary:
 *******************************************************************************/
-BERR_Code BHDR_GetAviInfoFrameData(BHDR_Handle hHDR,
-	BAVC_HDMI_AviInfoFrame *AviInfoFrame)
-{
-	BKNI_Memcpy(AviInfoFrame, &hHDR->AviInfoFrame, sizeof(BAVC_HDMI_AviInfoFrame)) ;
-	return BERR_SUCCESS ;
-}
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
 BERR_Code BHDR_GetGeneralControlPacketData(BHDR_Handle hHDR,
 	BAVC_HDMI_GcpData * Gcpdata)
 {
 	BKNI_Memcpy(Gcpdata, &hHDR->GeneralControlPacket, sizeof(BAVC_HDMI_GcpData)) ;
-	return BERR_SUCCESS ;
-}
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetAudioClockRegenerationData(BHDR_Handle hHDR,
-	BAVC_HDMI_AudioClockRegenerationPacket * AudioClockRegeneraionPacket)
-{
-	BKNI_Memcpy(AudioClockRegeneraionPacket, &hHDR->AudioClockRegenerationPacket, sizeof(BAVC_HDMI_AudioClockRegenerationPacket)) ;
-	return BERR_SUCCESS ;
-}
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetAudioInfoFrameData(BHDR_Handle hHDR,
-	BAVC_HDMI_AudioInfoFrame *AudioInfoFrame)
-{
-	BKNI_Memcpy(AudioInfoFrame, &hHDR->AudioInfoFrame, sizeof(BAVC_HDMI_AudioInfoFrame)) ;
-	return BERR_SUCCESS ;
-}
-
-/******************************************************************************
-Summary:
-**7*****************************************************************************/
-BERR_Code BHDR_GetSPDInfoFrameData(BHDR_Handle hHDR,
-	BAVC_HDMI_SPDInfoFrame *SPDInfoFrame)
-{
-	BKNI_Memcpy(SPDInfoFrame, &hHDR->SPDInfoFrame, sizeof(BAVC_HDMI_SPDInfoFrame)) ;
-	return BERR_SUCCESS ;
-}
-
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetVendorSpecificInfoFrameData(BHDR_Handle hHDR,
-	BAVC_HDMI_VendorSpecificInfoFrame *VendorSpecificInfoFrame)
-{
-	BKNI_Memcpy(VendorSpecificInfoFrame, &hHDR->VSInfoFrame, sizeof(BAVC_HDMI_VendorSpecificInfoFrame)) ;
-	return BERR_SUCCESS ;
-}
-
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetISRCData(BHDR_Handle hHDR,
-	BAVC_HDMI_ISRC *pISRC)
-{
-#if BHDR_CONFIG_ISRC_PACKET_SUPPORT
-	BKNI_Memcpy(pISRC, &hHDR->ISRC, sizeof(pISRC)) ;
-	return BERR_SUCCESS ;
-#else
-	BSTD_UNUSED(hHDR) ;
-	BSTD_UNUSED(pISRC) ;
-	BDBG_WRN(("ISRC Support disabled...")) ;
-	return BERR_NOT_SUPPORTED  ;
-#endif
-}
-
-
-/******************************************************************************
-Summary:
-*******************************************************************************/
-BERR_Code BHDR_GetAudioContentProtection(BHDR_Handle hHDR,
-	BAVC_HDMI_ACP *AudioContentProtection)
-{
-	BKNI_Memcpy(AudioContentProtection, &hHDR->AudioContentProtection, sizeof(BAVC_HDMI_ACP)) ;
 	return BERR_SUCCESS ;
 }
 
@@ -2853,7 +2781,7 @@ void BHDR_P_HotPlugRemove_isr(BHDR_Handle hHDR)
 	Register =
 		  BCHP_FIELD_DATA(HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT, SAMPLE_WIDTH, 16)
 		|BCHP_FIELD_DATA(HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT, AUDIO_FORMAT,
-			BHDR_P_MaiAudioFormat_PCM_2CH)
+			BHDR_P_MaiAudioFormat_IDLE)
 		|BCHP_FIELD_DATA(HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT, SAMPLE_RATE, 0)
 		|BCHP_FIELD_DATA(HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT, STREAM_ID, 0)
 		|BCHP_FIELD_DATA(HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT, MAI_VERSION, 0) ;
@@ -3294,6 +3222,7 @@ static BERR_Code BHDR_P_DestroyTimer(BHDR_Handle hHDR, BTMR_TimerHandle timerHan
 	BDBG_MSG(("Destroy BHDR_P_TIMER_eNNN ID %d", timerId)) ;
 	rc = BTMR_DestroyTimer(timerHandle) ;
 
+        BSTD_UNUSED(timerId);
 	BDBG_LEAVE(BHDR_P_DestroyTimer) ;
 	return rc ;
 }
@@ -3316,5 +3245,3 @@ static void BHDR_P_TimerExpiration_isr (BHDR_Handle hHDR, int parm2)
 		BDBG_ERR(("hHDR %p Timer %d not handled", (void *)hHDR, parm2)) ;
 	}
 }
-
-

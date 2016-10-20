@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,39 +70,39 @@
 /***************************************************************************
  *SCB - Smart Card B
  ***************************************************************************/
-#define BCHP_SCB_UART_CMD                        0x2040b100 /* [RW] Smart Card Uart Command */
-#define BCHP_SCB_IF_CMD                          0x2040b104 /* [RW] Smart Card Interface Command */
-#define BCHP_SCB_CLK_CMD                         0x2040b108 /* [RW] Smart Card Clock Command */
-#define BCHP_SCB_PROTO_CMD                       0x2040b10c /* [RW] Smart Card Protocol Command */
-#define BCHP_SCB_PRESCALE                        0x2040b110 /* [RW] Smart Card Clock Prescale */
-#define BCHP_SCB_TGUARD                          0x2040b114 /* [RW] Smart Card Transmit Guard Time */
-#define BCHP_SCB_TRANSMIT                        0x2040b118 /* [RW] Smart Card Transmit */
-#define BCHP_SCB_RECEIVE                         0x2040b11c /* [RO] Smart Card Receive */
-#define BCHP_SCB_TLEN                            0x2040b124 /* [RW] Smart Card Transmit Length */
-#define BCHP_SCB_FLOW_CMD                        0x2040b128 /* [RW] Smart Card Flow Command */
-#define BCHP_SCB_RLEN                            0x2040b130 /* [RO] Smart Card Receive Length */
-#define BCHP_SCB_STATUS                          0x2040b134 /* [RO] Smart Card Status */
-#define BCHP_SCB_BGT                             0x2040b144 /* [RW] Smart Card Block Guard Time */
-#define BCHP_SCB_TIMER_CMD                       0x2040b148 /* [RW] Smart Card Timer Command */
-#define BCHP_SCB_INTR_EN                         0x2040b150 /* [RW] Smart Card Interrupt Enable */
-#define BCHP_SCB_INTR_STAT                       0x2040b158 /* [RO] Smart Card Interrupt Status */
-#define BCHP_SCB_TIMER_CMP                       0x2040b160 /* [RW] Smart Card General Purpose Timer Compare */
-#define BCHP_SCB_TIMER_CNT                       0x2040b168 /* [RO] Smart Card General Purpose Timer Count */
-#define BCHP_SCB_WAIT                            0x2040b170 /* [RW] Smart Card Waiting Timer */
-#define BCHP_SCB_EVENT1_CNT                      0x2040b180 /* [RO] Smart Card Event 1 Count */
-#define BCHP_SCB_EVENT1_CMP                      0x2040b188 /* [RW] Smart Card Event 1 Compare */
-#define BCHP_SCB_EVENT1_CMD                      0x2040b190 /* [RW] Smart Card Event 1 Command */
-#define BCHP_SCB_EVENT2_CMP                      0x2040b1a0 /* [RW] Smart Card Event 2 Compare */
-#define BCHP_SCB_EVENT2_CNT                      0x2040b1a8 /* [RO] Smart Card Event 2 Count */
-#define BCHP_SCB_EVENT2_CMD                      0x2040b1b0 /* [RW] Smart Card Event 2 Command */
-#define BCHP_SCB_SMODE_TICK                      0x2040b1c0 /* [RW] Smart Card Synchronous Mode Timebase */
-#define BCHP_SCB_IOIF_TICK                       0x2040b1c4 /* [RW] Smart Card I/O Interface Timebase */
-#define BCHP_SCB_SMODE_RLEN                      0x2040b1c8 /* [RW] Smart Card Synchronous Receive Length */
-#define BCHP_SCB_AFE_CMD_1                       0x2040b1cc /* [RW] Smart Card Analog Front End Command 1 */
-#define BCHP_SCB_AFE_CMD_2                       0x2040b1d0 /* [RW] Smart Card Analog Front End Command 2 */
-#define BCHP_SCB_TMON_CMP                        0x2040b1d4 /* [RW] Smart Card Temperature Monitor Compare Threshold */
-#define BCHP_SCB_TMON_TEMP                       0x2040b1d8 /* [RO] Smart Card Interface Contact Temperature */
-#define BCHP_SCB_REVISION_ID                     0x2040b1fc /* [RO] Smart Card Revision ID */
+#define BCHP_SCB_UART_CMD                        0x2040b100 /* [RW][32] Smart Card Uart Command */
+#define BCHP_SCB_IF_CMD                          0x2040b104 /* [RW][32] Smart Card Interface Command */
+#define BCHP_SCB_CLK_CMD                         0x2040b108 /* [RW][32] Smart Card Clock Command */
+#define BCHP_SCB_PROTO_CMD                       0x2040b10c /* [RW][32] Smart Card Protocol Command */
+#define BCHP_SCB_PRESCALE                        0x2040b110 /* [RW][32] Smart Card Clock Prescale */
+#define BCHP_SCB_TGUARD                          0x2040b114 /* [RW][32] Smart Card Transmit Guard Time */
+#define BCHP_SCB_TRANSMIT                        0x2040b118 /* [RW][32] Smart Card Transmit */
+#define BCHP_SCB_RECEIVE                         0x2040b11c /* [RO][32] Smart Card Receive */
+#define BCHP_SCB_TLEN                            0x2040b124 /* [RW][32] Smart Card Transmit Length */
+#define BCHP_SCB_FLOW_CMD                        0x2040b128 /* [RW][32] Smart Card Flow Command */
+#define BCHP_SCB_RLEN                            0x2040b130 /* [RO][32] Smart Card Receive Length */
+#define BCHP_SCB_STATUS                          0x2040b134 /* [RO][32] Smart Card Status */
+#define BCHP_SCB_BGT                             0x2040b144 /* [RW][32] Smart Card Block Guard Time */
+#define BCHP_SCB_TIMER_CMD                       0x2040b148 /* [RW][32] Smart Card Timer Command */
+#define BCHP_SCB_INTR_EN                         0x2040b150 /* [RW][32] Smart Card Interrupt Enable */
+#define BCHP_SCB_INTR_STAT                       0x2040b158 /* [RO][32] Smart Card Interrupt Status */
+#define BCHP_SCB_TIMER_CMP                       0x2040b160 /* [RW][32] Smart Card General Purpose Timer Compare */
+#define BCHP_SCB_TIMER_CNT                       0x2040b168 /* [RO][32] Smart Card General Purpose Timer Count */
+#define BCHP_SCB_WAIT                            0x2040b170 /* [RW][32] Smart Card Waiting Timer */
+#define BCHP_SCB_EVENT1_CNT                      0x2040b180 /* [RO][32] Smart Card Event 1 Count */
+#define BCHP_SCB_EVENT1_CMP                      0x2040b188 /* [RW][32] Smart Card Event 1 Compare */
+#define BCHP_SCB_EVENT1_CMD                      0x2040b190 /* [RW][32] Smart Card Event 1 Command */
+#define BCHP_SCB_EVENT2_CMP                      0x2040b1a0 /* [RW][32] Smart Card Event 2 Compare */
+#define BCHP_SCB_EVENT2_CNT                      0x2040b1a8 /* [RO][32] Smart Card Event 2 Count */
+#define BCHP_SCB_EVENT2_CMD                      0x2040b1b0 /* [RW][32] Smart Card Event 2 Command */
+#define BCHP_SCB_SMODE_TICK                      0x2040b1c0 /* [RW][32] Smart Card Synchronous Mode Timebase */
+#define BCHP_SCB_IOIF_TICK                       0x2040b1c4 /* [RW][32] Smart Card I/O Interface Timebase */
+#define BCHP_SCB_SMODE_RLEN                      0x2040b1c8 /* [RW][32] Smart Card Synchronous Receive Length */
+#define BCHP_SCB_AFE_CMD_1                       0x2040b1cc /* [RW][32] Smart Card Analog Front End Command 1 */
+#define BCHP_SCB_AFE_CMD_2                       0x2040b1d0 /* [RW][32] Smart Card Analog Front End Command 2 */
+#define BCHP_SCB_TMON_CMP                        0x2040b1d4 /* [RW][32] Smart Card Temperature Monitor Compare Threshold */
+#define BCHP_SCB_TMON_TEMP                       0x2040b1d8 /* [RO][32] Smart Card Interface Contact Temperature */
+#define BCHP_SCB_REVISION_ID                     0x2040b1fc /* [RO][32] Smart Card Revision ID */
 
 #endif /* #ifndef BCHP_SCB_H__ */
 

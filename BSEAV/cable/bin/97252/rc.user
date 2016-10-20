@@ -1,7 +1,0 @@
-# enable memory overcommit
-echo 0 > /proc/sys/vm/overcommit_memory
-
-ipcfg eth0:0 static 192.168.17.10 255.255.255.0
-ifup eth0:0
-insmod pod97445.ko
-mknod /dev/pod c 38 0

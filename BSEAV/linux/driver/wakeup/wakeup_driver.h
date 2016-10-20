@@ -25,6 +25,7 @@
 #define WAKEUP_CEC		(1 << 0)
 #define WAKEUP_IRR		(1 << 1)
 #define WAKEUP_KPD		(1 << 2)
+#define WAKEUP_GPIO     (1 << 3)
 #define WAKEUP_UHFR		(1 << 4)
 #define WAKEUP_XPT_PMU	(1 << 5)
 
@@ -34,6 +35,7 @@ typedef struct wakeup_devices{
     uint32_t ir;
     uint32_t uhf;
     uint32_t keypad;
+    uint32_t gpio;
     uint32_t cec;
     uint32_t transport;
     uint32_t timeout;     /* in seconds */

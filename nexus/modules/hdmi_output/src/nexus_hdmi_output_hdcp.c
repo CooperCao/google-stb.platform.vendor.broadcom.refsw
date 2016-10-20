@@ -381,6 +381,9 @@ static NEXUS_Error NEXUS_HdmiOutput_P_InitHdcp1x(NEXUS_HdmiOutputHandle output)
     output->hdcpSettings.waitForKsvFifoMargin = pHdcpConfig->msWaitForKsvFifoMargin;
     output->hdcpSettings.maxDeviceCountSupported = pHdcpConfig->uiMaxDeviceCount;
     output->hdcpSettings.maxDepthSupported = pHdcpConfig->uiMaxDepth;
+    NEXUS_CallbackDesc_Init(&output->hdcpSettings.stateChangedCallback);
+    NEXUS_CallbackDesc_Init(&output->hdcpSettings.successCallback);
+    NEXUS_CallbackDesc_Init(&output->hdcpSettings.failureCallback);
 
     /* Retrieve HDCP keys and set HDCP configuration */
     errCode = BHDCPlib_GetKeySet(pHdcpConfig->TxKeySet.TxAksv, pHdcpConfig->TxKeySet.TxKeyStructure);
@@ -707,6 +710,7 @@ static void NEXUS_HdmiOutput_P_Hdcp2xAuthenticationStatusUpdate(void *pContext)
 
     if (stAuthenticationStatus.linkAuthenticated == false)
     {
+        BKNI_Sleep(70);
         NEXUS_TaskCallback_Fire(output->hdcpFailureCallback);
     }
 }
@@ -1217,6 +1221,13 @@ NEXUS_Error NEXUS_HdmiOutput_P_SetHdcpVersion(
         goto done;
     }
 
+    {
+        uint8_t deviceAttached;
+        errCode = BHDM_RxDeviceAttached(handle->hdmHandle, &deviceAttached);
+        if (errCode) return BERR_TRACE(errCode);
+        if (!deviceAttached) return NEXUS_SUCCESS;
+    }
+
     if (handle->hdcpVersionSelect != version_select) {
         NEXUS_HdmiOutputHdcpState hdcpState = NEXUS_HdmiOutputHdcpState_eUnauthenticated;
 
@@ -1564,7 +1575,9 @@ static void NEXUS_HdmiOutput_P_HdcpKeepAliveTimerCallback(void *pContext)
 
     /* we stop the timer if we are authenticated */
     rc = NEXUS_HdmiOutput_GetHdcpStatus(handle, &hdcpStatus);
-    if (!rc && (hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled || hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eLinkAuthenticated)) {
+    if (rc) BERR_TRACE(rc);
+
+    if ((hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eEncryptionEnabled || hdcpStatus.hdcpState == NEXUS_HdmiOutputHdcpState_eLinkAuthenticated)) {
         return;
     }
 
@@ -1848,7 +1861,6 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
         BHDCPlib_Status hdcpStatus;
         BHDCPlib_GetHdcpStatus(handle->hdcpHandle, &hdcpStatus);
 
-
         pStatus->hdcpState = hdcpStatus.eAuthenticationState;
         pStatus->hdcpError = hdcpStatus.eHdcpError;
         pStatus->linkReadyForEncryption = BHDCPlib_LinkReadyForEncryption(handle->hdcpHandle);
@@ -1873,9 +1885,11 @@ NEXUS_Error NEXUS_HdmiOutput_GetHdcpStatus(
         {
             errCode = BERR_TRACE(errCode);
         }
+
     }
 done:
-    return errCode;
+
+    return NEXUS_SUCCESS;
 }
 
 #else /* NEXUS_HAS_SECURITY */

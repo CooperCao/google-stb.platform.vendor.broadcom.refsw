@@ -52,58 +52,45 @@
  *
  * This file should only be included from bcm_driver.c
  */
-void b_virtual_irq_enable_irqs(void)
+
+void b_virtual_irq_reset_irqs(void)
 {
     unsigned i;
-
-    if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return; }
-
-    for(i=0;i<sizeof(g_virtual_irq_state.irqs)/sizeof(g_virtual_irq_state.irqs[0]);i++) {
-        if(g_virtual_irq_state.irqs[i].requested) {
-            if(!g_virtual_irq_state.irqs[i].disabled && !g_virtual_irq_state.irqs[i].linux_enabled) {
-                g_virtual_irq_state.irqs[i].linux_enabled = true;
-                if (g_brcm_irq0_verbose) PINFO("virtual irq enable line %s linux irq %u\n", b_virtual_irq_get_name(i), g_virtual_irq_state.irqs[i].linux_irq);
-                enable_irq(g_virtual_irq_state.irqs[i].linux_irq);
-            }
-        }
-    }
-}
-
-void b_virtual_irq_reenable_irqs(void)
-{
-    unsigned irq;
     unsigned long flags;
+    struct b_virtual_irq_line_desc * desc;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return; }
 
-    for(irq=0;irq<sizeof(g_virtual_irq_state.irqs)/sizeof(g_virtual_irq_state.irqs[0]);irq++) {
-        if(g_virtual_irq_state.irqs[irq].requested) {
-            B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-            if(!g_virtual_irq_state.irqs[irq].linux_enabled) {
-                if (g_brcm_irq0_verbose) PINFO("virtual irq reenable line %s linux irq %u\n", b_virtual_irq_get_name(irq), g_virtual_irq_state.irqs[irq].linux_irq);
-                g_virtual_irq_state.irqs[irq].linux_enabled = true;
-                enable_irq(g_virtual_irq_state.irqs[irq].linux_irq);
-            }
-            B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
-        }
+    /* TODO: reset to insmod state */
+
+    for(i = 0; i < sizeof(g_virtual_irq_state.lines)/sizeof(g_virtual_irq_state.lines[0]); i++)
+    {
+        desc = &g_virtual_irq_state.lines[i];
+        B_VIRTUAL_IRQ_SPIN_LOCK(flags);
+        b_os_irq_set_enable_spinlocked_tagged(&desc->base, 1, "virq reset", __LINE__);
+        B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
     }
 }
 
 void b_virtual_irq_test(void)
 {
     unsigned i;
+    struct b_virtual_irq_line_desc * desc;
+    unsigned long flags;
 
     if (!g_virtual_irq_state.initialized || !g_virtual_irq_state.caps.feature_supported) { return; }
 
-    for(i=0;i<sizeof(g_virtual_irq_state.irqs)/sizeof(g_virtual_irq_state.irqs[0]);i++) {
+    for(i = 0; i < sizeof(g_virtual_irq_state.lines)/sizeof(g_virtual_irq_state.lines[0]); i++)
+    {
+        desc = &g_virtual_irq_state.lines[i];
         /* this doesn't "fire" l1, and it doesn't clear "fired" state either
          * it only updates the l1 status to match the fired state */
-        if(g_virtual_irq_state.irqs[i].fired) {
-            unsigned long flags;
-
+        if (desc->fired)
+        {
             B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-            if(!g_virtual_irq_state.irqs[i].disabled) {
-                b_virtual_irq_set_l1_status(i);
+            if (!desc->disabled)
+            {
+                b_virtual_irq_set_l1_status(desc);
             }
             B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
         }

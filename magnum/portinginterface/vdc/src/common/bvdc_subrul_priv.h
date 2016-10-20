@@ -131,6 +131,9 @@ extern "C" {
     *(pList)->pulCurrent++ = BRDC_REGISTER(reg + offs); \
 }
 
+#define BVDC_P_ADDR_ALIGN_UP(addr, alignment) \
+        (((uint64_t)(addr) + (alignment) - 1) & (~(uint64_t)((alignment) - 1)))
+
 /* all BCHP_VNET_F_*_SRC_SOURCE_Output_Disabled is '15' */
 #define BVDC_P_MuxValue_SrcOutputDisabled      BCHP_VNET_F_SCL_0_SRC_SOURCE_Output_Disabled
 

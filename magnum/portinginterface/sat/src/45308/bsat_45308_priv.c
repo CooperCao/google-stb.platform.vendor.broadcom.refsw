@@ -168,14 +168,15 @@ BERR_Code BSAT_45308_P_GetTotalChannels(BSAT_Handle h, uint32_t *totalChannels)
    if (retCode == BERR_SUCCESS)
    {
       chip_id = product_id >> 8;
+      family_id = family_id >> 8;
       n = chip_id & 0xFF;
       if (n == 0x16)
          *totalChannels = 16;
-      else if (n == 0x04)
+      else if ((n == 0x04) || (family_id == 0x45304))
          *totalChannels = 4;
       else if (n == 0x06)
          *totalChannels = 6;
-      else if ((family_id & 0xFFFFFF00) == 0x04530200)
+      else if (family_id == 0x45302)
          *totalChannels = 2;
       else
          *totalChannels = 8;

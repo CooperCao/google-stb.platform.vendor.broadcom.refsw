@@ -2747,6 +2747,7 @@ void NEXUS_FrontendDevice_GetDefault3128Settings(NEXUS_FrontendDevice3128Setting
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->agcValue = 0x1f; /* Max gain*/
+    NEXUS_CallbackDesc_Init(&pSettings->updateGainCallback);
 }
 
 NEXUS_Error NEXUS_FrontendDevice_Get3128Settings(NEXUS_FrontendDeviceHandle handle, NEXUS_FrontendDevice3128Settings *pSettings)

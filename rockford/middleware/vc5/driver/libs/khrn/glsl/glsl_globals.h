@@ -11,15 +11,8 @@ FILE DESCRIPTION
 #ifndef GLSL_GLOBALS_H
 #define GLSL_GLOBALS_H
 
-#include "glsl_compiler.h"
-
-//
-// Global variable declarations.
-//
-
-#define GLSL_SHADER_VERSION(major, minor, es) (((100 * (major)) + (minor))  + ((es) ? 1000000 : 0))
-#define GLSL_SHADER_VERSION_NUMBER(version) ((version) >= 1000000 ? ((version) - 1000000) : (version))
-#define GLSL_SHADER_VERSION_IS_ES(version) ((version) >= 1000000 ? 1 : 0)
+#include <stdbool.h>
+#include "glsl_ir_program.h"
 
 extern int g_ShaderVersion;
 

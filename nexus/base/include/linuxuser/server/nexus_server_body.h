@@ -70,9 +70,13 @@ static struct nexus_driver_module_state {
 #define NEXUS_DRIVER_SEND_ADDR(addr,type)  nexus_driver_send_addr((void *)(&addr))
 #define NEXUS_DRIVER_RECV_ADDR(addr,type)  nexus_driver_recv_addr_##type((void *)(&addr))
 
+#if NEXUS_P_ABIVERIFY_SERVER
+#define CLIENT_ID (__client)
+#else
 #define CLIENT_ID (&client_module_state->client->client)
+#endif
 
-#define NEXUS_DRIVER_CALLBACK_TO_DRIVER(callback, handle, id)  nexus_driver_callback_to_driver(module_header, (callback), (void *)(handle), (id), CLIENT_ID, client_module_state->slave_scheduler)
+#define NEXUS_DRIVER_CALLBACK_TO_DRIVER(callback, handle, id)  nexus_driver_callback_to_driver(module_header, (callback), (void *)(handle), (id), CLIENT_ID, __slave_scheduler)
 #define NEXUS_DRIVER_CALLBACK_TO_CLIENT(callback, handle, id) nexus_driver_callback_to_user(module_header, (callback), (void*)(handle), (id))
 #define NEXUS_DRIVER_CALLBACK_UPDATE(callback, old_handle, id, new_handle) nexus_driver_callback_update(module_header, (callback), (void*)(old_handle), (id), (void *)(new_handle))
 #define NEXUS_DRIVER_CALLBACK_TO_DRIVER_COMMIT(callback, handle, id)  nexus_driver_callback_to_driver_commit(module_header, (callback), (void *)(handle),(id))
@@ -123,12 +127,28 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
     struct nexus_driver_module_driver_state *client_module_state = vclient;
     struct nexus_driver_module_header *module_header = &nexus_driver_module_state.header;
     nexus_server_args *in_data = vin_data;
+    struct nexus_driver_slave_scheduler *__slave_scheduler = client_module_state->slave_scheduler;
     nexus_server_args *out_data = vout_data;
-    unsigned function_id;
-    unsigned __variable_out_offset = 0;
     struct nexus_driver_client_state *client = client_module_state->client;
+#if NEXUS_P_ABIVERIFY_SERVER
+    NEXUS_P_ServerOutVarArg_State __varargs;
+#else
+    unsigned __variable_out_offset = 0;
+#endif
+
 
     NEXUS_P_API_STATS_STATE();
+    BSTD_UNUSED(__slave_scheduler);
+
+#if NEXUS_P_ABIVERIFY_SERVER
+    NEXUS_P_ServerCall_OutVarArg_Init(&__varargs, &client->client, vout_data, out_mem_size);
+    __varargs.header = (uint8_t *)&out_data->data - (uint8_t *)out_data;
+    out_data->header.version = 0;
+    out_data->header.function_id = 0;
+#else
+    BSTD_UNUSED(__variable_out_offset); /* may be unused */
+#endif
+
 
     /*
      * The following is to address Coverity false positive. The Coverity stack-size checker adds 4 bytes for every function call made.
@@ -140,22 +160,22 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
     __coverity_stack_depth__(20000);
 #endif
 
-    BSTD_UNUSED(__variable_out_offset); /* may be unused */
     NEXUS_P_API_STATS_START(); /* this statistics count all API call overhead (including synchronization overhead) */
 
-    if (!in_data) {
+    if (!in_data || in_data_size < sizeof(in_data->header)) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-    function_id = in_data->header.function_id;
 
     if (in_data->header.version != NEXUS_IPC_HEADER_VERSION) {
-        BDBG_ERR(("func %#x: wrong version: %#x != %#x", function_id, in_data->header.version, (unsigned)NEXUS_IPC_HEADER_VERSION));
+        BDBG_ERR(("func %#x: wrong version: %#x != %#x", in_data->header.function_id, in_data->header.version, (unsigned)NEXUS_IPC_HEADER_VERSION));
         return BERR_TRACE(NEXUS_UNKNOWN);
     }
 
     NEXUS_Module_Lock(module_header->module);
     b_objdb_set_client(&client->client); /* CLIENT_ID */
 
+#if NEXUS_P_ABIVERIFY_SERVER
+#else
     switch(in_data->header.function_id) {
     default:
         goto err_invalid_ipc;
@@ -163,4 +183,5 @@ nexus_server_process(void *vclient, void *vin_data, unsigned in_data_size, void 
         goto err_alloc;
         /* coverity[unreachable] - added to prevent warning in nexus_driver_epilogue.h */
         goto err_fault;
+#endif
 

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -848,7 +848,10 @@ _http_socket_select(B_PlaybackIpHandle playback_ip, int fd, int timeout)
 
         if ( fd < 0 ) {
             playback_ip->serverClosed = true;
+#ifdef BDBG_DEBUG_BUILD
+    if (playback_ip->ipVerboseLog)
             BDBG_ERR(("!!! %s : %d => bad file descriptor(fd %d)\n", __FUNCTION__, __LINE__, fd));
+#endif
             return -1;
         }
 
@@ -5826,13 +5829,6 @@ void B_PlaybackIp_HttpPlaypumpThread(
             continue;
         }
 
-        if (playback_ip->playback_state == B_PlaybackIpState_ePaused) {
-            BKNI_ReleaseMutex(playback_ip->lock);
-            BDBG_MSG(("%s: wait to come out of pause", __FUNCTION__));
-            BKNI_Sleep(20);
-            continue;
-        }
-
         /* get an adequately sized buffer from the playpump */
         if (B_PlaybackIp_UtilsGetPlaypumpBuffer(playback_ip, readBufSize) < 0) {
             BKNI_ReleaseMutex(playback_ip->lock);
@@ -5903,6 +5899,12 @@ void B_PlaybackIp_HttpPlaypumpThread(
                     }
                     BKNI_ReleaseMutex(playback_ip->lock);
                     BDBG_MSG(("%s: RVU trickmode: done sending next time seek request, continue reading & feeding", __FUNCTION__));
+                    continue;
+                }
+                else if (playback_ip->serverClosed && playback_ip->playback_state == B_PlaybackIpState_ePaused && playback_ip->ipTrickModeSettings.pauseMethod == B_PlaybackIpPauseMethod_UseDisconnectAndSeek ) {
+                    BKNI_ReleaseMutex(playback_ip->lock);
+                    BDBG_MSG(("%s: Paused using Disconnect & Seek Method, so keep waiting until app resumes!", __FUNCTION__));
+                    BKNI_Sleep(20);
                     continue;
                 }
                 else {
@@ -6067,6 +6069,40 @@ void B_PlaybackIp_HlsPlaybackThread(void *data);
 void B_PlaybackIp_MpegDashPlaybackThread(void *data);
 #endif
 
+static B_PlaybackIpError validateAlternateAudioRenditionParams(
+    B_PlaybackIpHandle playback_ip,
+    B_PlaybackIpHlsAltAudioRenditionInfo *pAltAudioRenditionInfo,
+    NEXUS_PlaypumpHandle hPlaypump
+    )
+{
+    B_PlaybackIpError errorCode = B_ERROR_INVALID_PARAMETER;
+    if (pAltAudioRenditionInfo->pid == 0) {
+        BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", __FUNCTION__));
+        BDBG_ASSERT(NULL);
+        goto error;
+    }
+    if (pAltAudioRenditionInfo->containerType == NEXUS_TransportType_eUnknown) {
+        BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", __FUNCTION__));
+        goto error;
+    }
+    if (pAltAudioRenditionInfo->language == NULL ) {
+        BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", __FUNCTION__));
+        goto error;
+    }
+    if (pAltAudioRenditionInfo->groupId == NULL ) {
+        BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", __FUNCTION__));
+        goto error;
+    }
+    if ( hPlaypump == NULL) {
+        BDBG_ERR(("%s: Playpump handle is NULL, it must be set for playing the alternate audio!", __FUNCTION__));
+        goto error;
+    }
+    errorCode = B_ERROR_SUCCESS;
+    BDBG_MSG(("%s: playback_ip=%p: Verified params", __FUNCTION__, (void *)playback_ip));
+error:
+    return (errorCode);
+}
+
 B_PlaybackIpError
 B_PlaybackIp_HttpSessionStart(
     B_PlaybackIpHandle playback_ip,
@@ -6087,25 +6123,20 @@ B_PlaybackIp_HttpSessionStart(
     }
 
     if (playback_ip->startSettings.startAlternateAudio) {
-        if (playback_ip->startSettings.alternateAudio.pid == 0) {
-            BDBG_ERR(("%s: alternateAudio.pid can't be 0 if alternate audio is enabled.", __FUNCTION__));
+        int i;
+
+        errorCode = validateAlternateAudioRenditionParams(playback_ip, &playback_ip->startSettings.alternateAudio, playback_ip->startSettings.nexusHandles.playpump2 );
+        if (errorCode != B_ERROR_SUCCESS) {
+            BDBG_ERR(("%s: validateAlternateAudioRenditionParams Failed.", __FUNCTION__));
             goto error;
         }
-        if (playback_ip->startSettings.alternateAudio.containerType == NEXUS_TransportType_eUnknown) {
-            BDBG_ERR(("%s: alternateAudio.containerType can't be unknown if alternate audio is enabled.", __FUNCTION__));
-            goto error;
-        }
-        if (playback_ip->startSettings.alternateAudio.language == NULL ) {
-            BDBG_ERR(("%s: alternateAudio.language can't be NULL if alternate audio is enabled.", __FUNCTION__));
-            goto error;
-        }
-        if (playback_ip->startSettings.alternateAudio.groupId == NULL ) {
-            BDBG_ERR(("%s: alternateAudio.groupId can't be NULL if alternate audio is enabled.", __FUNCTION__));
-            goto error;
-        }
-        if ( (playback_ip->startSettings.nexusHandlesValid && playback_ip->startSettings.nexusHandles.playpump2 == NULL) || (playback_ip->nexusHandles.playpump2 == NULL)) {
-            BDBG_ERR(("%s: playpump2 handle is NULL, it must be set for playing the alternate audio!", __FUNCTION__));
-            goto error;
+        for (i=0; i < playback_ip->startSettings.additionalAltAudioRenditionInfoCount; i++)
+        {
+            errorCode = validateAlternateAudioRenditionParams(playback_ip, &playback_ip->startSettings.additionalAltAudioInfo[i], playback_ip->startSettings.additionalAltAudioInfo[i].hPlaypump );
+            if (errorCode != B_ERROR_SUCCESS) {
+                BDBG_ERR(("%s: validateAlternateAudioRenditionParams for additional altAudioRenditionInfo Failed.", __FUNCTION__));
+                goto error;
+            }
         }
     }
     playback_ip->speedNumerator = 1;

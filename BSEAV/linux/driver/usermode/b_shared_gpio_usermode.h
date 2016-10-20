@@ -41,9 +41,7 @@
 #ifndef B_SHARED_GPIO_USERMODE_H
 #define B_SHARED_GPIO_USERMODE_H 1
 
-/* this function expects the caller to acquire the irq spinlock */
-void b_shared_gpio_enable_irqs(void);
 /* this function expects the caller *not* to acquire the irq spinlock */
-void b_shared_gpio_reenable_irqs(void);
+void b_shared_gpio_reset_irqs(void);
 
 #endif /* B_SHARED_GPIO_USERMODE_H */

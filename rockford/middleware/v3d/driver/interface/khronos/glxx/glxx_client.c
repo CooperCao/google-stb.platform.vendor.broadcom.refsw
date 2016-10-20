@@ -11,15 +11,12 @@ handlers via RPC or direct call.
 =============================================================================*/
 
 #include "interface/khronos/common/khrn_client_mangle.h"
-
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_options.h"
-
 #include "interface/khronos/glxx/glxx_client.h"
 #include "interface/khronos/glxx/gl11_int_config.h"
 #include "interface/khronos/include/GLES/glext.h"
 #include "interface/khronos/include/GLES2/gl2ext.h"
-
 #include "interface/khronos/glxx/gl11_int_impl.h"
 #include "interface/khronos/glxx/gl20_int_impl.h"
 #include "interface/khronos/glxx/glxx_int_impl.h"
@@ -142,7 +139,6 @@ GL_API void GL_APIENTRY glBindBuffer (GLenum target, GLuint buffer)
 
       glBindBuffer_impl(target, buffer);
    }
-
 }
 
 GL_API void GL_APIENTRY glBindTexture (GLenum target, GLuint texture)
@@ -153,7 +149,7 @@ GL_API void GL_APIENTRY glBindTexture (GLenum target, GLuint texture)
    }
 }
 
-GL_API void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
+GL_API void GL_APIENTRY glBlendColor (GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_20(thread)) {
@@ -161,35 +157,36 @@ GL_API void GL_APIENTRY glBlendColor(GLclampf red, GLclampf green, GLclampf blue
    }
 }
 
-GL_API void GL_APIENTRY glBlendEquation( GLenum mode ) // S
-{
-   glBlendEquationSeparate(mode, mode);
-}
-
-GL_API void GL_APIENTRY glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha) // S
+GL_API void GL_APIENTRY glBlendEquation (GLenum mode) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_20(thread))
-      glBlendEquationSeparate_impl_20(modeRGB, modeAlpha);
+   if (IS_OPENGLES_20(thread)) {
+      glBlendEquationSeparate_impl_20(mode, mode);
+   }
 }
 
-static void set_blend_func(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha)
+GL_API void GL_APIENTRY glBlendEquationSeparate (GLenum modeRGB, GLenum modeAlpha) // S
 {
-   glBlendFuncSeparate_impl(srcRGB, dstRGB, srcAlpha, dstAlpha);
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   if (IS_OPENGLES_20(thread)) {
+      glBlendEquationSeparate_impl_20(modeRGB, modeAlpha);
+   }
 }
 
 GL_API void GL_APIENTRY glBlendFunc (GLenum sfactor, GLenum dfactor)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_11_OR_20(thread))
-      set_blend_func(sfactor, dfactor, sfactor, dfactor);
+   if (IS_OPENGLES_11_OR_20(thread)) {
+      glBlendFuncSeparate_impl(sfactor, dfactor, sfactor, dfactor);
+   }
 }
 
 GL_API void GL_APIENTRY glBlendFuncSeparate (GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha) // S
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_20(thread))
-      set_blend_func(srcRGB, dstRGB, srcAlpha, dstAlpha);
+   if (IS_OPENGLES_20(thread)) {
+      glBlendFuncSeparate_impl(srcRGB, dstRGB, srcAlpha, dstAlpha);
+   }
 }
 
 GL_API void GL_APIENTRY glBufferData (GLenum target, GLsizeiptr size, const GLvoid *data, GLenum usage)
@@ -3780,36 +3777,8 @@ GL_API void GL_APIENTRY glViewport (GLint x, GLint y, GLsizei width, GLsizei hei
 /*                             EXT extension functions                                   */
 /*****************************************************************************************/
 
-void glxx_RenderbufferStorageMultisampleEXT(GLenum target, GLsizei samples,
-   GLenum internalformat, GLsizei width, GLsizei height)
-{
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_11_OR_20(thread)) {
-      glxx_RenderbufferStorageMultisampleEXT_impl(target,
-                                                  samples,
-                                                  internalformat,
-                                                  width,
-                                                  height,
-                                                  IS_OPENGLES_SECURE(thread));
-   }
-}
-
-void glxx_FramebufferTexture2DMultisampleEXT(GLenum target, GLenum attachment,
-   GLenum textarget, GLuint texture, GLint level, GLsizei samples)
-{
-   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
-   if (IS_OPENGLES_11_OR_20(thread)) {
-      glxx_FramebufferTexture2DMultisampleEXT_impl(target,
-                                                   attachment,
-                                                   textarget,
-                                                   texture,
-                                                   level,
-                                                   samples,
-                                                   IS_OPENGLES_SECURE(thread));
-   }
-}
 /*****************************************************************************************/
-/*                             OES extension functions                           */
+/*                             OES extension functions                                   */
 /*****************************************************************************************/
 
 static GLboolean is_point_size_type(GLenum type)
@@ -3966,11 +3935,13 @@ GL_APICALL void GL_APIENTRY glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
    glxx_client_GenRenderbuffers(n, renderbuffers);
 }
 
-void glxx_client_RenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
+void glxx_client_RenderbufferStorageMultisample(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height)
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
-      glRenderbufferStorage_impl(target,
+      glRenderbufferStorageMultisample_impl(target,
+                                 samples,
                                  internalformat,
                                  width,
                                  height,
@@ -3980,7 +3951,7 @@ void glxx_client_RenderbufferStorage(GLenum target, GLenum internalformat, GLsiz
 
 GL_APICALL void GL_APIENTRY glRenderbufferStorage(GLenum target, GLenum internalformat, GLsizei width, GLsizei height)
 {
-   glxx_client_RenderbufferStorage(target, internalformat, width, height);
+   glxx_client_RenderbufferStorageMultisample(target, 0, internalformat, width, height);
 }
 
 void glxx_client_GetRenderbufferParameteriv(GLenum target, GLenum pname, GLint* params)
@@ -4083,11 +4054,28 @@ void glxx_client_FramebufferTexture2D(GLenum target, GLenum attachment, GLenum t
 {
    CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
    if (IS_OPENGLES_11_OR_20(thread)) {
-      glFramebufferTexture2D_impl(target,
-                                  attachment,
-                                  textarget,
-                                  texture,
-                                  level);
+      glFramebufferTexture2DMultisample_impl(target,
+                                             attachment,
+                                             textarget,
+                                             texture,
+                                             level,
+                                             0,
+                                             IS_OPENGLES_SECURE(thread));
+   }
+}
+
+void glxx_client_FramebufferTexture2DMultisample(GLenum target, GLenum attachment,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples)
+{
+   CLIENT_THREAD_STATE_T *thread = CLIENT_GET_THREAD_STATE();
+   if (IS_OPENGLES_11_OR_20(thread)) {
+      if (attachment != GL_COLOR_ATTACHMENT0) {
+         GLXX_CLIENT_STATE_T *state = GLXX_GET_CLIENT_STATE(thread);
+         set_error(state, GL_INVALID_ENUM);
+         return;
+      }
+      glFramebufferTexture2DMultisample_impl(target, attachment,
+         textarget, texture, level, samples, IS_OPENGLES_SECURE(thread));
    }
 }
 

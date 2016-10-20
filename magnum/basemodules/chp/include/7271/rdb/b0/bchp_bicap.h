@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,21 +70,21 @@
 /***************************************************************************
  *BICAP - Buffered Input Capture
  ***************************************************************************/
-#define BCHP_BICAP_REVISION                      0x2041a0c0 /* [RO] BICAP Revision */
-#define BCHP_BICAP_CONTROL0                      0x2041a0c4 /* [RW] BICAP CONTROL FOR INPUT 0 */
-#define BCHP_BICAP_CONTROL1                      0x2041a0c8 /* [RW] BICAP CONTROL FOR INPUT 1 */
-#define BCHP_BICAP_FILTER0                       0x2041a0cc /* [RW] BICAP FILTER REGISTER FOR INPUT 0 */
-#define BCHP_BICAP_FILTER1                       0x2041a0d0 /* [RW] BICAP FILTER REGISTER FOR INPUT 1 */
-#define BCHP_BICAP_TIMEOUT0                      0x2041a0d4 /* [RW] TIMEOUT REGISTER 0 (Timeout Code: 0xFFF) */
-#define BCHP_BICAP_TIMEOUT1                      0x2041a0d8 /* [RW] TIMEOUT REGISTER 1 (Timeout Code: 0xFFE) */
-#define BCHP_BICAP_TIMEOUT2                      0x2041a0dc /* [RW] TIMEOUT REGISTER 2 (Timeout Code: 0xFFD) */
-#define BCHP_BICAP_TIMEOUT3                      0x2041a0e0 /* [RW] TIMEOUT REGISTER 3 (Timeout Code: 0xFFC) */
-#define BCHP_BICAP_FIFO_INACT_TIMEOUT            0x2041a0e4 /* [RW] FIFO INACTIVITY TIMEOUT REGISTER */
-#define BCHP_BICAP_FIFO_DATA                     0x2041a0e8 /* [RO] BICAP FIFO DATA REGISTER */
-#define BCHP_BICAP_FIFO_CONTROL                  0x2041a0ec /* [RW] BICAP FIFO CONTROL */
-#define BCHP_BICAP_STATUS                        0x2041a0f0 /* [RO] BICAP FIFO and TIMEOUT STATUS */
-#define BCHP_BICAP_PWC0                          0x2041a0f4 /* [RW] BICAP PULSE WIDTH COUNTER VALUE FOR INPUT 0 */
-#define BCHP_BICAP_PWC1                          0x2041a0f8 /* [RW] BICAP PULSE WIDTH COUNTER VALUE FOR INPUT 1 */
+#define BCHP_BICAP_REVISION                      0x2041a0c0 /* [RO][32] BICAP Revision */
+#define BCHP_BICAP_CONTROL0                      0x2041a0c4 /* [RW][32] BICAP CONTROL FOR INPUT 0 */
+#define BCHP_BICAP_CONTROL1                      0x2041a0c8 /* [RW][32] BICAP CONTROL FOR INPUT 1 */
+#define BCHP_BICAP_FILTER0                       0x2041a0cc /* [RW][32] BICAP FILTER REGISTER FOR INPUT 0 */
+#define BCHP_BICAP_FILTER1                       0x2041a0d0 /* [RW][32] BICAP FILTER REGISTER FOR INPUT 1 */
+#define BCHP_BICAP_TIMEOUT0                      0x2041a0d4 /* [RW][32] TIMEOUT REGISTER 0 (Timeout Code: 0xFFF) */
+#define BCHP_BICAP_TIMEOUT1                      0x2041a0d8 /* [RW][32] TIMEOUT REGISTER 1 (Timeout Code: 0xFFE) */
+#define BCHP_BICAP_TIMEOUT2                      0x2041a0dc /* [RW][32] TIMEOUT REGISTER 2 (Timeout Code: 0xFFD) */
+#define BCHP_BICAP_TIMEOUT3                      0x2041a0e0 /* [RW][32] TIMEOUT REGISTER 3 (Timeout Code: 0xFFC) */
+#define BCHP_BICAP_FIFO_INACT_TIMEOUT            0x2041a0e4 /* [RW][32] FIFO INACTIVITY TIMEOUT REGISTER */
+#define BCHP_BICAP_FIFO_DATA                     0x2041a0e8 /* [RO][32] BICAP FIFO DATA REGISTER */
+#define BCHP_BICAP_FIFO_CONTROL                  0x2041a0ec /* [RW][32] BICAP FIFO CONTROL */
+#define BCHP_BICAP_STATUS                        0x2041a0f0 /* [RO][32] BICAP FIFO and TIMEOUT STATUS */
+#define BCHP_BICAP_PWC0                          0x2041a0f4 /* [RW][32] BICAP PULSE WIDTH COUNTER VALUE FOR INPUT 0 */
+#define BCHP_BICAP_PWC1                          0x2041a0f8 /* [RW][32] BICAP PULSE WIDTH COUNTER VALUE FOR INPUT 1 */
 
 /***************************************************************************
  *REVISION - BICAP Revision

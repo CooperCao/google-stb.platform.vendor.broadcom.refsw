@@ -10,6 +10,6 @@ All rights reserved.
 
 /* A surface interface implementation that creates NXPL_Surface surfaces */
 
-void SurfaceInterface_InitNexus(struct SurfaceInterface *si);
+void SurfaceInterface_InitNexus(SurfaceInterface *si);
 
 #endif /* __SURFACE_INTERFACE_NEXUS_H__ */

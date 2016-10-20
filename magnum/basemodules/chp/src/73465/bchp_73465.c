@@ -1,23 +1,40 @@
-/***************************************************************************
- *  Copyright (c) 2006-2013, Broadcom Corporation
- *  All Rights Reserved
- *  Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -102,7 +119,7 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     BDBG_ENTER(BCHP_Open73465);
 
     if (!phChip) {
-        BDBG_ERR(("Invalid parameter\n"));
+        BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -234,8 +251,8 @@ static BERR_Code BCHP_P_ResetMagnumCores(const BCHP_Handle hChip)
 {
     BREG_Handle  hRegister = hChip->regHandle;
 
-	BCHP_P_ResetRaagaCore(hChip, hRegister); /* must be done before ResetMagnumCores() */
-	BCHP_P_ResetGfxCore(hChip, hRegister);
+    BCHP_P_ResetRaagaCore(hChip, hRegister); /* must be done before ResetMagnumCores() */
+    BCHP_P_ResetGfxCore(hChip, hRegister);
     BCHP_P_ResetV3dCore(hChip, hRegister);
 
     /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
@@ -278,30 +295,30 @@ static void BCHP_P_ResetRaagaCore(const BCHP_Handle hChip, const BREG_Handle hRe
     /* BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_SRAM, true); */
 
     val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT) ;
-	val = (val & ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT)))|
-	 (BCHP_FIELD_DATA(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT,1));
-	BREG_Write32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
+    val = (val & ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT)))|
+     (BCHP_FIELD_DATA(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT,1));
+    BREG_Write32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
 
-	val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_REVISION) ;
-	val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_REVISION) ;
+    val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_REVISION) ;
+    val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_REVISION) ;
 
-	BDBG_MSG(("REV ID VAL = 0x%x", val));
+    BDBG_MSG(("REV ID VAL = 0x%x", val));
 
     val = BREG_Read32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT);
     val &= ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, INIT_PROC_B));
     BREG_Write32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
 
-	/*RDB says no need of Read modify write.*/
-	val = 0;
-	val = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET, raaga_sw_init,1));
-	BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, val);
+    /*RDB says no need of Read modify write.*/
+    val = 0;
+    val = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_SET, raaga_sw_init,1));
+    BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_SW_INIT_0_SET, val);
 
-	BKNI_Delay(2);
+    BKNI_Delay(2);
 
-	/*RDB says no need of Read modify write.*/
-	val = 0;
-	val = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga_sw_init,1));
-	BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, val);
+    /*RDB says no need of Read modify write.*/
+    val = 0;
+    val = (BCHP_FIELD_DATA(SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga_sw_init,1));
+    BREG_Write32(hReg,BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR, val);
     return;
 }
 
@@ -312,8 +329,8 @@ static void BCHP_P_ResetGfxCore
 {
     BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_GFX_108M, true);
 
-	BREG_Write32(hReg, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_DATA(GFX_GR_SW_INIT_0, SID_CLK_108_SW_INIT, 1));
-	BREG_Write32(hReg, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_DATA(GFX_GR_SW_INIT_0, SID_CLK_108_SW_INIT, 0));
+    BREG_Write32(hReg, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_DATA(GFX_GR_SW_INIT_0, SID_CLK_108_SW_INIT, 1));
+    BREG_Write32(hReg, BCHP_GFX_GR_SW_INIT_0, BCHP_FIELD_DATA(GFX_GR_SW_INIT_0, SID_CLK_108_SW_INIT, 0));
 }
 
 static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg )

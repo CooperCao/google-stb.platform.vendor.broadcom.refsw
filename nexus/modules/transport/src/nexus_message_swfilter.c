@@ -146,6 +146,12 @@ void NEXUS_Message_GetDefaultSettings(NEXUS_MessageSettings *pSettings)
     pSettings->bufferSize = 4 * 1024;
     pSettings->maxContiguousMessageSize = 0;
     pSettings->recpumpIndex = BXPT_NUM_RAVE_CONTEXTS - 1;
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
+    NEXUS_CallbackDesc_Init(&pSettings->overflow);
+    NEXUS_CallbackDesc_Init(&pSettings->psiLengthError);
+    NEXUS_CallbackDesc_Init(&pSettings->crcError);
+    NEXUS_CallbackDesc_Init(&pSettings->pesLengthError);
+    NEXUS_CallbackDesc_Init(&pSettings->pesStartCodeError);
 }
 
 NEXUS_MessageHandle NEXUS_Message_Open(const NEXUS_MessageSettings *pSettings)

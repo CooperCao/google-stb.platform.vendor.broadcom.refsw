@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -80,7 +80,6 @@ BDBG_FILE_MODULE(BMRC_MonitorRegion);
 #define BMRC_P_MONITOR_GWORD_BYTES 16
 #define BMRC_P_MONITOR_JWORD_BYTES 32
 
-#if (BCHP_CHIP!=7440) && (BCHP_CHIP!=7601) && (BCHP_CHIP!=7635) && (BCHP_CHIP!=7630) && (BCHP_CHIP!=7640)
 /* SCB Protocol Specifications the following table was derived from are available at
    http://www.blr.broadcom.com/projects/DVT_BLR/Memc_Arch/.  These specs are also used
    in BMRC_P_Monitor_Dump_isr below. */
@@ -102,7 +101,6 @@ static const BMRC_P_Monitor_ScbCommandInfo g_ScbCommandInfoTbl[] =
     {BMRC_P_Monitor_ScbCommand_eCR8,  BMRC_P_MONITOR_SCB_COMMAND_CR8,  BMRC_P_MONITOR_SCB_CACHE_ACCESS_MASK,      "Cache Read, 8 Jwords/256 bytes - CR8"}
 };
 #define BMRC_P_MONITOR_SCB_ACCESS_TABLE_SIZE (sizeof(g_ScbCommandInfoTbl)/sizeof(BMRC_P_Monitor_ScbCommandInfo))
-#endif /* (BCHP_CHIP!=7440) && (BCHP_CHIP!=7601) && (BCHP_CHIP!=7635) */
 
 #define BMRC_P_MONITOR_ALIGNED_RANGE_START(start_addr, exclusive) \
     ((start_addr + (exclusive ? 0 : ~(BMRC_P_MONITOR_CHECKER_ADDR_ALIGN))) & \
@@ -322,33 +320,33 @@ BMRC_Monitor_Open(BMRC_Monitor_Handle *phMonitor, BREG_Handle hReg, BINT_Handle 
         max_checkers = BMRC_P_MONITOR_MAX_RANGES;
     }
 
-	if (pSettings)
-	{
-		if ((pSettings->ulNumCheckersToUse != UINT32_C(-1)) &&
-			(pSettings->ulNumCheckersToUse > max_checkers))
-		{
-			rc = BERR_INVALID_PARAMETER;
-			BDBG_ERR(("Not enough checkers available. Num checkers: %d, Max checkers: %d",
-				      pSettings->ulNumCheckersToUse, max_checkers));
-			BKNI_Free(hMonitor);
-			return rc;
-		}
+    if (pSettings)
+    {
+        if ((pSettings->ulNumCheckersToUse != UINT32_C(-1)) &&
+            (pSettings->ulNumCheckersToUse > max_checkers))
+        {
+            rc = BERR_INVALID_PARAMETER;
+            BDBG_ERR(("Not enough checkers available. Num checkers: %d, Max checkers: %d",
+                      pSettings->ulNumCheckersToUse, max_checkers));
+            BKNI_Free(hMonitor);
+            return rc;
+        }
 
-		hMonitor->stSettings = *pSettings;
-	}
-	else
-	{
-	    hMonitor->stSettings = s_stDefaultSettings;
-	}
+        hMonitor->stSettings = *pSettings;
+    }
+    else
+    {
+        hMonitor->stSettings = s_stDefaultSettings;
+    }
 
-	/* create mutex for re-entrant control */
-	rc = BERR_TRACE(BKNI_CreateMutex(&(hMonitor->pMutex)));
-	if (rc != BERR_SUCCESS)
-	{
-		BDBG_ERR(("Failed to create mutex."));
-		BKNI_Free(hMonitor);
-		return rc;
-	}
+    /* create mutex for re-entrant control */
+    rc = BERR_TRACE(BKNI_CreateMutex(&(hMonitor->pMutex)));
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Failed to create mutex."));
+        BKNI_Free(hMonitor);
+        return rc;
+    }
 
     hMonitor->mrc = hMrc;
     BMRC_GetSettings(hMonitor->mrc, &hMonitor->mrcSettings);
@@ -587,6 +585,7 @@ BMRC_P_Monitor_Alloc(void *cnxt, BSTD_DeviceOffset addr, size_t size, const char
         regionInserted=BLST_AA_TREE_INSERT(BMRC_Monitor_P_AllocatedRegionTree,&hMonitor->regions, region->addr, region);
         BKNI_LeaveCriticalSection();
         BDBG_ASSERT(regionInserted == region);
+        BSTD_UNUSED (regionInserted);
     }
     hMonitor->allocated += region->size;
 
@@ -828,8 +827,8 @@ BMRC_P_Monitor_Program(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMMA_Devic
     {
     BMRC_Monitor_HwBlock_eCPU,
     BMRC_Monitor_HwBlock_eCPU,
-		char buffer[256];
-		BDBG_WRN(("ARC %d %s", arc_no, BMRC_P_Monitor_BuildClientIdString(clients, buffer, sizeof(buffer))));
+        char buffer[256];
+        BDBG_WRN(("ARC %d %s", arc_no, BMRC_P_Monitor_BuildClientIdString(clients, buffer, sizeof(buffer))));
     }
 #endif
     if(!BMRC_P_Monitor_ProgramRange(hMonitor, arc_no, addr, size)) {
@@ -923,57 +922,6 @@ BMRC_Monitor_Print(BMRC_Monitor_Handle hMonitor)
 
 /* Monitor checker error messages are based on the SCB Protocol specifications at
    http://www.blr.broadcom.com/projects/DVT_BLR/Memc_Arch/. */
-#if (BCHP_CHIP==7440) || (BCHP_CHIP==7601) || (BCHP_CHIP==7635) || (BCHP_CHIP==7630) || (BCHP_CHIP==7640)
-static void
-BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_CheckerInfo *pCheckerInfo)
-{
-    BMMA_DeviceOffset viol_start;
-    BMMA_DeviceOffset start;
-    BMMA_DeviceOffset size;
-
-    BSTD_UNUSED(hMonitor);
-    BSTD_UNUSED(arc_no);
-
-    start = pCheckerInfo->ulStart;
-    size = pCheckerInfo->ulSize;
-    viol_start = pCheckerInfo->ulAddress;
-
-    BDBG_ERR(("Address Range Checker %d (ARC%d) has detected a memory access violation in MEMC%d", arc_no, arc_no, pCheckerInfo->usMemcId));
-
-    if (pCheckerInfo->bExclusive)
-    {
-        BDBG_ERR(("violating access outside of exclusive range: %#x..%#x", (unsigned)start, (unsigned)(start+size)));
-    }
-    else
-    {
-        BDBG_ERR(("violation access in prohibited range: %#x..%#x", (unsigned)start, (unsigned)(start+size)));
-    }
-
-    BDBG_ERR(("violation start address: %#x", (unsigned)viol_start));
-    BDBG_ERR(("violation client: %d(%s)", pCheckerInfo->usClientId, pCheckerInfo->pchClientName));
-    BDBG_ERR(("transfer length:  %d", pCheckerInfo->ulLength));
-
-    switch(pCheckerInfo->ulMode)
-    {
-    case BMRC_P_MONITOR_CCB_LINEAR_ACCESS:
-        BDBG_ERR(("request type:     0x%03x(Linear Access)", pCheckerInfo->ulMode));
-        break;
-
-    case BMRC_P_MONITOR_CCB_CACHE_ACCESS:
-        BDBG_ERR(("request type:     0x%03x(Cache Access)", pCheckerInfo->ulMode));
-        break;
-
-    case BMRC_P_MONITOR_CCB_DISPLAY_ACCESS:
-        BDBG_ERR(("request type:     0x%03x(Display Access)",  pCheckerInfo->ulMode));
-        break;
-
-    default:
-        BDBG_ERR(("request type:     0x%03x(Unknown Command Type)", pCheckerInfo->ulMode));
-        break;
-    }
-}
-#else
-
 static void
 BMRC_Monitor_P_PrintAllocation_isrsafe(const BMRC_Monitor_P_AllocatedRegion *region, const char *kind)
 {
@@ -1030,6 +978,8 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     {
         BDBG_ERR(("violation access in prohibited range: " BDBG_UINT64_FMT ".." BDBG_UINT64_FMT "", BDBG_UINT64_ARG(start), BDBG_UINT64_ARG(start+size-1)));
     }
+    BSTD_UNUSED (start);
+    BSTD_UNUSED (size);
 
     BDBG_ERR(("violation start address: " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(viol_start)));
     BDBG_ERR(("violation end address:   " BDBG_UINT64_FMT "", BDBG_UINT64_ARG(viol_end)));
@@ -1053,7 +1003,7 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     case BMRC_P_Monitor_ScbCommand_eLR:
     case BMRC_P_Monitor_ScbCommand_eLW:
         ulTransferSize = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MASK);
-		ulTransferSize = (ulTransferSize == 0)? BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MAX : ulTransferSize;
+        ulTransferSize = (ulTransferSize == 0)? BMRC_P_MONITOR_SCB_TRANSFER_SIZE_MAX : ulTransferSize;
 
         BDBG_ERR(("transfer length %u bytes (%u Jwords)",
                  ulTransferSize * BMRC_P_MONITOR_JWORD_BYTES, ulTransferSize));
@@ -1072,13 +1022,15 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     case BMRC_P_Monitor_ScbCommand_eMW:
         ulXSize      = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_X_BIT)? 3: 2;
         ulYLines     = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_Y_MASK);
-		ulYLines     = (ulYLines == 0)? BMRC_P_MONITOR_SCB_YLINES_MAX : ulYLines;
+        ulYLines     = (ulYLines == 0)? BMRC_P_MONITOR_SCB_YLINES_MAX : ulYLines;
         bFrameAccess = (pCheckerInfo->ulReqType & BMRC_P_MONITOR_SCB_MPEG_T_BIT);
 
         BDBG_ERR(("X:%u bytes (%u Owords) Y:%u lines T:%s NMBX %u",
                  ulXSize * BMRC_P_MONITOR_OWORD_BYTES, ulXSize, ulYLines,
                  bFrameAccess ? "frame access" : "field access",
                  pCheckerInfo->ulNmbx));
+        BSTD_UNUSED (bFrameAccess);
+        BSTD_UNUSED (ulXSize);
         break;
 
     default:
@@ -1124,7 +1076,6 @@ BMRC_P_Monitor_Dump_isr(BMRC_Monitor_Handle hMonitor, unsigned arc_no, BMRC_Chec
     }
     return;
 }
-#endif /* (BCHP_CHIP==7440) || (BCHP_CHIP==7601) || (BCHP_CHIP==7635) */
 
 static void
 BMRC_P_Monitor_UpdateSingle(BMRC_Monitor_Handle hMonitor, unsigned range)

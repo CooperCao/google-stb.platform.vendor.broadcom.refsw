@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -927,6 +927,7 @@ eRet CSimpleVideoDecode::setDnrBlockNoiseMode(NEXUS_VideoWindowFilterMode mode)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -940,6 +941,7 @@ error:
 
 NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getDnrBlockNoiseMode(void)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -950,6 +952,7 @@ eRet CSimpleVideoDecode::setDnrMosquitoNoiseMode(NEXUS_VideoWindowFilterMode mod
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -963,6 +966,7 @@ error:
 
 NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getDnrMosquitoNoiseMode(void)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -973,6 +977,7 @@ eRet CSimpleVideoDecode::setDnrContourMode(NEXUS_VideoWindowFilterMode mode)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -986,6 +991,7 @@ error:
 
 NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getDnrContourMode(void)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -996,6 +1002,7 @@ eRet CSimpleVideoDecode::setAnrMode(NEXUS_VideoWindowFilterMode mode)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);
@@ -1009,6 +1016,7 @@ error:
 
 NEXUS_VideoWindowFilterMode CSimpleVideoDecode::getAnrMode(void)
 {
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SimpleVideoDecoderPictureQualitySettings settings;
 
     NEXUS_SimpleVideoDecoder_GetPictureQualitySettings(_simpleDecoder, &settings);

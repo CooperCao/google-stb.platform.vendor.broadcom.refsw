@@ -321,6 +321,7 @@ void NEXUS_DmaJob_GetDefaultSettings(
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->numBlocks = 1;
     pSettings->keySlot = NULL;
+    NEXUS_CallbackDesc_Init(&pSettings->completionCallback);
 }
 
 NEXUS_Error NEXUS_Dma_P_ApplyJobSettings(

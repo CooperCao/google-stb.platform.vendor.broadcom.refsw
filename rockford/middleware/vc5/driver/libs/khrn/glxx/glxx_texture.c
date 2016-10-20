@@ -10,6 +10,7 @@ Implementation of OpenGL ES texture structure.
 =============================================================================*/
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 #include "libs/core/v3d/v3d_tmu.h"
 
@@ -436,10 +437,6 @@ static bool texture_init(GLXX_TEXTURE_T *texture, int32_t name, enum
       texture->ms_mode = GLXX_NO_MS;
    texture->fixed_sample_locations = true;
 
-   texture->swap_st = 0;
-   texture->flip_x = 0;
-   texture->flip_y = 0;
-
    memset(texture->img, 0, sizeof(uintptr_t) * MAX_FACES * KHRN_MAX_MIP_LEVELS);
 
    texture->binding= TEX_BOUND_NONE;
@@ -594,7 +591,19 @@ static KHRN_IMAGE_T* get_image_for_texturing(EGL_IMAGE_T *egl_image,
       khrn_mem_release(dst_blob);
    }
    if (dst_image)
+   {
       khrn_image_copy(dst_image, image, fences, in_secure_context());
+
+      if (v3d_platform_explicit_sync())
+      {
+         v3d_scheduler_deps deps;
+         KHRN_RES_INTERLOCK_T *res_i;
+         res_i = khrn_image_get_res_interlock(dst_image);
+         khrn_interlock_flush_writer(&res_i->interlock);
+         deps = *khrn_interlock_get_sync(&res_i->interlock, /*for_write=*/true);
+         v3d_scheduler_wait_jobs(&deps, V3D_SCHED_DEPS_FINALISED);
+      }
+   }
    return dst_image;
 }
 
@@ -1768,7 +1777,7 @@ static void get_hw_border(uint8_t packed_bcol[16], const uint32_t tex_border_col
          uint32_t c = tex_border_color[i];
          switch (fmt & ~GFX_LFMT_CHANNELS_MASK)
          {
-         case GFX_LFMT_C16_C16_C16_C16_FLOAT:         bcol[i] = gfx_float_to_float16(gfx_float_from_bits(c)); break;
+         case GFX_LFMT_C16_C16_C16_C16_FLOAT:         bcol[i] = gfx_floatbits_to_float16(c); break;
          case GFX_LFMT_C16_C16_C16_C16_UNORM:         bcol[i] = gfx_float_to_unorm(gfx_float_from_bits(c), 16); break;
          case GFX_LFMT_C16_C16_C16_C16_SNORM:         bcol[i] = gfx_float_to_snorm(gfx_float_from_bits(c), 16); break;
                                                       /* Bit 15 is not ignored by HW -- it must match bit 14! */
@@ -2034,8 +2043,8 @@ static bool record_tex_usage_and_get_hw_params(
       return false;
    base_addr += img_base->start_elem * blob_base->array_pitch;
 
-   tp->w = texture->swap_st ? desc_base->height : desc_base->width;
-   tp->h = texture->swap_st ? desc_base->width : desc_base->height;
+   tp->w = desc_base->width;
+   tp->h = desc_base->height;
 
    gfx_buffer_get_tmu_uif_cfg(&tp->uif_cfg, desc_base, plane);
 
@@ -2155,9 +2164,8 @@ static bool pack_tex_state(
    GFX_LFMT_T hw_border_fmt)
 {
    V3D_TMU_TEX_STATE_T s;
-   s.flipx = texture->flip_x;
-   s.flipy = texture->flip_y ^ tp->yflip;
-   s.swapst = texture->swap_st;
+   s.flipx = false;
+   s.flipy = tp->yflip;
    s.srgb = tp->tmu_trans.srgb;
    s.ahdr = false;
    *std_bcol_0001_ok = std_bcol_0001_works(&s.reverse_std_bcol, hw_border_fmt);
@@ -2241,7 +2249,11 @@ static bool pack_sampler(
    uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16],
    const GLXX_TEXTURE_SAMPLER_STATE_T *sampler,
    GFX_LFMT_T tex_fmt,
-   GFX_LFMT_T hw_border_fmt, bool std_bcol_0001_ok)
+   GFX_LFMT_T hw_border_fmt, bool std_bcol_0001_ok
+#if !V3D_HAS_GFXH1478_FIX
+   , bool is_1d
+#endif
+   )
 {
    V3D_TMU_SAMPLER_T s;
    s.filter = get_tmu_filter(
@@ -2253,7 +2265,11 @@ static bool pack_sampler(
    s.min_lod = gfx_umin(gfx_float_to_uint32(sampler->min_lod * 256.0f), s.max_lod);
    s.fixed_bias = 0;
    s.wrap_s = get_hw_wrap(sampler->wrap.s);
+#if V3D_HAS_GFXH1478_FIX
    s.wrap_t = get_hw_wrap(sampler->wrap.t);
+#else
+   s.wrap_t = is_1d ? V3D_TMU_WRAP_CLAMP : get_hw_wrap(sampler->wrap.t);
+#endif
    s.wrap_r = get_hw_wrap(sampler->wrap.r);
 #if V3D_HAS_TMU_WRAP_I
    s.wrap_i = V3D_TMU_WRAP_I_CLAMP; /* All lookup types which use a sampler want clamping for array index */
@@ -2340,7 +2356,7 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
       /* ltype, fetch, gather, bias, bslod, shadow in extra_bits from shader compiler */
       p0.coefficient = false;
       p0.wrap_s = get_hw_wrap(sampler->wrap.s);
-      p0.wrap_t = get_hw_wrap(sampler->wrap.t);
+      p0.wrap_t = glxx_tex_target_is_1d(texture->target) ? V3D_TMU_WRAP_CLAMP : get_hw_wrap(sampler->wrap.t);
       p0.wrap_r = get_hw_wrap(sampler->wrap.r);
 
       /* tex_off_s/t/r, pix_mask in extra_bits from shader compiler */
@@ -2382,10 +2398,9 @@ static bool pack_tmu_config(GLXX_TEXTURE_UNIF_T *texture_unif, KHRN_FMEM_T *fmem
    ind.ahdr    = false;
    ind.compare_func = glxx_hw_convert_test_function(sampler->compare_func);
    memcpy(ind.swizzles, tp->tmu_trans.swizzles, sizeof(ind.swizzles));
-   ind.flipx     = texture->flip_x;
-   ind.flipy     = texture->flip_y ^ tp->yflip;
+   ind.flipx     = false;
+   ind.flipy     = tp->yflip;
    ind.etcflip   = true;
-   ind.swapst    = texture->swap_st;
    ind.bcolour   = 0;
    if (uses_border_color(sampler))
    {
@@ -2517,7 +2532,11 @@ glxx_texture_key_and_uniforms(GLXX_TEXTURE_T *texture, const glxx_calc_image_uni
    else
    {
       uint8_t hw_sampler[V3D_TMU_SAMPLER_PACKED_SIZE + 16];
-      bool sampler_extended = pack_sampler(hw_sampler, sampler, tp.tex_lfmt, hw_border_fmt, std_bcol_0001_ok);
+      bool sampler_extended = pack_sampler(hw_sampler, sampler, tp.tex_lfmt, hw_border_fmt, std_bcol_0001_ok
+#if !V3D_HAS_GFXH1478_FIX
+         , glxx_tex_target_is_1d(texture->target)
+#endif
+         );
       V3D_TMU_PARAM1_T p1 = {
          /* Everything else in param 1 comes from the shader */
          .unnorm = sampler->unnormalised_coords,

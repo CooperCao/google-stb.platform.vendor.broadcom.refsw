@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,5 +96,17 @@ NEXUS_Error NEXUS_Tsmf_SetSettings(NEXUS_TsmfHandle handle, const NEXUS_TsmfSett
     BSTD_UNUSED(handle);
     BSTD_UNUSED(pSettings);
     return NEXUS_NOT_SUPPORTED;
+}
+
+NEXUS_PidChannelHandle NEXUS_Tsmf_OpenPidChannel( /* attr{destructor=NEXUS_PidChannel_Close} */
+    NEXUS_TsmfHandle tsmf,
+    unsigned pid,
+    const NEXUS_PlaypumpOpenPidChannelSettings *pSettings /* attr{null_allowed=y} may be NULL for default settings */
+    )
+{
+    BSTD_UNUSED(tsmf);
+    BSTD_UNUSED(pid);
+    BSTD_UNUSED(pSettings);
+    return NULL;
 }
 #endif

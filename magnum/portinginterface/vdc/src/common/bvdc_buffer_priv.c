@@ -737,6 +737,7 @@ static void BVDC_P_Buffer_InitPictureNode
     pPicture->stSclOut             = pPicture->stSrcOut;
     pPicture->stWinOut             = pPicture->stSrcOut;
     pPicture->stSclCut             = pPicture->stSrcOut;
+    pPicture->stHsclCut            = pPicture->stSrcOut;
     pPicture->stCapOut             = pPicture->stSrcOut;
     pPicture->stVfdOut             = pPicture->stSrcOut;
     pPicture->stMadOut             = pPicture->stSrcOut;
@@ -1009,10 +1010,6 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
     BVDC_P_PictureNode         *pPicture;
     BERR_Code                   err = BERR_SUCCESS;
 
-#if (!BVDC_P_SUPPORT_3D_VIDEO)
-    BSTD_UNUSED(apHeapNode_R);
-#endif
-
     BDBG_ENTER(BVDC_P_Buffer_AddPictureNodes_isr);
     BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
 
@@ -1040,12 +1037,10 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
 
         /* Get a non active node */
         pPicture->pHeapNode        = apHeapNode[i];
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(apHeapNode_R)
             pPicture->pHeapNode_R      = apHeapNode_R[i];
         else
             pPicture->pHeapNode_R      = NULL;
-#endif
         pPicture->stFlags.bActiveNode      = true;
         pPicture->stFlags.bMute            = true;
         pPicture->eDisplayPolarity = BAVC_Polarity_eTopField;
@@ -1085,7 +1080,6 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
             (void *)apHeapNode[i],
             BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(apHeapNode[i]->pHeapInfo->eBufHeapId),
             apHeapNode[i]->ulBufIndex, pPicture->ulBufferId));
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(apHeapNode_R)
         {
             BDBG_MSG(("Add Right buffer heap node %p (%s %2d) to B%d",
@@ -1093,7 +1087,6 @@ BERR_Code BVDC_P_Buffer_AddPictureNodes_isr
                 BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(apHeapNode_R[i]->pHeapInfo->eBufHeapId),
                 apHeapNode_R[i]->ulBufIndex, pPicture->ulBufferId));
         }
-#endif
 #endif
     }
 
@@ -1176,10 +1169,6 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
     BVDC_P_PictureNode         *pBufferToRemove;
     BERR_Code                   err = BERR_SUCCESS;
 
-#if (!BVDC_P_SUPPORT_3D_VIDEO)
-    BSTD_UNUSED(apHeapNode_R);
-#endif
-
     BDBG_ENTER(BVDC_P_Buffer_ReleasePictureNodes_isr);
     BDBG_OBJECT_ASSERT(hBuffer, BVDC_BUF);
 
@@ -1201,10 +1190,8 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
         pBufferToRemove = BVDC_P_Buffer_LastAddedNonUserCaptureNode_isr(hBuffer);
         pBufferToRemove->stFlags.bActiveNode = false;
         apHeapNode[i] = pBufferToRemove->pHeapNode;
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(apHeapNode_R)
             apHeapNode_R[i] = pBufferToRemove->pHeapNode_R;
-#endif
 
 #if (BVDC_BUF_LOG == 1)
         hBuffer->iLastAddedBufIndex--;
@@ -1222,7 +1209,6 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
             (void *)pBufferToRemove->pHeapNode,
             BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(apHeapNode[i]->pHeapInfo->eBufHeapId),
             pBufferToRemove->pHeapNode->ulBufIndex, pBufferToRemove->ulBufferId));
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(apHeapNode_R)
         {
             BDBG_MSG(("Release Right buffer heap node %p (%s %2d) to B%d",
@@ -1230,7 +1216,6 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
                 BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(apHeapNode_R[i]->pHeapInfo->eBufHeapId),
                 pBufferToRemove->pHeapNode->ulBufIndex, pBufferToRemove->ulBufferId));
         }
-#endif
 
         hBuffer->iLastAddedBufIndex--;
         hBuffer->ulActiveBufCnt--;
@@ -1259,8 +1244,6 @@ BERR_Code BVDC_P_Buffer_ReleasePictureNodes_isr
 }
 
 
-
-#if (BVDC_P_SUPPORT_3D_VIDEO)
 /***************************************************************************
  * {private}
  * Add or free picture node for right capture buffer.
@@ -1324,7 +1307,6 @@ BERR_Code BVDC_P_Buffer_SetRightBufferPictureNodes_isr
     return err;
 }
 
-#endif
 
 /***************************************************************************
  * {private}
@@ -2175,7 +2157,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
 
     /* Set no rate gap for MTG mode without deinterlacer and with picture repeats. */
     if (hWindow->stCurInfo.hSource->bMtgSrc &&
-        !BVDC_P_VNET_USED_MAD(hWindow->stVnetMode) &&
+        !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) &&
         hWindow->hBuffer->bMtgRepeatMode)
     {
         hWindow->hBuffer->eWriterVsReaderRateCode = BVDC_P_WrRate_NotFaster;
@@ -2244,7 +2226,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
          */
         if (!((hWindow->bFrameCapture) ||
               (VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt) &&
-               (!BVDC_P_VNET_USED_MAD_AT_READER(hWindow->stVnetMode)))))
+               (!BVDC_P_MVP_USED_MAD_AT_READER(hWindow->stVnetMode, hWindow->stMvpMode)))))
         {
             hWindow->hBuffer->pCurWriterBuf = pPrevNode;
 
@@ -2304,7 +2286,7 @@ static void BVDC_P_Buffer_MoveSyncSlipWriterNode_isr
      * the reader or writer rate gaps is 1, increment the buffer cnt. */
     if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced || bProgressivePullDown) &&
         !hWindow->hBuffer->bMtgMadDisplay1To1RateRelationship &&
-        !(hWindow->stCurInfo.hSource->bMtgSrc && !BVDC_P_VNET_USED_MAD(hWindow->stVnetMode)))
+        !(hWindow->stCurInfo.hSource->bMtgSrc && !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)))
     {
         if ((hWindow->hBuffer->eWriterVsReaderRateCode == hWindow->hBuffer->eReaderVsWriterRateCode) || bProgressivePullDown)
         {

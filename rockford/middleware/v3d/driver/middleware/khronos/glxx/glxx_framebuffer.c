@@ -60,14 +60,15 @@ static void attachment_info_term(GLXX_ATTACHMENT_INFO_T *attachment)
    MEM_ASSIGN(attachment->mh_object, MEM_INVALID_HANDLE);
 }
 
-void glxx_framebuffer_term(void *v, uint32_t size)
+void glxx_framebuffer_term(MEM_HANDLE_T handle)
 {
-   GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)v;
-   UNUSED(size);
+   GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(handle, NULL);
 
    attachment_info_term(&framebuffer->attachments.color);
    attachment_info_term(&framebuffer->attachments.depth);
    attachment_info_term(&framebuffer->attachments.stencil);
+
+   mem_unlock(handle);
 }
 
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_X == GL_TEXTURE_CUBE_MAP_POSITIVE_X + 1);
@@ -75,7 +76,8 @@ vcos_static_assert(GL_TEXTURE_CUBE_MAP_POSITIVE_Y == GL_TEXTURE_CUBE_MAP_NEGATIV
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_Y == GL_TEXTURE_CUBE_MAP_POSITIVE_Y + 1);
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_POSITIVE_Z == GL_TEXTURE_CUBE_MAP_NEGATIVE_Y + 1);
 vcos_static_assert(GL_TEXTURE_CUBE_MAP_NEGATIVE_Z == GL_TEXTURE_CUBE_MAP_POSITIVE_Z + 1);
-MEM_HANDLE_T glxx_attachment_info_get_image(GLXX_ATTACHMENT_INFO_T *attachment)
+
+MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment, MEM_HANDLE_T *mh_ms_image)
 {
    MEM_HANDLE_T result = MEM_INVALID_HANDLE;
 
@@ -90,6 +92,8 @@ MEM_HANDLE_T glxx_attachment_info_get_image(GLXX_ATTACHMENT_INFO_T *attachment)
       switch (attachment->target) {
       case GL_TEXTURE_2D:
          result = glxx_texture_share_mipmap(texture, TEXTURE_BUFFER_TWOD, attachment->level);
+         if (mh_ms_image)
+            *mh_ms_image = texture->mh_ms_image;
          break;
       case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
@@ -112,47 +116,11 @@ MEM_HANDLE_T glxx_attachment_info_get_image(GLXX_ATTACHMENT_INFO_T *attachment)
       GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachment->mh_object, NULL);
 
       result = renderbuffer->mh_storage;
+      if (mh_ms_image)
+         *mh_ms_image = renderbuffer->mh_ms_storage;
       mem_unlock(attachment->mh_object);
       break;
    }
-   default:
-      UNREACHABLE();
-   }
-
-   return result;
-}
-
-MEM_HANDLE_T glxx_attachment_info_get_ms_image(GLXX_ATTACHMENT_INFO_T *attachment)
-{
-   MEM_HANDLE_T result = MEM_INVALID_HANDLE;
-
-   switch (attachment->type) {
-   case GL_NONE:
-      result = MEM_INVALID_HANDLE;
-      break;
-   case GL_TEXTURE:
-   {
-      GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(attachment->mh_object, NULL);
-
-      switch (attachment->target) {
-      case GL_TEXTURE_2D:
-         result = texture->mh_ms_image;
-         break;
-      default:
-         UNREACHABLE();
-      }
-
-      mem_unlock(attachment->mh_object);
-   }
-   break;
-   case GL_RENDERBUFFER:
-   {
-      GLXX_RENDERBUFFER_T *renderbuffer = (GLXX_RENDERBUFFER_T *)mem_lock(attachment->mh_object, NULL);
-
-      result = renderbuffer->mh_ms_storage;
-      mem_unlock(attachment->mh_object);
-   }
-   break;
    default:
       UNREACHABLE();
    }
@@ -284,7 +252,7 @@ static ATTACHMENT_STATUS_T attachment_get_status(GLXX_ATTACHMENT_INFO_T *attachm
    }
    case GL_TEXTURE:
    {
-      MEM_HANDLE_T himage = glxx_attachment_info_get_image(attachment);
+      MEM_HANDLE_T himage = glxx_attachment_info_get_images(attachment, NULL);
       ATTACHMENT_STATUS_T result = ATTACHMENT_BROKEN;
       if (himage == MEM_INVALID_HANDLE) {
          *width = 0;
@@ -375,11 +343,11 @@ GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
       else if (da == ATTACHMENT_DEPTH16 && sa != ATTACHMENT_MISSING)
          result = GL_FRAMEBUFFER_UNSUPPORTED;
       else {
-         GLboolean color_complete = (ca == ATTACHMENT_MISSING || ca == ATTACHMENT_COLOR);
-         GLboolean depth_complete = (da == ATTACHMENT_MISSING || da == ATTACHMENT_DEPTH16 ||
-                                    da == ATTACHMENT_DEPTH24 || da == ATTACHMENT_DEPTH_STENCIL);
-         GLboolean stencil_complete = (sa == ATTACHMENT_MISSING || sa == ATTACHMENT_STENCIL ||
-                                       sa == ATTACHMENT_DEPTH_STENCIL);
+         bool color_complete = (ca == ATTACHMENT_MISSING || ca == ATTACHMENT_COLOR);
+         bool depth_complete = (da == ATTACHMENT_MISSING || da == ATTACHMENT_DEPTH16 ||
+                                da == ATTACHMENT_DEPTH24 || da == ATTACHMENT_DEPTH_STENCIL);
+         bool stencil_complete = (sa == ATTACHMENT_MISSING || sa == ATTACHMENT_STENCIL ||
+                                  sa == ATTACHMENT_DEPTH_STENCIL);
 
          if (!color_complete || !depth_complete || !stencil_complete)
             result = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
@@ -407,13 +375,13 @@ GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer)
             else if (sa != ATTACHMENT_MISSING && (csecure != ssecure))
                result = GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT;
 
-            // If this is a multisample FBO
-            if (cs != 0)
-            {  // Check that the number of samples is the same for all attachments
-               if (da != ATTACHMENT_MISSING && (cs != ds))
-                  result = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_EXT;
-               else if (sa != ATTACHMENT_MISSING && (cs != ss))
-                  result = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_EXT;
+            /* check that the sample depths match for all valid attachments */
+            /* color is always valid here, so this is the 'base' format, so check
+               this against valid depth/stencil */
+            if ((cs != ((da != ATTACHMENT_MISSING) ? ds : cs)) ||
+                (cs != ((sa != ATTACHMENT_MISSING) ? ss : cs)))
+            {
+               result = GL_FRAMEBUFFER_INCOMPLETE_MULTISAMPLE_EXT;
             }
          }
       }

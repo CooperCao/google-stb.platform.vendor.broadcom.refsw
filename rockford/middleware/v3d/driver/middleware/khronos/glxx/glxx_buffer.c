@@ -71,7 +71,7 @@ void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
 }
 
 /*
-   void glxx_buffer_term(void *v, uint32_t size)
+   void glxx_buffer_term(MEM_HANDLE_T handle)
 
    Terminator for GLXX_BUFFER_T.
 
@@ -80,8 +80,7 @@ void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name)
    Precondition:
 
    is only called from memory manager internals during destruction of a GLXX_BUFFER_T
-   v is a valid pointer to a (possibly uninitialised or partially initialised*) GLXX_BUFFER_T
-   memory management invariants for v are satisfied
+   handle  (possibly uninitialised or partially initialised*) GLXX_BUFFER_T
 
    * uninitialised sections of a GLXX_BUFFER_T are set to -1
 
@@ -97,17 +96,18 @@ static void glxx_buffer_inner_term(GLXX_BUFFER_INNER_T *item)
    khrn_interlock_term(&item->interlock);
 }
 
-void glxx_buffer_term(void *v, uint32_t size)
+void glxx_buffer_term(MEM_HANDLE_T handle)
 {
    uint32_t i;
-   GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)v;
-   UNUSED(size);
+   GLXX_BUFFER_T *buffer = (GLXX_BUFFER_T *)mem_lock(handle, NULL);
 
    if(buffer->pool[buffer->current_item].mh_storage!=MEM_ZERO_SIZE_HANDLE)
       mem_unretain(buffer->pool[buffer->current_item].mh_storage);
 
    for(i = 0; i< GLXX_BUFFER_POOL_SIZE; i++)
       glxx_buffer_inner_term(&buffer->pool[i]);
+
+   mem_unlock(handle);
 }
 
 /*

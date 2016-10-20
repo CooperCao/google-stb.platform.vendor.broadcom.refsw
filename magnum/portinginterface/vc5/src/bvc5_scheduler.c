@@ -380,7 +380,7 @@ static bool BVC5_P_CoreJobIsRunnable(
    if (!pJob->bFlushedV3D && BVC5_P_HardwareCacheClearBlocked(hVC5, 0))
       return false;
 
-   if (!BVC5_P_SwitchSecurityMode(hVC5, pJob))
+   if (!BVC5_P_SwitchSecurityMode(hVC5, pJob->pBase->bSecure))
       return false;
 
    if (!BVC5_P_CoreMatchPageTable(hVC5, pJob))
@@ -437,7 +437,7 @@ static bool BVC5_P_TFUJobIsRunnable(
    BVC5_P_InternalJob *pJob
 )
 {
-   return BVC5_P_SwitchSecurityMode(hVC5, pJob) &&
+   return BVC5_P_SwitchSecurityMode(hVC5, pJob->pBase->bSecure) &&
           BVC5_P_TFUMatchPageTable(hVC5, pJob);
 }
 
@@ -945,7 +945,7 @@ void BVC5_P_ProcessCompletedJobs(
 
          if (BVC5_P_AreDepsFinalizersDone(hClient, psIter))
          {
-            if (psIter->pBase->pfnCompletion == NULL)
+            if (psIter->pBase->uiCompletion == 0)
             {
                /* If the job has no completion callback we can just move it into
                 * the finalized state right away. */

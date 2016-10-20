@@ -235,7 +235,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             (void)BERR_TRACE(BERR_NOT_SUPPORTED);
             goto error;
         }
-        BDBG_MSG(("pConfig->frontend[%d] = 0x%x", index, pConfig->frontend[index]));
+        BDBG_MSG(("pConfig->frontend[%d] = %p", index, (void *)pConfig->frontend[index]));
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e1;
         userParams.pParam2 = 0;
@@ -256,7 +256,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             (void)BERR_TRACE(BERR_NOT_SUPPORTED);
             goto error;
         }
-        BDBG_MSG(("pConfig->frontend[%d] = 0x%x", index, pConfig->frontend[index]));
+        BDBG_MSG(("pConfig->frontend[%d] = %p", index, (void *)pConfig->frontend[index]));
 
         NEXUS_Frontend_GetUserParameters(pConfig->frontend[index], &userParams);
         userParams.param1 = NEXUS_InputBand_e0;

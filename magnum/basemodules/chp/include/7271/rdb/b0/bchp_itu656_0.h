@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,14 +70,14 @@
 /***************************************************************************
  *ITU656_0 - ITU 656 Formatter
  ***************************************************************************/
-#define BCHP_ITU656_0_ITU656_REV_ID              0x206e3800 /* [RO] Revision ID Register */
-#define BCHP_ITU656_0_ITU656_CONFIG              0x206e3808 /* [RW] ITU656 Encoder Config Register */
-#define BCHP_ITU656_0_ITU656_STATUS              0x206e380c /* [RW] ITU656 Encoder Status Register */
-#define BCHP_ITU656_0_ITU656_SA_STATUS           0x206e3810 /* [RO] ITU656 Encoder SA Status Register */
-#define BCHP_ITU656_0_ITU656_SA_CONFIG           0x206e3814 /* [RW] ITU656 Encoder SA Configuration Register */
-#define BCHP_ITU656_0_ITU656_DELAY_COUNT         0x206e3818 /* [RW] ITU656 VBI Data Delay Count */
-#define BCHP_ITU656_0_ITU656_TTE_CTRL            0x206e381c /* [RW] TTE Serial Port Control Register */
-#define BCHP_ITU656_0_ITU656_TTE_STATUS          0x206e3820 /* [RW] TTE Serial Port Status Register */
+#define BCHP_ITU656_0_ITU656_REV_ID              0x206e3800 /* [RO][32] Revision ID Register */
+#define BCHP_ITU656_0_ITU656_CONFIG              0x206e3808 /* [RW][32] ITU656 Encoder Config Register */
+#define BCHP_ITU656_0_ITU656_STATUS              0x206e380c /* [RW][32] ITU656 Encoder Status Register */
+#define BCHP_ITU656_0_ITU656_SA_STATUS           0x206e3810 /* [RO][32] ITU656 Encoder SA Status Register */
+#define BCHP_ITU656_0_ITU656_SA_CONFIG           0x206e3814 /* [RW][32] ITU656 Encoder SA Configuration Register */
+#define BCHP_ITU656_0_ITU656_DELAY_COUNT         0x206e3818 /* [RW][32] ITU656 VBI Data Delay Count */
+#define BCHP_ITU656_0_ITU656_TTE_CTRL            0x206e381c /* [RW][32] TTE Serial Port Control Register */
+#define BCHP_ITU656_0_ITU656_TTE_STATUS          0x206e3820 /* [RW][32] TTE Serial Port Status Register */
 
 /***************************************************************************
  *ITU656_REV_ID - Revision ID Register

@@ -1011,7 +1011,7 @@ static void BAPE_MaiOutput_P_SetMclk_IopOut_isr(BAPE_OutputPort output, BAPE_Mcl
         (void)BERR_TRACE(BERR_NOT_SUPPORTED);
         break;
     }
-    BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, handle->index));
+    BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_MCLK_CFG_0, handle->index));
 }
 
 static void BAPE_MaiOutput_P_SetMute_IopOut(BAPE_OutputPort output, bool muted)
@@ -1296,6 +1296,7 @@ static BERR_Code BAPE_MaiOutput_P_SetBurstConfig_IopOut(BAPE_MaiOutputHandle han
 
 static void      BAPE_MaiOutput_P_SetCrossbar_IopOut(BAPE_MaiOutputHandle handle, BAPE_StereoMode stereoMode)
 {
+    #if 0 /* IOP platforms copy data post channel status resulting in issues with some devices */
     BAPE_Reg_P_FieldList regFieldList;
 
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
@@ -1348,6 +1349,15 @@ static void      BAPE_MaiOutput_P_SetCrossbar_IopOut(BAPE_MaiOutputHandle handle
         break;
     }
     BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_MAI_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_MAI_0_MAI_CROSSBAR, handle->index));
+    #else
+    BDBG_OBJECT_ASSERT(handle, BAPE_MaiOutput);
+
+    if ( handle->outputPort.mixer )
+    {
+        BAPE_Mixer_P_ApplyStereoMode(handle->outputPort.mixer, stereoMode);
+    }
+    #endif
+
 }
 
 #else

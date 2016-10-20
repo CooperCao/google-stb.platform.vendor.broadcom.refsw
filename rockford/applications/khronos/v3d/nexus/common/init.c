@@ -51,6 +51,7 @@
 #ifdef NXCLIENT_SUPPORT
 #include "nxclient.h"
 #endif
+#include "nexus_platform.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,42 +69,30 @@ eInitResult InitPlatform(bool secure)
 {
    NEXUS_Error                         err = NEXUS_NOT_SUPPORTED;
    NEXUS_PlatformSettings              platform_settings;
-   unsigned                            secure_graphics_heap, secure_graphics_memc;
+   NEXUS_PlatformConfigCapabilities    cap;
+   NEXUS_MemoryConfigurationSettings   memory_config_settings;
 
    NEXUS_Platform_GetDefaultSettings(&platform_settings);
    platform_settings.openFrontend = false;
+   NEXUS_GetDefaultMemoryConfigurationSettings(&memory_config_settings);
+
 #if NEXUS_HAS_SAGE
    if (secure)
    {
-      NEXUS_MemoryConfigurationSettings memory_config_settings;
-      NEXUS_GetDefaultMemoryConfigurationSettings(&memory_config_settings);
       memory_config_settings.videoDecoder[0].secure = NEXUS_SecureVideo_eBoth;
-#if defined(NEXUS_MEMC2_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 2;
-#elif defined(NEXUS_MEMC1_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 1;
-#elif defined(NEXUS_MEMC0_SECURE_GRAPHICS_HEAP)
-      secure_graphics_heap = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
-      secure_graphics_memc = 0;
-#elif defined(NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP)
-      secure_graphics_heap = NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP;
-      secure_graphics_memc = 0;
-#endif
-      platform_settings.heap[secure_graphics_heap].size = 64 * 1024 * 1024;
-      platform_settings.heap[secure_graphics_heap].memcIndex = secure_graphics_memc;
-      platform_settings.heap[secure_graphics_heap].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
-      platform_settings.heap[secure_graphics_heap].memoryType =
+      NEXUS_GetPlatformConfigCapabilities(&platform_settings, &memory_config_settings, &cap);
+      if (!cap.secureGraphics[0].valid) return -1;
+      platform_settings.heap[cap.secureGraphics[0].heapIndex].size = 64 * 1024 * 1024;
+      platform_settings.heap[cap.secureGraphics[0].heapIndex].memcIndex = cap.secureGraphics[0].memcIndex;
+      platform_settings.heap[cap.secureGraphics[0].heapIndex].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+      platform_settings.heap[cap.secureGraphics[0].heapIndex].memoryType =
          NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED |
          NEXUS_MEMORY_TYPE_MANAGED |
          NEXUS_MEMORY_TYPE_SECURE;
-      err = NEXUS_Platform_MemConfigInit(&platform_settings, &memory_config_settings);
    }
-   else
 #endif
-      err = NEXUS_Platform_Init(&platform_settings);
 
+   err = NEXUS_Platform_MemConfigInit(&platform_settings, &memory_config_settings);
    if (err != NEXUS_SUCCESS)
       return eInitFailed;
 
@@ -124,7 +113,7 @@ eInitResult InitPlatform(bool secure)
          printf("app does not support multiple secure graphics heaps\n");
          return eInitFailed;
       }
-      BDBG_ASSERT(platform_config.heap[secure_graphics_heap] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
+      BDBG_ASSERT(platform_config.heap[cap.secureGraphics[0].heapIndex] == NEXUS_Platform_GetFramebufferHeap(NEXUS_OFFSCREEN_SECURE_GRAPHICS_SURFACE));
    }
 #endif
 

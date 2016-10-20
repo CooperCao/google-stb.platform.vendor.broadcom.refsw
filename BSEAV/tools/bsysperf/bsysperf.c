@@ -509,7 +509,7 @@ int get_netstat_data(
                 }
                 else
                 {
-                    fprintf( stderr, "%s: not enough room for new interface (%s) in array; max'ed out at %u\n", __FUNCTION__, line, g_netStatsIdx );
+                    printf( "%s: not enough room for new interface (%s) in array; max'ed out at %u\n", __FUNCTION__, line, g_netStatsIdx );
                 }
             }
 
@@ -590,47 +590,6 @@ int sort_on_irq0(
     return( rc );
 }                                                          /* sort_on_irq0 */
 
-/**
- *  Function: This function will convert the specified character to it's integer hexidecimal value.
- **/
-static long int atoix( char c )
-{
-    char lchar[2];
-    lchar[0] = c;
-    lchar[1] = 0;
-    return strtol(lchar, NULL, 16);
-}
-/**
- *  Function: This function will convert the specified string from the encoded version that comes from the
- *  browser to a decoded version that is a standard C string. For example "%20" gets changed to a space " "; the
- *  value "%2F" gets changed to "/".
- **/
-static int decodeURL ( char * URL )
-{
-    char c, *s=NULL, *d=NULL;
-
-    for (d = s = URL; *s; s++, d++)
-    {
-        c = *s;
-        if (c == '%')
-        {
-            c = *++s;
-            if (c == '%') c = '%';
-            else {
-                c = atoix(c) << 4 | atoix(*++s);
-            }
-            *d = c;
-        }
-        else
-        {
-            *d = c;
-        }
-    }
-    *d = '\0';
-
-    return 0;
-}
-
 int create_uuid( char * strUuid )
 {
     unsigned int  idx;
@@ -686,6 +645,30 @@ static char *Bsysperf_FindWlan0Address( void )
      return ( address );
 }
 
+static int outputDashTickLines( const char *svg_text_id )
+{
+    int            tickidx      = 0;
+    int            penoff       = 0;
+    char           l_text_id[32];
+
+    /* make a vertical tick mark every 10% */
+    for (tickidx = 1; tickidx<10; tickidx++)
+    {
+        penoff = ( 1-tickidx%2 ) * 5;          /* dashed line for 20,40,60,80; solid line for 10,30,50,70,90 */
+        /* for dasharray: how many pixels will the pen be on ... how many pixels will the pen be off. 5 on 5 off is a dash; 5 on 0 off is solid */
+        printf( "<path d=\"M0 %d L500 %d\" stroke=lightgray stroke-width=1 stroke-dasharray=\"5,%d\" />", tickidx*10, tickidx*10, penoff );
+        if (( tickidx%2 ) == 1)                                                           /* output text for 10, 30, 50, 70, 90 */
+        {
+            l_text_id[0] = '\0';
+            if ( svg_text_id ) sprintf( l_text_id, "id=%s_%u", svg_text_id, tickidx/2 ); /* if user provided a string id, append idx to end of string and use it as text id */
+            printf( "<text x=2 y=%d %s >%d</text>\n", tickidx*10+3,  /* offset 3 pixels to drop the number into the middle of the tickmark */
+                    l_text_id, ( 100 - ( tickidx*10 )));
+        }
+    }
+
+    return ( 0 );
+}
+
 /**
  *  Function: This function is the main entry point for the BSYSPERF client app.
  **/
@@ -714,7 +697,8 @@ int main(
     int   tzOffset         = 0;
     int   cpuInfo          = 0;
     int   memory           = 0;
-    int   netStats         = 0;
+    int   netStatsInit     = 0; // when true, send to browser the Net Stats html table structure
+    int   netStatsUpdate   = 0; // when true, send network interface values from last second; browser will populate the html table structure
     int   iperfInit        = 0;
     int   iperfPidClient   = 0;
     int   iperfPidServer   = 0;
@@ -743,9 +727,13 @@ int main(
     int   LinuxTop         = 0;
     int   ContextSwitches  = 0;
     char  perfVersion[MAX_LINE_LENGTH];
+#ifdef BWL_SUPPORT
     AMPDU_DATA_T lAmpduData;
-    char  iperfCmdLine[sizeof(request.request.strCmdLine)];
+#endif
+    char   iperfCmdLine[sizeof(request.request.strCmdLine)];
     struct utsname uname_info;
+    int    DvfsControl     = 0;
+    int    GovernorSetting = 0;
 
     if (argc > 1) {printf( "%s: no arguments are expected\n", argv[0] ); }
 
@@ -765,7 +753,8 @@ int main(
         scanForInt( queryString, "tzoffset=", &tzOffset );
         scanForInt( queryString, "cpuinfo=", &cpuInfo );
         scanForInt( queryString, "memory=", &memory );
-        scanForInt( queryString, "netstats=", &netStats );
+        scanForInt( queryString, "netStatsInit=", &netStatsInit );
+        scanForInt( queryString, "netStatsUpdate=", &netStatsUpdate );
         scanForInt( queryString, "iperfInit=", &iperfInit );
         scanForInt( queryString, "iperfPidClient=", &iperfPidClient);
         scanForInt( queryString, "iperfPidServer=", &iperfPidServer);
@@ -793,6 +782,8 @@ int main(
         scanForInt( queryString, "ChangeCpuState=", &ChangeCpuState );
         scanForInt( queryString, "LinuxTop=", &LinuxTop );
         scanForInt( queryString, "ContextSwitch=", &ContextSwitches );
+        scanForInt( queryString, "DvfsControl=", &DvfsControl );
+        scanForInt( queryString, "GovernorSetting=", &GovernorSetting );
     }
     else
     {
@@ -848,15 +839,13 @@ int main(
 
         now.tv_sec = epochSeconds - ( tzOffset * 60 );
         settimeofday( &now, NULL );
-
-        usleep( 100 );
+        usleep( 200 );
+        /*fflush(stdout);fflush(stderr);*/
 
         printf( "~CPUPERCENTS~" );
         printf( "<table cols=2 border=0 id=cpugraphs style=\"border-collapse:collapse;\" >\n" );
 
         for (cpupair = 0; cpupair < numCpusConf; cpupair += 2) {
-            int tickidx = 0;
-            int penoff  = 0;
             printf( "<tbody>\n" );
             printf( "  <tr id=row%02ua style=\"visibility:hidden;\" >\n", cpupair + 1 );
             for (leftright = 0; leftright < leftrightmax; leftright++) {
@@ -888,17 +877,9 @@ int main(
                     /* add a polyline for the limegreen 5-second CPU utilization average */
                     printf( "<polyline id=polyline0%u style=\"fill:none;stroke:limegreen;stroke-width:2\" />\n", numCpusConf + 1 );
                 }
-                /* make a vertical tick mark every 10% */
-                for (tickidx = 1; tickidx<10; tickidx++)
-                {
-                    penoff = ( 1-tickidx%2 ) * 5;          /* dashed line for 20,40,60,80; solid line for 10,30,50,70,90 */
-                    /* for dasharray: how many pixels will the pen be on ... how many pixels will the pen be off. 5 on 5 off is a dash; 5 on 0 off is solid */
-                    printf( "<path d=\"M0 %d L500 %d\" stroke=lightgray stroke-width=1 stroke-dasharray=\"5,%d\" />", tickidx*10, tickidx*10, penoff );
-                    if (( tickidx%2 ) == 1)                                                           /* output text for 10, 30, 50, 70, 90 */
-                    {
-                        printf( "<text x=2 y=%d>%d</text>\n", tickidx*10+3, ( 100 - ( tickidx*10 ))); /* offset 3 pixels to drop the number into the middle of the tickmark */
-                    }
-                }
+
+                outputDashTickLines( NULL );
+
                 printf( "</svg>\n" );
                 printf( "      </td>\n" );
             }
@@ -911,10 +892,8 @@ int main(
             printf( "  </tr>\n" );
             printf( "</tbody>\n" );
         }
-        printf( "</table>\n" );
+        printf( "</table>~" );
     }
-
-    printf( "~STBTIME~%s~", DayMonDateYear( 0 ));
 
     if ( wifiAmpduStart == 0 )
     {
@@ -922,7 +901,7 @@ int main(
     }
 
     /* if the checkbox for CPU Utilization OR Network Stats OR IRQ Counts is checked (any one of these needs to request data from bmemperf_server) */
-    if (cpuInfo || netStats || wifiScanStart || (wifiScanResults != -1) || wifiAmpduStart || irqInfo || PerfDeep || PerfCache || sataUsb ||
+    if (cpuInfo || netStatsUpdate || wifiScanStart || (wifiScanResults != -1) || wifiAmpduStart || irqInfo || PerfDeep || PerfCache || sataUsb ||
         LinuxTop || ContextSwitches || PerfFlame || strlen(iperfCmdLine) )
     {
         struct in_addr sin_temp_addr;
@@ -1163,6 +1142,8 @@ int main(
             }
         }
         printf( "~" );
+
+        output_cpu_frequencies();
     }                                                      /* cpuInfo */
 
     /* if the checkbox for IRQ Stats is checked */
@@ -1244,13 +1225,15 @@ int main(
         printf( "</table>~" );                             /* end IRQDETAILS */
     }
 
-    /* if the checkbox for Network Stats is checked */
-    if (netStats)
+    /* if the checkbox for Network Stats was just checked */
+    if ( netStatsInit )
     {
+        char dash_line_id[32];
+
         get_netstat_data( &g_netStats[0] );
 
-        printf( "~NETSTATS~" );
-        printf( "<table cols=8 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+        printf( "~netStatsInit~" );
+        printf( "<table cols=9 width=\"1024\" style=\"border-collapse:collapse;\" border=0 cellpadding=0 >" );
 
         printf( "<tr><td class=whiteborders18 align=left style=\"font-weight:bold;width:320px;\" >Network Interface Statistics</td>" );
         printf( "<td style=\"width:20px;\" ><input type=checkbox id=checkboxiperfrow onclick=\"MyClick(event);\" ></td>");
@@ -1260,21 +1243,64 @@ int main(
         printf( "<td>&nbsp;</td>" );
         printf( "<td>&nbsp;</td>" );
         printf( "<td>&nbsp;</td>" );
+        printf( "<td>&nbsp;</td>" );
         printf( "</tr>" );
-        printf( "<tr><td colspan=8><table style=\"border-collapse:collapse;\" border=1 cellpadding=3 >\n" );
+        printf( "<tr><td colspan=9><table width=\"100%%\" style=\"border-collapse:collapse;\" border=1 cellpadding=3 >\n" );
         printf( "<tr bgcolor=lightgray ><th>Name</th><th>IP Addr</th><th>Rx Bytes</th><th>Tx Bytes</th><th>Rx Errors</th><th>Tx Errors</th>"
-                "<th>Rx Mbps (Avg)</th><th>Tx Mbps (Avg)</th></tr>\n" );
+                "<th>Rx Mbps (Avg)</th><th>Tx Mbps (Avg)</th><th>Graph</th></tr>\n" );
         for (idx = 0; idx <= g_netStatsIdx; idx++) {
-            printf( "<tr><td>%s</td> <td>%s</td> <td>%s</td>", g_netStats[idx].name, g_netStats[idx].ipAddress, formatul( g_netStats[idx].rxBytes ));
-            printf( "<td>%s</td>", formatul( g_netStats[idx].txBytes ));
-            printf( "<td>%s</td>", formatul( g_netStats[idx].rxErrors ));
-            printf( "<td>%s</td>", formatul( g_netStats[idx].txErrors ));
+            printf( "<tr><td>%s</td> <td align=center >%s</td> <td align=center id=netif_rxBytes_%d >%s</td>", g_netStats[idx].name, g_netStats[idx].ipAddress, idx, formatul( g_netStats[idx].rxBytes ));
+            printf( "<td id=netif_txBytes_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txBytes ));
+            printf( "<td id=netif_rxError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].rxErrors ));
+            printf( "<td id=netif_txError_%d align=center >%s</td>", idx, formatul( g_netStats[idx].txErrors ));
             printf( "<td id=netif%urx align=center ><!-- value inserted via javascript --></td>", idx );
-            printf( "<td id=netif%utx align=center ><!-- value inserted via javascript --></td></tr>\n", idx );
+            printf( "<td id=netif%utx align=center ><!-- value inserted via javascript --></td>", idx );
+            printf( "<td align=center ><input type=checkbox id=checkbox_netgfx%u onclick=\"MyClick(event);\" ></td>", idx );
+            printf( "</tr>\n" );
+
+            /* add in the histogram for Rx and Tx */
+            printf( "<tr id=row_netgfxsvg%u style=\"visibility:hidden;\" ><td colspan=9 align=left "
+                    "style=\"border-right: 1pt solid white;border-left: 1pt solid white;\" ><table style=\"border-collapse:collapse;\" border=0 ><tr>", idx );
+            printf( "<td width=500 align=left ><svg id=svg_netgfx_rx_%u height=\"100\" width=\"500\" style=\"border:solid 1px black;font-size:8pt;\" >", idx );
+            printf( "<polyline id=polyline_netgfx_rx_%u style=\"fill:none;stroke:red;stroke-width:2\" />\n", idx );
+            sprintf(dash_line_id, "dash_rx_%u", idx );
+            outputDashTickLines( dash_line_id );
+            printf( "<text x=30 y=13>RX</text>" );
+            printf( "</svg></td>" );
+            printf( "<td width=500 align=left ><svg id=svg_netgfx_tx_%u height=\"100\" width=\"500\" style=\"border:solid 1px black;font-size:8pt;\" >", idx );
+            printf( "<polyline id=polyline_netgfx_tx_%u style=\"fill:none;stroke:turquoise;stroke-width:2\" />\n", idx );
+            sprintf(dash_line_id, "dash_tx_%u", idx );
+            outputDashTickLines( dash_line_id );
+            printf( "<text x=30 y=13>TX</text>" );
+            printf( "</svg></td>" );
+            printf( "</tr>" );
+            printf( "<tr id=row_netgfxtxt%u style=\"visibility:hidden;\" >", idx );
+            printf( "<td width=500 align=left ><textarea id=txt_netgfx_rx_%u rows=1 style=\"border:solid 1px black;width:100%%;\" ></textarea></td>", idx );
+            printf( "<td width=500 align=left ><textarea id=txt_netgfx_tx_%u rows=1 style=\"border:solid 1px black;width:100%%;\" ></textarea></td>", idx );
+            printf( "</tr>" );
+            printf( "</table></td>" );
         }
         printf( "</table></td></tr>\n" );
+        printf( "</table>~" ); /* end netStatsInit */
+    }
 
-        printf( "</table>~" );                             /* end NETSTATS */
+    /* if the checkbox for Network Stats is checked */
+    if ( netStatsUpdate )
+    {
+        get_netstat_data( &g_netStats[0] );
+
+        printf( "~netStatsUpdate~%d~", g_netStatsIdx + 1 );
+        for (idx = 0; idx <= g_netStatsIdx; idx++) {
+            #if 1
+            printf( "%s|", formatul( g_netStats[idx].rxBytes ));
+            printf( "%s|", formatul( g_netStats[idx].txBytes ));
+            printf( "%s|", formatul( g_netStats[idx].rxErrors ));
+            printf( "%s~", formatul( g_netStats[idx].txErrors ));
+            #else
+            printf( "%llu %llu %llu %llu~", g_netStats[idx].rxBytes , g_netStats[idx].txBytes , g_netStats[idx].rxErrors , g_netStats[idx].txErrors );
+            #endif
+        }
+        /* end netStatsUpdate */
 
         /* output some of the above information again in an unformatted way to make it easier to compute bits per second */
         printf( "~NETBYTES~" );
@@ -1294,13 +1320,15 @@ int main(
             printf( "   <tr>" );
             printf( "       <td width=\"110\" align=\"left\" nowrap ><b>Server:&nbsp;</b>iperf&nbsp;-s&nbsp;</td>" );
             printf( "       <td width=\"40\" align=\"left\" >" );
-            printf( "           <input type=\"text\" id=iperf_options_s placeholder=\"Extra Options\" style=\"border:1px solid black;width:200px;\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" value=\"-w4096K -N\" title=\"Extra Options\" >" );
+            printf( "           <input type=\"text\" id=iperf_options_s placeholder=\"Extra Options\" style=\"border:1px solid black;width:200px;\" onfocus=\"FocusEntryBox(event);\" "
+                    "onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" value=\"-w4096K -N\" title=\"Extra Options\" >" );
             printf( "       </td>" );
             printf( "       <td>" );
             printf( "           <table style=\"border-collapse:collapse;\" border=\"0\" cellpadding=\"0\" style=\"border:1px solid black;\" >" );
             printf( "               <tr>" );
             printf( "                   <td style=\"border:none;\" width=\"30\" nowrap>&nbsp;</td>" );
-            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" align=\"left\" ><input type=\"button\" id=iperf_start_stop_s value=\"START\" onclick=\"MyClick(event);\" ></td>" );
+            printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" align=\"left\" ><input type=\"button\" id=iperf_start_stop_s value=\"START\" "
+                    "onclick=\"MyClick(event);\" ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:20px;font-size:12pt;\" id=iperf_count_s ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
@@ -1315,18 +1343,22 @@ int main(
             printf( "       <td width=\"110\" align=\"left\" nowrap ><b>Client:&nbsp;</b>iperf&nbsp;-c&nbsp;</td>" );
             printf( "       <td><table border=0 style=\"border-collapse:collapse;\" >" );
             printf( "           <tr>" );
-            printf( "               <td><input type=\"text\" id=iperf_addr placeholder=\"Server IP\" style=\"border:1px solid black;\" size=\"10\" value=\"%s\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Server Address\" > </td>",  wlan0Address );
+            printf( "               <td><input type=\"text\" id=iperf_addr placeholder=\"Server IP\" style=\"border:1px solid black;\" size=\"10\" value=\"%s\" "
+                    "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Server Address\" > </td>",  wlan0Address );
             printf( "               <td style=\"border:none;\" width=\"25\" nowrap align=right >-t&nbsp;</td>" );
-            printf( "               <td style=\"border:none;\" ><input type=\"text\" id=iperf_duration placeholder=\"Duration\" style=\"border:1px solid black;\" size=\"3\" value=\"100\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Duration\" ></td>" );
+            printf( "               <td style=\"border:none;\" ><input type=\"text\" id=iperf_duration placeholder=\"Duration\" style=\"border:1px solid black;\" size=\"3\" value=\"100\" "
+                    "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Duration\" ></td>" );
             printf( "           </tr>" );
             printf( "       </table></td>" );
             printf( "       <td >" );
             printf( "           <table style=\"border-collapse:collapse;\" border=\"0\" cellpadding=\"0\" >" );
             printf( "               <tr>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap align>-p&nbsp;</td>" );
-            printf( "                   <td><input type=\"text\" id=iperf_port_c placeholder=\"# Streams\" style=\"border:1px solid black;\" size=\"3\" value=\"5001\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"# Streams\" ></td>" );
+            printf( "                   <td><input type=\"text\" id=iperf_port_c placeholder=\"# Streams\" style=\"border:1px solid black;\" size=\"3\" value=\"5001\" "
+                    "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"# Streams\" ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"20\" nowrap>&nbsp;</td>" );
-            printf( "                   <td><input type=\"text\" id=iperf_options_c placeholder=\"Extra Options\" style=\"border:1px solid black;\" size=\"20\" value=\"-w4096K -N\" onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Extra Options\" ></td>" );
+            printf( "                   <td><input type=\"text\" id=iperf_options_c placeholder=\"Extra Options\" style=\"border:1px solid black;\" size=\"20\" value=\"-w4096K -N\" "
+                    "onfocus=\"FocusEntryBox(event);\" onblur=\"BlurEntryBox(event);\" onkeyup=\"KeyupEntryBox(event);\" title=\"Extra Options\" ></td>" );
             printf( "                   <td style=\"border:none;\" width=\"30\" nowrap>&nbsp;</td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:40px;\" ><input type=\"button\" id=iperf_start_stop_c value=\"START\" onclick=\"MyClick(event);\" ></td>" );
             printf( "                   <td align=\"left\" class=whiteborders18 style=\"width:10px;\" >&nbsp;</td>" );
@@ -1357,7 +1389,6 @@ int main(
                     if ( line )
                     {
                         posEol = Bsysperf_ReplaceNewlineWithNull( line );
-                        printf("~DEBUG~iperfRunningClient (%s)~", line );
                         printf( "~iperfRunningClient~%s~", line );
                         Bsysperf_RestoreNewline( posEol );
 
@@ -1370,7 +1401,7 @@ int main(
                     }
                     else
                     {
-                        printf( "~iperfPidClient~0~" );
+                        printf( "~iperfPidClient~0~iperfRunningClient~NONE~" );
                     }
                 }
 
@@ -1383,7 +1414,6 @@ int main(
                     if ( line )
                     {
                         posEol = Bsysperf_ReplaceNewlineWithNull( line );
-                        printf("~DEBUG~iperfRunningServer (%s)~", line );
                         printf( "~iperfRunningServer~%s~", line );
                         Bsysperf_RestoreNewline( posEol );
 
@@ -1396,11 +1426,23 @@ int main(
                     }
                     else
                     {
-                        printf( "~iperfPidServer~0~" );
+                        printf( "~iperfPidServer~0~iperfRunningServer~NONE~" );
                     }
                 }
 
                 Bsysperf_Free ( iperf_processes );
+            }
+            else
+            {
+                printf( "~iperfPidClient~0~iperfPidServer~0~" );
+                if ( iperfRunningServer )
+                {
+                    printf( "~iperfRunningClient~NONE~" );
+                }
+                if ( iperfRunningClient )
+                {
+                    printf( "~iperfRunningServer~NONE~" );
+                }
             }
         }
     }
@@ -1559,12 +1601,14 @@ int main(
                tScanInfo.BSSID.octet[0], tScanInfo.BSSID.octet[1], tScanInfo.BSSID.octet[2],
                tScanInfo.BSSID.octet[3], tScanInfo.BSSID.octet[4], tScanInfo.BSSID.octet[5]);
 
+#ifdef BWL_SUPPORT
         if ( wifiAmpduGraph )
         {
             memset( &lAmpduData, 0, sizeof(lAmpduData) );
 
             Bsysperf_WifiReadAmpduData( &lAmpduData );
         }
+#endif
 
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
         printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >SSID:<span class=bluetext>%s</span></td> ", tScanInfo.tCredentials.acSSID );
@@ -1574,12 +1618,13 @@ int main(
         printf( "</tr>");
         /*printf( "<tr><td colspan=8 >&nbsp;</td></tr>");*/ /* blank row */
 
+#ifdef BWL_SUPPORT
         printf( "<tr><td align=left nowrap colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tot_mpdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_mpdus );
         printf( "<td align=left colspan=2 class=silver_allborders >Tot_ampdus:<span class=bluetext>%u</span></td> ", lAmpduData.tot_ampdus );
         printf( "<td align=left colspan=2 class=silver_allborders >MpdusPerAmdpu:<span class=bluetext>%u</span></td> ", lAmpduData.mpduperampdu );
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-right: solid thin black;\" >&nbsp;</td> " );
         printf( "</tr>");
-
+#endif
         printf( "<tr>");
         printf( "<td align=left colspan=2 class=silver_allborders style=\"border-left: solid thin black;\" >Tx Bytes:<span class=bluetext>%s </span></td> ", formatul( tCounters.txbyte ) );
         printf( "<td align=left colspan=2 class=silver_allborders >Tx Frames:<span class=bluetext>%s </span></td> ", formatul( tCounters.txframe ) );
@@ -1599,12 +1644,14 @@ int main(
         frate = rate / 2.0;
         printf("~WIFIRATE~%5.3f~", frate );
 
+#ifdef BWL_SUPPORT
         if ( wifiAmpduGraph )
         {
             printf("~wifiAmpduGraph~");
             Bsysperf_WifiOutputAntennasHtml( &lAmpduData.antennas );
             printf("~");
         }
+#endif
     }
 
     if ( wifiScanResults != -1 )
@@ -1791,6 +1838,42 @@ int main(
         printf( "%lu", response.response.overallStats.contextSwitches );
         printf( "~" );
     }
+
+    if ( DvfsControl == 1)
+    {
+        int       numCpusConf   = 0;
+
+        numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
+        if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
+        {
+            numCpusConf = BMEMPERF_MAX_NUM_CPUS;
+        }
+
+        printf( "~DvfsControl~" );
+        printf( "<table cols=9 style=\"border-collapse:collapse;\" border=0 cellpadding=3 >" );
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "DVFS Controls" );
+
+        printf( "<tr><th colspan=9 class=whiteborders18 align=left >%s</th></tr>", "Power Saving Techniques" );
+        printf( "<tr style=\"outline: thin solid\" ><td colspan=9><table border=0 style=\"border-collapse:collapse;\" ><tr>");
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor1 value=1 onclick=\"MyClick(event);\" >Conservative</td>" );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor2 value=2 onclick=\"MyClick(event);\" >Performance</td>" );
+        printf( "<td width=50>&nbsp;</td>" ); /* spacer */
+        printf( "<td><input type=radio name=radioGovernor id=radioGovernor3 value=3 onclick=\"MyClick(event);\" >Power Save</td>" );
+        printf( "</tr></table></td></tr>" );
+
+        printf( "</table>~" ); /* end DvfsControl */
+
+        printf( "~GovernorSetting~%d~", get_governor_control( 0 ) );
+    }
+
+    if ( GovernorSetting )
+    {
+        printf( "~GovernorSetting~%d~", GovernorSetting );
+        set_governor_control ( 0, GovernorSetting );
+    }
+
+    printf( "~STBTIME~%s~", DayMonDateYear( 0 ));
 
     printf( "~ALLDONE~" );
 

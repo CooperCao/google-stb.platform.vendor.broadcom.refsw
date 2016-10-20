@@ -154,8 +154,16 @@ void NEXUS_HdmiOutputModule_Print(void)
             g_hdmiOutputs[i].txHwStatus.rxSenseCounter)) ;
         BDBG_LOG(("Total HP Changes:        %d",
             g_hdmiOutputs[i].txHwStatus.hotplugCounter)) ;
+        BDBG_LOG(("Total Unstable Format Detected Count:        %d",
+            g_hdmiOutputs[i].txHwStatus.unstableFormatDetectedCounter)) ;
 
         BDBG_LOG(("HDMI Settings:")) ;
+
+        BDBG_LOG(("   Tx Scramblng:   %s",
+            g_hdmiOutputs[i].txHwStatus.scrambling ? "Yes" : "No")) ;
+
+        BDBG_LOG(("   Rx De-Scramblng: %s",
+            g_hdmiOutputs[i].rxHwStatus.descrambling ? "Yes" : "No")) ;
 
         BDBG_LOG(("   ColorSpace: %s",
             NEXUS_HdmiOutput_P_ColorSpace_Text[g_hdmiOutputs[i].settings.colorSpace])) ;
@@ -443,7 +451,6 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     pOutput->hdcpFailureCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
     pOutput->hdcpStateChangedCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
     pOutput->hdcpSuccessCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
-    pOutput->hdcpReceiverIdListReadyCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
     pOutput->hotplugCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
     pOutput->rxStatusCallback = NEXUS_TaskCallback_Create(pOutput, NULL);
     pOutput->notifyDisplay = NEXUS_TaskCallback_Create(pOutput, NULL);
@@ -467,6 +474,9 @@ NEXUS_HdmiOutputHandle NEXUS_HdmiOutput_Open( unsigned index, const NEXUS_HdmiOu
     pOutput->settings.audioDitherEnabled = true;
     pOutput->settings.audioBurstType = NEXUS_SpdifOutputBurstType_ePause;
     pOutput->settings.audioBurstPadding = 0;
+    NEXUS_CallbackDesc_Init(&pOutput->settings.hotplugCallback);
+    NEXUS_CallbackDesc_Init(&pOutput->settings.hdmiRxStatusChanged);
+    NEXUS_CallbackDesc_Init(&pOutput->settings.mhlStandbyCallback);
 
     BDBG_ASSERT(pSettings->spd.deviceType < NEXUS_HdmiSpdSourceDeviceType_eMax);
 
@@ -658,11 +668,6 @@ err_hdcp:
         pOutput->hdcpSuccessCallback = NULL;
     }
 
-    if (pOutput->hdcpReceiverIdListReadyCallback != NULL) {
-        NEXUS_TaskCallback_Destroy(pOutput->hdcpReceiverIdListReadyCallback);
-        pOutput->hdcpReceiverIdListReadyCallback = NULL;
-    }
-
     if (pOutput->hotplugCallback != NULL) {
         NEXUS_TaskCallback_Destroy(pOutput->hotplugCallback);
         pOutput->hotplugCallback = NULL;
@@ -758,9 +763,8 @@ static void NEXUS_HdmiOutput_P_Finalizer( NEXUS_HdmiOutputHandle hdmiOutput )
     NEXUS_TaskCallback_Destroy(hdmiOutput->hdcpFailureCallback);
     NEXUS_TaskCallback_Destroy(hdmiOutput->hdcpStateChangedCallback);
     NEXUS_TaskCallback_Destroy(hdmiOutput->hdcpSuccessCallback);
-    NEXUS_TaskCallback_Destroy(hdmiOutput->hdcpReceiverIdListReadyCallback);
     NEXUS_TaskCallback_Destroy(hdmiOutput->hotplugCallback);
-     NEXUS_TaskCallback_Destroy(hdmiOutput->rxStatusCallback);
+    NEXUS_TaskCallback_Destroy(hdmiOutput->rxStatusCallback);
     NEXUS_TaskCallback_Destroy(hdmiOutput->notifyDisplay);
 
     if (hdmiOutput->crc.queue) {
@@ -1289,6 +1293,9 @@ NEXUS_Error NEXUS_HdmiOutput_GetStatus( NEXUS_HdmiOutputHandle output, NEXUS_Hdm
         BHDM_SCDC_GetScrambleConfiguration(output->hdmHandle, &stScrambleConfig) ;
             pStatus->txHardwareStatus.scrambling = stScrambleConfig.txScrambleEnable ;
             pStatus->rxHardwareStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
+
+        output->txHwStatus.scrambling = stScrambleConfig.txScrambleEnable ;
+        output->rxHwStatus.descrambling = stScrambleConfig.rxStatusFlags_Scramble ;
     }
 #endif
 

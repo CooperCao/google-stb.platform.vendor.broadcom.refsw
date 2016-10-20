@@ -38,6 +38,9 @@
 #ifndef _PR30_DECRYPTOR_H_
 #define _PR30_DECRYPTOR_H_
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wpedantic"
+
 #include "drm_data.h"
 #include "drmnamespace.h"
 #include "drmmanager.h"
@@ -102,4 +105,5 @@ private:
 
 } // namespace dif_streamer
 
+#pragma GCC diagnostic pop
 #endif // _PR_DECRYPTOR_H_

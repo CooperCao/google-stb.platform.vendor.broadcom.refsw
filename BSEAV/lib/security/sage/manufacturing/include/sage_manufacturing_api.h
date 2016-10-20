@@ -48,6 +48,7 @@
 #define HDCP22_MASK     (0x01)
 #define EDRM_MASK       (0x02)
 #define ECC_MASK        (0x04)
+#define DTCP_IP_MASK    (0x08)
 
 /*define value used to indicated type of DRM bin file used in tool*/
 #define DRM_BIN_FILE_TYPE_3 (3)

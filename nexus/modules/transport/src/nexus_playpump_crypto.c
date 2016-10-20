@@ -114,28 +114,6 @@ static const batom_user b_pump_crypto_atom = {
 };
 
 static void
-b_pump_crypto_repacket_atom_free(batom_t atom, void *user)
-{
-    batom_t src = *(batom_t *)user;
-    unsigned nvecs;
-    unsigned i;
-    BDBG_MSG_TRACE(("b_pump_crypto_repacket_atom_free>: %#lx %#lx", (unsigned long)atom, (unsigned long)src));
-
-    nvecs = batom_get_nvecs(atom);
-    for(i=0;i<nvecs;i++) {
-        batom_release(src);
-    }
-    BDBG_MSG_TRACE(("b_pump_crypto_repacket_atom_free>: %#lx %#lx:%u", (unsigned long)atom, (unsigned long)src, nvecs));
-    return;
-}
-
-static const batom_user b_pump_crypto_repacket_atom = {
-    b_pump_crypto_repacket_atom_free,
-    sizeof(batom_t)
-};
-
-
-static void
 b_pump_reset_ts_feed(b_pump_crypto_t crypto)
 {
     crypto->ts_feed.ts_bytes = 0;

@@ -133,17 +133,6 @@ void BDSP_P_MemWrite32_isr(
     BDSP_P_CopyDataToDram_isr(hHeap,(void *)&data,memAddress,4);
 }
 
-
-uint32_t BDSP_P_MemRead32(
-        BMEM_Handle hHeap,
-        void    *memAddress
-    )
-{
-    uint32_t ui32ValRead;
-    BDSP_P_CopyDataFromDram(hHeap,(void *)&ui32ValRead,memAddress,4);
-    return ui32ValRead;
-}
-
 uint32_t BDSP_P_MemRead32_isr(
         BMEM_Handle hHeap,
         void        *memAddress

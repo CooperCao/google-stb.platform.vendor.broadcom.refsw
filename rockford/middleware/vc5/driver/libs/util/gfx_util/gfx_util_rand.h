@@ -12,6 +12,7 @@ FILE DESCRIPTION
 #define GFX_UTIL_RAND_H
 
 #include "gfx_util.h"
+#include "gfx_util_conv.h"
 
 VCOS_EXTERN_C_BEGIN
 

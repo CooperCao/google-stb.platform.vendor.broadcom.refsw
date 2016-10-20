@@ -4391,9 +4391,16 @@ flushNexusAudioVideoDecoders (
         }
     }
 #ifdef NEXUS_HAS_SIMPLE_DECODER
-    if (playback_ip->nexusHandles.simpleAudioDecoder)
-    {
-        NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoder);
+    if (playback_ip->nexusHandles.simpleAudioDecoder) {
+        int i;
+        if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
+            for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
+                NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoders[i]);
+            }
+        }
+        else {
+            NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoder);
+        }
     }
 #endif
 
@@ -5888,6 +5895,7 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
     B_PlaybackIpProtocol protocol;
     B_PlaybackIpSessionStartSettings *pStartSettings = NULL;
     B_PlaybackIpSessionStartStatus startStatus;
+    B_PlaybackIpHandle hAltAudioPlaybackIp = NULL;
 
     /*
      * Player wants to play the alternate audio. It must have used this alternate audio PID to create the audio pid channel.
@@ -5913,14 +5921,14 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
                     altAudioRenditionInfo->language, altAudioRenditionInfo->groupId, altAudioRenditionInfo->containerType));
         goto error;
     }
-    BDBG_WRN(("%s: alternateRendition: URI=%s", __FUNCTION__, altRenditionInfo->absoluteUri));
+    BDBG_MSG(("%s: alternateRendition: URI=%s", __FUNCTION__, altRenditionInfo->absoluteUri));
     if ((hls_parse_url(&protocol, &server, &port, &uri, altRenditionInfo->absoluteUri) == false) || (protocol != B_PlaybackIpProtocol_eHttp && protocol != B_PlaybackIpProtocol_eHttps)) {
         BDBG_ERR(("Failed to parse sub-fields at %s:%d of URI=%s", __FUNCTION__, __LINE__, altRenditionInfo->absoluteUri));
         goto error;
     }
     BDBG_MSG(("%s:%p calling IpSessionOpen ", __FUNCTION__, (void *)playback_ip));
-    playback_ip->playbackIp2 = B_Playback_HlsCreatePlaybackIpSession(playback_ip, server, port, &uri, protocol, playback_ip->openSettings.security.initialSecurityContext);
-    if (!playback_ip->playbackIp2) {
+    hAltAudioPlaybackIp = B_Playback_HlsCreatePlaybackIpSession(playback_ip, server, port, &uri, protocol, playback_ip->openSettings.security.initialSecurityContext);
+    if (!hAltAudioPlaybackIp) {
         BDBG_ERR(("%s: Failed to Open/Setup PlaybackIpSession for Alternate Audio", __FUNCTION__));
         goto error;
     }
@@ -5939,7 +5947,7 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
         memset(pSetupStatus, 0, sizeof(*pSetupStatus));
         setupSettings.u.http.contentTypeHint = altAudioRenditionInfo->containerType;
         setupSettings.u.http.skipPsiParsing = false;
-        pbipStatus = B_PlaybackIp_SessionSetup(playback_ip->playbackIp2, &setupSettings, pSetupStatus);
+        pbipStatus = B_PlaybackIp_SessionSetup(hAltAudioPlaybackIp, &setupSettings, pSetupStatus);
         BKNI_Free(pSetupStatus);
         if (pbipStatus != B_ERROR_SUCCESS) {
             BDBG_ERR(("%s: Failed to setup PlaybackIpSession for Alternate Audio", __FUNCTION__));
@@ -5949,12 +5957,12 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
     {
         B_PlaybackIpSettings settings;
 
-        B_PlaybackIp_GetSettings(playback_ip->playbackIp2, &settings);
+        B_PlaybackIp_GetSettings(hAltAudioPlaybackIp, &settings);
         settings.useNexusPlaypump = true;
         settings.nexusHandles.playpump = playpump2;
         settings.nexusHandlesValid = true;
         settings.ipMode = B_PlaybackIpClockRecoveryMode_ePull;
-        if (B_PlaybackIp_SetSettings(playback_ip->playbackIp2, &settings) != B_ERROR_SUCCESS) {
+        if (B_PlaybackIp_SetSettings(hAltAudioPlaybackIp, &settings) != B_ERROR_SUCCESS) {
             BDBG_ERR(("%s: B_PlaybackIp_SetSettings Failed for Alternate Audio", __FUNCTION__));
             goto error;
         }
@@ -5973,57 +5981,70 @@ setupPlaybackIpSessionForAltAudio(B_PlaybackIpHandle playback_ip, B_PlaybackIpHl
         pStartSettings->mediaPositionUsingWallClockTime = true;
         pStartSettings->mpegType = altAudioRenditionInfo->containerType;
         pStartSettings->audioOnlyPlayback = true;
-        if (B_PlaybackIp_SessionStart(playback_ip->playbackIp2, pStartSettings, &startStatus) != B_ERROR_SUCCESS) {
+        if (B_PlaybackIp_SessionStart(hAltAudioPlaybackIp, pStartSettings, &startStatus) != B_ERROR_SUCCESS) {
             BDBG_ERR(("%s: Failed to Start PlaybackIpSession for Alternate Audio", __FUNCTION__));
             B_Os_Free(pStartSettings);
             goto error;
         }
         B_Os_Free(pStartSettings);
     }
-    BDBG_WRN(("%s: Successfully setup the alternate audio rendition: playback_ip=%p playbackIp2=%p language=%s groupId=%s containerType=%d, plapump2=%p", __FUNCTION__,
-                (void *)playback_ip, (void *)playback_ip->playbackIp2,
+
+    /* Since this PBIP context is successfully started for Alternate audio, add it to the list of such alternate audio contexts. */
+    {
+        BLST_Q_INSERT_TAIL(&playback_ip->altAudioPlaybackIpListHead, hAltAudioPlaybackIp, altAudioPlaybackIpListEntry);
+    }
+#ifdef BDBG_DEBUG_BUILD
+    if (playback_ip->ipVerboseLog) {
+        BDBG_MSG(("%s: Successfully setup the alternate audio rendition: playback_ip=%p hAltAudioPlaybackIp=%p language=%s groupId=%s containerType=%d, plapump2=%p", __FUNCTION__,
+                (void *)playback_ip, (void *)hAltAudioPlaybackIp,
                 altAudioRenditionInfo->language, altAudioRenditionInfo->groupId,
                 altAudioRenditionInfo->containerType, (void *)playpump2));
+    }
+#endif
     if (server) BKNI_Free(server);
     server=NULL;
     return true;
 
 error:
-    if (playback_ip->playbackIp2) {
-        if (B_PlaybackIp_Close(playback_ip->playbackIp2)) {
+    if (hAltAudioPlaybackIp) {
+        if (B_PlaybackIp_Close(hAltAudioPlaybackIp)) {
             BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
         }
     }
     if (server) BKNI_Free(server);
-    playback_ip->playbackIp2 = NULL;
+    hAltAudioPlaybackIp = NULL;
     return false;
 }
 
 void B_PlaybackIp_HlsStopAlternateRendition(B_PlaybackIpHandle playback_ip)
 {
-    if (playback_ip && playback_ip->playbackIp2) {
-        BDBG_MSG(("%s:%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
-        if (B_PlaybackIp_SessionStop(playback_ip->playbackIp2)) {
+    B_PlaybackIpHandle hAltAudioPlaybackIp = NULL;
+
+    if (!playback_ip) return;
+    for (hAltAudioPlaybackIp = BLST_Q_FIRST(&playback_ip->altAudioPlaybackIpListHead);
+         hAltAudioPlaybackIp;
+         hAltAudioPlaybackIp = BLST_Q_FIRST(&playback_ip->altAudioPlaybackIpListHead)
+        )
+    {
+        BLST_Q_REMOVE(&playback_ip->altAudioPlaybackIpListHead, hAltAudioPlaybackIp, altAudioPlaybackIpListEntry);
+
+        BDBG_MSG(("%s:%p: Stopping altRenditionSession: hAltAudioPlaybackIp=%p", __FUNCTION__, (void *)playback_ip, (void *)hAltAudioPlaybackIp));
+        if (B_PlaybackIp_SessionStop(hAltAudioPlaybackIp)) {
             BDBG_ERR(("%s: B_PlaybackIp_Stop() Failed", __FUNCTION__));
         }
 #if (BCHP_CHIP != 7408)
-        NEXUS_StopCallbacks(playback_ip->playbackIp2->nexusHandles.playpump);
+        NEXUS_StopCallbacks(hAltAudioPlaybackIp->nexusHandles.playpump);
 #endif
-        BDBG_MSG(("%s:%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
-        if (B_PlaybackIp_Close(playback_ip->playbackIp2)) {
+        BDBG_MSG(("%s:%p: Stopped altRenditionSession: hAltAudioPlaybackIp=%p", __FUNCTION__, (void *)playback_ip, (void *)hAltAudioPlaybackIp));
+        if (B_PlaybackIp_Close(hAltAudioPlaybackIp)) {
             BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
         }
-        BDBG_WRN(("%s:%p: Stopped & Closed altRenditionSession", __FUNCTION__, (void *)playback_ip));
-        playback_ip->playbackIp2 = NULL;
+        BDBG_MSG(("%s:%p: Stopped & Closed altRenditionSession!", __FUNCTION__, (void *)playback_ip));
     }
 }
 
 B_Error B_PlaybackIp_HlsStartAlternateRendition(B_PlaybackIpHandle playback_ip, B_PlaybackIpHlsAltAudioRenditionInfo *altAudioRenditionInfo)
 {
-    if (playback_ip->playbackIp2) {
-        BDBG_WRN(("%s:%p App is trying to start another audio rendition playback without stopping the previous one!. Use B_PlyabackIpSettings.stopAlternateAudio to stop it first. ", __FUNCTION__, (void *)playback_ip));
-        return (B_ERROR_INVALID_PARAMETER);
-    }
     if (setupPlaybackIpSessionForAltAudio(playback_ip, altAudioRenditionInfo, playback_ip->nexusHandles.playpump2) != true) {
         BDBG_ERR(("%s:%p Failed to setupPlaybackIpSessionForAltAudio!", __FUNCTION__, (void *)playback_ip));
         return (B_ERROR_PROTO);
@@ -6088,11 +6109,21 @@ B_PlaybackIp_HlsPlaybackThread(
     }
 
     if (playback_ip->startSettings.startAlternateAudio) {
+        int i;
         /* coverity[stack_use_local_overflow] */
         /* coverity[stack_use_overflow] */
         if (setupPlaybackIpSessionForAltAudio(playback_ip, &playback_ip->startSettings.alternateAudio, playback_ip->startSettings.nexusHandles.playpump2) != true) {
             BDBG_ERR(("%s: Failed to setupPlaybackIpSessionForAltAudio!", __FUNCTION__));
             goto error;
+        }
+        for (i=0; i < playback_ip->startSettings.additionalAltAudioRenditionInfoCount; i++)
+        {
+            /* coverity[stack_use_local_overflow] */
+            /* coverity[stack_use_overflow] */
+            if (setupPlaybackIpSessionForAltAudio(playback_ip, &playback_ip->startSettings.additionalAltAudioInfo[i], playback_ip->startSettings.additionalAltAudioInfo[i].hPlaypump) != true) {
+                BDBG_ERR(("%s: Failed to additional setupPlaybackIpSessionForAltAudio, i = %d!", __FUNCTION__, i));
+                goto error;
+            }
         }
     }
 #if 0
@@ -6384,21 +6415,7 @@ B_PlaybackIp_HlsPlaybackThread(
     BDBG_MSG(("%s: Done", __FUNCTION__));
 
 error:
-    if (playback_ip->playbackIp2) {
-        BDBG_WRN(("%s: playback_ip=%p: Stopping altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
-        if (B_PlaybackIp_SessionStop(playback_ip->playbackIp2)) {
-            BDBG_ERR(("%s: B_PlaybackIp_Stop() Failed", __FUNCTION__));
-        }
-#if (BCHP_CHIP != 7408)
-        NEXUS_StopCallbacks(playback_ip->playbackIp2->nexusHandles.playpump);
-#endif
-        BDBG_WRN(("%s: playback_ip=%p: Stopped altRenditionSession: playbackIp2=%p", __FUNCTION__, (void *)playback_ip, (void *)playback_ip->playbackIp2));
-        if (B_PlaybackIp_Close(playback_ip->playbackIp2)) {
-            BDBG_ERR(("%s: B_PlaybackIp_Close() Failed", __FUNCTION__));
-        }
-        BDBG_WRN(("%s: playback_ip=%p: Closed altRenditionSession", __FUNCTION__, (void *)playback_ip));
-        playback_ip->playbackIp2 = NULL;
-    }
+    B_PlaybackIp_HlsStopAlternateRendition(playback_ip);
     hlsSession->hlsPlaybackThreadDone = true;
 
     /* Wait for HLS Media & Playlist Download threads to finish as well. */

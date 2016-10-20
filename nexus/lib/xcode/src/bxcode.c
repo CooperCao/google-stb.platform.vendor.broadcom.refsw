@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2010-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "bxcode.h"
@@ -272,13 +264,13 @@ NEXUS_Error BXCode_Start(
         for(i=0; i < hBxcode->openSettings.vpipes && pSettings->output.video.pid; i++)
         {
             hBxcode->video[i].stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-            BDBG_MSG(("BXCode[%u] opened vSTC [%p].", hBxcode->id, hBxcode->video[i].stcChannel));
+            BDBG_MSG(("BXCode[%u] opened vSTC [%p].", hBxcode->id, (void*)hBxcode->video[i].stcChannel));
             /* assign to encoder side as dummy handle for encoder/mux */
             hBxcode->stcChannelEncoder = hBxcode->video[i].stcChannel;
         }
         for(i=0; i < BXCODE_MAX_AUDIO_PIDS && pSettings->output.audio[i].pid; i++) {
             hBxcode->audio[i].stcChannel = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-            BDBG_MSG(("BXCode[%u] opened aSTC [%p].", hBxcode->id, hBxcode->audio[i].stcChannel));
+            BDBG_MSG(("BXCode[%u] opened aSTC [%p].", hBxcode->id, (void*)hBxcode->audio[i].stcChannel));
             /* assign to encoder side as dummy handle for encoder/mux */
             hBxcode->stcChannelEncoder = hBxcode->audio[i].stcChannel;
             break; /* audio PIDs share the single aSTC */
@@ -291,7 +283,7 @@ NEXUS_Error BXCode_Start(
             stcSettings.autoConfigTimebase = false; /* hdmi input timebase will be configured by hdmi input module! */
         }
         hBxcode->stcChannelDecoder = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-        BDBG_MSG(("Transcoder%d opened decoder STC [%p].", hBxcode->id, hBxcode->stcChannelDecoder));
+        BDBG_MSG(("Transcoder%d opened decoder STC [%p].", hBxcode->id, (void*)hBxcode->stcChannelDecoder));
 
         NEXUS_StcChannel_GetDefaultSettings(NEXUS_ANY_ID, &stcSettings);
         stcSettings.timebase = hBxcode->openSettings.timebase;/* should be the same timebase for end-to-end locking */
@@ -299,7 +291,7 @@ NEXUS_Error BXCode_Start(
         stcSettings.pcrBits = NEXUS_StcChannel_PcrBits_eFull42;/* ViCE2 requires 42-bit STC broadcast */
         stcSettings.autoConfigTimebase = false;/* encoder STC does not auto config timebase */
         hBxcode->stcChannelEncoder = NEXUS_StcChannel_Open(NEXUS_ANY_ID, &stcSettings);
-        BDBG_MSG(("Transcoder%d opened encoder STC [%p].", hBxcode->id, hBxcode->stcChannelEncoder));
+        BDBG_MSG(("Transcoder%d opened encoder STC [%p].", hBxcode->id, (void*)hBxcode->stcChannelEncoder));
     }
 
     if(hBxcode->openSettings.deferOpen) {/* defered open */

@@ -9,7 +9,7 @@ All rights reserved.
 #include <assert.h>
 
 DisplayInterfaceResult DisplayInterface_Display(
-      const struct DisplayInterface *di, void *surface,
+      const DisplayInterface *di, void *surface,
       int render_fence, int *display_fence)
 {
    assert(di != NULL);
@@ -20,14 +20,14 @@ DisplayInterfaceResult DisplayInterface_Display(
    return di->display(di->base.context, surface, render_fence, display_fence);
 }
 
-bool DisplayInterface_WaitSync(const struct DisplayInterface *di)
+bool DisplayInterface_WaitSync(const DisplayInterface *di)
 {
    assert(di != NULL);
 
    return di->wait_sync ? di->wait_sync(di->base.context) : false;
 }
 
-void DisplayInterface_Stop(const struct DisplayInterface *di)
+void DisplayInterface_Stop(const DisplayInterface *di)
 {
    assert(di != NULL);
 

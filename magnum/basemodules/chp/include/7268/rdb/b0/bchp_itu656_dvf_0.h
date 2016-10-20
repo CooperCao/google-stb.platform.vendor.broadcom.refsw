@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:35:17 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:43:03 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,13 +70,13 @@
 /***************************************************************************
  *ITU656_DVF_0 - ITU 656 Sync Insertion
  ***************************************************************************/
-#define BCHP_ITU656_DVF_0_DVF_REV_ID             0x206e3700 /* [RO] Revision ID register */
-#define BCHP_ITU656_DVF_0_DVF_BLANK_CONTROL      0x206e3704 /* [RW] Blank Control register */
-#define BCHP_ITU656_DVF_0_DVF_FLAG_CONTROL       0x206e3708 /* [RW] Flag Width Control register */
-#define BCHP_ITU656_DVF_0_DVF_CONFIG             0x206e370c /* [RW] Configuration register */
-#define BCHP_ITU656_DVF_0_DVF_VALUES             0x206e3710 /* [RW] Misc. Value register */
-#define BCHP_ITU656_DVF_0_DVF_BVB_STATUS         0x206e3714 /* [RW] DVF's BVB Status Register */
-#define BCHP_ITU656_DVF_0_DVF_VBI_BLANK          0x206e3718 /* [RW] VBI Blank Register */
+#define BCHP_ITU656_DVF_0_DVF_REV_ID             0x206e3700 /* [RO][32] Revision ID register */
+#define BCHP_ITU656_DVF_0_DVF_BLANK_CONTROL      0x206e3704 /* [RW][32] Blank Control register */
+#define BCHP_ITU656_DVF_0_DVF_FLAG_CONTROL       0x206e3708 /* [RW][32] Flag Width Control register */
+#define BCHP_ITU656_DVF_0_DVF_CONFIG             0x206e370c /* [RW][32] Configuration register */
+#define BCHP_ITU656_DVF_0_DVF_VALUES             0x206e3710 /* [RW][32] Misc. Value register */
+#define BCHP_ITU656_DVF_0_DVF_BVB_STATUS         0x206e3714 /* [RW][32] DVF's BVB Status Register */
+#define BCHP_ITU656_DVF_0_DVF_VBI_BLANK          0x206e3718 /* [RW][32] VBI Blank Register */
 
 /***************************************************************************
  *DVF_REV_ID - Revision ID register

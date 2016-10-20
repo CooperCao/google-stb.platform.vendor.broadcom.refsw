@@ -127,7 +127,8 @@ static const BAPE_CodecAttributes g_codecAttributes[] =
     {BAVC_AudioCompressionStd_eIlbc,        BDSP_Algorithm_eiLBCDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eiLBCEncode,       "iLbc",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eIsac,        BDSP_Algorithm_eiSACDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eiSACEncode,       "iSac",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
     {BAVC_AudioCompressionStd_eOpus,        BDSP_Algorithm_eOpusDecode,           BDSP_Algorithm_eMax,                  BDSP_Algorithm_eOpusEncode,       "Opus",         BAPE_MultichannelFormat_e2_0, false, true,  false,         false,  true,    false,   false},
-    {BAVC_AudioCompressionStd_eAls,         BDSP_Algorithm_eALSDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "MPEG-4 Als",   BAPE_MultichannelFormat_e5_1, false, true,  false,         false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAls,         BDSP_Algorithm_eALSDecode,            BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "MPEG4 Als",    BAPE_MultichannelFormat_e5_1, false, true,  false,         false,  false,   false,   false},
+    {BAVC_AudioCompressionStd_eAlsLoas,     BDSP_Algorithm_eALSLoasDecode,        BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "MPEG4 Als LOAS",BAPE_MultichannelFormat_e5_1,false, true,  false,         false,  false,   false,   false},
     /* This entry must be last */
     {BAVC_AudioCompressionStd_eMax,         BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,                  BDSP_Algorithm_eMax,              "Unknown",      BAPE_MultichannelFormat_e2_0, false, false, false,         false,  false,   false,   false}
 };
@@ -952,12 +953,13 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
                     }
                     BDBG_ASSERT(connectorFormat < BAPE_ConnectorFormat_eMax);   /* If this fails something has gone seriously wrong */
 
-                    if ( (connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel &&
+                    if ( ((connectorFormat == BAPE_ConnectorFormat_eMultichannel && decoder->stereoOnMultichannel &&
                           decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) ||
                          ((connectorFormat == BAPE_ConnectorFormat_eCompressed ||
                            connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
                            connectorFormat == BAPE_ConnectorFormat_eCompressed16x) && decoder->stereoOnCompressed &&
-                          decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) )
+                          (decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eStereo].directConnections > 0) )) &&
+                         pSource->pParent->connectors[BAPE_ConnectorFormat_eStereo].pBuffers[i] != NULL )
                     {
                         BDBG_MSG(("%s path of decoder %u reusing data buffers from stereo path",
                                  (connectorFormat == BAPE_ConnectorFormat_eMultichannel)?"Multichannel":"Stereo", decoder->index));
@@ -968,7 +970,8 @@ BERR_Code BAPE_DSP_P_ConfigPathToOutput(
                                 connectorFormat == BAPE_ConnectorFormat_eCompressed4x ||
                                 connectorFormat == BAPE_ConnectorFormat_eCompressed16x) &&
                                decoder->stereoOnMultichannel && decoder->stereoOnCompressed &&
-                               decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) )
+                               decoder->outputStatus.connectorStatus[BAPE_ConnectorFormat_eMultichannel].directConnections > 0) &&
+                              pSource->pParent->connectors[BAPE_ConnectorFormat_eMultichannel].pBuffers[i] != NULL )
                     {
                         BDBG_MSG(("Compressed path of decoder %u reusing data buffers from multichannel path", decoder->index));
                         /* Compressed sending same data as stereo data on multichannel path (no direct stereo consumers).  Reuse that. */

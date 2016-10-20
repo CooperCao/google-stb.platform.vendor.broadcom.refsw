@@ -299,6 +299,7 @@ void NEXUS_AudioPlayback_GetDefaultStartSettings(
 #else
     pSettings->endian = NEXUS_EndianMode_eLittle;
 #endif
+    NEXUS_CallbackDesc_Init(&pSettings->dataCallback);
 }
 
 /***************************************************************************

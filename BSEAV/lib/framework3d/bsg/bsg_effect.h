@@ -395,6 +395,9 @@ private:
    std::string m_captureText;
    std::string m_vertShader;
    std::string m_fragShader;
+   std::string m_tessControlShader;
+   std::string m_tessEvaluationShader;
+   std::string m_geometryShader;
    std::string m_samplerName;
 
    EffectOptions                     m_options;

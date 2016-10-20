@@ -1943,9 +1943,11 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SendDiseqcMessage(void *handle, const ui
             NEXUS_TaskCallback_Set(pSatChannel->diseqcTxAppCallback, NULL);
             return BERR_TRACE(errCode);
         }
-        pSatChannel->diseqcTxEventCallback = NEXUS_RegisterEvent(pSatChannel->diseqcTxEvent,
-                                                         NEXUS_Frontend_P_Sat_DsqTxEventHandler,
-                                                         pSatChannel);
+        if (!pSatChannel->diseqcTxEventCallback) {
+            pSatChannel->diseqcTxEventCallback = NEXUS_RegisterEvent(pSatChannel->diseqcTxEvent,
+                                                             NEXUS_Frontend_P_Sat_DsqTxEventHandler,
+                                                             pSatChannel);
+        }
         errCode = BDSQ_Write(dsqChannelHandle, pSendData, sendDataSize);
         if (errCode)
         {
@@ -2243,10 +2245,107 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_RequestSpectrumData(void *handle, const 
 }
 
 /* Peak Scan functions */
+
+static uint32_t NEXUS_Frontend_P_Sat_Log2Approx(int xint)
+{
+    int msb = 0;
+    int log2Result;
+
+    int OutputShift = 4; /* Log2 output has 4 LSB after the point. */
+
+    if (xint <= 0)
+        return 0;
+    else {
+        while (xint >> msb)
+            msb++;
+        msb--;
+
+        if (msb - OutputShift > 0)
+            log2Result = (xint >> (msb - OutputShift)) + ((msb - 1) << OutputShift);
+        else
+            log2Result = (xint << (OutputShift - msb)) + ((msb - 1) << OutputShift);
+
+        return (log2Result);
+    }
+}
+
+static uint32_t NEXUS_Frontend_P_Sat_Abs(int32_t x)
+{
+    if (x < 0)
+        return (uint32_t)(1 - x);
+    else
+        return (uint32_t)x;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_Sat_StartSatellitePeakscan( void *handle, const NEXUS_FrontendSatellitePeakscanSettings *pSettings )
+{
+    BERR_Code errCode;
+
+    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_SatellitePeakscanStatus *psStatus = &pSatChannel->peakscanStatus;
+
+    /* setup status variables */
+    psStatus->curFreq = pSettings->frequency - pSettings->frequencyRange;
+    psStatus->endFreq = pSettings->frequency + pSettings->frequencyRange;
+    psStatus->stepFreq = pSettings->frequencyStep;
+    psStatus->symRateCount = 0;
+    psStatus->lastSymRate = 0;
+    psStatus->maxPeakPower = 0;
+    psStatus->maxPeakFreq = 0;
+    psStatus->scanFinished = false;
+    psStatus->minSymbolRate = pSettings->minSymbolRate;
+    psStatus->maxSymbolRate = pSettings->maxSymbolRate;
+    psStatus->singleScan = (pSettings->frequencyRange==0);
+
+    pSatChannel->symbolRateScan = true;
+    pSatChannel->psdSymbolSearch = false;
+    pSatChannel->toneSearch = false;
+
+    errCode = BSAT_StartSymbolRateScan(pSatChannel->satChannel, psStatus->curFreq, psStatus->minSymbolRate, psStatus->maxSymbolRate, pSatChannel->selectedAdc);
+    if (errCode != BERR_SUCCESS) {
+        BDBG_ERR(("BSAT_StartSymbolRateScan error %#x. Peak scan (symbol rate scan) not initiated", errCode));
+        return BERR_TRACE(errCode);
+    }
+
+    return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscanPsd( void *handle, const NEXUS_FrontendSatellitePeakscanSettings *pSettings )
+{
+    BERR_Code errCode;
+
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
+    NEXUS_SatellitePeakscanStatus *psStatus = &pSatChannel->peakscanStatus;
+
+    /* setup status variables */
+    psStatus->curFreq = pSettings->frequency - pSettings->frequencyRange;
+    psStatus->endFreq = pSettings->frequency + pSettings->frequencyRange;
+    psStatus->stepFreq = pSettings->frequencyStep;
+    psStatus->symRateCount = 0;
+    psStatus->lastSymRate = 0;
+    psStatus->maxPeakPower = 0;
+    psStatus->maxPeakFreq = 0;
+    psStatus->scanFinished = false;
+    psStatus->minSymbolRate = pSettings->minSymbolRate;
+    psStatus->maxSymbolRate = pSettings->maxSymbolRate;
+    psStatus->singleScan = (pSettings->frequencyRange==0);
+
+    pSatChannel->symbolRateScan = false;
+    pSatChannel->psdSymbolSearch = true;
+    pSatChannel->toneSearch = false;
+
+    BKNI_Memset(&pSatChannel->psd, 0, sizeof(pSatChannel->psd));
+
+    errCode = BSAT_StartPsdScan(pSatChannel->satChannel, psStatus->curFreq, pSatChannel->selectedAdc);
+
+    return NEXUS_SUCCESS;
+}
+
 static void NEXUS_Frontend_P_Sat_PeakscanEventHandler(void *pParam)
 {
     NEXUS_SatChannel *pSatChannel = pParam;
     NEXUS_SatellitePeakscanStatus *psStatus = &pSatChannel->peakscanStatus;
+    NEXUS_FrontendSatellitePeakscanSettings *psSettings = &pSatChannel->peakscanSettings;
     BERR_Code errCode;
     BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
 
@@ -2348,6 +2447,261 @@ tone_done:
                 psStatus->lastSymRate = 0;
             }
         }
+    } else if (pSatChannel->psdSymbolSearch) {
+        BSAT_PsdScanStatus psdStatus;
+        int incrementThreshold;
+        static const int inBandStepThreshold = 40;
+        uint32_t val;
+        uint32_t candidateBaudRate = 0;
+        NEXUS_FrontendSatelliteNyquistFilter rolloff = pSatChannel->lastSettings.nyquistRolloff;
+
+        /* handle deprecated nyquist20 setting */
+        if (pSatChannel->lastSettings.nyquist20 && pSatChannel->lastSettings.nyquistRolloff == NEXUS_FrontendSatelliteNyquistFilter_e35)
+            rolloff = NEXUS_FrontendSatelliteNyquistFilter_e20;
+
+        switch (rolloff) {
+        case NEXUS_FrontendSatelliteNyquistFilter_e20:
+            incrementThreshold = 9;
+            break;
+        case NEXUS_FrontendSatelliteNyquistFilter_e35:
+        default:
+            incrementThreshold = 10;
+            break;
+        }
+
+        BDBG_MSG(("psdData_db[0]: %d, psdData_db[1]: %d, psdData_db[2]: %d",
+                pSatChannel->psd.data_dB[0],
+                pSatChannel->psd.data_dB[1],
+                pSatChannel->psd.data_dB[2]
+                ));
+        BDBG_MSG(("psdFreq[0]: %d, psdFreq[1]: %d, psdFreq[2]: %d",
+                pSatChannel->psd.freq[0],
+                pSatChannel->psd.freq[1],
+                pSatChannel->psd.freq[2]
+                ));
+        BDBG_MSG(("psdIndex: %d, risingFreq: %d, psdDataSize: %d",
+                pSatChannel->psd.index,
+                pSatChannel->psd.risingFreq,
+                pSatChannel->psd.dataSize
+                ));
+
+        errCode = BSAT_GetPsdScanStatus(pSatChannel->satChannel, &psdStatus);
+        if (errCode) {
+            BDBG_ERR(("BSAT_GetPsdScanStatus() error %#x", errCode));
+            BERR_TRACE(errCode);
+            goto blind_psd_step;
+        }
+
+        BDBG_MSG(("%u Hz: Fb=%d, power=%#x", psdStatus.tunerFreq, pSatChannel->psd.index, psdStatus.power));
+
+        pSatChannel->psd.dataSize++;
+        pSatChannel->psd.freq[pSatChannel->psd.index] = psStatus->curFreq;
+        val = NEXUS_Frontend_P_Sat_Log2Approx(psdStatus.power);
+        pSatChannel->psd.raw_dB[pSatChannel->psd.rawIndex] = (12 * val) / 16;
+
+        BDBG_MSG(("%u Hz: peak=%u, psd_dB=%u, raw_dB=%u, index=%d, risingType=%d, risingFreq=%u, freqPointIndex=%d",
+                pSatChannel->psd.freq[pSatChannel->psd.index],
+                psdStatus.power,
+                pSatChannel->psd.data_dB[pSatChannel->psd.index],
+                pSatChannel->psd.raw_dB[pSatChannel->psd.rawIndex],
+                pSatChannel->psd.index,
+                pSatChannel->psd.risingType,
+                pSatChannel->psd.risingFreq,
+                pSatChannel->psd.freqPointIndex
+                ));
+
+        if (pSatChannel->psd.dataSize >= 3)
+        {
+            int32_t  sortBuf[5];
+            bool bSwapped = true;
+            int i, j = 0, tmp;
+
+            /* determine the median of the last 5 points */
+            for (i = 0; i < 5; i++)
+                sortBuf[i] = pSatChannel->psd.raw_dB[i];
+            while (bSwapped)
+            {
+                bSwapped = false;
+                j++;
+                for (i = 0; i < (5 - j); i++)
+                {
+                    if (sortBuf[i] > sortBuf[i+1])
+                    {
+                        tmp = sortBuf[i];
+                        sortBuf[i] = sortBuf[i+1];
+                        sortBuf[i+1] = tmp;
+                        bSwapped = true;
+                    }
+                }
+            }
+            pSatChannel->psd.data_dB[pSatChannel->psd.index] = sortBuf[2];
+        }
+        else
+            pSatChannel->psd.data_dB[pSatChannel->psd.index] = 0;
+
+        if (pSatChannel->psd.dataSize >= 3) {
+            if (pSatChannel->psd.risingType > 0) {
+                uint32_t step;
+                /* already found a rising edge */
+                pSatChannel->psd.freqPointIndex++;
+                pSatChannel->psd.maxStep_D3 = pSatChannel->psd.maxStep_D2;
+                pSatChannel->psd.maxStep_D2 = pSatChannel->psd.maxStep_D1;
+                pSatChannel->psd.maxStep_D1 = pSatChannel->psd.maxStep;
+                step = NEXUS_Frontend_P_Sat_Abs(pSatChannel->psd.data_dB[pSatChannel->psd.index] - pSatChannel->psd.data_dB[(pSatChannel->psd.index+2)%3]);
+                if ((psStatus->stepFreq > pSatChannel->psd.maxStep) && (pSatChannel->psd.freqPointIndex > 3))
+                    pSatChannel->psd.maxStep = step;
+                if ((pSatChannel->psd.data_dB[(pSatChannel->psd.index+1)%3] - pSatChannel->psd.data_dB[pSatChannel->psd.index]) >= incrementThreshold) {
+                    /* found a falling edge */
+                    BDBG_MSG(("found a falling edge"));
+
+                    candidateBaudRate = pSatChannel->psd.freq[pSatChannel->psd.index] - pSatChannel->psd.risingFreq + (2*psStatus->stepFreq);
+                    if (candidateBaudRate >= 25000000)
+                       candidateBaudRate -= 2500000;
+
+                    BDBG_MSG(("found a falling edge: candidateBaudRate: %u, min: %u, max: %u, maxStep_D3: %u",
+                            candidateBaudRate,
+                            psSettings->minSymbolRate,
+                            psSettings->maxSymbolRate,
+                            pSatChannel->psd.maxStep_D3
+                            ));
+
+                    if ((candidateBaudRate >= psSettings->minSymbolRate) && (candidateBaudRate <= psSettings->maxSymbolRate) && (pSatChannel->psd.maxStep_D3 < (unsigned)inBandStepThreshold)) {
+                        uint32_t minFb, maxFb, rangeFb, candidateCenterFreq;
+
+found_candidate:
+                        pSatChannel->psd.numCandidates++; /* for information only */
+                        candidateCenterFreq = (pSatChannel->psd.freq[pSatChannel->psd.index] + pSatChannel->psd.risingFreq) / 2;
+                        candidateCenterFreq -= (2*psStatus->stepFreq);
+
+                        BDBG_MSG(("--> candidate found: Fc=%u, Fb=%u", candidateCenterFreq, candidateBaudRate));
+
+                        /* make sure we don't go below min_symbol_rate */
+                        switch (rolloff) {
+                        case NEXUS_FrontendSatelliteNyquistFilter_e20:
+                            if (candidateBaudRate >= 25000000)
+                                rangeFb = 2000000;
+                            else if (candidateBaudRate >= 10000000)
+                                rangeFb = 2500000;
+                            else if (candidateBaudRate >= 5000000)
+                               rangeFb = 1000000;
+                            else
+                               rangeFb = 500000;
+                            break;
+                        case NEXUS_FrontendSatelliteNyquistFilter_e35:
+                        default:
+                            if (candidateBaudRate >= 25000000)
+                                rangeFb = 4500000;
+                            else if (candidateBaudRate >= 10000000)
+                                rangeFb = 4000000;
+                            else if (candidateBaudRate >= 5000000)
+                               rangeFb = 3500000;
+                            else
+                               rangeFb = 2500000;
+                            break;
+                        }
+
+                        if (rangeFb > candidateBaudRate)
+                           minFb = psSettings->minSymbolRate;
+                        else
+                        {
+                           minFb = candidateBaudRate - rangeFb;
+                           if (minFb < psSettings->minSymbolRate)
+                              minFb = psSettings->minSymbolRate;
+                        }
+                        maxFb = candidateBaudRate + rangeFb;
+                        if (maxFb > psSettings->maxSymbolRate)
+                            maxFb = psSettings->maxSymbolRate;
+                        BDBG_MSG(("--> rangeFb: %d, minFb: %d, maxFb: %d", rangeFb, minFb, maxFb));
+
+                        /* switch to peak scan */
+                        {
+                            NEXUS_FrontendSatellitePeakscanSettings peakscanSettings;
+                            peakscanSettings.frequency = candidateCenterFreq;
+                            peakscanSettings.frequencyStep = psStatus->stepFreq;
+                            peakscanSettings.frequencyRange = 1000000;
+                            peakscanSettings.minSymbolRate = minFb;
+                            peakscanSettings.maxSymbolRate = maxFb;
+                            BDBG_MSG(("Switching to symbol scan: Freq: %d, step: %d, range: %d, min: %d, max: %d",
+                                    peakscanSettings.frequency,
+                                    peakscanSettings.frequencyStep,
+                                    peakscanSettings.frequencyRange,
+                                    peakscanSettings.minSymbolRate,
+                                    peakscanSettings.maxSymbolRate));
+                            /* re-use previous peakscanSettings.peakscanCallback */
+                            errCode = NEXUS_Frontend_P_Sat_StartSatellitePeakscan(pSatChannel, &peakscanSettings);
+                            return;
+                        }
+                    } else {
+                        /* found a channel, but it is not valid, reset the rising edge type */
+                        BDBG_MSG(("found a channel (Fb=%u), but it is not valid, reset the rising edge type", candidateBaudRate));
+                        pSatChannel->psd.risingType = 0;
+                        pSatChannel->psd.freqPointIndex = 0;
+                    }
+                } else {
+                    /* already found a rising edge, no falling edge yet */
+                    if ((pSatChannel->psd.data_dB[pSatChannel->psd.index] - pSatChannel->psd.data_dB[(pSatChannel->psd.index+1)%3]) >= incrementThreshold) {
+                        /* found rising edge by crossing the incrementThreshold */
+                        BDBG_MSG(("found rising edge by crossing the incrementThreshold"));
+                        if ((pSatChannel->psd.freq[pSatChannel->psd.index] - pSatChannel->psd.risingFreq) <= 1000000) {
+                            /* found a new rising edge that is 1MHz away from the existing risingType=1 edge */
+                            goto found_new_rising_edge;
+                        } else if ((pSatChannel->psd.freq[pSatChannel->psd.index] - pSatChannel->psd.risingFreq) >= 2000000) {
+                           /* found a new rising edge 2MHz away without finding a falling edge;
+                               for existing rising edge, assume it is also a falling edge */
+                            BDBG_MSG(("found a new rising edge 2MHz away without finding a falling edge"));
+                            candidateBaudRate = pSatChannel->psd.freq[pSatChannel->psd.index] - psStatus->stepFreq - pSatChannel->psd.risingFreq;
+                            if ((candidateBaudRate >= psSettings->minSymbolRate) && (candidateBaudRate <= psSettings->maxSymbolRate) && (pSatChannel->psd.maxStep_D3 < (unsigned)inBandStepThreshold))
+                                goto found_candidate;
+                            pSatChannel->psd.risingType = 1;
+                            pSatChannel->psd.risingFreq = pSatChannel->psd.freq[pSatChannel->psd.index];
+                            pSatChannel->psd.freqPointIndex = 1;
+                            pSatChannel->psd.maxStep = 0;
+                        }
+                    }
+                }
+            } else if ((pSatChannel->psd.data_dB[pSatChannel->psd.index] - pSatChannel->psd.data_dB[(pSatChannel->psd.index+1)%3]) >= incrementThreshold) {
+found_new_rising_edge:
+                BDBG_MSG(("found rising edge by crossing the incrementThreshold"));
+                /* found rising edge by crossing the incrementThreshold */
+                pSatChannel->psd.risingType = 1;
+                pSatChannel->psd.risingFreq = pSatChannel->psd.freq[pSatChannel->psd.index];
+                pSatChannel->psd.freqPointIndex = 1;
+                pSatChannel->psd.maxStep = 0;
+                pSatChannel->psd.maxStep_D1 = 0;
+                pSatChannel->psd.maxStep_D2 = 0;
+                pSatChannel->psd.maxStep_D3 = 0;
+            }
+        }
+        pSatChannel->psd.index = (pSatChannel->psd.index + 1) % 3;
+        pSatChannel->psd.rawIndex = (pSatChannel->psd.rawIndex + 1) % 5;
+
+blind_psd_step:
+        psStatus->curFreq += psStatus->stepFreq;
+
+        if (psStatus->curFreq < psStatus->endFreq) {
+            errCode = BSAT_StartPsdScan(pSatChannel->satChannel, psStatus->curFreq, pSatChannel->selectedAdc);
+            if (errCode != BERR_SUCCESS) {
+                BDBG_ERR(("BSAT_StartPsdScan() (psd scan) error %#x. Peak scan terminated", errCode));
+                errCode = BERR_TRACE(errCode);
+                goto done;
+            }
+            else {
+                return;
+            }
+        }
+        else {
+            if (psStatus->symRateCount > 0) {
+                BDBG_WRN(("Potential signal found at %d Hz (%d sym/sec), but reached end of scan range",
+                    psStatus->maxPeakFreq, psStatus->lastSymRate));
+            }
+            else {
+                BDBG_WRN(("No signal found using peak scan"));
+                psStatus->maxPeakFreq = 0;
+                psStatus->lastSymRate = 0;
+            }
+            psStatus->curFreq -= psStatus->stepFreq;
+            goto done;
+        }
     } else if (pSatChannel->symbolRateScan) {
         BSAT_SymbolRateScanStatus srStatus;
 
@@ -2404,7 +2758,7 @@ blind_step:
         if (psStatus->curFreq < psStatus->endFreq) {
             errCode = BSAT_StartSymbolRateScan(pSatChannel->satChannel, psStatus->curFreq, psStatus->minSymbolRate, psStatus->maxSymbolRate, pSatChannel->selectedAdc);
             if (errCode != BERR_SUCCESS) {
-                BDBG_ERR(("BAST_PeakScan() (blind scan) error %#x. Peak scan terminated", errCode));
+                BDBG_ERR(("BSAT_StartSymbolRateScan() (blind scan) error %#x. Peak scan terminated", errCode));
                 errCode = BERR_TRACE(errCode);
                 goto done;
             }
@@ -2440,8 +2794,10 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const N
 {
     BERR_Code errCode;
 
-    NEXUS_SatChannel *pSatChannel = handle;
+    NEXUS_SatChannel *pSatChannel = (NEXUS_SatChannel *)handle;
     NEXUS_SatellitePeakscanStatus *psStatus = &pSatChannel->peakscanStatus;
+
+    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
 
     BDBG_MSG(("NEXUS_Frontend_P_Sat_SatellitePeakscan: f:%d, min:%d, max:%d, r:%d, s:%d cb:[%p,%p,0x%x]",
             pSettings->frequency,
@@ -2454,10 +2810,6 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const N
             pSettings->peakscanCallback.param
             ));
 
-    BDBG_OBJECT_ASSERT(pSatChannel, NEXUS_SatChannel);
-
-    NEXUS_Frontend_P_Sat_EnableSatChannel(pSatChannel);
-
     if (!pSatChannel->peakscanEvent) {
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
@@ -2466,10 +2818,6 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const N
         pSettings->frequency + pSettings->frequencyRange > NEXUS_SATELLITE_PEAKSCAN_MAX_FREQ) {
         return BERR_TRACE(NEXUS_INVALID_PARAMETER);
     }
-
-    BSAT_ResetChannel(pSatChannel->satChannel, true);
-
-    NEXUS_TaskCallback_Set(pSatChannel->peakscanAppCallback, &pSettings->peakscanCallback);
 
     if (pSatChannel->peakscanEventCallback == NULL) {
         pSatChannel->peakscanEventCallback = NEXUS_RegisterEvent(pSatChannel->peakscanEvent,
@@ -2482,34 +2830,26 @@ static NEXUS_Error NEXUS_Frontend_P_Sat_SatellitePeakscan( void *handle, const N
         }
     }
 
-    /* setup status variables */
-    psStatus->curFreq = pSettings->frequency - pSettings->frequencyRange;
-    psStatus->endFreq = pSettings->frequency + pSettings->frequencyRange;
-    psStatus->stepFreq = pSettings->frequencyStep;
-    psStatus->symRateCount = 0;
-    psStatus->lastSymRate = 0;
-    psStatus->maxPeakPower = 0;
-    psStatus->maxPeakFreq = 0;
-    psStatus->scanFinished = false;
-    psStatus->minSymbolRate = pSettings->minSymbolRate;
-    psStatus->maxSymbolRate = pSettings->maxSymbolRate;
-    psStatus->singleScan = (pSettings->frequencyRange==0);
+    NEXUS_Frontend_P_Sat_EnableSatChannel(pSatChannel);
+
+    /* Clear any previous signal/tone searches, or an in-progress acquisition, if any. */
+    BSAT_ResetChannel(pSatChannel->satChannel, true);
+
+    NEXUS_TaskCallback_Set(pSatChannel->peakscanAppCallback, &pSettings->peakscanCallback);
+
+    pSatChannel->peakscanSettings = *pSettings;
+
 
     if (psStatus->singleScan) {
         psStatus->endFreq = psStatus->curFreq+1;
     }
 
-    pSatChannel->symbolRateScan = true;
-    pSatChannel->toneSearch = false;
+    if (pSettings->mode == NEXUS_FrontendSatellitePeakscanMode_ePowerSpectrumDensity)
+        return NEXUS_Frontend_P_Sat_SatellitePeakscanPsd(handle, pSettings);
 
-    errCode = BSAT_StartSymbolRateScan(pSatChannel->satChannel, psStatus->curFreq, psStatus->minSymbolRate, psStatus->maxSymbolRate, pSatChannel->selectedAdc);
-    if (errCode != BERR_SUCCESS) {
-        BDBG_ERR(("BSAT_StartSymbolRateScan error %#x. Peak scan (symbol rate scan) not initiated", errCode));
-        return BERR_TRACE(errCode);
-    }
-
-    return NEXUS_SUCCESS;
+    return NEXUS_Frontend_P_Sat_StartSatellitePeakscan(handle, pSettings);
 }
+
 
 static NEXUS_Error NEXUS_Frontend_P_Sat_GetSatellitePeakscanResult( void *handle, NEXUS_FrontendSatellitePeakscanResult *pResult )
 {

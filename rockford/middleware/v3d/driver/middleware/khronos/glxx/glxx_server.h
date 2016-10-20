@@ -1065,7 +1065,7 @@ extern GLXX_TEXTURE_T *glxx_server_state_get_texture(GLXX_SERVER_STATE_T *state,
 extern void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hdraw, uint32_t swapchainc, MEM_HANDLE_T hread,
                                           MEM_HANDLE_T hdepth, MEM_HANDLE_T hcolormulti, MEM_HANDLE_T hdsmulti, MEM_HANDLE_T hpreserve);
 extern bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, uint32_t name, uint64_t pid, MEM_HANDLE_T shared);
-extern void glxx_server_state_term(void *v, uint32_t size);
+extern void glxx_server_state_term(MEM_HANDLE_T handle);
 extern void glxx_server_state_flush(GLXX_SERVER_STATE_T *state, bool wait);
 
 #ifdef DISABLE_OPTION_PARSING
@@ -1074,6 +1074,17 @@ extern void glxx_server_state_set_error(GLXX_SERVER_STATE_T *state, GLenum error
 extern void glxx_server_state_set_error_ex(GLXX_SERVER_STATE_T *state, GLenum error, const char *func, unsigned int line);
 #define glxx_server_state_set_error(a, b) glxx_server_state_set_error_ex(a, b, __func__, __LINE__)
 #endif
+
+static INLINE MEM_HANDLE_T glxx_image_create_ms(KHRN_IMAGE_FORMAT_T format,
+   uint32_t width, uint32_t height,
+   KHRN_IMAGE_CREATE_FLAG_T flags,
+   bool secure)
+{
+   const int ms_dim = (int)sqrt(GLXX_CONFIG_SAMPLES);
+   return khrn_image_create(format,
+      ms_dim * width, ms_dim * height,
+      flags, secure);
+}
 
 /*
    Prototypes for server-side implementation functions.

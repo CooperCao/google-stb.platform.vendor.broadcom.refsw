@@ -256,6 +256,14 @@ void NEXUS_HdmiInput_GetDefaultSettings(NEXUS_HdmiInputSettings *pHdmiInputDefau
 
     /* default to use internally declared EDID */
     pHdmiInputDefaultSettings->useInternalEdid = true ;
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->avMuteChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->sourceChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->aviInfoFrameChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->audioInfoFrameChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->spdInfoFrameChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->vendorSpecificInfoFrameChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->audioContentProtectionChanged);
+    NEXUS_CallbackDesc_Init(&pHdmiInputDefaultSettings->frontend.hotPlugCallback);
 
     return;
 }
@@ -459,6 +467,9 @@ NEXUS_HdmiInputHandle NEXUS_HdmiInput_Open(unsigned index, const NEXUS_HdmiInput
 
     g_NEXUS_hdmiInput.handle[index] = hdmiInput ;
     NEXUS_OBJECT_REGISTER(NEXUS_VideoInput, &hdmiInput->videoInput, Open);
+#if NEXUS_HAS_AUDIO
+    NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &hdmiInput->audioInput, Open);
+#endif
 
 	/* Initialize HDCP2.2 sage module */
 #if NEXUS_HAS_SAGE && defined(NEXUS_HAS_HDCP_2X_RX_SUPPORT)
@@ -644,6 +655,9 @@ static void NEXUS_HdmiInput_P_Release(NEXUS_HdmiInputHandle hdmiInput)
 {
     NEXUS_OBJECT_ASSERT(NEXUS_HdmiInput, hdmiInput);
     NEXUS_OBJECT_UNREGISTER(NEXUS_VideoInput, &hdmiInput->videoInput, Close);
+#if NEXUS_HAS_AUDIO
+    NEXUS_OBJECT_UNREGISTER(NEXUS_AudioInput, &hdmiInput->audioInput, Close);
+#endif
 }
 
 NEXUS_OBJECT_CLASS_MAKE_WITH_RELEASE(NEXUS_HdmiInput, NEXUS_HdmiInput_Close);

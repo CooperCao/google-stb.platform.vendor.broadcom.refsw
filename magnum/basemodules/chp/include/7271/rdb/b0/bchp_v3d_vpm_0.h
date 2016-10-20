@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,8 +70,8 @@
 /***************************************************************************
  *V3D_VPM_0 - V3D Vertex Pipe Memory Allocation Registers
  ***************************************************************************/
-#define BCHP_V3D_VPM_0_ACNTL                     0x21208500 /* [RW] VPM Allocator Control */
-#define BCHP_V3D_VPM_0_MEMBASE                   0x21208504 /* [RW] VPM base (user) memory reservation (DEPRECATED) */
+#define BCHP_V3D_VPM_0_ACNTL                     0x21208500 /* [RW][32] VPM Allocator Control */
+#define BCHP_V3D_VPM_0_MEMBASE                   0x21208504 /* [RW][32] VPM base (user) memory reservation (DEPRECATED) */
 
 /***************************************************************************
  *ACNTL - VPM Allocator Control

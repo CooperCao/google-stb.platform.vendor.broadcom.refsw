@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2014 Broadcom Corporation
+*  Copyright (C) 2008-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -421,6 +413,16 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
     memset(pCap, 0, size);
     fprintf(stderr, "### libnexus_client.so does not implement NEXUS_GetPlatformCapabilities\n");
     return;
+}
+
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged(const NEXUS_PlatformSettings *pSettings,
+    const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size )
+{
+    BSTD_UNUSED(pSettings);
+    BSTD_UNUSED(pMemConfig);
+    memset(pCap, 0, size);
+    fprintf(stderr, "### libnexus_client.so does not implement NEXUS_GetPlatformConfigCapabilities\n");
+    return -1;
 }
 
 NEXUS_Error NEXUS_Platform_Init_tagged( const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig,

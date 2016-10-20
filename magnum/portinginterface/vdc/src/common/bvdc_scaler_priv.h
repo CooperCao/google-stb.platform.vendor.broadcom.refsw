@@ -128,78 +128,24 @@ extern "C" {
 #define BVDC_P_SCL_REGS_COUNT      \
     BVDC_P_REGS_ENTRIES(SCL_0_REG_START, SCL_0_REG_END)
 
-    /* get register offset base on id. */
-#ifdef BCHP_SCL_7_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl7==(scaler_id)) ? (BCHP_SCL_7_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl6==(scaler_id)) ? (BCHP_SCL_6_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl5==(scaler_id)) ? (BCHP_SCL_5_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl4==(scaler_id)) ? (BCHP_SCL_4_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl3==(scaler_id)) ? (BCHP_SCL_3_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_6_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl6==(scaler_id)) ? (BCHP_SCL_6_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl5==(scaler_id)) ? (BCHP_SCL_5_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl4==(scaler_id)) ? (BCHP_SCL_4_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl3==(scaler_id)) ? (BCHP_SCL_3_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_5_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl5==(scaler_id)) ? (BCHP_SCL_5_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl4==(scaler_id)) ? (BCHP_SCL_4_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl3==(scaler_id)) ? (BCHP_SCL_3_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_4_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl4==(scaler_id)) ? (BCHP_SCL_4_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl3==(scaler_id)) ? (BCHP_SCL_3_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_3_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl3==(scaler_id)) ? (BCHP_SCL_3_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_2_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl2==(scaler_id)) ? (BCHP_SCL_2_REG_START - BCHP_SCL_0_REG_START) \
-    :(BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_SCL_1_REG_START
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) \
-    ((BVDC_P_ScalerId_eScl1==(scaler_id)) ? (BCHP_SCL_1_REG_START - BCHP_SCL_0_REG_START) \
-    :(0))
-#else
-#define BVDC_P_SCL_GET_REG_OFFSET(scaler_id) (0)
-#endif /* SCL_1 */
-#endif /* SCL_2 */
-#endif /* SCL_3 */
-#endif /* SCL_4 */
-#endif /* SCL_5 */
-#endif /* SCL_6 */
-#endif /* SCL_7 */
 
     /* PR48032: Account for Kell Factor.  In the case of P -> I. */
 #define BVDC_P_SCL_KELL_FACTOR                (70) /* 0.70 */
 #define BVDC_P_APPLY_KELL_FACTOR(ulFirStep)   \
     (((ulFirStep) * 100) / (2 * BVDC_P_SCL_KELL_FACTOR))
 
-    /* fixed point stuffs */
+
+/* Fixed point defines */
+/* Normalized fixed point precision for SCL PIC OFFSET and PAN-SCAN.
+   Top component is S11.14 and left component is S11.6 */
+#define BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS                (14)
+#define BVDC_P_SCL_TOP_PIC_OFFSET_F_MASK                (0x3FFF)
+#define BVDC_P_SCL_TOP_PIC_OFFSET_SIGN_I_BITS           (12)
+
+#define BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS               (6)
+#define BVDC_P_SCL_LEFT_PIC_OFFSET_F_MASK               (0x3F)
+#define BVDC_P_SCL_LEFT_PIC_OFFSET_SIGN_I_BITS          (12)
+
 #if BVDC_P_SUPPORT_SCL_VER < BVDC_P_SUPPORT_SCL_VER_4
 #define BVDC_P_SCL_H_NRM_I_BITS               (5)
 #else
@@ -405,7 +351,7 @@ extern "C" {
     BVDC_P_CT_UNUSED,                                                         \
     BVDC_P_CT_UNUSED,                                                         \
     (table),                                                                  \
-    #table                                                                    \
+    BDBG_STRING_INLINE(#table)                                                \
 }
 
 #define BVDC_P_CT_H_SIZE_INPUT(index, input, raster, srcsize, dstsize, delta, tap, table) \
@@ -421,7 +367,7 @@ extern "C" {
     (dstsize),                                                                \
     (delta),                                                                  \
     (table),                                                                  \
-    #table                                                                    \
+    BDBG_STRING_INLINE(#table)                                                       \
 }
 
 #define BVDC_P_CT_H_SIZE(srcsize, dstsize, delta, tap, table) \
@@ -473,7 +419,7 @@ extern "C" {
     BVDC_P_CT_UNUSED,                                                         \
     BVDC_P_CT_UNUSED,                                                         \
     (table),                                                                  \
-    #table                                                                    \
+    BDBG_STRING_INLINE(#table)                                                       \
 }
 
 #define BVDC_P_CT_V_SIZE_INPUT(index, input, raster, srcsize, dstsize, delta, tap, table) \
@@ -489,7 +435,7 @@ extern "C" {
     (dstsize),                                                                \
     (delta),                                                                  \
     (table),                                                                  \
-    #table                                                                    \
+    BDBG_STRING_INLINE(#table)                                                       \
 }
 
 #define BVDC_P_CT_V_SIZE(srcsize, dstsize, delta, tap, table) \
@@ -546,17 +492,17 @@ extern "C" {
 #define BVDC_P_CT_USER_SELECTABLE(index, tap, table) \
     {(index), BVDC_P_CtInput_eAny, BVDC_P_CtOutput_eAny, BVDC_P_CtRaster_eAny, BVDC_P_CtLutOp_eUserSelectable, \
     BVDC_P_CT_UNUSED, (tap), BVDC_P_CT_UNUSED, \
-    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), #table}
+    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), BDBG_STRING_INLINE(#table)}
 
 #define BVDC_P_CT_ALWAYS(table) \
     {0, BVDC_P_CtInput_eAny, BVDC_P_CtOutput_eAny, BVDC_P_CtRaster_eAny, BVDC_P_CtLutOp_eAlways,  \
     BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, \
-    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), #table}
+    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), BDBG_STRING_INLINE(#table)}
 
 #define BVDC_P_CT_ALWAYS_TAP(tap, table) \
     {0, BVDC_P_CtInput_eAny, BVDC_P_CtOutput_eAny, BVDC_P_CtRaster_eAny, BVDC_P_CtLutOp_eAlways, \
     BVDC_P_CT_UNUSED, (tap), BVDC_P_CT_UNUSED, \
-    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), #table}
+    BVDC_P_CT_UNUSED, BVDC_P_CT_UNUSED, (table), BDBG_STRING_INLINE(#table)}
 
 #define BVDC_P_CT_END \
     {0, BVDC_P_CtInput_eAny, BVDC_P_CtOutput_eAny, BVDC_P_CtRaster_eAny, BVDC_P_CtLutOp_eLast,    \

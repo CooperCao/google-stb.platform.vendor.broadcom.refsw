@@ -1,23 +1,44 @@
 /***************************************************************************
- *     Copyright (c) 2009-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
- ***************************************************************************/
+ * Module Description:
+ *   See Module Overview below.
+ *
+ *****************************************************************************/
 
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
@@ -106,12 +127,12 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    hXvd->uiCmdBufferVector = hXvd->uiOuterLoopInstructionBase + stBAFLoadInfo.stCode.uiSize;
    pvCmdBuffer = (void *)(hXvd->uiFWMemBaseVirtAddr + stBAFLoadInfo.stCode.uiSize);
 
-   BXVD_DBG_MSG(hXvd, ("OL InstrBase: %08x", hXvd->uiOuterLoopInstructionBase));
-   BXVD_DBG_MSG(hXvd, ("OL Start of code addr: %0x",    hXvd->uiOuterLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("OL InstrBase: %08x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("OL Start of code addr: %0x", (unsigned int)hXvd->uiOuterLoopInstructionBase));
 
    BXVD_DBG_MSG(hXvd, ("OL Code Size: %08x",  stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("OL Data Size: %08x",  stBAFLoadInfo.stData.uiSize));
-   BXVD_DBG_MSG(hXvd, ("OL End of code: %x", hXvd->uiOuterLoopEOC));
+   BXVD_DBG_MSG(hXvd, ("OL End of code: %x",  (unsigned int)hXvd->uiOuterLoopEOC));
 
    BXVD_DBG_MSG(hXvd, ("Loading Inner Loop ELF image"));
 
@@ -154,15 +175,15 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
    hXvd->uiInnerLoopInstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_IMAGE_OFFSET;
    uiEndOfCode = hXvd->uiInnerLoopInstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
-   BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", hXvd->uiInnerLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("IL Start of Code: %08x", (unsigned int) hXvd->uiInnerLoopInstructionBase));
    BXVD_DBG_MSG(hXvd, ("IL Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
    BXVD_DBG_MSG(hXvd, ("IL Data Size: %08x", stBAFLoadInfo.stData.uiSize));
-   BXVD_DBG_MSG(hXvd, ("IL End of Code:: %08x",  uiEndOfCode));
+   BXVD_DBG_MSG(hXvd, ("IL End of Code:: %08x",  (unsigned int) uiEndOfCode));
 
    hXvd->uiInnerLoopEOC = uiEndOfCode - hXvd->uiInnerLoopInstructionBase;
 
-   BXVD_DBG_MSG(hXvd, ("InnerLoopInstBase: %08x", hXvd->uiInnerLoopInstructionBase));
-   BXVD_DBG_MSG(hXvd, ("End of inner loop code at %x", hXvd->uiInnerLoopEOC));
+   BXVD_DBG_MSG(hXvd, ("InnerLoopInstBase: %08x", (unsigned int) hXvd->uiInnerLoopInstructionBase));
+   BXVD_DBG_MSG(hXvd, ("End of inner loop code at %x", (unsigned int) hXvd->uiInnerLoopEOC));
 
    hXvd->stDecoderContext.ulCmdBufferAddr = (unsigned long) pvCmdBuffer;
    hXvd->stDecoderContext.ulRspBufferAddr = (unsigned long) pvCmdBuffer;
@@ -196,15 +217,15 @@ BERR_Code BXVD_P_FWLoad_RevN0(BXVD_Handle hXvd,
       hXvd->uiInnerLoop2InstructionBase = hXvd->uiFWMemBasePhyAddr + BXVD_P_FW_INNER_2_IMAGE_OFFSET;
       uiEndOfCode = hXvd->uiInnerLoop2InstructionBase + stBAFLoadInfo.stCode.uiSize + stBAFLoadInfo.stData.uiSize;
 
-      BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", hXvd->uiInnerLoop2InstructionBase));
+      BXVD_DBG_MSG(hXvd, ("IL 2 Start of Code: %08x", (unsigned int) hXvd->uiInnerLoop2InstructionBase));
       BXVD_DBG_MSG(hXvd, ("IL 2 Code Size: %08x", stBAFLoadInfo.stCode.uiSize));
       BXVD_DBG_MSG(hXvd, ("IL 2 Data Size: %08x", stBAFLoadInfo.stData.uiSize));
-      BXVD_DBG_MSG(hXvd, ("IL 2 End of Code: %08x",  uiEndOfCode));
+      BXVD_DBG_MSG(hXvd, ("IL 2 End of Code: %08x",  (unsigned int) uiEndOfCode));
 
       hXvd->uiInnerLoop2EOC = uiEndOfCode - hXvd->uiInnerLoopInstructionBase;
 
-      BXVD_DBG_MSG(hXvd, ("InnerLoop2InstBase: %08x", hXvd->uiInnerLoop2InstructionBase));
-      BXVD_DBG_MSG(hXvd, ("End of inner loop 2 code at %x", hXvd->uiInnerLoop2EOC));
+      BXVD_DBG_MSG(hXvd, ("InnerLoop2InstBase: %08x", (unsigned int) hXvd->uiInnerLoop2InstructionBase));
+      BXVD_DBG_MSG(hXvd, ("End of inner loop 2 code at %x", (unsigned int) hXvd->uiInnerLoop2EOC));
    }
 #endif
 

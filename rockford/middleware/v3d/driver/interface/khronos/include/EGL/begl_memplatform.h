@@ -39,7 +39,9 @@ typedef struct BEGL_MemCopy2d
    uint16_t          width;
    uint16_t          height;
    int32_t           stride;
+   int32_t           dstStride;
    BEGL_BufferFormat format;
+   bool              secure;
 } BEGL_MemCopy2d;
 
 /* The platform MUST provide an implementation of this interface in order that the EGL driver
@@ -81,6 +83,12 @@ typedef struct
 
    /* Unlock device memory. Once it is unlocked it *MAY* not be CPU accessible and can be moved */
    void (*MemUnlock)(void *context, void *handle);
+
+   /*** Special interface for KHRN_AUTOCLIF (Internal use only) ****/
+   void *(*DebugAutoclifAddrToPtr)(void *context, uint32_t addr);
+   uint32_t (*DebugAutoclifPtrToAddr)(void *context, void *p);
+   const char *(*DebugAutoclifGetClifFilename)(void *context);
+   void(*DebugAutoclifReset)(void *context);
 
 } BEGL_MemoryInterface;
 

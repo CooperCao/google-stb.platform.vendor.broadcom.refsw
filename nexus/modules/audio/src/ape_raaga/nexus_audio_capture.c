@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -344,7 +344,6 @@ err_param:
     BKNI_Free(procHandle);
     NEXUS_OBJECT_UNSET(NEXUS_AudioCapture, handle);
 err_handle:
-    BKNI_Free(handle);
 err_index:
     NEXUS_CLIENT_RESOURCES_RELEASE(audioCapture,IdList,org_index);
 err_acquire:
@@ -465,6 +464,8 @@ void NEXUS_AudioCapture_GetDefaultStartSettings(
 {
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->dataCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->sampleRateCallback);
 }
 
 NEXUS_Error NEXUS_AudioCapture_Start(

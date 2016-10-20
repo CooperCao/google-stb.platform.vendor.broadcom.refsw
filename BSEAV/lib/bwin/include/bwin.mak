@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -51,7 +51,7 @@ else
 DEBUG_SUFFIX=release
 endif
 
-BWIN_LIBDIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bwin/lib/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+BWIN_LIBDIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/bwin
 
 BWIN_CFLAGS = -I$(BWIN_DIR)/include
 BWIN_LDFLAGS = -L$(BWIN_LIBDIR) -lbwin
@@ -67,13 +67,6 @@ JPEG_SUPPORT = y
 
 LIB_DIR = $(BSEAV)/lib
 
-ifeq ($(SYSTEM),vxworks)
-EXIF_SUPPORT = n
-else
-EXIF_SUPPORT = y
-endif
-
-LIBEXIF_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/libexif-0.6.21
 LIBPNG_DIR = $(BSEAV)/lib/libpng
 LIBPNG_ODIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/libpng
 ZLIB_DIR = $(BSEAV)/lib/zlib
@@ -91,8 +84,4 @@ endif
 
 ifeq ($(JPEG_SUPPORT),y)
 BWIN_LDFLAGS += -L$(LIBJPEG_ODIR) -ljpeg
-endif
-
-ifeq ($(EXIF_SUPPORT),y)
-BWIN_LDFLAGS += -L$(LIBEXIF_DIR)/libexif/.libs -lexif
 endif

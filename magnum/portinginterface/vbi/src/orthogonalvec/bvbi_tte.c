@@ -80,7 +80,6 @@ static uint32_t P_GetCoreOffset_isr (bool is656, uint8_t hwCoreIndex);
 #if (BVBI_NUM_TTE >= 1) || (BVBI_NUM_TTE_656 >= 1)
 static BERR_Code BVBI_P_TT_Enc_Program_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
@@ -125,7 +124,6 @@ void BVBI_P_TT_Enc_Init_isr (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex)
  */
 BERR_Code BVBI_P_TT_Enc_Program (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
@@ -141,7 +139,7 @@ BERR_Code BVBI_P_TT_Enc_Program (
     BDBG_ENTER(BVBI_P_TT_Enc_Program);
     BKNI_EnterCriticalSection();
     retval = BVBI_P_TT_Enc_Program_isr (
-        hReg, hMem, is656, hwCoreIndex, bActive, bXserActive,
+        hReg, is656, hwCoreIndex, bActive, bXserActive,
         eVideoFormat, tteShiftDirMsb2Lsb, xserSettings, topData, botData);
     BKNI_LeaveCriticalSection();
     BDBG_LEAVE(BVBI_P_TT_Enc_Program);
@@ -153,7 +151,6 @@ BERR_Code BVBI_P_TT_Enc_Program (
  */
 static BERR_Code BVBI_P_TT_Enc_Program_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
@@ -176,7 +173,8 @@ static BERR_Code BVBI_P_TT_Enc_Program_isr (
     uint8_t  ucNumLinesBF;
     uint8_t  ucBytesPerLine;
 
-    uint32_t offset;
+    BMMA_DeviceOffset offset;
+    uint64_t ullAddressReg;
     uint32_t ulCoreOffset;
     uint32_t ulShiftDir;
     BERR_Code eErr;
@@ -362,15 +360,16 @@ static BERR_Code BVBI_P_TT_Enc_Program_isr (
     }
 
     /* Prepare to send data in the encode handle */
-    eErr = BERR_TRACE (BMEM_ConvertAddressToOffset_isr (
-        hMem, topData->pucData, &offset));
-    BDBG_ASSERT (eErr == BERR_SUCCESS);
-    BREG_Write32 (hReg, BCHP_TTE_0_read_address_top + ulCoreOffset, offset);
-    eErr = BERR_TRACE (BMEM_ConvertAddressToOffset_isr (
-        hMem, botData->pucData, &offset));
-    BDBG_ASSERT (eErr == BERR_SUCCESS);
-    BREG_Write32 (
-        hReg, BCHP_TTE_0_read_address_bottom + ulCoreOffset, offset);
+    offset = topData->mmaData.pHwAccess;
+    ullAddressReg =
+        BCHP_FIELD_DATA (TTE_0_read_address_top, SlabAddress, offset);
+    BREG_WriteAddr (hReg,
+        BCHP_TTE_0_read_address_top    + ulCoreOffset, ullAddressReg);
+    offset = botData->mmaData.pHwAccess;
+    ullAddressReg =
+        BCHP_FIELD_DATA (TTE_0_read_address_bottom, SlabAddress, offset);
+    BREG_WriteAddr (hReg,
+        BCHP_TTE_0_read_address_bottom + ulCoreOffset, ullAddressReg);
 
     /* Update the field handles that send the data */
     topData->ucLines    = ucNumLinesTF;
@@ -394,7 +393,6 @@ static BERR_Code BVBI_P_TT_Enc_Program_isr (
  */
 uint32_t BVBI_P_TT_Encode_Data_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -417,17 +415,14 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
     uint32_t H_Lines;
     uint32_t H_Status;
     uint32_t ulStatusReg;
+    uint64_t ullAddressReg;
     uint16_t usStartLineTF;
     uint16_t usStartLineBF;
     uint8_t  ucMinLines;
     uint8_t  ucMinLineSize;
     uint32_t ulLinesReg;
-    uint32_t offset;
     uint32_t lineMask;
-#ifndef BVBI_P_TTE_WA15
-    void*    cached_ptr;
-    BERR_Code eErr;
-#endif
+    BVBI_P_MmaData* pMmaData;
     uint32_t ulErrInfo = 0;
 
     /* Debug code
@@ -524,6 +519,9 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
         return ulErrInfo;
     }
 
+    /* Convenience */
+    pMmaData = &(pTTDataNext->mmaData);
+
     /* Read the status register */
     ulStatusReg = BREG_Read32 (hReg, H_Status);
 
@@ -544,14 +542,9 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
         ulStatusReg = BCHP_MASK (TTE_0_status, data_sent_tf);
 
         /* Give hardware a new place to encode data from */
-        if (BMEM_ConvertAddressToOffset_isr (
-            hMem, pTTDataNext->pucData, &offset) !=
-            BERR_SUCCESS)
-        {
-            ulErrInfo = (uint32_t)(-1);
-            goto done;
-        }
-        BREG_Write32 (hReg, H_ReAdTop, offset);
+        ullAddressReg = BCHP_FIELD_DATA (
+            TTE_0_read_address_top, SlabAddress, pMmaData->pHwAccess);
+        BREG_WriteAddr (hReg, H_ReAdTop, ullAddressReg);
 
         /* Program the masking register */
 #if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE)
@@ -559,21 +552,9 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
 #else
         lineMask =  BVBI_P_LEBE_SWAP (pTTDataNext->lineMask);
 #endif
-#ifdef BVBI_P_TTE_WA15
-        /* This is not working on 3563-C0 */
-        BREG_Write32 (hReg, H_MaskTop, lineMask);
-#else
         BREG_Write32 (hReg, H_MaskTop, 0xFFFFFFFF);
-        eErr = BMEM_ConvertAddressToCached_isr (
-            hMem, pTTDataNext->pucData, &cached_ptr);
-        if (eErr != BERR_SUCCESS)
-        {
-            ulErrInfo = (uint32_t)(-1);
-            goto done;
-        }
-        *(uint32_t*)(cached_ptr) = lineMask;
-        BMEM_FlushCache_isr (hMem, cached_ptr, sizeof(uint32_t));
-#endif
+        *(uint32_t*)(pMmaData->pSwAccess) = lineMask;
+        BVBI_P_MmaFlush_isrsafe (pMmaData, sizeof(uint32_t));
 
         /* Continue programming the lines_active register */
         ulLinesReg &= ~BCHP_MASK (TTE_0_lines_active, startline_tf);
@@ -598,14 +579,9 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
         ulStatusReg = BCHP_MASK (TTE_0_status, data_sent_bf);
 
         /* Give hardware a new place to encode data from */
-        if (BMEM_ConvertAddressToOffset_isr (
-            hMem, pTTDataNext->pucData, &offset) !=
-            BERR_SUCCESS)
-        {
-            ulErrInfo = (uint32_t)(-1);
-            goto done;
-        }
-        BREG_Write32 (hReg, H_ReAdBot, offset);
+        ullAddressReg = BCHP_FIELD_DATA (
+            TTE_0_read_address_bottom, SlabAddress, pMmaData->pHwAccess);
+        BREG_WriteAddr (hReg, H_ReAdBot, ullAddressReg);
 
         /* Program the masking register */
 #if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE)
@@ -613,31 +589,15 @@ uint32_t BVBI_P_TT_Encode_Data_isr (
 #else
         lineMask =  BVBI_P_LEBE_SWAP (pTTDataNext->lineMask);
 #endif
-#ifdef BVBI_P_TTE_WA15
-        /* This is not working on 3563-C0 */
-        BREG_Write32 (hReg, H_MaskBot, lineMask);
-#else
         BREG_Write32 (hReg, H_MaskBot, 0xFFFFFFFF);
-        eErr = BMEM_ConvertAddressToCached_isr (
-            hMem, pTTDataNext->pucData, &cached_ptr);
-        if (eErr != BERR_SUCCESS)
-        {
-            ulErrInfo = (uint32_t)(-1);
-            goto done;
-        }
-        *(uint32_t*)(cached_ptr) = lineMask;
-        BMEM_FlushCache_isr (hMem, cached_ptr, sizeof(uint32_t));
-#endif
+        *(uint32_t*)(pMmaData->pSwAccess) = lineMask;
+        BVBI_P_MmaFlush_isrsafe (pMmaData, sizeof(uint32_t));
 
         /* Continue programming the lines_active register */
         ulLinesReg &= ~BCHP_MASK (TTE_0_lines_active, startline_bf);
         ulLinesReg |=  BCHP_FIELD_DATA (
             TTE_0_lines_active, startline_bf,
             pTTDataNext->firstLine + usStartLineBF);
-
-        /* Debug code
-        printme = pTTDataNext->pucData;
-        */
     }
 
     /* Finish programming the lines_active register */

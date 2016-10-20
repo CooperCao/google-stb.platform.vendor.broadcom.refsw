@@ -87,6 +87,10 @@ CFLAGS      += -std=gnu99
 CFLAGS      += -D_GNU_SOURCE
 CFLAGS      += $(addprefix -D,$(LIBBCM_ASTRA_DEFINES))
 
+ifeq (y,$(DEBUG_ENABLE_COREDUMP))
+CFLAGS      += -I$(ROOTDIR)/user/gdb/include/gdb -I$(ROOTDIR)/user/gdb/include -I$(ROOTDIR)/user/gdb/gdb -I$(ROOTDIR)/lib/binutils/include -I$(ROOTDIR)/lib/binutils/bfd
+endif
+
 CPPFLAGS    := $(INCLUDES) $(DEPENDFLAGS) $(ARCHFLAGS) $(OSFLAGS)
 CPPFLAGS    += $(BASEFLAGS) $(WARNFLAGS) $(CHIPFLAGS)
 CPPFLAGS    += -std=c++11

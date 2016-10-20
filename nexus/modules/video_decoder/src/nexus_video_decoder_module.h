@@ -479,12 +479,6 @@ struct NEXUS_VideoDecoder {
     } stc;
 
     NEXUS_VideoDecoderExternalTsmData externalTsm;
-    union {
-        /* large status data for functions, this assumes that data is not used in the single call graph */
-        struct {
-            NEXUS_VideoDecoderFrameStatus status[NEXUS_P_MAX_ELEMENTS_IN_VIDEO_DECODER_PIC_QUEUE];
-        } returnOutstandingFrames_Avd;
-    } functionData;
     struct {
         unsigned maxWidth, maxHeight, refreshRate; /* derived from memconfig's maxFormat, cached here */
     } memconfig;
@@ -719,6 +713,7 @@ NEXUS_Error NEXUS_VideoDecoder_P_SetDiscardThreshold_Avd(NEXUS_VideoDecoderHandl
 
 NEXUS_MemoryBlockHandle NEXUS_VideoDecoder_P_MemoryBlockFromMma(NEXUS_VideoDecoderHandle decoder, BMMA_Block_Handle mma);
 bool nexus_p_use_secure_picbuf(NEXUS_VideoDecoderHandle videoDecoder);
+struct NEXUS_VideoDecoderDevice *nexus_video_decoder_p_any_device(void);
 
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_StillDecoder);
 NEXUS_OBJECT_CLASS_DECLARE(NEXUS_VideoDecoderPrimer);

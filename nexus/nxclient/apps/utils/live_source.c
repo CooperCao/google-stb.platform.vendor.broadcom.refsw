@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -382,10 +382,10 @@ static int build_psi(unsigned pmtPid, void *buffer, unsigned size, unsigned *pSi
         switch(pscan_results->program_info[program].audio_pids[0].codec) {
         case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
         case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-        case NEXUS_AudioCodec_eAac:          audStreamType = 0xf; break; /* ADTS */
-        case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-        /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+        case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
+        case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
+        case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
+        case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
         case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
         case NEXUS_AudioCodec_eLpcm1394:     audStreamType = 0x83; break;
         default: return BERR_TRACE(NEXUS_NOT_SUPPORTED);

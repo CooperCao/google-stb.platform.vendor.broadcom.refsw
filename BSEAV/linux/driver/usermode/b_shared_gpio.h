@@ -55,7 +55,7 @@ typedef struct b_shared_gpio_module_init_settings {
 } b_shared_gpio_module_init_settings;
 
 typedef struct b_shared_gpio_capabilities {
-    int feature_supported; /* bool */
+    bool feature_supported;
 } b_shared_gpio_capabilities;
 
 void b_shared_gpio_init_submodule(const b_shared_gpio_module_init_settings * settings);
@@ -71,7 +71,9 @@ int b_shared_gpio_open_pin(const b_shared_gpio_pin_desc * pin_desc, b_shared_gpi
 void b_shared_gpio_close_pin(const b_shared_gpio_pin_desc * pin_desc);
 void b_shared_gpio_get_int_status(b_shared_gpio_int_status * status);
 int b_shared_gpio_clear_int(const b_shared_gpio_pin_desc * pin_desc);
-int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, int disable /* bool */);
-int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, int enable /* bool */);
+int b_shared_gpio_set_int_mask(const b_shared_gpio_pin_desc * pin_desc, bool disabled);
+int b_shared_gpio_set_standby(const b_shared_gpio_pin_desc * pin_desc, bool enabled);
+/* this function expects the caller to acquire the irq spinlock */
+void b_shared_gpio_reenable_irqs_spinlocked(void);
 
 #endif /* B_SHARED_GPIO_H */

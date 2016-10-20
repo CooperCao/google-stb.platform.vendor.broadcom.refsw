@@ -1,55 +1,44 @@
-/***************************************************************************
- *     (c)2005-2013 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
- *  Except as expressly set forth in the Authorized License,
- *   
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
- *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * [File Description:]
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * Revision History:
+ * Except as expressly set forth in the Authorized License,
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bkni.h"
-#ifdef LEAP_BASED_CODE 
+#ifdef LEAP_BASED_CODE
 #include "btmr.h"
 #include "bads_def.h"
 #include "bads_irq.h"
@@ -61,7 +50,7 @@
 #define IMC 0
 #define HRC 0
 #else
-#include "bchp_tm.h" 
+#include "bchp_tm.h"
 #endif
 #include "bads_api.h"
 #if (BCHP_FAMILY==3128)
@@ -73,7 +62,7 @@
 #define IMC 0
 #define HRC 0
 #endif
-#if (BCHP_FAMILY==3461) || (BCHP_FAMILY==3462) 
+#if (BCHP_FAMILY==3461) || (BCHP_FAMILY==3462)
 #include "btnr_global_clk.h"
 #define WFE 0
 #define IMC 1
@@ -84,13 +73,13 @@
 #include "bads_global_clk.h"
 #define WFE 0
 #define IMC 0
-#define HRC 0 
+#define HRC 0
 #endif
 #if (BCHP_CHIP==7552)
 #include "bads_global_clk.h"
 #define WFE 0
 #define IMC 0
-#define HRC 0 
+#define HRC 0
 #endif
 #include "bads.h"
 #include "bads_mth.h"
@@ -109,7 +98,7 @@
 #include "bchp_ds_tops.h"
 
 /*registers needed for the functions in this file*/
-#include "bchp_ds.h" 
+#include "bchp_ds.h"
 
 #ifndef LEAP_BASED_CODE
 BDBG_MODULE(bads_acquire);
@@ -126,9 +115,9 @@ BERR_Code BADS_P_Initialize(BADS_3x7x_ChannelHandle hChn)
 	BDBG_MSG(("BADS_P_Initialize "));
 	/********************************************************************************
 	*The BADS_Acquire_Params_t and BADS_Scan_Params_t structures are set by the PI
-	*The code will not work properly if they are not initialized by the PI   
+	*The code will not work properly if they are not initialized by the PI
 	********************************************************************************/
-	
+
 	/*Initialize the BADS_Internal_Params_t Structure
 	 *these parameters are used locally to send parameters into the ADS functions*/
 	hChn->pChnAcqParam->BADS_Internal_Params.BigEQ_te                   = INIT_BIG_EQ;
@@ -143,7 +132,7 @@ BERR_Code BADS_P_Initialize(BADS_3x7x_ChannelHandle hChn)
 	hChn->pChnAcqParam->BADS_Internal_Params.Callback_Enable_te         = INIT_CALLBACK_ENABLE;
 	hChn->pChnAcqParam->BADS_Internal_Params.Timing_Scan_Threshold_u32  = INIT_TIMING_SCAN_THRESHOLD;
 	hChn->pChnAcqParam->BADS_Internal_Params.Carrier_Scan_Threshold_u32 = INIT_CARRIER_SCAN_THRESHOLD;
-                      
+
 	/*Initialize the BADS_Local_Params_t structure*/
 	hChn->pChnAcqParam->BADS_Local_Params.AcqType_te            = BADS_Local_Params_AcqType_eFastAcquire;
 	hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te          = BADS_Local_Params_AcqStatus_eNoPower;
@@ -154,14 +143,14 @@ BERR_Code BADS_P_Initialize(BADS_3x7x_ChannelHandle hChn)
 	hChn->pChnAcqParam->BADS_Local_Params.Q512A_b               = false;
 	hChn->pChnAcqParam->BADS_Local_Params.Q256A_b               = false;
 	hChn->pChnAcqParam->BADS_Local_Params.Q256B_b               = true;
-	hChn->pChnAcqParam->BADS_Local_Params.Q64A_b                = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Q64B_b                = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Q16A_b                = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Q128A_b               = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Q32A_b                = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Q1024B_b              = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.IS_b                  = false;	
-	hChn->pChnAcqParam->BADS_Local_Params.Flip_Spectrum_b       = false;	
+	hChn->pChnAcqParam->BADS_Local_Params.Q64A_b                = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Q64B_b                = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Q16A_b                = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Q128A_b               = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Q32A_b                = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Q1024B_b              = false;
+	hChn->pChnAcqParam->BADS_Local_Params.IS_b                  = false;
+	hChn->pChnAcqParam->BADS_Local_Params.Flip_Spectrum_b       = false;
 
 	hChn->pChnAcqParam->BADS_Local_Params.DoneFirstTimeFlag_te  = BADS_Local_Params_eEnable;
 	hChn->pChnAcqParam->BADS_Local_Params.Annex_te				= BADS_Local_Params_Annex_eAnnexB;
@@ -178,17 +167,17 @@ BERR_Code BADS_P_Initialize(BADS_3x7x_ChannelHandle hChn)
 	hChn->pChnAcqParam->BADS_Local_Params.SampleRate_u32		= F_HS;    /*This is defined in the global_clk.h file from the WFE or UFE*/
 	hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32           = 2*F_HS;  /*This is ALWAYS 2*F_HS*/
 	/*The following were added for the api.c and will be initialized by the PI
-	hChn->pChnAcqParam->BADS_Local_Params.lock_status 
-	hChn->pChnAcqParam->BADS_Local_Params.Acquire_done 
+	hChn->pChnAcqParam->BADS_Local_Params.lock_status
+	hChn->pChnAcqParam->BADS_Local_Params.Acquire_done
 	hChn->pChnAcqParam->BADS_Local_Params.EarlyExit
 	hChn->pChnAcqParam->BADS_Local_Params.LockUpdate*/
-  
+
 	/*This is to make sure the acquisition test is disabled at initialization*/
 	BREG_Write32(hChn->hRegister, BCHP_DS_SPARE, 0);
 
 	return RetCode_u32;
 }
- 
+
 /*******************************************************************************************
  * BADS_P_ChnLockStatus()		This routine gets the lock status of the ADS
  *******************************************************************************************/
@@ -198,7 +187,7 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 	uint32_t ReadReg_u32;
 	uint32_t HighThresh_u32, LowThresh_u32, SNR_u32;
 	uint32_t ReSyncFlag_u32;
-	uint32_t BMPG1_u32, CBERC1_u32, UERC1_u32, NBERC1_u32; 
+	uint32_t BMPG1_u32, CBERC1_u32, UERC1_u32, NBERC1_u32;
 	BADS_3x7x_ChnLockStatus_UnlockLock_t FECStatus_te;
 	BADS_3x7x_ChnLockStatus_UnlockLock_t CurrentFECStatus_te;
 
@@ -215,7 +204,7 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 
 	SNR_u32 =  BREG_ReadField(hChn->hRegister, DS_EQ_SNR, ERRVAL);
 
-	if ((SNR_u32 < HighThresh_u32) && (SNR_u32 > LowThresh_u32)) 
+	if ((SNR_u32 < HighThresh_u32) && (SNR_u32 > LowThresh_u32))
    {
 		hChn->pChnLockStatus->QLK_te = BADS_3x7x_ChnLockStatus_eLock;
    }
@@ -223,7 +212,7 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
    {
 		hChn->pChnLockStatus->QLK_te = BADS_3x7x_ChnLockStatus_eUnlock;
    }
-	
+
 	/***************************************/
 	/*Determine SNR                        */
 	/*BBS will divide by 256 to get dB     */
@@ -232,25 +221,25 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
     /*16   QAM  125.4405 dB - 20*log(ERRVAL) or if scaled by 256: 32113-5120*log(ERRVAL)*/
     /*32   QAM  122.4302 dB - 20*log(ERRVAL) or if scaled by 256: 31342-5120*log(ERRVAL)*/
 	/*64   QAM  125.6524 dB - 20*log(ERRVAL) or if scaled by 256: 32167-5120*log(ERRVAL)*/
-	/*128  QAM  122.5374 dB - 20*log(ERRVAL) or if scaled by 256: 31370-5120*log(ERRVAL)*/    
+	/*128  QAM  122.5374 dB - 20*log(ERRVAL) or if scaled by 256: 31370-5120*log(ERRVAL)*/
 	/*256  QAM  125.7038 dB - 20*log(ERRVAL) or if scaled by 256: 32180-5120*log(ERRVAL)*/
-	/*512  QAM  122.5638 dB - 20*log(ERRVAL) or if scaled by 256: 31376-5120*log(ERRVAL)*/    
+	/*512  QAM  122.5638 dB - 20*log(ERRVAL) or if scaled by 256: 31376-5120*log(ERRVAL)*/
 	/*1024 QAM  125.7138 dB - 20*log(ERRVAL) or if scaled by 256: 32183-5120*log(ERRVAL)*/
 	/************************************************************************************/
 	/*FOR CORE 9.6 and greater the Equation changed**************************************/
     /*16   QAM  73.22 dB - 10*log(ERRVAL) or if scaled by 256: 18872-2560*log(ERRVAL)****/
     /*32   QAM  70.21 dB - 10*log(ERRVAL) or if scaled by 256: 18101-2560*log(ERRVAL)****/
 	/*64   QAM  73.43 dB - 10*log(ERRVAL) or if scaled by 256: 18926-2560*log(ERRVAL)****/
-	/*128  QAM  70.32 dB - 10*log(ERRVAL) or if scaled by 256: 18129-2560*log(ERRVAL)****/    
+	/*128  QAM  70.32 dB - 10*log(ERRVAL) or if scaled by 256: 18129-2560*log(ERRVAL)****/
 	/*256  QAM  73.48 dB - 10*log(ERRVAL) or if scaled by 256: 18938-2560*log(ERRVAL)****/
-	/*512  QAM  70.36 dB - 10*log(ERRVAL) or if scaled by 256: 18140-2560*log(ERRVAL)****/    
-	/*1024 QAM  73.49 dB - 10*log(ERRVAL) or if scaled by 256: 18941-2560*log(ERRVAL)****/	
+	/*512  QAM  70.36 dB - 10*log(ERRVAL) or if scaled by 256: 18140-2560*log(ERRVAL)****/
+	/*1024 QAM  73.49 dB - 10*log(ERRVAL) or if scaled by 256: 18941-2560*log(ERRVAL)****/
 	/************************************************************************************/
 
 	/*Get the QAM mode from the FEC*/
 	ReadReg_u32 = BREG_Read32(hChn->hRegister, BCHP_DS_FECL);
 	ReadReg_u32 = ((ReadReg_u32>>4) & 0x0000000F);
- 
+
 #if (BADS_P_BCHP_DS_CORE_VER >= BADS_P_BCHP_DS_CORE_V_9_6)  /*SNR Equation changed in core 9.6*/
 	switch (ReadReg_u32)
 	{
@@ -280,7 +269,7 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 	/*SNR AVERAGE*/
 	/*BBS will divide by 256 to get dB*/
 	hChn->pChnLockStatus->SNRAVG_u32 = ((hChn->pChnLockStatus->SNR_u32*(SNR_LEAKY_AVG)) + (16384-(SNR_LEAKY_AVG))*hChn->pChnLockStatus->SNRAVG_u32)/16384;
-	
+
 
 	/***************************/
 	/*Determine FEC Lock Status*/
@@ -292,7 +281,7 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 	/*Get the currect lock condition*/
 	CurrentFECStatus_te = hChn->pChnLockStatus->FLK_te;
 
-	/*Get the latest block error counter values*/	
+	/*Get the latest block error counter values*/
 	BMPG1_u32  =  BREG_ReadField(hChn->hRegister, DS_BMPG1, BMPGCNTVAL);
 	CBERC1_u32 =  BREG_ReadField(hChn->hRegister, DS_CBERC1, CBERCCNTVAL);
 	UERC1_u32  =  BREG_ReadField(hChn->hRegister, DS_UERC1, UERCCNTVAL);
@@ -317,25 +306,25 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 		}
 		/*Reset Bad Block Counter*/
 		hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32 = 0;
-		
+
 		/*Declare Lock*/
 		FECStatus_te = BADS_3x7x_ChnLockStatus_eLock;
 	}
 	else
 	{
 		/*Wait for NUM_BAD_BLOCK_TO_UNLOCK bad blocks without a good one to declare unlock*/
-		if((UERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32 + hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32) > NUM_BAD_BLOCK_TO_UNLOCK)	
+		if((UERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32 + hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32) > NUM_BAD_BLOCK_TO_UNLOCK)
 		{
-	
+
 			/*Reset Bad Block Counter*/
 			hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32 = 0;
-			
+
 			/*Declare UnLock*/
 			FECStatus_te = BADS_3x7x_ChnLockStatus_eUnlock;
 		}
 		else
 		{
-			if (CurrentFECStatus_te == BADS_3x7x_ChnLockStatus_eUnlock) 
+			if (CurrentFECStatus_te == BADS_3x7x_ChnLockStatus_eUnlock)
 			{
 				/*Declare UnLock*/
 				FECStatus_te = BADS_3x7x_ChnLockStatus_eUnlock;
@@ -345,15 +334,15 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 				/*NUM_BAD_BLOCK_TO_UNLOCK bad blocks did not come along without a good one so wait until next call*/
 				/*increment bad block counter*/
 				hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32 += (UERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32);
-			
+
 				/*Declare Lock*/
 				FECStatus_te = BADS_3x7x_ChnLockStatus_eLock;
 			}
 		}
 	}
-	 
+
 	/*Check for stuck FEC condition, all counters did not move since the last call to BADS_75xx_P_Get_LockStatus()*/
-	if ((CBERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_CBERC1_u32 == 0) && (UERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32 == 0) && 
+	if ((CBERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_CBERC1_u32 == 0) && (UERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32 == 0) &&
 			(NBERC1_u32 - hChn->pChnAcqParam->BADS_Local_Params.Old_NBERC1_u32 == 0))
 	{
 		if ((hChn->pChnAcqParam->BADS_Local_Params.StuckFECCount_u32 >= STUCK_FEC_RESET_COUNT) || (CurrentFECStatus_te == BADS_3x7x_ChnLockStatus_eUnlock))
@@ -363,15 +352,15 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 			hChn->pChnAcqParam->BADS_Local_Params.BadBlockCount_u32 = 0;
 
 			/*Declare UnLock*/
- 			FECStatus_te = BADS_3x7x_ChnLockStatus_eUnlock;
-		}	
+			FECStatus_te = BADS_3x7x_ChnLockStatus_eUnlock;
+		}
 		else
 		{
 			hChn->pChnAcqParam->BADS_Local_Params.StuckFECCount_u32++;
 		}
 	}
- 
- 
+
+
 	/*store counter values for the next call, BMPG1_u32 is not needed from call to call*/
 	hChn->pChnAcqParam->BADS_Local_Params.Old_CBERC1_u32 = CBERC1_u32;
 	hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32  = UERC1_u32;
@@ -380,9 +369,9 @@ BERR_Code BADS_P_ChnLockStatus(BADS_3x7x_ChannelHandle hChn)
 	/*clear FEC counters to prevent overflow*/
 	/*Resync The FEC for bad MPEG packet count*/
 	/*Reset FEC Counters*/
-	if ((BMPG1_u32 > POWER2_31_M1) || (CBERC1_u32 > POWER2_31_M1) || (UERC1_u32 > POWER2_31_M1) || (NBERC1_u32 > POWER2_31_M1) || (ReSyncFlag_u32 == 1)) 
-	{	
-		if (ReSyncFlag_u32 == 0) 
+	if ((BMPG1_u32 > POWER2_31_M1) || (CBERC1_u32 > POWER2_31_M1) || (UERC1_u32 > POWER2_31_M1) || (NBERC1_u32 > POWER2_31_M1) || (ReSyncFlag_u32 == 1))
+	{
+		if (ReSyncFlag_u32 == 0)
 		{
 			BDBG_MSG(("                                                  Reseting FEC Counters"));
 		}
@@ -454,16 +443,16 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 	uint32_t FFE_Scaled_Value_u32;
 	uint32_t ReadReg_u32;
 	uint16_t FEC_TimeOut_u16;
-	
+
 	uint32_t StartTime_u32, EndTime_u32, ElapsedTime_u32;
-	
+
 	/****************************************************************************************************
 	* 1: ADS Core initialization: Reset timers, flags, and clocks
 	*****************************************************************************************************/
 	BDBG_MSG(("BADS_P_Acquire "));
 	/*Get start time*/
 	BTMR_ReadTimer(hChn->hAds->hStatusTimer, &StartTime_u32);
-	
+
 	/*Get the clock sample rate from frontend*/
 	hChn->pChnAcqParam->BADS_Local_Params.SampleRate_u32		= F_HS;    /*This is defined in the global_clk.h file from the WFE or UFE*/
 	hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32           = 2*F_HS;  /*This is ALWAYS 2*F_HS*/
@@ -474,7 +463,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 	/*Initialize structures, Range Check and map Acquisition/Scan setting*/
 	/*Check if this is the first time to call acquire
 	 *The BADS_P_Initialize() will set the DoneFirstTimeFlag to BADS_Local_Params_eEnable*/
-	if (hChn->pChnAcqParam->BADS_Local_Params.DoneFirstTimeFlag_te == BADS_Local_Params_eDisable) 
+	if (hChn->pChnAcqParam->BADS_Local_Params.DoneFirstTimeFlag_te == BADS_Local_Params_eDisable)
 	{
 		BADS_P_Initialize(hChn);
 	}
@@ -492,33 +481,33 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 	{
 		switch (hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te)
 		{
-		case BADS_Acquire_Params_AcqType_eAuto : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_AUTO; break; 
-		case BADS_Acquire_Params_AcqType_eFast : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_FAST; break; 
-		case BADS_Acquire_Params_AcqType_eSlow : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_SLOW; break; 
+		case BADS_Acquire_Params_AcqType_eAuto : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_AUTO; break;
+		case BADS_Acquire_Params_AcqType_eFast : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_FAST; break;
+		case BADS_Acquire_Params_AcqType_eSlow : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_SLOW; break;
 		case BADS_Acquire_Params_AcqType_eScan : RetryIndexEnd_u8 = NUM_RETRIES_IF_AUTOACQUIRE_AND_SCAN; break;
-		default: BDBG_ERR(("ERROR!!! Undefined AcqType in BADS_P_Acquire() %d",hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te)); 
+		default: BDBG_ERR(("ERROR!!! Undefined AcqType in BADS_P_Acquire() %d",hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te));
 				 RetCode_u32 = BERR_INVALID_PARAMETER;
 				 goto something_bad_happened; /*goto bottom of function to leave early with error*/
 				 break;
 		}
 	}
 
-	/*This loop will retry the complete acquisition the number of times set by RetryIndexEnd_u8*/ 
+	/*This loop will retry the complete acquisition the number of times set by RetryIndexEnd_u8*/
 	for (RetryIndex_u8=0;RetryIndex_u8<=RetryIndexEnd_u8;RetryIndex_u8++)
 	{
 	if (PRINT_DEBUG==1) BDBG_ERR(("RetryIndex_u8 = %d RetryIndexEnd_u8 = %d",RetryIndex_u8, RetryIndexEnd_u8));
-	
-		
+
+
 		/************************************************************************************************************
 		* 2: Reset time counters, flags, and FEC counters
 		*************************************************************************************************************/
-		
+
 		/*Reset total time counter when ReAck_Count = 0*/
 		if (hChn->pChnLockStatus->ReAck_Count_u32 == 0)
 		{
 			hChn->pChnAcqParam->BADS_Local_Params.TotalTime_u32 = 0;
 		}
-	
+
 		/*Begin by being unlocked, increment ReAck counter, clear test lock flag used by BADS_P_AcquisitionPercentageTest()*/
 		hChn->pChnLockStatus->FLK_te = BADS_3x7x_ChnLockStatus_eUnlock;
 		hChn->pChnLockStatus->QLK_te = BADS_3x7x_ChnLockStatus_eUnlock;
@@ -526,25 +515,25 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 		hChn->pChnLockStatus->ReAcquire_Count_u32++; /*This is reset to 0 on the first call to BADS_P_ChnLockStatus() after the PI resets the Reack_Count to 0*/
 		hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eNoPower;
 		hChn->pChnAcqParam->BADS_Local_Params.TestLockFlag_te = BADS_Local_Params_eDisable;
-	
+
 		/*Reset FEC Counters and hold FEC in reset*/
-		BREG_WriteField(hChn->hRegister, DS_RST, FECRST, 1);		
+		BREG_WriteField(hChn->hRegister, DS_RST, FECRST, 1);
 		BREG_Write32(hChn->hRegister, BCHP_DS_TPFEC, 0x000F9F00);
 		hChn->pChnAcqParam->BADS_Local_Params.Old_CBERC1_u32 = 0;
 		hChn->pChnAcqParam->BADS_Local_Params.Old_UERC1_u32 = 0;
 		hChn->pChnAcqParam->BADS_Local_Params.Old_NBERC1_u32 = 0;
 		hChn->pChnAcqParam->BADS_Local_Params.StuckFECCount_u32 = STUCK_FEC_RESET_COUNT;
-	
+
 		/*************************************************************************************************************
 		 *BEGIN INITIALIZATION
 		 *************************************************************************************************************/
-		
+
 		/*Determine Acquisition Type and Parameters*/
-		BADS_P_Get_AcquisitionScan_Settings(hChn);	
-		
-		/*Reset ADS core: start with loops frozen: Initailize and reset IMC*/ 
+		BADS_P_Get_AcquisitionScan_Settings(hChn);
+
+		/*Reset ADS core: start with loops frozen: Initailize and reset IMC*/
 #if WFE
-		BREG_Write32(hChn->hRegister, BCHP_DS_RST, 0x8006B679);	
+		BREG_Write32(hChn->hRegister, BCHP_DS_RST, 0x8006B679);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FRZ, 0x027FE78A);
 #else
 	#if IMC
@@ -559,32 +548,32 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 #endif
 
 		/*Setup output clock, clear bus errors*/
-		BREG_Write32(hChn->hRegister, BCHP_DS_CLK, 0x00000400);					/*Enable dedicated parallel/serial output clock*/ 
+		BREG_Write32(hChn->hRegister, BCHP_DS_CLK, 0x00000400);					/*Enable dedicated parallel/serial output clock*/
 		BREG_WriteField(hChn->hRegister, DS_ICB_CTL, BUS_ERR_EN, 0);			/*Internal Configuration Bus Control and Status and Stops bus errors*/
 
 
 		/*Setup AGCB and AGCB_IR*/
 		BREG_Write32(hChn->hRegister, BCHP_DS_AGCB, 0x0a001201);				/*TH=0.078125, BW=2^-9,  Reset AGCB*/
-		BREG_Write32(hChn->hRegister, BCHP_DS_AGCBI, 0x05000000);	            /*preload integrator with the tracking value at lock*/				 
+		BREG_Write32(hChn->hRegister, BCHP_DS_AGCBI, 0x05000000);	            /*preload integrator with the tracking value at lock*/
 #if IMC
-		BREG_Write32(hChn->hRegister, BCHP_DS_AGCB_IR, 0x0a001201);									 
-		BREG_Write32(hChn->hRegister, BCHP_DS_AGCBI_IR , 0x05000000);								 
+		BREG_Write32(hChn->hRegister, BCHP_DS_AGCB_IR, 0x0a001201);
+		BREG_Write32(hChn->hRegister, BCHP_DS_AGCBI_IR , 0x05000000);
 #endif
-	 	
+
 		/*************************************************************************************************************/
 		/*INITIALIZATION FINISHED: BEGIN ACQUISITION*/
 		/*************************************************************************************************************/
 
 		/*Release AGCB/AGCB_IR loops*/
-		BREG_WriteField(hChn->hRegister, DS_FRZ,	AGCBFRZ, 0);				 
+		BREG_WriteField(hChn->hRegister, DS_FRZ,	AGCBFRZ, 0);
 #if IMC
-		BREG_WriteField(hChn->hRegister, DS_FRZ,	AGCBFRZ_IR, 0);				
+		BREG_WriteField(hChn->hRegister, DS_FRZ,	AGCBFRZ_IR, 0);
 #endif
-	
+
 		/*wait for AGCB/AGCB_IR to settle*/
 		EarlyExit_b = BADS_P_ADS_SLEEP(hChn, AGCB_CONVERGENCE_TIME_MS);
 		if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-	
+
 		/*Reduce AGCB/AGCB_IR bandwidth to tracking values*/
 		BREG_WriteField(hChn->hRegister, DS_AGCB, AGCBBW, 0xf);				 /*Reduce AGCB BW 2^-12*/
 #if IMC
@@ -647,12 +636,12 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 				if (PRINT_DEBUG==1) BDBG_ERR(("CarrierIndex_u8 = %d CarrierOffset_i32 = %d CarrierIndexEnd_u8 = %d",CarrierIndex_u8, CarrierIndexEnd_u8,CarrierOffset_i32));
 
 				/*Reset and program CFL*/
-				BREG_WriteField(hChn->hRegister, DS_FRZ,	CFLFRZ, 1);	
+				BREG_WriteField(hChn->hRegister, DS_FRZ,	CFLFRZ, 1);
 				BREG_Write32(hChn->hRegister, BCHP_DS_CFLI, 0);
-				BREG_WriteField(hChn->hRegister, DS_CFL, CFLRST, 0x00000001);	
+				BREG_WriteField(hChn->hRegister, DS_CFL, CFLRST, 0x00000001);
 				RetCode_u32 = BADS_P_Set_CFL_Frequency(hChn, hChn->pChnAcqParam->BADS_Local_Params.SampleRate_u32, 0);
 				if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
-	
+
 				/*Reset and program the TL:*/
 				BREG_WriteField(hChn->hRegister, DS_FRZ,	TLFRZ, 1);
 				BREG_WriteField(hChn->hRegister, DS_TLI,	TLVAL, 0);
@@ -670,7 +659,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 				}
 				RetCode_u32 = BADS_P_Set_TL_Frequency(hChn, hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32, BaudRates_TBL_u32[BaudIndex_u8]);
 				if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
-				
+
 				/*Setup Frontmost Mixer Loop using callback function to WFE/UFE or CFL loop if callback is disabled*/
 				if (hChn->pChnAcqParam->BADS_Internal_Params.Callback_Enable_te == BADS_Internal_Params_eEnable)
 				{
@@ -679,10 +668,10 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 					CallbackFrontend.Symbol_Rate = BaudRates_TBL_u32[BaudIndex_u8];
 					CallbackFrontend.Mode = BADS_CallbackMode_eSetMode;
 #ifdef LEAP_BASED_CODE
-					(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);	
+					(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);
 #else
 					BKNI_EnterCriticalSection();
-					(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);	
+					(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);
 					BKNI_LeaveCriticalSection();
 #endif
 
@@ -699,7 +688,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 				if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
 				if (PRINT_DEBUG==1) BDBG_ERR(("CarrierOffset_i32 = %d FFT_TimingFreq_u32 = %d",CarrierIndexEnd_u8,FFT_TimingFreq_u32));
 				hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eNoTiming;
-				
+
 				/*5: Continue to determine timing lock if a timing tone has been found by FFT*/
 				if (FFT_TimingFreq_u32 !=0) /*Timing has been found by FFT*/
 				{
@@ -713,19 +702,19 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 					/*Wait TL_TIME_ACQ_BAUD_SAMPLES for timing loop convergence*/
 					EarlyExit_b = BADS_P_ADS_SLEEP(hChn, TL_TIME_ACQ_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 					if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-	
+
 					/*Reduce timing loop coefficients to Trk2 coefficients*/
-					BREG_WriteField(hChn->hRegister, DS_TLC, COMBO_COEFFS, TimingLoopTrk2Coeffs_TBL_u16[BaudIndex_u8]);	
+					BREG_WriteField(hChn->hRegister, DS_TLC, COMBO_COEFFS, TimingLoopTrk2Coeffs_TBL_u16[BaudIndex_u8]);
 
 					/*Wait TL_TIME_TRK_BAUD_SAMPLES for timing loop to settle*/
 					EarlyExit_b = BADS_P_ADS_SLEEP(hChn, TL_TIME_TRK_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 					if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-		
+
 					/*Use FFT to check if timing is locked for this BaudIndex_u8 and CarrierIndex_u8 indicated by FFT_TimingBin_u32 = 2048*/
 					RetCode_u32 = BADS_P_Get_TimingScan_Advanced_FFT(hChn, BaudRates_TBL_u32[BaudIndex_u8], true, &FFT_TimingBin_u32);
 					if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
 					if (PRINT_DEBUG==1) BDBG_ERR(("FFT_TimingFreq_u32 = %d FFT_TimingBin_u32 = %d",FFT_TimingFreq_u32, FFT_TimingBin_u32));
-	
+
 					/*6: Continue to carrier lock if timing loop is locked*/
 					if (FFT_TimingBin_u32 == 2048) /*Timing is locked*/
 					{
@@ -749,21 +738,21 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 
 						/*Reset CWC*/
 						BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC, 0xFF0000F0);
-	
+
 						/*Release Equalizer FFE, FFE Main Tap Real and ONLY THE NON_OVERLAP DFE taps*/
-						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 0);					 
-						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 0);				  
+						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 0);
+						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 0);
 						if (hChn->pChnAcqParam->BADS_Internal_Params.BigEQ_te == BADS_Internal_Params_eEnable)
 						{
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);    
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);
 							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ25_30, 0);
 							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ31_36, 0);
 						}
 						else
 						{
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ7_12, 0);    
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ13_18, 0); 
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0); 
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ7_12, 0);
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ13_18, 0);
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);
 						}
 
 						/*Wait CMA_TIME_BLIND1_BAUD_SAMPLES samples for FFE/DFE to converge in CMA mode*/
@@ -773,18 +762,18 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 
 						/*Reduce FFE Mu's*/
 						BREG_WriteField(hChn->hRegister, DS_EQ_FFE, MAINSTEP, 0x2);		/*main mu = 2^-8*/
-						BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/  
-						
+						BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/
+
 						/*Wait CMA_TIME_BLIND2_BAUD_SAMPLES samples for FFE/DFE to settle in CMA mode*/
 						EarlyExit_b = BADS_P_ADS_SLEEP(hChn, CMA_TIME_BLIND2_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 						if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
 
 						/*Freeze Equalizer to run Carrier FFT*/
-						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);					  
-						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);				    
-						BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x3F); 
+						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);
+						BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);
+						BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x3F);
 
-	
+
 						/*Determine symbol rate to be used by the Carrier FFT and run Carrier FFT*/
 						RetCode_u32 = BADS_P_Get_VID_Error(hChn, hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32, &VID_Error_i32);
 						if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
@@ -792,7 +781,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 						RetCode_u32 = BADS_P_Get_CarrierScan_Advanced_FFT(hChn, Symbol_Rate_u32, &Carrier_Error_i32);
 						if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
 						if (PRINT_DEBUG==1) BDBG_ERR(("Symbol_Rate_u32 = %d  CarrierOffset_i32 = %d Carrier_Error_i32 = %d",Symbol_Rate_u32, CarrierOffset_i32, Carrier_Error_i32));
-	
+
 						/*Write Carrier Offset to the Frontmost Mixer Loop using callback function to WFE/UFE or CFL loop if callback is disabled*/
 						if (hChn->pChnAcqParam->BADS_Internal_Params.Callback_Enable_te == BADS_Internal_Params_eEnable)
 						{
@@ -801,10 +790,10 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 							CallbackFrontend.Symbol_Rate = 1;  /*This used to be Symbol_Rate_u32 but that caused dropouts in 3461*/
 							CallbackFrontend.Mode = BADS_CallbackMode_eSetMode;
 #ifdef LEAP_BASED_CODE
-							(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);	
+							(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);
 #else
 							BKNI_EnterCriticalSection();
-							(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);	
+							(hChn->pCallback[BADS_Callback_eTuner])(&CallbackFrontend);
 							BKNI_LeaveCriticalSection();
 #endif
 
@@ -817,7 +806,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 
 						/**********************************************************************/
 						/*At this point the FFT has found the Timing Offset and Carrier Offset*/
-						/**********************************************************************/		
+						/**********************************************************************/
 
 						/*7: Allow for fast/slow scan if Dual Scan is enabled during Scan and SlowAcquireScan modes using EQIndexEnd_u8*/
 						if ((hChn->pChnAcqParam->BADS_Internal_Params.Dual_Scan_te == BADS_Internal_Params_eEnable) &&
@@ -830,11 +819,11 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 						{
 							EQIndexEnd_u8 = 0; /*One pass:Fast or slow during directed acquisitions*/
 						}
-	
+
 						for (EQIndex_u8=0;EQIndex_u8<=EQIndexEnd_u8;EQIndex_u8++)
 						{
 							if (PRINT_DEBUG==1) BDBG_ERR(("EQIndex_u8 = %d  EQIndex_u8 = %d",EQIndex_u8,EQIndex_u8));
-								
+
 							/*Reset Equalizer here since the EQ solution with carrier offset may not be right*/
 							BREG_Write32(hChn->hRegister, BCHP_DS_EQ_LEAK, 0x00000000);			/*no leakage*/
 							if (hChn->pChnAcqParam->BADS_Internal_Params.BigEQ_te == BADS_Internal_Params_eEnable)
@@ -855,11 +844,11 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 							BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCI, 0);
 							BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCC, 0x00a00000);		/*AGCLCOEFF = 160*2^-15, AGCICOEFF = 0*/
 							BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCPA, 0x00000000);
-							
+
 							/*Release EQ and DD-AGC if enabled and ONLY THE NON_OVERLAP DFE taps*/
 							BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 0);			/*Release FFE*/
 							if (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable)
-							{	
+							{
 								BREG_WriteField(hChn->hRegister, DS_EQ_CTL, HUM_EN, 1);
 								BREG_WriteField(hChn->hRegister, DS_FRZ,	HUMAGCFRZ, 0);	/*Release HUM-AGC Loop*/
 							}
@@ -869,50 +858,50 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 							}
 							if (hChn->pChnAcqParam->BADS_Internal_Params.BigEQ_te == BADS_Internal_Params_eEnable)
 							{
-								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);    
+								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);
 								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ25_30, 0);
 								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ31_36, 0);
 							}
 							else
 							{
-								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ7_12, 0);    
-								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ13_18, 0); 
-								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0); 
+								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ7_12, 0);
+								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ13_18, 0);
+								BREG_WriteField(hChn->hRegister, DS_FRZ,	DFEFRZ19_24, 0);
 							}
-									
+
 							/*Wait CMA_TIME_LOCKED1_BAUD_SAMPLES samples for FFE/DFE to converge in CMA mode*/
 							/*This is the second pass of the EQ in CMA mode without HUM-AGC*/
 							EarlyExit_b = BADS_P_ADS_SLEEP(hChn, CMA_TIME_LOCKED1_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 							if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-		
+
 							/*Reduce FFE Mu's */
 							BREG_WriteField(hChn->hRegister, DS_EQ_FFE, MAINSTEP, 0x2);		/*main mu = 2^-8*/
-							BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/  
-								
+							BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/
+
 							/*Wait CMA_TIME_LOCKED2_BAUD_SAMPLES samples for FFE/DFE to settle in CMA mode*/
 							EarlyExit_b = BADS_P_ADS_SLEEP(hChn, CMA_TIME_LOCKED2_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 							if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-		
+
 							/*Freeze Equalizer to read coeffs*/
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);					  
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);				    
-							BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x3F); 
-							
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);
+							BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x3F);
+
 							/*Read Equalizer Coefficients*/
 							for (Index_u8=0;Index_u8<144;Index_u8++)
 							{
 								EQ_u32[Index_u8] = BREG_Read32(hChn->hRegister, BCHP_DS_EQ_FFEU0 + 4*Index_u8);
 							}
-		
+
 							/*Setup CWC*/
 							if (hChn->pChnAcqParam->BADS_Internal_Params.CWC_te == BADS_Internal_Params_eEnable)
-							{		
+							{
 								/*Reset/Freeze ALL CWC integrators, Freeze ALL CWC Taps*/
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, LF_RESET, 0xF);
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, LF_FRZ, 0xF);
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, FREEZE, 0xF);
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, PLL_MODE, CWC_PLL);	                     
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, STEPSIZE1, CWC_MU1);	
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, PLL_MODE, CWC_PLL);
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, STEPSIZE1, CWC_MU1);
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, STEPSIZE2, CWC_MU2);
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, STEPSIZE3, CWC_MU3);
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, STEPSIZE4, CWC_MU4);
@@ -922,15 +911,15 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 								/*Set limit to be OFF for acquisition*/
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS1, FOFS_LIMIT, CWC_FOFS_LIMIT_ACQ);
 #else
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSBAUD, FCW_BAUD_SEL, 1);					        
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSBAUD, FSBAUD_Hz, hChn->pChnAcqParam->BADS_Local_Params.SampleRate_u32/2);							 
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSCARR, FCW_CARR_SEL, 1);					      
-								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSCARR, FSCARR_Hz, hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32);									   
-#endif		
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSBAUD, FCW_BAUD_SEL, 1);
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSBAUD, FSBAUD_Hz, hChn->pChnAcqParam->BADS_Local_Params.SampleRate_u32/2);
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSCARR, FCW_CARR_SEL, 1);
+								BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FSCARR, FSCARR_Hz, hChn->pChnAcqParam->BADS_Local_Params.VIDRate_u32);
+#endif
 								/*CWC Auto needs callback enabled*/
 								/*BADS_P_Set_CWC_Auto() sets CWC Length, CWC FIN1-4 and Foffset1-4*/
 								if (hChn->pChnAcqParam->BADS_Internal_Params.Callback_Enable_te == BADS_Internal_Params_eEnable)
-								{			
+								{
 									/*Get the RF Frequency using the callback function*/
 									CallbackFrontend.hTunerChn = (hChn->pCallbackParam[BADS_Callback_eTuner]);
 									CallbackFrontend.Mode = BADS_CallbackMode_eRequestMode;
@@ -951,7 +940,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 								/*Because of crazy CWC programming use (15 - power 2^length - 1)*/
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, LF_FRZ, (15 - ((1<<CWC_Length_u8) - 1)));		/*Unfreeze integrator*/
 								BREG_WriteField(hChn->hRegister, DS_EQ_CWC, FREEZE, (15 - ((1<<CWC_Length_u8) - 1)));		/*Unfreeze Tap Freeze*/
-								
+
 								/*Shift the Equalizer based on the CWC length but compensate for FFT length*/
 								/*Shift the main tap location to the left by the CWC_Length if FFT is 36 taps, CWC_Length - 1 if FFT is 35 taps etc*/
 								/*Recalculate CWC_Length to compendate for FFE's of less than 35 taps*/
@@ -962,7 +951,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 									case 33: CWC_Length_u8 = (CWC_Length_u8 <= 1) ? 0 : CWC_Length_u8 - 1; break;
 									case 32: CWC_Length_u8 = (CWC_Length_u8 <= 2) ? 0 : CWC_Length_u8 - 1; break;
 									default: CWC_Length_u8 = 0;
-								}			
+								}
 								BREG_WriteField(hChn->hRegister, DS_EQ_FFE, MAIN, (BREG_ReadField(hChn->hRegister, DS_EQ_FFE, MAIN) - (uint32_t)CWC_Length_u8));
 								/*Shift FFE Taps to make up for the CWC and preserve the correct number of post FFE taps*/
 								for (Index_u8=0;Index_u8<72;Index_u8++)
@@ -982,44 +971,44 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 							{
 								switch (QamIndex_u8)
 								{
-								case 0: QamTry_b = ((hChn->pChnAcqParam->BADS_Local_Params.Q256A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q256B_b == true)) ? true : false; 
+								case 0: QamTry_b = ((hChn->pChnAcqParam->BADS_Local_Params.Q256A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q256B_b == true)) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam256;
 												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 256	: 256;
 												break;
-								case 1: QamTry_b = ((hChn->pChnAcqParam->BADS_Local_Params.Q64A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q64B_b == true)) ? true : false; 
+								case 1: QamTry_b = ((hChn->pChnAcqParam->BADS_Local_Params.Q64A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q64B_b == true)) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam64;
 												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 254	: 253;
 												break;
-								case 2: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q128A_b == true) ? true : false; 
+								case 2: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q128A_b == true) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te= BADS_Local_Params_QAM_eQam128;
 												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 237	: 233;
 												break;
-								case 3: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q32A_b == true) ? true : false; 
+								case 3: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q32A_b == true) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam32;
-												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 234	: 227; 
+												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 234	: 227;
 												break;
-								case 4: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q16A_b == true) ? true : false; 
+								case 4: QamTry_b =  (hChn->pChnAcqParam->BADS_Local_Params.Q16A_b == true) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam16;
 												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 248	: 242;
 												break;
 							    /*SW3128-257: Add Q1024A directed support but not scan support*/
-								case 5: QamTry_b =  ((hChn->pChnAcqParam->BADS_Local_Params.Q1024A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q1024B_b == true)) ? true : false; 
+								case 5: QamTry_b =  ((hChn->pChnAcqParam->BADS_Local_Params.Q1024A_b == true) || (hChn->pChnAcqParam->BADS_Local_Params.Q1024B_b == true)) ? true : false;
 												hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam1024;
 												FFE_Scale_u32 = (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable) ? 256	: 257;
 												break;
-								default : 
+								default :
 									BDBG_ERR(("INVALID QamIndex_u8 Value"));
 									break;
 								}
-		
+
 								/*9: If QAM modes match user selection set QamTry_b to true*/
 								if (QamTry_b == true)
 								{
 									/*Freeze Equalizer to write scaled coeffs*/
-									BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);					  
-									BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);				    
+									BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 1);
+									BREG_WriteField(hChn->hRegister, DS_FRZ,	FFRZMR, 1);
 									BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x3F);
-		
+
 									/*Scale the EQ coeffs differently for each QAM Mode*/
 									for (Index_u8=0;Index_u8<144;Index_u8++)
 									{
@@ -1040,11 +1029,11 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 												FFE_Q_i32 = ((FFE_Scaled_Value_u32 & 0x00800000) !=0) ? -1*(POWER2_24-(int32_t)FFE_Scaled_Value_u32) : (int32_t)FFE_Scaled_Value_u32;
 												FFE_Q_i32 = ((int32_t)FFE_Scale_u32*FFE_Q_i32)/POWER2_8;
 												FFE_Q_i32 =	(FFE_Q_i32 > POWER2_24_M1) ? POWER2_24_M1 : (FFE_Q_i32 < -POWER2_24) ? -POWER2_24 : FFE_Q_i32;
-																					
+
 												/*Create upper 16 bits of FFE I/Q coeffs*/
 												FFE_Scaled_Value_u32 = (uint32_t)(((FFE_I_i32<<8) & 0xFFFF0000) | ((FFE_Q_i32>>8) & 0x0000FFFF));
 											}
-											else 
+											else
 											{
 												/*Create lower 16 bits of FFE I/Q coeffs*/
 												FFE_Scaled_Value_u32 = (uint32_t)(((FFE_I_i32<<24) & 0xFF000000) | ((FFE_Q_i32<<16) & 0x00FF0000));
@@ -1057,41 +1046,41 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 											BREG_Write32(hChn->hRegister, BCHP_DS_EQ_FFEU0 + 4*Index_u8, EQ_u32[Index_u8]);
 										}
 									}
-								
+
 									/*************************************************************************************************************/
 									/*Now that the EQ has been scaled to the right constellation, start EQ with HUM-AGC/IMC/CWC if they are enabled*/
 									/**************************************************************************************************************/
-									
+
 									/*Setup CFL:*/
 									BREG_WriteField(hChn->hRegister, DS_FRZ,	CFLFRZ, 1);
 									BREG_Write32(hChn->hRegister, BCHP_DS_CFLI, 0);
 									BREG_WriteField(hChn->hRegister, DS_CFLC, COMBO_COEFFS, FrequencyLoopCoeffs_TBL_u16[BaudIndex_u8]);
-		
+
 									/*Setup EQ:*/
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CTL, DS_EQ_CTL_TBL_u32[hChn->pChnAcqParam->BADS_Local_Params.QAM_te]);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_LEAK, 0x00000000);
-																		
-		 							/*Reset hum-AGC Gain offset, leakage, reset loop integrator*/
+
+									/*Reset hum-AGC Gain offset, leakage, reset loop integrator*/
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGC, 0x00400001);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCI, 0);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCC, 0x00a00000);		/*AGCLCOEFF = 160*2^-15, AGCICOEFF = 0*/
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCPA, 0x00000000);
-										
+
 									/*Setup CPL:*/
 									BREG_WriteField(hChn->hRegister, DS_FRZ,	CPLFRZ, 1);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CPLI, 0);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CPL, DS_EQ_CPL_TBL_u32[hChn->pChnAcqParam->BADS_Local_Params.QAM_te]);
-									BREG_WriteField(hChn->hRegister, DS_EQ_CPLC, COMBO_COEFFS, PhaseLoopAcqCoeffs_TBL_u32[BaudIndex_u8]);	
-				
+									BREG_WriteField(hChn->hRegister, DS_EQ_CPLC, COMBO_COEFFS, PhaseLoopAcqCoeffs_TBL_u32[BaudIndex_u8]);
+
 									/*Configure SNR performance Monitoring*/
 									BREG_WriteField(hChn->hRegister, DS_EQ_SNRLT, SNRLTHRESH, SNRLTHRESH_TBL_u32[hChn->pChnAcqParam->BADS_Local_Params.QAM_te]);
 									BREG_WriteField(hChn->hRegister, DS_EQ_SNRHT, SNRHTHRESH, SNRHTHRESH_TBL_u32[hChn->pChnAcqParam->BADS_Local_Params.QAM_te]);
-		
+
 									/*Set CWC BWs to acquisition BWs and reset integrators and turn off leakage*/
-									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC1, CWC_ACQ_LFC1);  
-									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC2, CWC_ACQ_LFC2);  
-									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC3, CWC_ACQ_LFC3);  
-									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC4, CWC_ACQ_LFC4); 
+									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC1, CWC_ACQ_LFC1);
+									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC2, CWC_ACQ_LFC2);
+									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC3, CWC_ACQ_LFC3);
+									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC4, CWC_ACQ_LFC4);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_INT1, 0);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_INT2, 0);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_INT3, 0);
@@ -1100,11 +1089,11 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 									BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK2, 0);
 									BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK3, 0);
 									BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK4, 0);
-	
+
 									/*Release EQ and DD-AGC if enabled*/
 									BREG_WriteField(hChn->hRegister, DS_FRZ,	FFEFRZ, 0);			/*Release FFE*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable)
-									{	
+									{
 										BREG_WriteField(hChn->hRegister, DS_EQ_CTL, HUM_EN, 1);
 										BREG_WriteField(hChn->hRegister, DS_FRZ,	HUMAGCFRZ, 0);	/*Release HUM-AGC Loop*/
 									}
@@ -1122,24 +1111,24 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 										BREG_WriteField(hChn->hRegister, DS_FRZ,	COMBO_DFEFRZ, 0x30);	/*Release DFE Taps 0-23*/
 									}
 
-									/*use reduced FFE Mus*/				
+									/*use reduced FFE Mus*/
 									BREG_WriteField(hChn->hRegister, DS_EQ_FFE, MAINSTEP, 0x2);		/*main mu = 2^-8*/
-									BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/    
-		
+									BREG_WriteField(hChn->hRegister, DS_EQ_FFE, STEP, 0x3);			/*other mu = 2^-10*/
+
 #if IMC
 									/*Start IMC*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.IMC_te == BADS_Internal_Params_eEnable)
-									{ 
+									{
 										BREG_WriteField(hChn->hRegister, DS_EQ_CTL, IMC_EN, 1);
 										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_IMC, 0x0c001119);   /*36 IMC taps, main tap is 0 left of FFE main, mu = 2^-6, full LMS, update sym, leak off, coarse mode off*/
 										BREG_WriteField(hChn->hRegister, DS_FRZ,	IMCFRZ, 0);		 /*Release Image Canceller*/
-									}	
+									}
 #endif
 									/*RFI support for second pass if Dual Scan is selected OR if SlowAcquire is selected: Longer CMA congervenge time*/
-									if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))	
+									if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))
 									{
 										if ((hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam1024) ||
-											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam512) || 
+											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam512) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam256) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam128) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam32))
@@ -1166,33 +1155,33 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 											EarlyExit_b = BADS_P_ADS_SLEEP(hChn, CMA_TIME_FAST_TRIM_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 											if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
 									}
-	
+
 									/*Start Carrier Phase Loop, this is a very small sweep of a KHz or so*/
-									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CPLI, (uint32_t)PhaseLoopSweep_FFT_TBL_struct[BaudIndex_u8].PosSweepStart);	
+									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CPLI, (uint32_t)PhaseLoopSweep_FFT_TBL_struct[BaudIndex_u8].PosSweepStart);
 									BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CPLSWP, (uint32_t)PhaseLoopSweep_FFT_TBL_struct[BaudIndex_u8].PosSweepRate);
-									BREG_WriteField(hChn->hRegister, DS_FRZ,	CPLFRZ, 0);					/*Release Carrier Phase Loop Freeze*/	
+									BREG_WriteField(hChn->hRegister, DS_FRZ,	CPLFRZ, 0);					/*Release Carrier Phase Loop Freeze*/
 									EarlyExit_b = BADS_P_ADS_SLEEP(hChn, (unsigned int)PhaseLoopSweep_FFT_TBL_struct[BaudIndex_u8].SweepTime);
 									if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
 									BREG_WriteField(hChn->hRegister, DS_EQ_CPLSWP, SWEEP, 0);				/*Stop Sweeping*/
-		
-		
+
+
 									/*Reduce Carrier Phase Loop coefficient to Tracking Bandwidths*/
-									BREG_WriteField(hChn->hRegister, DS_EQ_CPLC, COMBO_COEFFS, PhaseLoopTrkCoeffs_TBL_u32[BaudIndex_u8]);	
-		
+									BREG_WriteField(hChn->hRegister, DS_EQ_CPLC, COMBO_COEFFS, PhaseLoopTrkCoeffs_TBL_u32[BaudIndex_u8]);
+
 									/*Set DDAGC BW for Tracking Mode*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable)
-									{ 
-										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCC, 0x00080000);				/*AGCLCOEFF = 8*2^-15, AGCICOEFF = 0*/	
+									{
+										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_AGCC, 0x00080000);				/*AGCLCOEFF = 8*2^-15, AGCICOEFF = 0*/
 									}
-		
+
 									/*Switch EQ to LMS mode*/
 									BREG_WriteField(hChn->hRegister, DS_EQ_CTL, CMAEN, 0);
-	
+
 									/*RFI support for second pass if Dual Scan is selected OR if SlowAcquire is selected: Longer LMS-DD congervenge time*/
-									if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))	
+									if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))
 									{
 										if ((hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam1024) ||
-											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam512) || 
+											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam512) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam256) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam128) ||
 											(hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam32))
@@ -1219,7 +1208,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 										EarlyExit_b = BADS_P_ADS_SLEEP(hChn, LMS_TIME_FAST_TRIM_BAUD_SAMPLES*1000/FFT_TimingFreq_u32 + 1);
 										if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
 									}
-	
+
 #if IMC
 									/*Reduce IMC Bandwidth*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.IMC_te == BADS_Internal_Params_eEnable)
@@ -1237,70 +1226,70 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 										EarlyExit_b = BADS_P_ADS_SLEEP(hChn, 15);
 										if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
 									}
-		 
+
 									/*Switch DDAGC to DD mode*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.DDAGC_te == BADS_Internal_Params_eEnable)
 									{
-										BREG_WriteField(hChn->hRegister, DS_EQ_CTL, FNEN, 0);		 
-									} 
-		
+										BREG_WriteField(hChn->hRegister, DS_EQ_CTL, FNEN, 0);
+									}
+
 									/*Start DFE Overlap Leak*/
-									BREG_WriteField(hChn->hRegister, DS_EQ_LEAK, DFE_LEAK_OVERLAP, 0xD); 
-			
+									BREG_WriteField(hChn->hRegister, DS_EQ_LEAK, DFE_LEAK_OVERLAP, 0xD);
+
 									/*Set the final Phase Loop parameters*/
-									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLFREQEN, 0);		 
-									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLFTYPE, 0);			 
-									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLLK, 0);	
-	
+									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLFREQEN, 0);
+									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLFTYPE, 0);
+									BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLLK, 0);
+
 									/*Unfreeze Front loop and start leak in carrier phase loop integrator and accumulator*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.CFL_te == BADS_Internal_Params_eEnable)
 									{
-										BREG_WriteField(hChn->hRegister, DS_FRZ,	CFLFRZ, 0);		
-										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLLK, 0xB);    /*leak at 2^-16*/ 
-										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLPALK, 0x9);  /*leak at 2^-10*/ 
+										BREG_WriteField(hChn->hRegister, DS_FRZ,	CFLFRZ, 0);
+										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLLK, 0xB);    /*leak at 2^-16*/
+										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLPALK, 0x9);  /*leak at 2^-10*/
 										/*This delay is needed because setting the CPLPALK to 0xD causes a loss of acquisition reliablility for 128 QAM*/
 										EarlyExit_b = BADS_P_ADS_SLEEP(hChn, 7300000/FFT_TimingFreq_u32 + 1);
 										if (EarlyExit_b == true) goto please_leave_early; /*goto bottom of function to leave early*/
-										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLPALK, 0xD); /*leak at 2^-6*/ 
+										BREG_WriteField(hChn->hRegister, DS_EQ_CPL, CPLPALK, 0xD); /*leak at 2^-6*/
 									}
-			
-									/*Set the final CWC Loop parameters*/ 
+
+									/*Set the final CWC Loop parameters*/
 									if (hChn->pChnAcqParam->BADS_Internal_Params.CWC_te == BADS_Internal_Params_eEnable)
-									{	
-										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC1, CWC_TRK_LFC1);  
-										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC2, CWC_TRK_LFC2);  
-										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC3, CWC_TRK_LFC3);  
+									{
+										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC1, CWC_TRK_LFC1);
+										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC2, CWC_TRK_LFC2);
+										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC3, CWC_TRK_LFC3);
 										BREG_Write32(hChn->hRegister, BCHP_DS_EQ_CWC_LFC4, CWC_TRK_LFC4);
 										BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK1, CWC_LK1);
 										BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK2, CWC_LK2);
 										BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK3, CWC_LK3);
 										BREG_WriteField(hChn->hRegister, DS_EQ_CWC_LEAK, CWC_LEAK4, CWC_LK4);
 									}
-	
+
 									/*******************************************************************************************/
 									/*ACQUISITION FINISHED: BEGIN LOCK CHECKING/SPECTRAL INVERSION/AUTOINVERSION*/
 									/*******************************************************************************************/
-	
+
 /************************************/
 /*Hack3 alert add for non square    */
 /************************************/
-							
+
 									/*If carrier loop is unlocked set FECIndexEnd_u8 to 0 to bypass FEC checking otherwise set it to 2 to try AnnexA then AnnexB FEC*/
 									/*Check that the phase loop is locked by making sure there is not much carrier offset in the loop, this is a weak lock detector*/
 									hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eNoCarrier;
 									RetCode_u32 = BADS_P_Get_CPL_Error(hChn, Symbol_Rate_u32, &Phase_Error_i32);
 									if (RetCode_u32 != BERR_SUCCESS) goto something_bad_happened; /*goto bottom of function to return error code*/
-									Phase_Error_i32 = (Phase_Error_i32 < 0) ? -1*Phase_Error_i32 : Phase_Error_i32; 
+									Phase_Error_i32 = (Phase_Error_i32 < 0) ? -1*Phase_Error_i32 : Phase_Error_i32;
 									FECIndexEnd_u8 = (Phase_Error_i32 > MAX_PHASE_ERROR) ? 0 : 2;
 									if (PRINT_DEBUG==1) BDBG_ERR(("Phase_Error_i32 = %d",Phase_Error_i32));
-									
+
 									/*10: Cycle through FECIndex to try AnnexA then Annex B*/
 									for (FECIndex_u8=0;FECIndex_u8<FECIndexEnd_u8;FECIndex_u8++)
 									{
 										switch (FECIndex_u8)
 										{
 										/*Try if QamIndex_u8 is 0 and Q256A, 1 and Q64A, 2, 3, 4*/
-										case 0:	
+										case 0:
 											FECTry_b = false;
 											if (((QamIndex_u8 == 0) && (hChn->pChnAcqParam->BADS_Local_Params.Q256A_b == true)) ||
 												((QamIndex_u8 == 1) && (hChn->pChnAcqParam->BADS_Local_Params.Q64A_b == true)) ||
@@ -1310,7 +1299,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 												FECTry_b = true;
 											}
 											hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexA;
-											FEC_TimeOut_u16 = ANNEXA_FEC_LOCK_TIMEOUT; 
+											FEC_TimeOut_u16 = ANNEXA_FEC_LOCK_TIMEOUT;
 											break;
 										/*Try if QamIndex_u8 is 0 and Q256B, 1 and Q64B, 5*/
 										case 1:
@@ -1326,14 +1315,14 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 													FECTry_b = true;
 												}
 											}
-											hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexB;	
-											FEC_TimeOut_u16 = ANNEXB_FEC_LOCK_TIMEOUT; 
+											hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexB;
+											FEC_TimeOut_u16 = ANNEXB_FEC_LOCK_TIMEOUT;
 											break;
-										default : 
+										default :
 											BDBG_ERR(("INVALID FECIndex_u8 Value"));
 											break;
 										}
-											
+
 										/*11: If FECIndex_u8 match user selection set FECTry_b to true, then program FEC and see if it locks*/
 										hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eNoFECLock;
 										if (FECTry_b == true)
@@ -1346,13 +1335,13 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 											if (hChn->pChnAcqParam->BADS_Local_Params.IS_b == true)
 											{
 												ReadReg_u32 = BREG_Read32(hChn->hRegister, BCHP_DS_FECL);
-												ReadReg_u32 = ReadReg_u32 ^ 0x00000008;												
+												ReadReg_u32 = ReadReg_u32 ^ 0x00000008;
 												BREG_Write32(hChn->hRegister, BCHP_DS_FECL, ReadReg_u32);
 												hChn->pChnAcqParam->BADS_Local_Params.FECSpectrum_te = BADS_Local_Params_FECSpectrum_eInverted;
 											}
 
 											/*Reset FEC Counters*/
-											BREG_WriteField(hChn->hRegister, DS_RST, FECRST, 1);		
+											BREG_WriteField(hChn->hRegister, DS_RST, FECRST, 1);
 											BREG_WriteField(hChn->hRegister, DS_RST, FECRST, 0);
 											BREG_Write32(hChn->hRegister, BCHP_DS_TPFEC, 0x000F9F00);
 											hChn->pChnAcqParam->BADS_Local_Params.Old_CBERC1_u32 = 0;
@@ -1369,7 +1358,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 											}
 											/*Check Lock*/
 											BADS_P_ChnLockStatus(hChn);
-		
+
 											/*Check if Flip_Spectrum_b is true to try inverted spectrum*/
 											if (hChn->pChnAcqParam->BADS_Local_Params.Flip_Spectrum_b == true)
 											{
@@ -1395,7 +1384,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 													{
 														hChn->pChnAcqParam->BADS_Local_Params.FECSpectrum_te = BADS_Local_Params_FECSpectrum_eNotInvertedAutoInvert;
 													}
-	
+
 													/*Wait for FEC to sync and output data UP TO FEC_TimeOut_u16 ms*/
 													Index_u8=0;
 													while ((Index_u8<FEC_TimeOut_u16) && (BREG_ReadField(hChn->hRegister, DS_NBERC1, NBERCCNTVAL) == 0))
@@ -1408,25 +1397,25 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 													BADS_P_ChnLockStatus(hChn);
 												}
 											}
-		
+
 											/*Reset SNR and Output Interface*/
-											BREG_Write32(hChn->hRegister, BCHP_DS_EQ_SNR , 0x0000000F);					 
-											BREG_Write32(hChn->hRegister, BCHP_DS_OI_VCO , 0x00000004);					 
-											BREG_Write32(hChn->hRegister, BCHP_DS_OI_CTL , 0x00020011);	
-											BREG_Write32(hChn->hRegister, BCHP_DS_OI_CTL , 0x00020011);	
-											BREG_Write32(hChn->hRegister, BCHP_DS_OI_OUT, 0);							 
-		
+											BREG_Write32(hChn->hRegister, BCHP_DS_EQ_SNR , 0x0000000F);
+											BREG_Write32(hChn->hRegister, BCHP_DS_OI_VCO , 0x00000004);
+											BREG_Write32(hChn->hRegister, BCHP_DS_OI_CTL , 0x00020011);
+											BREG_Write32(hChn->hRegister, BCHP_DS_OI_CTL , 0x00020011);
+											BREG_Write32(hChn->hRegister, BCHP_DS_OI_OUT, 0);
+
 											/*Reset/Resync BER registers in chip*/
 											BREG_Write32(hChn->hRegister, BCHP_DS_BER, 0x00000004);
 											BREG_Write32(hChn->hRegister, BCHP_DS_BERI, 0xFFFFFFFF);
 											BREG_Write32(hChn->hRegister, BCHP_DS_OI_BER_CTL, 0x00000004);
 											BREG_Write32(hChn->hRegister, BCHP_DS_OI_BER, 0xFFFFFFFF);
-		
+
 											/*Report Lock Status*/
 											if (hChn->pChnLockStatus->FLK_te == BADS_3x7x_ChnLockStatus_eLock)
 											{
 												/*RFI support*/
-												if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))	
+												if((EQIndex_u8 != 0) || (hChn->pChnAcqParam->BADS_Local_Params.AcqType_te == BADS_Local_Params_AcqType_eSlowAcquire))
 												{
 													hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eLockedSlow;
 												}
@@ -1434,7 +1423,7 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 												{
 													hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eLockedFast;
 												}
-	
+
 												/*leave function if locked, this is not an Early Exit but a normal exit*/
 												EarlyExit_b = false;
 												goto please_leave_early; /*goto bottom of function to leave early*/
@@ -1455,9 +1444,9 @@ BERR_Code BADS_P_Acquire(BADS_3x7x_ChannelHandle hChn)
 something_bad_happened:
 /*goto label to exit early*/
 please_leave_early:
-	
+
 	/*Check if we are performing an early exit from function*/
-	if (EarlyExit_b == true) 
+	if (EarlyExit_b == true)
 	{
 		hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te = BADS_Local_Params_AcqStatus_eEarlyExit;
         BDBG_MSG(("ADS Acq. Early Exit."));
@@ -1473,7 +1462,7 @@ please_leave_early:
 	hChn->pChnAcqParam->BADS_Local_Params.TotalTime_u32 += hChn->pChnAcqParam->BADS_Local_Params.ElapsedTime_u32;
 
 	/*print acquisition results and elapsed time*/
-	if(hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te == BADS_Local_Params_AcqStatus_eLockedSlow)	
+	if(hChn->pChnAcqParam->BADS_Local_Params.AcqStatus_te == BADS_Local_Params_AcqStatus_eLockedSlow)
 	{
 		BDBG_MSG(("Locked Slow: ElapsedTime_u32= %d ms TotalTime= %d ms",hChn->pChnAcqParam->BADS_Local_Params.ElapsedTime_u32,hChn->pChnAcqParam->BADS_Local_Params.TotalTime_u32));
 	}
@@ -1515,7 +1504,7 @@ BERR_Code BADS_P_AbortAcquire(BADS_3x7x_ChannelHandle hChn)
 /********************************************************************************************/
 /*HAB called function to Read DS FFE or DFE                                                 */
 /********************************************************************************************/
-BERR_Code BADS_P_HAB_Read_FFEDFE(BADS_3x7x_ChannelHandle hChn, uint8_t *HAB_Buffer_pu8, uint8_t Size_HAB_u8, uint8_t FFE_u8)	
+BERR_Code BADS_P_HAB_Read_FFEDFE(BADS_3x7x_ChannelHandle hChn, uint8_t *HAB_Buffer_pu8, uint8_t Size_HAB_u8, uint8_t FFE_u8)
 {
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	uint8_t count_u8;
@@ -1563,7 +1552,7 @@ something_bad_happened:
 }
 
 /********************************************************************************************
- * Read Constellation                                                 
+ * Read Constellation
  ********************************************************************************************/
 BERR_Code BADS_P_Read_Constellation(
     BADS_3x7x_ChannelHandle hChn,       /* [in] Device channel handle */
@@ -1581,7 +1570,7 @@ BERR_Code BADS_P_Read_Constellation(
 	/*Check that number of points requested is not negative*/
 	if (nbrToGet_i16 < 0)
 	{
-		BDBG_ERR(("ERROR: REQUESTED CONSTELLATION POINTS < 0 in BADS_P_Read_Constellation()\n"));
+		BDBG_ERR(("ERROR: REQUESTED CONSTELLATION POINTS < 0 in BADS_P_Read_Constellation()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
 		goto something_bad_happened; /*goto bottom of function to leave early with error*/
 	}
@@ -1594,12 +1583,12 @@ BERR_Code BADS_P_Read_Constellation(
         iVal_pi16[count_i16] = ((ReadReg_u32 & 0xffff0000) >> 16) ;
         qVal_pi16[count_i16] = (ReadReg_u32 & 0x0000ffff);
     }
-    *nbrGotten_pi16 = nbrToGet_i16; 
+    *nbrGotten_pi16 = nbrToGet_i16;
 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	 
+#endif
 
 	return RetCode_u32;
 }

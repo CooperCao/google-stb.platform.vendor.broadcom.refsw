@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:35:14 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:43:01 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,315 +70,315 @@
 /***************************************************************************
  *MEMC_ARB_0 - Arbitration & Client Info Registers
  ***************************************************************************/
-#define BCHP_MEMC_ARB_0_PHY_DEBUG_REGISTER       0x21101000 /* [RO] MEMC CORE and IOBUF Interface Debug Register */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_0            0x21101004 /* [CFG] Client Programming register for client 0 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_1            0x21101008 /* [CFG] Client Programming register for client 1 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_2            0x2110100c /* [CFG] Client Programming register for client 2 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_3            0x21101010 /* [CFG] Client Programming register for client 3 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_4            0x21101014 /* [CFG] Client Programming register for client 4 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_5            0x21101018 /* [CFG] Client Programming register for client 5 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_6            0x2110101c /* [CFG] Client Programming register for client 6 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_7            0x21101020 /* [CFG] Client Programming register for client 7 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_8            0x21101024 /* [CFG] Client Programming register for client 8 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_9            0x21101028 /* [CFG] Client Programming register for client 9 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_10           0x2110102c /* [CFG] Client Programming register for client 10 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_11           0x21101030 /* [CFG] Client Programming register for client 11 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_12           0x21101034 /* [CFG] Client Programming register for client 12 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_13           0x21101038 /* [CFG] Client Programming register for client 13 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_14           0x2110103c /* [CFG] Client Programming register for client 14 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_15           0x21101040 /* [CFG] Client Programming register for client 15 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_16           0x21101044 /* [CFG] Client Programming register for client 16 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_17           0x21101048 /* [CFG] Client Programming register for client 17 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_18           0x2110104c /* [CFG] Client Programming register for client 18 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_19           0x21101050 /* [CFG] Client Programming register for client 19 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_20           0x21101054 /* [CFG] Client Programming register for client 20 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_21           0x21101058 /* [CFG] Client Programming register for client 21 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_22           0x2110105c /* [CFG] Client Programming register for client 22 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_23           0x21101060 /* [CFG] Client Programming register for client 23 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_24           0x21101064 /* [CFG] Client Programming register for client 24 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_25           0x21101068 /* [CFG] Client Programming register for client 25 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_26           0x2110106c /* [CFG] Client Programming register for client 26 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_27           0x21101070 /* [CFG] Client Programming register for client 27 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_28           0x21101074 /* [CFG] Client Programming register for client 28 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_29           0x21101078 /* [CFG] Client Programming register for client 29 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_30           0x2110107c /* [CFG] Client Programming register for client 30 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_31           0x21101080 /* [CFG] Client Programming register for client 31 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_32           0x21101084 /* [CFG] Client Programming register for client 32 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_33           0x21101088 /* [CFG] Client Programming register for client 33 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_34           0x2110108c /* [CFG] Client Programming register for client 34 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_35           0x21101090 /* [CFG] Client Programming register for client 35 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_36           0x21101094 /* [CFG] Client Programming register for client 36 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_37           0x21101098 /* [CFG] Client Programming register for client 37 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_38           0x2110109c /* [CFG] Client Programming register for client 38 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_39           0x211010a0 /* [CFG] Client Programming register for client 39 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_40           0x211010a4 /* [CFG] Client Programming register for client 40 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_41           0x211010a8 /* [CFG] Client Programming register for client 41 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_42           0x211010ac /* [CFG] Client Programming register for client 42 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_43           0x211010b0 /* [CFG] Client Programming register for client 43 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_44           0x211010b4 /* [CFG] Client Programming register for client 44 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_45           0x211010b8 /* [CFG] Client Programming register for client 45 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_46           0x211010bc /* [CFG] Client Programming register for client 46 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_47           0x211010c0 /* [CFG] Client Programming register for client 47 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_48           0x211010c4 /* [CFG] Client Programming register for client 48 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_49           0x211010c8 /* [CFG] Client Programming register for client 49 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_50           0x211010cc /* [CFG] Client Programming register for client 50 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_51           0x211010d0 /* [CFG] Client Programming register for client 51 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_52           0x211010d4 /* [CFG] Client Programming register for client 52 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_53           0x211010d8 /* [CFG] Client Programming register for client 53 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_54           0x211010dc /* [CFG] Client Programming register for client 54 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_55           0x211010e0 /* [CFG] Client Programming register for client 55 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_56           0x211010e4 /* [CFG] Client Programming register for client 56 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_57           0x211010e8 /* [CFG] Client Programming register for client 57 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_58           0x211010ec /* [CFG] Client Programming register for client 58 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_59           0x211010f0 /* [CFG] Client Programming register for client 59 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_60           0x211010f4 /* [CFG] Client Programming register for client 60 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_61           0x211010f8 /* [CFG] Client Programming register for client 61 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_62           0x211010fc /* [CFG] Client Programming register for client 62 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_63           0x21101100 /* [CFG] Client Programming register for client 63 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_64           0x21101104 /* [CFG] Client Programming register for client 64 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_65           0x21101108 /* [CFG] Client Programming register for client 65 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_66           0x2110110c /* [CFG] Client Programming register for client 66 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_67           0x21101110 /* [CFG] Client Programming register for client 67 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_68           0x21101114 /* [CFG] Client Programming register for client 68 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_69           0x21101118 /* [CFG] Client Programming register for client 69 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_70           0x2110111c /* [CFG] Client Programming register for client 70 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_71           0x21101120 /* [CFG] Client Programming register for client 71 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_72           0x21101124 /* [CFG] Client Programming register for client 72 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_73           0x21101128 /* [CFG] Client Programming register for client 73 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_74           0x2110112c /* [CFG] Client Programming register for client 74 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_75           0x21101130 /* [CFG] Client Programming register for client 75 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_76           0x21101134 /* [CFG] Client Programming register for client 76 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_77           0x21101138 /* [CFG] Client Programming register for client 77 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_78           0x2110113c /* [CFG] Client Programming register for client 78 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_79           0x21101140 /* [CFG] Client Programming register for client 79 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_80           0x21101144 /* [CFG] Client Programming register for client 80 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_81           0x21101148 /* [CFG] Client Programming register for client 81 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_82           0x2110114c /* [CFG] Client Programming register for client 82 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_83           0x21101150 /* [CFG] Client Programming register for client 83 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_84           0x21101154 /* [CFG] Client Programming register for client 84 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_85           0x21101158 /* [CFG] Client Programming register for client 85 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_86           0x2110115c /* [CFG] Client Programming register for client 86 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_87           0x21101160 /* [CFG] Client Programming register for client 87 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_88           0x21101164 /* [CFG] Client Programming register for client 88 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_89           0x21101168 /* [CFG] Client Programming register for client 89 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_90           0x2110116c /* [CFG] Client Programming register for client 90 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_91           0x21101170 /* [CFG] Client Programming register for client 91 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_92           0x21101174 /* [CFG] Client Programming register for client 92 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_93           0x21101178 /* [CFG] Client Programming register for client 93 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_94           0x2110117c /* [CFG] Client Programming register for client 94 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_95           0x21101180 /* [CFG] Client Programming register for client 95 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_96           0x21101184 /* [CFG] Client Programming register for client 96 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_97           0x21101188 /* [CFG] Client Programming register for client 97 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_98           0x2110118c /* [CFG] Client Programming register for client 98 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_99           0x21101190 /* [CFG] Client Programming register for client 99 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_100          0x21101194 /* [CFG] Client Programming register for client 100 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_101          0x21101198 /* [CFG] Client Programming register for client 101 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_102          0x2110119c /* [CFG] Client Programming register for client 102 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_103          0x211011a0 /* [CFG] Client Programming register for client 103 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_104          0x211011a4 /* [CFG] Client Programming register for client 104 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_105          0x211011a8 /* [CFG] Client Programming register for client 105 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_106          0x211011ac /* [CFG] Client Programming register for client 106 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_107          0x211011b0 /* [CFG] Client Programming register for client 107 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_108          0x211011b4 /* [CFG] Client Programming register for client 108 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_109          0x211011b8 /* [CFG] Client Programming register for client 109 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_110          0x211011bc /* [CFG] Client Programming register for client 110 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_111          0x211011c0 /* [CFG] Client Programming register for client 111 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_112          0x211011c4 /* [CFG] Client Programming register for client 112 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_113          0x211011c8 /* [CFG] Client Programming register for client 113 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_114          0x211011cc /* [CFG] Client Programming register for client 114 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_115          0x211011d0 /* [CFG] Client Programming register for client 115 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_116          0x211011d4 /* [CFG] Client Programming register for client 116 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_117          0x211011d8 /* [CFG] Client Programming register for client 117 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_118          0x211011dc /* [CFG] Client Programming register for client 118 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_119          0x211011e0 /* [CFG] Client Programming register for client 119 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_120          0x211011e4 /* [CFG] Client Programming register for client 120 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_121          0x211011e8 /* [CFG] Client Programming register for client 121 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_122          0x211011ec /* [CFG] Client Programming register for client 122 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_123          0x211011f0 /* [CFG] Client Programming register for client 123 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_124          0x211011f4 /* [CFG] Client Programming register for client 124 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_125          0x211011f8 /* [CFG] Client Programming register for client 125 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_126          0x211011fc /* [CFG] Client Programming register for client 126 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_127          0x21101200 /* [CFG] Client Programming register for client 127 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_128          0x21101204 /* [CFG] Client Programming register for client 128 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_129          0x21101208 /* [CFG] Client Programming register for client 129 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_130          0x2110120c /* [CFG] Client Programming register for client 130 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_131          0x21101210 /* [CFG] Client Programming register for client 131 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_132          0x21101214 /* [CFG] Client Programming register for client 132 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_133          0x21101218 /* [CFG] Client Programming register for client 133 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_134          0x2110121c /* [CFG] Client Programming register for client 134 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_135          0x21101220 /* [CFG] Client Programming register for client 135 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_136          0x21101224 /* [CFG] Client Programming register for client 136 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_137          0x21101228 /* [CFG] Client Programming register for client 137 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_138          0x2110122c /* [CFG] Client Programming register for client 138 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_139          0x21101230 /* [CFG] Client Programming register for client 139 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_140          0x21101234 /* [CFG] Client Programming register for client 140 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_141          0x21101238 /* [CFG] Client Programming register for client 141 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_142          0x2110123c /* [CFG] Client Programming register for client 142 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_143          0x21101240 /* [CFG] Client Programming register for client 143 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_144          0x21101244 /* [CFG] Client Programming register for client 144 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_145          0x21101248 /* [CFG] Client Programming register for client 145 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_146          0x2110124c /* [CFG] Client Programming register for client 146 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_147          0x21101250 /* [CFG] Client Programming register for client 147 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_148          0x21101254 /* [CFG] Client Programming register for client 148 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_149          0x21101258 /* [CFG] Client Programming register for client 149 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_150          0x2110125c /* [CFG] Client Programming register for client 150 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_151          0x21101260 /* [CFG] Client Programming register for client 151 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_152          0x21101264 /* [CFG] Client Programming register for client 152 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_153          0x21101268 /* [CFG] Client Programming register for client 153 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_154          0x2110126c /* [CFG] Client Programming register for client 154 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_155          0x21101270 /* [CFG] Client Programming register for client 155 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_156          0x21101274 /* [CFG] Client Programming register for client 156 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_157          0x21101278 /* [CFG] Client Programming register for client 157 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_158          0x2110127c /* [CFG] Client Programming register for client 158 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_159          0x21101280 /* [CFG] Client Programming register for client 159 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_160          0x21101284 /* [CFG] Client Programming register for client 160 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_161          0x21101288 /* [CFG] Client Programming register for client 161 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_162          0x2110128c /* [CFG] Client Programming register for client 162 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_163          0x21101290 /* [CFG] Client Programming register for client 163 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_164          0x21101294 /* [CFG] Client Programming register for client 164 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_165          0x21101298 /* [CFG] Client Programming register for client 165 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_166          0x2110129c /* [CFG] Client Programming register for client 166 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_167          0x211012a0 /* [CFG] Client Programming register for client 167 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_168          0x211012a4 /* [CFG] Client Programming register for client 168 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_169          0x211012a8 /* [CFG] Client Programming register for client 169 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_170          0x211012ac /* [CFG] Client Programming register for client 170 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_171          0x211012b0 /* [CFG] Client Programming register for client 171 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_172          0x211012b4 /* [CFG] Client Programming register for client 172 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_173          0x211012b8 /* [CFG] Client Programming register for client 173 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_174          0x211012bc /* [CFG] Client Programming register for client 174 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_175          0x211012c0 /* [CFG] Client Programming register for client 175 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_176          0x211012c4 /* [CFG] Client Programming register for client 176 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_177          0x211012c8 /* [CFG] Client Programming register for client 177 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_178          0x211012cc /* [CFG] Client Programming register for client 178 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_179          0x211012d0 /* [CFG] Client Programming register for client 179 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_180          0x211012d4 /* [CFG] Client Programming register for client 180 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_181          0x211012d8 /* [CFG] Client Programming register for client 181 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_182          0x211012dc /* [CFG] Client Programming register for client 182 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_183          0x211012e0 /* [CFG] Client Programming register for client 183 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_184          0x211012e4 /* [CFG] Client Programming register for client 184 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_185          0x211012e8 /* [CFG] Client Programming register for client 185 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_186          0x211012ec /* [CFG] Client Programming register for client 186 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_187          0x211012f0 /* [CFG] Client Programming register for client 187 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_188          0x211012f4 /* [CFG] Client Programming register for client 188 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_189          0x211012f8 /* [CFG] Client Programming register for client 189 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_190          0x211012fc /* [CFG] Client Programming register for client 190 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_191          0x21101300 /* [CFG] Client Programming register for client 191 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_192          0x21101304 /* [CFG] Client Programming register for client 192 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_193          0x21101308 /* [CFG] Client Programming register for client 193 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_194          0x2110130c /* [CFG] Client Programming register for client 194 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_195          0x21101310 /* [CFG] Client Programming register for client 195 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_196          0x21101314 /* [CFG] Client Programming register for client 196 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_197          0x21101318 /* [CFG] Client Programming register for client 197 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_198          0x2110131c /* [CFG] Client Programming register for client 198 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_199          0x21101320 /* [CFG] Client Programming register for client 199 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_200          0x21101324 /* [CFG] Client Programming register for client 200 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_201          0x21101328 /* [CFG] Client Programming register for client 201 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_202          0x2110132c /* [CFG] Client Programming register for client 202 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_203          0x21101330 /* [CFG] Client Programming register for client 203 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_204          0x21101334 /* [CFG] Client Programming register for client 204 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_205          0x21101338 /* [CFG] Client Programming register for client 205 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_206          0x2110133c /* [CFG] Client Programming register for client 206 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_207          0x21101340 /* [CFG] Client Programming register for client 207 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_208          0x21101344 /* [CFG] Client Programming register for client 208 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_209          0x21101348 /* [CFG] Client Programming register for client 209 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_210          0x2110134c /* [CFG] Client Programming register for client 210 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_211          0x21101350 /* [CFG] Client Programming register for client 211 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_212          0x21101354 /* [CFG] Client Programming register for client 212 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_213          0x21101358 /* [CFG] Client Programming register for client 213 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_214          0x2110135c /* [CFG] Client Programming register for client 214 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_215          0x21101360 /* [CFG] Client Programming register for client 215 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_216          0x21101364 /* [CFG] Client Programming register for client 216 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_217          0x21101368 /* [CFG] Client Programming register for client 217 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_218          0x2110136c /* [CFG] Client Programming register for client 218 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_219          0x21101370 /* [CFG] Client Programming register for client 219 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_220          0x21101374 /* [CFG] Client Programming register for client 220 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_221          0x21101378 /* [CFG] Client Programming register for client 221 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_222          0x2110137c /* [CFG] Client Programming register for client 222 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_223          0x21101380 /* [CFG] Client Programming register for client 223 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_224          0x21101384 /* [CFG] Client Programming register for client 224 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_225          0x21101388 /* [CFG] Client Programming register for client 225 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_226          0x2110138c /* [CFG] Client Programming register for client 226 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_227          0x21101390 /* [CFG] Client Programming register for client 227 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_228          0x21101394 /* [CFG] Client Programming register for client 228 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_229          0x21101398 /* [CFG] Client Programming register for client 229 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_230          0x2110139c /* [CFG] Client Programming register for client 230 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_231          0x211013a0 /* [CFG] Client Programming register for client 231 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_232          0x211013a4 /* [CFG] Client Programming register for client 232 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_233          0x211013a8 /* [CFG] Client Programming register for client 233 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_234          0x211013ac /* [CFG] Client Programming register for client 234 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_235          0x211013b0 /* [CFG] Client Programming register for client 235 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_236          0x211013b4 /* [CFG] Client Programming register for client 236 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_237          0x211013b8 /* [CFG] Client Programming register for client 237 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_238          0x211013bc /* [CFG] Client Programming register for client 238 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_239          0x211013c0 /* [CFG] Client Programming register for client 239 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_240          0x211013c4 /* [CFG] Client Programming register for client 240 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_241          0x211013c8 /* [CFG] Client Programming register for client 241 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_242          0x211013cc /* [CFG] Client Programming register for client 242 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_243          0x211013d0 /* [CFG] Client Programming register for client 243 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_244          0x211013d4 /* [CFG] Client Programming register for client 244 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_245          0x211013d8 /* [CFG] Client Programming register for client 245 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_246          0x211013dc /* [CFG] Client Programming register for client 246 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_247          0x211013e0 /* [CFG] Client Programming register for client 247 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_248          0x211013e4 /* [CFG] Client Programming register for client 248 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_249          0x211013e8 /* [CFG] Client Programming register for client 249 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_250          0x211013ec /* [CFG] Client Programming register for client 250 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_251          0x211013f0 /* [CFG] Client Programming register for client 251 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_252          0x211013f4 /* [CFG] Client Programming register for client 252 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_253          0x211013f8 /* [CFG] Client Programming register for client 253 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_254          0x211013fc /* [CFG] Client Programming register for client 254 */
-#define BCHP_MEMC_ARB_0_CLIENT_INFO_255          0x21101400 /* [CFG] Client Programming register for client 255 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_0               0x21101404 /* [CFG] Request Mask register for Clients 0 to 31 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_1               0x21101408 /* [CFG] Request Mask register for Clients 32 to 63 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_2               0x2110140c /* [CFG] Request Mask register for Clients 64 to 95 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_3               0x21101410 /* [CFG] Request Mask register for Clients 96 to 127 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_4               0x21101414 /* [CFG] Request Mask register for Clients 128 to 159 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_5               0x21101418 /* [CFG] Request Mask register for Clients 160 to 191 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_6               0x2110141c /* [CFG] Request Mask register for Clients 192 to 223 */
-#define BCHP_MEMC_ARB_0_REQ_MASK_7               0x21101420 /* [CFG] Request Mask register for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_ARB_WINNER               0x21101424 /* [RO] SCB-Arbitration Winner. */
-#define BCHP_MEMC_ARB_0_RTS_ERR_0                0x21101428 /* [RO] RTS Deadline miss register for Clients 0 to 31 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_1                0x2110142c /* [RO] RTS Deadline miss register for Clients 32 to 63 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_2                0x21101430 /* [RO] RTS Deadline miss register for Clients 64 to 95 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_3                0x21101434 /* [RO] RTS Deadline miss register for Clients 96 to 127 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_4                0x21101438 /* [RO] RTS Deadline miss register for Clients 128 to 159 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_5                0x2110143c /* [RO] RTS Deadline miss register for Clients 160 to 191 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_6                0x21101440 /* [RO] RTS Deadline miss register for Clients 192 to 223 */
-#define BCHP_MEMC_ARB_0_RTS_ERR_7                0x21101444 /* [RO] RTS Deadline miss register for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_FULLNESS_THRESHOLD       0x21101448 /* [CFG] Arbiter fullness threshold register */
-#define BCHP_MEMC_ARB_0_FULLNESS_UPDATE_HOLDOFF  0x2110144c /* [CFG] SCB and MCP Write Fullness Update Holdoff register */
-#define BCHP_MEMC_ARB_0_MINIMUM_COMMAND_SIZE     0x21101450 /* [CFG] Minimum command size register */
-#define BCHP_MEMC_ARB_0_MINIMUM_COMMAND_SIZE2    0x21101454 /* [CFG] Minimum command size register for UBUS */
-#define BCHP_MEMC_ARB_0_RTS_ERR_INFO_WRITE_CLEAR 0x21101458 /* [CFG] MEMC RTS_ERR_INFO write clear register */
-#define BCHP_MEMC_ARB_0_SCB_ARBITER_DEBUG_REGISTER 0x2110145c /* [RO] MEMC SCB Interface and Arbiter State Machine and FIFO Debug Register */
-#define BCHP_MEMC_ARB_0_SPARE_1                  0x21101460 /* [CFG] Spare Register 1 . */
-#define BCHP_MEMC_ARB_0_SPARE_2                  0x21101464 /* [CFG] Spare Register 2 . */
-#define BCHP_MEMC_ARB_0_SPARE_RO_1               0x21101468 /* [RO] Read only Spare Register 1 . */
-#define BCHP_MEMC_ARB_0_SPARE_RO_2               0x2110146c /* [RO] Read only Spare Register 2 . */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG] "Override registers to force behaviour of client_init module." */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG] "Client init block counter threshold value" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO] "Client init error interrupt" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO] "Client init error write clear" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO] "Client init error violation info" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG] "Client init software init" */
-#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO] "Client init status and debug register" */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_0          0x2110148c /* [RO] LCA Valid Requests for Clients 0 to 31 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_1          0x21101490 /* [RO] LCA Valid Requests for Clients 32 to 63 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_2          0x21101494 /* [RO] LCA Valid Requests for Clients 64 to 95 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_3          0x21101498 /* [RO] LCA Valid Requests for Clients 96 to 127 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_4          0x2110149c /* [RO] LCA Valid Requests for Clients 128 to 159 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_5          0x211014a0 /* [RO] LCA Valid Requests for Clients 160 to 191 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_6          0x211014a4 /* [RO] LCA Valid Requests for Clients 192 to 223 */
-#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_7          0x211014a8 /* [RO] LCA Valid Requests for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_CMD_FIFO_THRESH          0x211014ac /* [CFG] Command FIFO Full Threshold Register */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_0  0x211014b0 /* [RO] Active Blocked Status for Clients 0 to 31 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_1  0x211014b4 /* [RO] Active Blocked Status for Clients 32 to 63 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_2  0x211014b8 /* [RO] Active Blocked Status for Clients 64 to 95 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_3  0x211014bc /* [RO] Active Blocked Status for Clients 96 to 127 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_4  0x211014c0 /* [RO] Active Blocked Status for Clients 128 to 159 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_5  0x211014c4 /* [RO] Active Blocked Status for Clients 160 to 191 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_6  0x211014c8 /* [RO] Active Blocked Status for Clients 192 to 223 */
-#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7  0x211014cc /* [RO] Active Blocked Status for Clients 224 to 255 */
-#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG] "Arbiter clock gating disable register" */
+#define BCHP_MEMC_ARB_0_PHY_DEBUG_REGISTER       0x21101000 /* [RO][32] MEMC CORE and IOBUF Interface Debug Register */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_0            0x21101004 /* [CFG][32] Client Programming register for client 0 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_1            0x21101008 /* [CFG][32] Client Programming register for client 1 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_2            0x2110100c /* [CFG][32] Client Programming register for client 2 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_3            0x21101010 /* [CFG][32] Client Programming register for client 3 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_4            0x21101014 /* [CFG][32] Client Programming register for client 4 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_5            0x21101018 /* [CFG][32] Client Programming register for client 5 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_6            0x2110101c /* [CFG][32] Client Programming register for client 6 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_7            0x21101020 /* [CFG][32] Client Programming register for client 7 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_8            0x21101024 /* [CFG][32] Client Programming register for client 8 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_9            0x21101028 /* [CFG][32] Client Programming register for client 9 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_10           0x2110102c /* [CFG][32] Client Programming register for client 10 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_11           0x21101030 /* [CFG][32] Client Programming register for client 11 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_12           0x21101034 /* [CFG][32] Client Programming register for client 12 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_13           0x21101038 /* [CFG][32] Client Programming register for client 13 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_14           0x2110103c /* [CFG][32] Client Programming register for client 14 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_15           0x21101040 /* [CFG][32] Client Programming register for client 15 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_16           0x21101044 /* [CFG][32] Client Programming register for client 16 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_17           0x21101048 /* [CFG][32] Client Programming register for client 17 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_18           0x2110104c /* [CFG][32] Client Programming register for client 18 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_19           0x21101050 /* [CFG][32] Client Programming register for client 19 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_20           0x21101054 /* [CFG][32] Client Programming register for client 20 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_21           0x21101058 /* [CFG][32] Client Programming register for client 21 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_22           0x2110105c /* [CFG][32] Client Programming register for client 22 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_23           0x21101060 /* [CFG][32] Client Programming register for client 23 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_24           0x21101064 /* [CFG][32] Client Programming register for client 24 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_25           0x21101068 /* [CFG][32] Client Programming register for client 25 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_26           0x2110106c /* [CFG][32] Client Programming register for client 26 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_27           0x21101070 /* [CFG][32] Client Programming register for client 27 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_28           0x21101074 /* [CFG][32] Client Programming register for client 28 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_29           0x21101078 /* [CFG][32] Client Programming register for client 29 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_30           0x2110107c /* [CFG][32] Client Programming register for client 30 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_31           0x21101080 /* [CFG][32] Client Programming register for client 31 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_32           0x21101084 /* [CFG][32] Client Programming register for client 32 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_33           0x21101088 /* [CFG][32] Client Programming register for client 33 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_34           0x2110108c /* [CFG][32] Client Programming register for client 34 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_35           0x21101090 /* [CFG][32] Client Programming register for client 35 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_36           0x21101094 /* [CFG][32] Client Programming register for client 36 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_37           0x21101098 /* [CFG][32] Client Programming register for client 37 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_38           0x2110109c /* [CFG][32] Client Programming register for client 38 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_39           0x211010a0 /* [CFG][32] Client Programming register for client 39 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_40           0x211010a4 /* [CFG][32] Client Programming register for client 40 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_41           0x211010a8 /* [CFG][32] Client Programming register for client 41 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_42           0x211010ac /* [CFG][32] Client Programming register for client 42 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_43           0x211010b0 /* [CFG][32] Client Programming register for client 43 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_44           0x211010b4 /* [CFG][32] Client Programming register for client 44 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_45           0x211010b8 /* [CFG][32] Client Programming register for client 45 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_46           0x211010bc /* [CFG][32] Client Programming register for client 46 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_47           0x211010c0 /* [CFG][32] Client Programming register for client 47 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_48           0x211010c4 /* [CFG][32] Client Programming register for client 48 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_49           0x211010c8 /* [CFG][32] Client Programming register for client 49 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_50           0x211010cc /* [CFG][32] Client Programming register for client 50 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_51           0x211010d0 /* [CFG][32] Client Programming register for client 51 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_52           0x211010d4 /* [CFG][32] Client Programming register for client 52 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_53           0x211010d8 /* [CFG][32] Client Programming register for client 53 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_54           0x211010dc /* [CFG][32] Client Programming register for client 54 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_55           0x211010e0 /* [CFG][32] Client Programming register for client 55 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_56           0x211010e4 /* [CFG][32] Client Programming register for client 56 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_57           0x211010e8 /* [CFG][32] Client Programming register for client 57 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_58           0x211010ec /* [CFG][32] Client Programming register for client 58 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_59           0x211010f0 /* [CFG][32] Client Programming register for client 59 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_60           0x211010f4 /* [CFG][32] Client Programming register for client 60 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_61           0x211010f8 /* [CFG][32] Client Programming register for client 61 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_62           0x211010fc /* [CFG][32] Client Programming register for client 62 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_63           0x21101100 /* [CFG][32] Client Programming register for client 63 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_64           0x21101104 /* [CFG][32] Client Programming register for client 64 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_65           0x21101108 /* [CFG][32] Client Programming register for client 65 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_66           0x2110110c /* [CFG][32] Client Programming register for client 66 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_67           0x21101110 /* [CFG][32] Client Programming register for client 67 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_68           0x21101114 /* [CFG][32] Client Programming register for client 68 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_69           0x21101118 /* [CFG][32] Client Programming register for client 69 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_70           0x2110111c /* [CFG][32] Client Programming register for client 70 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_71           0x21101120 /* [CFG][32] Client Programming register for client 71 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_72           0x21101124 /* [CFG][32] Client Programming register for client 72 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_73           0x21101128 /* [CFG][32] Client Programming register for client 73 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_74           0x2110112c /* [CFG][32] Client Programming register for client 74 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_75           0x21101130 /* [CFG][32] Client Programming register for client 75 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_76           0x21101134 /* [CFG][32] Client Programming register for client 76 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_77           0x21101138 /* [CFG][32] Client Programming register for client 77 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_78           0x2110113c /* [CFG][32] Client Programming register for client 78 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_79           0x21101140 /* [CFG][32] Client Programming register for client 79 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_80           0x21101144 /* [CFG][32] Client Programming register for client 80 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_81           0x21101148 /* [CFG][32] Client Programming register for client 81 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_82           0x2110114c /* [CFG][32] Client Programming register for client 82 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_83           0x21101150 /* [CFG][32] Client Programming register for client 83 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_84           0x21101154 /* [CFG][32] Client Programming register for client 84 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_85           0x21101158 /* [CFG][32] Client Programming register for client 85 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_86           0x2110115c /* [CFG][32] Client Programming register for client 86 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_87           0x21101160 /* [CFG][32] Client Programming register for client 87 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_88           0x21101164 /* [CFG][32] Client Programming register for client 88 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_89           0x21101168 /* [CFG][32] Client Programming register for client 89 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_90           0x2110116c /* [CFG][32] Client Programming register for client 90 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_91           0x21101170 /* [CFG][32] Client Programming register for client 91 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_92           0x21101174 /* [CFG][32] Client Programming register for client 92 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_93           0x21101178 /* [CFG][32] Client Programming register for client 93 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_94           0x2110117c /* [CFG][32] Client Programming register for client 94 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_95           0x21101180 /* [CFG][32] Client Programming register for client 95 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_96           0x21101184 /* [CFG][32] Client Programming register for client 96 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_97           0x21101188 /* [CFG][32] Client Programming register for client 97 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_98           0x2110118c /* [CFG][32] Client Programming register for client 98 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_99           0x21101190 /* [CFG][32] Client Programming register for client 99 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_100          0x21101194 /* [CFG][32] Client Programming register for client 100 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_101          0x21101198 /* [CFG][32] Client Programming register for client 101 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_102          0x2110119c /* [CFG][32] Client Programming register for client 102 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_103          0x211011a0 /* [CFG][32] Client Programming register for client 103 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_104          0x211011a4 /* [CFG][32] Client Programming register for client 104 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_105          0x211011a8 /* [CFG][32] Client Programming register for client 105 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_106          0x211011ac /* [CFG][32] Client Programming register for client 106 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_107          0x211011b0 /* [CFG][32] Client Programming register for client 107 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_108          0x211011b4 /* [CFG][32] Client Programming register for client 108 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_109          0x211011b8 /* [CFG][32] Client Programming register for client 109 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_110          0x211011bc /* [CFG][32] Client Programming register for client 110 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_111          0x211011c0 /* [CFG][32] Client Programming register for client 111 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_112          0x211011c4 /* [CFG][32] Client Programming register for client 112 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_113          0x211011c8 /* [CFG][32] Client Programming register for client 113 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_114          0x211011cc /* [CFG][32] Client Programming register for client 114 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_115          0x211011d0 /* [CFG][32] Client Programming register for client 115 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_116          0x211011d4 /* [CFG][32] Client Programming register for client 116 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_117          0x211011d8 /* [CFG][32] Client Programming register for client 117 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_118          0x211011dc /* [CFG][32] Client Programming register for client 118 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_119          0x211011e0 /* [CFG][32] Client Programming register for client 119 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_120          0x211011e4 /* [CFG][32] Client Programming register for client 120 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_121          0x211011e8 /* [CFG][32] Client Programming register for client 121 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_122          0x211011ec /* [CFG][32] Client Programming register for client 122 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_123          0x211011f0 /* [CFG][32] Client Programming register for client 123 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_124          0x211011f4 /* [CFG][32] Client Programming register for client 124 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_125          0x211011f8 /* [CFG][32] Client Programming register for client 125 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_126          0x211011fc /* [CFG][32] Client Programming register for client 126 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_127          0x21101200 /* [CFG][32] Client Programming register for client 127 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_128          0x21101204 /* [CFG][32] Client Programming register for client 128 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_129          0x21101208 /* [CFG][32] Client Programming register for client 129 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_130          0x2110120c /* [CFG][32] Client Programming register for client 130 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_131          0x21101210 /* [CFG][32] Client Programming register for client 131 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_132          0x21101214 /* [CFG][32] Client Programming register for client 132 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_133          0x21101218 /* [CFG][32] Client Programming register for client 133 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_134          0x2110121c /* [CFG][32] Client Programming register for client 134 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_135          0x21101220 /* [CFG][32] Client Programming register for client 135 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_136          0x21101224 /* [CFG][32] Client Programming register for client 136 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_137          0x21101228 /* [CFG][32] Client Programming register for client 137 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_138          0x2110122c /* [CFG][32] Client Programming register for client 138 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_139          0x21101230 /* [CFG][32] Client Programming register for client 139 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_140          0x21101234 /* [CFG][32] Client Programming register for client 140 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_141          0x21101238 /* [CFG][32] Client Programming register for client 141 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_142          0x2110123c /* [CFG][32] Client Programming register for client 142 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_143          0x21101240 /* [CFG][32] Client Programming register for client 143 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_144          0x21101244 /* [CFG][32] Client Programming register for client 144 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_145          0x21101248 /* [CFG][32] Client Programming register for client 145 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_146          0x2110124c /* [CFG][32] Client Programming register for client 146 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_147          0x21101250 /* [CFG][32] Client Programming register for client 147 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_148          0x21101254 /* [CFG][32] Client Programming register for client 148 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_149          0x21101258 /* [CFG][32] Client Programming register for client 149 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_150          0x2110125c /* [CFG][32] Client Programming register for client 150 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_151          0x21101260 /* [CFG][32] Client Programming register for client 151 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_152          0x21101264 /* [CFG][32] Client Programming register for client 152 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_153          0x21101268 /* [CFG][32] Client Programming register for client 153 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_154          0x2110126c /* [CFG][32] Client Programming register for client 154 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_155          0x21101270 /* [CFG][32] Client Programming register for client 155 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_156          0x21101274 /* [CFG][32] Client Programming register for client 156 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_157          0x21101278 /* [CFG][32] Client Programming register for client 157 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_158          0x2110127c /* [CFG][32] Client Programming register for client 158 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_159          0x21101280 /* [CFG][32] Client Programming register for client 159 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_160          0x21101284 /* [CFG][32] Client Programming register for client 160 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_161          0x21101288 /* [CFG][32] Client Programming register for client 161 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_162          0x2110128c /* [CFG][32] Client Programming register for client 162 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_163          0x21101290 /* [CFG][32] Client Programming register for client 163 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_164          0x21101294 /* [CFG][32] Client Programming register for client 164 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_165          0x21101298 /* [CFG][32] Client Programming register for client 165 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_166          0x2110129c /* [CFG][32] Client Programming register for client 166 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_167          0x211012a0 /* [CFG][32] Client Programming register for client 167 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_168          0x211012a4 /* [CFG][32] Client Programming register for client 168 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_169          0x211012a8 /* [CFG][32] Client Programming register for client 169 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_170          0x211012ac /* [CFG][32] Client Programming register for client 170 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_171          0x211012b0 /* [CFG][32] Client Programming register for client 171 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_172          0x211012b4 /* [CFG][32] Client Programming register for client 172 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_173          0x211012b8 /* [CFG][32] Client Programming register for client 173 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_174          0x211012bc /* [CFG][32] Client Programming register for client 174 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_175          0x211012c0 /* [CFG][32] Client Programming register for client 175 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_176          0x211012c4 /* [CFG][32] Client Programming register for client 176 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_177          0x211012c8 /* [CFG][32] Client Programming register for client 177 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_178          0x211012cc /* [CFG][32] Client Programming register for client 178 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_179          0x211012d0 /* [CFG][32] Client Programming register for client 179 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_180          0x211012d4 /* [CFG][32] Client Programming register for client 180 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_181          0x211012d8 /* [CFG][32] Client Programming register for client 181 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_182          0x211012dc /* [CFG][32] Client Programming register for client 182 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_183          0x211012e0 /* [CFG][32] Client Programming register for client 183 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_184          0x211012e4 /* [CFG][32] Client Programming register for client 184 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_185          0x211012e8 /* [CFG][32] Client Programming register for client 185 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_186          0x211012ec /* [CFG][32] Client Programming register for client 186 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_187          0x211012f0 /* [CFG][32] Client Programming register for client 187 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_188          0x211012f4 /* [CFG][32] Client Programming register for client 188 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_189          0x211012f8 /* [CFG][32] Client Programming register for client 189 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_190          0x211012fc /* [CFG][32] Client Programming register for client 190 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_191          0x21101300 /* [CFG][32] Client Programming register for client 191 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_192          0x21101304 /* [CFG][32] Client Programming register for client 192 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_193          0x21101308 /* [CFG][32] Client Programming register for client 193 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_194          0x2110130c /* [CFG][32] Client Programming register for client 194 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_195          0x21101310 /* [CFG][32] Client Programming register for client 195 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_196          0x21101314 /* [CFG][32] Client Programming register for client 196 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_197          0x21101318 /* [CFG][32] Client Programming register for client 197 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_198          0x2110131c /* [CFG][32] Client Programming register for client 198 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_199          0x21101320 /* [CFG][32] Client Programming register for client 199 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_200          0x21101324 /* [CFG][32] Client Programming register for client 200 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_201          0x21101328 /* [CFG][32] Client Programming register for client 201 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_202          0x2110132c /* [CFG][32] Client Programming register for client 202 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_203          0x21101330 /* [CFG][32] Client Programming register for client 203 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_204          0x21101334 /* [CFG][32] Client Programming register for client 204 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_205          0x21101338 /* [CFG][32] Client Programming register for client 205 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_206          0x2110133c /* [CFG][32] Client Programming register for client 206 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_207          0x21101340 /* [CFG][32] Client Programming register for client 207 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_208          0x21101344 /* [CFG][32] Client Programming register for client 208 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_209          0x21101348 /* [CFG][32] Client Programming register for client 209 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_210          0x2110134c /* [CFG][32] Client Programming register for client 210 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_211          0x21101350 /* [CFG][32] Client Programming register for client 211 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_212          0x21101354 /* [CFG][32] Client Programming register for client 212 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_213          0x21101358 /* [CFG][32] Client Programming register for client 213 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_214          0x2110135c /* [CFG][32] Client Programming register for client 214 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_215          0x21101360 /* [CFG][32] Client Programming register for client 215 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_216          0x21101364 /* [CFG][32] Client Programming register for client 216 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_217          0x21101368 /* [CFG][32] Client Programming register for client 217 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_218          0x2110136c /* [CFG][32] Client Programming register for client 218 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_219          0x21101370 /* [CFG][32] Client Programming register for client 219 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_220          0x21101374 /* [CFG][32] Client Programming register for client 220 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_221          0x21101378 /* [CFG][32] Client Programming register for client 221 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_222          0x2110137c /* [CFG][32] Client Programming register for client 222 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_223          0x21101380 /* [CFG][32] Client Programming register for client 223 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_224          0x21101384 /* [CFG][32] Client Programming register for client 224 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_225          0x21101388 /* [CFG][32] Client Programming register for client 225 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_226          0x2110138c /* [CFG][32] Client Programming register for client 226 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_227          0x21101390 /* [CFG][32] Client Programming register for client 227 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_228          0x21101394 /* [CFG][32] Client Programming register for client 228 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_229          0x21101398 /* [CFG][32] Client Programming register for client 229 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_230          0x2110139c /* [CFG][32] Client Programming register for client 230 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_231          0x211013a0 /* [CFG][32] Client Programming register for client 231 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_232          0x211013a4 /* [CFG][32] Client Programming register for client 232 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_233          0x211013a8 /* [CFG][32] Client Programming register for client 233 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_234          0x211013ac /* [CFG][32] Client Programming register for client 234 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_235          0x211013b0 /* [CFG][32] Client Programming register for client 235 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_236          0x211013b4 /* [CFG][32] Client Programming register for client 236 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_237          0x211013b8 /* [CFG][32] Client Programming register for client 237 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_238          0x211013bc /* [CFG][32] Client Programming register for client 238 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_239          0x211013c0 /* [CFG][32] Client Programming register for client 239 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_240          0x211013c4 /* [CFG][32] Client Programming register for client 240 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_241          0x211013c8 /* [CFG][32] Client Programming register for client 241 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_242          0x211013cc /* [CFG][32] Client Programming register for client 242 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_243          0x211013d0 /* [CFG][32] Client Programming register for client 243 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_244          0x211013d4 /* [CFG][32] Client Programming register for client 244 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_245          0x211013d8 /* [CFG][32] Client Programming register for client 245 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_246          0x211013dc /* [CFG][32] Client Programming register for client 246 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_247          0x211013e0 /* [CFG][32] Client Programming register for client 247 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_248          0x211013e4 /* [CFG][32] Client Programming register for client 248 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_249          0x211013e8 /* [CFG][32] Client Programming register for client 249 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_250          0x211013ec /* [CFG][32] Client Programming register for client 250 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_251          0x211013f0 /* [CFG][32] Client Programming register for client 251 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_252          0x211013f4 /* [CFG][32] Client Programming register for client 252 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_253          0x211013f8 /* [CFG][32] Client Programming register for client 253 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_254          0x211013fc /* [CFG][32] Client Programming register for client 254 */
+#define BCHP_MEMC_ARB_0_CLIENT_INFO_255          0x21101400 /* [CFG][32] Client Programming register for client 255 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_0               0x21101404 /* [CFG][32] Request Mask register for Clients 0 to 31 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_1               0x21101408 /* [CFG][32] Request Mask register for Clients 32 to 63 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_2               0x2110140c /* [CFG][32] Request Mask register for Clients 64 to 95 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_3               0x21101410 /* [CFG][32] Request Mask register for Clients 96 to 127 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_4               0x21101414 /* [CFG][32] Request Mask register for Clients 128 to 159 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_5               0x21101418 /* [CFG][32] Request Mask register for Clients 160 to 191 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_6               0x2110141c /* [CFG][32] Request Mask register for Clients 192 to 223 */
+#define BCHP_MEMC_ARB_0_REQ_MASK_7               0x21101420 /* [CFG][32] Request Mask register for Clients 224 to 255 */
+#define BCHP_MEMC_ARB_0_ARB_WINNER               0x21101424 /* [RO][32] SCB-Arbitration Winner. */
+#define BCHP_MEMC_ARB_0_RTS_ERR_0                0x21101428 /* [RO][32] RTS Deadline miss register for Clients 0 to 31 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_1                0x2110142c /* [RO][32] RTS Deadline miss register for Clients 32 to 63 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_2                0x21101430 /* [RO][32] RTS Deadline miss register for Clients 64 to 95 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_3                0x21101434 /* [RO][32] RTS Deadline miss register for Clients 96 to 127 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_4                0x21101438 /* [RO][32] RTS Deadline miss register for Clients 128 to 159 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_5                0x2110143c /* [RO][32] RTS Deadline miss register for Clients 160 to 191 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_6                0x21101440 /* [RO][32] RTS Deadline miss register for Clients 192 to 223 */
+#define BCHP_MEMC_ARB_0_RTS_ERR_7                0x21101444 /* [RO][32] RTS Deadline miss register for Clients 224 to 255 */
+#define BCHP_MEMC_ARB_0_FULLNESS_THRESHOLD       0x21101448 /* [CFG][32] Arbiter fullness threshold register */
+#define BCHP_MEMC_ARB_0_FULLNESS_UPDATE_HOLDOFF  0x2110144c /* [CFG][32] SCB and MCP Write Fullness Update Holdoff register */
+#define BCHP_MEMC_ARB_0_MINIMUM_COMMAND_SIZE     0x21101450 /* [CFG][32] Minimum command size register */
+#define BCHP_MEMC_ARB_0_MINIMUM_COMMAND_SIZE2    0x21101454 /* [CFG][32] Minimum command size register for UBUS */
+#define BCHP_MEMC_ARB_0_RTS_ERR_INFO_WRITE_CLEAR 0x21101458 /* [CFG][32] MEMC RTS_ERR_INFO write clear register */
+#define BCHP_MEMC_ARB_0_SCB_ARBITER_DEBUG_REGISTER 0x2110145c /* [RO][32] MEMC SCB Interface and Arbiter State Machine and FIFO Debug Register */
+#define BCHP_MEMC_ARB_0_SPARE_1                  0x21101460 /* [CFG][32] Spare Register 1 . */
+#define BCHP_MEMC_ARB_0_SPARE_2                  0x21101464 /* [CFG][32] Spare Register 2 . */
+#define BCHP_MEMC_ARB_0_SPARE_RO_1               0x21101468 /* [RO][32] Read only Spare Register 1 . */
+#define BCHP_MEMC_ARB_0_SPARE_RO_2               0x2110146c /* [RO][32] Read only Spare Register 2 . */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ENABLE       0x21101470 /* [CFG][32] "Override registers to force behaviour of client_init module." */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_COUNTER_THRESH 0x21101474 /* [CFG][32] "Client init block counter threshold value" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INTERRUPT 0x21101478 /* [RO][32] "Client init error interrupt" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_WRITE_CLEAR 0x2110147c /* [WO][32] "Client init error write clear" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_ERROR_INFO   0x21101480 /* [RO][32] "Client init error violation info" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_SW_INIT      0x21101484 /* [CFG][32] "Client init software init" */
+#define BCHP_MEMC_ARB_0_CLIENT_INIT_STATUS       0x21101488 /* [RO][32] "Client init status and debug register" */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_0          0x2110148c /* [RO][32] LCA Valid Requests for Clients 0 to 31 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_1          0x21101490 /* [RO][32] LCA Valid Requests for Clients 32 to 63 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_2          0x21101494 /* [RO][32] LCA Valid Requests for Clients 64 to 95 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_3          0x21101498 /* [RO][32] LCA Valid Requests for Clients 96 to 127 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_4          0x2110149c /* [RO][32] LCA Valid Requests for Clients 128 to 159 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_5          0x211014a0 /* [RO][32] LCA Valid Requests for Clients 160 to 191 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_6          0x211014a4 /* [RO][32] LCA Valid Requests for Clients 192 to 223 */
+#define BCHP_MEMC_ARB_0_LCA_VALID_REQ_7          0x211014a8 /* [RO][32] LCA Valid Requests for Clients 224 to 255 */
+#define BCHP_MEMC_ARB_0_CMD_FIFO_THRESH          0x211014ac /* [CFG][32] Command FIFO Full Threshold Register */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_0  0x211014b0 /* [RO][32] Active Blocked Status for Clients 0 to 31 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_1  0x211014b4 /* [RO][32] Active Blocked Status for Clients 32 to 63 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_2  0x211014b8 /* [RO][32] Active Blocked Status for Clients 64 to 95 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_3  0x211014bc /* [RO][32] Active Blocked Status for Clients 96 to 127 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_4  0x211014c0 /* [RO][32] Active Blocked Status for Clients 128 to 159 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_5  0x211014c4 /* [RO][32] Active Blocked Status for Clients 160 to 191 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_6  0x211014c8 /* [RO][32] Active Blocked Status for Clients 192 to 223 */
+#define BCHP_MEMC_ARB_0_ACTIVE_BLOCKED_STATUS_7  0x211014cc /* [RO][32] Active Blocked Status for Clients 224 to 255 */
+#define BCHP_MEMC_ARB_0_ARB_CLK_GATE_DISABLE     0x211014d0 /* [CFG][32] "Arbiter clock gating disable register" */
 
 /***************************************************************************
  *PHY_DEBUG_REGISTER - MEMC CORE and IOBUF Interface Debug Register

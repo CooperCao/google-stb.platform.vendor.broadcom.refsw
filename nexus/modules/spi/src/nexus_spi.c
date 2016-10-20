@@ -168,9 +168,6 @@ NEXUS_SpiHandle NEXUS_Spi_Open(unsigned index, const NEXUS_SpiSettings *pSetting
     if ( pSettings->useUserDtlAndDsclk ) {
         channelSettings.useUserDtlAndDsclk     = pSettings->useUserDtlAndDsclk;
     }
-    if ( pSettings->ebiChipSelect) {
-        channelSettings.ebiCs = pSettings->ebiChipSelect;
-    }
 
     if (pSettings->clockActiveLow)
         channelSettings.clkConfig |= BCHP_MSPI_SPCR0_MSB_CPOL_MASK; /* if 1, then 0 is active */

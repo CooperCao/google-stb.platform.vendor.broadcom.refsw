@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -198,8 +198,16 @@ void CBoardFeatures::clear()
     memset(_videoFormatIsSupported, false, NEXUS_VideoFormat_eMax);
 } /* clear */
 
-void CBoardFeatures::dump()
+void CBoardFeatures::dump(bool bForce)
 {
+    BDBG_Level level;
+
+    if (true == bForce)
+    {
+        BDBG_GetModuleLevel("atlas_board", &level);
+        BDBG_SetModuleLevel("atlas_board", BDBG_eMsg);
+    }
+
     BDBG_MSG(("\nBOARD FEATURES"));
     /*
      * BDBG_MSG(("videoHd:        %d", _videoHd));
@@ -221,6 +229,11 @@ void CBoardFeatures::dump()
     BDBG_MSG(("autoVolume:     %d", _autoVolume));
     BDBG_MSG(("dolbyVolume:    %d", _dolbyVolume));
     BDBG_MSG(("srsVolume:      %d", _srsVolume));
+
+    if (true == bForce)
+    {
+        BDBG_SetModuleLevel("atlas_board", level);
+    }
 } /* dump */
 
 CBoardResources::CBoardResources()
@@ -295,8 +308,6 @@ CBoardResources::CBoardResources()
     _mapResourceList[eBoardResource_inputBand] = (MAutoList <CResource> *)&_inputBandList;
     _parserBandList.clear();
     _mapResourceList[eBoardResource_parserBand] = (MAutoList <CResource> *)&_parserBandList;
-    _mixerList.clear();
-    _mapResourceList[eBoardResource_mixer] = (MAutoList <CResource> *)&_mixerList;
     _outputSpdifList.clear();
     _mapResourceList[eBoardResource_outputSpdif] = (MAutoList <CResource> *)&_outputSpdifList;
     _outputAudioDacList.clear();
@@ -366,7 +377,6 @@ void CBoardResources::clear()
     _outputAudioDacList.clear();
     _outputAudioDacI2sList.clear();
     _outputSpdifList.clear();
-    _mixerList.clear();
     _parserBandList.clear();
     _inputBandList.clear();
 #if NEXUS_HAS_VIDEO_ENCODER
@@ -762,15 +772,6 @@ eRet CBoardResources::add(
             pParserBand = new CParserBand(name, (id && (id != i)) ? id : i, pCfg);
             BDBG_ASSERT(pParserBand);
             _parserBandList.add(pParserBand);
-        }
-        break;
-
-        case eBoardResource_mixer:
-        {
-            CMixer * pMixer = NULL;
-            pMixer = new CMixer(name, (id && (id != i)) ? id : i, pCfg);
-            BDBG_ASSERT(pMixer);
-            _mixerList.add(pMixer);
         }
         break;
 
@@ -1324,7 +1325,7 @@ CResource * CBoardResources::checkoutResource(
         }
     }
 
-    CHECK_PTR_WARN_GOTO("resource unavailable for checkout", pCheckedOutResource, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("resource unavailable for checkout", pCheckedOutResource, ret, eRet_NotAvailable, error);
     BDBG_ASSERT(resource == pCheckedOutResource->getType());
 
 #if NEXUS_HAS_FRONTEND
@@ -1359,7 +1360,7 @@ CResource * CBoardResources::checkoutResource(
 
     goto done;
 error:
-    BDBG_WRN(("resource type: %s(%d)", boardResourceToString(resource).s(), resource));
+    BDBG_MSG(("resource type: %s(%d)", boardResourceToString(resource).s(), resource));
 done:
     return(pCheckedOutResource);
 } /* checkoutResource */
@@ -1434,8 +1435,16 @@ void CBoardResources::dumpList(MList <CResource> * pList)
     }
 }
 
-void CBoardResources::dump()
+void CBoardResources::dump(bool bForce)
 {
+    BDBG_Level level;
+
+    if (true == bForce)
+    {
+        BDBG_GetModuleLevel("atlas_board", &level);
+        BDBG_SetModuleLevel("atlas_board", BDBG_eMsg);
+    }
+
     BDBG_MSG(("\nRESOURCES"));
     BDBG_MSG(("========="));
     BDBG_MSG(("displays:                    %d", _displayList.total()));
@@ -1528,4 +1537,9 @@ void CBoardResources::dump()
     BDBG_MSG(("Bluetooth Remote :                     %d", _remoteListBluetooth.total()));
     dumpList((MList <CResource> *)&_remoteListBluetooth);
 #endif /* ifdef NETAPP_SUPPORT */
+
+    if (true == bForce)
+    {
+        BDBG_SetModuleLevel("atlas_board", level);
+    }
 } /* dump */

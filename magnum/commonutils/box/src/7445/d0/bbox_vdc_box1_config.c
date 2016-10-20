@@ -86,10 +86,10 @@ void BBOX_P_Vdc_SetBox1DisplayCapabilities
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Video1, INVALID,   1,                  1,                  SclBeforeCap);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display1, Gfx0,   INVALID,   BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, Disregard);
 
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display5, 1080p_30Hz,      1080p_30Hz,       1,       0,       1,       Disregard);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display5, 720p_30Hz,       720p_30Hz,       1,      0,       1,        Disregard);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display5, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
 
-    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display6, 1080p_30Hz,      1080p_30Hz,       0,       0,       0,       Disregard);
+    BBOX_P_VDC_SET_DISPLAY_LIMIT(pDisplayCap, Display6, 720p_30Hz,       720p_30Hz,       0,      0,       0,        Disregard);
         BBOX_P_VDC_SET_WINDOW_LIMIT(pDisplayCap, Display6, Video0, DISREGARD, BBOX_VDC_DISREGARD, BBOX_VDC_DISREGARD, AutoDisable);
 }
 

@@ -14,20 +14,11 @@ client side API
 typedef struct CLIENT_PROCESS_STATE CLIENT_PROCESS_STATE_T;
 typedef struct CLIENT_THREAD_STATE CLIENT_THREAD_STATE_T;
 
-
 #include "interface/khronos/common/khrn_client_platform.h"
-
 #include "interface/khronos/egl/egl_client_context.h"
 #include "interface/khronos/egl/egl_client_surface.h"
 #include "interface/khronos/include/EGL/eglext.h"
-
 #include "interface/khronos/common/khrn_client_pointermap.h"
-
-#ifdef KHRONOS_CLIENT_LOGGING
-#define KHRONOS_CLIENT_LOG(fmt,...) khronos_client_log(fmt, ##__VA_ARGS__)
-#else
-#define KHRONOS_CLIENT_LOG(fmt,...) {}
-#endif
 
 /*
    per-thread state

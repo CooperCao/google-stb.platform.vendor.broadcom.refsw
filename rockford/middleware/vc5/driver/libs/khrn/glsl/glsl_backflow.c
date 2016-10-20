@@ -21,6 +21,8 @@ shader source.
 #include "glsl_dataflow_visitor.h"
 #include "glsl_tex_params.h"
 
+#include "glsl_sched_node_helpers.h"
+
 #include "../glxx/glxx_int_config.h"
 #include "../glxx/glxx_shader_cache.h"
 
@@ -33,12 +35,12 @@ static uint32_t dataflow_age = 0; /* Store this as static to avoid having to thr
 //
 // Backflow chain functions (TODO: Possibly need a better home)
 //
-void glsl_backflow_chain_init(BackflowChain* chain)
+void glsl_backflow_chain_init(BackflowChain *chain)
 {
    glsl_list_BackflowChainNode_init(chain);
 }
 
-void glsl_backflow_chain_append(BackflowChain* chain, Backflow* backflow)
+void glsl_backflow_chain_append(BackflowChain *chain, Backflow *backflow)
 {
    assert(backflow);
    glsl_node_list_Backflow_append(chain, backflow);
@@ -62,7 +64,7 @@ void glsl_backflow_chain_remove(BackflowChain *chain, Backflow *backflow)
 }
 
 /* Priority queue functions. TODO: Possibly need a better home */
-void glsl_backflow_priority_queue_init(BackflowPriorityQueue* queue, int size)
+void glsl_backflow_priority_queue_init(BackflowPriorityQueue *queue, int size)
 {
    queue->size = size;
    queue->used = 0;
@@ -71,7 +73,7 @@ void glsl_backflow_priority_queue_init(BackflowPriorityQueue* queue, int size)
 
 static inline bool compare(const Backflow *d0, const Backflow *d1)
 {
-   return d1->delay > d0->delay;
+   return d1->age < d0->age;
 }
 
 static void siftDown(BackflowPriorityQueue *queue, int start, int end)
@@ -226,6 +228,7 @@ bool glsl_sched_node_admits_unpack(BackflowFlavour f) {
       case BACKFLOW_FTOC:
 
       case BACKFLOW_MUL:
+      case BACKFLOW_FMOV:
          return true;
 
       default:
@@ -238,10 +241,10 @@ static SchedNodeType get_sched_node_type(BackflowFlavour f) {
       case BACKFLOW_MUL:
       case BACKFLOW_SMUL:
       case BACKFLOW_UMUL:
+      case BACKFLOW_MOV:
+      case BACKFLOW_FMOV:
          return ALU_M;
 
-      case BACKFLOW_MOV:          return ALU_MOV;
-      case BACKFLOW_FMOV:         return ALU_FMOV;
       case BACKFLOW_IMUL32:       return SPECIAL_IMUL32;
       case BACKFLOW_THREADSWITCH: return SPECIAL_THRSW;
       case BACKFLOW_DUMMY:        return SPECIAL_VOID;
@@ -249,7 +252,7 @@ static SchedNodeType get_sched_node_type(BackflowFlavour f) {
    }
 }
 
-Backflow *create_internal() {
+static Backflow *create_internal() {
    Backflow *node = malloc_fast(sizeof(Backflow));
    memset(node, 0, sizeof(Backflow));
 
@@ -309,64 +312,70 @@ Backflow *create_node(BackflowFlavour flavour, SchedNodeUnpack unpack, uint32_t 
    return node;
 }
 
-/* Low-level constructors */
-static Backflow *tr_nullary(BackflowFlavour flavour) {
-   return create_node(flavour, UNPACK_NONE, SETF_NONE, NULL, NULL, NULL, NULL);
-}
+typedef enum {
+   GLSL_TRANSLATION_UNVISITED = 0, /* This should be 0 as nodes start off cleared with zeroes */
+   GLSL_TRANSLATION_VOID,
+   GLSL_TRANSLATION_WORD,
+   GLSL_TRANSLATION_VEC4, /* Only used for texture lookup nodes */
+   GLSL_TRANSLATION_BOOL_FLAG,    /* (flag==0) = (reg!=0) = False, (flag==1) = (reg==0) = True */
+   GLSL_TRANSLATION_BOOL_FLAG_N,  /* (flag==0) = (reg!=0) = True,  (flag==1) = (reg==0) = False */
+} GLSL_TRANSLATION_TYPE_T;
 
-static Backflow *tr_uop(BackflowFlavour flavour, Backflow *operand) {
-   return create_node(flavour, UNPACK_NONE, SETF_NONE, NULL, operand, NULL, NULL);
-}
+typedef struct {
+   GLSL_TRANSLATION_TYPE_T type;
+   struct backflow_s *node[4];
+#if !V3D_HAS_SRS
+   bool per_sample;
+#endif
+} GLSL_TRANSLATION_T;
 
-static Backflow *tr_binop(BackflowFlavour flavour, Backflow *left, Backflow *right) {
-   return create_node(flavour, UNPACK_NONE, SETF_NONE, NULL, left, right, NULL);
-}
+#if !V3D_HAS_SRS
+typedef struct _GLSL_TRANSLATION_LIST_T {
+   GLSL_TRANSLATION_T *value;
+   struct _GLSL_TRANSLATION_LIST_T *next;
+} GLSL_TRANSLATION_LIST_T;
+#endif
 
-static Backflow *tr_mov_to_reg(uint32_t reg, Backflow *operand) {
-   Backflow *ret = tr_uop(BACKFLOW_MOV, operand);
-   assert(ret->magic_write == REG_UNDECIDED);
-   ret->magic_write = reg;
-   return ret;
-}
+/* TODO: How the backend handles this and the transition to per-sample is very unclear */
+struct tlb_read_s {
+   /* QPU does a chain of reads for each of 4 samples per RT */
+   Backflow *first;
+   Backflow *last;
+#if !V3D_HAS_SRS
+   uint8_t samples_read;
+   Backflow *data[16];
+#endif
+};
 
-static Backflow *tr_uop_cond(BackflowFlavour f, uint32_t cond_setf, Backflow *flag, Backflow *operand) {
-   return create_node(f, UNPACK_NONE, cond_setf, flag, operand, NULL, NULL);
-}
+typedef struct {
+   const Dataflow *df_arr;
 
-static Backflow *tr_binop_push(BackflowFlavour f, uint32_t cond_setf, Backflow *l, Backflow *r) {
-   return create_node(f, UNPACK_NONE, cond_setf, NULL, l, r, NULL);
-}
+   /* Translated dataflow (looked up by dataflow->id) */
+   GLSL_TRANSLATION_T *translations;
+   int translations_count;
 
+   bool ms;
 
-static inline Backflow *tr_sig_io(uint32_t sigbits, Backflow *dep) {
-   Backflow *res = create_sig(sigbits);
-   glsl_iodep(res, dep);
-   return res;
-}
+#if !V3D_HAS_SRS
+   /* These translations need to be done multiple times during multisampling */
+   GLSL_TRANSLATION_LIST_T *per_sample_clear_list;
+   int sample_num;      /* Which sample we're currently translating */
+#endif
 
-static inline Backflow *tr_varying_io(VaryingType vary_type, uint32_t vary_row, Backflow *w, Backflow *dep) {
-   Backflow *res = create_varying(vary_type, vary_row, w);
-   glsl_iodep(res, dep);
-   return res;
-}
+   bool *per_quad;
 
-static inline Backflow *tr_uop_io(BackflowFlavour flavour, Backflow *param, Backflow *prev) {
-   Backflow *result = tr_uop(flavour, param);
-   glsl_iodep(result, prev);
-   return result;
-}
+   struct tlb_read_s tlb_read[V3D_MAX_RENDER_TARGETS];
 
-static inline Backflow *tr_binop_io(BackflowFlavour flavour, Backflow *l, Backflow *r, Backflow *prev) {
-   Backflow *result = tr_binop(flavour, l, r);
-   glsl_iodep(result, prev);
-   return result;
-}
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   glsl_gadgettype_t gadgettype[GLXX_CONFIG_MAX_COMBINED_TEXTURE_IMAGE_UNITS];
+   glsl_gadgettype_t img_gadgettype[GLXX_CONFIG_MAX_IMAGE_UNITS];
+#endif
 
-static inline Backflow *tr_mov_to_reg_io(uint32_t reg, Backflow *param, Backflow *iodep) {
-   Backflow *result = tr_mov_to_reg(reg, param);
-   glsl_iodep(result, iodep);
-   return result;
-}
+   const LinkMap *link_map;
+
+   SchedShaderInputs *in;
+   SchedBlock *block;
+} GLSL_TRANSLATE_CONTEXT_T;
 
 static inline Backflow *tr_mov_to_reg_cond_io(uint32_t reg, Backflow *param, GLSL_TRANSLATION_T *cond, Backflow *iodep) {
    Backflow *result;
@@ -385,98 +394,12 @@ static inline Backflow *tr_mov_to_reg_cond_io(uint32_t reg, Backflow *param, GLS
    return result;
 }
 
-static Backflow *tr_cond(Backflow *cond, Backflow *true_value, Backflow *false_value, GLSL_TRANSLATION_TYPE_T rep)
+static inline Backflow *tr_cond(Backflow *cond, Backflow *true_value, Backflow *false_value, GLSL_TRANSLATION_TYPE_T rep)
 {
    uint32_t cond_setf = (rep == GLSL_TRANSLATION_BOOL_FLAG) ? COND_IFFLAG : COND_IFNFLAG;
    assert(rep == GLSL_TRANSLATION_BOOL_FLAG || rep == GLSL_TRANSLATION_BOOL_FLAG_N);
 
    return create_node(BACKFLOW_MOV, UNPACK_NONE, cond_setf, cond, true_value, NULL, false_value);
-}
-
-static Backflow *tr_typed_uniform(BackendUniformFlavour flavour, uint32_t value) {
-   Backflow *result  = create_sig(SIGBIT_LDUNIF);
-   assert(flavour >= 0 && flavour <= BACKEND_UNIFORM_LAST_ELEMENT);
-   result->unif_type = flavour;
-   result->unif      = value;
-   return result;
-}
-
-/* Convenience Constructors */
-
-static Backflow *tr_discard(Backflow *prev, Backflow *cond) {
-   Backflow *zero   = tr_typed_uniform(BACKEND_UNIFORM_LITERAL, 0);
-   Backflow *result = create_node(BACKFLOW_SETMSF, UNPACK_NONE, COND_IFFLAG, cond, zero, NULL, NULL);
-
-   glsl_iodep(result, prev);
-
-   return result;
-}
-
-static Backflow *tr_special_uniform(BackendSpecialUniformFlavour flavour) {
-   assert(flavour >= 0 || flavour <= BACKEND_SPECIAL_UNIFORM_LAST_ELEMENT);
-   return tr_typed_uniform(BACKEND_UNIFORM_SPECIAL, flavour);
-}
-
-static Backflow *tr_unif(uint32_t i)
-{
-   return tr_typed_uniform(BACKEND_UNIFORM_PLAIN, i);
-}
-
-static Backflow *tr_uniform_address(uint32_t row)
-{
-   return tr_typed_uniform(BACKEND_UNIFORM_ADDRESS, row);
-}
-
-static Backflow *tr_uniform_block_address(uint32_t index)
-{
-   return tr_typed_uniform(BACKEND_UNIFORM_UBO_ADDRESS, index);
-}
-
-static Backflow *tr_const(uint32_t c) {
-   return tr_typed_uniform(BACKEND_UNIFORM_LITERAL, c);
-}
-
-static Backflow *tr_cfloat(float f) { return tr_const(gfx_float_to_bits(f)); }
-
-/* Define these static inline, so that unused functions for versioned
- * builds won't cause compiler warnings.                             */
-static inline Backflow *mul(Backflow *a, Backflow *b)
-{
-   return tr_binop(BACKFLOW_MUL, a, b);
-}
-static inline Backflow *add(Backflow *a, Backflow *b)
-{
-   return tr_binop(BACKFLOW_ADD, a, b);
-}
-static inline Backflow *bitand(Backflow *a, Backflow *b)
-{
-   return tr_binop(BACKFLOW_AND, a, b);
-}
-static inline Backflow *bitor(Backflow *a, Backflow *b)
-{
-   return tr_binop(BACKFLOW_OR, a, b);
-}
-static inline Backflow *shl(Backflow *a, uint32_t b)
-{
-   return tr_binop(BACKFLOW_SHL, a, tr_const(b));
-}
-static inline Backflow *shr(Backflow *a, uint32_t b)
-{
-   return tr_binop(BACKFLOW_SHR, a, tr_const(b));
-}
-static inline Backflow *asr(Backflow *a, uint32_t b)
-{
-   return tr_binop(BACKFLOW_ASHR, a, tr_const(b));
-}
-/* Used by glsl_scheduler_4.c */
-Backflow *glsl_backflow_thrsw(void) {
-   return tr_nullary(BACKFLOW_THREADSWITCH);
-}
-Backflow *glsl_backflow_tmuwt(void) {
-   return tr_nullary(BACKFLOW_TMUWT);
-}
-Backflow *glsl_backflow_dummy(void) {
-   return tr_nullary(BACKFLOW_DUMMY);
 }
 
 static Backflow *tr_sin(Backflow *angle)
@@ -595,17 +518,6 @@ static Backflow *tr_rem(DataflowType type, Backflow *l, Backflow *r) {
    }
 }
 
-static inline bool is_const(const Backflow *b) {
-   return (b->type == SIG && b->u.sigbits == SIGBIT_LDUNIF &&
-           b->unif_type == BACKEND_UNIFORM_LITERAL         );
-}
-
-static inline bool is_const_zero(const Backflow *b) {
-   return (is_const(b) && b->unif == 0);
-}
-
-/* Mid-level constructors */
-
 static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, DataflowType type, Backflow *left, Backflow *right)
 {
    struct cmp_s {
@@ -625,19 +537,19 @@ static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, D
       { BACKFLOW_FCMP, SETF_PUSHZ, false,  false },     /* == */
       { BACKFLOW_FCMP, SETF_PUSHZ, true,   false },     /* != */
    }, {           /* uint */
-      { BACKFLOW_ISUB, SETF_PUSHC, false,  false },             /* <  */
-      { BACKFLOW_ISUB, SETF_PUSHC, false,  true  },             /* >  */
-      { BACKFLOW_ISUB, SETF_PUSHC, true,   true  },             /* <= */
-      { BACKFLOW_ISUB, SETF_PUSHC, true,   false },             /* >= */
-      { BACKFLOW_XOR,  SETF_PUSHZ, false,  false },     /* == */
-      { BACKFLOW_XOR,  SETF_PUSHZ, true,   false },     /* != */
+      { BACKFLOW_ISUB, SETF_PUSHC, false,  false },     /* <  */
+      { BACKFLOW_ISUB, SETF_PUSHC, false,  true  },     /* >  */
+      { BACKFLOW_ISUB, SETF_PUSHC, true,   true  },     /* <= */
+      { BACKFLOW_ISUB, SETF_PUSHC, true,   false },     /* >= */
+      { BACKFLOW_ISUB, SETF_PUSHZ, false,  false },     /* == */
+      { BACKFLOW_ISUB, SETF_PUSHZ, true,   false },     /* != */
    }, {           /* int */
-      { BACKFLOW_IMIN, SETF_PUSHC, false,  true  },             /* <  */
-      { BACKFLOW_IMIN, SETF_PUSHC, false,  false },             /* >  */
-      { BACKFLOW_IMIN, SETF_PUSHC, true,   false },             /* <= */
-      { BACKFLOW_IMIN, SETF_PUSHC, true,   true  },             /* >= */
-      { BACKFLOW_XOR,  SETF_PUSHZ, false,  false },     /* == */
-      { BACKFLOW_XOR,  SETF_PUSHZ, true,   false },     /* != */
+      { BACKFLOW_ISUB, SETF_PUSHN, false,  false },     /* <  */
+      { BACKFLOW_ISUB, SETF_PUSHN, false,  true  },     /* >  */
+      { BACKFLOW_ISUB, SETF_PUSHN, true,   true  },     /* <= */
+      { BACKFLOW_ISUB, SETF_PUSHN, true,   false },     /* >= */
+      { BACKFLOW_ISUB, SETF_PUSHZ, false,  false },     /* == */
+      { BACKFLOW_ISUB, SETF_PUSHZ, true,   false },     /* != */
    }};
    const struct cmp_s *op;
    int type_idx, flavour_idx;
@@ -662,8 +574,11 @@ static void tr_comparison(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, D
    Backflow *op_l = op->reverse ? right : left;
    Backflow *op_r = op->reverse ? left  : right;
    result->type = op->negate ? GLSL_TRANSLATION_BOOL_FLAG_N : GLSL_TRANSLATION_BOOL_FLAG;
-   if (is_const_zero(op_r) && type == DF_FLOAT) {
-      result->node[0] = tr_uop_cond(BACKFLOW_FMOV, op->cond_setf, NULL, op_l);
+   if (is_const_zero(op_r)) {
+      BackflowFlavour f = (type == DF_FLOAT) ? BACKFLOW_FMOV : BACKFLOW_MOV;
+      result->node[0] = tr_uop_cond(f, op->cond_setf, NULL, op_l);
+   } else if (is_const_zero(op_l) && op->flavour == BACKFLOW_ISUB) {
+      result->node[0] = tr_uop_cond(BACKFLOW_INEG, op->cond_setf, NULL, op_r);
    } else {
       result->node[0] = tr_binop_push(op->flavour, op->cond_setf, op_l, op_r);
    }
@@ -701,23 +616,13 @@ static void tr_logical_and_or(GLSL_TRANSLATION_T *result, DataflowFlavour flavou
 
    uint32_t cond_setf;
    if      ( l1 &&  r1) cond_setf = SETF_ANDZ;
-   /* TODO: The next two look the wrong way round. ANDN <-> NORNZ because
-    *       arguments are flipped later. dep1 is target. */
-   else if (!l1 &&  r1) cond_setf = SETF_NORNZ;
    else if ( l1 && !r1) cond_setf = SETF_ANDNZ;
+   else if (!l1 &&  r1) cond_setf = SETF_NORNZ;
    else if (!l1 && !r1) cond_setf = SETF_NORZ;
    else unreachable();
 
    result->type = rep;
    result->node[0] = tr_uop_cond(BACKFLOW_MOV, cond_setf, left->node[0], right->node[0]);
-}
-
-static Backflow *tr_sqrt(Backflow *operand) {
-#if V3D_VER_AT_LEAST(3,3,0,0)
-   return mul(operand, tr_mov_to_reg(REG_MAGIC_RSQRT2, operand));
-#else
-   return tr_mov_to_reg(REG_MAGIC_RECIP, tr_mov_to_reg(REG_MAGIC_RSQRT, operand));
-#endif
 }
 
 static void tr_logical_binop(GLSL_TRANSLATION_T *result, DataflowFlavour flavour, GLSL_TRANSLATION_T *left, GLSL_TRANSLATION_T *right)
@@ -738,8 +643,7 @@ static void tr_logical_binop(GLSL_TRANSLATION_T *result, DataflowFlavour flavour
 
 static void tr_logical_cond(GLSL_TRANSLATION_T *result, GLSL_TRANSLATION_T *cond, GLSL_TRANSLATION_T *true_value, GLSL_TRANSLATION_T *false_value)
 {
-   /* Backend does not support cond ops on boolean values */
-   /* Forced to build out of ANDs and ORs */
+   /* QPU does not support cond ops on boolean values. Build out of ANDs and ORs */
    GLSL_TRANSLATION_T a, b, condn;
    tr_logical_not(&condn, cond);
    tr_logical_and_or(&a, DATAFLOW_LOGICAL_AND, cond, true_value);
@@ -763,8 +667,7 @@ static Backflow *tr_texture_get(Backflow *iodep0, struct tmu_lookup_s *lookup)
    Backflow *result = tr_sig_io(SIGBIT_LDTMU, iodep0);
 
    /* Drop all the existing tmu deps. This stops the write's deps leaking
-    * through to the reads (and, hence, everything subsequent).
-    */
+    * through to the reads (and, hence, everything subsequent).  */
    result->tmu_deps = NULL;
    tmu_dep_append(&result->tmu_deps, lookup);
 
@@ -1023,8 +926,6 @@ static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
 {
    assert(!off); /* Only supported with new TMU config */
 
-   Backflow *node;
-   Backflow *words[4] = { NULL, };
    struct tmu_lookup_s *lookup = new_tmu_lookup(ctx->block);
    int word_reads = get_word_reads(required_components, is_32bit);
 
@@ -1092,7 +993,7 @@ static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
       assert(ltype != GLSL_TEXPARAM0_CUBE); /* Cubemap images should appear as 2D arrays here */
    }
 
-   node = tr_mov_to_reg(REG_MAGIC_TMU, s);
+   Backflow *node = tr_mov_to_reg(REG_MAGIC_TMU, s);
    node->unif_type = is_image ? BACKEND_UNIFORM_IMAGE_PARAM0 : BACKEND_UNIFORM_TEX_PARAM0;
    node->unif = BACKEND_UNIFORM_MAKE_PARAM(sampler_index, cfg0);
    lookup->first_write = node;
@@ -1111,6 +1012,7 @@ static void tr_texture_lookup(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
    assert(node != NULL);
    lookup->last_write = node;
 
+   Backflow *words[4] = { NULL, };
    tr_end_tmu_access(words, lookup, word_reads, age);
 
    result->type = GLSL_TRANSLATION_VEC4;
@@ -1234,32 +1136,22 @@ static void tr_texture_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx, GLSL_TRANSLATION_T 
 #endif
 #endif
 
-static void create_load_chain(Backflow **load, int len, bool use_cfg, uint8_t cfg) {
-   /* Create a chain of reads for this sample */
-   if (use_cfg) {
-      load[0] = create_sig(SIGBIT_LDTLBU);
-      load[0]->unif_type = BACKEND_UNIFORM_LITERAL;
-      load[0]->unif = cfg | 0xffffff00; /* Unused config entries must be all 1s */
-   } else
-      load[0] = create_sig(SIGBIT_LDTLB);
-
-   for (int i=1; i<len; i++)
-      load[i] = tr_sig_io(SIGBIT_LDTLB, load[i-1]);
-}
-
-static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
-                              GLSL_TRANSLATION_T *result,
-                              DataflowType type,
-                              uint32_t required_components,
-                              uint32_t render_target)
+void tr_read_tlb(bool ms,
+                 uint32_t rt_num,
+                 uint32_t rt_type,
+                 uint32_t required_components,
+                 Backflow **result, /* Should be array of 4 or 16, depending on cfg */
+                 Backflow **first_read,
+                 Backflow **last_read)
 {
    uint8_t config_byte;
    int len;
-   if (type == DF_FLOAT) {
+   if (rt_type == GLXX_FB_F16) {
       if (required_components & 0xC) len = 2;
       else                           len = 1;
+      // .all_samples_same_data should not affect reads, but it does
       V3D_TLB_CONFIG_COLOR_F16_T cfg = { .num_words = len, .no_swap = true,
-                                         .all_samples_same_data = true, .rt = render_target };
+                                         .all_samples_same_data = false, .rt = rt_num };
       config_byte = v3d_pack_tlb_config_color_f16(&cfg);
    } else {
       int trc = required_components;
@@ -1268,60 +1160,55 @@ static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
          trc >>= 1;
          len++;
       }
-      V3D_TLB_CONFIG_COLOR_32_T cfg = { .num_words = len, .all_samples_same_data = true,
-                                        .rt = render_target, .as_int = true };
+      V3D_TLB_CONFIG_COLOR_32_T cfg = { .num_words = len, .all_samples_same_data = false,
+                                        .rt = rt_num, .as_int = (rt_type == GLXX_FB_I32) };
       config_byte = v3d_pack_tlb_config_color_32(&cfg);
    }
 
-   Backflow *load[4];
-   struct tlb_read_s *read = &ctx->tlb_read[render_target];
+   result[0] = create_sig(SIGBIT_LDTLBU);
+   result[0]->unif_type = BACKEND_UNIFORM_LITERAL;
+   result[0]->unif = config_byte | 0xffffff00; /* Unused config entries must be all 1s */
+
+   unsigned load_len = (ms ? 4 : 1) * len;
+   for (unsigned i=1; i<load_len; i++)
+      result[i] = tr_sig_io(SIGBIT_LDTLB, result[i-1]);
+
+   *first_read = result[0];
+   *last_read  = result[load_len-1];
+
+   /* Unpack the data. Loop backwards so that we can expand in place */
+   if (rt_type == GLXX_FB_F16)
+      for (unsigned i=2*load_len-1; i<2*load_len; i--) result[i] = unpack_float(result[i/2], i&1);
+}
+
+static void tr_get_col_gadget(GLSL_TRANSLATE_CONTEXT_T *ctx,
+                              GLSL_TRANSLATION_T *result,
+                              uint32_t rt_type,
+                              uint32_t required_components,
+                              uint32_t render_target)
+{
 #if V3D_HAS_SRS
-   assert(read->first == NULL && read->last == NULL );
+   Backflow *data[16];
+   tr_read_tlb(ctx->ms, render_target, rt_type, required_components, data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
 
-   if (!ctx->ms) {
-      create_load_chain(load, len, true, config_byte);
-      read->first = load[0];
-      read->last = load[len-1];
-   } else {
-      Backflow *data[16];
-      create_load_chain(data, 4*len, true, config_byte);
-      read->first = data[0];
-      read->last = data[4*len-1];
+   for (int i=0; i<4; i++) result->node[i] = data[i];
 
-      for (int i=0; i<len; i++) load[i] = data[i];
-
+   if (ctx->ms) {
       Backflow *sampid = tr_nullary(BACKFLOW_SAMPID);
       for (int s = 1; s<4; s++) {
          Backflow *cond = tr_binop_push(BACKFLOW_ISUB, SETF_PUSHZ, sampid, tr_const(s));
-         for (int i=0; i<len; i++)
-            load[i] = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*len + i], NULL, load[i]);
+         for (int i=0; i<4; i++)
+            result->node[i] = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond, data[s*4 + i], NULL, result->node[i]);
       }
    }
 #else
-   /* Create a chain of reads for this sample */
-   create_load_chain(load, len, ctx->sample_num == 0, config_byte);
+   if (ctx->tlb_read[render_target].samples_read == 0)
+      tr_read_tlb(ctx->ms, render_target, rt_type, required_components, ctx->tlb_read[render_target].data, &ctx->tlb_read[render_target].first, &ctx->tlb_read[render_target].last);
 
-   /* Append this chain to the existing one */
-   if (ctx->sample_num == 0) {
-      assert(read->first == NULL && read->last == NULL );
-
-      read->first = load[0];
-      read->last = load[len-1];
-   } else {
-      assert(read->first != NULL && read->last != NULL);
-
-      glsl_iodep(load[0], read->last);
-      read->last = load[len-1];
-   }
-
-   read->samples_read |= 1<<ctx->sample_num;
+   ctx->tlb_read[render_target].samples_read |= (1 << ctx->sample_num);
+   for (int i=0; i<4; i++) result->node[i] = ctx->tlb_read[render_target].data[4*ctx->sample_num + i];
 #endif
 
-   if (type == DF_FLOAT) {
-      for (int i=0; i<2*len; i++) result->node[i] = unpack_float(load[i/2], i&1);
-   } else {
-      for (int i=0; i<len; i++) result->node[i] = load[i];
-   }
    result->type = GLSL_TRANSLATION_VEC4;
 }
 
@@ -1391,7 +1278,11 @@ static Backflow *tr_indexed_read_gadget(SchedBlock *block, int age, Backflow *ad
    return temp.node[0];
 }
 
-/* High-level functions */
+static inline Backflow *varying_io(VaryingType vary_type, uint32_t vary_row, Backflow *w, Backflow *dep) {
+   Backflow *res = create_varying(vary_type, vary_row, w);
+   glsl_iodep(res, dep);
+   return res;
+}
 
 static Backflow *init_frag_vary( SchedShaderInputs *in,
                                  uint32_t primitive_type,
@@ -1400,15 +1291,15 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
    Backflow *dep = NULL;
 
    if (primitive_type == GLXX_PRIM_POINT) {
-      dep = in->point_x = tr_varying_io(VARYING_DEFAULT, VARYING_ID_HW_0, in->w, dep);
-      dep = in->point_y = tr_varying_io(VARYING_DEFAULT, VARYING_ID_HW_1, in->w, dep);
+      dep = in->point_x = varying_io(VARYING_DEFAULT, VARYING_ID_HW_0, in->w, dep);
+      dep = in->point_y = varying_io(VARYING_DEFAULT, VARYING_ID_HW_1, in->w, dep);
    } else {
       in->point_x = tr_cfloat(0.0f);
       in->point_y = tr_cfloat(0.0f);
    }
 
    if (primitive_type == GLXX_PRIM_LINE)
-      dep = in->line = tr_varying_io(VARYING_LINE_COORD, VARYING_ID_HW_0, NULL, dep);
+      dep = in->line = varying_io(VARYING_LINE_COORD, VARYING_ID_HW_0, NULL, dep);
    else
       in->line = tr_cfloat(0.0f);
 
@@ -1421,37 +1312,10 @@ static Backflow *init_frag_vary( SchedShaderInputs *in,
       else if (varying[i].centroid) w = in->w_c;
       else                          w = in->w;
 
-      in->inputs[i] = tr_varying_io(t, i, w, dep);
+      in->inputs[i] = varying_io(t, i, w, dep);
    }
 
    return dep;
-}
-
-static_assrt(GLXX_MAX_RENDER_TARGETS == V3D_MAX_RENDER_TARGETS);
-
-static void fragment_backend_state_init_gl(
-   GLSL_FRAGMENT_BACKEND_STATE_T *s,
-   uint32_t backend, bool early_fragment_tests)
-{
-   s->ms                       = !!(backend & GLXX_SAMPLE_MS);
-   s->sample_alpha_to_coverage = s->ms && !!(backend & GLXX_SAMPLE_ALPHA);
-   s->sample_mask              = s->ms && !!(backend & GLXX_SAMPLE_MASK);
-   s->fez_safe_with_discard    = !!(backend & GLXX_FEZ_SAFE_WITH_DISCARD);
-   s->early_fragment_tests     = early_fragment_tests;
-
-   for (int i=0; i<GLXX_MAX_RENDER_TARGETS; i++) {
-      int shift = GLXX_FB_GADGET_S + 3*i;
-      uint32_t mask = GLXX_FB_GADGET_M << shift;
-      int fb_gadget = (backend & mask) >> shift;
-      s->rt[i].type = fb_gadget & 0x3;
-      s->rt[i].alpha_16_workaround = (fb_gadget & GLXX_FB_ALPHA_16_WORKAROUND);
-   }
-}
-
-static Backflow *coverage_and(Backflow *mask, Backflow *dep) {
-   return tr_uop_io( BACKFLOW_SETMSF,
-                     bitand(tr_nullary(BACKFLOW_MSF), mask),
-                     dep);
 }
 
 #if !V3D_HAS_SRS
@@ -1484,317 +1348,7 @@ static void resolve_tlb_loads(SchedBlock *block, struct tlb_read_s *reads) {
    block->last_tlb_read  = last_read;
 }
 
-static Backflow *fragment_backend(
-   const GLSL_FRAGMENT_BACKEND_STATE_T *s,
-   Backflow *const *rgbas,
-   Backflow *discard,
-   Backflow *depth,
-   Backflow *sample_mask,
-   SchedBlock *block,
-   bool *writes_z_out, bool *ez_disable_out)
-{
-#define R(RT, SAMPLE) (rgbas[(((RT) * 4) + 0)*4 + (SAMPLE)])
-#define G(RT, SAMPLE) (rgbas[(((RT) * 4) + 1)*4 + (SAMPLE)])
-#define B(RT, SAMPLE) (rgbas[(((RT) * 4) + 2)*4 + (SAMPLE)])
-#define A(RT, SAMPLE) (rgbas[(((RT) * 4) + 3)*4 + (SAMPLE)])
-
-   Backflow *coverage = NULL;
-
-   /* Don't update MS flags until all TMU operations which modify memory have
-    * been submitted. Don't need to wait for them to complete -- MS flags are
-    * sampled by the retiring writes. */
-   if (block->tmu_lookups) {
-      for (struct tmu_lookup_s *l = block->tmu_lookups; l != NULL; l = l->next) {
-         if (l->is_modify)
-            coverage = l->last_write;
-      }
-   }
-
-   if (s->sample_alpha_to_coverage)
-      coverage = coverage_and( tr_uop(BACKFLOW_FTOC, A(0,0)), coverage );
-
-   /* Apply any sample mask set in the API */
-   if (s->sample_mask)
-      coverage = coverage_and( tr_special_uniform(BACKEND_SPECIAL_UNIFORM_SAMPLE_MASK), coverage );
-
-   /* Apply any sample mask set in the shader */
-   if (s->ms && sample_mask)
-      coverage = coverage_and(sample_mask, coverage);
-
-   /* The conditions appear inverted here because there's an extra invert
-    * when going from uniform values to flags for conditions              */
-   if (discard && is_const(discard) && discard->unif == CONST_BOOL_TRUE)
-      discard = NULL;
-
-   if (discard != NULL)
-      coverage = tr_discard(coverage, discard);
-
-   /* Sort out TLB storing dependencies */
-   Backflow *first_write = NULL;
-   Backflow *last_write  = NULL;
-   bool does_discard = (discard != NULL || s->sample_alpha_to_coverage || s->sample_mask);
-   bool invariant_z_write = (does_discard && !s->fez_safe_with_discard) || !s->early_fragment_tests;
-   bool full_z_write      = (depth != NULL);
-
-   Backflow *tlb_nodes[4*4*V3D_MAX_RENDER_TARGETS+1];
-   uint32_t unif_byte[4*4*V3D_MAX_RENDER_TARGETS+1];
-
-   uint32_t tlb_depth_age  = 0;
-   unsigned tlb_node_count = 0;
-
-   if (full_z_write)
-   {
-      unif_byte[tlb_node_count] = 0x84;  /* per-pixel Z write */
-      tlb_nodes[tlb_node_count++] = depth;
-      tlb_depth_age = depth->age;
-   }
-   else if (invariant_z_write)
-   {
-      unif_byte[tlb_node_count] = 0x80;  /* invariant Z write */
-      tlb_nodes[tlb_node_count++] = tr_const(0);   /* H/W doesn't use this */
-   }
-
-   for (unsigned i = 0; i < V3D_MAX_RENDER_TARGETS; i++)
-   {
-      if (s->rt[i].type == GLXX_FB_NOT_PRESENT) continue;
-
-      assert(s->rt[i].type == GLXX_FB_F16 ||
-             s->rt[i].type == GLXX_FB_F32 ||
-             s->rt[i].type == GLXX_FB_I32);
-
-      if (R(i, 0) != NULL)    /* Don't write anything if output is uninitialised */
-      {
-         int rt_channels = 1;    /* We know R is present */
-         if (G(i,0) != NULL) rt_channels++;
-         if (B(i,0) != NULL) rt_channels++;
-         if (A(i,0) != NULL) rt_channels++;
-
-         /* Work around GFXH-1212 by writing 4 channels for 16 bit images with alpha */
-         if (s->rt[i].alpha_16_workaround) rt_channels = 4;
-
-         /* We set this up once per render target. The config byte is
-          * emitted with the first sample that's written
-          */
-         int vec_sz = rt_channels;
-         int swap = 0;
-         if (s->rt[i].type == GLXX_FB_F16) {
-            vec_sz = (rt_channels+1)/2;   /* F16 targets have half the outputs */
-            swap = 1;                     /* and support the 'swap' field (bit 2) */
-         }
-         assert(vec_sz <= 4);
-
-         bool per_sample = !V3D_HAS_SRS && block->per_sample;
-         uint8_t config_byte = (s->rt[i].type << 6) | ((7-i) << 3) |
-                               ((!per_sample)<<2) | (swap << 1) | (vec_sz-1);
-
-         int samples = per_sample ? 4 : 1;
-         for (int sm=0; sm<samples; sm++) {
-            Backflow *out[4] = {R(i, sm), G(i, sm), B(i, sm), A(i, sm)};
-
-            /* Pad out the output array for working around GFXH-1212 */
-            for (int j=0; j<4; j++) if (out[j] == NULL) out[j] = tr_cfloat(0.0f);
-
-            if (s->rt[i].type == GLXX_FB_F16) {
-               /* Pack the values in pairs for output */
-               for (int j=0; j<vec_sz; j++) {
-                  assert(out[2*j] != NULL && out[2*j+1] != NULL);
-                  dataflow_age = gfx_umax(out[2*j]->age, out[2*j+1]->age);
-                  dataflow_age = gfx_umax(dataflow_age, tlb_depth_age);
-                  out[j] = tr_binop(BACKFLOW_VFPACK, out[2*j], out[2*j+1]);
-               }
-            }
-
-            /* Write nodes for our output, config_byte with the first */
-            for (int j=0; j<vec_sz; j++) {
-               unif_byte[tlb_node_count] = (j == 0 && sm == 0) ? config_byte : ~0;
-               assert(out[j] != NULL);
-               tlb_nodes[tlb_node_count++] = out[j];
-            }
-         }
-      }
-   }
-
-   /* QPU restrictions prevent us writing nothing to the TLB. Write some fake data */
-   if (block->first_tlb_read == NULL && tlb_node_count == 0) {
-      /* Check rt[0] for the workaround. If the target is present but the output from
-       * the shader uninitialised then the setting will be valid. If the target is not
-       * present then the setting will be off, which is correct for the drivers default
-       * RT. This would break were the default to change to 16 bits with alpha. */
-      bool alpha16 = s->rt[0].alpha_16_workaround;
-      int vec_sz = alpha16 ? 4 : 1;
-      unif_byte[tlb_node_count] = 0x3C | (vec_sz-1);
-      tlb_nodes[tlb_node_count++] = tr_const(0);
-      for (int i=1; i<vec_sz; i++) {
-         unif_byte[tlb_node_count] = ~0u;
-         tlb_nodes[tlb_node_count++] = tr_const(0);
-      }
-   }
-
-   Backflow *dep = NULL;
-   assert(tlb_node_count <= vcos_countof(tlb_nodes));
-   for (unsigned i = 0; i < tlb_node_count; i++)
-   {
-      dataflow_age = gfx_umax(dataflow_age, tlb_nodes[i]->age);
-      if (dep)
-         dataflow_age = gfx_umax(dataflow_age, dep->age);
-      if (unif_byte[i] != ~0u)
-      {
-         uint32_t unif = 0;
-         uint32_t unif_shift = 0;
-         /* Read ahead to find the next (up to) 4 unif bytes */
-         for (unsigned j = i; j < tlb_node_count && unif_shift < 32; j++)
-         {
-            if (unif_byte[j] != ~0u)
-            {
-               assert(unif_byte[j] <= 0xff);
-               unif |= unif_byte[j] << unif_shift;
-               unif_shift += 8;
-               unif_byte[j] = ~0u;  /* stops us adding it next time */
-            }
-         }
-         /* Unused config entries must be all 1s */
-         if (unif_shift < 32)
-            unif |= 0xffffffff << unif_shift;
-
-         if (unif != ~0u) {
-            dep = tr_mov_to_reg_io(REG_MAGIC_TLBU, tlb_nodes[i], dep);
-            dep->unif_type = BACKEND_UNIFORM_LITERAL;
-            dep->unif = unif;
-         } else {
-            /* If the config is the default, don't write it at all */
-            dep = tr_mov_to_reg_io(REG_MAGIC_TLB, tlb_nodes[i], dep);
-         }
-      }
-      else
-      {
-         dep = tr_mov_to_reg_io(REG_MAGIC_TLB, tlb_nodes[i], dep);
-      }
-      if (first_write == NULL) first_write = dep;
-   }
-   last_write = dep;
-
-   block->first_tlb_write = first_write;
-
-   if (first_write != NULL)
-      glsl_iodep(first_write, coverage);
-
-   *writes_z_out   = invariant_z_write || full_z_write;
-   *ez_disable_out = full_z_write || !s->early_fragment_tests;
-   return last_write;
-
-#undef A
-#undef B
-#undef G
-#undef R
-}
-
-/* Convert clip to window coordinates. i indexes through (x, y, z) */
-static Backflow *get_win_coord(Backflow *clip, Backflow *recip_w, int i) {
-   static const BackendSpecialUniformFlavour vp_scale[3] = { BACKEND_SPECIAL_UNIFORM_VP_SCALE_X,
-                                                             BACKEND_SPECIAL_UNIFORM_VP_SCALE_Y,
-                                                             BACKEND_SPECIAL_UNIFORM_VP_SCALE_Z };
-   Backflow *win = mul(clip, tr_special_uniform(vp_scale[i]));
-   if (!is_const(recip_w) || !(recip_w->unif == gfx_float_to_bits(1.0f)))
-      win = mul(win, recip_w);
-
-   if (i == 2) return add(win, tr_special_uniform(BACKEND_SPECIAL_UNIFORM_VP_OFFSET_Z));
-   else        return tr_uop(BACKFLOW_FTOIN, win);
-}
-
-/* transform from clip-space coordinates to *almost* window coordinates. the
- * x/y coordinates are translated by the viewport offset in hardware to get
- * actual window coordinates */
-static void vertex_clip_to_almostwin(
-   Backflow **recip_w_out,
-   Backflow **almostwin_x, Backflow **almostwin_y, /* fixed point 12.4 */
-   Backflow **win_z_out, /* float */
-   Backflow *clip_x, Backflow *clip_y, Backflow *clip_z, Backflow *clip_w /* float */ )
-{
-   Backflow *recip_w;
-
-   if (is_const(clip_w)) {
-      float w_val = gfx_float_from_bits(clip_w->unif);
-      recip_w = tr_cfloat(1.0f/w_val);
-   } else {
-      recip_w = tr_mov_to_reg(REG_MAGIC_RECIP, clip_w);
-   }
-   *recip_w_out = recip_w;
-
-   *almostwin_x = get_win_coord(clip_x, recip_w, 0);
-   *almostwin_y = get_win_coord(clip_y, recip_w, 1);
-   *win_z_out   = get_win_coord(clip_z, recip_w, 2);
-}
-
 #if V3D_HAS_LDVPM
-
-static void vpmw(SchedBlock *b, uint32_t addr, Backflow *param, Backflow *dep)
-{
-   Backflow *result = tr_binop_io(BACKFLOW_STVPMV, tr_const(addr), param, dep);
-   result->age = param->age;
-
-   glsl_backflow_chain_append(&b->iodeps, result);
-}
-
-static void vertex_backend(SchedBlock *block, SchedShaderInputs *ins,
-                           Backflow *clip_x, Backflow *clip_y,
-                           Backflow *clip_z, Backflow *clip_w,
-                           Backflow *point_size,
-                           bool write_clip_header,
-                           bool z_only_write,
-                           Backflow **vertex_vary,
-                           const GLSL_VARY_MAP_T *vary_map)
-{
-   Backflow *fake_vpm_deps[MAX_VPM_DEPENDENCY] = { NULL, };
-   Backflow **vpm_dep = ins ? ins->vpm_dep : fake_vpm_deps;
-
-   block->first_vpm_write = NULL;   /* Not used on v3.4 */
-
-   Backflow *almostwin_x = NULL, *almostwin_y = NULL;
-   Backflow *win_z = NULL, *recip_w = NULL;
-   if (clip_x != NULL && clip_y != NULL && clip_z != NULL && clip_w != NULL)
-      vertex_clip_to_almostwin(&recip_w, &almostwin_x, &almostwin_y, &win_z,
-                               clip_x, clip_y, clip_z, clip_w);
-
-   if (write_clip_header) {
-      if (clip_x != NULL) vpmw(block, 0, clip_x, vpm_dep[0]);
-      if (clip_y != NULL) vpmw(block, 1, clip_y, vpm_dep[1]);
-      if (clip_z != NULL) vpmw(block, 2, clip_z, vpm_dep[2]);
-      if (clip_w != NULL) vpmw(block, 3, clip_w, vpm_dep[3]);
-      if (almostwin_x != NULL) vpmw(block, 4, almostwin_x, vpm_dep[4]);
-      if (almostwin_y != NULL) vpmw(block, 5, almostwin_y, vpm_dep[5]);
-   } else {
-      if (almostwin_x != NULL) vpmw(block, 0, almostwin_x, vpm_dep[0]);
-      if (almostwin_y != NULL) vpmw(block, 1, almostwin_y, vpm_dep[1]);
-      if (win_z       != NULL) vpmw(block, 2, win_z,       vpm_dep[2]);
-      if (recip_w     != NULL) vpmw(block, 3, recip_w,     vpm_dep[3]);
-   }
-
-   unsigned addr = write_clip_header ? 6 : 4;
-
-   if (point_size != NULL) {
-      vpmw(block, addr, point_size, vpm_dep[addr]);
-      addr++;
-   }
-
-   if (z_only_write) {
-      /* For z-only mode we output z,w normally, just z for points */
-      if (win_z != NULL) vpmw(block, addr, win_z, vpm_dep[addr]);
-      addr++;
-      if (point_size == NULL) {
-         if (recip_w != NULL) vpmw(block, addr, recip_w, vpm_dep[addr]);
-         addr++;
-      }
-   }
-
-   if (vary_map != NULL) {
-      for (int i = 0; i < vary_map->n; i++) {
-         if (vertex_vary[vary_map->entries[i]] != NULL) {
-            Backflow *read_dep = (addr+i) < MAX_VPM_DEPENDENCY ? vpm_dep[addr+i] : NULL;
-            vpmw(block, addr + i, vertex_vary[vary_map->entries[i]], read_dep);
-         }
-      }
-   }
-}
 
 static Backflow *ldvpmv(SchedShaderInputs *ins, int addr) {
    Backflow *r = tr_uop(BACKFLOW_LDVPMV_IN, tr_const(addr));
@@ -1820,168 +1374,49 @@ static void fetch_all_attribs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr
 
 #else
 
-static Backflow *vpm_write_setup(uint32_t addr)
+static Backflow *tr_vpm_read_setup(uint32_t count, uint32_t addr)
 {
-   assert(addr <= 0x1fff);
-   uint32_t value = 1<<24 | 1<<22 | 1<<15 | 2<<13 | (addr & 0x1fff);
-   return tr_uop(BACKFLOW_VPMSETUP, tr_const(value));
-}
-
-/* Write depends on both the previous write and the read from this location */
-static Backflow *vpmw(Backflow *param, Backflow *write_dep, Backflow *read_dep)
-{
-   Backflow *result = tr_mov_to_reg(REG_MAGIC_VPM, param);
-   glsl_iodep(result, write_dep);
-   glsl_iodep(result, read_dep);
-   result->age = param->age;
-   if (result->age == 0) result->age = write_dep->age;
-   return result;
-}
-
-static void vertex_backend(SchedBlock *block, SchedShaderInputs *ins,
-                           Backflow *clip_x, Backflow *clip_y,
-                           Backflow *clip_z, Backflow *clip_w,
-                           Backflow *point_size,
-                           bool write_clip_header,
-                           bool z_only_write,
-                           Backflow **vertex_vary,
-                           const GLSL_VARY_MAP_T *vary_map)
-{
-   Backflow *dep;
-   Backflow *win_z, *recip_w;
-   Backflow *fake_vpm_deps[MAX_VPM_DEPENDENCY] = { NULL, };
-   Backflow **vpm_dep = ins ? ins->vpm_dep : fake_vpm_deps;
-   unsigned write_index = 0;
-
-   /* Unless the coordinates are valid then we skip writing them at all. The *
-    * clip header, however, can be used for transform feedback, so if any    *
-    * value is valid it must be output. Here we fill in the values to be     *
-    * output, which has the side effect of making the coordinates valid, so  *
-    * they get output below.                                                 */
-   if (write_clip_header && (clip_x != NULL || clip_y != NULL ||
-                             clip_z != NULL || clip_w != NULL   ) )
-   {
-      if (clip_x == NULL) clip_x = tr_const(0);
-      if (clip_y == NULL) clip_y = tr_const(0);
-      if (clip_z == NULL) clip_z = tr_const(0);
-      if (clip_w == NULL) clip_w = tr_const(1);
-   }
-
-   if (clip_x != NULL && clip_y != NULL && clip_z != NULL && clip_w != NULL) {
-      dep = vpm_write_setup(0);
-      block->first_vpm_write = dep;
-
-      if (write_clip_header)
-      {
-         dep = vpmw(clip_x, dep, vpm_dep[write_index++]);
-         dep = vpmw(clip_y, dep, vpm_dep[write_index++]);
-         dep = vpmw(clip_z, dep, vpm_dep[write_index++]);
-         dep = vpmw(clip_w, dep, vpm_dep[write_index++]);
-      }
-
-      Backflow *almostwin_x, *almostwin_y;
-
-      vertex_clip_to_almostwin(&recip_w, &almostwin_x, &almostwin_y, &win_z,
-                               clip_x, clip_y, clip_z, clip_w);
-
-      dep = vpmw(almostwin_x, dep, vpm_dep[write_index++]);
-      dep = vpmw(almostwin_y, dep, vpm_dep[write_index++]);
-      if (!write_clip_header)
-      {
-         dep = vpmw(win_z,   dep, vpm_dep[write_index++]);
-         dep = vpmw(recip_w, dep, vpm_dep[write_index++]);
-      }
-   } else {
-      write_index = write_clip_header ? 6 : 4;
-      dep = vpm_write_setup(write_index);
-      block->first_vpm_write = dep;
-      win_z = tr_const(0);
-      recip_w = tr_const(1);
-   }
-
-   if (point_size != NULL) dep = vpmw(point_size, dep, vpm_dep[write_index++]);
-
-   if (z_only_write) {
-      /* For z-only mode we output z,w normally, just z for points */
-      dep = vpmw(win_z, dep, vpm_dep[write_index++]);
-      if (point_size == NULL) dep = vpmw(recip_w, dep, vpm_dep[write_index++]);
-   }
-
-   assert(vary_map != NULL);
-   for (int i = 0; i < vary_map->n; i++) {
-      Backflow *read_dep = write_index < MAX_VPM_DEPENDENCY ? vpm_dep[write_index] : NULL;
-      write_index++;
-      if (vertex_vary[vary_map->entries[i]] != NULL)
-         dep = vpmw(vertex_vary[vary_map->entries[i]], dep, read_dep);
-      else
-         dep = vpmw(tr_const(0), dep, read_dep);
-   }
-
-   glsl_backflow_chain_append(&block->iodeps, dep);
-}
-
-static Backflow *tr_vpm_read_setup(bool horiz, uint32_t count, uint32_t addr, Backflow *dep)
-{
-   Backflow *result;
-   uint32_t value;
    assert(count >= 1 && count <= 32);
-   assert(addr >= 0 && addr <= 0x1fff);
-   value = 1<<30 | 1<<27 | 1<<15 | 2<<13 | (horiz ? 1<<29 : 0) | (count & 31) << 22 | (addr & 0x1fff);
-   result = tr_uop_io(BACKFLOW_VPMSETUP, tr_const(value), dep);
-   /* XXX Hack this to make it come out early */
-   result->age = 0;
+   assert(addr  >= 0 && addr  <= 0x1fff);
+   uint32_t value = 1<<30 | 1<<27 | 1<<15 | 2<<13 | 1<<29 | (count & 31) << 22 | (addr & 0x1fff);
+   Backflow *result = tr_uop(BACKFLOW_VPMSETUP, tr_const(value));
+   result->age = 0;     /* XXX Hack this to make it come out early */
    return result;
-}
-
-struct attrib_fetch_state_s {
-   int reads_total;
-   int reads_done;
-   int remaining_batch;
-   Backflow *last_vpm_read;
-};
-
-static Backflow *fetch_attrib(SchedShaderInputs *ins,
-                              struct attrib_fetch_state_s *state)
-{
-   /* If there's no current VPM setup, create a new one */
-   if (state->remaining_batch == 0)
-   {
-      assert(state->reads_done < state->reads_total);
-      state->remaining_batch = gfx_smin(state->reads_total - state->reads_done, 32);
-      state->last_vpm_read = tr_vpm_read_setup(true, state->remaining_batch,
-                                                     state->reads_done,
-                                                     state->last_vpm_read);
-   }
-
-   /* Do the actual read */
-   state->last_vpm_read = tr_sig_io(SIGBIT_LDVPM, state->last_vpm_read);
-   assert(state->reads_done < MAX_VPM_DEPENDENCY);
-   ins->vpm_dep[state->reads_done] = state->last_vpm_read;
-   state->reads_done++;
-   state->remaining_batch--;
-   return state->last_vpm_read;
 }
 
 static void fetch_all_attribs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr, uint32_t reads_total)
 {
-   struct attrib_fetch_state_s state;
-   state.last_vpm_read = NULL;
-   state.remaining_batch = 0;
-   state.reads_done = 0;
-   state.reads_total = reads_total;
+   Backflow *attrs[V3D_MAX_ATTR_ARRAYS * 4 + 2];
 
-   if (attr->instanceid_used) ins->instanceid = fetch_attrib(ins, &state);
-   if (attr->vertexid_used)   ins->vertexid   = fetch_attrib(ins, &state);
+   for (unsigned i=0; i<reads_total; i++) attrs[i] = create_sig(SIGBIT_LDVPM);
 
+   assert(reads_total < MAX_VPM_DEPENDENCY);
+   for (unsigned i=0; i<reads_total; i++) ins->vpm_dep[i] = attrs[i];
+
+   unsigned attr_count = 0;
+   if (attr->instanceid_used) ins->instanceid = attrs[attr_count++];
+   if (attr->vertexid_used)   ins->vertexid   = attrs[attr_count++];
    assert(!attr->baseinstance_used);
 
-   for (int i = 0; i < V3D_MAX_ATTR_ARRAYS; i++) {
+   for (unsigned i = 0; i < V3D_MAX_ATTR_ARRAYS; i++) {
       for (unsigned j=0; j<attr->scalars_used[i]; j++) {
-         ins->inputs[4*i+j] = fetch_attrib(ins, &state);
+         ins->inputs[4*i+j] = attrs[attr_count++];
       }
    }
-   assert(state.reads_done == state.reads_total);
-   ins->read_dep = state.last_vpm_read;
+
+   Backflow *config[4];
+   unsigned config_count = (reads_total + 31) / 32;
+   assert(config_count < 5);
+   for (unsigned i=0; i<config_count; i++)
+      config[i] = tr_vpm_read_setup(gfx_umin(reads_total - 32*i, 32), 32*i);
+
+   for (unsigned i=0; i<attr_count; i++) {
+      if (i % 32 == 0) glsl_iodep(attrs[i], config[i/32]);
+      else             glsl_iodep(attrs[i], attrs[i-1]);
+   }
+   for (unsigned i=1; i<config_count; i++) glsl_iodep(config[i], attrs[32*i-1]);
+
+   ins->read_dep = attr_count > 0 ? attrs[attr_count-1] : NULL;
 }
 
 #endif
@@ -2023,6 +1458,7 @@ static BackflowFlavour translate_flavour(DataflowFlavour flavour, DataflowType t
       case DATAFLOW_NEAREST:           *params = 1; return BACKFLOW_ROUND;
       case DATAFLOW_CEIL:              *params = 1; return BACKFLOW_CEIL;
       case DATAFLOW_FLOOR:             *params = 1; return BACKFLOW_FLOOR;
+      case DATAFLOW_MUL:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MUL : BACKFLOW_IMUL32;
       case DATAFLOW_ADD:               *params = 2; return type == DF_FLOAT ? BACKFLOW_ADD : BACKFLOW_IADD;
       case DATAFLOW_SUB:               *params = 2; return type == DF_FLOAT ? BACKFLOW_SUB : BACKFLOW_ISUB;
       case DATAFLOW_MIN:               *params = 2; return type == DF_FLOAT ? BACKFLOW_MIN :
@@ -2032,6 +1468,7 @@ static BackflowFlavour translate_flavour(DataflowFlavour flavour, DataflowType t
       case DATAFLOW_FPACK:             *params = 2; return BACKFLOW_VFPACK;
       case DATAFLOW_SHL:               *params = 2; return BACKFLOW_SHL;
       case DATAFLOW_SHR:               *params = 2; return type == DF_UINT ? BACKFLOW_SHR : BACKFLOW_ASHR;
+      case DATAFLOW_ROR:               *params = 2; return BACKFLOW_ROR;
       case DATAFLOW_BITWISE_AND:       *params = 2; return BACKFLOW_AND;
       case DATAFLOW_BITWISE_OR:        *params = 2; return BACKFLOW_OR;
       case DATAFLOW_BITWISE_XOR:       *params = 2; return BACKFLOW_XOR;
@@ -2056,7 +1493,7 @@ static void push_phi(const Dataflow *d, PhiList **list) {
    *list = new;
 }
 
-static Backflow *tr_external(int block, int output, ExternalList **list) {
+Backflow *tr_external(int block, int output, ExternalList **list) {
    /* If this already exists in the list we must return it, otherwise we would
     * have more than one node that would start the block in a single register */
    for (ExternalList *old = *list; old; old=old->next) {
@@ -2117,12 +1554,14 @@ static void tr_atomic(GLSL_TRANSLATION_T *r, GLSL_TRANSLATE_CONTEXT_T *ctx,
    lookup->is_modify = true;
 
    v3d_tmu_op_t op;
-   /* Optimise addition/subtraction of +/- 1 down to inc/dec */
+   /* Optimise addition/subtraction of +/- 1 down to inc/dec and xor with ~0 to bitnot */
    if ( (dataflow->flavour == DATAFLOW_ATOMIC_ADD || dataflow->flavour == DATAFLOW_ATOMIC_SUB) &&
         is_const(d[1]->node[0]) && (d[1]->node[0]->unif == 1 || d[1]->node[0]->unif == 0xffffffff))
    {
       bool is_dec = (dataflow->flavour == DATAFLOW_ATOMIC_ADD) ^ (d[1]->node[0]->unif == 1);
       op = is_dec ? V3D_TMU_OP_WR_OR_RD_DEC : V3D_TMU_OP_WR_AND_RD_INC;
+   } else if (dataflow->flavour == DATAFLOW_ATOMIC_XOR && is_const(d[1]->node[0]) && d[1]->node[0]->unif == 0xffffffff) {
+      op = V3D_TMU_OP_WR_XOR_RD_NOT;
    } else {
       tr_mid_tmu_access_data(lookup, d[1]);
 
@@ -2249,9 +1688,12 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
          for (int i=0; i<4; i++) r->node[i] = d[i] ? d[i]->node[0] : NULL;
          break;
       case DATAFLOW_FRAG_GET_COL:
-         tr_get_col_gadget(ctx, r, dataflow->type, dataflow->u.get_col.required_components,
-                                                     dataflow->u.get_col.render_target);
-         break;
+         {
+            uint32_t type = dataflow->type == DF_FLOAT ? GLXX_FB_F16 : GLXX_FB_I32;
+            tr_get_col_gadget(ctx, r, type, dataflow->u.get_col.required_components,
+                                            dataflow->u.get_col.render_target);
+            break;
+         }
       case DATAFLOW_ADDRESS_LOAD:
          r->type = get_translation_type(dataflow->type);
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
@@ -2432,13 +1874,6 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
             tr_logical_cond(r, d[0], d[1], d[2]);
          }
          break;
-      case DATAFLOW_MUL:
-         assert(d[0]->type == GLSL_TRANSLATION_WORD);
-         assert(d[1]->type == GLSL_TRANSLATION_WORD);
-         r->type = GLSL_TRANSLATION_WORD;
-         BackflowFlavour f = (type == DF_FLOAT) ? BACKFLOW_MUL : BACKFLOW_IMUL32;
-         r->node[0] = tr_binop(f, d[0]->node[0], d[1]->node[0]);
-         break;
       case DATAFLOW_DIV:
          assert(d[0]->type == GLSL_TRANSLATION_WORD);
          assert(d[1]->type == GLSL_TRANSLATION_WORD);
@@ -2491,6 +1926,7 @@ static void translate_to_backend(Dataflow *dataflow, void *data)
       case DATAFLOW_FUNPACKA:
       case DATAFLOW_FUNPACKB:
          r->type = d[0]->type;
+         assert(d[0]->type == GLSL_TRANSLATION_WORD);
          r->node[0] = tr_uop(BACKFLOW_FMOV, d[0]->node[0]);
          r->node[0]->u.alu.unpack[0] = flavour == DATAFLOW_ABS ? UNPACK_ABS : flavour == DATAFLOW_FUNPACKA ? UNPACK_F16_A : UNPACK_F16_B;
          break;
@@ -2770,55 +2206,6 @@ SchedBlock *translate_block(const CFGBlock *b_in, const LinkMap *link_map,
    return ret;
 }
 
-void collect_shader_outputs(SchedBlock *block, int block_id, const IRShader *sh,
-                            const LinkMap *link_map, Backflow **nodes, bool out_per_sample)
-{
-   for (int i=0; i<link_map->num_outs; i++) {
-      if (link_map->outs[i] == -1) continue;
-
-      int samples = (!V3D_HAS_SRS && block->per_sample) ? 4 : 1;
-      int out_samples = out_per_sample ? 4 : 1;
-      IROutput *o = &sh->outputs[link_map->outs[i]];
-      if (o->block == block_id) {
-         for (int j=0; j<samples; j++) {
-            nodes[out_samples*i+j] = block->outputs[samples*o->output + j];
-         }
-      } else {
-         nodes[out_samples*i] = tr_external(o->block, o->output, &block->external_list);
-      }
-   }
-}
-
-void glsl_fragment_translate(
-   SchedBlock *block,
-   int block_id,
-   const IRShader *sh,
-   const LinkMap *link_map,
-   const GLXX_LINK_RESULT_KEY_T *key,
-   bool early_fragment_tests,
-   bool *does_discard_out,
-   bool *does_z_change_out)
-{
-   /* If block->per_sample the outputs are at 4*id + sample_num */
-   Backflow *bnodes[4*DF_BLOB_FRAGMENT_COUNT] = { 0, };
-   collect_shader_outputs(block, block_id, sh, link_map, bnodes, true);
-
-   block->num_outputs = 0;
-   block->outputs = NULL;
-
-   GLSL_FRAGMENT_BACKEND_STATE_T s;
-   fragment_backend_state_init_gl(&s, key->backend, early_fragment_tests);
-   Backflow *res = fragment_backend(&s,
-                                    bnodes + DF_FNODE_R(0),
-                                    bnodes[4*DF_FNODE_DISCARD],
-                                    bnodes[4*DF_FNODE_DEPTH],
-                                    bnodes[4*DF_FNODE_SAMPLE_MASK],
-                                    block,
-                                    does_discard_out, does_z_change_out);
-   if (res != NULL)
-      glsl_backflow_chain_append(&block->iodeps, res);
-}
-
 static uint32_t get_reads_total(const ATTRIBS_USED_T *attr) {
    uint32_t reads_total = 0;
 
@@ -2832,48 +2219,11 @@ static uint32_t get_reads_total(const ATTRIBS_USED_T *attr) {
    return reads_total;
 }
 
-void vertex_shader_inputs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr_info, uint32_t *reads_total) {
+unsigned vertex_shader_inputs(SchedShaderInputs *ins, const ATTRIBS_USED_T *attr_info) {
    /* Ensure all unused inputs are NULL */
    memset(ins, 0, sizeof(SchedShaderInputs));
 
-   *reads_total = get_reads_total(attr_info);
-   fetch_all_attribs(ins, attr_info, *reads_total);
-}
-
-void glsl_vertex_translate(
-   SchedBlock *block,
-   int block_id,
-   const IRShader *sh,
-   const LinkMap *link_map,
-   SchedShaderInputs *ins,
-   const GLXX_LINK_RESULT_KEY_T *key,
-   bool bin_mode,
-   const GLSL_VARY_MAP_T *vary_map)
-{
-   const bool points = (key->backend & GLXX_PRIM_M) == GLXX_PRIM_POINT;
-
-   assert(!block->per_sample);
-
-   Backflow *bnodes[DF_BLOB_VERTEX_COUNT] = { 0, };
-   collect_shader_outputs(block, block_id, sh, link_map, bnodes, false);
-
-   if (ins != NULL)
-      block->last_vpm_read = ins->read_dep;
-
-   /* We must not write point size if we're doing z-only for non-points. */
-   if (!points && bnodes[DF_VNODE_POINT_SIZE] != NULL)
-      bnodes[DF_VNODE_POINT_SIZE] = NULL;
-
-   block->num_outputs = 0;
-   block->outputs = NULL;
-
-   bool z_only_write = !!(key->backend & GLXX_Z_ONLY_WRITE) && bin_mode;
-   bool write_clip_header = bin_mode;
-
-   vertex_backend(block, ins,
-                  bnodes[DF_VNODE_X], bnodes[DF_VNODE_Y],
-                  bnodes[DF_VNODE_Z], bnodes[DF_VNODE_W],
-                  bnodes[DF_VNODE_POINT_SIZE],
-                  write_clip_header, z_only_write,
-                  bnodes+DF_VNODE_VARY(0), vary_map);
+   unsigned reads_total = get_reads_total(attr_info);
+   fetch_all_attribs(ins, attr_info, reads_total);
+   return reads_total;
 }

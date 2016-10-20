@@ -46,6 +46,7 @@
 #include "bvdc_resource_priv.h"
 #include "bchp_misc.h"
 #include "btmr.h"
+#include "brdc_rul.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -104,10 +105,9 @@ typedef enum
 
     BVDC_BvnError_eXsrc_0,
     BVDC_BvnError_eXsrc_1,
+    BVDC_BvnError_eXsrc_2,
 
     BVDC_BvnError_eTntd_0,
-
-    BVDC_BvnError_eMad_0,
 
     BVDC_BvnError_eMvp_0,
     BVDC_BvnError_eMvp_1,
@@ -357,7 +357,7 @@ typedef struct BVDC_P_Context
 #if BVDC_P_SUPPORT_MOSAIC_MODE
     /* capture drain buffer for mosaic mode, shared by all captures; */
     BMMA_Block_Handle              hVdcMosaicMmaBlock;
-    uint32_t                       ulVdcNullBufOffset;
+    BMMA_DeviceOffset              ullVdcNullBufOffset;
 #endif
 
     /* Store the generic BVN error msg */
@@ -365,9 +365,6 @@ typedef struct BVDC_P_Context
     char                           achBuf[BVDC_P_ERROR_MAX_MSG_LENGTH];
     uint32_t                       ulApplyCnt;
     bool                           bForcePrint;
-#if BVDC_SUPPORT_BVN_DEBUG
-    bool                           bLog; /* for procfs */
-#endif
 
     BVDC_DacOutput                 aDacOutput[BVDC_P_MAX_DACS];
     uint32_t                       aDacDisplay[BVDC_P_MAX_DACS];
@@ -397,10 +394,8 @@ typedef struct BVDC_P_Context
 
     BVDC_P_MosaicCanvasCoverage    stMosaicCoverageTbl[BVDC_P_MAX_DISPLAY_COUNT];
 
-#if (BVDC_P_SUPPORT_VIP)
     /* memory info */
     BCHP_MemoryInfo                stMemInfo;
-#endif
 } BVDC_P_Context;
 
 

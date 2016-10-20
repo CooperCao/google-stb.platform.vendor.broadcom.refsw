@@ -90,7 +90,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_VDC);
 
 
 #define BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode)   \
-    pHeapNode->ulDeviceOffset
+    pHeapNode->ullDeviceOffset
 
 /***************************************************************************
  * Internal defines
@@ -135,7 +135,7 @@ typedef struct BVDC_P_BufferHeapNode
     BVDC_P_HeapInfoPtr                   pHeapInfo;      /* heap the node belongs to */
     uint32_t                             ulBlockOffset;  /* offset from MMA block's base address */
 
-    uint32_t                             ulDeviceOffset; /* Device offset */
+    BMMA_DeviceOffset                    ullDeviceOffset; /* Device offset */
     uint32_t                             ulBufIndex;  /* index to heap's bufferlist */
     BVDC_P_BufferHeapId                  eOrigBufHeapId; /* which primary heap the node came from */
 
@@ -206,7 +206,7 @@ typedef struct BVDC_P_BufferHeapContext
     BVDC_Handle                      hVdc;          /* Created from this Vdc */
     BMMA_Heap_Handle                 hMem;          /* corresponding heap. */
     BMMA_Block_Handle                hMosaicDrainBlock; /* capture drain buffer for mosaic mode 16 bytes*/
-    uint32_t                         ulMosaicDrainOffset; /* drain buffer offset */
+    BMMA_DeviceOffset                ullMosaicDrainOffset; /* drain buffer offset */
 
     /* Heap Settings */
     BVDC_Heap_Settings               stSettings;
@@ -270,7 +270,6 @@ void BVDC_P_BufferHeap_GetHeapOrder
 
 BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
     ( BVDC_P_BufferHeapContext        *pHeap,
-      BCHP_MemoryInfo                 *pMemoryInfo,
       uint32_t                         ulMemcIndex,
       BVDC_DisplayId                   eDispId,
       BVDC_WindowId                    eWinId );

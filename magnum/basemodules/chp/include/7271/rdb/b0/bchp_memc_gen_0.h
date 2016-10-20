@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:49:06 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:51:55 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,376 +70,376 @@
 /***************************************************************************
  *MEMC_GEN_0 - Testability Registers (MSA, CRC, etc)
  ***************************************************************************/
-#define BCHP_MEMC_GEN_0_CORE_REV_ID              0x21100000 /* [RO] Memory-Controller-Core  Revision ID Register. */
-#define BCHP_MEMC_GEN_0_CORE_OPTIONS             0x21100004 /* [RO] Memory-Controller-Core Options Register. */
-#define BCHP_MEMC_GEN_0_CORE_PDEPTH              0x21100008 /* [RO] Memory-Controller-Core PDEPTH Register */
-#define BCHP_MEMC_GEN_0_FIRMWARE_DEBUG           0x2110000c /* [RW] Spare register bits for firmware debug state tracing */
-#define BCHP_MEMC_GEN_0_SM_TIMEOUT_INTR_INFO     0x21100010 /* [RO] MEMC State Machine Timeout Interrupt Information */
-#define BCHP_MEMC_GEN_0_SM_TIMEOUT_INTR_WRITE_CLEAR 0x21100014 /* [CFG] MEMC State Machine timeout interrupt write clear register */
-#define BCHP_MEMC_GEN_0_SCB_NOREQ_INTR_INFO      0x21100018 /* [RO] MEMC Premature Request Withdrawal Interrupt Information */
-#define BCHP_MEMC_GEN_0_SCB_NOREQ_INTR_WRITE_CLEAR 0x2110001c /* [CFG] MEMC No Request interrupt write clear register */
-#define BCHP_MEMC_GEN_0_SCB_CMD_INTR_INFO        0x21100020 /* [RO] MEMC Illegal Command Interrupt Information */
-#define BCHP_MEMC_GEN_0_SCB_CMD_INTR_WRITE_CLEAR 0x21100024 /* [CFG] MEMC Command interrupt write clear register */
-#define BCHP_MEMC_GEN_0_SCB_START_ADDR_INTR_INFO 0x21100028 /* [RO] MEMC Illegal Start Address Interrupt Information */
-#define BCHP_MEMC_GEN_0_SCB_START_ADDR_INTR_WRITE_CLEAR 0x2110002c /* [CFG] MEMC Illegal Start Addr interrupt write clear register */
-#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_INFO 0x21100030 /* [RO] MEMC Missing SCB last write pulse error information */
-#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_INFO2 0x21100034 /* [RO] MEMC Missing SCB Client ID for last write pulse errors */
-#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_WRITE_CLEAR 0x21100038 /* [CFG] MEMC scb Missing SCB last write pulse write clear register */
-#define BCHP_MEMC_GEN_0_CMD_TRACE_FIFO_MODE      0x2110003c /* [CFG] Mode of the SCB command trace FIFO */
-#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_0            0x21100040 /* [RO] Current DATA command pushed out from sequencer. */
-#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_1            0x21100044 /* [RO] Current DATA command pushed out from sequencer. */
-#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_2            0x21100048 /* [RO] Current DATA command pushed out from sequencer. */
-#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_3            0x2110004c /* [RO] Current DATA command pushed out from sequencer. */
-#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_4            0x21100050 /* [RO] Current DATA command pushed out from sequencer. */
-#define BCHP_MEMC_GEN_0_SEQ_INPUT_DBG_INFO       0x21100054 /* [RO] Current input from CMD formatter to seq. */
-#define BCHP_MEMC_GEN_0_MISC_SEQ_DBG_INFO        0x21100058 /* [RO] Status register of MISC command Sequencer. */
-#define BCHP_MEMC_GEN_0_BIU_DBG_INFO             0x2110005c /* [RO] Debug information from BIU> */
-#define BCHP_MEMC_GEN_0_SPARE_RO_3               0x21100060 /* [RO] Start Address corresponding to SCB command that occurred three commands earlier or end addr in case of PFRI. */
-#define BCHP_MEMC_GEN_0_TP_ADRS                  0x21100064 /* [CFG] Test Port Address Register */
-#define BCHP_MEMC_GEN_0_TP_READ_DATA             0x21100068 /* [RO] Test Port Data Read Register */
-#define BCHP_MEMC_GEN_0_MISC_BIU_MSA_REG         0x2110006c /* [CFG] MISC BIU Control register */
-#define BCHP_MEMC_GEN_0_SCB_NOREQ_CMDBUS_INTR_INFO_0 0x21100070 /* [RO] MEMC Premature Request Withdrawal Interrupt, SCB CMD bus Information, bits 31:0 */
-#define BCHP_MEMC_GEN_0_SCB_NOREQ_CMDBUS_INTR_INFO_1 0x21100074 /* [RO] MEMC Premature Request Withdrawal Interrupt, SCB CMD bus Information, bits 47:32 */
-#define BCHP_MEMC_GEN_0_SPARE_1                  0x21100078 /* [RW] Spare Register 1 . */
-#define BCHP_MEMC_GEN_0_SPARE_2                  0x2110007c /* [RW] Spare Register 2 . */
-#define BCHP_MEMC_GEN_0_SPARE_RO_1               0x21100080 /* [RO] Read only Spare Register 0 . */
-#define BCHP_MEMC_GEN_0_SPARE_RO_2               0x21100084 /* [RO] Read only Spare Register 1 . */
-#define BCHP_MEMC_GEN_0_TP_CORE_SEL              0x21100088 /* [CFG] Test port selection register. */
-#define BCHP_MEMC_GEN_0_CNTR_RST                 0x2110008c /* [CFG] LMB Reset Request Counters */
-#define BCHP_MEMC_GEN_0_CNTR_FREEZE              0x21100090 /* [CFG] LMB Freeze Request Counters */
-#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_WRITE_CLEAR 0x21100094 /* [CFG] LMB un-aligned address error info write clear register */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU0       0x21100098 /* [RW] LMB 0 Dummy High Priority Request Count */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU1       0x2110009c /* [RW] LMB 0 Dummy Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU0         0x211000a0 /* [RW] LMB 0 Valid High Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU1         0x211000a4 /* [RW] LMB 0 Valid Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO   0x211000a8 /* [RO] LMB 0 un-aligned address error information register */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU2       0x211000ac /* [RW] LMB 1 Dummy High Priority Request Count */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU3       0x211000b0 /* [RW] LMB 1 Dummy Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU2         0x211000b4 /* [RW] LMB 1 Valid High Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU3         0x211000b8 /* [RW] LMB 1 Valid Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_1 0x211000bc /* [RO] LMB 1 un-aligned address error information register */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU4       0x211000c0 /* [RW] LMB 2 Dummy High Priority Request Count */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU5       0x211000c4 /* [RW] LMB 2 Dummy Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU4         0x211000c8 /* [RW] LMB 2 Valid High Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU5         0x211000cc /* [RW] LMB 2 Valid Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_2 0x211000d0 /* [RO] LMB 2 un-aligned address error information register */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU6       0x211000d4 /* [RW] LMB 3 Dummy High Priority Request Count */
-#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU7       0x211000d8 /* [RW] LMB 3 Dummy Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU6         0x211000dc /* [RW] LMB 3 Valid High Priority Request Count */
-#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU7         0x211000e0 /* [RW] LMB 3 Valid Low Priority Request Count */
-#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_3 0x211000e4 /* [RO] LMB 3 un-aligned address error information register */
-#define BCHP_MEMC_GEN_0_PFRI_0_PAGE_BRK_INTR_INFO_0 0x211000e8 /* [RO] PFRI 0 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_0_PAGE_BRK_INTR_INFO_1 0x211000ec /* [RO] PFRI 0 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_0_VIOL_ADDR_LSB     0x211000f0 /* [RO] PFRI 0 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_0_VIOL_ADDR_MSB     0x211000f4 /* [RO] PFRI 0 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_0_VIOLATION_INFO_WRITE_CLEAR 0x211000f8 /* [CFG] PFRI 0 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_0_LADDR_FIFO_DEPTH_COUNT 0x211000fc /* [CFG] PFRI 0 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_0_LADDR_FIFO_STATUS 0x21100100 /* [RO] PFRI 0 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG   0x21100104 /* [CFG] PFRI 0 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL 0x21100108 /* [CFG] PFRI 0 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0  0x2110010c /* [CFG] PFRI 0 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1  0x21100110 /* [CFG] PFRI 0 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_STATUS   0x21100114 /* [RW] PFRI 0 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_STATE_MAX 0x21100118 /* [RW] PFRI 0 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_COUNT_NORM 0x2110011c /* [RW] PFRI 0 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_COUNT_ALT 0x21100120 /* [RW] PFRI 0 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_1_PAGE_BRK_INTR_INFO_0 0x21100124 /* [RO] PFRI 1 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_1_PAGE_BRK_INTR_INFO_1 0x21100128 /* [RO] PFRI 1 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_1_VIOL_ADDR_LSB     0x2110012c /* [RO] PFRI 1 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_1_VIOL_ADDR_MSB     0x21100130 /* [RO] PFRI 1 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_1_VIOLATION_INFO_WRITE_CLEAR 0x21100134 /* [CFG] PFRI 1 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_1_LADDR_FIFO_DEPTH_COUNT 0x21100138 /* [CFG] PFRI 1 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_1_LADDR_FIFO_STATUS 0x2110013c /* [RO] PFRI 1 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG   0x21100140 /* [CFG] PFRI 1 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_FILTER_CTRL 0x21100144 /* [CFG] PFRI 1 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH0  0x21100148 /* [CFG] PFRI 1 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH1  0x2110014c /* [CFG] PFRI 1 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_STATUS   0x21100150 /* [RW] PFRI 1 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_STATE_MAX 0x21100154 /* [RW] PFRI 1 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_COUNT_NORM 0x21100158 /* [RW] PFRI 1 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_COUNT_ALT 0x2110015c /* [RW] PFRI 1 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_2_PAGE_BRK_INTR_INFO_0 0x21100160 /* [RO] PFRI 2 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_2_PAGE_BRK_INTR_INFO_1 0x21100164 /* [RO] PFRI 2 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_2_VIOL_ADDR_LSB     0x21100168 /* [RO] PFRI 2 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_2_VIOL_ADDR_MSB     0x2110016c /* [RO] PFRI 2 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_2_VIOLATION_INFO_WRITE_CLEAR 0x21100170 /* [CFG] PFRI 2 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_2_LADDR_FIFO_DEPTH_COUNT 0x21100174 /* [CFG] PFRI 2 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_2_LADDR_FIFO_STATUS 0x21100178 /* [RO] PFRI 2 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG   0x2110017c /* [CFG] PFRI 2 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_FILTER_CTRL 0x21100180 /* [CFG] PFRI 2 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH0  0x21100184 /* [CFG] PFRI 2 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH1  0x21100188 /* [CFG] PFRI 2 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_STATUS   0x2110018c /* [RW] PFRI 2 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_STATE_MAX 0x21100190 /* [RW] PFRI 2 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_COUNT_NORM 0x21100194 /* [RW] PFRI 2 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_COUNT_ALT 0x21100198 /* [RW] PFRI 2 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_3_PAGE_BRK_INTR_INFO_0 0x2110019c /* [RO] PFRI 3 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_3_PAGE_BRK_INTR_INFO_1 0x211001a0 /* [RO] PFRI 3 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_3_VIOL_ADDR_LSB     0x211001a4 /* [RO] PFRI 3 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_3_VIOL_ADDR_MSB     0x211001a8 /* [RO] PFRI 3 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_3_VIOLATION_INFO_WRITE_CLEAR 0x211001ac /* [CFG] PFRI 3 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_3_LADDR_FIFO_DEPTH_COUNT 0x211001b0 /* [CFG] PFRI 3 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_3_LADDR_FIFO_STATUS 0x211001b4 /* [RO] PFRI 3 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG   0x211001b8 /* [CFG] PFRI 3 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_FILTER_CTRL 0x211001bc /* [CFG] PFRI 3 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_THRESH0  0x211001c0 /* [CFG] PFRI 3 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_THRESH1  0x211001c4 /* [CFG] PFRI 3 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_STATUS   0x211001c8 /* [RW] PFRI 3 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_STATE_MAX 0x211001cc /* [RW] PFRI 3 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_COUNT_NORM 0x211001d0 /* [RW] PFRI 3 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_COUNT_ALT 0x211001d4 /* [RW] PFRI 3 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_4_PAGE_BRK_INTR_INFO_0 0x211001d8 /* [RO] PFRI 4 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_4_PAGE_BRK_INTR_INFO_1 0x211001dc /* [RO] PFRI 4 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_4_VIOL_ADDR_LSB     0x211001e0 /* [RO] PFRI 4 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_4_VIOL_ADDR_MSB     0x211001e4 /* [RO] PFRI 4 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_4_VIOLATION_INFO_WRITE_CLEAR 0x211001e8 /* [CFG] PFRI 4 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_4_LADDR_FIFO_DEPTH_COUNT 0x211001ec /* [CFG] PFRI 4 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_4_LADDR_FIFO_STATUS 0x211001f0 /* [RO] PFRI 4 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_CONFIG   0x211001f4 /* [CFG] PFRI 4 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_FILTER_CTRL 0x211001f8 /* [CFG] PFRI 4 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_THRESH0  0x211001fc /* [CFG] PFRI 4 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_THRESH1  0x21100200 /* [CFG] PFRI 4 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_STATUS   0x21100204 /* [RW] PFRI 4 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_STATE_MAX 0x21100208 /* [RW] PFRI 4 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_COUNT_NORM 0x2110020c /* [RW] PFRI 4 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_COUNT_ALT 0x21100210 /* [RW] PFRI 4 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_5_PAGE_BRK_INTR_INFO_0 0x21100214 /* [RO] PFRI 5 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_5_PAGE_BRK_INTR_INFO_1 0x21100218 /* [RO] PFRI 5 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_5_VIOL_ADDR_LSB     0x2110021c /* [RO] PFRI 5 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_5_VIOL_ADDR_MSB     0x21100220 /* [RO] PFRI 5 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_5_VIOLATION_INFO_WRITE_CLEAR 0x21100224 /* [CFG] PFRI 5 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_5_LADDR_FIFO_DEPTH_COUNT 0x21100228 /* [CFG] PFRI 5 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_5_LADDR_FIFO_STATUS 0x2110022c /* [RO] PFRI 5 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_CONFIG   0x21100230 /* [CFG] PFRI 5 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_FILTER_CTRL 0x21100234 /* [CFG] PFRI 5 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_THRESH0  0x21100238 /* [CFG] PFRI 5 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_THRESH1  0x2110023c /* [CFG] PFRI 5 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_STATUS   0x21100240 /* [RW] PFRI 5 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_STATE_MAX 0x21100244 /* [RW] PFRI 5 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_COUNT_NORM 0x21100248 /* [RW] PFRI 5 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_COUNT_ALT 0x2110024c /* [RW] PFRI 5 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_6_PAGE_BRK_INTR_INFO_0 0x21100250 /* [RO] PFRI 6 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_6_PAGE_BRK_INTR_INFO_1 0x21100254 /* [RO] PFRI 6 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_6_VIOL_ADDR_LSB     0x21100258 /* [RO] PFRI 6 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_6_VIOL_ADDR_MSB     0x2110025c /* [RO] PFRI 6 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_6_VIOLATION_INFO_WRITE_CLEAR 0x21100260 /* [CFG] PFRI 6 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_6_LADDR_FIFO_DEPTH_COUNT 0x21100264 /* [CFG] PFRI 6 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_6_LADDR_FIFO_STATUS 0x21100268 /* [RO] PFRI 6 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_CONFIG   0x2110026c /* [CFG] PFRI 6 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_FILTER_CTRL 0x21100270 /* [CFG] PFRI 6 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_THRESH0  0x21100274 /* [CFG] PFRI 6 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_THRESH1  0x21100278 /* [CFG] PFRI 6 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_STATUS   0x2110027c /* [RW] PFRI 6 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_STATE_MAX 0x21100280 /* [RW] PFRI 6 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_COUNT_NORM 0x21100284 /* [RW] PFRI 6 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_COUNT_ALT 0x21100288 /* [RW] PFRI 6 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_PFRI_7_PAGE_BRK_INTR_INFO_0 0x2110028c /* [RO] PFRI 7 Page Break Interrupt Information Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_7_PAGE_BRK_INTR_INFO_1 0x21100290 /* [RO] PFRI 7 Page Break Interrupt Information Register 1 */
-#define BCHP_MEMC_GEN_0_PFRI_7_VIOL_ADDR_LSB     0x21100294 /* [RO] PFRI 7 Violation Address LSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_7_VIOL_ADDR_MSB     0x21100298 /* [RO] PFRI 7 Violation Address MSB Register */
-#define BCHP_MEMC_GEN_0_PFRI_7_VIOLATION_INFO_WRITE_CLEAR 0x2110029c /* [CFG] PFRI 7 violation info write clear register */
-#define BCHP_MEMC_GEN_0_PFRI_7_LADDR_FIFO_DEPTH_COUNT 0x211002a0 /* [CFG] PFRI 7 Laddr fifo depth count register */
-#define BCHP_MEMC_GEN_0_PFRI_7_LADDR_FIFO_STATUS 0x211002a4 /* [RO] PFRI 7 Laddr fifo status register */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_CONFIG   0x211002a8 /* [CFG] PFRI 7 Throttle Configuration */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_FILTER_CTRL 0x211002ac /* [CFG] PFRI 7 Throttle Filter Control */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_THRESH0  0x211002b0 /* [CFG] PFRI 7 Throttle Threshold 0 */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_THRESH1  0x211002b4 /* [CFG] PFRI 7 Throttle Threshold 1 */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_STATUS   0x211002b8 /* [RW] PFRI 7 Throttle Status */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_STATE_MAX 0x211002bc /* [RW] PFRI 7 Throttle State Max */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_COUNT_NORM 0x211002c0 /* [RW] PFRI 7 Throttle Count Normal Priority */
-#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_COUNT_ALT 0x211002c4 /* [RW] PFRI 7 Throttle Count Alternate Prioirty */
-#define BCHP_MEMC_GEN_0_ZQCS_CONTROL             0x211002e8 /* [CFG] ZQCS Client Control */
-#define BCHP_MEMC_GEN_0_ZQCS_ADDR                0x211002ec /* [CFG] ZQCS Client Address */
-#define BCHP_MEMC_GEN_0_ZQCS_PERIOD              0x211002f0 /* [CFG] ZQCS Client Request Period */
-#define BCHP_MEMC_GEN_0_ZQCS_PAIR_CONTROL        0x211002f4 /* [CFG] ZQCS Client Control for Second Command of Paired Command */
-#define BCHP_MEMC_GEN_0_ZQCS_PAIR_ADDR           0x211002f8 /* [CFG] ZQCS Client Address for Second Command of Paired Command */
-#define BCHP_MEMC_GEN_0_ZQCS_PAIR_DELAY          0x211002fc /* [CFG] ZQCS Client Paired Command Delay */
-#define BCHP_MEMC_GEN_0_ZQCS_STATUS              0x21100300 /* [RO] ZQCS Client Status */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_ENABLE     0x21100304 /* [CFG] CRC Unit 0 SCB read/write data enable register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_0          0x21100308 /* [RO] CRC Unit 0 SCB read data 0 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_1          0x2110030c /* [RO] CRC Unit 0 SCB read data 1 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_2          0x21100310 /* [RO] CRC Unit 0 SCB read data 2 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_3          0x21100314 /* [RO] CRC Unit 0 SCB read data 3 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_4          0x21100318 /* [RO] CRC Unit 0 SCB read data 4 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_5          0x2110031c /* [RO] CRC Unit 0 SCB read data 5 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_6          0x21100320 /* [RO] CRC Unit 0 SCB read data 6 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_7          0x21100324 /* [RO] CRC Unit 0 SCB read data 7 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_8          0x21100328 /* [RO] CRC Unit 0 SCB read data 8 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_9          0x2110032c /* [RO] CRC Unit 0 SCB read data 9 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_10         0x21100330 /* [RO] CRC Unit 0 SCB read data 10 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_11         0x21100334 /* [RO] CRC Unit 0 SCB read data 11 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_12         0x21100338 /* [RO] CRC Unit 0 SCB read data 12 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_13         0x2110033c /* [RO] CRC Unit 0 SCB read data 13 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_14         0x21100340 /* [RO] CRC Unit 0 SCB read data 14 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_15         0x21100344 /* [RO] CRC Unit 0 SCB read data 15 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_ENABLE     0x21100348 /* [CFG] CRC Unit 1 SCB read/write data enable register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_0          0x2110034c /* [RO] CRC Unit 1 SCB read data 0 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_1          0x21100350 /* [RO] CRC Unit 1 SCB read data 1 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_2          0x21100354 /* [RO] CRC Unit 1 SCB read data 2 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_3          0x21100358 /* [RO] CRC Unit 1 SCB read data 3 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_4          0x2110035c /* [RO] CRC Unit 1 SCB read data 4 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_5          0x21100360 /* [RO] CRC Unit 1 SCB read data 5 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_6          0x21100364 /* [RO] CRC Unit 1 SCB read data 6 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_7          0x21100368 /* [RO] CRC Unit 1 SCB read data 7 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_8          0x2110036c /* [RO] CRC Unit 1 SCB read data 8 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_9          0x21100370 /* [RO] CRC Unit 1 SCB read data 9 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_10         0x21100374 /* [RO] CRC Unit 1 SCB read data 10 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_11         0x21100378 /* [RO] CRC Unit 1 SCB read data 11 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_12         0x2110037c /* [RO] CRC Unit 1 SCB read data 12 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_13         0x21100380 /* [RO] CRC Unit 1 SCB read data 13 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_14         0x21100384 /* [RO] CRC Unit 1 SCB read data 14 register */
-#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_15         0x21100388 /* [RO] CRC Unit 1 SCB read data 15 register */
-#define BCHP_MEMC_GEN_0_FIFO_ERROR               0x2110038c /* [RW] FIFO Error Status Register */
-#define BCHP_MEMC_GEN_0_PFRI_FIFO_ERROR0         0x21100390 /* [RW] PFRI FIFO Error Status Register 0 */
-#define BCHP_MEMC_GEN_0_PFRI_FIFO_ERROR1         0x21100394 /* [RW] PFRI FIFO Error Status Register 1 */
-#define BCHP_MEMC_GEN_0_AXI_0_CONFIG             0x21100398 /* [CFG] AXI 0 Configuration Register */
-#define BCHP_MEMC_GEN_0_AXI_0_FIFO_THRESHOLD     0x2110039c /* [CFG] AXI 0 FIFO Threshold Register */
-#define BCHP_MEMC_GEN_0_AXI_1_CONFIG             0x211003a0 /* [CFG] AXI 1 Configuration Register */
-#define BCHP_MEMC_GEN_0_AXI_1_FIFO_THRESHOLD     0x211003a4 /* [CFG] AXI 1 FIFO Threshold Register */
-#define BCHP_MEMC_GEN_0_MSA_MODE                 0x211005c0 /* [CFG] MSA Control Register */
-#define BCHP_MEMC_GEN_0_MSA_STATUS               0x211005c4 /* [RW] MSA Status Register */
-#define BCHP_MEMC_GEN_0_MSA_CMD_TYPE             0x211005c8 /* [CFG] MSA Command Type Register */
-#define BCHP_MEMC_GEN_0_MSA_CMD_ADDR_UPPER       0x211005cc /* [CFG] MSA Upper Address Register */
-#define BCHP_MEMC_GEN_0_MSA_CMD_ADDR             0x211005d0 /* [CFG] MSA Address Register */
-#define BCHP_MEMC_GEN_0_MSA_MALL                 0x211005d4 /* [WO] MSA Block Write Mask Register */
-#define BCHP_MEMC_GEN_0_MSA_DALL                 0x211005d8 /* [WO] MSA Block Write Data Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA_CLR          0x211005dc /* [CFG] MSA Read Data Clear register */
-#define BCHP_MEMC_GEN_0_MSA_DQM                  0x211005e0 /* [RW] MSA DQM 0 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM1                 0x211005e4 /* [RW] MSA DQM 1 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM2                 0x211005e8 /* [RW] MSA DQM 2 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM3                 0x211005ec /* [RW] MSA DQM 3 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM4                 0x211005f0 /* [RW] MSA DQM 4 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM5                 0x211005f4 /* [RW] MSA DQM 5 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM6                 0x211005f8 /* [RW] MSA DQM 6 Register */
-#define BCHP_MEMC_GEN_0_MSA_DQM7                 0x211005fc /* [RW] MSA DQM 7 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA0             0x21100600 /* [RW] MSA Write Data 0 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA1             0x21100604 /* [RW] MSA Write Data 1 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA2             0x21100608 /* [RW] MSA Write Data 2 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA3             0x2110060c /* [RW] MSA Write Data 3 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA4             0x21100610 /* [RW] MSA Write Data 4 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA5             0x21100614 /* [RW] MSA Write Data 5 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA6             0x21100618 /* [RW] MSA Write Data 6 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA7             0x2110061c /* [RW] MSA Write Data 7 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA8             0x21100620 /* [RW] MSA Write Data 8 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA9             0x21100624 /* [RW] MSA Write Data 9 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA10            0x21100628 /* [RW] MSA Write Data 10 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA11            0x2110062c /* [RW] MSA Write Data 11 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA12            0x21100630 /* [RW] MSA Write Data 12 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA13            0x21100634 /* [RW] MSA Write Data 13 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA14            0x21100638 /* [RW] MSA Write Data 14 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA15            0x2110063c /* [RW] MSA Write Data 15 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA16            0x21100640 /* [RW] MSA Write Data 16 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA17            0x21100644 /* [RW] MSA Write Data 17 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA18            0x21100648 /* [RW] MSA Write Data 18 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA19            0x2110064c /* [RW] MSA Write Data 19 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA20            0x21100650 /* [RW] MSA Write Data 20 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA21            0x21100654 /* [RW] MSA Write Data 21 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA22            0x21100658 /* [RW] MSA Write Data 22 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA23            0x2110065c /* [RW] MSA Write Data 23 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA24            0x21100660 /* [RW] MSA Write Data 24 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA25            0x21100664 /* [RW] MSA Write Data 25 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA26            0x21100668 /* [RW] MSA Write Data 26 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA27            0x2110066c /* [RW] MSA Write Data 27 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA28            0x21100670 /* [RW] MSA Write Data 28 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA29            0x21100674 /* [RW] MSA Write Data 29 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA30            0x21100678 /* [RW] MSA Write Data 30 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA31            0x2110067c /* [RW] MSA Write Data 31 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA32            0x21100680 /* [RW] MSA Write Data 32 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA33            0x21100684 /* [RW] MSA Write Data 33 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA34            0x21100688 /* [RW] MSA Write Data 34 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA35            0x2110068c /* [RW] MSA Write Data 35 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA36            0x21100690 /* [RW] MSA Write Data 36 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA37            0x21100694 /* [RW] MSA Write Data 37 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA38            0x21100698 /* [RW] MSA Write Data 38 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA39            0x2110069c /* [RW] MSA Write Data 39 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA40            0x211006a0 /* [RW] MSA Write Data 40 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA41            0x211006a4 /* [RW] MSA Write Data 41 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA42            0x211006a8 /* [RW] MSA Write Data 42 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA43            0x211006ac /* [RW] MSA Write Data 43 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA44            0x211006b0 /* [RW] MSA Write Data 44 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA45            0x211006b4 /* [RW] MSA Write Data 45 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA46            0x211006b8 /* [RW] MSA Write Data 46 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA47            0x211006bc /* [RW] MSA Write Data 47 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA48            0x211006c0 /* [RW] MSA Write Data 48 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA49            0x211006c4 /* [RW] MSA Write Data 49 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA50            0x211006c8 /* [RW] MSA Write Data 50 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA51            0x211006cc /* [RW] MSA Write Data 51 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA52            0x211006d0 /* [RW] MSA Write Data 52 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA53            0x211006d4 /* [RW] MSA Write Data 53 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA54            0x211006d8 /* [RW] MSA Write Data 54 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA55            0x211006dc /* [RW] MSA Write Data 55 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA56            0x211006e0 /* [RW] MSA Write Data 56 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA57            0x211006e4 /* [RW] MSA Write Data 57 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA58            0x211006e8 /* [RW] MSA Write Data 58 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA59            0x211006ec /* [RW] MSA Write Data 59 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA60            0x211006f0 /* [RW] MSA Write Data 60 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA61            0x211006f4 /* [RW] MSA Write Data 61 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA62            0x211006f8 /* [RW] MSA Write Data 62 Register */
-#define BCHP_MEMC_GEN_0_MSA_WR_DATA63            0x211006fc /* [RW] MSA Write Data 63 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA0             0x21100700 /* [RO] MSA Read Data 0 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA1             0x21100704 /* [RO] MSA Read Data 1 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA2             0x21100708 /* [RO] MSA Read Data 2 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA3             0x2110070c /* [RO] MSA Read Data 3 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA4             0x21100710 /* [RO] MSA Read Data 4 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA5             0x21100714 /* [RO] MSA Read Data 5 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA6             0x21100718 /* [RO] MSA Read Data 6 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA7             0x2110071c /* [RO] MSA Read Data 7 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA8             0x21100720 /* [RO] MSA Read Data 8 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA9             0x21100724 /* [RO] MSA Read Data 9 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA10            0x21100728 /* [RO] MSA Read Data 10 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA11            0x2110072c /* [RO] MSA Read Data 11 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA12            0x21100730 /* [RO] MSA Read Data 12 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA13            0x21100734 /* [RO] MSA Read Data 13 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA14            0x21100738 /* [RO] MSA Read Data 14 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA15            0x2110073c /* [RO] MSA Read Data 15 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA16            0x21100740 /* [RO] MSA Read Data 16 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA17            0x21100744 /* [RO] MSA Read Data 17 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA18            0x21100748 /* [RO] MSA Read Data 18 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA19            0x2110074c /* [RO] MSA Read Data 19 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA20            0x21100750 /* [RO] MSA Read Data 20 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA21            0x21100754 /* [RO] MSA Read Data 21 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA22            0x21100758 /* [RO] MSA Read Data 22 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA23            0x2110075c /* [RO] MSA Read Data 23 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA24            0x21100760 /* [RO] MSA Read Data 24 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA25            0x21100764 /* [RO] MSA Read Data 25 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA26            0x21100768 /* [RO] MSA Read Data 26 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA27            0x2110076c /* [RO] MSA Read Data 27 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA28            0x21100770 /* [RO] MSA Read Data 28 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA29            0x21100774 /* [RO] MSA Read Data 29 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA30            0x21100778 /* [RO] MSA Read Data 30 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA31            0x2110077c /* [RO] MSA Read Data 31 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA32            0x21100780 /* [RO] MSA Read Data 32 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA33            0x21100784 /* [RO] MSA Read Data 33 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA34            0x21100788 /* [RO] MSA Read Data 34 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA35            0x2110078c /* [RO] MSA Read Data 35 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA36            0x21100790 /* [RO] MSA Read Data 36 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA37            0x21100794 /* [RO] MSA Read Data 37 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA38            0x21100798 /* [RO] MSA Read Data 38 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA39            0x2110079c /* [RO] MSA Read Data 39 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA40            0x211007a0 /* [RO] MSA Read Data 40 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA41            0x211007a4 /* [RO] MSA Read Data 41 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA42            0x211007a8 /* [RO] MSA Read Data 42 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA43            0x211007ac /* [RO] MSA Read Data 43 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA44            0x211007b0 /* [RO] MSA Read Data 44 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA45            0x211007b4 /* [RO] MSA Read Data 45 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA46            0x211007b8 /* [RO] MSA Read Data 46 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA47            0x211007bc /* [RO] MSA Read Data 47 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA48            0x211007c0 /* [RO] MSA Read Data 48 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA49            0x211007c4 /* [RO] MSA Read Data 49 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA50            0x211007c8 /* [RO] MSA Read Data 50 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA51            0x211007cc /* [RO] MSA Read Data 51 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA52            0x211007d0 /* [RO] MSA Read Data 52 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA53            0x211007d4 /* [RO] MSA Read Data 53 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA54            0x211007d8 /* [RO] MSA Read Data 54 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA55            0x211007dc /* [RO] MSA Read Data 55 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA56            0x211007e0 /* [RO] MSA Read Data 56 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA57            0x211007e4 /* [RO] MSA Read Data 57 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA58            0x211007e8 /* [RO] MSA Read Data 58 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA59            0x211007ec /* [RO] MSA Read Data 59 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA60            0x211007f0 /* [RO] MSA Read Data 60 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA61            0x211007f4 /* [RO] MSA Read Data 61 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA62            0x211007f8 /* [RO] MSA Read Data 62 Register */
-#define BCHP_MEMC_GEN_0_MSA_RD_DATA63            0x211007fc /* [RO] MSA Read Data 63 Register */
+#define BCHP_MEMC_GEN_0_CORE_REV_ID              0x21100000 /* [RO][32] Memory-Controller-Core  Revision ID Register. */
+#define BCHP_MEMC_GEN_0_CORE_OPTIONS             0x21100004 /* [RO][32] Memory-Controller-Core Options Register. */
+#define BCHP_MEMC_GEN_0_CORE_PDEPTH              0x21100008 /* [RO][32] Memory-Controller-Core PDEPTH Register */
+#define BCHP_MEMC_GEN_0_FIRMWARE_DEBUG           0x2110000c /* [RW][32] Spare register bits for firmware debug state tracing */
+#define BCHP_MEMC_GEN_0_SM_TIMEOUT_INTR_INFO     0x21100010 /* [RO][32] MEMC State Machine Timeout Interrupt Information */
+#define BCHP_MEMC_GEN_0_SM_TIMEOUT_INTR_WRITE_CLEAR 0x21100014 /* [CFG][32] MEMC State Machine timeout interrupt write clear register */
+#define BCHP_MEMC_GEN_0_SCB_NOREQ_INTR_INFO      0x21100018 /* [RO][32] MEMC Premature Request Withdrawal Interrupt Information */
+#define BCHP_MEMC_GEN_0_SCB_NOREQ_INTR_WRITE_CLEAR 0x2110001c /* [CFG][32] MEMC No Request interrupt write clear register */
+#define BCHP_MEMC_GEN_0_SCB_CMD_INTR_INFO        0x21100020 /* [RO][32] MEMC Illegal Command Interrupt Information */
+#define BCHP_MEMC_GEN_0_SCB_CMD_INTR_WRITE_CLEAR 0x21100024 /* [CFG][32] MEMC Command interrupt write clear register */
+#define BCHP_MEMC_GEN_0_SCB_START_ADDR_INTR_INFO 0x21100028 /* [RO][32] MEMC Illegal Start Address Interrupt Information */
+#define BCHP_MEMC_GEN_0_SCB_START_ADDR_INTR_WRITE_CLEAR 0x2110002c /* [CFG][32] MEMC Illegal Start Addr interrupt write clear register */
+#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_INFO 0x21100030 /* [RO][32] MEMC Missing SCB last write pulse error information */
+#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_INFO2 0x21100034 /* [RO][32] MEMC Missing SCB Client ID for last write pulse errors */
+#define BCHP_MEMC_GEN_0_SCB_LAST_WRITE_ERROR_WRITE_CLEAR 0x21100038 /* [CFG][32] MEMC scb Missing SCB last write pulse write clear register */
+#define BCHP_MEMC_GEN_0_CMD_TRACE_FIFO_MODE      0x2110003c /* [CFG][32] Mode of the SCB command trace FIFO */
+#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_0            0x21100040 /* [RO][32] Current DATA command pushed out from sequencer. */
+#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_1            0x21100044 /* [RO][32] Current DATA command pushed out from sequencer. */
+#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_2            0x21100048 /* [RO][32] Current DATA command pushed out from sequencer. */
+#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_3            0x2110004c /* [RO][32] Current DATA command pushed out from sequencer. */
+#define BCHP_MEMC_GEN_0_SEQ_CMD_DBG_4            0x21100050 /* [RO][32] Current DATA command pushed out from sequencer. */
+#define BCHP_MEMC_GEN_0_SEQ_INPUT_DBG_INFO       0x21100054 /* [RO][32] Current input from CMD formatter to seq. */
+#define BCHP_MEMC_GEN_0_MISC_SEQ_DBG_INFO        0x21100058 /* [RO][32] Status register of MISC command Sequencer. */
+#define BCHP_MEMC_GEN_0_BIU_DBG_INFO             0x2110005c /* [RO][32] Debug information from BIU> */
+#define BCHP_MEMC_GEN_0_SPARE_RO_3               0x21100060 /* [RO][32] Start Address corresponding to SCB command that occurred three commands earlier or end addr in case of PFRI. */
+#define BCHP_MEMC_GEN_0_TP_ADRS                  0x21100064 /* [CFG][32] Test Port Address Register */
+#define BCHP_MEMC_GEN_0_TP_READ_DATA             0x21100068 /* [RO][32] Test Port Data Read Register */
+#define BCHP_MEMC_GEN_0_MISC_BIU_MSA_REG         0x2110006c /* [CFG][32] MISC BIU Control register */
+#define BCHP_MEMC_GEN_0_SCB_NOREQ_CMDBUS_INTR_INFO_0 0x21100070 /* [RO][32] MEMC Premature Request Withdrawal Interrupt, SCB CMD bus Information, bits 31:0 */
+#define BCHP_MEMC_GEN_0_SCB_NOREQ_CMDBUS_INTR_INFO_1 0x21100074 /* [RO][32] MEMC Premature Request Withdrawal Interrupt, SCB CMD bus Information, bits 47:32 */
+#define BCHP_MEMC_GEN_0_SPARE_1                  0x21100078 /* [RW][32] Spare Register 1 . */
+#define BCHP_MEMC_GEN_0_SPARE_2                  0x2110007c /* [RW][32] Spare Register 2 . */
+#define BCHP_MEMC_GEN_0_SPARE_RO_1               0x21100080 /* [RO][32] Read only Spare Register 0 . */
+#define BCHP_MEMC_GEN_0_SPARE_RO_2               0x21100084 /* [RO][32] Read only Spare Register 1 . */
+#define BCHP_MEMC_GEN_0_TP_CORE_SEL              0x21100088 /* [CFG][32] Test port selection register. */
+#define BCHP_MEMC_GEN_0_CNTR_RST                 0x2110008c /* [CFG][32] LMB Reset Request Counters */
+#define BCHP_MEMC_GEN_0_CNTR_FREEZE              0x21100090 /* [CFG][32] LMB Freeze Request Counters */
+#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_WRITE_CLEAR 0x21100094 /* [CFG][32] LMB un-aligned address error info write clear register */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU0       0x21100098 /* [RW][32] LMB 0 Dummy High Priority Request Count */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU1       0x2110009c /* [RW][32] LMB 0 Dummy Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU0         0x211000a0 /* [RW][32] LMB 0 Valid High Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU1         0x211000a4 /* [RW][32] LMB 0 Valid Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO   0x211000a8 /* [RO][32] LMB 0 un-aligned address error information register */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU2       0x211000ac /* [RW][32] LMB 1 Dummy High Priority Request Count */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU3       0x211000b0 /* [RW][32] LMB 1 Dummy Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU2         0x211000b4 /* [RW][32] LMB 1 Valid High Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU3         0x211000b8 /* [RW][32] LMB 1 Valid Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_1 0x211000bc /* [RO][32] LMB 1 un-aligned address error information register */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU4       0x211000c0 /* [RW][32] LMB 2 Dummy High Priority Request Count */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU5       0x211000c4 /* [RW][32] LMB 2 Dummy Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU4         0x211000c8 /* [RW][32] LMB 2 Valid High Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU5         0x211000cc /* [RW][32] LMB 2 Valid Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_2 0x211000d0 /* [RO][32] LMB 2 un-aligned address error information register */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU6       0x211000d4 /* [RW][32] LMB 3 Dummy High Priority Request Count */
+#define BCHP_MEMC_GEN_0_DUMMY_REQ_CNT_CPU7       0x211000d8 /* [RW][32] LMB 3 Dummy Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU6         0x211000dc /* [RW][32] LMB 3 Valid High Priority Request Count */
+#define BCHP_MEMC_GEN_0_VAL_REQ_CNT_CPU7         0x211000e0 /* [RW][32] LMB 3 Valid Low Priority Request Count */
+#define BCHP_MEMC_GEN_0_LMB_ADDRESS_ERROR_INFO_3 0x211000e4 /* [RO][32] LMB 3 un-aligned address error information register */
+#define BCHP_MEMC_GEN_0_PFRI_0_PAGE_BRK_INTR_INFO_0 0x211000e8 /* [RO][32] PFRI 0 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_0_PAGE_BRK_INTR_INFO_1 0x211000ec /* [RO][32] PFRI 0 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_0_VIOL_ADDR_LSB     0x211000f0 /* [RO][32] PFRI 0 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_0_VIOL_ADDR_MSB     0x211000f4 /* [RO][32] PFRI 0 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_0_VIOLATION_INFO_WRITE_CLEAR 0x211000f8 /* [CFG][32] PFRI 0 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_0_LADDR_FIFO_DEPTH_COUNT 0x211000fc /* [CFG][32] PFRI 0 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_0_LADDR_FIFO_STATUS 0x21100100 /* [RO][32] PFRI 0 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_CONFIG   0x21100104 /* [CFG][32] PFRI 0 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_FILTER_CTRL 0x21100108 /* [CFG][32] PFRI 0 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH0  0x2110010c /* [CFG][32] PFRI 0 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_THRESH1  0x21100110 /* [CFG][32] PFRI 0 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_STATUS   0x21100114 /* [RW][32] PFRI 0 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_STATE_MAX 0x21100118 /* [RW][32] PFRI 0 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_COUNT_NORM 0x2110011c /* [RW][32] PFRI 0 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_0_THROTTLE_COUNT_ALT 0x21100120 /* [RW][32] PFRI 0 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_1_PAGE_BRK_INTR_INFO_0 0x21100124 /* [RO][32] PFRI 1 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_1_PAGE_BRK_INTR_INFO_1 0x21100128 /* [RO][32] PFRI 1 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_1_VIOL_ADDR_LSB     0x2110012c /* [RO][32] PFRI 1 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_1_VIOL_ADDR_MSB     0x21100130 /* [RO][32] PFRI 1 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_1_VIOLATION_INFO_WRITE_CLEAR 0x21100134 /* [CFG][32] PFRI 1 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_1_LADDR_FIFO_DEPTH_COUNT 0x21100138 /* [CFG][32] PFRI 1 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_1_LADDR_FIFO_STATUS 0x2110013c /* [RO][32] PFRI 1 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_CONFIG   0x21100140 /* [CFG][32] PFRI 1 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_FILTER_CTRL 0x21100144 /* [CFG][32] PFRI 1 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH0  0x21100148 /* [CFG][32] PFRI 1 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_THRESH1  0x2110014c /* [CFG][32] PFRI 1 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_STATUS   0x21100150 /* [RW][32] PFRI 1 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_STATE_MAX 0x21100154 /* [RW][32] PFRI 1 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_COUNT_NORM 0x21100158 /* [RW][32] PFRI 1 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_1_THROTTLE_COUNT_ALT 0x2110015c /* [RW][32] PFRI 1 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_2_PAGE_BRK_INTR_INFO_0 0x21100160 /* [RO][32] PFRI 2 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_2_PAGE_BRK_INTR_INFO_1 0x21100164 /* [RO][32] PFRI 2 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_2_VIOL_ADDR_LSB     0x21100168 /* [RO][32] PFRI 2 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_2_VIOL_ADDR_MSB     0x2110016c /* [RO][32] PFRI 2 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_2_VIOLATION_INFO_WRITE_CLEAR 0x21100170 /* [CFG][32] PFRI 2 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_2_LADDR_FIFO_DEPTH_COUNT 0x21100174 /* [CFG][32] PFRI 2 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_2_LADDR_FIFO_STATUS 0x21100178 /* [RO][32] PFRI 2 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_CONFIG   0x2110017c /* [CFG][32] PFRI 2 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_FILTER_CTRL 0x21100180 /* [CFG][32] PFRI 2 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH0  0x21100184 /* [CFG][32] PFRI 2 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_THRESH1  0x21100188 /* [CFG][32] PFRI 2 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_STATUS   0x2110018c /* [RW][32] PFRI 2 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_STATE_MAX 0x21100190 /* [RW][32] PFRI 2 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_COUNT_NORM 0x21100194 /* [RW][32] PFRI 2 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_2_THROTTLE_COUNT_ALT 0x21100198 /* [RW][32] PFRI 2 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_3_PAGE_BRK_INTR_INFO_0 0x2110019c /* [RO][32] PFRI 3 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_3_PAGE_BRK_INTR_INFO_1 0x211001a0 /* [RO][32] PFRI 3 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_3_VIOL_ADDR_LSB     0x211001a4 /* [RO][32] PFRI 3 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_3_VIOL_ADDR_MSB     0x211001a8 /* [RO][32] PFRI 3 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_3_VIOLATION_INFO_WRITE_CLEAR 0x211001ac /* [CFG][32] PFRI 3 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_3_LADDR_FIFO_DEPTH_COUNT 0x211001b0 /* [CFG][32] PFRI 3 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_3_LADDR_FIFO_STATUS 0x211001b4 /* [RO][32] PFRI 3 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_CONFIG   0x211001b8 /* [CFG][32] PFRI 3 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_FILTER_CTRL 0x211001bc /* [CFG][32] PFRI 3 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_THRESH0  0x211001c0 /* [CFG][32] PFRI 3 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_THRESH1  0x211001c4 /* [CFG][32] PFRI 3 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_STATUS   0x211001c8 /* [RW][32] PFRI 3 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_STATE_MAX 0x211001cc /* [RW][32] PFRI 3 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_COUNT_NORM 0x211001d0 /* [RW][32] PFRI 3 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_3_THROTTLE_COUNT_ALT 0x211001d4 /* [RW][32] PFRI 3 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_4_PAGE_BRK_INTR_INFO_0 0x211001d8 /* [RO][32] PFRI 4 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_4_PAGE_BRK_INTR_INFO_1 0x211001dc /* [RO][32] PFRI 4 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_4_VIOL_ADDR_LSB     0x211001e0 /* [RO][32] PFRI 4 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_4_VIOL_ADDR_MSB     0x211001e4 /* [RO][32] PFRI 4 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_4_VIOLATION_INFO_WRITE_CLEAR 0x211001e8 /* [CFG][32] PFRI 4 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_4_LADDR_FIFO_DEPTH_COUNT 0x211001ec /* [CFG][32] PFRI 4 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_4_LADDR_FIFO_STATUS 0x211001f0 /* [RO][32] PFRI 4 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_CONFIG   0x211001f4 /* [CFG][32] PFRI 4 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_FILTER_CTRL 0x211001f8 /* [CFG][32] PFRI 4 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_THRESH0  0x211001fc /* [CFG][32] PFRI 4 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_THRESH1  0x21100200 /* [CFG][32] PFRI 4 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_STATUS   0x21100204 /* [RW][32] PFRI 4 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_STATE_MAX 0x21100208 /* [RW][32] PFRI 4 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_COUNT_NORM 0x2110020c /* [RW][32] PFRI 4 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_4_THROTTLE_COUNT_ALT 0x21100210 /* [RW][32] PFRI 4 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_5_PAGE_BRK_INTR_INFO_0 0x21100214 /* [RO][32] PFRI 5 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_5_PAGE_BRK_INTR_INFO_1 0x21100218 /* [RO][32] PFRI 5 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_5_VIOL_ADDR_LSB     0x2110021c /* [RO][32] PFRI 5 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_5_VIOL_ADDR_MSB     0x21100220 /* [RO][32] PFRI 5 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_5_VIOLATION_INFO_WRITE_CLEAR 0x21100224 /* [CFG][32] PFRI 5 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_5_LADDR_FIFO_DEPTH_COUNT 0x21100228 /* [CFG][32] PFRI 5 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_5_LADDR_FIFO_STATUS 0x2110022c /* [RO][32] PFRI 5 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_CONFIG   0x21100230 /* [CFG][32] PFRI 5 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_FILTER_CTRL 0x21100234 /* [CFG][32] PFRI 5 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_THRESH0  0x21100238 /* [CFG][32] PFRI 5 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_THRESH1  0x2110023c /* [CFG][32] PFRI 5 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_STATUS   0x21100240 /* [RW][32] PFRI 5 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_STATE_MAX 0x21100244 /* [RW][32] PFRI 5 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_COUNT_NORM 0x21100248 /* [RW][32] PFRI 5 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_5_THROTTLE_COUNT_ALT 0x2110024c /* [RW][32] PFRI 5 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_6_PAGE_BRK_INTR_INFO_0 0x21100250 /* [RO][32] PFRI 6 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_6_PAGE_BRK_INTR_INFO_1 0x21100254 /* [RO][32] PFRI 6 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_6_VIOL_ADDR_LSB     0x21100258 /* [RO][32] PFRI 6 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_6_VIOL_ADDR_MSB     0x2110025c /* [RO][32] PFRI 6 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_6_VIOLATION_INFO_WRITE_CLEAR 0x21100260 /* [CFG][32] PFRI 6 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_6_LADDR_FIFO_DEPTH_COUNT 0x21100264 /* [CFG][32] PFRI 6 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_6_LADDR_FIFO_STATUS 0x21100268 /* [RO][32] PFRI 6 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_CONFIG   0x2110026c /* [CFG][32] PFRI 6 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_FILTER_CTRL 0x21100270 /* [CFG][32] PFRI 6 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_THRESH0  0x21100274 /* [CFG][32] PFRI 6 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_THRESH1  0x21100278 /* [CFG][32] PFRI 6 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_STATUS   0x2110027c /* [RW][32] PFRI 6 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_STATE_MAX 0x21100280 /* [RW][32] PFRI 6 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_COUNT_NORM 0x21100284 /* [RW][32] PFRI 6 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_6_THROTTLE_COUNT_ALT 0x21100288 /* [RW][32] PFRI 6 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_PFRI_7_PAGE_BRK_INTR_INFO_0 0x2110028c /* [RO][32] PFRI 7 Page Break Interrupt Information Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_7_PAGE_BRK_INTR_INFO_1 0x21100290 /* [RO][32] PFRI 7 Page Break Interrupt Information Register 1 */
+#define BCHP_MEMC_GEN_0_PFRI_7_VIOL_ADDR_LSB     0x21100294 /* [RO][32] PFRI 7 Violation Address LSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_7_VIOL_ADDR_MSB     0x21100298 /* [RO][32] PFRI 7 Violation Address MSB Register */
+#define BCHP_MEMC_GEN_0_PFRI_7_VIOLATION_INFO_WRITE_CLEAR 0x2110029c /* [CFG][32] PFRI 7 violation info write clear register */
+#define BCHP_MEMC_GEN_0_PFRI_7_LADDR_FIFO_DEPTH_COUNT 0x211002a0 /* [CFG][32] PFRI 7 Laddr fifo depth count register */
+#define BCHP_MEMC_GEN_0_PFRI_7_LADDR_FIFO_STATUS 0x211002a4 /* [RO][32] PFRI 7 Laddr fifo status register */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_CONFIG   0x211002a8 /* [CFG][32] PFRI 7 Throttle Configuration */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_FILTER_CTRL 0x211002ac /* [CFG][32] PFRI 7 Throttle Filter Control */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_THRESH0  0x211002b0 /* [CFG][32] PFRI 7 Throttle Threshold 0 */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_THRESH1  0x211002b4 /* [CFG][32] PFRI 7 Throttle Threshold 1 */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_STATUS   0x211002b8 /* [RW][32] PFRI 7 Throttle Status */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_STATE_MAX 0x211002bc /* [RW][32] PFRI 7 Throttle State Max */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_COUNT_NORM 0x211002c0 /* [RW][32] PFRI 7 Throttle Count Normal Priority */
+#define BCHP_MEMC_GEN_0_PFRI_7_THROTTLE_COUNT_ALT 0x211002c4 /* [RW][32] PFRI 7 Throttle Count Alternate Prioirty */
+#define BCHP_MEMC_GEN_0_ZQCS_CONTROL             0x211002e8 /* [CFG][32] ZQCS Client Control */
+#define BCHP_MEMC_GEN_0_ZQCS_ADDR                0x211002ec /* [CFG][32] ZQCS Client Address */
+#define BCHP_MEMC_GEN_0_ZQCS_PERIOD              0x211002f0 /* [CFG][32] ZQCS Client Request Period */
+#define BCHP_MEMC_GEN_0_ZQCS_PAIR_CONTROL        0x211002f4 /* [CFG][32] ZQCS Client Control for Second Command of Paired Command */
+#define BCHP_MEMC_GEN_0_ZQCS_PAIR_ADDR           0x211002f8 /* [CFG][32] ZQCS Client Address for Second Command of Paired Command */
+#define BCHP_MEMC_GEN_0_ZQCS_PAIR_DELAY          0x211002fc /* [CFG][32] ZQCS Client Paired Command Delay */
+#define BCHP_MEMC_GEN_0_ZQCS_STATUS              0x21100300 /* [RO][32] ZQCS Client Status */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_ENABLE     0x21100304 /* [CFG][32] CRC Unit 0 SCB read/write data enable register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_0          0x21100308 /* [RO][32] CRC Unit 0 SCB read data 0 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_1          0x2110030c /* [RO][32] CRC Unit 0 SCB read data 1 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_2          0x21100310 /* [RO][32] CRC Unit 0 SCB read data 2 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_3          0x21100314 /* [RO][32] CRC Unit 0 SCB read data 3 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_4          0x21100318 /* [RO][32] CRC Unit 0 SCB read data 4 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_5          0x2110031c /* [RO][32] CRC Unit 0 SCB read data 5 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_6          0x21100320 /* [RO][32] CRC Unit 0 SCB read data 6 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_7          0x21100324 /* [RO][32] CRC Unit 0 SCB read data 7 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_8          0x21100328 /* [RO][32] CRC Unit 0 SCB read data 8 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_9          0x2110032c /* [RO][32] CRC Unit 0 SCB read data 9 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_10         0x21100330 /* [RO][32] CRC Unit 0 SCB read data 10 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_11         0x21100334 /* [RO][32] CRC Unit 0 SCB read data 11 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_12         0x21100338 /* [RO][32] CRC Unit 0 SCB read data 12 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_13         0x2110033c /* [RO][32] CRC Unit 0 SCB read data 13 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_14         0x21100340 /* [RO][32] CRC Unit 0 SCB read data 14 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT0_15         0x21100344 /* [RO][32] CRC Unit 0 SCB read data 15 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_ENABLE     0x21100348 /* [CFG][32] CRC Unit 1 SCB read/write data enable register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_0          0x2110034c /* [RO][32] CRC Unit 1 SCB read data 0 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_1          0x21100350 /* [RO][32] CRC Unit 1 SCB read data 1 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_2          0x21100354 /* [RO][32] CRC Unit 1 SCB read data 2 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_3          0x21100358 /* [RO][32] CRC Unit 1 SCB read data 3 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_4          0x2110035c /* [RO][32] CRC Unit 1 SCB read data 4 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_5          0x21100360 /* [RO][32] CRC Unit 1 SCB read data 5 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_6          0x21100364 /* [RO][32] CRC Unit 1 SCB read data 6 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_7          0x21100368 /* [RO][32] CRC Unit 1 SCB read data 7 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_8          0x2110036c /* [RO][32] CRC Unit 1 SCB read data 8 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_9          0x21100370 /* [RO][32] CRC Unit 1 SCB read data 9 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_10         0x21100374 /* [RO][32] CRC Unit 1 SCB read data 10 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_11         0x21100378 /* [RO][32] CRC Unit 1 SCB read data 11 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_12         0x2110037c /* [RO][32] CRC Unit 1 SCB read data 12 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_13         0x21100380 /* [RO][32] CRC Unit 1 SCB read data 13 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_14         0x21100384 /* [RO][32] CRC Unit 1 SCB read data 14 register */
+#define BCHP_MEMC_GEN_0_SCB_CRC_UNIT1_15         0x21100388 /* [RO][32] CRC Unit 1 SCB read data 15 register */
+#define BCHP_MEMC_GEN_0_FIFO_ERROR               0x2110038c /* [RW][32] FIFO Error Status Register */
+#define BCHP_MEMC_GEN_0_PFRI_FIFO_ERROR0         0x21100390 /* [RW][32] PFRI FIFO Error Status Register 0 */
+#define BCHP_MEMC_GEN_0_PFRI_FIFO_ERROR1         0x21100394 /* [RW][32] PFRI FIFO Error Status Register 1 */
+#define BCHP_MEMC_GEN_0_AXI_0_CONFIG             0x21100398 /* [CFG][32] AXI 0 Configuration Register */
+#define BCHP_MEMC_GEN_0_AXI_0_FIFO_THRESHOLD     0x2110039c /* [CFG][32] AXI 0 FIFO Threshold Register */
+#define BCHP_MEMC_GEN_0_AXI_1_CONFIG             0x211003a0 /* [CFG][32] AXI 1 Configuration Register */
+#define BCHP_MEMC_GEN_0_AXI_1_FIFO_THRESHOLD     0x211003a4 /* [CFG][32] AXI 1 FIFO Threshold Register */
+#define BCHP_MEMC_GEN_0_MSA_MODE                 0x211005c0 /* [CFG][32] MSA Control Register */
+#define BCHP_MEMC_GEN_0_MSA_STATUS               0x211005c4 /* [RW][32] MSA Status Register */
+#define BCHP_MEMC_GEN_0_MSA_CMD_TYPE             0x211005c8 /* [CFG][32] MSA Command Type Register */
+#define BCHP_MEMC_GEN_0_MSA_CMD_ADDR_UPPER       0x211005cc /* [CFG][32] MSA Upper Address Register */
+#define BCHP_MEMC_GEN_0_MSA_CMD_ADDR             0x211005d0 /* [CFG][32] MSA Address Register */
+#define BCHP_MEMC_GEN_0_MSA_MALL                 0x211005d4 /* [WO][32] MSA Block Write Mask Register */
+#define BCHP_MEMC_GEN_0_MSA_DALL                 0x211005d8 /* [WO][32] MSA Block Write Data Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA_CLR          0x211005dc /* [CFG][32] MSA Read Data Clear register */
+#define BCHP_MEMC_GEN_0_MSA_DQM                  0x211005e0 /* [RW][32] MSA DQM 0 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM1                 0x211005e4 /* [RW][32] MSA DQM 1 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM2                 0x211005e8 /* [RW][32] MSA DQM 2 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM3                 0x211005ec /* [RW][32] MSA DQM 3 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM4                 0x211005f0 /* [RW][32] MSA DQM 4 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM5                 0x211005f4 /* [RW][32] MSA DQM 5 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM6                 0x211005f8 /* [RW][32] MSA DQM 6 Register */
+#define BCHP_MEMC_GEN_0_MSA_DQM7                 0x211005fc /* [RW][32] MSA DQM 7 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA0             0x21100600 /* [RW][32] MSA Write Data 0 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA1             0x21100604 /* [RW][32] MSA Write Data 1 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA2             0x21100608 /* [RW][32] MSA Write Data 2 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA3             0x2110060c /* [RW][32] MSA Write Data 3 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA4             0x21100610 /* [RW][32] MSA Write Data 4 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA5             0x21100614 /* [RW][32] MSA Write Data 5 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA6             0x21100618 /* [RW][32] MSA Write Data 6 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA7             0x2110061c /* [RW][32] MSA Write Data 7 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA8             0x21100620 /* [RW][32] MSA Write Data 8 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA9             0x21100624 /* [RW][32] MSA Write Data 9 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA10            0x21100628 /* [RW][32] MSA Write Data 10 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA11            0x2110062c /* [RW][32] MSA Write Data 11 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA12            0x21100630 /* [RW][32] MSA Write Data 12 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA13            0x21100634 /* [RW][32] MSA Write Data 13 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA14            0x21100638 /* [RW][32] MSA Write Data 14 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA15            0x2110063c /* [RW][32] MSA Write Data 15 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA16            0x21100640 /* [RW][32] MSA Write Data 16 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA17            0x21100644 /* [RW][32] MSA Write Data 17 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA18            0x21100648 /* [RW][32] MSA Write Data 18 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA19            0x2110064c /* [RW][32] MSA Write Data 19 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA20            0x21100650 /* [RW][32] MSA Write Data 20 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA21            0x21100654 /* [RW][32] MSA Write Data 21 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA22            0x21100658 /* [RW][32] MSA Write Data 22 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA23            0x2110065c /* [RW][32] MSA Write Data 23 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA24            0x21100660 /* [RW][32] MSA Write Data 24 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA25            0x21100664 /* [RW][32] MSA Write Data 25 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA26            0x21100668 /* [RW][32] MSA Write Data 26 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA27            0x2110066c /* [RW][32] MSA Write Data 27 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA28            0x21100670 /* [RW][32] MSA Write Data 28 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA29            0x21100674 /* [RW][32] MSA Write Data 29 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA30            0x21100678 /* [RW][32] MSA Write Data 30 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA31            0x2110067c /* [RW][32] MSA Write Data 31 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA32            0x21100680 /* [RW][32] MSA Write Data 32 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA33            0x21100684 /* [RW][32] MSA Write Data 33 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA34            0x21100688 /* [RW][32] MSA Write Data 34 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA35            0x2110068c /* [RW][32] MSA Write Data 35 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA36            0x21100690 /* [RW][32] MSA Write Data 36 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA37            0x21100694 /* [RW][32] MSA Write Data 37 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA38            0x21100698 /* [RW][32] MSA Write Data 38 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA39            0x2110069c /* [RW][32] MSA Write Data 39 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA40            0x211006a0 /* [RW][32] MSA Write Data 40 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA41            0x211006a4 /* [RW][32] MSA Write Data 41 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA42            0x211006a8 /* [RW][32] MSA Write Data 42 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA43            0x211006ac /* [RW][32] MSA Write Data 43 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA44            0x211006b0 /* [RW][32] MSA Write Data 44 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA45            0x211006b4 /* [RW][32] MSA Write Data 45 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA46            0x211006b8 /* [RW][32] MSA Write Data 46 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA47            0x211006bc /* [RW][32] MSA Write Data 47 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA48            0x211006c0 /* [RW][32] MSA Write Data 48 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA49            0x211006c4 /* [RW][32] MSA Write Data 49 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA50            0x211006c8 /* [RW][32] MSA Write Data 50 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA51            0x211006cc /* [RW][32] MSA Write Data 51 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA52            0x211006d0 /* [RW][32] MSA Write Data 52 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA53            0x211006d4 /* [RW][32] MSA Write Data 53 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA54            0x211006d8 /* [RW][32] MSA Write Data 54 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA55            0x211006dc /* [RW][32] MSA Write Data 55 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA56            0x211006e0 /* [RW][32] MSA Write Data 56 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA57            0x211006e4 /* [RW][32] MSA Write Data 57 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA58            0x211006e8 /* [RW][32] MSA Write Data 58 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA59            0x211006ec /* [RW][32] MSA Write Data 59 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA60            0x211006f0 /* [RW][32] MSA Write Data 60 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA61            0x211006f4 /* [RW][32] MSA Write Data 61 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA62            0x211006f8 /* [RW][32] MSA Write Data 62 Register */
+#define BCHP_MEMC_GEN_0_MSA_WR_DATA63            0x211006fc /* [RW][32] MSA Write Data 63 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA0             0x21100700 /* [RO][32] MSA Read Data 0 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA1             0x21100704 /* [RO][32] MSA Read Data 1 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA2             0x21100708 /* [RO][32] MSA Read Data 2 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA3             0x2110070c /* [RO][32] MSA Read Data 3 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA4             0x21100710 /* [RO][32] MSA Read Data 4 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA5             0x21100714 /* [RO][32] MSA Read Data 5 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA6             0x21100718 /* [RO][32] MSA Read Data 6 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA7             0x2110071c /* [RO][32] MSA Read Data 7 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA8             0x21100720 /* [RO][32] MSA Read Data 8 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA9             0x21100724 /* [RO][32] MSA Read Data 9 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA10            0x21100728 /* [RO][32] MSA Read Data 10 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA11            0x2110072c /* [RO][32] MSA Read Data 11 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA12            0x21100730 /* [RO][32] MSA Read Data 12 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA13            0x21100734 /* [RO][32] MSA Read Data 13 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA14            0x21100738 /* [RO][32] MSA Read Data 14 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA15            0x2110073c /* [RO][32] MSA Read Data 15 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA16            0x21100740 /* [RO][32] MSA Read Data 16 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA17            0x21100744 /* [RO][32] MSA Read Data 17 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA18            0x21100748 /* [RO][32] MSA Read Data 18 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA19            0x2110074c /* [RO][32] MSA Read Data 19 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA20            0x21100750 /* [RO][32] MSA Read Data 20 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA21            0x21100754 /* [RO][32] MSA Read Data 21 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA22            0x21100758 /* [RO][32] MSA Read Data 22 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA23            0x2110075c /* [RO][32] MSA Read Data 23 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA24            0x21100760 /* [RO][32] MSA Read Data 24 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA25            0x21100764 /* [RO][32] MSA Read Data 25 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA26            0x21100768 /* [RO][32] MSA Read Data 26 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA27            0x2110076c /* [RO][32] MSA Read Data 27 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA28            0x21100770 /* [RO][32] MSA Read Data 28 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA29            0x21100774 /* [RO][32] MSA Read Data 29 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA30            0x21100778 /* [RO][32] MSA Read Data 30 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA31            0x2110077c /* [RO][32] MSA Read Data 31 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA32            0x21100780 /* [RO][32] MSA Read Data 32 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA33            0x21100784 /* [RO][32] MSA Read Data 33 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA34            0x21100788 /* [RO][32] MSA Read Data 34 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA35            0x2110078c /* [RO][32] MSA Read Data 35 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA36            0x21100790 /* [RO][32] MSA Read Data 36 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA37            0x21100794 /* [RO][32] MSA Read Data 37 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA38            0x21100798 /* [RO][32] MSA Read Data 38 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA39            0x2110079c /* [RO][32] MSA Read Data 39 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA40            0x211007a0 /* [RO][32] MSA Read Data 40 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA41            0x211007a4 /* [RO][32] MSA Read Data 41 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA42            0x211007a8 /* [RO][32] MSA Read Data 42 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA43            0x211007ac /* [RO][32] MSA Read Data 43 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA44            0x211007b0 /* [RO][32] MSA Read Data 44 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA45            0x211007b4 /* [RO][32] MSA Read Data 45 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA46            0x211007b8 /* [RO][32] MSA Read Data 46 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA47            0x211007bc /* [RO][32] MSA Read Data 47 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA48            0x211007c0 /* [RO][32] MSA Read Data 48 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA49            0x211007c4 /* [RO][32] MSA Read Data 49 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA50            0x211007c8 /* [RO][32] MSA Read Data 50 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA51            0x211007cc /* [RO][32] MSA Read Data 51 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA52            0x211007d0 /* [RO][32] MSA Read Data 52 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA53            0x211007d4 /* [RO][32] MSA Read Data 53 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA54            0x211007d8 /* [RO][32] MSA Read Data 54 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA55            0x211007dc /* [RO][32] MSA Read Data 55 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA56            0x211007e0 /* [RO][32] MSA Read Data 56 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA57            0x211007e4 /* [RO][32] MSA Read Data 57 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA58            0x211007e8 /* [RO][32] MSA Read Data 58 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA59            0x211007ec /* [RO][32] MSA Read Data 59 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA60            0x211007f0 /* [RO][32] MSA Read Data 60 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA61            0x211007f4 /* [RO][32] MSA Read Data 61 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA62            0x211007f8 /* [RO][32] MSA Read Data 62 Register */
+#define BCHP_MEMC_GEN_0_MSA_RD_DATA63            0x211007fc /* [RO][32] MSA Read Data 63 Register */
 
 /***************************************************************************
  *CORE_REV_ID - Memory-Controller-Core  Revision ID Register.

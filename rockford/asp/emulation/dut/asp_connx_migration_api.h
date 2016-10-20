@@ -45,8 +45,10 @@
 
 /* Retrieve & return TCP State associated with the socket. Caller shouldn't use the sockFd after this call. */
 int ASP_ConnxMigration_GetTcpStateFromLinux(
-    int socketFd,               /* in:  fd of socket to be offloaded from host to ASP. */
-    SocketState *pSocketState   /* out: associated socket state. */
+    int             socketFd,           /* in: fd of socket to be offloaded from host to ASP. */
+    SocketState     *pSocketState,      /* out: associated socket state. */
+    char            **ppInterfacename,  /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
+    unsigned char   *pRemoteHostMacAddr /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
     );
 
 /* Using the caller provided socket state, create a new TCP socket and return it. Caller can then continue using this socket. */

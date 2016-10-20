@@ -429,6 +429,17 @@ handle_error:
                 goto end;
             }
         }
+        if(((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF) && !validation_status)
+        {
+            if(validation_status == 0){
+                BDBG_LOG(("\t********* SAGE-side DTCP-IP validation successfully completed!!! *********"));
+            }
+            else{
+                BDBG_ERR(("\tDTCP-IP validation FAILED!!!! No file will be provisioned/written to rootfs"));
+                goto end;
+            }
+        }
+
 
         filename = strrchr(gAppStruct.InputFile, '/');
         if(filename == NULL)
@@ -496,6 +507,16 @@ handle_error:
             }
             else{
                 BDBG_ERR(("\tECC validation FAILED for Type 3 DRM bin file!!!"));
+                goto end;
+            }
+        }
+        if(((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF) && !validation_status)
+        {
+            if(validation_status == 0){
+                BDBG_LOG(("\t*** SAGE-side DTCP-IP validation successfully completed for type 3 DRM bin file!!! ***"));
+            }
+            else{
+                BDBG_ERR(("\tDTCP-IP validation FAILED for Type 3 DRM bin file!!!"));
                 goto end;
             }
         }

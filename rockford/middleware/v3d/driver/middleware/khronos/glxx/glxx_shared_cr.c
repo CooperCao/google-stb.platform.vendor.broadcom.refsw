@@ -50,7 +50,7 @@ MEM_HANDLE_T glxx_shared_get_buffer(GLXX_SHARED_T *shared, uint32_t buffer, bool
       vcos_assert(buffer);
 
       if (handle != MEM_INVALID_HANDLE) {
-         mem_set_term(handle, glxx_buffer_term);
+         mem_set_term(handle, glxx_buffer_term, NULL);
 
          glxx_buffer_init((GLXX_BUFFER_T *)mem_lock(handle, NULL), buffer);
          mem_unlock(handle);

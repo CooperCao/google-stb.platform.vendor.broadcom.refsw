@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
@@ -120,6 +112,14 @@ restart:
         if (BFIFO_READ_PEEK(&p->pendingFifo)==0) {
             if(p->state.queued_in_hw==0) {
                 BDBG_MSG(("underflow of the playback buffer"));
+                if (p->state.packetizer==b_play_packetizer_none) {
+                    while (BFIFO_READ_PEEK(&p->activeFifo)) {
+                        struct bpvr_queue_item *item = BFIFO_READ(&p->activeFifo);
+                        BDBG_ASSERT(item->desc.length == 0);
+                        BFIFO_READ_COMMIT(&p->fifo, item->skip);
+                        BFIFO_READ_COMMIT(&p->activeFifo, 1);
+                    }
+                }
             }
             return active;
         }

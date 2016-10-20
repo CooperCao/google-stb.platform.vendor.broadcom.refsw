@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,74 +70,74 @@
 /***************************************************************************
  *HDMI_RX_FE_SHARED - HDMI Receiver Front End Shared Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_RX_FE_SHARED_HOTPLUG_CONFIG1   0x206f0800 /* [RW] Hotplug Config1 */
-#define BCHP_HDMI_RX_FE_SHARED_HOTPLUG_CONFIG2   0x206f0804 /* [RW] Hotplug Config2 */
-#define BCHP_HDMI_RX_FE_SHARED_ANALOG_CFG_4      0x206f0808 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_0_MIN   0x206f080c /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_0_MAX   0x206f0810 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0A  0x206f0814 /* [RW] Setting for Range = 0 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0B  0x206f0818 /* [RW] Setting for Range = 0 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0C  0x206f081c /* [RW] Setting for Range = 0 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_1_MIN   0x206f0820 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_1_MAX   0x206f0824 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1A  0x206f0828 /* [RW] Setting for Range = 1 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1B  0x206f082c /* [RW] Setting for Range = 1 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1C  0x206f0830 /* [RW] Setting for Range = 1 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_2_MIN   0x206f0834 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_2_MAX   0x206f0838 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2A  0x206f083c /* [RW] Setting for Range = 2 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2B  0x206f0840 /* [RW] Setting for Range = 2 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2C  0x206f0844 /* [RW] Setting for Range = 2 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_3_MIN   0x206f0848 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_3_MAX   0x206f084c /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3A  0x206f0850 /* [RW] Setting for Range = 3 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3B  0x206f0854 /* [RW] Setting for Range = 3 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3C  0x206f0858 /* [RW] Setting for Range = 3 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_4_MIN   0x206f085c /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_4_MAX   0x206f0860 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4A  0x206f0864 /* [RW] Setting for Range = 4 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4B  0x206f0868 /* [RW] Setting for Range = 4 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4C  0x206f086c /* [RW] Setting for Range = 4 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_5_MIN   0x206f0870 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_5_MAX   0x206f0874 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5A  0x206f0878 /* [RW] Setting for Range = 5 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5B  0x206f087c /* [RW] Setting for Range = 5 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5C  0x206f0880 /* [RW] Setting for Range = 5 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_6_MIN   0x206f0884 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_6_MAX   0x206f0888 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6A  0x206f088c /* [RW] Setting for Range = 6 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6B  0x206f0890 /* [RW] Setting for Range = 6 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6C  0x206f0894 /* [RW] Setting for Range = 6 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_7_MIN   0x206f0898 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_7_MAX   0x206f089c /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7A  0x206f08a0 /* [RW] Setting for Range = 7 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7B  0x206f08a4 /* [RW] Setting for Range = 7 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7C  0x206f08a8 /* [RW] Setting for Range = 7 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_8_MIN   0x206f08ac /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_8_MAX   0x206f08b0 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8A  0x206f08b4 /* [RW] Setting for Range = 8 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8B  0x206f08b8 /* [RW] Setting for Range = 8 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8C  0x206f08bc /* [RW] Setting for Range = 8 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_9_MIN   0x206f08c0 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_9_MAX   0x206f08c4 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9A  0x206f08c8 /* [RW] Setting for Range = 9 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9B  0x206f08cc /* [RW] Setting for Range = 9 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9C  0x206f08d0 /* [RW] Setting for Range = 9 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_10_MIN  0x206f08d4 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_10_MAX  0x206f08d8 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10A 0x206f08dc /* [RW] Setting for Range = 10 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10B 0x206f08e0 /* [RW] Setting for Range = 10 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10C 0x206f08e4 /* [RW] Setting for Range = 10 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_11_MIN  0x206f08e8 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_11_MAX  0x206f08ec /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11A 0x206f08f0 /* [RW] Setting for Range = 11 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11B 0x206f08f4 /* [RW] Setting for Range = 11 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11C 0x206f08f8 /* [RW] Setting for Range = 11 */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_12_MIN  0x206f08fc /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_12_MAX  0x206f0900 /* [RW] Ref Range */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12A 0x206f0904 /* [RW] Setting for Range = 12 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12B 0x206f0908 /* [RW] Setting for Range = 12 */
-#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12C 0x206f090c /* [RW] Setting for Range = 12 */
+#define BCHP_HDMI_RX_FE_SHARED_HOTPLUG_CONFIG1   0x206f0800 /* [RW][32] Hotplug Config1 */
+#define BCHP_HDMI_RX_FE_SHARED_HOTPLUG_CONFIG2   0x206f0804 /* [RW][32] Hotplug Config2 */
+#define BCHP_HDMI_RX_FE_SHARED_ANALOG_CFG_4      0x206f0808 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_0_MIN   0x206f080c /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_0_MAX   0x206f0810 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0A  0x206f0814 /* [RW][32] Setting for Range = 0 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0B  0x206f0818 /* [RW][32] Setting for Range = 0 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_0C  0x206f081c /* [RW][32] Setting for Range = 0 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_1_MIN   0x206f0820 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_1_MAX   0x206f0824 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1A  0x206f0828 /* [RW][32] Setting for Range = 1 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1B  0x206f082c /* [RW][32] Setting for Range = 1 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_1C  0x206f0830 /* [RW][32] Setting for Range = 1 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_2_MIN   0x206f0834 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_2_MAX   0x206f0838 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2A  0x206f083c /* [RW][32] Setting for Range = 2 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2B  0x206f0840 /* [RW][32] Setting for Range = 2 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_2C  0x206f0844 /* [RW][32] Setting for Range = 2 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_3_MIN   0x206f0848 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_3_MAX   0x206f084c /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3A  0x206f0850 /* [RW][32] Setting for Range = 3 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3B  0x206f0854 /* [RW][32] Setting for Range = 3 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_3C  0x206f0858 /* [RW][32] Setting for Range = 3 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_4_MIN   0x206f085c /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_4_MAX   0x206f0860 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4A  0x206f0864 /* [RW][32] Setting for Range = 4 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4B  0x206f0868 /* [RW][32] Setting for Range = 4 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_4C  0x206f086c /* [RW][32] Setting for Range = 4 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_5_MIN   0x206f0870 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_5_MAX   0x206f0874 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5A  0x206f0878 /* [RW][32] Setting for Range = 5 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5B  0x206f087c /* [RW][32] Setting for Range = 5 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_5C  0x206f0880 /* [RW][32] Setting for Range = 5 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_6_MIN   0x206f0884 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_6_MAX   0x206f0888 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6A  0x206f088c /* [RW][32] Setting for Range = 6 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6B  0x206f0890 /* [RW][32] Setting for Range = 6 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_6C  0x206f0894 /* [RW][32] Setting for Range = 6 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_7_MIN   0x206f0898 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_7_MAX   0x206f089c /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7A  0x206f08a0 /* [RW][32] Setting for Range = 7 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7B  0x206f08a4 /* [RW][32] Setting for Range = 7 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_7C  0x206f08a8 /* [RW][32] Setting for Range = 7 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_8_MIN   0x206f08ac /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_8_MAX   0x206f08b0 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8A  0x206f08b4 /* [RW][32] Setting for Range = 8 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8B  0x206f08b8 /* [RW][32] Setting for Range = 8 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_8C  0x206f08bc /* [RW][32] Setting for Range = 8 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_9_MIN   0x206f08c0 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_9_MAX   0x206f08c4 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9A  0x206f08c8 /* [RW][32] Setting for Range = 9 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9B  0x206f08cc /* [RW][32] Setting for Range = 9 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_9C  0x206f08d0 /* [RW][32] Setting for Range = 9 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_10_MIN  0x206f08d4 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_10_MAX  0x206f08d8 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10A 0x206f08dc /* [RW][32] Setting for Range = 10 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10B 0x206f08e0 /* [RW][32] Setting for Range = 10 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_10C 0x206f08e4 /* [RW][32] Setting for Range = 10 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_11_MIN  0x206f08e8 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_11_MAX  0x206f08ec /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11A 0x206f08f0 /* [RW][32] Setting for Range = 11 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11B 0x206f08f4 /* [RW][32] Setting for Range = 11 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_11C 0x206f08f8 /* [RW][32] Setting for Range = 11 */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_12_MIN  0x206f08fc /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_REF_RANGE_12_MAX  0x206f0900 /* [RW][32] Ref Range */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12A 0x206f0904 /* [RW][32] Setting for Range = 12 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12B 0x206f0908 /* [RW][32] Setting for Range = 12 */
+#define BCHP_HDMI_RX_FE_SHARED_SETTING_RANGE_12C 0x206f090c /* [RW][32] Setting for Range = 12 */
 
 /***************************************************************************
  *HOTPLUG_CONFIG1 - Hotplug Config1

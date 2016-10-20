@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:04 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,21 +70,21 @@
 /***************************************************************************
  *DVI_DTG_RM_0 - DVI DTG Rate Manager 0
  ***************************************************************************/
-#define BCHP_DVI_DTG_RM_0_CONTROL                0x206e6800 /* [RW] Rate Manager Controls */
-#define BCHP_DVI_DTG_RM_0_RATE_RATIO             0x206e6804 /* [RW] Rate Manager Output Rate Setting I */
-#define BCHP_DVI_DTG_RM_0_SAMPLE_INC             0x206e6808 /* [RW] Rate Manager Output Rate Setting II */
-#define BCHP_DVI_DTG_RM_0_PHASE_INC              0x206e680c /* [RW] Rate Manager NCO Phase Increment */
-#define BCHP_DVI_DTG_RM_0_INTEGRATOR_HI          0x206e6810 /* [WO] Loop Filter Integrator HI Value */
-#define BCHP_DVI_DTG_RM_0_INTEGRATOR_LO          0x206e6814 /* [WO] Loop Filter Integrator LO Value */
-#define BCHP_DVI_DTG_RM_0_OFFSET                 0x206e6818 /* [RW] Rate Manager Output Formatting */
-#define BCHP_DVI_DTG_RM_0_FORMAT                 0x206e681c /* [RW] Rate Manager Output Formatting */
-#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_CONTROL    0x206e6820 /* [RW] Time Base Skip or Repeat Control Register */
-#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_GAP        0x206e6824 /* [RW] Time Base Skip or Repeat Gap Count Register */
-#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_NUMBER     0x206e6828 /* [RW] Time Base Skip or Repeat Count Register */
-#define BCHP_DVI_DTG_RM_0_INTEGRATOR_HI_STATUS   0x206e682c /* [RO] Loop Filter Integrator HI Status */
-#define BCHP_DVI_DTG_RM_0_INTEGRATOR_LO_STATUS   0x206e6830 /* [RO] Loop Filter Integrator LO Status */
-#define BCHP_DVI_DTG_RM_0_STATUS                 0x206e6834 /* [RO] Rate Manager Status Register */
-#define BCHP_DVI_DTG_RM_0_STATUS_CLEAR           0x206e6838 /* [RW] Rate Manager Status Clear Register */
+#define BCHP_DVI_DTG_RM_0_CONTROL                0x206e6800 /* [RW][32] Rate Manager Controls */
+#define BCHP_DVI_DTG_RM_0_RATE_RATIO             0x206e6804 /* [RW][32] Rate Manager Output Rate Setting I */
+#define BCHP_DVI_DTG_RM_0_SAMPLE_INC             0x206e6808 /* [RW][32] Rate Manager Output Rate Setting II */
+#define BCHP_DVI_DTG_RM_0_PHASE_INC              0x206e680c /* [RW][32] Rate Manager NCO Phase Increment */
+#define BCHP_DVI_DTG_RM_0_INTEGRATOR_HI          0x206e6810 /* [WO][32] Loop Filter Integrator HI Value */
+#define BCHP_DVI_DTG_RM_0_INTEGRATOR_LO          0x206e6814 /* [WO][32] Loop Filter Integrator LO Value */
+#define BCHP_DVI_DTG_RM_0_OFFSET                 0x206e6818 /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_DVI_DTG_RM_0_FORMAT                 0x206e681c /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_CONTROL    0x206e6820 /* [RW][32] Time Base Skip or Repeat Control Register */
+#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_GAP        0x206e6824 /* [RW][32] Time Base Skip or Repeat Gap Count Register */
+#define BCHP_DVI_DTG_RM_0_SKIP_REPEAT_NUMBER     0x206e6828 /* [RW][32] Time Base Skip or Repeat Count Register */
+#define BCHP_DVI_DTG_RM_0_INTEGRATOR_HI_STATUS   0x206e682c /* [RO][32] Loop Filter Integrator HI Status */
+#define BCHP_DVI_DTG_RM_0_INTEGRATOR_LO_STATUS   0x206e6830 /* [RO][32] Loop Filter Integrator LO Status */
+#define BCHP_DVI_DTG_RM_0_STATUS                 0x206e6834 /* [RO][32] Rate Manager Status Register */
+#define BCHP_DVI_DTG_RM_0_STATUS_CLEAR           0x206e6838 /* [RW][32] Rate Manager Status Clear Register */
 
 #endif /* #ifndef BCHP_DVI_DTG_RM_0_H__ */
 

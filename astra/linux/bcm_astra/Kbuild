@@ -15,6 +15,7 @@ bcm_astra-y += \
 	tzioc_file.o \
 	astra_drv.o \
 	astra_api.o \
+	tzioc_coredump.o \
 	astra_ioctl.o
 
 bcm_astra-y += \

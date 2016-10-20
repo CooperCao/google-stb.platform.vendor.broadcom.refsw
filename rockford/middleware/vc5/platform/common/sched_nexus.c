@@ -44,22 +44,34 @@ CHECK_DEFINE(V3D_MAX_COUNTERS_PER_GROUP,     NEXUS_GRAPHICSV3D_MAX_COUNTERS_PER_
 
 CHECK_DEFINE(V3D_MAX_EVENT_STRING_LEN,       NEXUS_GRAPHICSV3D_MAX_EVENT_STRING_LEN);
 
-CHECK_DEFINE(GMEM_SYNC_CORE_READ,            NEXUS_GRAPHICSV3D_SYNC_CORE_READ);
-CHECK_DEFINE(GMEM_SYNC_CORE_WRITE,           NEXUS_GRAPHICSV3D_SYNC_CORE_WRITE);
-CHECK_DEFINE(GMEM_SYNC_CORE,                 NEXUS_GRAPHICSV3D_SYNC_CORE);
+CHECK_DEFINE(GMEM_SYNC_CLE_CL_READ,          NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ);
+CHECK_DEFINE(GMEM_SYNC_CLE_SHADREC_READ,     NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ);
+CHECK_DEFINE(GMEM_SYNC_CLE_PRIMIND_READ,     NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ);
+CHECK_DEFINE(GMEM_SYNC_CLE_DRAWREC_READ,     NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ);
+CHECK_DEFINE(GMEM_SYNC_VCD_READ,             NEXUS_GRAPHICSV3D_SYNC_VCD_READ);
+CHECK_DEFINE(GMEM_SYNC_QPU_INSTR_READ,       NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ);
+CHECK_DEFINE(GMEM_SYNC_QPU_UNIF_READ,        NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ);
+CHECK_DEFINE(GMEM_SYNC_TMU_CONFIG_READ,      NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ);
+CHECK_DEFINE(GMEM_SYNC_PTB_TF_WRITE,         NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE);
+CHECK_DEFINE(GMEM_SYNC_PTB_TILESTATE_READ,   NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ);
+CHECK_DEFINE(GMEM_SYNC_PTB_TILESTATE_WRITE,  NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE);
+CHECK_DEFINE(GMEM_SYNC_PTB_PCF_READ,         NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ);
+CHECK_DEFINE(GMEM_SYNC_PTB_PCF_WRITE,        NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE);
 CHECK_DEFINE(GMEM_SYNC_TMU_DATA_READ,        NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ);
 CHECK_DEFINE(GMEM_SYNC_TMU_DATA_WRITE,       NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE);
-CHECK_DEFINE(GMEM_SYNC_TMU_DATA,             NEXUS_GRAPHICSV3D_SYNC_TMU_DATA);
-CHECK_DEFINE(GMEM_SYNC_TMU_CONFIG_READ,      NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ);
-CHECK_DEFINE(GMEM_SYNC_QPU_IU_READ,          NEXUS_GRAPHICSV3D_SYNC_QPU_IU_READ);
-CHECK_DEFINE(GMEM_SYNC_VCD_READ,             NEXUS_GRAPHICSV3D_SYNC_VCD_READ);
+CHECK_DEFINE(GMEM_SYNC_TLB_IMAGE_READ,       NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ);
+CHECK_DEFINE(GMEM_SYNC_TLB_IMAGE_WRITE,      NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE);
+CHECK_DEFINE(GMEM_SYNC_TLB_OQ_READ,          NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ);
+CHECK_DEFINE(GMEM_SYNC_TLB_OQ_WRITE,         NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE);
 CHECK_DEFINE(GMEM_SYNC_TFU_READ,             NEXUS_GRAPHICSV3D_SYNC_TFU_READ);
 CHECK_DEFINE(GMEM_SYNC_TFU_WRITE,            NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE);
-CHECK_DEFINE(GMEM_SYNC_TFU,                  NEXUS_GRAPHICSV3D_SYNC_TFU);
-CHECK_DEFINE(GMEM_SYNC_V3D,                  NEXUS_GRAPHICSV3D_SYNC_V3D);
 CHECK_DEFINE(GMEM_SYNC_CPU_READ,             NEXUS_GRAPHICSV3D_SYNC_CPU_READ);
 CHECK_DEFINE(GMEM_SYNC_CPU_WRITE,            NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE);
-CHECK_DEFINE(GMEM_SYNC_CPU,                  NEXUS_GRAPHICSV3D_SYNC_CPU);
+CHECK_DEFINE(GMEM_SYNC_V3D_READ,             NEXUS_GRAPHICSV3D_SYNC_V3D_READ);
+CHECK_DEFINE(GMEM_SYNC_V3D_WRITE,            NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE);
+CHECK_DEFINE(GMEM_SYNC_V3D_RW,               NEXUS_GRAPHICSV3D_SYNC_V3D_RW);
+CHECK_DEFINE(GMEM_SYNC_CPU_RW,               NEXUS_GRAPHICSV3D_SYNC_CPU_RW);
+
 
 /* Static checks on enums */
 #define CHECK_ENUM(BCM_NAME, NEXUS_NAME) \
@@ -207,8 +219,9 @@ static void CopyJobBase(NEXUS_Graphicsv3dJobBase *to, const struct bcm_sched_job
    to->eType = (NEXUS_Graphicsv3dJobType)from->job_type;
    memcpy(&to->sCompletedDependencies, &from->completed_dependencies, sizeof(to->sCompletedDependencies));
    memcpy(&to->sFinalizedDependencies, &from->finalised_dependencies, sizeof(to->sFinalizedDependencies));
-   to->pfnCompletion = (NEXUS_Graphicsv3dCompletionFn)from->completion_fn;
-   to->pCompletionData = from->completion_data;
+   /* Nexus needs to be 32/64 mixed safe.  Promote to 64bit */
+   to->uiCompletion = (uint64_t)((uintptr_t)from->completion_fn);
+   to->uiCompletionData = (uint64_t)((uintptr_t)from->completion_data);
    to->uiSyncFlags = from->sync_list.flags;
    to->bSecure = from->secure;
    to->uiPagetablePhysAddr = 0;
@@ -275,7 +288,6 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       nexusBin.uiNumSubJobs = jobs->driver.bin.n;
       memcpy(&nexusBin.uiStart, &jobs->driver.bin.start, sizeof(nexusBin.uiStart));
       memcpy(&nexusBin.uiEnd,   &jobs->driver.bin.end,   sizeof(nexusBin.uiEnd));
-      nexusBin.uiOffset = jobs->driver.bin.offset;
       nexusBin.uiFlags  = jobs->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 
       err = NEXUS_Graphicsv3d_QueueBin(session, &nexusBin);
@@ -302,10 +314,10 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
        * a non-null completion handler. The kernel scheduler can optimize away any NULL callbacks which
        * means they may not get called - this would result in the throttle semaphore getting out of sync.
        * To avoid this, we ensure that ALL render jobs have a completion handler. */
-      if (nexusRender.sBase.pfnCompletion == NULL)
+      if (nexusRender.sBase.uiCompletion == 0)
       {
-         nexusRender.sBase.pfnCompletion = DummyCompletion;
-         nexusRender.sBase.pCompletionData = NULL;
+         nexusRender.sBase.uiCompletion = (uint64_t)((uintptr_t)DummyCompletion);
+         nexusRender.sBase.uiCompletionData = 0;
       }
 
       err = NEXUS_Graphicsv3d_QueueRender(session, &nexusRender);
@@ -370,7 +382,8 @@ static unsigned QueueJobBatch(SchedContext *context, void *session, const struct
       NEXUS_Graphicsv3dJobUsermode  nexusUsermode;
 
       CopyJobBase(&nexusUsermode.sBase, jobs);
-      nexusUsermode.pData = jobs->driver.usermode.data;
+      nexusUsermode.uiData = (uint64_t)((uintptr_t)jobs->driver.usermode.data);
+      nexusUsermode.uiFunction = (uint64_t)((uintptr_t)jobs->driver.usermode.user_fn);
 
       err = NEXUS_Graphicsv3d_QueueUsermode(session, &nexusUsermode);
       break;
@@ -415,7 +428,6 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
    nexusBin.uiNumSubJobs = bin->driver.bin.n;
    memcpy(nexusBin.uiStart, bin->driver.bin.start, sizeof(nexusBin.uiStart));
    memcpy(nexusBin.uiEnd,   bin->driver.bin.end,   sizeof(nexusBin.uiEnd));
-   nexusBin.uiOffset     = bin->driver.bin.offset;
    nexusBin.uiFlags      = bin->driver.bin.workaround_gfxh_1181 ? NEXUS_GRAPHICSV3D_GFXH_1181 : 0;
 
    nexusBin.uiMinInitialBinBlockSize = bin->driver.bin.minInitialBinBlockSize;
@@ -436,10 +448,10 @@ static BEGL_SchedStatus QueueBinRender(void *context, void *session, const struc
     * a non-null completion handler. The kernel scheduler can optimize away any NULL callbacks which
     * means they may not get called - this would result in the throttle semaphore getting out of sync.
     * To avoid this, we ensure that ALL render jobs have a completion handler. */
-   if (nexusRender.sBase.pfnCompletion == NULL)
+   if (nexusRender.sBase.uiCompletion == 0)
    {
-      nexusRender.sBase.pfnCompletion = DummyCompletion;
-      nexusRender.sBase.pCompletionData = NULL;
+      nexusRender.sBase.uiCompletion = (uint64_t)((uintptr_t)DummyCompletion);
+      nexusRender.sBase.uiCompletionData = 0;
    }
 
    err = NEXUS_Graphicsv3d_QueueBinRender(session,
@@ -499,6 +511,8 @@ static int MakeFenceForAnyNonFinalizedJob(void *session)
    return fence;
 }
 
+typedef void (*pfnUserCallback)(void *pData);
+
 static void UsermodeHandler(void *context, int param)
 {
    SchedContext                 *ctx   = (SchedContext *)context;
@@ -507,10 +521,14 @@ static void UsermodeHandler(void *context, int param)
 
    BSTD_UNUSED(param);
 
-   while (NEXUS_Graphicsv3d_GetUsermode(ctx->session, jobId, &usermode))
+   while (NEXUS_Graphicsv3d_GetUsermode(ctx->session, jobId, &usermode) == NEXUS_SUCCESS)
    {
+      if (!usermode.bHaveJob)
+         break;
+
+      pfnUserCallback callback = (pfnUserCallback)((uintptr_t)usermode.uiCallback);
       jobId = usermode.uiJobId;
-      usermode.pfnCallback(usermode.pData);
+      callback((void *)((uintptr_t)usermode.uiData));
    }
 }
 
@@ -538,6 +556,8 @@ static void CompletionHandler(void *context, int param)
    if (ctx->hRunCallback)
       BKNI_SetEvent(ctx->hRunCallback);
 }
+
+typedef void (*pfnRunCallback)(void *, uint64_t, NEXUS_Graphicsv3dJobStatus);
 
 static void RunCompletionHandler(void *context)
 {
@@ -581,8 +601,11 @@ static void RunCompletionHandler(void *context)
                if (completions[i].eType == NEXUS_Graphicsv3dJobType_eRender)
                   sem_post(&ctx->throttle);
 
-               if (completions[i].pfnCallback != NULL)
-                  completions[i].pfnCallback(completions[i].pData, completions[i].uiJobId, completions[i].eStatus);
+               if (completions[i].uiCallback != 0)
+               {
+                  pfnRunCallback callback = (pfnRunCallback)((uintptr_t)completions[i].uiCallback);
+                  callback((void *)((uintptr_t)completions[i].uiData), completions[i].uiJobId, completions[i].eStatus);
+               }
 
                finalized[i] = completions[i].uiJobId;
             }
@@ -861,6 +884,11 @@ static void SetMMUContext(void *context, uint64_t physAddr, uint32_t maxVirtAddr
    ctx->platformToken = platformToken;
 }
 
+static bool ExplicitSync(void *context)
+{
+   return false;
+}
+
 BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 {
    SchedContext        *ctx   = NULL;
@@ -918,6 +946,8 @@ BEGL_SchedInterface *CreateSchedInterface(BEGL_MemoryInterface *memIface)
 
    // MMU configuration
    iface->SetMMUContext             = SetMMUContext;
+
+   iface->ExplicitSync              = ExplicitSync;
 
    return iface;
 

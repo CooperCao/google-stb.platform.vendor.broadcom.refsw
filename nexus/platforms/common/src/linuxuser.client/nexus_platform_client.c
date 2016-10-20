@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2008-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -363,6 +352,7 @@ NEXUS_P_Client_CallServer(NEXUS_P_ClientModuleHandle module, const void *in_para
     BDBG_OBJECT_ASSERT(module, NEXUS_P_ClientModule);
 
     /* BDBG_MSG_TRACE(("write %d", in_param_size)); */
+    /* batom_range_dump(in_params, in_param_size, "SEND"); */
     rc = b_nexus_write(module->fd, in_params, in_param_size);
     if (rc != (int)in_param_size) {
         return BERR_TRACE(NEXUS_UNKNOWN);
@@ -376,6 +366,7 @@ NEXUS_P_Client_CallServer(NEXUS_P_ClientModuleHandle module, const void *in_para
         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
     }
     /* BDBG_MSG_TRACE(("read %d", rc)); */
+    /* batom_range_dump(*out_params,rc, "RECV"); */
     received = (unsigned)rc;
     response_length = ((NEXUS_Ipc_Header *)(*out_params))->packet_size;
      if ( response_length == 0 || response_length > MAX_IPC_LEN ) {
@@ -489,4 +480,166 @@ void NEXUS_P_Client_StartCallbacks(NEXUS_P_ClientHandle client, void *interfaceH
 error:
     BDBG_ERR(("unable to start callbacks on %p", interfaceHandle));
     return;
+}
+
+NEXUS_Error NEXUS_P_ClientCall_Begin(NEXUS_P_ClientModuleHandle module, NEXUS_P_ClientCall_State *state, unsigned header)
+{
+    NEXUS_Error rc;
+    state->module = module;
+    state->varargs_offset = 0;
+    state->header = header;
+    rc = NEXUS_P_Client_LockModule(module, &state->data, &state->size);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+    BDBG_ASSERT(state->size >= state->varargs_begin);
+
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_P_ClientCall_Call(NEXUS_P_ClientCall_State *state)
+{
+    NEXUS_Error rc;
+    unsigned out_param_size;
+    unsigned packet_size = state->varargs_begin + state->varargs_offset;
+    void *out_param = state->data;
+
+    ((NEXUS_Ipc_Header*)(state->data))->packet_size = packet_size;
+
+    rc = NEXUS_P_Client_CallServer(state->module, state->data, packet_size, &out_param, state->size, &out_param_size);
+    if(rc!=NEXUS_SUCCESS) {return BERR_TRACE(rc);}
+    if(state->data != out_param) {
+        if(state->data != state->module->data) {
+            BKNI_Free(state->data);
+        }
+    }
+    state->data = out_param;
+    state->size = out_param_size;
+
+    return NEXUS_SUCCESS;
+}
+
+
+static void *NEXUS_P_ClientCall_InVarArg_Alloc(NEXUS_P_ClientCall_State *state, unsigned vararg_size)
+{
+    void *data;
+    unsigned aligned_vararg_size = B_IPC_DATA_ALIGN(vararg_size);
+    unsigned required_size = state->varargs_offset + state->varargs_begin + aligned_vararg_size;
+    if( required_size > state->size) {
+        void *buf = BKNI_Malloc(required_size);
+        if(buf==NULL) {
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            return NULL;
+        }
+        BKNI_Memcpy(buf, state->data, state->size);
+        state->size = required_size;
+        if(state->data != state->module->data) {
+            BKNI_Free(state->data);
+        }
+        state->data = buf;
+    }
+    data = (uint8_t *)state->data + state->varargs_begin + state->varargs_offset;
+    state->varargs_offset += aligned_vararg_size;
+    return data;
+}
+
+
+NEXUS_Error NEXUS_P_ClientCall_InVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, const void *src, int *field, bool *is_null)
+{
+    if(src) {
+        void *data;
+        void *old_data = state->data;
+        *is_null = false; /* assign is_null earlies so don't worry about relocation */
+        data = NEXUS_P_ClientCall_InVarArg_Alloc(state, vararg_size);
+        if(data==NULL) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        /* field is the pointer into the state->data, so adjust it if data was relocated */
+        field = (void *)((uint8_t *)state->data + ((uint8_t *)field - (uint8_t *)old_data));
+        *field = (uint8_t *)data - (uint8_t *)state->data - state->header;
+        BKNI_Memcpy(data, src, vararg_size);
+    } else {
+        *field = -1;
+        *is_null = true;
+    }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_P_ClientCall_InVarArg_AddrField(NEXUS_P_ClientCall_State *state, unsigned struct_size, unsigned field_offset, unsigned count, int varArg, int *varArgField)
+{
+    if(varArg!=-1) {
+        const void *varArgData = (uint8_t *)state->data  + varArg + state->header;
+        void *old_data = state->data;
+        NEXUS_Addr *dataAddr = NEXUS_P_ClientCall_InVarArg_Alloc(state, count*sizeof(NEXUS_Addr));
+        unsigned i;
+        if(dataAddr==NULL) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        /* varArgField is the pointer into the state->data, so adjust it if data was relocated */
+        varArgField = (void *)((uint8_t *)state->data + ((uint8_t *)varArgField - (uint8_t *)old_data));
+        *varArgField= (uint8_t *)dataAddr - (uint8_t *)state->data - state->header;
+        for(i=0;i<count;i++) {
+            void *ptr = *(void **)((uint8_t *)varArgData + i*struct_size + field_offset);
+            dataAddr[i] = NEXUS_P_ClientCall_AddrToOffset(ptr);
+            BDBG_MSG(("%p NEXUS_P_ClientCall_InVarArg_AddrField%d(%d) %p[%u]=" BDBG_UINT64_FMT "", (void *)state, varArg, *varArgField, ptr, i, BDBG_UINT64_ARG(dataAddr[i])));
+        }
+    } else {
+        *varArgField= -1;
+    }
+    return NEXUS_SUCCESS;
+}
+
+
+static void *NEXUS_P_ClientCall_OutVarArg_Ptr(NEXUS_P_ClientCall_State *state, unsigned vararg_size, int vararg_offset)
+{
+    void *data;
+
+    if(vararg_offset < 0) {
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+
+    vararg_size = B_IPC_DATA_ALIGN(vararg_size);
+    if(vararg_size + vararg_offset + state->header > state->size) {
+        (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return NULL;
+    }
+    data = (uint8_t *)state->data + vararg_offset + state->header;
+    return data;
+}
+
+void NEXUS_P_ClientCall_OutVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, void *dest, int vararg_offset)
+{
+    void *src = NEXUS_P_ClientCall_OutVarArg_Ptr(state, vararg_size, vararg_offset);
+    if(src && dest) {
+        BKNI_Memcpy(dest, src, vararg_size);
+    }
+    return;
+}
+
+void NEXUS_P_ClientCall_End(NEXUS_P_ClientCall_State *state)
+{
+    if(state->data != state->module->data) {
+        BKNI_Free(state->data);
+    }
+    NEXUS_P_Client_UnlockModule(state->module);
+    return;
+}
+
+void *NEXUS_P_ClientCall_OffsetToAddr(NEXUS_Addr addr)
+{
+    if(addr!=0) {
+        return NEXUS_OffsetToCachedAddr(addr);
+    }
+    return NULL;
+}
+
+NEXUS_Addr NEXUS_P_ClientCall_AddrToOffset(const void *ptr)
+{
+    if(ptr!=NULL) {
+        NEXUS_Addr addr = NEXUS_AddrToOffset(ptr);
+        if(addr==0) {
+            (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        return addr;
+    }
+    return 0;
 }

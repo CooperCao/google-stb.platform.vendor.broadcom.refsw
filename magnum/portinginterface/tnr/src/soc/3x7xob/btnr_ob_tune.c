@@ -1,52 +1,40 @@
-
-/***************************************************************************
- *     (c)2005-2014 Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btmr.h"
@@ -74,7 +62,7 @@ void BTNR_Ob_P_CalFlashSDADC(BTNR_Ob_3x7x_Handle h)
 	uint32_t ICalOffset, QCalOffset;
 	uint8_t statusIch, statusQch=0;
 
-	BDBG_MSG(("BTNR_Ob_P_CalFlashSDADC\n"));
+	BDBG_MSG(("BTNR_Ob_P_CalFlashSDADC"));
 	/*I Channel Calibration*/
 	BREG_WriteField(h->hRegister, SDADC_CTRL_ICH, i_Ich_flash_resetCal, 0x1);
 	BREG_WriteField(h->hRegister, SDADC_CTRL_RESET, i_Ich_reset, 0x1);
@@ -92,7 +80,7 @@ void BTNR_Ob_P_CalFlashSDADC(BTNR_Ob_3x7x_Handle h)
 		statusIch = BREG_ReadField(h->hRegister,SDADC_STATUS_ICH, o_Ich_flash_cal_done);
 		statusQch = BREG_ReadField(h->hRegister,SDADC_STATUS_QCH, o_Qch_flash_cal_done);
 	}
-	
+
 	switch (statusIch)
 	{
 	case 0 : BDBG_MSG(("SDADC I channel calibration NOT done"));
@@ -135,7 +123,7 @@ void BTNR_Ob_P_TunerSetRFAGC(BTNR_Ob_3x7x_Handle h)
 {
 	uint32_t ReadReg;
 
-	BDBG_MSG(("BTNR_Ob_P_TunerSetRFAGC\n"));
+	BDBG_MSG(("BTNR_Ob_P_TunerSetRFAGC"));
 
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_RFAGC_CLK_sel, 0x0);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_dsm_sigdel_en, 1);
@@ -166,7 +154,7 @@ void BTNR_Ob_P_TunerSetRFAGC(BTNR_Ob_3x7x_Handle h)
 	BKNI_Sleep(1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x1);
 	BKNI_Sleep(1);
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);	
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);
 	BKNI_Sleep(1);
 
 
@@ -176,7 +164,7 @@ void BTNR_Ob_P_TunerSetRFAGC(BTNR_Ob_3x7x_Handle h)
 	BKNI_Sleep(1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x1);
 	BKNI_Sleep(1);
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);	
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);
 	BKNI_Sleep(1);
 
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_01, i_waddr, 0x1);
@@ -185,7 +173,7 @@ void BTNR_Ob_P_TunerSetRFAGC(BTNR_Ob_3x7x_Handle h)
 	BKNI_Sleep(1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x1);
 	BKNI_Sleep(1);
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);	
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);
 	BKNI_Sleep(1);
 
 
@@ -221,11 +209,11 @@ void BTNR_Ob_P_TunerSetRFAGC(BTNR_Ob_3x7x_Handle h)
 	BKNI_Sleep(1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x1);
 	BKNI_Sleep(1);
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);	
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_wload, 0x0);
 	BKNI_Sleep(1);
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_freeze_gain, 0x0);	
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RFAGC_02, i_freeze_gain, 0x0);
 
-	BDBG_MSG(("BTNR_Ob_P_TunerSetRFAGC() Complete\n"));
+	BDBG_MSG(("BTNR_Ob_P_TunerSetRFAGC() Complete"));
 
 }
 
@@ -238,7 +226,7 @@ void BTNR_Ob_P_TunerSetLNAAGC(BTNR_Ob_3x7x_Handle h)
 	/* negative edge */
 	/* De-assert reset/resetb for LNA AGC */
 
-	BDBG_MSG(("BTNR_Ob_P_TunerSetLNAAGC\n"));
+	BDBG_MSG(("BTNR_Ob_P_TunerSetLNAAGC"));
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESETB_01, LNAAGC_resetb, 0);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESETB_01, LNAAGC_resetb, 1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESET_01, i_LNAAGC_dsm_srst, 1);
@@ -246,29 +234,29 @@ void BTNR_Ob_P_TunerSetLNAAGC(BTNR_Ob_3x7x_Handle h)
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESET_01, i_LNAAGC_agc_srst, 1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESET_01, i_LNAAGC_agc_srst, 0);
 
-		/* freeze LNA AGC */ 
+		/* freeze LNA AGC */
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_03, AGC_frz, 1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_01, LNA_Kbw, 0x0);
-	/* peak detection  check with dave*/ 
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_02, negedge_sel, 1); 
+	/* peak detection  check with dave*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_02, negedge_sel, 1);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, peak_pwrb, 1);
 
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, pd_thresh, 0x7);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, peak_pwr_set_pt, 46515);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_01, hi_thresh, 24856);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, win_len, 0xA);
-	
+
 	/*set initial gain*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_01, init_LNA_gain, 29);	
-	
-	/*unfreeze, un-bypass*/   
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_01, init_LNA_gain, 29);
+
+	/*unfreeze, un-bypass*/
     BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_03, AGC_byp, 0);
     BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_03, AGC_frz, 0);
-	/*start LNA AGC*/ 
+	/*start LNA AGC*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, lna_start, 0x0);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_LNAAGC_00, lna_start, 0x1);
 
-	BDBG_MSG(("BTNR_Ob_P_TunerSetLNAAGC() Complete\n"));
+	BDBG_MSG(("BTNR_Ob_P_TunerSetLNAAGC() Complete"));
 
 }
 /*******************************************************************************************
@@ -315,8 +303,8 @@ BERR_Code BTNR_Ob_P_Tuner_Power_Control(BTNR_Ob_3x7x_Handle h)
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m3div, 0x0C);   /*m3div = 12*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m4div, 0x1B);   /*m4div = 27*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m5div, 0x00);   /*m5div = 256*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m6div, 0x05);   /*m6div = 5*/	 
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, load_en_ch6_ch1, 0x3F);  
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m6div, 0x05);   /*m6div = 5*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, load_en_ch6_ch1, 0x3F);
 
 	/*optimize PHYPLL*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_01, kvcox, 0x3);
@@ -332,9 +320,9 @@ BERR_Code BTNR_Ob_P_Tuner_Power_Control(BTNR_Ob_3x7x_Handle h)
 	BKNI_Sleep(1);
 	/*PhyPLL Lock*/
 	if (BREG_ReadField(h->hRegister, UFE_AFE_TNR_REFPLL_04, o_PHYPLL_lock) == 1)
-		BDBG_MSG(("Phy PLL is lock\n"));
+		BDBG_MSG(("Phy PLL is lock"));
 	else
-		BDBG_MSG(("Phy PLL is not lock\n"));
+		BDBG_MSG(("Phy PLL is not lock"));
 
 	/* De-assert reset/resetb for 6-bit ADC */
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_RESETB_01, ADC6B_resetb, 0);

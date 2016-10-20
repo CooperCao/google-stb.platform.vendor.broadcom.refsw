@@ -766,6 +766,10 @@ int astra_call_smc(
     astra_client_handle hClient,
     uint8_t mode);
 
+void astra_uapp_coredump(
+    astra_uapp_handle hUapp);
+
+
 #ifdef __cplusplus
 }
 #endif

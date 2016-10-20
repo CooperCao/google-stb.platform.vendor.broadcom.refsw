@@ -8,6 +8,16 @@ All rights reserved.
 
 #ifdef __cplusplus
 
+static inline gmem_usage_flags_t operator~(gmem_usage_flags_t a)
+{
+   return (gmem_usage_flags_t)(~(int)a);
+}
+
+static inline gmem_sync_flags_t operator~(gmem_sync_flags_t a)
+{
+   return (gmem_sync_flags_t)(~(int)a);
+}
+
 static inline gmem_usage_flags_t operator|(gmem_usage_flags_t a, gmem_usage_flags_t b)
 {
    return (gmem_usage_flags_t)((int)a | (int)b);
@@ -27,6 +37,28 @@ static inline gmem_sync_flags_t operator|(gmem_sync_flags_t a, gmem_sync_flags_t
 static inline gmem_sync_flags_t operator|=(gmem_sync_flags_t& a, gmem_sync_flags_t b)
 {
    a = (gmem_sync_flags_t)((int)a | (int)b);
+   return a;
+}
+
+static inline gmem_usage_flags_t operator&(gmem_usage_flags_t a, gmem_usage_flags_t b)
+{
+   return (gmem_usage_flags_t)((int)a & (int)b);
+}
+
+static inline gmem_usage_flags_t operator&=(gmem_usage_flags_t& a, gmem_usage_flags_t b)
+{
+   a = (gmem_usage_flags_t)((int)a & (int)b);
+   return a;
+}
+
+static inline gmem_sync_flags_t operator&(gmem_sync_flags_t a, gmem_sync_flags_t b)
+{
+   return (gmem_sync_flags_t)((int)a & (int)b);
+}
+
+static inline gmem_sync_flags_t operator&=(gmem_sync_flags_t& a, gmem_sync_flags_t b)
+{
+   a = (gmem_sync_flags_t)((int)a & (int)b);
    return a;
 }
 

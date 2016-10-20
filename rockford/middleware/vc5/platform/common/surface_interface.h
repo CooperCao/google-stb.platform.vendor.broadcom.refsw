@@ -12,9 +12,9 @@ All rights reserved.
 #include <EGL/begl_displayplatform.h>
 #include <stdbool.h>
 
-struct SurfaceInterface
+typedef struct SurfaceInterface
 {
-   struct Interface base;
+   Interface base;
 
    size_t sizeof_surface;
 
@@ -24,13 +24,13 @@ struct SurfaceInterface
 
    /* destroy surface in the provided buffer, do not free the buffer */
    void (*destroy)(void *context, void *surface);
-};
+} SurfaceInterface;
 
-bool SurfaceInterface_Create(const struct SurfaceInterface *si,
+bool SurfaceInterface_Create(const SurfaceInterface *si,
       void *surface, uint32_t width, uint32_t height, BEGL_BufferFormat format,
       bool secure);
 
-void SurfaceInterface_Destroy(const struct SurfaceInterface *si,
+void SurfaceInterface_Destroy(const SurfaceInterface *si,
       void *surface);
 
 #endif /* __SURFACE_INTERFACE_H__ */

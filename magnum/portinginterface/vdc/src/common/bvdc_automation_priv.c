@@ -6608,6 +6608,7 @@ static const uint32_t s_aulDtRamBVBInput_DVI_1280x1024p[BVDC_P_DTRAM_TABLE_SIZE]
     0x00280e15, /* 7f */
 };
 
+#if BVDC_P_HAS_MAKE_DROPTBL
 /* Dtram values for 480i DVI, drop 1 line from compositor */
 /* From vec_dit_ntscj_dvi.bss */
 static const uint32_t
@@ -6678,6 +6679,7 @@ s_aulDtRamBVBInput_DVI_480i_Drop1[BVDC_P_DTRAM_TABLE_SIZE] =
     0x00052110, /* 7e */
     0x69f17823, /* 7f */
 };
+#endif
 
 /* Dtram(0..3f) values for 576i(BB1D1GH) DVI, OLD MICROCODE */
 static const uint32_t s_aulDtRamBVBInput_DVI_576i_OLD[BVDC_P_DTRAM_TABLE_SIZE] =
@@ -7033,6 +7035,7 @@ s_aulDtRamBVBInput_DVI_480p_Drop1[BVDC_P_DTRAM_TABLE_SIZE] =
     0xffa84dd1, /* 7f */
 };
 
+#if BVDC_P_HAS_MAKE_DROPTBL
 /* Dtram values for 480p DVI, drop 2 lines from compositor */
 /* From vec_dit_480p_dvi_drop2.bss */
 static const uint32_t
@@ -7174,6 +7177,7 @@ s_aulDtRamBVBInput_DVI_480p_Drop3[BVDC_P_DTRAM_TABLE_SIZE] =
     0x00012910, /* 7e */
     0x6a71adc6, /* 7f */
 };
+#endif
 
 /* Dtram values for 480p DVI, drop 1 line from compositor */
 /* From vec_dit_480p_rm54_dvi_drop1.bss */
@@ -7246,6 +7250,7 @@ s_aulDtRamBVBInput_DVI_480p_Drop1_54MHz[BVDC_P_DTRAM_TABLE_SIZE] =
     0xed945b0e, /* 7f */
 };
 
+#if BVDC_P_HAS_MAKE_DROPTBL
 /* Dtram values for 480p DVI, drop 2 lines from compositor */
 /* From vec_dit_480p_rm54_dvi_drop2.bss */
 static const uint32_t
@@ -7387,6 +7392,7 @@ s_aulDtRamBVBInput_DVI_480p_Drop3_54MHz[BVDC_P_DTRAM_TABLE_SIZE] =
     0x00020110, /* 7e */
     0xee6a15de, /* 7f */
 };
+#endif
 
 static const uint32_t s_ulItConfig_3D               = BVDC_P_MAKE_IT_TG(4, 0x3,  0); /* IT_TG_CONFIG for 3D formats */
 static const uint32_t s_ulItConfig_CUSTOM_1366x768p = BVDC_P_MAKE_IT_TG(1, 0x3,  0); /* IT_TG_CONFIG for 1600x1200, 1366x768, 576p_59.94Hz, LCD */

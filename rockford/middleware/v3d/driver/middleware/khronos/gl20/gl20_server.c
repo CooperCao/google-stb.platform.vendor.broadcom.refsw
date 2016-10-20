@@ -2086,7 +2086,8 @@ void glShaderSource_impl_20 (GLuint s, GLsizei count, const char **string, const
             if (handle != MEM_INVALID_HANDLE) {
                MEM_HANDLE_T *handles;
                int i;
-               mem_set_term(handle, gl20_shader_sources_term);
+
+               mem_set_term(handle, gl20_shader_sources_term, NULL);
 
                handles = (MEM_HANDLE_T *)mem_lock(handle, NULL);
 

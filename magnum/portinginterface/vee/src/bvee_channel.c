@@ -786,7 +786,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
          goto err_stage;
      }
 
-#if 	BDSP_ENCODER_ACCELERATOR_SUPPORT
+#if BDSP_ENCODER_ACCELERATOR_SUPPORT
 	errCode = BDSP_Stage_SetAlgorithm(handle->hPrimaryStage, BDSP_Algorithm_eX264Encode);
 #else
 	errCode = BDSP_Stage_SetAlgorithm(handle->hPrimaryStage, BDSP_Algorithm_eH264Encode);
@@ -940,7 +940,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
      size_t cdbLength;
      BDSP_sVEncoderIPConfig *psVencCfg;
      const BVEE_ChannelStartSettings *pSettings;
-#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+#if BDSP_ENCODER_ACCELERATOR_SUPPORT
 	 BDSP_Raaga_VideoBX264UserConfig userConfig;
 #else
      BDSP_Raaga_VideoBH264UserConfig userConfig;
@@ -948,7 +948,6 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
      BMMA_Heap_Handle mmaHandle = NULL;
      BDSP_TaskStartSettings taskStartSettings;
      uint8_t *pTemp;
-	 BCHP_MemoryInfo stMemoryInfo;
 
          BDBG_MSG(("BVEE_Channel_P_Start(%p) [index %u]", (void*)handle, handle->index));
 
@@ -1010,33 +1009,11 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
     psVencCfg->sEncoderParams.IsGoBitInterruptEnabled = 1;
 #endif
 
-	 /* Get number of SCB */
-	 BCHP_GetMemoryInfo(handle->devicehandle->regHandle, &stMemoryInfo);
-	 psVencCfg->ui32NumOfScbs = 0;
-	 for (i=0; i<3; i++)
-	 {
-		if (stMemoryInfo.memc[i].size)
-		{
-			psVencCfg->ui32NumOfScbs++;
-			psVencCfg->sScbAddrRange[i].ui32StartPhysicalOffset = stMemoryInfo.memc[i].offset;
-			psVencCfg->sScbAddrRange[i].ui32Size = stMemoryInfo.memc[i].size;
-#if BDSP_ENCODER_ACCELERATOR_SUPPORT___
-			psVencCfg->sScbAddrRange[i].ui32StartPhysicalOffset = 0xefffffff;
-			psVencCfg->sScbAddrRange[i].ui32Size = 0x10000000;
-#endif
-		}
-	 }
-
      psVencCfg->sEncoderParams.ui32StcAddr = BVEE_CHP_GET_STC_ADDR(pSettings->stcIndx);
      psVencCfg->sEncoderParams.ui32StcAddr_hi = BVEE_CHP_GET_STC_ADDR_HI(pSettings->stcIndx);
 
      psVencCfg->MaxFrameWidth = handle->opensettings.resolution.width;
      psVencCfg->MaxFrameHeight = handle->opensettings.resolution.height;
-
-
-
-	 psVencCfg->StripeWidth = stMemoryInfo.memc[0].ulStripeWidth;
-
 
      for(i=0;i<BDSP_FWMAX_VIDEO_BUFF_AVAIL;i++)
      {
@@ -1067,7 +1044,7 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
      psVencCfg->sReferenceBuffParams.ui32ChromaStripeHeight = ui32ChromaStripeHeight;
      psVencCfg->sReferenceBuffParams.ui32LumaStripeHeight = ui32LumaStripeHeight;
      psVencCfg->sReferenceBuffParams.ui32NumBuffAvl = BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;
-	   BDBG_MSG((" Y:%d Cr:%d Ysize:%d Crsize:%d\n",  psVencCfg->sReferenceBuffParams.ui32LumaStripeHeight,
+	   BDBG_MSG((" Y:%d Cr:%d Ysize:%d Crsize:%d",  psVencCfg->sReferenceBuffParams.ui32LumaStripeHeight,
 	   psVencCfg->sReferenceBuffParams.ui32ChromaStripeHeight, ui32LumaBufferSize,  ui32ChromaBufferSize));
      for(i=0; i<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL ; i++)
      {
@@ -1117,18 +1094,18 @@ static void BVEE_Channel_P_LinkStages(BVEE_ChannelHandle handle)
 	/*
 	errCode = BDSP_Stage_GetSettings(handle->hPrimaryStage, &userConfig, sizeof(userConfig));
 
-	BDBG_ERR(("userConfig.eDblkEnable:%d\n",userConfig.eDblkEnable));
+	BDBG_ERR(("userConfig.eDblkEnable:%d",userConfig.eDblkEnable));
 #if BDSP_ENCODER_ACCELERATOR_SUPPORT
-	BDBG_ERR(("userConfig.encodingMode:%d\n",userConfig.encodingMode));
-	BDBG_ERR(("userConfig.InputYUVFormat:%d\n",userConfig.InputYUVFormat));
+	BDBG_ERR(("userConfig.encodingMode:%d",userConfig.encodingMode));
+	BDBG_ERR(("userConfig.InputYUVFormat:%d",userConfig.InputYUVFormat));
 #endif
-	BDBG_ERR(("userConfig.eProfileIDC:%d\n",userConfig.eProfileIDC));
+	BDBG_ERR(("userConfig.eProfileIDC:%d",userConfig.eProfileIDC));
 
-	BDBG_ERR((" userConfig.sRCConfig.RCMaxQP[0]:%d\n", userConfig.sRCConfig.RCMaxQP[0]));
-	BDBG_ERR((" userConfig.sRCConfig.RCMinQP[0]:%d\n", userConfig.sRCConfig.RCMinQP[0]));
-	BDBG_ERR(("userConfig.ui32IntraPeriod:%d\n",userConfig.ui32IntraPeriod));
-	BDBG_ERR(("userConfig.sRCConfig.SeinitialQp:%d\n",userConfig.sRCConfig.SeinitialQp));
-	BDBG_ERR(("strpe width :%d ui32DDR3Width :%d\n", psVencCfg->StripeWidth, ui32DDR3Width ));
+	BDBG_ERR((" userConfig.sRCConfig.RCMaxQP[0]:%d", userConfig.sRCConfig.RCMaxQP[0]));
+	BDBG_ERR((" userConfig.sRCConfig.RCMinQP[0]:%d", userConfig.sRCConfig.RCMinQP[0]));
+	BDBG_ERR(("userConfig.ui32IntraPeriod:%d",userConfig.ui32IntraPeriod));
+	BDBG_ERR(("userConfig.sRCConfig.SeinitialQp:%d",userConfig.sRCConfig.SeinitialQp));
+	BDBG_ERR(("strpe width :%d ui32DDR3Width :%d", psVencCfg->StripeWidth, ui32DDR3Width ));
 	BDBG_ERR(("-------------------------------------------------userConfig.eSendCC:%d", userConfig.eSendCC));*/
 
     errCode = BVEE_Channel_SetInterruptHandlers(handle, &handle->interrupts);
@@ -1903,7 +1880,7 @@ BERR_Code BVEE_Channel_DequeuePicture_isr(
 
     BDBG_ENTER(BVEE_Channel_ConsumeBufferDescriptors);
 
-    BDBG_MSG(("BVEE_Channel_ConsumeBufferDescriptors: uiNumBufferDescriptors = %d\n",numBufferDescriptors));
+    BDBG_MSG(("BVEE_Channel_ConsumeBufferDescriptors: uiNumBufferDescriptors = %d",numBufferDescriptors));
     regHandle = handle->devicehandle->regHandle;
     psOutputDescDetails = &handle->veeoutput;
 
@@ -1955,7 +1932,7 @@ BERR_Code BVEE_Channel_DequeuePicture_isr(
         numBufferDescriptors--;
     }
 
-    BDBG_MSG(("UpdateBufferDescriptors :uiDescriptorReadOffset = %d\n",\
+    BDBG_MSG(("UpdateBufferDescriptors :uiDescriptorReadOffset = %d",\
               psOutputDescDetails->uiDescriptorReadOffset));
 
     /* Update Actual ITB/CDB Read Pointers */
@@ -2406,7 +2383,7 @@ BVEE_Channel_UserData_GetStatus_isr(
     )
 {
      BERR_Code errCode = BERR_SUCCESS;
-#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+#if BDSP_ENCODER_ACCELERATOR_SUPPORT
 	BDSP_Raaga_VideoBX264UserConfig userConfig;
 #else
 	BDSP_Raaga_VideoBH264UserConfig userConfig;
@@ -2442,7 +2419,7 @@ BVEE_Channel_UserData_GetStatus_isr(
     )
 {
     BERR_Code errCode = BERR_SUCCESS;
-#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+#if BDSP_ENCODER_ACCELERATOR_SUPPORT
 	BDSP_Raaga_VideoBX264UserConfig userConfig;
 #else
 	BDSP_Raaga_VideoBH264UserConfig userConfig;
@@ -2485,7 +2462,7 @@ void BVEE_Channel_GetStatus(
     )
 {
     BERR_Code errCode;
-#if 	 BDSP_ENCODER_ACCELERATOR_SUPPORT
+#if BDSP_ENCODER_ACCELERATOR_SUPPORT
 	BDSP_Raaga_VideoX264EncoderInfo streamInfo;
 #else
     BDSP_Raaga_VideoH264EncoderInfo streamInfo;

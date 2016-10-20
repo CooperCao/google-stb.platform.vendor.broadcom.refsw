@@ -94,14 +94,13 @@ BERR_Code BVBI_P_IN656_Init( BVBI_P_Handle *pVbi )
 
 BERR_Code BVBI_P_IN656_Dec_Program (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     BAVC_SourceId eSource,
     bool bActive,
     BVBI_656Fmt anci656Fmt,
     BVBI_P_SMPTE291Moptions* pMoptions,
     BFMT_VideoFmt eVideoFormat,
-    uint8_t* topData,
-    uint8_t* botData)
+    BMMA_DeviceOffset topData,
+    BMMA_DeviceOffset botData)
 {
 /*
     Programming note: the implementation here assumes that the bitfield layout
@@ -110,11 +109,9 @@ BERR_Code BVBI_P_IN656_Dec_Program (
     If a chip is built that has multiple IN656 decoder cores that are not
     identical, then this routine will have to be redesigned.
 */
-    uint32_t offset;
     uint32_t ulOffset;
     uint32_t ulReg;
     bool     isPal;
-    BERR_Code eErr;
 
     BDBG_ENTER(BVBI_P_IN656_Dec_Program);
 
@@ -264,20 +261,8 @@ BERR_Code BVBI_P_IN656_Dec_Program (
     BREG_Write32 (hReg, BCHP_IN656_0_STRM_WIN + ulOffset, ulReg);
 
     /* Tell the hardware where to put ancillary data packets that it finds */
-    eErr = BERR_TRACE (BMEM_ConvertAddressToOffset (hMem, topData, &offset));
-    if (eErr != BERR_SUCCESS)
-    {
-        BDBG_LEAVE(BVBI_P_IN656_Dec_Program);
-        return eErr;
-    }
-    BREG_Write32 (hReg, BCHP_IN656_0_FLD_0_PTR + ulOffset, offset);
-    eErr = BERR_TRACE (BMEM_ConvertAddressToOffset (hMem, botData, &offset));
-    if (eErr != BERR_SUCCESS)
-    {
-        BDBG_LEAVE(BVBI_P_IN656_Dec_Program);
-        return eErr;
-    }
-    BREG_Write32 ( hReg, BCHP_IN656_0_FLD_1_PTR + ulOffset, offset);
+    BREG_Write32 ( hReg, BCHP_IN656_0_FLD_0_PTR + ulOffset, topData);
+    BREG_Write32 ( hReg, BCHP_IN656_0_FLD_1_PTR + ulOffset, botData);
 
     BDBG_LEAVE(BVBI_P_IN656_Dec_Program);
     return BERR_SUCCESS;

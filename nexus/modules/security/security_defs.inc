@@ -1,7 +1,7 @@
 ############################################################
-#     (c)2007-2015 Broadcom Corporation
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,8 +34,6 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#
-#
 ############################################################
 
 
@@ -46,5 +44,6 @@ include $(MAGNUM)/portinginterface/hsm/bhsm_defs.inc
 
 NEXUS_SECURITY_ZEUS_VERSION_MAJOR:=${BHSM_ZEUS_VER_MAJOR}
 NEXUS_SECURITY_ZEUS_VERSION_MINOR:=${BHSM_ZEUS_VER_MINOR}
+NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR:=${BHSM_ZEUS_VER_SUBMINOR}
 
 #$(warning $(BCHP_CHIP) $(BCHP_VER_LOWER) ${CORETECH} ${ZEUSVER})

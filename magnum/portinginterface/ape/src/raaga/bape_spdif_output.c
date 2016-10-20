@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -82,6 +82,9 @@ static BERR_Code BAPE_SpdifOutput_P_CloseHw(BAPE_SpdifOutputHandle handle);
 static BERR_Code BAPE_SpdifOutput_P_SetBurstConfig(BAPE_SpdifOutputHandle handle, bool pcm);
 static BERR_Code BAPE_SpdifOutput_P_ApplySettings(BAPE_SpdifOutputHandle handle, 
                                                   const BAPE_SpdifOutputSettings *pSettings, bool force );
+static BERR_Code BAPE_SpdifOutput_P_PowerUp(BAPE_SpdifOutputHandle handle);
+static BERR_Code BAPE_SpdifOutput_P_PowerDown(BAPE_SpdifOutputHandle handle);
+
 
 /* Output port callbacks */
 static void      BAPE_SpdifOutput_P_SetTimingParams_isr(BAPE_OutputPort output, unsigned sampleRate, BAVC_Timebase timebase);
@@ -343,19 +346,8 @@ BERR_Code BAPE_SpdifOutput_PowerUp(
         return BERR_SUCCESS;
     }
 
-#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
-    {
-        BAPE_Reg_P_FieldList regFieldList;
-        BDBG_MSG(("ENABLE clock and data"));
-
-        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Enable);
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Enable);
-        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
-        handle->powered = true;
-    }
-#endif
-
+    BAPE_SpdifOutput_P_PowerUp(handle);
+    handle->powered = true;
     return BERR_SUCCESS;
 }
 
@@ -365,26 +357,15 @@ BERR_Code BAPE_SpdifOutput_PowerDown(
     BAPE_SpdifOutputHandle handle
     )
 {
+    BERR_Code   errCode = BERR_SUCCESS;
     BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
 
-    if ( handle->enabled )
+    errCode = BAPE_SpdifOutput_P_PowerDown(handle);
+    if (errCode != BERR_SUCCESS)
     {
-        BDBG_ERR(("Cannot power down SPDIF while it is enabled."));
-        return BERR_TRACE(BERR_NOT_AVAILABLE);
+        return BERR_TRACE(errCode);
     }
-
-#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
-    {
-        BAPE_Reg_P_FieldList regFieldList;
-        BDBG_MSG(("DISABLE clock and data"));
-        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Disable);
-        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Disable);
-        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
-        handle->powered = false;
-    }
-#endif
-
+    handle->powered = false;
     return BERR_SUCCESS;
 }
 
@@ -448,6 +429,10 @@ BERR_Code BAPE_SpdifOutput_P_PrepareForStandby(
         {
             BAPE_SpdifOutputHandle hSpdifOutput = bapeHandle->spdifOutputs[spdifOutputIndex];
 
+            if (hSpdifOutput->powered)
+            {
+                BAPE_SpdifOutput_P_PowerDown(hSpdifOutput);
+            }
             /* Put the HW into the generic closed state. */
             BAPE_SpdifOutput_P_CloseHw(hSpdifOutput);
         }
@@ -490,6 +475,11 @@ BERR_Code BAPE_SpdifOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
                                              hSpdifOutput->mclkInfo.mclkFreqToFsRatio );
             BKNI_LeaveCriticalSection();
 
+            if (hSpdifOutput->powered)
+            {
+                BAPE_SpdifOutput_P_PowerUp(hSpdifOutput);
+            }
+
         }
     }
     return errCode;
@@ -498,6 +488,50 @@ BERR_Code BAPE_SpdifOutput_P_ResumeFromStandby(BAPE_Handle bapeHandle)
 /***************************************************************************
         Private callbacks: Protyped above
 ***************************************************************************/
+
+static BERR_Code BAPE_SpdifOutput_P_PowerUp(BAPE_SpdifOutputHandle handle)
+{
+
+    BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
+
+#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
+    {
+        BAPE_Reg_P_FieldList regFieldList;
+        BDBG_MSG(("ENABLE clock and data"));
+
+        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Enable);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Enable);
+        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
+    }
+#endif
+    return BERR_SUCCESS;
+}
+
+
+static BERR_Code BAPE_SpdifOutput_P_PowerDown(BAPE_SpdifOutputHandle handle)
+{
+    BDBG_OBJECT_ASSERT(handle, BAPE_SpdifOutput);
+
+    if ( handle->enabled )
+    {
+        BDBG_ERR(("Cannot power down SPDIF while it is enabled."));
+        return BERR_TRACE(BERR_NOT_AVAILABLE);
+    }
+
+#ifdef BCHP_AUD_FMM_IOP_OUT_SPDIF_0_REG_START
+    {
+        BAPE_Reg_P_FieldList regFieldList;
+        BDBG_MSG(("DISABLE clock and data"));
+        BAPE_Reg_P_InitFieldList(handle->deviceHandle, &regFieldList);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, CLOCK_ENABLE, Disable);
+        BAPE_Reg_P_AddEnumToFieldList(&regFieldList, AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, DATA_ENABLE, Disable);
+        BAPE_Reg_P_ApplyFieldList(&regFieldList, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_SPDIF_FORMAT_CFG, handle->index));
+    }
+#endif
+    return BERR_SUCCESS;
+}
+
 
 static void BAPE_SpdifOutput_P_SetTimingParams_isr(BAPE_OutputPort output, unsigned sampleRate, BAVC_Timebase timebase)
 {
@@ -1009,8 +1043,6 @@ static BERR_Code BAPE_SpdifOutput_P_CloseHw_IopOut(BAPE_SpdifOutputHandle handle
     /* Disable the interface */
     BAPE_Reg_P_UpdateField(handle->deviceHandle, BAPE_SPDIF_Reg_P_GetAddress(BCHP_AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0, handle->index), AUD_FMM_IOP_OUT_SPDIF_0_STREAM_CFG_0, ENA, 0);
 
-    /* Enable the clock and data while opening the output. */
-    BAPE_SpdifOutput_PowerDown(handle);
 
     return errCode;
 }

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,31 +70,31 @@
 /***************************************************************************
  *HDCP2_RX_0 - HDCP2 RX Registers
  ***************************************************************************/
-#define BCHP_HDCP2_RX_0_CFG_0                    0x206f2800 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_CTRL_0                   0x206f2804 /* [RW] HDCP 2.x Control Register */
-#define BCHP_HDCP2_RX_0_I2C_CFG_0                0x206f2808 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_TIMEOUT_CFG_0            0x206f280c /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_TIMEOUT_STATUS_0         0x206f2810 /* [RO] HDCP 2.x Status */
-#define BCHP_HDCP2_RX_0_STATUS_0                 0x206f2814 /* [RO] HDCP 2.x Status */
-#define BCHP_HDCP2_RX_0_HDCP2VERSION_CFG         0x206f2818 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_RXSTATUS_AUTH_CFG        0x206f281c /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_RXSTATUS_READY_CFG       0x206f2820 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_RXSTATUS_SIZE_CFG        0x206f2824 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_RD_FIFO_CTRL_0           0x206f2828 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_RD_FIFO_CMD              0x206f282c /* [RW] HDCP 2.x Read_Message FIFO command */
-#define BCHP_HDCP2_RX_0_RD_FIFO_DATA             0x206f2830 /* [RW] HDCP 2.x Read_Message FIFO data */
-#define BCHP_HDCP2_RX_0_RD_FIFO_STATUS_0         0x206f2834 /* [RO] HDCP 2.x Read_Message FIFO status */
-#define BCHP_HDCP2_RX_0_WR_FIFO_CTRL_0           0x206f2838 /* [RW] HDCP 2.x Configuration */
-#define BCHP_HDCP2_RX_0_WR_FIFO_TYPE             0x206f283c /* [RO] HDCP 2.x Write_Message FIFO data type */
-#define BCHP_HDCP2_RX_0_WR_FIFO_CMD              0x206f2840 /* [RO] HDCP 2.x Write_Message FIFO command */
-#define BCHP_HDCP2_RX_0_WR_FIFO_DATA             0x206f2844 /* [RO] HDCP 2.x Write_Message FIFO data */
-#define BCHP_HDCP2_RX_0_WR_FIFO_STATUS_0         0x206f2848 /* [RO] HDCP 2.x Write_Message FIFO status */
-#define BCHP_HDCP2_RX_0_HAE_MONITOR              0x206f284c /* [RO] HDCP 2.x Status */
-#define BCHP_HDCP2_RX_0_RXCAPS                   0x206f2850 /* [RW] HDCP 2.x RXCAPS */
-#define BCHP_HDCP2_RX_0_TXCAPS                   0x206f2854 /* [RW] HDCP 2.x TXCAPS */
-#define BCHP_HDCP2_RX_0_MAILBOX_0                0x206f2858 /* [RW] HDCP 2.x Mailbox */
-#define BCHP_HDCP2_RX_0_MAILBOX_1                0x206f285c /* [RW] HDCP 2.x Mailbox */
-#define BCHP_HDCP2_RX_0_SPARE_REGISTER_BITS      0x206f29fc /* [RW] Spare Bits For ECO's */
+#define BCHP_HDCP2_RX_0_CFG_0                    0x206f2800 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_CTRL_0                   0x206f2804 /* [RW][32] HDCP 2.x Control Register */
+#define BCHP_HDCP2_RX_0_I2C_CFG_0                0x206f2808 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_TIMEOUT_CFG_0            0x206f280c /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_TIMEOUT_STATUS_0         0x206f2810 /* [RO][32] HDCP 2.x Status */
+#define BCHP_HDCP2_RX_0_STATUS_0                 0x206f2814 /* [RO][32] HDCP 2.x Status */
+#define BCHP_HDCP2_RX_0_HDCP2VERSION_CFG         0x206f2818 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_RXSTATUS_AUTH_CFG        0x206f281c /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_RXSTATUS_READY_CFG       0x206f2820 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_RXSTATUS_SIZE_CFG        0x206f2824 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_RD_FIFO_CTRL_0           0x206f2828 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_RD_FIFO_CMD              0x206f282c /* [RW][32] HDCP 2.x Read_Message FIFO command */
+#define BCHP_HDCP2_RX_0_RD_FIFO_DATA             0x206f2830 /* [RW][32] HDCP 2.x Read_Message FIFO data */
+#define BCHP_HDCP2_RX_0_RD_FIFO_STATUS_0         0x206f2834 /* [RO][32] HDCP 2.x Read_Message FIFO status */
+#define BCHP_HDCP2_RX_0_WR_FIFO_CTRL_0           0x206f2838 /* [RW][32] HDCP 2.x Configuration */
+#define BCHP_HDCP2_RX_0_WR_FIFO_TYPE             0x206f283c /* [RO][32] HDCP 2.x Write_Message FIFO data type */
+#define BCHP_HDCP2_RX_0_WR_FIFO_CMD              0x206f2840 /* [RO][32] HDCP 2.x Write_Message FIFO command */
+#define BCHP_HDCP2_RX_0_WR_FIFO_DATA             0x206f2844 /* [RO][32] HDCP 2.x Write_Message FIFO data */
+#define BCHP_HDCP2_RX_0_WR_FIFO_STATUS_0         0x206f2848 /* [RO][32] HDCP 2.x Write_Message FIFO status */
+#define BCHP_HDCP2_RX_0_HAE_MONITOR              0x206f284c /* [RO][32] HDCP 2.x Status */
+#define BCHP_HDCP2_RX_0_RXCAPS                   0x206f2850 /* [RW][32] HDCP 2.x RXCAPS */
+#define BCHP_HDCP2_RX_0_TXCAPS                   0x206f2854 /* [RW][32] HDCP 2.x TXCAPS */
+#define BCHP_HDCP2_RX_0_MAILBOX_0                0x206f2858 /* [RW][32] HDCP 2.x Mailbox */
+#define BCHP_HDCP2_RX_0_MAILBOX_1                0x206f285c /* [RW][32] HDCP 2.x Mailbox */
+#define BCHP_HDCP2_RX_0_SPARE_REGISTER_BITS      0x206f29fc /* [RW][32] Spare Bits For ECO's */
 
 /***************************************************************************
  *CFG_0 - HDCP 2.x Configuration

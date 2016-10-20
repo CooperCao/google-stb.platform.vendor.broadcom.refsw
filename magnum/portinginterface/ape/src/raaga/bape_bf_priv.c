@@ -1177,7 +1177,7 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     wr &= ~BCHP_MASK(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
     if ( wraddr == bufferSize + base )
     {
-        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
+        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
         wr ^= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1);   /* flip the toggle bit */
         wraddr = base;
     }
@@ -1186,7 +1186,7 @@ static BERR_Code BAPE_Sfifo_P_CommitData (BAPE_SfifoGroupHandle handle,
     wr &= ~BCHP_MASK(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR);
     if ( wraddr == bufferSize + base )
     {
-        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
+        BDBG_MSG(("Inverting toggle bit - was 0x%x now 0x%x", wr, wr ^ (unsigned)BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1)));
         wr ^= BCHP_FIELD_DATA(AUD_FMM_BF_CTRL_SOURCECH_RINGBUF_0_WRADDR, RINGBUF_WRADDR_WRAP, 1);   /* flip the toggle bit */
         wraddr = base;
     }
@@ -3272,24 +3272,14 @@ BERR_Code BAPE_P_InitBfHw(
     /* Support for >2GB memory addressing */
     #ifdef BCHP_AUD_FMM_BF_CTRL_MISC_CONFIG_SCB0_BASE_START_MASK
     {
-        BCHP_MemoryInfo chpMemoryInfo;
         BAPE_Reg_P_FieldList regFieldList;
         uint32_t chpMemsize;
 
-        BCHP_GetMemoryInfo(handle->regHandle, &chpMemoryInfo);
-
         BAPE_Reg_P_InitFieldList(handle, &regFieldList);
-        chpMemsize = chpMemoryInfo.memc[0].size >> 28;
-        if (chpMemsize > 0x4)
-        {
-            BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_START, 0x0);
-            BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_END, chpMemsize);
-        }
-        else
-        {
-            BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_START, 0xF);
-            BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_END, 0x0);
-        }
+        chpMemsize = handle->settings.memc[1].baseAddress >> 28;
+        chpMemsize = chpMemsize ? chpMemsize - 1 : 0xF;
+        BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_START, 0x0);
+        BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB0_BASE_END, chpMemsize);
         #ifdef BCHP_AUD_FMM_BF_CTRL_MISC_CONFIG_SCB1_BASE_END_MASK
         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB1_BASE_START, 0xF);
         BAPE_Reg_P_AddToFieldList(&regFieldList, AUD_FMM_BF_CTRL_MISC_CONFIG, SCB1_BASE_END, 0x0);

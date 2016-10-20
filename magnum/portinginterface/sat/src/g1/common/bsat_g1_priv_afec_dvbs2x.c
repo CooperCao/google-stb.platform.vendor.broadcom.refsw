@@ -521,6 +521,7 @@ BERR_Code BSAT_g1_P_AfecOnLostLock_isr(BSAT_ChannelHandle h)
 
    if (BSAT_g1_P_IsHpLocked_isr(h) == false)
    {
+      BDBG_ERR(("BSAT_g1_P_AfecOnLostLock_isr: HP not locked"));
       hChn->reacqCause = BSAT_ReacqCause_eHpLostLock;
       hChn->bForceReacq = true;
    }
@@ -602,36 +603,42 @@ BERR_Code BSAT_g1_P_AfecOnStableLock_isr(BSAT_ChannelHandle h)
 
       if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
       {
-         int i;
-         uint32_t stat, shift;
-
-         /* program the stream IDs in MPEG_CTL1/MPEG_CTL2 */
-         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL1, 0);
-         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL2, 0);
-         val = 0;
-
-         for (i = 0; i < 8; i++)
-         {
-            BSAT_g1_P_GetStreamRegStat_isrsafe(h, i, &stat);
-            if ((stat & BCHP_AFEC_0_BCH_STREAM_ID0_STAT_avail_MASK) == 0)
-            {
-               uint8_t streamId = (uint8_t)((stat & BCHP_AFEC_0_BCH_STREAM_ID0_STAT_stream_ID_MASK) >> BCHP_AFEC_0_BCH_STREAM_ID0_STAT_stream_ID_SHIFT);
-               shift = (i & 0x3) * 8;
-               val |= (streamId << shift);
-            }
-            if ((i == 3) && (val != 0))
-            {
-               BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL1, val);
-               val = 0;
-            }
-            else if ((i == 7) && (val != 0))
-               BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL2, val);
-         }
+         BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe(h);
       }
    }
 
    done:
    return retCode;
+}
+
+
+/******************************************************************************
+ BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe() - program the stream IDs in MPEG_CTL1/MPEG_CTL2
+******************************************************************************/
+void BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe(BSAT_ChannelHandle h)
+{
+   int i;
+   uint32_t stat, shift, val;
+   uint8_t streamId;
+
+   val = 0;
+   for (i = 0; i < 8; i++)
+   {
+      BSAT_g1_P_GetStreamRegStat_isrsafe(h, i, &stat);
+      if ((stat & BCHP_AFEC_0_BCH_STREAM_ID0_STAT_avail_MASK) == 0)
+      {
+         streamId = (uint8_t)((stat & BCHP_AFEC_0_BCH_STREAM_ID0_STAT_stream_ID_MASK) >> BCHP_AFEC_0_BCH_STREAM_ID0_STAT_stream_ID_SHIFT);
+         shift = (i & 0x3) * 8;
+         val |= (streamId << shift);
+      }
+      if (i == 3)
+      {
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL1, val);
+         val = 0;
+      }
+      else if (i == 7)
+         BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_OI_MPEG_CTL2, val);
+   }
 }
 
 
@@ -642,31 +649,31 @@ BERR_Code BSAT_g1_P_AfecOnMonitorLock_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
 
-#ifdef BSAT_HAS_ACM
-   if (hChn->acqSettings.mode != BSAT_Mode_eDvbs2_ACM)
-#endif
+   if (BSAT_g1_P_AfecIsMpegLocked_isr(h) == false)
    {
-      if (BSAT_g1_P_AfecIsMpegLocked_isr(h) == false)
+      hChn->count1++;
+      if (hChn->count1 > 2)
       {
-         hChn->count1++;
-         if (hChn->count1 > 2)
-         {
-            /* MP is not locked, so force reacquire */
-            BDBG_MSG(("BSAT_g1_P_AfecOnMonitorLock_isr(%d): mpeg not locked, reacquiring...", h->channel));
-            hChn->bForceReacq = true;
-         }
+         /* MP is not locked, so force reacquire */
+#ifdef BSAT_DEBUG_ACM
+         BDBG_ERR(("BSAT_g1_P_AfecOnMonitorLock_isr(%d): mpeg not locked, reacquiring...", h->channel));
+#endif
+         hChn->bForceReacq = true;
       }
-      else
-         hChn->count1 = 0;
    }
-#ifdef BSAT_HAS_ACM
    else
+      hChn->count1 = 0;
+
+#ifdef BSAT_HAS_ACM
+   if (hChn->acqSettings.mode == BSAT_Mode_eDvbs2_ACM)
    {
       uint32_t val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_AFEC_LOCK_STATUS);
       if ((val & BCHP_AFEC_0_LOCK_STATUS_LDPC_LOCK_PLS_MASK) == 0)
       {
          /* all plscodes are not locked */
-         BDBG_MSG(("BSAT_g1_P_AfecOnMonitorLock_isr(%d): AFEC_LOCK_STATUS=0x%X, reacquiring...", h->channel, val));
+#ifdef BSAT_DEBUG_ACM
+         BDBG_ERR(("BSAT_g1_P_AfecOnMonitorLock_isr(%d): AFEC_LOCK_STATUS=0x%X, reacquiring...", h->channel, val));
+#endif
          hChn->bForceReacq = true;
       }
    }
@@ -681,9 +688,9 @@ BERR_Code BSAT_g1_P_AfecOnMonitorLock_isr(BSAT_ChannelHandle h)
 ******************************************************************************/
 void BSAT_g1_P_AfecMpegLock_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
-   /* TBD... */
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+   BSTD_UNUSED(p);
+   BSTD_UNUSED(int_id);
 }
 
 
@@ -692,9 +699,9 @@ void BSAT_g1_P_AfecMpegLock_isr(void *p, int int_id)
 ******************************************************************************/
 void BSAT_g1_P_AfecMpegNotLock_isr(void *p, int int_id)
 {
-   BSAT_ChannelHandle h = (BSAT_ChannelHandle)p;
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
-   /* TBD... */
+   /* BSAT_ChannelHandle h = (BSAT_ChannelHandle)p; */
+   BSTD_UNUSED(p);
+   BSTD_UNUSED(int_id);
 }
 
 

@@ -193,10 +193,11 @@ ifeq ($(B_VIRTUAL_IRQ_DISABLED),y)
 BCM_DRIVER_CFLAGS += -DB_VIRTUAL_IRQ_DISABLED=1
 endif
 
+include $(B_REFSW_ROOT)/nexus/platforms/common/build/nexus_platforms.inc
 BCM_DRIVER_CFLAGS += -I$(B_REFSW_ROOT)/magnum/commonutils/lst/
 BCM_DRIVER_CFLAGS += -I.
 BCM_DRIVER_CFLAGS += -DHAVE_RSRVD=1
-BCM_DRIVER_CFLAGS += -DBCHP_VER=BCHP_VER_$(BCHP_VER)
+BCM_DRIVER_CFLAGS += -DBCHP_CHIP=$(BCHP_CHIP) -DBCHP_VER=BCHP_VER_$(BCHP_VER)
 
 # compile bcmdriver the same for webcpu servers. client gets just m2mc1.
 ifeq ($(NEXUS_WEBCPU),core1_server)

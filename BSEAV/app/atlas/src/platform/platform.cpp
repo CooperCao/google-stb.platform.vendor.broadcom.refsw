@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,9 +119,9 @@ bool CPlatform::isSupportedVideoWindow(
 
 bool CPlatform::isSupportedDecoder(uint16_t number)
 {
-    NEXUS_Error nerror      = NEXUS_SUCCESS;
-    eRet        ret         = eRet_Ok;
-    bool        isSupported = false;
+    NEXUS_Error          nerror      = NEXUS_SUCCESS;
+    eRet                 ret         = eRet_Ok;
+    bool                 isSupported = false;
     NEXUS_PlatformStatus status;
 
     BSTD_UNUSED(number);
@@ -135,11 +135,11 @@ bool CPlatform::isSupportedDecoder(uint16_t number)
     BDBG_ASSERT(number < NEXUS_MAX_VIDEO_DECODERS);
 
     /* 97445 box mode 15 - video decoder 1 is linked to video decoder 0
-       and should not be used.  unfortunately there is no programmatic
-       way to detect this right now. */
+     * and should not be used.  unfortunately there is no programmatic
+     * way to detect this right now. */
     if ((0x7445 == status.chipId) &&
-        (15     == status.boxMode) &&
-        (1      == number))
+        (15 == status.boxMode) &&
+        (1 == number))
     {
         isSupported = false;
         goto done;
@@ -212,7 +212,7 @@ NEXUS_VideoFormat CPlatform::getDisplayMaxVideoFormat(int numDisplay)
     }
     else
     {
-        int                       format    = 0;
+        int format = 0;
         NEXUS_DisplayCapabilities capabilities;
 
         NEXUS_GetDisplayCapabilities(&capabilities);
@@ -223,7 +223,7 @@ NEXUS_VideoFormat CPlatform::getDisplayMaxVideoFormat(int numDisplay)
             {
                 if (videoFormatToVertRes(maxFormat).toInt() < videoFormatToVertRes((NEXUS_VideoFormat)format).toInt())
                 {   /* Simple fix hard-codes SD display 1 to fix 7125 and any other 65nm platform that doesn't have
-                     _bMemSettingsValid.  Can be removed when those platforms are no longer supported in Nexus. */
+                     * _bMemSettingsValid.  Can be removed when those platforms are no longer supported in Nexus. */
                     if ((numDisplay != 1) || (videoFormatToVertRes((NEXUS_VideoFormat)format).toInt() <= 576))
                     {
                         maxFormat = (NEXUS_VideoFormat)format;

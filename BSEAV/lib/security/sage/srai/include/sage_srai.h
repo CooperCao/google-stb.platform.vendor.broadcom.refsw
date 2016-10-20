@@ -165,6 +165,12 @@ void SRAI_GetSettings(SRAI_Settings *pSettings /* [out] */);
 BERR_Code SRAI_SetSettings(SRAI_Settings *pSettings);
 
 
+/***************************************************************************
+Summary:
+We are done using SRAI, try to clean-up any cache or temp memory
+***************************************************************************/
+void SRAI_Cleanup(void);
+
 /*
  * Memory/Container Allocation API
  */

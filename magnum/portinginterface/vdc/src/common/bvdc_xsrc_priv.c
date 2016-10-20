@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -65,6 +65,7 @@ BDBG_OBJECT_ID(BVDC_XSRC);
     (pXsrc)->ulVnetResetMask = BCHP_##channel_init##_XSRC_##id##_MASK;            \
     (pXsrc)->ulVnetMuxAddr   = BCHP_VNET_F_XSRC_##id##_SRC;                       \
     (pXsrc)->ulVnetMuxValue  = BCHP_VNET_B_CAP_0_SRC_SOURCE_XSRC_##id;            \
+    (pXsrc)->ulRegOffset     = BCHP_XSRC_##id##_REG_START - BCHP_XSRC_0_REG_START; \
 }
 
 /***************************************************************************
@@ -104,12 +105,6 @@ BERR_Code BVDC_P_Xsrc_Create
 
     pXsrc->eId          = eXsrcId;
     pXsrc->hReg         = hReg;
-    pXsrc->ulRegOffset  = 0;
-
-#ifdef BCHP_XSRC_1_REG_START
-    pXsrc->ulRegOffset = (eXsrcId - BVDC_P_XsrcId_eXsrc0) *
-        (BCHP_XSRC_1_REG_START - BCHP_XSRC_0_REG_START);
-#endif
 
     /* Init to the default filter coeffficient tables. */
     BVDC_P_GetFirCoeffs_isr(&pXsrc->pHorzFirCoeffTbl, NULL);
@@ -129,6 +124,13 @@ BERR_Code BVDC_P_Xsrc_Create
             BVDC_P_MAKE_XSRC(pXsrc, 1, MMISC_VNET_B_CHANNEL_SW_INIT);
 #elif BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1_XSRC_1_MASK
             BVDC_P_MAKE_XSRC(pXsrc, 1, MMISC_VNET_B_CHANNEL_SW_INIT_1);
+#endif
+            break;
+        case BVDC_P_XsrcId_eXsrc2:
+#ifdef BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_XSRC_2_MASK
+            BVDC_P_MAKE_XSRC(pXsrc, 2, MMISC_VNET_B_CHANNEL_SW_INIT);
+#elif BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1_XSRC_2_MASK
+            BVDC_P_MAKE_XSRC(pXsrc, 2, MMISC_VNET_B_CHANNEL_SW_INIT_1);
 #endif
             break;
         case BVDC_P_XsrcId_eUnknown:
@@ -200,6 +202,11 @@ void BVDC_P_Xsrc_Init_isr
 #if BVDC_P_XSRC_SUPPORT_CCA
     hXsrc->bCca       = BCHP_GET_FIELD_DATA(ulReg, XSRC_0_HW_CONFIGURATION, CCA)       ? true : false;
 #endif
+#ifdef BCHP_XSRC_0_HW_CONFIGURATION_PAD_MODE_SHIFT
+    hXsrc->bDithering = BCHP_GET_FIELD_DATA(ulReg, XSRC_0_HW_CONFIGURATION, PAD_MODE)  ? false : true;
+#else
+    hXsrc->bDithering = true;
+#endif
     ulTaps            = BCHP_GET_FIELD_DATA(ulReg, XSRC_0_HW_CONFIGURATION, HORIZ_TAPS);
     switch(ulTaps)
     {
@@ -244,38 +251,41 @@ void BVDC_P_Xsrc_Init_isr
 #endif
 
     /* always dither: no harm to 8-bit source; */
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) &= ~(
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE));
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) |=  (
-        BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ,   ONCE_PER_SOP) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE,            0));
+    if(hXsrc->bDithering)
+    {
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) &= ~(
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE));
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_INIT) |=  (
+            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_INIT, SEQ,   ONCE_PER_SOP) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_LFSR_INIT, VALUE,            0));
 
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) &=  ~(
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, MODE      ) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2 ) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1 ) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0 ));
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) |=  (
-        BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_CTRL, MODE,   DITHER) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2,  0) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2,   1) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1,  0) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1,   1) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0,  0) |
-        BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0,   1));
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) &=  ~(
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, MODE      ) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2 ) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1 ) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0 ));
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_CTRL) |=  (
+            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_CTRL, MODE,   DITHER) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH2,  0) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH2,   1) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH1,  0) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH1,   1) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, OFFSET_CH0,  0) |
+            BCHP_FIELD_DATA(XSRC_0_HORIZ_DITHER_CTRL, SCALE_CH0,   1));
 
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) &= ~(
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1) |
-        BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2));
-    BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) |=  (
-        BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0, B3) |
-        BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1, B8) |
-        BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2, B12));
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) &= ~(
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1) |
+            BCHP_MASK(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2));
+        BVDC_P_XSRC_GET_REG_DATA(hXsrc, XSRC_0_HORIZ_DITHER_LFSR_CTRL) |=  (
+            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T0, B3) |
+            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T1, B8) |
+            BCHP_FIELD_ENUM(XSRC_0_HORIZ_DITHER_LFSR_CTRL, T2, B12));
+    }
 
     hXsrc->ulSrcHrzAlign  = 2;
 
@@ -596,10 +606,8 @@ void BVDC_P_Xsrc_SetInfo_isr
     if((hXsrc->ulPrevSrcWidth != pXsrcIn->ulWidth) ||
        (hXsrc->ulPrevOutWidth != pXsrcOut->ulWidth) ||
        (hXsrc->ulPrevSrcHeight != ulDstVSize) ||  /* no vrt scl */
-#if (BVDC_P_SUPPORT_3D_VIDEO)
-        (pPicture->eOrigSrcOrientation != hXsrc->ePrevSrcOrientation)    ||
-        (pPicture->eDispOrientation  != hXsrc->ePrevDispOrientation)   ||
-#endif
+       (pPicture->eOrigSrcOrientation != hXsrc->ePrevSrcOrientation)    ||
+       (pPicture->eDispOrientation  != hXsrc->ePrevDispOrientation)   ||
        !BVDC_P_XSRC_COMPARE_FIELD_DATA(hXsrc, XSRC_0_ENABLE, SCALER_ENABLE, 1)||
        (pPicture->bMosaicIntra))
     {
@@ -775,7 +783,11 @@ void BVDC_P_Xsrc_SetInfo_isr
         BDBG_MSG(("ulFirHrzStep      : %-8x", ulFirHrzStep));
         BDBG_MSG(("H_InitPhase       : %-8x", lHrzPhsAccInit));
     }
+    BSTD_UNUSED(lHrzPhsAccInit);
+    BSTD_UNUSED(ulFirHrzStep);
 
+    BSTD_UNUSED(lHrzPhsAccInit);
+    BSTD_UNUSED(ulFirHrzStep);
     BDBG_LEAVE(BVDC_P_Xsrc_SetInfo_isr);
     return;
 }

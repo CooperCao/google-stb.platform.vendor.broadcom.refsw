@@ -31,7 +31,6 @@ FILE DESCRIPTION
 #include "glsl_basic_block_flatten.h"
 #include "glsl_basic_block_print.h"
 #include "glsl_dominators.h"
-#include "glsl_trace.h"
 #include "glsl_stringbuilder.h"
 #include "glsl_intern.h"
 #include "glsl_dataflow_visitor.h"
@@ -1178,6 +1177,10 @@ static Symbol *construct_shared_block(SymbolList *members)
 
    resultType->u.block_type.layout = malloc_fast(sizeof(MemLayout));
    glsl_mem_calculate_block_layout(resultType->u.block_type.layout, resultType);
+   /* Add padding to the end of the block. This ensures that all the copies
+    * of the block that are used for concurrent invocations are correctly aligned */
+   resultType->u.block_type.layout->u.struct_layout.size = gfx_uround_up(resultType->u.block_type.layout->u.struct_layout.size,
+                                                                         resultType->u.block_type.layout->base_alignment);
 
    Qualifiers q = { .invariant = false,
                     .lq = NULL,
@@ -1209,6 +1212,178 @@ static void init_compiler_common(void)
    glsl_stdlib_init();
 
    glsl_compile_error_reset();
+}
+
+typedef union {
+   struct {
+      unsigned wg_size[3];
+   } compute;
+
+   struct {
+      unsigned vertices;
+   } tess_control;
+
+   struct {
+      enum tess_mode mode;
+      enum tess_spacing spacing;
+      bool cw;
+      bool points;
+   } tess_eval;
+
+   struct {
+      enum gs_in_type  in;
+      enum gs_out_type out;
+      unsigned n_invocations;
+      unsigned max_vertices;
+   } geometry;
+
+   struct {
+      bool early_fragment_tests;
+      AdvancedBlendQualifier abq;
+   } fragment;
+} IFaceData;
+
+static void iface_data_fill_default(IFaceData *data, ShaderFlavour flavour) {
+   memset(data, 0, sizeof(IFaceData));
+
+   switch(flavour) {
+      case SHADER_COMPUTE:
+         for (int i=0; i<3; i++) data->compute.wg_size[i] = 1;
+         break;
+      case SHADER_TESS_EVALUATION:
+         data->tess_eval.spacing = TESS_SPACING_EQUAL;
+         break;
+      case SHADER_GEOMETRY:
+         data->geometry.n_invocations = 1;
+         break;
+      default:
+         break;
+   }
+}
+
+static void iface_data_fill(IFaceData *data, const Statement *ast, ShaderFlavour flavour) {
+   if (flavour == SHADER_VERTEX) return;     /* No IFaceData for vertex shaders */
+
+   iface_data_fill_default(data, flavour);
+
+   bool size_declared = false;
+   bool tess_mode_declared = false;
+   bool tess_vertices_declared = false;
+   bool gs_in_type_declared  = false;
+   bool gs_out_type_declared = false;
+   for (StatementChainNode *n = ast->u.ast.decls->first; n; n=n->next) {
+      if (n->statement->flavour != STATEMENT_QUALIFIER_DEFAULT) continue;
+
+      StorageQualifier sq = STORAGE_NONE;
+      for (QualListNode *qn = n->statement->u.qualifier_default.quals->head; qn; qn=qn->next) {
+         if (qn->q->flavour == QUAL_STORAGE) {
+            sq = qn->q->u.storage;
+            break;
+         }
+      }
+
+      for (QualListNode *qn = n->statement->u.qualifier_default.quals->head; qn; qn=qn->next) {
+         if (qn->q->flavour != QUAL_LAYOUT) continue;
+
+         for (LayoutIDList *idn = qn->q->u.layout; idn; idn=idn->next) {
+            if (sq == STORAGE_IN) {
+               switch(idn->l->id) {
+                  case LQ_SIZE_X:                  data->compute.wg_size[0] = idn->l->argument;       break;
+                  case LQ_SIZE_Y:                  data->compute.wg_size[1] = idn->l->argument;       break;
+                  case LQ_SIZE_Z:                  data->compute.wg_size[2] = idn->l->argument;       break;
+                  case LQ_EARLY_FRAGMENT_TESTS:    data->fragment.early_fragment_tests = true;        break;
+                  case LQ_SPACING_EQUAL:           data->tess_eval.spacing = TESS_SPACING_EQUAL;      break;
+                  case LQ_SPACING_FRACTIONAL_EVEN: data->tess_eval.spacing = TESS_SPACING_FRACT_EVEN; break;
+                  case LQ_SPACING_FRACTIONAL_ODD:  data->tess_eval.spacing = TESS_SPACING_FRACT_ODD;  break;
+                  case LQ_CW:                      data->tess_eval.cw      = true;                    break;
+                  case LQ_CCW:                     data->tess_eval.cw      = false;                   break;
+                  case LQ_POINT_MODE:              data->tess_eval.points  = true;                    break;
+                  case LQ_INVOCATIONS:             data->geometry.n_invocations = idn->l->argument;   break;
+                  case LQ_POINTS:                  data->geometry.in = GS_IN_POINTS;                  break;
+                  case LQ_LINES:                   data->geometry.in = GS_IN_LINES;                   break;
+                  case LQ_LINES_ADJACENCY:         data->geometry.in = GS_IN_LINES_ADJ;               break;
+                  case LQ_TRIANGLES_ADJACENCY:     data->geometry.in = GS_IN_TRIS_ADJ;                break;
+                  case LQ_TRIANGLES:
+                     if (flavour == SHADER_GEOMETRY) data->geometry.in = GS_IN_TRIANGLES;
+                     else                            data->tess_eval.mode = TESS_TRIANGLES;
+                     break;
+                  case LQ_ISOLINES:                data->tess_eval.mode = TESS_ISOLINES; break;
+                  case LQ_QUADS:                   data->tess_eval.mode = TESS_QUADS;    break;
+                  default: /* Do nothing */ break;
+               }
+
+               if (idn->l->id == LQ_ISOLINES || idn->l->id == LQ_TRIANGLES || idn->l->id == LQ_QUADS)
+                  tess_mode_declared = true;
+               if (idn->l->id == LQ_SIZE_X || idn->l->id == LQ_SIZE_Y || idn->l->id == LQ_SIZE_Z)
+                  size_declared = true;
+               if (idn->l->id == LQ_POINTS || idn->l->id == LQ_LINES || idn->l->id == LQ_TRIANGLES ||
+                   idn->l->id == LQ_LINES_ADJACENCY || idn->l->id == LQ_TRIANGLES_ADJACENCY)
+               {
+                  gs_in_type_declared = true;
+               }
+            } else if (sq == STORAGE_OUT) {
+               switch (idn->l->id) {
+                  case LQ_VERTICES:       data->tess_control.vertices = idn->l->argument;  break;
+                  case LQ_POINTS:         data->geometry.out = GS_OUT_POINTS;              break;
+                  case LQ_LINE_STRIP:     data->geometry.out = GS_OUT_LINE_STRIP;          break;
+                  case LQ_TRIANGLE_STRIP: data->geometry.out = GS_OUT_TRI_STRIP;           break;
+                  case LQ_MAX_VERTICES:   data->geometry.max_vertices = idn->l->argument;  break;
+
+                  case LQ_BLEND_SUPPORT_MULTIPLY:
+                  case LQ_BLEND_SUPPORT_SCREEN:
+                  case LQ_BLEND_SUPPORT_OVERLAY:
+                  case LQ_BLEND_SUPPORT_DARKEN:
+                  case LQ_BLEND_SUPPORT_LIGHTEN:
+                  case LQ_BLEND_SUPPORT_COLORDODGE:
+                  case LQ_BLEND_SUPPORT_COLORBURN:
+                  case LQ_BLEND_SUPPORT_HARDLIGHT:
+                  case LQ_BLEND_SUPPORT_SOFTLIGHT:
+                  case LQ_BLEND_SUPPORT_DIFFERENCE:
+                  case LQ_BLEND_SUPPORT_EXCLUSION:
+                  case LQ_BLEND_SUPPORT_HSL_HUE:
+                  case LQ_BLEND_SUPPORT_HSL_SATURATION:
+                  case LQ_BLEND_SUPPORT_HSL_COLOR:
+                  case LQ_BLEND_SUPPORT_HSL_LUMINOSITY:
+                  case LQ_BLEND_SUPPORT_ALL_EQUATIONS: data->fragment.abq |= glsl_lq_to_abq(idn->l->id); break;
+
+                  default: /* Do nothing */                                                break;
+               }
+               if (idn->l->id == LQ_VERTICES)
+                  tess_vertices_declared = true;
+               if (idn->l->id == LQ_POINTS || idn->l->id == LQ_LINE_STRIP || idn->l->id == LQ_TRIANGLE_STRIP)
+                  gs_out_type_declared = true;
+            }
+         }
+      }
+   }
+   if (flavour == SHADER_TESS_CONTROL && !tess_vertices_declared)
+      glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
+   if (flavour == SHADER_TESS_EVALUATION && !tess_mode_declared)
+      glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation evaluation shader requires mode declaration");
+   if (flavour == SHADER_GEOMETRY) {
+      if (!gs_in_type_declared)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires input type declaration");
+      if (data->geometry.n_invocations < 1 || data->geometry.n_invocations > V3D_MAX_GEOMETRY_INVOCATIONS)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare invocations in the range [1, %d]",
+                                                  V3D_MAX_GEOMETRY_INVOCATIONS);
+      if (!gs_out_type_declared)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires output type declaration");
+      if (data->geometry.max_vertices < 1 || data->geometry.max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range [1, %d]",
+                                                  GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES);
+   }
+   if (flavour == SHADER_COMPUTE) {
+      static const unsigned max_size[3] = { GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_X,
+                                            GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Y,
+                                            GLXX_CONFIG_MAX_COMPUTE_GROUP_SIZE_Z };
+      if (!size_declared)
+         glsl_compile_error(ERROR_CUSTOM, 15, -1, "compute shader requires local size qualifiers");
+      for (int i=0; i<3; i++) {
+         if (data->compute.wg_size[i] < 1 || data->compute.wg_size[i] > max_size[i])
+            glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Invalid local size %d. Must be in the range [1, %d]",
+                                                               data->compute.wg_size[i], max_size[i]);
+      }
+   }
 }
 
 #ifdef ANDROID
@@ -1277,84 +1452,19 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    Map *symbol_ids = glsl_shader_interfaces_id_map(interfaces);
 
+   IFaceData iface_data;
+   iface_data_fill(&iface_data, ast, flavour);
+
    /* Normalise the AST */
    NStmtList *nast = glsl_nast_build(ast);
 
    /* Build basic block graph */
    BasicBlock *shader_start_block = glsl_basic_block_build(nast);
 
-   unsigned wg_size[3] = { 1, 1, 1 };
-   bool early_fragment_tests = false;
-   enum tess_mode tess_mode = TESS_TRIANGLES;    /* Value never used */
-   enum tess_spacing tess_spacing = TESS_SPACING_EQUAL;
-   bool tess_cw = false;
-   bool tess_points = false;
-   unsigned tess_vertices = 0;               /* Value never used */
-   enum gs_out_type gs_out = GS_OUT_INVALID; /* Value never used */
-   unsigned gs_n_invocations = 1;
-   unsigned gs_max_vertices = 0;
-   if (flavour != SHADER_VERTEX) {
-      bool size_declared = false;
-      bool tess_mode_declared = false;
-      bool tess_vertices_declared = false;
-      bool gs_out_type_declared = false;
-      for (StatementChainNode *n = ast->u.ast.decls->first; n; n=n->next) {
-         if (n->statement->flavour != STATEMENT_QUALIFIER_DEFAULT) continue;
-         for (QualListNode *qn = n->statement->u.qualifier_default.quals->head; qn; qn=qn->next) {
-            if (qn->q->flavour == QUAL_LAYOUT) {
-               for (LayoutIDList *idn = qn->q->u.layout; idn; idn=idn->next) {
-                  switch(idn->l->id) {
-                     case LQ_SIZE_X: wg_size[0] = idn->l->argument; break;
-                     case LQ_SIZE_Y: wg_size[1] = idn->l->argument; break;
-                     case LQ_SIZE_Z: wg_size[2] = idn->l->argument; break;
-                     case LQ_EARLY_FRAGMENT_TESTS: early_fragment_tests = true; break;
-                     case LQ_VERTICES:  tess_vertices = idn->l->argument; break;
-                     case LQ_ISOLINES:  tess_mode = TESS_ISOLINES;  break;
-                     case LQ_TRIANGLES: tess_mode = TESS_TRIANGLES; break;
-                     case LQ_QUADS:     tess_mode = TESS_QUADS;     break;
-                     case LQ_SPACING_EQUAL:           tess_spacing = TESS_SPACING_EQUAL;      break;
-                     case LQ_SPACING_FRACTIONAL_EVEN: tess_spacing = TESS_SPACING_FRACT_EVEN; break;
-                     case LQ_SPACING_FRACTIONAL_ODD:  tess_spacing = TESS_SPACING_FRACT_ODD;  break;
-                     case LQ_CW:             tess_cw = true;                      break;
-                     case LQ_CCW:            tess_cw = false;                     break;
-                     case LQ_POINT_MODE:     tess_points = true;                  break;
-                     case LQ_POINTS:         gs_out = GS_OUT_POINTS;              break;
-                     case LQ_LINE_STRIP:     gs_out = GS_OUT_LINE_STRIP;          break;
-                     case LQ_TRIANGLE_STRIP: gs_out = GS_OUT_TRI_STRIP;           break;
-                     case LQ_INVOCATIONS:    gs_n_invocations = idn->l->argument; break;
-                     case LQ_MAX_VERTICES:   gs_max_vertices  = idn->l->argument; break;
-                     default: /* Do nothing */ break;
-                  }
-
-                  if (idn->l->id == LQ_VERTICES)
-                     tess_vertices_declared = true;
-                  if (idn->l->id == LQ_ISOLINES || idn->l->id == LQ_TRIANGLES || idn->l->id == LQ_QUADS)
-                     tess_mode_declared = true;
-                  if (idn->l->id == LQ_POINTS || idn->l->id == LQ_LINE_STRIP || idn->l->id == LQ_TRIANGLE_STRIP)
-                     gs_out_type_declared = true;
-                  if (idn->l->id == LQ_SIZE_X || idn->l->id == LQ_SIZE_Y || idn->l->id == LQ_SIZE_Z)
-                     size_declared = true;
-               }
-            }
-         }
-      }
-      if (flavour == SHADER_TESS_CONTROL && !tess_vertices_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation control shader requires output patch size declaration");
-      if (flavour == SHADER_TESS_EVALUATION && !tess_mode_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "tessellation evaluation shader requires mode declaration");
-      if (flavour == SHADER_GEOMETRY && !gs_out_type_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader requires output type declaration");
-      if (flavour == SHADER_GEOMETRY && (gs_max_vertices < 1 || gs_max_vertices > GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES))
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "geometry shader must declare max_vertices in the range (0, %d]",
-                                                  GLXX_CONFIG_MAX_GEOMETRY_OUTPUT_VERTICES);
-      if (flavour == SHADER_COMPUTE && !size_declared)
-         glsl_compile_error(ERROR_CUSTOM, 15, -1, "compute shader requires local size qualifiers");
-   }
-
    BasicBlockList *l = glsl_basic_block_get_reverse_postorder_list(shader_start_block);
 
    if (flavour == SHADER_COMPUTE) {
-      unsigned wg_n_items = wg_size[0] * wg_size[1] * wg_size[2];
+      unsigned wg_n_items = iface_data.compute.wg_size[0] * iface_data.compute.wg_size[1] * iface_data.compute.wg_size[2];
       if (wg_n_items <= 16 && (wg_n_items & (wg_n_items - 1)) == 0) {
          for (BasicBlockList *n = l; n != NULL; n=n->next)
             n->v->barrier = false;
@@ -1383,7 +1493,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
 
    initialise_interface_symbols(entry_block, initial_values);
    if (flavour == SHADER_COMPUTE)
-      generate_compute_variables(entry_block, initial_values, wg_size, shared_block);
+      generate_compute_variables(entry_block, initial_values, iface_data.compute.wg_size, shared_block);
 
    BasicBlock *flattened_entry_block = glsl_basic_block_flatten(entry_block, offsets);
 
@@ -1457,7 +1567,7 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
          glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of both gl_FragColor and gl_FragData");
 
       InterfaceVar *frag_depth = interface_var_find(&ret->out, "gl_FragDepth");
-      if (early_fragment_tests && frag_depth->static_use)
+      if (iface_data.fragment.early_fragment_tests && frag_depth->static_use)
          glsl_compile_error(ERROR_CUSTOM, 5, -1, "Use of gl_FragDepth while early_fragment_tests specified");
 
       bool visible_effects = false;
@@ -1467,27 +1577,31 @@ CompiledShader *glsl_compile_shader(ShaderFlavour flavour, const GLSL_SHADER_SOU
             if (glsl_dataflow_affects_memory(b->dataflow[j].flavour)) visible_effects = true;
          }
       }
-      ret->early_fragment_tests = early_fragment_tests || !visible_effects;
+
+      ret->early_fragment_tests = iface_data.fragment.early_fragment_tests || !visible_effects;
+      ret->abq = iface_data.fragment.abq;
    }
 
    if (flavour == SHADER_TESS_CONTROL) {
-      ret->tess_vertices = tess_vertices;
+      ret->tess_vertices = iface_data.tess_control.vertices;
    }
 
    if (flavour == SHADER_TESS_EVALUATION) {
-      ret->tess_mode       = tess_mode;
-      ret->tess_spacing    = tess_spacing;
-      ret->tess_cw         = tess_cw;
-      ret->tess_point_mode = tess_points;
+      ret->tess_mode       = iface_data.tess_eval.mode;
+      ret->tess_spacing    = iface_data.tess_eval.spacing;
+      ret->tess_cw         = iface_data.tess_eval.cw;
+      ret->tess_point_mode = iface_data.tess_eval.points;
    }
 
    if (flavour == SHADER_GEOMETRY) {
-      ret->gs_out = gs_out;
-      ret->gs_n_invocations = gs_n_invocations;
+      ret->gs_in  = iface_data.geometry.in;
+      ret->gs_out = iface_data.geometry.out;
+      ret->gs_n_invocations = iface_data.geometry.n_invocations;
+      ret->gs_max_vertices  = iface_data.geometry.max_vertices;
    }
 
    if (flavour == SHADER_COMPUTE) {
-      for (int i=0; i<3; i++) ret->wg_size[i] = wg_size[i];
+      for (int i=0; i<3; i++) ret->wg_size[i] = iface_data.compute.wg_size[i];
       ret->shared_block_size = shared_block->u.interface_block.block_data_type->u.block_type.layout->u.struct_layout.size;
    }
 

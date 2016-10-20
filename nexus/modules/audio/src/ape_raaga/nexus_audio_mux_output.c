@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -78,8 +78,8 @@ static const BAVC_CdbItbConfig g_cdbItbCfg =
     { 256 * 1024, 4, true }, { 128 * 1024, 4, false }, false
 };
 
-#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.transport)
-#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.transport)
+#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
+#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
 
 static void NEXUS_AudioMuxOutput_P_Overflow_isr(void *pParam1, int param2);
 static void NEXUS_AudioMuxOutput_P_MemoryBlock_Free(unsigned index, NEXUS_AudioMuxOutputHandle handle);
@@ -144,6 +144,7 @@ NEXUS_AudioMuxOutputHandle NEXUS_AudioMuxOutput_Create(     /* attr{destructor=N
     NEXUS_AUDIO_OUTPUT_INIT(&handle->connector, NEXUS_AudioOutputType_eMux, handle);
     NEXUS_OBJECT_REGISTER(NEXUS_AudioOutput, &handle->connector, Open);
     handle->connector.pName = handle->name;
+    NEXUS_CallbackDesc_Init(&handle->settings.overflow);
 
     cdbLength = g_cdbItbCfg.Cdb.Length;
     itbLength = g_cdbItbCfg.Itb.Length;
@@ -494,9 +495,9 @@ static NEXUS_MemoryBlockHandle NEXUS_AudioMuxOutput_P_MemoryBlockFromMma(NEXUS_A
         return handle->block[index].block;
     }
     NEXUS_AudioMuxOutput_P_MemoryBlock_Free(index, handle);
-    NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.core);
+    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.core);
     handle->block[index].block = NEXUS_MemoryBlock_FromMma_priv(mmaBlock);
-    NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.core);
+    NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.core);
     if (handle->block[index].block) {
         handle->block[index].mmaBlock = mmaBlock;
     }

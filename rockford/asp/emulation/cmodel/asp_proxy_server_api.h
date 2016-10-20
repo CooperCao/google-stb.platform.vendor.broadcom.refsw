@@ -39,6 +39,7 @@
 #ifndef __ASP_PROXY_SERVER_API_H__
 #define __ASP_PROXY_SERVER_API_H__
 
+#include "asp_utils.h"
 #include "asp_proxy_server_message_api.h"
 
 /* ASP Proxy Server Interface APIs. */

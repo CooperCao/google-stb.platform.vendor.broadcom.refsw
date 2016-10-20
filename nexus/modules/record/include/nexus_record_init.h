@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2009 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *  PVR Record
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #ifndef NEXUS_RECORD_INIT_H__
 #define NEXUS_RECORD_INIT_H__
@@ -72,16 +64,6 @@ NEXUS_ModuleHandle NEXUS_RecordModule_Init(
     );
 
 void NEXUS_RecordModule_Uninit(void);
-
-/**
-Summary:
-For active standby state, the Playback module is uninitialized while the Record module
-stays active.
-No change can be made while a timeshift session is in process.
-**/
-void NEXUS_RecordModule_SetPlaybackModule(
-    NEXUS_ModuleHandle playback /* Set to NULL or to the Playback module */
-    );
 
 #ifdef __cplusplus
 }

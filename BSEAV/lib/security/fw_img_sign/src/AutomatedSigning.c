@@ -352,10 +352,11 @@ void PrintSigningParameters()
     printf("INFO: Reserved1      = 0x%02x.\n", SigningParameters.Param.Reserved1);
     printf("INFO: MarketID       = 0x%08x.\n", SigningParameters.Param.MarketID);
     printf("INFO: MarketIDMask   = 0x%08x.\n", SigningParameters.Param.MarketIDMask);
-    printf("INFO: Reserved2      = 0x%02x.\n", SigningParameters.Param.Reserved2);
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+    printf("INFO: MarketIDSelect = 0x%02x.\n", SigningParameters.Param.MarketIDSelect);
     printf("INFO: EpochSelect    = 0x%02x.\n", SigningParameters.Param.EpochSelect);
 #else
+    printf("INFO: Reserved2      = 0x%02x.\n", SigningParameters.Param.Reserved2);
     printf("INFO: Reserved3      = 0x%02x.\n", SigningParameters.Param.Reserved3);
 #endif
     printf("INFO: EpochMask      = 0x%02x.\n", SigningParameters.Param.EpochMask);
@@ -755,6 +756,12 @@ int ParamCount = 0;
                 SigningParameters.Param.MarketIDMask = Value;
             }
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+            else if (0 == strcmp(SubToken, "-mid_sel"))
+            {
+                SubToken = strtok_r(NULL, "=", &SavePtr3);
+                sscanf(SubToken, "%x", &Value);
+                SigningParameters.Param.MarketIDSelect = Value;
+            }
             else if (0 == strcmp(SubToken, "-epo_sel"))
             {
                 SubToken = strtok_r(NULL, "=", &SavePtr3);

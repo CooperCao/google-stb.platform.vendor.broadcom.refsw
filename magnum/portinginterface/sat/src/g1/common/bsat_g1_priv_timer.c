@@ -252,7 +252,8 @@ void BSAT_g1_P_BaudTimer_isr(void *p, int param)
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
    BSAT_g1_FUNCT funct = hChn->baudTimerIsr;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, param);
+   BSTD_UNUSED(param);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eBaudUsec);
    if (funct)
    {
@@ -273,7 +274,8 @@ void BSAT_g1_P_BerTimer_isr(void *p, int param)
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
    BSAT_g1_FUNCT funct = hChn->berTimerIsr;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, param);
+   BSTD_UNUSED(param);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eBer);
    if (funct)
    {
@@ -294,7 +296,8 @@ void BSAT_g1_P_Gen1Timer_isr(void *p, int param)
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
    BSAT_g1_FUNCT funct = hChn->gen1TimerIsr;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, param);
+   BSTD_UNUSED(param);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eGen1);
    if (funct)
    {
@@ -315,7 +318,8 @@ void BSAT_g1_P_Gen2Timer_isr(void *p, int param)
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
    BSAT_g1_FUNCT funct = hChn->gen2TimerIsr;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, param);
+   BSTD_UNUSED(param);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eGen2);
    if (funct)
    {
@@ -336,7 +340,8 @@ void BSAT_g1_P_Gen3Timer_isr(void *p, int param)
    BSAT_g1_P_ChannelHandle *hChn = h->pImpl;
    BSAT_g1_FUNCT funct = hChn->gen3TimerIsr;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, param);
+   BSTD_UNUSED(param);
+
    BSAT_g1_P_DisableTimer_isr(h, BSAT_TimerSelect_eGen3);
    if (funct)
    {

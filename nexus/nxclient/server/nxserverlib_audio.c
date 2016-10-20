@@ -764,6 +764,11 @@ struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_
             }
         }
 
+        if ((r->truVolume || r->avl) && server->settings.audioDecoder.audioDescription) {
+            BDBG_ERR(("AVL or truVolume with Audio Description is not supported"));
+            goto error;
+        }
+
         if (nxserverlib_p_session_has_sd_audio(r->session)) {
             #if NEXUS_NUM_AUDIO_DACS
             rc = NEXUS_AudioOutput_AddInput(NEXUS_AudioDac_GetConnector(server->platformConfig.outputs.audioDacs[0]), b_audio_get_pcm_input(r, NEXUS_AudioConnectorType_eStereo));
@@ -927,8 +932,9 @@ void audio_decoder_destroy(struct b_audio_resource *r)
     nxserver_t server = r->session->server;
 
     BDBG_MSG(("destroy %p", (void*)r));
-    NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
+
     if (r->masterSimpleAudioDecoder) {
+        NEXUS_SimpleAudioDecoder_Suspend(r->masterSimpleAudioDecoder);
         NEXUS_SimpleAudioDecoder_Destroy(r->masterSimpleAudioDecoder);
     }
     if (r->audioEncoder) {
@@ -1680,9 +1686,6 @@ int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOu
                 if ( (capabilities.dsp.codecs[NEXUS_AudioCodec_eAc3].encode || (capabilities.dsp.dolbyDigitalReencode && b_audio_dolby_ms_enabled(server->settings.session[session->index].dolbyMs))) && pStatus->audioCodecSupported[NEXUS_AudioCodec_eAc3] ) {
                     config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_eTranscode;
                 }
-                else if (pStatus->maxAudioPcmChannels >= 6) {
-                    config->hdmi.audioCodecOutput[i] = NxClient_AudioOutputMode_eMultichannelPcm;
-                }
                 break;
             case NEXUS_AudioCodec_eAc3Plus:
                 /* downconvert DDP to AC3 if receiver only supports the latter.
@@ -2238,6 +2241,12 @@ int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus
 void nxserverlib_p_audio_get_audio_procesing_settings(struct b_session *session, NxClient_AudioProcessingSettings *pSettings)
 {
     *pSettings = session->audioProcessingSettings;
+    if (session->server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12)
+    {
+            NEXUS_AudioMixerSettings mixerSettings;
+            NEXUS_AudioMixer_GetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
+            BKNI_Memcpy(&pSettings->dolby, &mixerSettings.dolby, sizeof(NEXUS_AudioMixerDolbySettings));
+    }
 }
 
 int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session, const NxClient_AudioProcessingSettings *pSettings)
@@ -2277,6 +2286,13 @@ int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session,
         rc = NEXUS_DolbyDigitalReencode_SetSettings(session->main_audio->ddre, &pSettings->dolby.ddre);
         if (rc) return BERR_TRACE(rc);
     }
+    if (session->server->settings.session[session->index].dolbyMs == nxserverlib_dolby_ms_type_ms12)
+    {
+        NEXUS_AudioMixerSettings mixerSettings;
+        NEXUS_AudioMixer_GetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
+        BKNI_Memcpy(&mixerSettings.dolby, &pSettings->dolby.dolbySettings, sizeof(NEXUS_AudioMixerDolbySettings));
+        NEXUS_AudioMixer_SetSettings(session->main_audio->mixer[nxserver_audio_mixer_multichannel], &mixerSettings);
+    }
     session->audioProcessingSettings = *pSettings;
     return 0;
 }
@@ -2296,19 +2312,24 @@ int nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *conne
     }
 }
 #else
-int acquire_audio_playbacks(struct b_connect *connect) { return 0; }
-bool has_audio(struct b_connect *connect) { return false; }
-bool lacks_audio(struct b_connect *connect) { return true; }
-int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus *pStatus) { return 0; }
-void nxserverlib_p_audio_get_audio_procesing_settings(struct b_session *session, NxClient_AudioProcessingSettings *pSettings) { }
-int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session, const NxClient_AudioProcessingSettings *pSettings) { return 0; }
-void release_audio_playbacks(struct b_connect *connect) { }
-int acquire_audio_decoders(struct b_connect *connect, bool force_grab) { return 0; }
-void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start) { }
-struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type) { return NULL; }
-void audio_decoder_destroy(struct b_audio_resource *r) { }
-int audio_init(nxserver_t server) { return 0; }
-void release_audio_decoders(struct b_connect *connect) { }
-int nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *connect2) { return 0; }
+int acquire_audio_playbacks(struct b_connect *connect) { BSTD_UNUSED(connect);return 0; }
+bool has_audio(struct b_connect *connect) { BSTD_UNUSED(connect);return false; }
+bool lacks_audio(struct b_connect *connect) { BSTD_UNUSED(connect);return true; }
+int nxserverlib_audio_get_status(struct b_session *session, NxClient_AudioStatus *pStatus) { BSTD_UNUSED(session);BSTD_UNUSED(pStatus);return 0; }
+void nxserverlib_p_audio_get_audio_procesing_settings(struct b_session *session, NxClient_AudioProcessingSettings *pSettings) {BSTD_UNUSED(session);BSTD_UNUSED(pSettings); }
+int  nxserverlib_p_audio_set_audio_procesing_settings(struct b_session *session, const NxClient_AudioProcessingSettings *pSettings) { BSTD_UNUSED(session);BSTD_UNUSED(pSettings);return 0; }
+void release_audio_playbacks(struct b_connect *connect) {BSTD_UNUSED(connect); }
+int acquire_audio_decoders(struct b_connect *connect, bool force_grab) { BSTD_UNUSED(connect);BSTD_UNUSED(force_grab);return 0; }
+void bserver_acquire_audio_mixers(struct b_audio_resource *r, bool start) {BSTD_UNUSED(r);BSTD_UNUSED(start); }
+struct b_audio_resource *audio_decoder_create(struct b_session *session, enum b_audio_decoder_type type) { BSTD_UNUSED(session);BSTD_UNUSED(type);return NULL; }
+void audio_decoder_destroy(struct b_audio_resource *r) {BSTD_UNUSED(r); }
+int audio_init(nxserver_t server) { BSTD_UNUSED(server);return 0; }
+void release_audio_decoders(struct b_connect *connect) {BSTD_UNUSED(connect); }
+int nxserverlib_p_swap_audio(struct b_connect *connect1, struct b_connect *connect2) { BSTD_UNUSED(connect1);BSTD_UNUSED(connect2);return 0; }
 void audio_uninit(void) { }
+#if NEXUS_HAS_HDMI_OUTPUT
+int bserver_hdmi_edid_audio_config(struct b_session *session, const NEXUS_HdmiOutputStatus *pStatus) {BSTD_UNUSED(session);BSTD_UNUSED(pStatus);return 0;}
+#endif
+int bserver_set_audio_config(struct b_audio_resource *r) {BSTD_UNUSED(r);return 0;}
+int audio_get_stc_index(struct b_connect *connect) {BSTD_UNUSED(connect);return 0;}
 #endif /* NEXUS_HAS_AUDIO */

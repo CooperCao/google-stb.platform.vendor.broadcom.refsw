@@ -10,10 +10,8 @@ Implementation of EGL displays.
 =============================================================================*/
 
 #include "interface/khronos/common/khrn_int_common.h"
-
 #include "interface/khronos/common/khrn_client_check_types.h"
 #include "interface/khronos/common/khrn_client.h"
-
 #include "interface/khronos/common/khrn_int_misc_impl.h"
 
 #if EGL_KHR_sync
@@ -22,11 +20,6 @@ Implementation of EGL displays.
 
 #if EGL_BRCM_driver_monitor
 #include "interface/khronos/ext/egl_brcm_driver_monitor_client.h"
-#endif
-
-#ifdef KHRONOS_CLIENT_LOGGING
-#include <stdio.h>
-extern FILE *xxx_vclog;
 #endif
 
 #ifdef BCG_MULTI_THREADED
@@ -265,25 +258,6 @@ void client_send_make_current(CLIENT_THREAD_STATE_T *thread)
       if the size of this call in the merge buffer changes,
       CLIENT_MAKE_CURRENT_SIZE in khrn_client.h should be updated
    */
-
-
-   if (!thread->opengl.context || !thread->opengl.draw)
-   {
-      KHRONOS_CLIENT_LOG("Send null make current %x %x\n",
-                 (unsigned int)(char *)thread->opengl.context, (unsigned int)(char *)thread->opengl.draw);
-   }
-   else
-   {
-      KHRONOS_CLIENT_LOG("Send make current %d[%d %s%s] %d[%d %d%s]\n",
-            (int)thread->opengl.context->name,
-            thread->opengl.context->servercontext,
-            thread->opengl.context->is_current ? " C" : "",
-            thread->opengl.context->is_destroyed ? " D" : "",
-            (int)thread->opengl.draw->name,
-            thread->opengl.draw->serverbuffer,
-            thread->opengl.draw->context_binding_count,
-            thread->opengl.draw->is_destroyed ? " D" : "");
-   }
 
    eglIntMakeCurrent_impl((uint32_t)pid,
                           (uint32_t)(pid >> 32),

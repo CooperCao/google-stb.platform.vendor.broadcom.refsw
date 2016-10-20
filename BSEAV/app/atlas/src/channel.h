@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -158,16 +158,16 @@ public:
     virtual bool operator ==(CChannel &other);
 
     /* Playback IP Channels support */
-    virtual MString      getTimeString(void)      { return(MString("")); }
-    virtual bool         timelineSupport(void)    { return(false); }
-    virtual unsigned int getLastPosition(void)    { return(0); }
-    virtual unsigned int getCurrentPosition(void) { return(0); }
-    virtual eRet         getPsiInfo(void)         { return(eRet_NotSupported); }
+    virtual MString      getTimeString(void)                   { return(MString("")); }
+    virtual bool         timelineSupport(void)                 { return(false); }
+    virtual unsigned int getLastPosition(void)                 { return(0); }
+    virtual unsigned int getCurrentPosition(void)              { return(0); }
+    virtual eRet         getPsiInfo(void)                      { return(eRet_NotSupported); }
     virtual bool         isTunerRequired(void)                 { return(_bTunerRequired); }
     virtual void         setTunerRequired(bool bTunerRequired) { _bTunerRequired = bTunerRequired; }
-    virtual eRet         play(void)               { return(eRet_NotSupported); }
-    virtual eRet         pause(void)              { return(eRet_NotSupported); }
-    virtual eRet         stop(void)               { return(eRet_NotSupported); }
+    virtual eRet         play(void)                            { return(eRet_NotSupported); }
+    virtual eRet         pause(void)                           { return(eRet_NotSupported); }
+    virtual eRet         stop(void)                            { return(eRet_NotSupported); }
     virtual eRet         seek(
             bool,
             long int
@@ -204,13 +204,14 @@ public:
     CPlaypump *     getPlayback(void)                              { return(_pPlaypump); }
     bool            isRecording(void);
     bool            isEncoding(void);
-    eRet            mapInputBand(CInputBand * pInputBand); /* used my channels */
-    int             totalMetadata(void)                   { return(_metadata.total()); }
+    eRet            mapInputBand(CInputBand * pInputBand, CParserBand * pParserBand = NULL); /* used my channels */
+    virtual eRet    dupParserBand(CParserBand * pParserBand);
+    int             totalMetadata(void) { return(_metadata.total()); }
     const char *    getMetadataTag(int index);
     const char *    getMetadataValue(int index);
-    eChannelTrick   getTrickModeState(void) { return(_trickModeState); }
-    uint32_t        getNumSubChannels(void) { return(_numSubChannels); }
-    CChannel *      getParent(void) { return(_pParent); }
+    eChannelTrick   getTrickModeState(void)       { return(_trickModeState); }
+    uint32_t        getNumSubChannels(void)       { return(_numSubChannels); }
+    CChannel *      getParent(void)               { return(_pParent); }
     void            setParent(CChannel * pParent) { _pParent = pParent; }
 
     void addMetadata(

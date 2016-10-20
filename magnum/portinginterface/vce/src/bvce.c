@@ -100,6 +100,7 @@ static const BVCE_OpenSettings s_stDefaultOpenSettings =
   NULL,
   NULL
  },
+ { 0, 0 },
  NULL, /* Picture Heap */
  NULL, /* Secure Heap */
  /* Memory Config */
@@ -1133,34 +1134,13 @@ BVCE_P_Boot(
    /* SW7445-581: Set the FW buffer MEMC register base address */
    if ( 0 != hVce->stPlatformConfig.stDebug.uiScratchRegister )
    {
-      unsigned uiMemcIndex = 0;
-      unsigned i;
-      BCHP_MemoryInfo stMemoryInfo;
-      unsigned uiFirmwareOffset;
-
       /* We need at least one MEMC */
       BDBG_ASSERT( 0 != hVce->stPlatformConfig.stDebug.auiMemcRegBaseLUT[0] );
-      BDBG_ASSERT( NULL != hVce->fw.memory[0].hBuffer );
-
-      uiFirmwareOffset = (unsigned) BVCE_P_Buffer_GetDeviceOffset_isrsafe( hVce->fw.memory[0].hBuffer );
-
-      BKNI_Memset( &stMemoryInfo, 0, sizeof( BCHP_MemoryInfo ) );
-
-      BCHP_GetMemoryInfo(
-         hVce->handles.hReg,
-         &stMemoryInfo
-         );
-
-      /* Search for the MEMC we are on */
-      for ( i = uiMemcIndex + 1; i < BVCE_P_MAX_MEMC; i++,uiMemcIndex++ )
-      {
-         if ( uiFirmwareOffset < stMemoryInfo.memc[i].offset ) break;
-      }
 
       {
          unsigned uiValue;
 
-         uiValue = hVce->stPlatformConfig.stDebug.auiMemcRegBaseLUT[uiMemcIndex];
+         uiValue = hVce->stPlatformConfig.stDebug.auiMemcRegBaseLUT[hVce->stOpenSettings.firmwareMemc[0]];
 
          BREG_Write32(
             hVce->handles.hReg,
@@ -1861,7 +1841,7 @@ BVCE_P_SendCommand_Init(
       BCHP_MemoryInfo stMemoryInfo;
       BVCE_P_FirmwareMemorySettings stFirmwareMemorySettings;
 
-      BCHP_GetMemoryInfo( hVce->handles.hReg, &stMemoryInfo );
+      BCHP_GetMemoryInfo( hVce->handles.hChp, &stMemoryInfo );
       BVCE_P_PopulateFirmwareMemorySettings( &stMemoryInfo, &stFirmwareMemorySettings );
 
       hVce->fw.stCommand.type.stInit.StripeWidth = stFirmwareMemorySettings.StripeWidth;
@@ -2402,6 +2382,22 @@ BVCE_P_GOPStructureLUT(
          }
       }
 
+      /* SWSTB-2122: Set minimum GOP length */
+      if ( 0 != pstGOPStructure->uiMinGOPLengthAfterSceneChange )
+      {
+          unsigned uiMinGopLengthAfterSceneChangeInFrames = ( ( ( ( *puiGOPLength & GOP_LENGTH_MASK ) * pstGOPStructure->uiMinGOPLengthAfterSceneChange ) + 99 ) / 100 );
+
+          /* Check to see if the minimum GOP length is larger than supported */
+          if ( 0 != ( ( uiMinGopLengthAfterSceneChangeInFrames << GOP_LENGTH_MINIMAL_SCENE_CHANGE_SHIFT ) & ~GOP_LENGTH_MINIMAL_SCENE_CHANGE_MASK ) )
+          {
+              *puiGOPLength |= GOP_LENGTH_MINIMAL_SCENE_CHANGE_MASK;
+          }
+          else
+          {
+              *puiGOPLength |= ( ( uiMinGopLengthAfterSceneChangeInFrames << GOP_LENGTH_MINIMAL_SCENE_CHANGE_SHIFT ) & GOP_LENGTH_MINIMAL_SCENE_CHANGE_MASK );
+          }
+      }
+
       *puiGOPStructure &= GOP_STRUCTURE_MASK;
 
       if ( true == pstGOPStructure->bAllowOpenGOP )
@@ -2483,17 +2479,17 @@ BVCE_P_VerifyGopStructure(
          {
             if ( 0 == (hVce->fw.stCommand.type.stConfigChannel.GopStructure & ALLOW_OPEN_GOP_STRUCTURE_MASK) )
             {
-               if ((hVce->fw.stCommand.type.stConfigChannel.GopLength - 1) % 3)
+               if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - 1) % 3)
                {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Closed GOP Structure - must be 1 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength));
+                  BDBG_ERR(("GOP length (%d) invalid for IBBP Closed GOP Structure - must be 1 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
                   return BERR_TRACE(BERR_NOT_SUPPORTED);
                }
             }
             else
             {
-               if ((hVce->fw.stCommand.type.stConfigChannel.GopLength - 3) % 3)
+               if (((hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK) - 3) % 3)
                {
-                  BDBG_ERR(("GOP length (%d) invalid for IBBP Open GOP Structure - must be 3 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength));
+                  BDBG_ERR(("GOP length (%d) invalid for IBBP Open GOP Structure - must be 3 + 3*N", hVce->fw.stCommand.type.stConfigChannel.GopLength & GOP_LENGTH_MASK));
                   return BERR_TRACE(BERR_NOT_SUPPORTED);
                }
             }
@@ -2654,13 +2650,13 @@ BVCE_P_SendCommand_ConfigChannel(
       else
       {
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, "count,nrt,pipeline low delay,adaptive low delay,protocol,profile,level,input type,stc index,output index,rate buffer delay,num parallel encodes,force entropy coding,single ref P,required patches only,segment rc,segment duration,segment upper tolerance,segment upper slope factor,segment lower tolerance,segment lower slope factor" );
-         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 132 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
 
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",on input change,new rap,fast channel change");
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
 
-         BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",frame rate,frame rate mode,bitrate,bitrate target,A2P delay,gop restart,duration,duration ramp up,p frames,b frames,open gop,itfp,num slices");
-         BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
+         BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",frame rate,frame rate mode,bitrate,bitrate target,A2P delay,gop restart,min gop length after restart,duration,duration ramp up,p frames,b frames,open gop,itfp,num slices");
+         BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
          BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, "\n" );
       }
@@ -2711,13 +2707,14 @@ BVCE_P_SendCommand_ConfigChannel(
       }
 
       /* Encode Settings */
-      BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
+      BVCE_Debug_P_WriteLog_isr( hVceCh->hConfigLog, ",%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u,%u",
          pstEncodeSettings->stFrameRate.eFrameRate,
          pstEncodeSettings->stFrameRate.bVariableFrameRateMode,
          pstEncodeSettings->stBitRate.uiMax,
          pstEncodeSettings->stBitRate.uiTarget,
          pstEncodeSettings->uiA2PDelay,
          pstEncodeSettings->stGOPStructure.bAllowNewGOPOnSceneChange,
+         pstEncodeSettings->stGOPStructure.uiMinGOPLengthAfterSceneChange,
          pstEncodeSettings->stGOPStructure.uiDuration,
          pstEncodeSettings->stGOPStructure.uiDurationRampUpFactor,
          pstEncodeSettings->stGOPStructure.uiNumberOfPFrames,
@@ -5344,6 +5341,7 @@ static const BVCE_Channel_StartEncodeSettings s_stDefaultStartEncodeSettings =
     },
     {
      false, /* bAllowNewGOPOnSceneChange */
+     20,    /* uiMinGOPLengthAfterSceneChange */
      0,     /* uiDuration */
      0,     /* uiDurationRampUpFactor */
      14,    /* uiNumberOfPFrames */
@@ -5838,6 +5836,7 @@ static const BVCE_Channel_EncodeSettings s_stDefaultChEncodeSettings =
  0, /* end-to-end delay */
  {
   false, /* bAllowNewGOPOnSceneChange */
+  20,    /* uiMinGOPLengthAfterSceneChange */
   0,     /* uiDuration */
   0,     /* uiDurationRampUpFactor */
   14,    /* uiNumberOfPFrames */
@@ -6567,67 +6566,79 @@ BVCE_UserData_P_ParsePacketDescriptor_isrsafe(
    {
       unsigned uiNumValid608Lines = 0;
       unsigned uiNumValid708Lines = 0;
+      bool bMax608LinesExceededWarningPrinted = false;
+      bool bMax708LinesExceededWarningPrinted = false;
 
       for (i = 0; i < pPacketDescriptor->data.stDvs157.stCC.uiNumLines; i++ )
       {
          if ( true == pPacketDescriptor->data.stDvs157.stCC.astLine[i].bIsAnalog )
          {
             /* Process 608 Data */
-            volatile uint8_t* p608Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get608Line_OFFSET(uiNumValid608Lines));
-
             if ( uiNumValid608Lines > BVCE_FW_P_UserData_Payload_CC_608_LINES_PER_FIELD_MAX )
             {
-               BDBG_ERR(("Error: Number of Valid 608 Lines (%d) is greater than max (%d). Dropping extra lines.", uiNumValid608Lines, BVCE_FW_P_UserData_Payload_CC_608_LINES_PER_FIELD_MAX));
-               uiNumValid608Lines = BVCE_FW_P_UserData_Payload_CC_608_LINES_PER_FIELD_MAX;
+               if ( false == bMax608LinesExceededWarningPrinted )
+               {
+                  BDBG_WRN(("Error: Number of Valid 608 Lines (%d) is greater than max (%d). Dropping extra lines.", uiNumValid608Lines, BVCE_FW_P_UserData_Payload_CC_608_LINES_PER_FIELD_MAX));
+               }
+               bMax608LinesExceededWarningPrinted = true;
             }
-
-            p608Payload[0] = 0;
-            p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_MASK;
-            p608Payload[0] |= ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].line_offset << BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_MASK;
-
-            p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_MASK;
-            p608Payload[0] |= ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_priority << BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_MASK;
-
-            if ( true == pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_valid )
+            else
             {
-               p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_MASK;
-               p608Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_MASK;
+               volatile uint8_t* p608Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get608Line_OFFSET(uiNumValid608Lines));
+
+               p608Payload[0] = 0;
+               p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_MASK;
+               p608Payload[0] |= ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].line_offset << BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_LineOffset_MASK;
+
+               p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_MASK;
+               p608Payload[0] |= ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_priority << BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_Priority_MASK;
+
+               if ( true == pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_valid )
+               {
+                  p608Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_MASK;
+                  p608Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_608Metadata_Valid_MASK;
+               }
+
+               p608Payload[1] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_1;
+               p608Payload[2] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_2;
+
+               uiNumValid608Lines++;
             }
-
-            p608Payload[1] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_1;
-            p608Payload[2] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_2;
-
-            uiNumValid608Lines++;
          }
          else
          {
             /* Process 708 Data */
-            volatile uint8_t* p708Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get708Line_OFFSET(uiNumValid708Lines));
-
             if ( uiNumValid708Lines > BVCE_FW_P_UserData_Payload_CC_708_LINES_PER_FIELD_MAX )
             {
-               BDBG_ERR(("Error: Number of Valid 708 Lines (%d) is greater than max (%d). Dropping extra lines.", uiNumValid708Lines, BVCE_FW_P_UserData_Payload_CC_708_LINES_PER_FIELD_MAX));
-               uiNumValid708Lines = BVCE_FW_P_UserData_Payload_CC_708_LINES_PER_FIELD_MAX;
+               if ( false == bMax708LinesExceededWarningPrinted )
+               {
+                  BDBG_WRN(("Error: Number of Valid 708 Lines (%d) is greater than max (%d). Dropping extra lines.", uiNumValid708Lines, BVCE_FW_P_UserData_Payload_CC_708_LINES_PER_FIELD_MAX));
+               }
+               bMax708LinesExceededWarningPrinted = true;
             }
-
-            p708Payload[0] = 0;
-
-            if ( true == pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_valid )
+            else
             {
-               p708Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_MASK;
-               p708Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_MASK;
+               volatile uint8_t* p708Payload = (uint8_t*)((uint32_t) pCCPayload + BVCE_FW_P_UserData_CCPayload_Get708Line_OFFSET(uiNumValid708Lines));
+
+               p708Payload[0] = 0;
+
+               if ( true == pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_valid )
+               {
+                  p708Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_MASK;
+                  p708Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_708Metadata_Valid_MASK;
+               }
+
+               if ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].seq.cc_type == 0x3 )
+               {
+                  p708Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_MASK;
+                  p708Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_MASK;
+               }
+
+               p708Payload[1] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_1;
+               p708Payload[2] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_2;
+
+               uiNumValid708Lines++;
             }
-
-            if ( pPacketDescriptor->data.stDvs157.stCC.astLine[i].seq.cc_type == 0x3 )
-            {
-               p708Payload[0] &= ~BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_MASK;
-               p708Payload[0] |= ( 1 << BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_SHIFT ) & BVCE_FW_P_UserData_Payload_CC_708Metadata_PacketStart_MASK;
-            }
-
-            p708Payload[1] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_1;
-            p708Payload[2] = pPacketDescriptor->data.stDvs157.stCC.astLine[i].cc_data_2;
-
-            uiNumValid708Lines++;
          }
       }
 

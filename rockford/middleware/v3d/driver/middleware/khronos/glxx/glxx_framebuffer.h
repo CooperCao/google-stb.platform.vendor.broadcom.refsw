@@ -38,14 +38,9 @@ typedef struct {
 } GLXX_FRAMEBUFFER_T;
 
 extern void glxx_framebuffer_init(GLXX_FRAMEBUFFER_T *framebuffer, int32_t name);
-extern void glxx_framebuffer_term(void *v, uint32_t size);
-
-extern MEM_HANDLE_T glxx_attachment_info_get_image(GLXX_ATTACHMENT_INFO_T *attachment);
-
-extern MEM_HANDLE_T glxx_attachment_info_get_ms_image(GLXX_ATTACHMENT_INFO_T *attachment);
-
+extern void glxx_framebuffer_term(MEM_HANDLE_T handle);
+extern MEM_HANDLE_T glxx_attachment_info_get_images(GLXX_ATTACHMENT_INFO_T *attachment, MEM_HANDLE_T *ms_image);
 extern GLenum glxx_framebuffer_check_status(GLXX_FRAMEBUFFER_T *framebuffer);
-
 extern bool glxx_framebuffer_hw_support(KHRN_IMAGE_FORMAT_T format);
 
 #endif

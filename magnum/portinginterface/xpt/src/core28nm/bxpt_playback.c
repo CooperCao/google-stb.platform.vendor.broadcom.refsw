@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -262,6 +262,7 @@ BERR_Code BXPT_Playback_GetTotalChannels(
     )
 {
     BDBG_ASSERT( hXpt );
+    BSTD_UNUSED( hXpt );
 
     *TotalChannels = BXPT_NUM_PLAYBACKS;
     return BERR_SUCCESS;
@@ -277,6 +278,7 @@ BERR_Code BXPT_Playback_GetChannelDefaultSettings(
     BERR_Code ExitCode = BERR_SUCCESS;
 
     BDBG_ASSERT( hXpt );
+    BSTD_UNUSED( hXpt );
     BDBG_ASSERT( ChannelSettings );
 
     if( ChannelNo >= BXPT_NUM_PLAYBACKS )
@@ -635,6 +637,7 @@ void BXPT_Playback_GetDefaultDescSettings(
     )
 {
     BDBG_ASSERT( hXpt );
+    BSTD_UNUSED( hXpt );
     BDBG_ASSERT( settings );
 
     /* Zero is a good default for all the members */
@@ -780,7 +783,7 @@ void BXPT_SetLastDescriptorFlag(
     /* deprecated due to MMA conversion */
     BSTD_UNUSED(hXpt);
     BSTD_UNUSED(Desc);
-    BERR_TRACE(BERR_NOT_SUPPORTED);
+    (void)BERR_TRACE(BERR_NOT_SUPPORTED);
     return;
 #else
     BMEM_Handle hHeap;
@@ -878,17 +881,10 @@ BERR_Code BXPT_Playback_AddDescriptors(
 
     DescPhysAddr = hPb->mma.descOffset + (unsigned)((uint8_t*)FirstDesc - (uint8_t*)hPb->mma.descPtr); /* convert FirstDesc -> offset */
 
-    {
-        BXPT_Handle hXpt = hPb->vhXpt;
-        if (!hXpt->memcInfo.set) {
-            BCHP_GetMemoryInfo(hXpt->hRegister, &hXpt->memcInfo.info);
-            hXpt->memcInfo.set = true;
-        }
-        /* warn if descriptor is inaccessible. this is a stopgap solution until we get "box mode" */
-        if (hXpt->memcInfo.info.memc[1].offset && (DescPhysAddr >= hXpt->memcInfo.info.memc[1].offset)) {
-            BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
+    /* fail if descriptor not on MEMC0 */
+    if (!BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, 0)) {
+        BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if( LastDescriptor )
@@ -1768,7 +1764,11 @@ BXPT_Playback_PacingCounter BXPT_Playback_AllocPacingCounter(
     for( ii = 0; ii < BXPT_NUM_PACING_COUNTERS; ii++ )
         if( !hXpt->PacingCounters[ ii ].Allocated )
         {
+            uint32_t regBase;
+
             hXpt->PacingCounters[ ii ].Allocated = true;
+            regBase = BCHP_XPT_MCPB_GPC0_CTRL + (GPC_REG_STEPSIZE * ii);
+            BREG_Write32( hXpt->hRegister, regBase, 0 );
             return &( hXpt->PacingCounters[ ii ] );
         }
 
@@ -1804,7 +1804,7 @@ void BXPT_Playback_SetDescriptorFlags(
     BDBG_ASSERT( flags );
 
     if (!hPb->mma.descBlock) {
-        BERR_TRACE(BERR_NOT_SUPPORTED);
+        (void)BERR_TRACE(BERR_NOT_SUPPORTED);
         return;
     }
 
@@ -1998,4 +1998,79 @@ void BXPT_Playback_GetLTSID(
 #else
     *ltsid = hPb->ChannelNo + 0x40;
 #endif
+}
+
+BERR_Code BXPT_Get_SkipRepeatSetting(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    BXPT_Playback_SkipRepeat *skipRepeatCfg
+    )
+{
+    uint32_t reg;
+    uint32_t regAddr;
+
+    BERR_Code exitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hPb );
+    BDBG_ASSERT( skipRepeatCfg );
+
+    if( !hPb->settings.PacingCounter->Allocated )
+    {
+        BDBG_ERR(( "No pacing counter allocated for this playback" ));
+        exitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        goto Done;
+    }
+
+    regAddr = BCHP_XPT_MCPB_GPC0_CTRL + (GPC_REG_STEPSIZE * hPb->settings.PacingCounter->Index);
+    reg = BREG_Read32( hPb->hRegister, regAddr );
+    skipRepeatCfg->mode = BCHP_GET_FIELD_DATA(reg, XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_MODE);
+    skipRepeatCfg->enable = BCHP_GET_FIELD_DATA(reg, XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_EN);
+    skipRepeatCfg->count = BCHP_GET_FIELD_DATA(reg, XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_COUNT);
+
+    Done:
+    return exitCode;
+}
+
+BERR_Code BXPT_Set_SkipRepeatSetting(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    const BXPT_Playback_SkipRepeat *skipRepeatCfg
+    )
+{
+    uint32_t reg;
+    uint32_t regAddr;
+
+    BERR_Code exitCode = BERR_SUCCESS;
+
+    BDBG_ASSERT( hPb );
+    BDBG_ASSERT( skipRepeatCfg );
+
+    if( !hPb->settings.PacingCounter->Allocated )
+    {
+        BDBG_ERR(( "No pacing counter allocated for this playback" ));
+        exitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        goto Done;
+    }
+
+    if( skipRepeatCfg->count > 0xFFFFF )
+    {
+        BDBG_ERR(( "Invalid skip/repeat count %u", skipRepeatCfg->count ));
+        exitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
+        goto Done;
+    }
+
+    regAddr = BCHP_XPT_MCPB_GPC0_CTRL + (GPC_REG_STEPSIZE * hPb->settings.PacingCounter->Index);
+    reg = BREG_Read32( hPb->hRegister, regAddr );
+    reg &= ~(
+        BCHP_MASK( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_MODE ) |
+        BCHP_MASK( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_EN ) |
+        BCHP_MASK( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_COUNT )
+    );
+    reg |= (
+        BCHP_FIELD_DATA( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_MODE, skipRepeatCfg->mode ) |
+        BCHP_FIELD_DATA( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_EN, skipRepeatCfg->enable ) |
+        BCHP_FIELD_DATA( XPT_MCPB_GPC0_CTRL, SKIP_REPEAT_COUNT, skipRepeatCfg->count )
+    );
+    BREG_Write32( hPb->hRegister, regAddr, reg );
+
+    Done:
+    return exitCode;
 }

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,29 +35,13 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_playback_module.h"
 #include "nexus_playback_impl.h"
 #include "biobits.h"
 #include "nexus_platform_features.h"
-
-#if B_HAS_DIVX_DRM
-#include "nexus_divxdrm.h"
-#endif
-
-#if B_HAS_PIFF_PRDY
-#include "nexus_playback_piff.h"
-#endif
 
 BDBG_MODULE(nexus_playback_media);
 
@@ -663,12 +647,6 @@ b_play_stop_media(NEXUS_PlaybackHandle playback)
         playback->state.media.nest_timer = NULL;
     }
 
-#if B_HAS_PIFF_PRDY
-    if(playback->params.playpumpSettings.securityContext && playback->params.playpumpSettings.transportType==NEXUS_TransportType_eMp4) {
-        NEXUS_Playback_P_PiffStop(playback);
-    }
-#endif
-
     bmedia_player_destroy(playback->media_player);
     playback->media_player = NULL;
     if(playback->state.media.buffer) {
@@ -829,18 +807,6 @@ NEXUS_Playback_P_AudioCodecMap_ToMedia(NEXUS_AudioCodec audioCodec)
     }
     return baudio_format_unknown;
 }
-
-#if B_HAS_DIVX_DRM
-void b_play_decrypt_mkv_payload(void *cntx, batom_cursor *cursor, size_t *length, void *drm_info, unsigned track_no)
-{
-    NEXUS_DivxDrmInfo drmInfo;
-    NEXUS_KeySlotHandle keyslot = (NEXUS_KeySlotHandle) cntx;
-
-    BKNI_Memcpy(drmInfo.ddChunk, drm_info, NEXUS_DIVXDRM_DD_CHUNK_LENGTH);
-    drmInfo.trackNum = track_no;
-    NEXUS_DivxDrm_Decrypt(NULL, keyslot, (void*)cursor, *length, &drmInfo);    
-}
-#endif
 
 NEXUS_Error
 b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, const NEXUS_PlaypumpStatus *playpump_status,const NEXUS_PlaybackStartSettings *params)
@@ -1091,20 +1057,6 @@ b_play_start_media(NEXUS_PlaybackHandle playback, NEXUS_FilePlayHandle file, con
               goto error_buffer;
           }
       }
-
-#if B_HAS_DIVX_DRM
-    if(playback->params.playpumpSettings.securityContext && playback->params.playpumpSettings.transportType==NEXUS_TransportType_eMkv){
-        stream.cntx = playback->params.playpumpSettings.securityContext;
-        stream.decrypt_callback = b_play_decrypt_mkv_payload;
-    }
-#endif
-
-#if B_HAS_PIFF_PRDY
-    if(playback->params.playpumpSettings.securityContext && playback->params.playpumpSettings.transportType==NEXUS_TransportType_eMp4) {
-        stream.cntx = playback->params.playpumpSettings.securityContext;
-        NEXUS_Playback_P_PiffStart(playback, (decrypt_callback *)&stream.decrypt_callback);
-    }
-#endif
 
     player_config.buffer = playback->state.media.buffer;
     player_config.factory = playback->state.media.factory;

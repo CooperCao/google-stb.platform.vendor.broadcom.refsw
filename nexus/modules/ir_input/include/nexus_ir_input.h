@@ -199,6 +199,16 @@ NEXUS_Error NEXUS_IrInput_SetSettings(
 
 /***************************************************************************
 Summary:
+Data returned from NEXUS_IrInput_GetPreambleStatus
+***************************************************************************/
+typedef struct NEXUS_IrInputPreambleStatus
+{
+    bool preambleA;
+    bool preambleB;
+} NEXUS_IrInputPreambleStatus;
+
+/***************************************************************************
+Summary:
 Data returned from IR input
 
 Description:
@@ -211,6 +221,7 @@ typedef struct NEXUS_IrInputEvent
     uint32_t code;      /* code bits 0-31 from the receiver */
     uint32_t codeHigh;  /* code bits 32-47 from the receiver, if available. */
     unsigned interval;  /* Time interval between SW ISR for this event and the previous event, in units of milliseconds */
+    NEXUS_IrInputPreambleStatus preamble; /* preamble flags associated with this code */
 } NEXUS_IrInputEvent;
 
 /***************************************************************************
@@ -240,20 +251,7 @@ void NEXUS_IrInput_FlushEvents(
     NEXUS_IrInputHandle handle
     );
 
-/***************************************************************************
-Summary:
-Data returned from NEXUS_IrInput_GetPreambleStatus
-***************************************************************************/
-typedef struct NEXUS_IrInputPreambleStatus
-{
-    bool preambleA;
-    bool preambleB;
-} NEXUS_IrInputPreambleStatus;
-
-/***************************************************************************
-Summary:
-Check if preamble A or preamble B is detected
-***************************************************************************/
+/* Deprecated function: get this data from IrInputEvent using NEXUS_IrInput_GetEvents */
 NEXUS_Error NEXUS_IrInput_GetPreambleStatus(
     NEXUS_IrInputHandle handle,
     NEXUS_IrInputPreambleStatus *pStatus /* [out] */

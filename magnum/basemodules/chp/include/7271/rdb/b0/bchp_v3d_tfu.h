@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,40 +70,40 @@
 /***************************************************************************
  *V3D_TFU
  ***************************************************************************/
-#define BCHP_V3D_TFU_CS                          0x21200400 /* [RW] TFU Control and Status */
-#define BCHP_V3D_TFU_SU                          0x21200404 /* [RW] TFU Setup */
-#define BCHP_V3D_TFU_ICFG                        0x21200408 /* [RW] TFU Image Configuration */
-#define BCHP_V3D_TFU_IIA                         0x2120040c /* [RW] TFU Input Image Address */
-#define BCHP_V3D_TFU_ICA                         0x21200410 /* [RW] TFU Chroma Input Image Address */
-#define BCHP_V3D_TFU_IIS                         0x21200414 /* [RW] TFU Input Image Stride */
-#define BCHP_V3D_TFU_IUA                         0x21200418 /* [RW] TFU Input Image U-Plane Address */
-#define BCHP_V3D_TFU_IOA                         0x2120041c /* [RW] TFU Output Image Address */
-#define BCHP_V3D_TFU_IOS                         0x21200420 /* [RW] TFU Image Output Size */
-#define BCHP_V3D_TFU_COEF0                       0x21200424 /* [RW] TFU YUV Coefficient 0 */
-#define BCHP_V3D_TFU_COEF1                       0x21200428 /* [RW] TFU YUV Coefficient 1 */
-#define BCHP_V3D_TFU_COEF2                       0x2120042c /* [RW] TFU YUV Coefficient 2 */
-#define BCHP_V3D_TFU_COEF3                       0x21200430 /* [RW] TFU YUV Coefficient 3 */
-#define BCHP_V3D_TFU_CRC                         0x21200434 /* [RO] TFU CRC Result */
-#define BCHP_V3D_TFU_INT_STS                     0x21200438 /* [RO] V3D Interrupt Status */
-#define BCHP_V3D_TFU_INT_SET                     0x2120043c /* [WO] V3D Interrupt Set */
-#define BCHP_V3D_TFU_INT_CLR                     0x21200440 /* [WO] V3D Interrupt Clear */
-#define BCHP_V3D_TFU_INT_MSK_STS                 0x21200444 /* [RO] V3D Interrupt Mask Status */
-#define BCHP_V3D_TFU_INT_MSK_SET                 0x21200448 /* [WO] V3D Interrupt Mask Set */
-#define BCHP_V3D_TFU_INT_MSK_CLR                 0x2120044c /* [WO] V3D Interrupt Mask Clear */
-#define BCHP_V3D_TFU_INT_STS_PCI                 0x21200450 /* [RO] Duplicate TFU Interrupt Status, reads 0 when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_INT_SET_PCI                 0x21200454 /* [WO] Duplicate TFU Interrupt Set, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_INT_CLR_PCI                 0x21200458 /* [WO] Duplicate TFU Interrupt Clear, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_INT_MSK_STS_PCI             0x2120045c /* [RO] Duplicate TFU Interrupt Mask Status, reads 0 when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_INT_MSK_SET_PCI             0x21200460 /* [WO] Duplicate TFU Interrupt Mask Set, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_INT_MSK_CLR_PCI             0x21200464 /* [WO] Duplicate TFU Interrupt Mask Clear, write has noeffect when BCG_TFUINT in IDENT2 in V3D core is 0 */
-#define BCHP_V3D_TFU_SYNC                        0x21200468 /* [RW] TFU Job Sync */
-#define BCHP_V3D_TFU_CCCS                        0x21200470 /* [RW] Cycle Count Control and Status */
-#define BCHP_V3D_TFU_CCNTLO                      0x21200474 /* [RW] Cycle Count Low Value */
-#define BCHP_V3D_TFU_CCNTHI                      0x21200478 /* [RW] Cycle Count High Value */
-#define BCHP_V3D_TFU_SCCLO                       0x21200480 /* [RO] Captured TFU Conversion Start Cycle Count Low Value */
-#define BCHP_V3D_TFU_SCCHI                       0x21200484 /* [RO] Captured TFU Conversion Start Cycle Count High Value */
-#define BCHP_V3D_TFU_ECCLO                       0x21200488 /* [RO] Captured TFU Conversion End Cycle Count Low Value */
-#define BCHP_V3D_TFU_ECCHI                       0x2120048c /* [RO] Captured TFU Conversion End Cycle Count High Value */
+#define BCHP_V3D_TFU_CS                          0x21200400 /* [RW][32] TFU Control and Status */
+#define BCHP_V3D_TFU_SU                          0x21200404 /* [RW][32] TFU Setup */
+#define BCHP_V3D_TFU_ICFG                        0x21200408 /* [RW][32] TFU Image Configuration */
+#define BCHP_V3D_TFU_IIA                         0x2120040c /* [RW][32] TFU Input Image Address */
+#define BCHP_V3D_TFU_ICA                         0x21200410 /* [RW][32] TFU Chroma Input Image Address */
+#define BCHP_V3D_TFU_IIS                         0x21200414 /* [RW][32] TFU Input Image Stride */
+#define BCHP_V3D_TFU_IUA                         0x21200418 /* [RW][32] TFU Input Image U-Plane Address */
+#define BCHP_V3D_TFU_IOA                         0x2120041c /* [RW][32] TFU Output Image Address */
+#define BCHP_V3D_TFU_IOS                         0x21200420 /* [RW][32] TFU Image Output Size */
+#define BCHP_V3D_TFU_COEF0                       0x21200424 /* [RW][32] TFU YUV Coefficient 0 */
+#define BCHP_V3D_TFU_COEF1                       0x21200428 /* [RW][32] TFU YUV Coefficient 1 */
+#define BCHP_V3D_TFU_COEF2                       0x2120042c /* [RW][32] TFU YUV Coefficient 2 */
+#define BCHP_V3D_TFU_COEF3                       0x21200430 /* [RW][32] TFU YUV Coefficient 3 */
+#define BCHP_V3D_TFU_CRC                         0x21200434 /* [RO][32] TFU CRC Result */
+#define BCHP_V3D_TFU_INT_STS                     0x21200438 /* [RO][32] V3D Interrupt Status */
+#define BCHP_V3D_TFU_INT_SET                     0x2120043c /* [WO][32] V3D Interrupt Set */
+#define BCHP_V3D_TFU_INT_CLR                     0x21200440 /* [WO][32] V3D Interrupt Clear */
+#define BCHP_V3D_TFU_INT_MSK_STS                 0x21200444 /* [RO][32] V3D Interrupt Mask Status */
+#define BCHP_V3D_TFU_INT_MSK_SET                 0x21200448 /* [WO][32] V3D Interrupt Mask Set */
+#define BCHP_V3D_TFU_INT_MSK_CLR                 0x2120044c /* [WO][32] V3D Interrupt Mask Clear */
+#define BCHP_V3D_TFU_INT_STS_PCI                 0x21200450 /* [RO][32] Duplicate TFU Interrupt Status, reads 0 when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_INT_SET_PCI                 0x21200454 /* [WO][32] Duplicate TFU Interrupt Set, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_INT_CLR_PCI                 0x21200458 /* [WO][32] Duplicate TFU Interrupt Clear, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_INT_MSK_STS_PCI             0x2120045c /* [RO][32] Duplicate TFU Interrupt Mask Status, reads 0 when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_INT_MSK_SET_PCI             0x21200460 /* [WO][32] Duplicate TFU Interrupt Mask Set, write has no effect when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_INT_MSK_CLR_PCI             0x21200464 /* [WO][32] Duplicate TFU Interrupt Mask Clear, write has noeffect when BCG_TFUINT in IDENT2 in V3D core is 0 */
+#define BCHP_V3D_TFU_SYNC                        0x21200468 /* [RW][32] TFU Job Sync */
+#define BCHP_V3D_TFU_CCCS                        0x21200470 /* [RW][32] Cycle Count Control and Status */
+#define BCHP_V3D_TFU_CCNTLO                      0x21200474 /* [RW][32] Cycle Count Low Value */
+#define BCHP_V3D_TFU_CCNTHI                      0x21200478 /* [RW][32] Cycle Count High Value */
+#define BCHP_V3D_TFU_SCCLO                       0x21200480 /* [RO][32] Captured TFU Conversion Start Cycle Count Low Value */
+#define BCHP_V3D_TFU_SCCHI                       0x21200484 /* [RO][32] Captured TFU Conversion Start Cycle Count High Value */
+#define BCHP_V3D_TFU_ECCLO                       0x21200488 /* [RO][32] Captured TFU Conversion End Cycle Count Low Value */
+#define BCHP_V3D_TFU_ECCHI                       0x2120048c /* [RO][32] Captured TFU Conversion End Cycle Count High Value */
 
 /***************************************************************************
  *CS - TFU Control and Status

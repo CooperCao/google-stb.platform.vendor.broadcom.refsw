@@ -1,5 +1,5 @@
 /*=============================================================================
-Copyright (c) 2008 Broadcom Europe Limited.
+Broadcom Proprietary and Confidential. (c)2008 Broadcom.
 All rights reserved.
 
 Project  :
@@ -8,8 +8,7 @@ Module   :
 FILE DESCRIPTION
 =============================================================================*/
 
-#ifndef V3D_DEBUG_H
-#define V3D_DEBUG_H
+#pragma once
 
 // V3D Debug routines error codes
 #define V3D_DBG_ERR_NONE 0 // No errors
@@ -44,6 +43,4 @@ extern void v3d_debug_read_vpm_row(int i, unsigned int *row);
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

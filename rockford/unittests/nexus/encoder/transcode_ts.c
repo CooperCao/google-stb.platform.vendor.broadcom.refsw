@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 /* nexus unittest: transcode file/qam/hdmi source to ts output */
 
@@ -467,6 +466,12 @@ typedef struct TranscodeContext {
     bool                      dropBardata;
     bool                      bPrintStatus;
     NEXUS_StreamMuxInterleaveMode interleaveMode;
+
+    struct
+    {
+       bool bEnable;
+       uint32_t uiValue;
+    } ptsSeed;
 } TranscodeContext;
 
 /* global context
@@ -3250,10 +3255,10 @@ static void xcode_create_systemdata( TranscodeContext  *pContext )
         {
             case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
             case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-            case NEXUS_AudioCodec_eAac    :      audStreamType = 0xf; break; /* ADTS */
-            case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-            /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+            case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
+            case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
             case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
             case NEXUS_AudioCodec_eLpcm1394:     audStreamType = 0x83; break;
             default:
@@ -3623,6 +3628,8 @@ static void xcode_setup_mux_record( TranscodeContext  *pContext )
     muxConfig.servicePeriod = g_msp; /* MSP */
     muxConfig.latencyTolerance = g_muxLatencyTolerance; /* mux service latency tolerance */
     muxConfig.interleaveMode = pContext->interleaveMode;
+    muxConfig.useInitialPts = pContext->ptsSeed.bEnable;
+    muxConfig.initialPts = pContext->ptsSeed.uiValue;
 
     if(!pContext->bNoVideo) {
         muxConfig.video[0].pid = BTST_MUX_VIDEO_PID;
@@ -6024,6 +6031,7 @@ void print_usage(void) {
             printf("  -interleaveMode N - Set the A/V interleave mode to N where N = [escr, pts]\n");
             printf("  -audioPesPacking - Enable audio PES packing\n");
             printf("  -onePtsPerSegment - Insert only one PTS per segment\n");
+            printf("  -ptsSeed PTS - Start NRT transcode with specified video PTS (in 45Khz)\n");
 }
 
 /* include media probe */
@@ -6487,6 +6495,17 @@ int main(int argc, char **argv)  {
             if(!strcmp("-onePtsPerSegment",argv[i])) {
                g_bOnePtsPerSegment = true;
                fprintf(stderr, "One PTS per Segment\n");
+            }
+            if(!strcmp("-ptsSeed",argv[i])) {/* check if pts seed is requested */
+               pContext->ptsSeed.bEnable = true;
+               if (i+1 < argc) {
+                  pContext->ptsSeed.uiValue = strtoul(argv[++i], NULL, 0);
+
+                  fprintf(stderr, "Enabled pts seed (%08x) in 45 Khz...\n", pContext->ptsSeed.uiValue );
+               } else {
+                  print_usage();
+                  return -1;
+               }
             }
         }
         if(g_bSecondAudio) g_bNoDspMixer = false;

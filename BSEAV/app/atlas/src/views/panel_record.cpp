@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -195,7 +195,7 @@ eRet CPanelRecord::initialize(
         _pRecordEncryptMenu->addButton(_DES, "Des   Encryption");
         _DES->setText("DES :", bwidget_justify_horiz_left);
         _DES->setCheck(false);
-#endif
+#endif /* if NEXUS_HAS_SECURITY */
     }
 
     rectButton.setWidth(65);
@@ -242,7 +242,7 @@ void CPanelRecord::uninitialize()
     DEL(_DES);
 #endif
     DEL(_pRecordEncryptMenu);
-}
+} /* uninitialize */
 
 void CPanelRecord::show(bool bShow)
 {
@@ -367,7 +367,7 @@ void CPanelRecord::onClick(bwidget_t widget)
         _security = "des";
     }
     else
-#endif
+#endif /* if NEXUS_HAS_SECURITY */
     if (_pOk->getWidget() == widget)
     {
         _done                = true;
@@ -410,7 +410,6 @@ eRet CPanelRecord::onKeyDown(
 
     return(ret);
 } /* onKeyDown */
-
 
 void CPanelRecord::processNotification(CNotification & notification)
 {

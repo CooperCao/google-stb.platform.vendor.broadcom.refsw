@@ -328,17 +328,9 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
             pMemory->osRegion[2].length = 0x40000000; /* 1024MB */
         #elif (BCHP_CHIP==7435)
             pMemory->osRegion[1].base = DRAM_0_PHYS_ADDR_START;
-            #ifdef BMIPS3300
-                pMemory->osRegion[1].length = 0x10000000; /* 256MB */
-            #else
-                pMemory->osRegion[1].length = 0x20000000; /* 512MB */
-            #endif
+            pMemory->osRegion[1].length = 0x20000000; /* 512MB */
             pMemory->osRegion[2].base = DRAM_1_PHYS_ADDR_START; // 0x90000000;
-            #ifdef BMIPS3300
-                pMemory->osRegion[2].length = 0x10000000; /* 256MB */
-            #else
-                pMemory->osRegion[2].length = 0x20000000; /* 512MB */
-            #endif
+            pMemory->osRegion[2].length = 0x20000000; /* 512MB */
         #elif (BCHP_CHIP==7429) || (BCHP_CHIP==74295)
             pMemory->osRegion[1].base = DRAM_0_PHYS_ADDR_START;
             pMemory->osRegion[1].length = 0x30000000; /* 768MB */
@@ -1185,4 +1177,38 @@ static void NEXUS_Platform_P_GetSharedGpioSubmoduleInitSettings(b_shared_gpio_mo
 #endif
 
 #include "b_shared_gpio_ucos.inc"
+#endif
+
+#if NEXUS_USE_CMA
+/* macros found in magnum/basemodules/chp */
+#include "../../src/common/bchp_memc_offsets_priv.h"
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
+{
+    NEXUS_Error rc;
+    unsigned i;
+    BCHP_MemoryInfo memoryInfo;
+
+    BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &memoryInfo);
+
+    BDBG_CASSERT(NEXUS_MAX_MEMC <= sizeof(pMemory->memc)/sizeof(pMemory->memc[0]));
+    for (i=0;i<NEXUS_MAX_MEMC;i++) {
+        if (!memoryInfo.memc[i].size) continue;
+        switch (i) {
+        case 0: pMemory->memc[i].region[0].addr = BCHP_P_MEMC_0_OFFSET; break;
+#ifdef BCHP_P_MEMC_1_OFFSET
+        case 1: pMemory->memc[i].region[0].addr = BCHP_P_MEMC_1_OFFSET; break;
+#endif
+#ifdef BCHP_P_MEMC_2_OFFSET
+        case 2: pMemory->memc[i].region[0].addr = BCHP_P_MEMC_2_OFFSET; break;
+#endif
+        default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        pMemory->memc[i].region[0].size = memoryInfo.memc[i].size;
+        if (pMemory->memc[i].region[0].size > 1024*1024*1024) {
+            pMemory->memc[i].region[0].size = 1024*1024*1024;
+        }
+        pMemory->memc[i].size += pMemory->memc[i].region[0].size;
+    }
+    return NEXUS_SUCCESS;
+}
 #endif

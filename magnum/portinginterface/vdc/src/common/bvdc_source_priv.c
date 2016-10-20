@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -45,7 +45,6 @@
 #include "bvdc_feeder_priv.h"
 #include "bvdc_gfxfeeder_priv.h"
 #include "bvdc_hddvi_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_window_priv.h"
 #include "bvdc_display_priv.h"
 #include "bvdc_displayfmt_priv.h"
@@ -63,6 +62,8 @@ BDBG_MODULE(BVDC_SRC);
 BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_OBJECT_ID(BVDC_SRC);
+
+#ifndef BVDC_FOR_BOOTUPDATER
 
 /****************************************************************************/
 /* Number of entries use this to loop, and/or allocate memory.              */
@@ -329,7 +330,7 @@ static void BVDC_P_Source_Bringup_isr
     return;
 }
 
-#ifndef BVDC_FOR_BOOTUPDATER
+
 /***************************************************************************
 * {private}
 *
@@ -828,7 +829,6 @@ void BVDC_P_Source_Init
     hSource->bPsfScanout          = false;/* no PsF scanout */
     hSource->ulDropFramesCnt      = 0;    /* no PsF drop */
     hSource->ulDispVsyncFreq      = pDefFmt->ulVertFreq;
-    hSource->ePcFieldId           = BAVC_Polarity_eTopField;
     hSource->bSrcIs444            = false;
     hSource->bSrcInterlaced       = true;
     hSource->bCompression         = false;
@@ -881,10 +881,6 @@ void BVDC_P_Source_Init
 
     /* Demo mode */
     pNewInfo->stSplitScreenSetting.eDnr = BVDC_SplitScreenMode_eDisable;
-
-    /* PC remap */
-    pNewInfo->bReMapFormats  = false;
-    pNewInfo->ulReMapFormats = 0;
 
     /* Intialize format list */
     for(i = 0; i < BFMT_VideoFmt_eMaxCount; i++)
@@ -1808,7 +1804,6 @@ void BVDC_P_Source_DisconnectWindow_isr
             BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] free  %d buffers (%s)", hWindow->eId, ulCount,
                 BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hWindow->eBufferHeapIdRequest)));
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             if(hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)
             {
                 BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] free  %d buffers (%s) for right", hWindow->eId, ulCount,
@@ -1820,7 +1815,6 @@ void BVDC_P_Source_DisconnectWindow_isr
                     ulCount, false);
             }
             else
-#endif
             {
                 BVDC_P_Buffer_ReleasePictureNodes_isr(hWindow->hBuffer,
                     hWindow->apHeapNode, NULL, ulCount, 0);
@@ -1919,7 +1913,7 @@ void BVDC_P_Source_DisconnectWindow_isr
                 }
 
                 BDBG_MSG(("Source[%d] Reconfigs vnet!", hSource->eId));
-                BVDC_P_Window_SetReconfiguring_isr(hTmpWindow, false, true);
+                BVDC_P_Window_SetReconfiguring_isr(hTmpWindow, false, true, false);
 
                 break;
             }
@@ -2156,8 +2150,8 @@ void BVDC_P_Source_GetScanOutRect_isr
 {
     int i;
 #if (BVDC_P_MADR_PICSIZE_WORKAROUND)
-    uint32_t    ulBitsPerGroup = 0, ulPixelPerGroup = 0, ulMadrCnt = 0;
-    BVDC_P_Mcvp_Handle hMcvp;
+    uint32_t ulBitsPerGroup = 0, ulPixelPerGroup = 0, ulMadrCnt = 0;
+    BVDC_P_Mcvp_Handle hMcvp = NULL;
 #endif
 
     BDBG_ENTER(BVDC_P_Source_GetScanOutRect_isr);
@@ -2203,12 +2197,9 @@ void BVDC_P_Source_GetScanOutRect_isr
         else
 #endif
         {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             BFMT_Orientation  eSrcOututOrientation;
-#endif
             pScanOutRect->ulHeight = pFmtInfo->ulDigitalHeight;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             BVDC_P_Source_GetOutputOrientation_isr(hSource, NULL,
                 pFmtInfo, &eSrcOututOrientation);
 
@@ -2223,7 +2214,6 @@ void BVDC_P_Source_GetScanOutRect_isr
                     pScanOutRect->ulHeight = pScanOutRect->ulHeight / 2;
                 }
             }
-#endif
         }
     }
     else if (BVDC_P_SRC_IS_VFD(hSource->eId))
@@ -2386,11 +2376,17 @@ void BVDC_P_Source_GetScanOutRect_isr
 #endif
 
 #if (BVDC_P_MADR_PICSIZE_WORKAROUND)
-        BVDC_P_Window_PreMadAdjustWidth_isr(pScanOutRect->ulWidth,
-            (pMvdFieldData->eSourcePolarity == BAVC_Polarity_eFrame) ?
-            pScanOutRect->ulHeight : pScanOutRect->ulHeight /2,
-            BVDC_P_MADR_DCXS_COMPRESSION(ulBitsPerGroup), ulPixelPerGroup,
-            &pScanOutRect->ulWidth);
+        if(hMcvp && hMcvp->hMcdi)
+        {
+            if( hMcvp->hMcdi->bMadr)
+            {
+                BVDC_P_Window_PreMadAdjustWidth_isr(pScanOutRect->ulWidth,
+                    (pMvdFieldData->eSourcePolarity == BAVC_Polarity_eFrame) ?
+                    pScanOutRect->ulHeight : pScanOutRect->ulHeight /2,
+                    BVDC_P_MADR_DCXS_COMPRESSION(ulBitsPerGroup), ulPixelPerGroup,
+                    &pScanOutRect->ulWidth);
+            }
+        }
 #endif
 
     }
@@ -2446,9 +2442,9 @@ void BVDC_P_Source_GetWindowVnetmodeInfo_isr
             /* If Test Feature is enabled for AND or MAD or CAP */
             if((BVDC_P_VNET_USED_CAPTURE(hWindow->stVnetMode) &&
                 hWindow->stCapCompression.bEnable) ||
-                (BVDC_P_VNET_USED_ANR(hWindow->stVnetMode) &&
+                (BVDC_P_MVP_USED_ANR(hWindow->stMvpMode) &&
                 hWindow->stMadCompression.bEnable) ||
-                (BVDC_P_VNET_USED_MAD(hWindow->stVnetMode) &&
+                (BVDC_P_MVP_USED_MAD(hWindow->stMvpMode) &&
                 hWindow->stMadCompression.bEnable))
             {
                 bCompression = true;
@@ -2871,7 +2867,7 @@ void BVDC_P_Source_VfdGfxDataReady_isr
     BVDC_P_Feeder_HandleIsrGfxSurface_isr(hVfdFeeder, pCurInfo, hSource->eNextFieldId);
     hSource->bPictureChanged = hVfdFeeder->stGfxSurface.stCurSurInfo.bChangeSurface;
 
-    if (hVfdFeeder->stGfxSurface.stCurSurInfo.ulAddress)
+    if (hVfdFeeder->stGfxSurface.stCurSurInfo.ullAddress)
     {
         /* ajust rectangles */
         BVDC_P_Window_AdjustRectangles_isr(hWindow, NULL, NULL, 0);
@@ -2931,7 +2927,7 @@ void BVDC_P_Source_MfdGfxCallback_isr
 
     hSource->stNewPic[BAVC_MOSAIC_MAX-1].eInterruptPolarity =
         (NULL!=hSource->hSyncLockCompositor)? eNextFieldId : (BAVC_Polarity) iField;
-    if (hMpegFeeder->stGfxSurface.stCurSurInfo.ulAddress)
+    if (hMpegFeeder->stGfxSurface.stCurSurInfo.ullAddress)
     {
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].eSourcePolarity = BAVC_Polarity_eFrame;/* frame only */
         hSource->stNewPic[BAVC_MOSAIC_MAX-1].bStreamProgressive = true;
@@ -2940,7 +2936,7 @@ void BVDC_P_Source_MfdGfxCallback_isr
         if(hMpegFeeder->stGfxSurface.stCurSurInfo.stAvcPic.pSurface) {
             hSource->stNewPic[BAVC_MOSAIC_MAX-1].eYCbCrType = BAVC_YCbCrType_e4_2_2;
             hSource->stNewPic[BAVC_MOSAIC_MAX-1].ulRowStride = hMpegFeeder->stGfxSurface.stCurSurInfo.ulPitch;
-            hSource->stNewPic[BAVC_MOSAIC_MAX-1].ulLuminanceFrameBufferBlockOffset = hMpegFeeder->stGfxSurface.stCurSurInfo.ulAddress;
+            hSource->stNewPic[BAVC_MOSAIC_MAX-1].ulLuminanceFrameBufferBlockOffset = hMpegFeeder->stGfxSurface.stCurSurInfo.ullAddress;
 
             /* Check if fields that are to be written to registers fit within their field sizes. */
             if(!BVDC_P_SRC_VALIDATE_FIELD(MFD_0_STRIDE, PACKED_LINE_STRIDE, hSource->stNewPic[BAVC_MOSAIC_MAX-1].ulRowStride))

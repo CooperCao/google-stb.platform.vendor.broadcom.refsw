@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,20 +70,21 @@
 /***************************************************************************
  *V3D_MMU_T - V3D MMU Control Registers (TFU)
  ***************************************************************************/
-#define BCHP_V3D_MMU_T_CTRL                      0x21201100 /* [RW] AXI_MMU Control Register */
-#define BCHP_V3D_MMU_T_PT_PA_BASE                0x21201104 /* [RW] Page Table Physical Address Base */
-#define BCHP_V3D_MMU_T_HITS                      0x21201108 /* [RO] TLB Hits */
-#define BCHP_V3D_MMU_T_MISSES                    0x2120110c /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_T_STALLS                    0x21201110 /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_T_ADDR_CAP                  0x21201114 /* [RW] Caps the Maximum virtual page that the MMU will accept */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN                0x21201118 /* [RW] Shoots down specific pages from the TLB */
-#define BCHP_V3D_MMU_T_BYPASS_START              0x2120111c /* [RW] Sets the Start page of the MMU Bypass */
-#define BCHP_V3D_MMU_T_BYPASS_END                0x21201120 /* [RW] Sets the End page of the MMU Bypass */
-#define BCHP_V3D_MMU_T_DEBUG_MISC                0x21201124 /* [RW] AXI_MMU Debug Misc */
-#define BCHP_V3D_MMU_T_SECURITY                  0x21201128 /* [RW] Set individual MMU registers as secure access only */
-#define BCHP_V3D_MMU_T_VIO_ID                    0x2120112c /* [RW] Record the AXI ID of the access that causes a MMU error */
-#define BCHP_V3D_MMU_T_ILLEGAL_ADR               0x21201130 /* [RW] Substitute illegal PA addresses with an address that points to a dummy slave */
-#define BCHP_V3D_MMU_T_VIO_ADDR                  0x21201134 /* [RW] Record the AXI ADDR of the access that causes a MMU error */
+#define BCHP_V3D_MMU_T_CTRL                      0x21201100 /* [RW][32] AXI_MMU Control Register */
+#define BCHP_V3D_MMU_T_PT_PA_BASE                0x21201104 /* [RW][32] Page Table Physical Address Base */
+#define BCHP_V3D_MMU_T_HITS                      0x21201108 /* [RO][32] TLB Hits */
+#define BCHP_V3D_MMU_T_MISSES                    0x2120110c /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_T_STALLS                    0x21201110 /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_T_ADDR_CAP                  0x21201114 /* [RW][32] Caps the Maximum virtual page that the MMU will accept */
+#define BCHP_V3D_MMU_T_SHOOT_DOWN                0x21201118 /* [RW][32] Shoots down specific pages from the TLB */
+#define BCHP_V3D_MMU_T_BYPASS_START              0x2120111c /* [RW][32] Sets the Start page of the MMU Bypass */
+#define BCHP_V3D_MMU_T_BYPASS_END                0x21201120 /* [RW][32] Sets the End page of the MMU Bypass */
+#define BCHP_V3D_MMU_T_DEBUG_MISC                0x21201124 /* [RW][32] AXI_MMU Debug Misc */
+#define BCHP_V3D_MMU_T_SECURITY                  0x21201128 /* [RW][32] Set individual MMU registers as secure access only */
+#define BCHP_V3D_MMU_T_VIO_ID                    0x2120112c /* [RW][32] Record the AXI ID of the access that causes a MMU error */
+#define BCHP_V3D_MMU_T_ILLEGAL_ADR               0x21201130 /* [RW][32] Substitute illegal PA addresses with an address that points to a dummy slave */
+#define BCHP_V3D_MMU_T_VIO_ADDR                  0x21201134 /* [RW][32] Record the AXI ADDR of the access that causes a MMU error */
+#define BCHP_V3D_MMU_T_DEBUG_INFO                0x21201138 /* [RO][32] provides useful debug values */
 
 /***************************************************************************
  *CTRL - AXI_MMU Control Register
@@ -187,12 +188,12 @@
 /***************************************************************************
  *PT_PA_BASE - Page Table Physical Address Base
  ***************************************************************************/
-/* V3D_MMU_T :: PT_PA_BASE :: reserved0 [31:24] */
-#define BCHP_V3D_MMU_T_PT_PA_BASE_reserved0_MASK                   0xff000000
-#define BCHP_V3D_MMU_T_PT_PA_BASE_reserved0_SHIFT                  24
+/* V3D_MMU_T :: PT_PA_BASE :: reserved0 [31:28] */
+#define BCHP_V3D_MMU_T_PT_PA_BASE_reserved0_MASK                   0xf0000000
+#define BCHP_V3D_MMU_T_PT_PA_BASE_reserved0_SHIFT                  28
 
-/* V3D_MMU_T :: PT_PA_BASE :: PAGE [23:00] */
-#define BCHP_V3D_MMU_T_PT_PA_BASE_PAGE_MASK                        0x00ffffff
+/* V3D_MMU_T :: PT_PA_BASE :: PAGE [27:00] */
+#define BCHP_V3D_MMU_T_PT_PA_BASE_PAGE_MASK                        0x0fffffff
 #define BCHP_V3D_MMU_T_PT_PA_BASE_PAGE_SHIFT                       0
 
 /***************************************************************************
@@ -236,20 +237,16 @@
 /***************************************************************************
  *SHOOT_DOWN - Shoots down specific pages from the TLB
  ***************************************************************************/
-/* V3D_MMU_T :: SHOOT_DOWN :: reserved0 [31:30] */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_reserved0_MASK                   0xc0000000
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_reserved0_SHIFT                  30
+/* V3D_MMU_T :: SHOOT_DOWN :: SHOOTING [31:31] */
+#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOTING_MASK                    0x80000000
+#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOTING_SHIFT                   31
 
-/* V3D_MMU_T :: SHOOT_DOWN :: SHOOTING [29:29] */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOTING_MASK                    0x20000000
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOTING_SHIFT                   29
+/* V3D_MMU_T :: SHOOT_DOWN :: SHOOT [30:30] */
+#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOT_MASK                       0x40000000
+#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOT_SHIFT                      30
 
-/* V3D_MMU_T :: SHOOT_DOWN :: SHOOT [28:28] */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOT_MASK                       0x10000000
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_SHOOT_SHIFT                      28
-
-/* V3D_MMU_T :: SHOOT_DOWN :: PAGE [27:00] */
-#define BCHP_V3D_MMU_T_SHOOT_DOWN_PAGE_MASK                        0x0fffffff
+/* V3D_MMU_T :: SHOOT_DOWN :: PAGE [29:00] */
+#define BCHP_V3D_MMU_T_SHOOT_DOWN_PAGE_MASK                        0x3fffffff
 #define BCHP_V3D_MMU_T_SHOOT_DOWN_PAGE_SHIFT                       0
 
 /***************************************************************************
@@ -359,6 +356,28 @@
 #define BCHP_V3D_MMU_T_VIO_ADDR_enable_MASK                        0xffffffff
 #define BCHP_V3D_MMU_T_VIO_ADDR_enable_SHIFT                       0
 #define BCHP_V3D_MMU_T_VIO_ADDR_enable_DEFAULT                     0x00000000
+
+/***************************************************************************
+ *DEBUG_INFO - provides useful debug values
+ ***************************************************************************/
+/* V3D_MMU_T :: DEBUG_INFO :: reserved0 [31:12] */
+#define BCHP_V3D_MMU_T_DEBUG_INFO_reserved0_MASK                   0xfffff000
+#define BCHP_V3D_MMU_T_DEBUG_INFO_reserved0_SHIFT                  12
+
+/* V3D_MMU_T :: DEBUG_INFO :: PA_WIDTH [11:08] */
+#define BCHP_V3D_MMU_T_DEBUG_INFO_PA_WIDTH_MASK                    0x00000f00
+#define BCHP_V3D_MMU_T_DEBUG_INFO_PA_WIDTH_SHIFT                   8
+#define BCHP_V3D_MMU_T_DEBUG_INFO_PA_WIDTH_DEFAULT                 0x00000000
+
+/* V3D_MMU_T :: DEBUG_INFO :: VA_WIDTH [07:04] */
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VA_WIDTH_MASK                    0x000000f0
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VA_WIDTH_SHIFT                   4
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VA_WIDTH_DEFAULT                 0x00000000
+
+/* V3D_MMU_T :: DEBUG_INFO :: VERSION [03:00] */
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VERSION_MASK                     0x0000000f
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VERSION_SHIFT                    0
+#define BCHP_V3D_MMU_T_DEBUG_INFO_VERSION_DEFAULT                  0x00000000
 
 #endif /* #ifndef BCHP_V3D_MMU_T_H__ */
 

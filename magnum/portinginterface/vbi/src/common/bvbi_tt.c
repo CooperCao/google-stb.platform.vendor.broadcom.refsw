@@ -68,11 +68,13 @@ BERR_Code BVBI_Field_GetTTData_isr (
 )
 {
     uint8_t *pData;
+    uint8_t  bytes_used;
     uint32_t lineMask;
     int      iLine;
     int      iChar;
     BVBI_P_Field_Handle* pVbi_Fld;
     BVBI_P_TTData* pTTData;
+    BVBI_P_MmaData* pMmaData;
     BERR_Code eErr = BERR_SUCCESS;
 
     BDBG_ENTER(BVBI_Field_GetTTData_isr);
@@ -91,40 +93,27 @@ BERR_Code BVBI_Field_GetTTData_isr (
     else if (pVbi_Fld->ulErrInfo & BVBI_LINE_ERROR_TELETEXT_NOENCODE)
         eErr = (BVBI_ERR_FIELD_BADDATA);
 
-    /* Pull out the mask of valid lines */
+    /* Convenience */
     pTTData = BVBI_P_LCOP_GET_isr (pVbi_Fld, TTDataO);
+    pMmaData = &(pTTData->mmaData);
+
+    /* Send data to cache before reading */
+    bytes_used = 4 + (pTTData->ucLines *  pTTData->ucLineSize);
+    BVBI_P_MmaFlush_isrsafe (pMmaData, bytes_used);
+
+    /* Pull out the mask of valid lines */
     lineMask = pTTData->lineMask;
     lineMask <<= (pTTData->firstLine);
 
-#ifdef BVBI_P_TTE_WA15
-    /* Abort if user's array is too small */
-    if (pTTData->firstLine >= nLines)
-    {
-        BDBG_ERR(("User array too small"));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    /* Loop over initial unused lines */
-    for (iLine = 0 ; iLine < pTTData->firstLine ; ++iLine)
-    {
-        ttLines->ucFramingCode = BVBI_TT_INVALID_FRAMING_CODE;
-        ++ttLines;
-    }
-#endif
-
     /* Loop over teletext data lines in the field handle */
-    pData = pTTData->pucData + 4;
+    pData = (uint8_t*)(pMmaData->pSwAccess) + 4;
     for (iLine = 0 ; iLine < pTTData->ucLines ; ++iLine)
     {
         /* If data line is valid */
         if ((lineMask >> iLine) & 0x1)
         {
             /* Abort if user's array is too small */
-#ifdef BVBI_P_TTE_WA15
-            if (pTTData->firstLine + iLine >= nLines)
-#else
             if (iLine >= nLines)
-#endif
             {
                 BDBG_ERR(("User array too small"));
                 return BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -142,16 +131,7 @@ BERR_Code BVBI_Field_GetTTData_isr (
         }
         else /* data line is invalid */
         {
-#ifdef BVBI_P_TTE_WA15
-            /* Info for user */
-            if ( pTTData->firstLine + iLine < nLines)
             ttLines->ucFramingCode = BVBI_TT_INVALID_FRAMING_CODE;
-
-            /* Skip over wasted space */
-            pData += pTTData->ucLineSize;
-#else
-            ttLines->ucFramingCode = BVBI_TT_INVALID_FRAMING_CODE;
-#endif
         }
 
         /* Next element of user's array */
@@ -159,11 +139,7 @@ BERR_Code BVBI_Field_GetTTData_isr (
     }
 
     /* Indicate the rest of the lines in the user's data array is empty */
-#ifdef BVBI_P_TTE_WA15
-    for ( ; pTTData->firstLine + iLine < nLines ; ++iLine)
-#else
     for ( ; iLine < nLines ; ++iLine)
-#endif
     {
         ttLines->ucFramingCode = BVBI_TT_INVALID_FRAMING_CODE;
         ++ttLines;
@@ -186,18 +162,13 @@ BERR_Code BVBI_Field_SetTTData_isr (
 {
     uint32_t lineMask;
     uint8_t* pData;
-    void*    cached_ptr;
     uint8_t  lineWidth;
     int      iLine;
     int      iChar;
     BVBI_P_Field_Handle* pVbi_Fld;
     BVBI_P_TTData* pTTData;
+    BVBI_P_MmaData* pMmaData;
     uint16_t bytes_used;
-    BMEM_Handle hMem;
-    BERR_Code eErr;
-#ifdef BVBI_P_TTXADR_WAROUND
-    bool firstLine = true;
-#endif
 
     BDBG_ENTER(BVBI_Field_SetTTData_isr);
 
@@ -209,8 +180,6 @@ BERR_Code BVBI_Field_SetTTData_isr (
         BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-
-    hMem = pVbi_Fld->pVbi->hMem;
 
     switch (eVideoFormat)
     {
@@ -255,19 +224,13 @@ BERR_Code BVBI_Field_SetTTData_isr (
     BVBI_P_LCOP_WRITE_isr (
         pVbi_Fld, TTDataO, &pVbi_Fld->pVbi->ttFreelist, clink);
     pTTData = BVBI_P_LCOP_GET_isr (pVbi_Fld, TTDataO);
-    eErr = BERR_TRACE (
-        BMEM_ConvertAddressToCached_isr (hMem, pTTData->pucData, &cached_ptr));
-    if (eErr != BERR_SUCCESS)
-    {
-        BDBG_ERR(("Cache memory failure"));
-        return eErr;
-    }
-    pData = (uint8_t*)cached_ptr;
+    pMmaData = &(pTTData->mmaData);
+    pData = (uint8_t*)(pMmaData->pSwAccess);
     pData += 4;
+    bytes_used = 4;
 
     /* Check that the field handle is big enough to start.
        More checking will follow */
-    bytes_used = 4;
     if (pTTData->ucDataSize < bytes_used)
     {
         BDBG_ERR(("Field handle cannot accomodate teletext data"));
@@ -283,12 +246,6 @@ BERR_Code BVBI_Field_SetTTData_isr (
         {
             /* Verify that there is enough room in field handle */
             bytes_used += lineWidth;
-#ifdef BVBI_P_TTXADR_WAROUND
-            if (firstLine)
-            {
-                ++bytes_used;
-            }
-#endif
             if (bytes_used > pTTData->ucDataSize)
             {
                 BDBG_ERR(("Field handle cannot accomodate teletext data"));
@@ -300,14 +257,6 @@ BERR_Code BVBI_Field_SetTTData_isr (
 
             /* Copy one line of data */
             *pData++ = ttLines->ucFramingCode;
-#ifdef BVBI_P_TTXADR_WAROUND
-            if (firstLine)
-            {
-                /* Write framing code again! */
-                *pData++ = ttLines->ucFramingCode;
-                firstLine = false;
-            }
-#endif
             for (iChar = 0 ; iChar < lineWidth - 1 ; ++iChar)
             {
                 *pData++ = ttLines->aucData[iChar];
@@ -319,18 +268,6 @@ BERR_Code BVBI_Field_SetTTData_isr (
             /* Update line count in private data */
             pTTData->ucLines = (uint8_t)(iLine + 1);
         }
-#ifdef BVBI_P_TTE_WA15
-        else /* No data on this line in user space */
-        {
-            /* Create wasted space in the field handle! */
-            if (pTTData->firstLine != 0xFF)
-            {
-                bytes_used += lineWidth;
-                pData += lineWidth;
-            }
-
-        } /* If there is data on this line in user space */
-#endif
 
         /* Go to next line of user's data */
         ++ttLines;
@@ -338,17 +275,13 @@ BERR_Code BVBI_Field_SetTTData_isr (
 
     /* Write the line mask and line width to the start of the data */
     if (pTTData->firstLine == 0xFF)
-#ifdef BVBI_P_TTE_WA15
-        pTTData->firstLine = 0;
-#else
         lineMask = 0x0;
-#endif
     else
         lineMask = lineMask >> pTTData->firstLine;
     pTTData->lineMask = lineMask;
-    pData = (uint8_t*)cached_ptr;
+    pData = (uint8_t*)(pMmaData->pSwAccess);
     *(uint32_t*)(pData) = 0xFFFFFFFF;
-    BMEM_FlushCache_isr (hMem, cached_ptr, bytes_used);
+    BVBI_P_MmaFlush_isrsafe (pMmaData, bytes_used);
     pTTData->ucLineSize = lineWidth;
 
     /* Indicate valid data is present */
@@ -402,77 +335,52 @@ uint32_t BVBI_P_TT_Size_Storage(uint32_t ulMaxLines, uint32_t ulMaxLineSize)
  *
  */
 BERR_Code BVBI_P_TTData_Alloc (
-    BMEM_Handle hMem, uint8_t ucMaxLines, uint8_t ucLineSize,
+    BMMA_Heap_Handle hMmaHeap, uint8_t ucMaxLines, uint8_t ucLineSize,
     BVBI_P_TTData* pTTData)
 {
-    void* cached_ptr;
-    BERR_Code eErr;
+    BVBI_P_MmaData* pMmaData;
+    BERR_Code eErr = BERR_SUCCESS;
 
     /* Sanity check */
-    if (!hMem || !pTTData)
+    if (!hMmaHeap || !pTTData)
     {
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
+    /* Convenience */
+    pMmaData = &(pTTData->mmaData);
+
     /* Deallocate data if necessary */
-    if (pTTData->pucData != 0)
+    if (pMmaData->handle != NULL)
     {
-        BMEM_Free (hMem, pTTData->pucData);
+        BVBI_P_MmaFree (pMmaData);
         pTTData->ucDataSize =   0;
         pTTData->ucLines    =   0;
         pTTData->ucLineSize =   0;
-        pTTData->pucData    = 0x0;
     }
 
     /* If user wants to hold any teletext data */
     if (ucMaxLines != 0)
     {
         uint32_t dataSize = BVBI_P_TT_Size_Storage (ucMaxLines, ucLineSize);
-#ifdef BVBI_P_TTXADR_WAROUND
-        ++dataSize;
-#endif
-        pTTData->pucData =
-            (uint8_t*)(BMEM_AllocAligned (
-                hMem,
-                dataSize,
-                8,
-                0));
-        if (!pTTData->pucData)
-        {
-            return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        }
-        eErr = BERR_TRACE (
-            BMEM_ConvertAddressToCached (hMem, pTTData->pucData, &cached_ptr));
+        eErr = BERR_TRACE (BVBI_P_MmaAlloc (hMmaHeap, dataSize, 256, pMmaData));
         if (eErr != BERR_SUCCESS)
         {
-            BDBG_ERR(("Cache memory failure"));
-            BMEM_Free (hMem, pTTData->pucData);
-            return eErr;
+            goto init_done;
         }
 
-        /* Zero out the line mask */
-        *(uint32_t*)cached_ptr = 0x0;
+        /* Zero out the line mask and flush */
+        *(uint32_t*)(pMmaData->pSwAccess) = 0x0;
+        BVBI_P_MmaFlush_isrsafe (pMmaData, sizeof(uint32_t));
 
         /* Complete the self-description of the teletext data */
         pTTData->ucDataSize =   dataSize;
         pTTData->ucLines    =          0;
         pTTData->ucLineSize =          0;
-
-        /* Debug code */
-        /*
-        {
-        uint8_t* start = cached_ptr;
-        uint8_t* end = start + dataSize;
-        while (start < end)
-        {
-            *(uint32_t*)start = 0xDEADBEEF;
-            start += sizeof(uint32_t);
-        }
-        }
-        */
     }
 
-    return BERR_SUCCESS;
+init_done:
+    return eErr;
 }
 
 /***************************************************************************

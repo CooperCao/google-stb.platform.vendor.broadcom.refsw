@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -96,9 +96,6 @@
 #endif
 #ifdef NEXUS_FRONTEND_3431
 #include "nexus_amplifier_3431.h"
-#endif
-#ifdef NEXUS_FRONTEND_4500
-#include "nexus_frontend_4500.h"
 #endif
 #ifdef NEXUS_FRONTEND_4501
 #include "nexus_frontend_4501.h"
@@ -419,6 +416,8 @@ typedef struct NEXUS_Frontend
         unsigned inputBand;
         unsigned txOut;
         unsigned daisyTxOut;
+        unsigned daisyOverride; /* per-FrontendHandle override of daisy-chaining, to support cases where a slave device feeds to both the backend and a frontend device.
+                                   if true, then this handle is routed directly to the backend. if false, then daisy-chained as usual */
     } mtsif;
     NEXUS_FrontendCapabilities capabilities;
     NEXUS_FrontendUserParameters userParameters;

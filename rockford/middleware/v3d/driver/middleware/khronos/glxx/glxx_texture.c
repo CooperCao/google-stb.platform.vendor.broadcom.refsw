@@ -10,16 +10,16 @@ Implementation of OpenGL ES texture structure.
 =============================================================================*/
 
 #include "interface/khronos/common/khrn_int_common.h"
-
-#include "middleware/khronos/glxx/glxx_texture.h"
-
-#include "middleware/khronos/common/khrn_image.h"
-#include "middleware/khronos/common/khrn_interlock.h"
+#include "interface/khronos/glxx/glxx_int_config.h"
 #include "interface/khronos/common/khrn_int_util.h"
-#include "middleware/khronos/common/khrn_hw.h"
 #include "interface/khronos/include/GLES/gl.h"
 #include "interface/khronos/include/GLES/glext.h"
 #include "middleware/khronos/ext/egl_khr_image.h"
+#include "middleware/khronos/common/khrn_hw.h"
+#include "middleware/khronos/glxx/glxx_texture.h"
+#include "middleware/khronos/common/khrn_image.h"
+#include "middleware/khronos/common/khrn_interlock.h"
+#include "middleware/khronos/glxx/glxx_server.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -175,12 +175,10 @@ static void nullify(GLXX_TEXTURE_T *texture)
    MEM_ASSIGN(texture->external_image, MEM_INVALID_HANDLE);
 }
 
-void glxx_texture_term(void *v, uint32_t size)
+void glxx_texture_term(MEM_HANDLE_T handle)
 {
    int i;
-   GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)v;
-
-   UNUSED(size);
+   GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(handle, NULL);
 
    glxx_texture_release_teximage(texture);
    nullify(texture);
@@ -191,6 +189,8 @@ void glxx_texture_term(void *v, uint32_t size)
    }
 
    khrn_interlock_term(&texture->interlock);
+
+   mem_unlock(handle);
 }
 
 static KHRN_IMAGE_FORMAT_T convert_format(GLenum format, GLenum type)
@@ -433,6 +433,24 @@ static uint32_t get_stride(uint32_t l, GLenum format, GLenum type, uint32_t a)
    return k;
 }
 
+static bool invalidate_ms_image(GLXX_TEXTURE_T *texture, int width, int height, bool secure)
+{
+   // recreate the ms image if it existed
+   if (texture->mh_ms_image) {
+      MEM_HANDLE_T hmsimage = glxx_image_create_ms(COL_32_TLBD,
+         width, height,
+         IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
+
+      if (hmsimage == MEM_INVALID_HANDLE)
+         return false;
+
+      MEM_ASSIGN(texture->mh_ms_image, hmsimage);
+      mem_release(hmsimage);
+   }
+
+   return true;
+}
+
 static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level,
    KHRN_IMAGE_FORMAT_T format, int width, int height, bool secure)
 {
@@ -545,6 +563,13 @@ static bool check_image(GLXX_TEXTURE_T *texture, uint32_t buffer, uint32_t level
       IMAGE_CREATE_FLAG_ONE | IMAGE_CREATE_FLAG_TEXTURE, secure); /* todo: check usage flags */
    if (himage == MEM_INVALID_HANDLE)
       return false;
+
+   if (!invalidate_ms_image(texture, width, height, secure))
+   {
+      // image creation failed, so make the resolve invalid also
+      mem_release(himage);
+      return false;
+   }
 
    if (texture->mh_mipmaps[buffer][level] == MEM_INVALID_HANDLE)
       texture->explicit_mipmaps++;
@@ -885,6 +910,13 @@ bool glxx_texture_sub_image(GLXX_TEXTURE_T *texture, GLenum target, uint32_t lev
    vcos_assert(dstx < dstx+width  && dstx+width  <= dst_wrap.width);
    vcos_assert(dsty < dsty+height && dsty+height <= dst_wrap.height);
    //TODO get KHRN_IMAGE_T to do this for us
+
+   // Invalidate the ms image if it exists
+   if (!invalidate_ms_image(texture, width, height, false))
+   {
+      // if the new ms image fails, don't copy the data and fail the api
+      return false;
+   }
 
    if (pixels) {
       KHRN_IMAGE_WRAP_T src_wrap;

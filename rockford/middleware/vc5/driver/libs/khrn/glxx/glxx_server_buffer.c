@@ -144,7 +144,7 @@ static GLXX_BUFFER_BINDING_T *binding_from_target(GLXX_SERVER_STATE_T *state,
    case GL_SHADER_STORAGE_BUFFER:
       return &state->bound_buffer[GLXX_BUFTGT_SHADER_STORAGE_BUFFER];
    case GL_TRANSFORM_FEEDBACK_BUFFER:
-      return glxx_tf_get_buffer_binding(state);
+      return &(glxx_get_bound_tf(state)->bound_buffer);
    default:
       unreachable();
    }
@@ -155,7 +155,7 @@ static GLXX_INDEXED_BINDING_POINT_T *indexed_binding_from_target(GLXX_SERVER_STA
 {
    switch (target) {
       case GL_UNIFORM_BUFFER:            return state->uniform_block.binding_points;
-      case GL_TRANSFORM_FEEDBACK_BUFFER: return glxx_tf_get_indexed_bindings(state);
+      case GL_TRANSFORM_FEEDBACK_BUFFER: return state->transform_feedback.bound->binding_points;
       case GL_SHADER_STORAGE_BUFFER:     return state->ssbo.binding_points;
       case GL_ATOMIC_COUNTER_BUFFER:     return state->atomic_counter.binding_points;
       default:       unreachable(); return NULL;
@@ -198,9 +198,9 @@ static void bind_buffer(GLXX_SERVER_STATE_T *state, GLenum target, GLXX_BUFFER_T
    KHRN_MEM_ASSIGN(buffer_binding->obj, buffer);
 }
 
-// If size == -1, use full buffer size, dynamically evaluated each time binding is used
+// If size == SIZE_MAX, use full buffer size, dynamically evaluated each time binding is used
 static void bind_indexed_buffer(GLXX_SERVER_STATE_T *state, GLenum target, GLuint index,
-   GLXX_BUFFER_T *buffer, GLintptr offset, GLsizeiptr size)
+   GLXX_BUFFER_T *buffer, size_t offset, size_t size)
 {
    GLXX_INDEXED_BINDING_POINT_T *binding_points;
 
@@ -221,8 +221,12 @@ static GLenum set_bound_buffer(GLXX_SERVER_STATE_T *state, GLenum target,
 {
    GLXX_BUFFER_T *buffer_obj;
 
-   if (target == GL_TRANSFORM_FEEDBACK_BUFFER && !glxx_tf_bind_buffer_valid(state))
-      return GL_INVALID_OPERATION;
+   if (target == GL_TRANSFORM_FEEDBACK_BUFFER)
+   {
+      GLXX_TRANSFORM_FEEDBACK_T *tf = glxx_get_bound_tf(state);
+      if (glxx_tf_is_active(tf))
+         return GL_INVALID_OPERATION;
+   }
 
    if (buffer)
    {
@@ -392,7 +396,7 @@ GL_API void GL_APIENTRY glBindBufferBase(GLenum target, GLuint index, GLuint buf
       goto unlock_out;
    }
 
-   error = set_bound_buffer(state, target, buffer, index, 0, -1);
+   error = set_bound_buffer(state, target, buffer, index, 0, SIZE_MAX);
    if (error != GL_NO_ERROR)
    {
       glxx_server_state_set_error(state, error);
@@ -590,7 +594,7 @@ GL_API void GL_APIENTRY glDeleteBuffers(GLsizei n, const GLuint* buffers)
                }
 
                // Disconnect from transform feedback
-               glxx_tf_delete_buffer(state->transform_feedback.binding, buffer, buffers[i]);
+               glxx_tf_delete_buffer(state->transform_feedback.bound, buffer, buffers[i]);
 
                // Disconnect from uniform buffers
                for (int j = 0; j < GLXX_CONFIG_MAX_UNIFORM_BUFFER_BINDINGS; ++j)

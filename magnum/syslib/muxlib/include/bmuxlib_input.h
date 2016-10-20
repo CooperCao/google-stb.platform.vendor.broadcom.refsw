@@ -316,6 +316,18 @@ BMUXlib_Input_PeekAtNextDescriptor(
          );
 
 bool
+BMUXlib_Input_PeekAtDescriptor(
+         BMUXlib_Input_Handle hInput,
+         unsigned uiIndex,
+         BMUXlib_Input_Descriptor *pstDescriptor
+         );
+
+unsigned
+BMUXlib_Input_GetDescriptorCount(
+         BMUXlib_Input_Handle hInput
+         );
+
+bool
 BMUXlib_Input_GetNextDescriptor(
          BMUXlib_Input_Handle hInput,
          BMUXlib_Input_Descriptor *pstDescriptor

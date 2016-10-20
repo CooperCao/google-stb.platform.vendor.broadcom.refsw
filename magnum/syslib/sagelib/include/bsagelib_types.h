@@ -47,6 +47,8 @@
 extern "C" {
 #endif
 
+#define SAGE_VERSION_CALC(major,minor) (((major)<<16)|(minor))
+#define SAGE_VERSION     SAGE_VERSION_CALC(SAGE_VERSION_VER_MAJOR,SAGE_VERSION_VER_MINOR)
 
 /**
 Summary:
@@ -72,7 +74,7 @@ The two following are the only standard ones present in all systems.
 #define BSAGE_PLATFORM_ID_DTCP_IP        (0x110)
 #define BSAGE_PLATFORM_ID_MIRACAST       (0x111)
 #define BSAGE_PLATFORM_ID_MARLIN         (0x112)
-#define BSAGE_PLATFORM_ID_RESERVED1      (0x113)
+#define BSAGE_PLATFORM_ID_EDRM           (0x113)
 #define BSAGE_PLATFORM_ID_RESERVED2      (0x114)
 #define BSAGE_PLATFORM_ID_RESERVED3      (0x115)
 #define BSAGE_PLATFORM_ID_RESERVED4      (0x116)
@@ -311,6 +313,7 @@ typedef struct {
     uint32_t reserved[8];/*Reserved for future use*/
 } BSAGElib_SageLogBuffer;
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 /* system module IDs */
 typedef enum SystemCrit_ModuleId_e {
     SystemCrit_ModuleId_eFramework = 0x1
@@ -327,6 +330,7 @@ enum {
     FrameworkModule_CommandId_eStandbyPassive     = 0x1,
     FrameworkModule_CommandId_eStandbyDeepSleep,
     FrameworkModule_CommandId_eEnableSvp, /* TODO: Need to decide hwo to send this command */
+    FrameworkModule_CommandId_eHostRestartVerify,
     FrameworkModule_CommandId_eMax
 };
 
@@ -345,6 +349,7 @@ enum {
 #define BSAGELIB_SOURCE_HDCP22 0x2
 #define BSAGELIB_SOURCE_TIMER 0x3
 #define BSAGELIB_SOURCE_GENERIC 0x4
+#endif
 
 #ifdef __cplusplus
 }

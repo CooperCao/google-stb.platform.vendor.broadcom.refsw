@@ -3,20 +3,43 @@ Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
 =============================================================================*/
 
-#include "display_nexus_priv.h"
+#include "display_nexus_exclusive.h"
+
 #include "event.h"
 #include "fatal_error.h"
 #include "platform_common.h"
+#include "../nexus/private_nexus.h" /* NXPL_Surface */
+
+struct buffer
+{
+   NEXUS_SurfaceHandle surface;
+   int                 fence;
+};
+
+typedef struct display
+{
+   const FenceInterface         *fenceInterface;
+   NEXUS_DISPLAYHANDLE           display;
+   NXPL_DisplayType              displayType;
+   int                          *bound;
+
+   struct buffer                 active;
+   struct buffer                 pending;
+   BKNI_MutexHandle              mutex;
+
+   void                         *vsyncEvent;
+   bool                          terminating;
+} display;
 
 static void vsyncCallback(void *context, int param)
 {
-   NXPL_Display *priv = (NXPL_Display *)context;
+   display *self = (display *)context;
 
-   int terminating = __sync_fetch_and_and(&priv->terminating, 1);
+   int terminating = __sync_fetch_and_and(&self->terminating, 1);
    if (!terminating)
    {
-      BKNI_AcquireMutex(priv->surface.mutex);
-      if (!priv->surface.next)
+      BKNI_AcquireMutex(self->mutex);
+      if (!self->pending.surface)
       {
          /* This is the 2nd and subsequent vsync after DisplaySurface().
           * We have to skip the 1st one because frameBufferCallback may arrive
@@ -25,18 +48,18 @@ static void vsyncCallback(void *context, int param)
           *
           * The 1st vsync is signalled from frameBufferCallback().
           */
-         SetEvent(priv->vsyncEvent);
+         SetEvent(self->vsyncEvent);
       }
-      BKNI_ReleaseMutex(priv->surface.mutex);
+      BKNI_ReleaseMutex(self->mutex);
    }
 }
 
 static void frameBufferCallback(void *context, int param)
 {
-   NXPL_Display *priv = (NXPL_Display *)context;
+   display *self = (display *)context;
    UNUSED(param);
 
-   int terminating = __sync_fetch_and_and(&priv->terminating, 1);
+   int terminating = __sync_fetch_and_and(&self->terminating, 1);
    if (!terminating)
    {
       /* Buffers were swapped. The surface that was previously on screen is
@@ -44,100 +67,138 @@ static void frameBufferCallback(void *context, int param)
        * to DisplaySurface is now on screen. The next call DisplaySurface
        * will initiate another buffer swap.
        */
-      NEXUS_SurfaceHandle off;
-      BKNI_AcquireMutex(priv->surface.mutex);
-      off = priv->surface.current;
-      priv->surface.current = priv->surface.next;
-      priv->surface.next = NULL;
+      BKNI_AcquireMutex(self->mutex);
+
+      FenceInterface_Signal(self->fenceInterface, self->active.fence);
+
+      self->active.surface = self->pending.surface;
+      self->active.fence = self->pending.fence;
+
+      self->pending.surface = NULL;
+      self->pending.fence = self->fenceInterface->invalid_fence;
 
       /* that's the 1st "vsync" after DisplaySurface() */
-      SetEvent(priv->vsyncEvent);
+      SetEvent(self->vsyncEvent);
 
-      BKNI_ReleaseMutex(priv->surface.mutex);
-
-      if (priv->bufferOffDisplay.callback && off)
-      {
-         priv->bufferOffDisplay.callback(priv->bufferOffDisplay.context, off);
-      }
+      BKNI_ReleaseMutex(self->mutex);
    }
 }
 
-bool InitializeDisplayExclusive(NXPL_Display *priv,
-      NXPL_DisplayType displayType, NEXUS_DISPLAYHANDLE display, int *bound,
-      const NXPL_NativeWindowInfoEXT *windowInfo)
+static DisplayInterfaceResult display_surface(void *context, void *s,
+      int render_fence, int *display_fence)
 {
-   priv->displayType = displayType;
-   priv->bound = bound;
-   priv->display = display;
+   display *self = (display *)context;
+   NXPL_Surface *nxpl_surface = (NXPL_Surface *)s;
+   NEXUS_SurfaceHandle surface = nxpl_surface->surface;
 
-   /* setup the display & callback */
-   priv->vsyncEvent = CreateEvent();
+   FenceInterface_WaitAndDestroy(
+         self->fenceInterface, &render_fence);
 
-   if (BKNI_CreateMutex(&priv->surface.mutex) != BERR_SUCCESS)
-      FATAL_ERROR("BKNI_CreateMutex failed");
-   priv->surface.current = NULL;
-   priv->surface.next = NULL;
-
-   if (priv->display != NULL)
+   BKNI_AcquireMutex(self->mutex);
+   if (self->pending.surface)
    {
-      __sync_fetch_and_add(priv->bound, 1);
-
-      SetDisplayComposition(priv, windowInfo);
+      BKNI_ReleaseMutex(self->mutex);
+      return eDisplayFailed;
    }
 
-   NEXUS_CallbackDesc vsync;
-   /* vsync available, swap interval can be active */
-   vsync.callback = vsyncCallback;
-   vsync.context = priv;
-   NEXUS_Error err = NEXUS_Display_SetVsyncCallback(priv->display, &vsync);
-   if (err != NEXUS_SUCCESS)
-      FATAL_ERROR("NEXUS_Display_SetVsyncCallback failed");
+   NEXUS_GraphicsFramebuffer3D fb3d;
+   NEXUS_Graphics_GetDefaultFramebuffer3D(&fb3d);
+   fb3d.main = surface;
+   fb3d.right = surface;
 
+   if (self->displayType == NXPL_2D)
+      fb3d.orientation = NEXUS_VideoOrientation_e2D;
+   else if (self->displayType == NXPL_3D_LEFT_RIGHT)
+      fb3d.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
+   else if (self->displayType == NXPL_3D_OVER_UNDER)
+      fb3d.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
+   else
+   {
+      BKNI_ReleaseMutex(self->mutex);
+      FATAL_ERROR("Invalid displayType");
+      return eDisplayFailed;
+   }
+
+   ResetEvent(self->vsyncEvent);
+
+   NEXUS_Error err = NEXUS_Display_SetGraphicsFramebuffer3D(self->display, &fb3d);
+   if (err != NEXUS_SUCCESS)
+   {
+      BKNI_ReleaseMutex(self->mutex);
+      FATAL_ERROR("NEXUS_Display_SetGraphicsFramebuffer3D failed");
+      return eDisplayFailed;
+   }
+
+   self->pending.surface = surface;
+   FenceInterface_Create(
+         self->fenceInterface, &self->pending.fence);
+   *display_fence = self->pending.fence;
+
+   BKNI_ReleaseMutex(self->mutex);
+   return eDisplayPending;
+}
+
+static bool wait_sync(void *context)
+{
+   display *self = (display *)context;
+   WaitEvent(self->vsyncEvent);
    return true;
 }
 
-void TerminateDisplay(NXPL_Display *priv)
+static void stop(void *context)
 {
+   display *self = (display *)context;
    /* mark as dying.  As callbacks are asynchronous in the nexus model, they can
       arrive after they have been uninstalled here, calling with destroyed resources */
-   int res = __sync_fetch_and_or(&priv->terminating, 1);
+   int res = __sync_fetch_and_or(&self->terminating, 1);
    if (res != 0)
       FATAL_ERROR("TerminateDisplay called more than once");
 
-   if (priv->display != NULL)
+   if (self->display != NULL)
    {
-      int res = __sync_sub_and_fetch(priv->bound, 1);
+      int res = __sync_sub_and_fetch(self->bound, 1);
       /* don't remove the callbacks until we've counted everything done */
       if (res == 0)
       {
          NEXUS_GraphicsSettings  graphicsSettings;
-         NEXUS_Display_GetGraphicsSettings(priv->display, &graphicsSettings);
+         NEXUS_Display_GetGraphicsSettings(self->display, &graphicsSettings);
 
          graphicsSettings.enabled = false;
          graphicsSettings.frameBufferCallback.callback = NULL;
 
-         NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(priv->display, &graphicsSettings);
+         NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(self->display, &graphicsSettings);
          if (err != NEXUS_SUCCESS)
             FATAL_ERROR("NEXUS_Display_SetGraphicsSettings failed");
       }
    }
 
-   NEXUS_Error err = NEXUS_Display_SetVsyncCallback(priv->display, NULL);
+   NEXUS_Error err = NEXUS_Display_SetVsyncCallback(self->display, NULL);
    if (err != NEXUS_SUCCESS)
       FATAL_ERROR("NEXUS_Display_SetVsyncCallback failed");
 
-   BKNI_DestroyMutex(priv->surface.mutex);
-   priv->surface.current = NULL;
-   priv->surface.next = NULL;
+   BKNI_DestroyMutex(self->mutex);
+   self->active.surface = NULL;
+   self->pending.surface = NULL;
+   FenceInterface_Signal(self->fenceInterface, self->active.fence);
+   FenceInterface_Signal(self->fenceInterface, self->pending.fence);
 
-   DestroyEvent(priv->vsyncEvent);
+   DestroyEvent(self->vsyncEvent);
+
 }
 
-void SetDisplayComposition(NXPL_Display *priv, const NXPL_NativeWindowInfoEXT *windowInfo)
+
+static void destroy(void *context)
+{
+   display *self = (display *)context;
+   free(self);
+}
+
+static void SetDisplayComposition(NEXUS_DISPLAYHANDLE display,
+      const NXPL_NativeWindowInfoEXT *windowInfo)
 {
    NEXUS_GraphicsSettings  graphicsSettings;
 
-   NEXUS_Display_GetGraphicsSettings(priv->display, &graphicsSettings);
+   NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
 
    graphicsSettings.enabled = true;
    graphicsSettings.position.x = windowInfo->x;
@@ -150,62 +211,73 @@ void SetDisplayComposition(NXPL_Display *priv, const NXPL_NativeWindowInfoEXT *w
    graphicsSettings.clip.width = windowInfo->width;
    graphicsSettings.clip.height = windowInfo->height;
 
-   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(priv->display, &graphicsSettings);
+   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
    if (err != NEXUS_SUCCESS)
       FATAL_ERROR("NEXUS_Display_SetGraphicsSettings failed");
 }
 
-void SetDisplayFinishedCallback(NXPL_Display *priv,
-      NXPL_SurfaceOffDisplay callback, void *context)
+static void SetVsyncCallback(NEXUS_DISPLAYHANDLE display,
+      NEXUS_Callback callback, void *context)
+{
+   NEXUS_CallbackDesc vsync;
+   /* vsync available, swap interval can be active */
+   vsync.callback = callback;
+   vsync.context = context;
+   NEXUS_Error err = NEXUS_Display_SetVsyncCallback(display, &vsync);
+   if (err != NEXUS_SUCCESS)
+      FATAL_ERROR("NEXUS_Display_SetVsyncCallback failed");
+}
+
+static void SetFrameBufferCallback(NEXUS_DISPLAYHANDLE display,
+      NEXUS_Callback callback, void *context)
 {
    NEXUS_GraphicsSettings  graphicsSettings;
-   NEXUS_Display_GetGraphicsSettings(priv->display, &graphicsSettings);
-
-   priv->bufferOffDisplay.callback = callback;
-   priv->bufferOffDisplay.context = context;
-
-   graphicsSettings.frameBufferCallback.callback = frameBufferCallback;
-   graphicsSettings.frameBufferCallback.context = priv;
-   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(priv->display, &graphicsSettings);
+   NEXUS_Display_GetGraphicsSettings(display, &graphicsSettings);
+   graphicsSettings.frameBufferCallback.callback = callback;
+   graphicsSettings.frameBufferCallback.context = context;
+   NEXUS_Error err = NEXUS_Display_SetGraphicsSettings(display, &graphicsSettings);
    if (err != NEXUS_SUCCESS)
       FATAL_ERROR("SetDisplayFrameBufferCallback failed");
 }
 
-bool DisplaySurface(NXPL_Display *priv, NEXUS_SurfaceHandle surface)
+bool DisplayInterface_InitNexusExclusive(DisplayInterface *di,
+      const FenceInterface *fi,
+      const NXPL_NativeWindowInfoEXT *windowInfo, NXPL_DisplayType displayType,
+      NEXUS_DISPLAYHANDLE display_handle, int *bound)
 {
-   BKNI_AcquireMutex(priv->surface.mutex);
-   if (priv->surface.next)
+   display *self = calloc(1, sizeof(*self));
+   if (self)
    {
-      BKNI_ReleaseMutex(priv->surface.mutex);
-      return false;
+      self->fenceInterface = fi;
+
+      self->displayType = displayType;
+      self->bound = bound;
+      self->display = display_handle;
+
+      /* setup the display & callback */
+      self->vsyncEvent = CreateEvent();
+
+      if (BKNI_CreateMutex(&self->mutex) != BERR_SUCCESS)
+         FATAL_ERROR("BKNI_CreateMutex failed");
+      self->active.surface = NULL;
+      self->pending.surface = NULL;
+      self->active.fence = self->fenceInterface->invalid_fence;
+      self->pending.fence = self->fenceInterface->invalid_fence;
+
+      if (self->display != NULL)
+      {
+         __sync_fetch_and_add(self->bound, 1);
+         SetDisplayComposition(self->display, windowInfo);
+         SetVsyncCallback(self->display, vsyncCallback, self);
+         SetFrameBufferCallback(self->display, frameBufferCallback, self);
+      }
+
+      di->base.context = self;
+      di->base.destroy = destroy;
+
+      di->display = display_surface;
+      di->wait_sync = wait_sync;
+      di->stop = stop;
    }
-   priv->surface.next = surface;
-   BKNI_ReleaseMutex(priv->surface.mutex);
-
-   NEXUS_GraphicsFramebuffer3D fb3d;
-   NEXUS_Graphics_GetDefaultFramebuffer3D(&fb3d);
-   fb3d.main = surface;
-   fb3d.right = surface;
-
-   if (priv->displayType == NXPL_2D)
-      fb3d.orientation = NEXUS_VideoOrientation_e2D;
-   else if (priv->displayType == NXPL_3D_LEFT_RIGHT)
-      fb3d.orientation = NEXUS_VideoOrientation_e3D_LeftRight;
-   else if (priv->displayType == NXPL_3D_OVER_UNDER)
-      fb3d.orientation = NEXUS_VideoOrientation_e3D_OverUnder;
-   else
-      FATAL_ERROR("Invalid displayType");
-
-   ResetEvent(priv->vsyncEvent);
-
-   NEXUS_Error err = NEXUS_Display_SetGraphicsFramebuffer3D(priv->display, &fb3d);
-   if (err != NEXUS_SUCCESS)
-      FATAL_ERROR("NEXUS_Display_SetGraphicsFramebuffer3D failed");
-
-   return true;
-}
-
-void WaitDisplaySync(NXPL_Display *priv)
-{
-   WaitEvent(priv->vsyncEvent);
+   return self != NULL;
 }

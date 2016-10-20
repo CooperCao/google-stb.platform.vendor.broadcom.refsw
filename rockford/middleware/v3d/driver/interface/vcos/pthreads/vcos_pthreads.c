@@ -14,7 +14,6 @@ VideoCore OS Abstraction Layer - pthreads types
 #define _GNU_SOURCE /* required for CPU_SET/CPU_ZERO (defined in sched.h) */
 #define VCOS_INLINE_BODIES
 #include "interface/vcos/vcos.h"
-#include "interface/vcos/vcos_msgqueue.h"
 #include <string.h>
 #include <stdarg.h>
 #include <stdlib.h>
@@ -283,12 +282,6 @@ VCOS_STATUS_T vcos_init(void)
    vcos_semaphore_create(&vcos_thread_main.suspend, NULL, 0);
    vcos_thread_main.thread = pthread_self();
    pthread_setspecific(_vcos_thread_current_key, &vcos_thread_main);
-
-#ifndef V3D_LEAN
-   st = vcos_msgq_init();
-   vcos_assert(st == VCOS_SUCCESS);
-   vcos_logging_init();
-#endif
 
    return st;
 }

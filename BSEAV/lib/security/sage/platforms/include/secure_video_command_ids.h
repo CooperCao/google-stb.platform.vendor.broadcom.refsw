@@ -44,10 +44,37 @@
 extern "C" {
 #endif
 
-#define SECURE_VIDEO_VER_ID 0x00020005
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+#define SECURE_VIDEO_VER_ID 0x00010000
+#else
+#define SECURE_VIDEO_VER_ID 0x00020006
+#endif
 #define SECURE_VIDEO_V3D_ALIGNMENT 4096
 #define SECURE_VIDEO_V3D_SIZE 0x4000
 
+/* Common for all commands */
+#define SECURE_VIDEO_IN_VER 0
+#define SECURE_VIDEO_OUT_RETCODE 0
+#define SECURE_VIDEO_OUT_VER 1
+
+/* For bvn_monitor_CommandId_eSetCores command */
+#define SECURE_VIDEO_SETCORES_IN_ADD 1
+#define SECURE_VIDEO_SETCORES_IN_V3D_OFFSET 2
+#define SECURE_VIDEO_SETCORES_IN_V3D_SIZE 3
+#define SECURE_VIDEO_SETCORES_BLOCK_CORELIST 0
+
+/* For bvn_monitor_CommandId_eUpdateHeaps command */
+#define SECURE_VIDEO_UPDATEHEAPS_IN_COUNT 1
+#define SECURE_VIDEO_UPDATEHEAPS_BLOCK_START 0
+#define SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE 1
+
+/* For bvn_monitor_CommandId_eToggle command */
+#define SECURE_VIDEO_TOGGLE_IN_URR 1
+#define SECURE_VIDEO_TOGGLE_IN_XRR 2
+#define SECURE_VIDEO_TOGGLE_IN_KEYSLOT 3
+#define SECURE_VIDEO_TOGGLE_BLOCK_DMAMEM 0
+
+/* LEGACY support, no longer used */
 typedef enum secureVideo_Toggle_e {
     bvn_monitor_Command_eIgnore,
     bvn_monitor_Command_eEnable,
@@ -60,8 +87,8 @@ typedef enum secureVideo_Toggle_e {
 
 typedef enum secureVideo_CommandId_e {
     bvn_monitor_CommandId_eSetCores = 0x1,
-    bvn_monitor_CommandId_eToggle = 0x2,
-    bvn_monitor_CommandId_eUpdateUrr = 0x3
+    bvn_monitor_CommandId_eToggle = 0x2, /* Legacy support, no longer used */
+    bvn_monitor_CommandId_eUpdateHeaps = 0x3
 }secureVideo_CommandId_e;
 
 #ifdef __cplusplus

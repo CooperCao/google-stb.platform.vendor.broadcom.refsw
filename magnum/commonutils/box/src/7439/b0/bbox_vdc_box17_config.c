@@ -68,6 +68,7 @@ static const BBOX_MemConfig stBoxMemConfig_7439B0_box17 =
 {
    {
       BBOX_MK_RDC_MEMC_IDX(0),       /* RDC */
+      BBOX_MK_DVI_CFC_MEMC_IDX(Invalid), /* HDMI display CFC */
       {
          BBOX_MK_WIN_MEMC_IDX(0,       0,       0,       0,       0      ),  /* disp 0 */
          BBOX_MK_WIN_MEMC_IDX(0,       0,       Invalid, Invalid, 0      ),  /* disp 1 */

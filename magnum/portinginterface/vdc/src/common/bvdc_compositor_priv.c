@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -52,23 +52,12 @@
 #include "bvdc_csc_priv.h"
 
 
-#if BVDC_P_SUPPORT_OSCL
-#include "bvdc_oscl_priv.h"
-#endif
-
-#if (BVDC_P_SUPPORT_NEW_SW_INIT) /* beyond 7420 */
 #define BVDC_P_MAKE_CMP(pCmp, id)                                     \
 {                                                                     \
     (pCmp)->ulCoreResetAddr = BCHP_BMISC_SW_INIT;                     \
     (pCmp)->ulCoreResetMask = BCHP_BMISC_SW_INIT_CMP_##id##_MASK;     \
+    (pCmp)->ulRegOffset = BCHP_CMP_##id##_REG_START - BCHP_CMP_0_REG_START;     \
 }
-#else
-#define BVDC_P_MAKE_CMP(pCmp, id)                                     \
-{                                                                     \
-    (pCmp)->ulCoreResetAddr = BCHP_BMISC_SOFT_RESET;                  \
-    (pCmp)->ulCoreResetMask = BCHP_BMISC_SOFT_RESET_CMP_##id##_MASK;  \
-}
-#endif
 
 /* Dither settings for COMP */
 #define BVDC_P_DITHER_CMP_LFSR_VALUE                 (0xE0F82)
@@ -184,7 +173,6 @@ BERR_Code BVDC_P_Compositor_Create
     /* Initialize non-changing states.  These are not to be changed by runtime. */
     pCompositor->eId          = eCompositorId;
     pCompositor->pFeatures    = &s_aHydraCompositorFeatures[eCompositorId];
-    pCompositor->ulRegOffset  = BVDC_P_CMP_GET_REG_OFFSET(eCompositorId);
     pCompositor->hVdc         = hVdc;
     pCompositor->bIsBypass    = (
         (hVdc->pFeatures->bCmpBIsBypass) &&
@@ -583,35 +571,23 @@ void BVDC_P_Compositor_Init
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) &= ~(
         BCHP_MASK(CMP_0_V0_SURFACE_CTRL, FILT_CTRL));
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) |=  (
-#if BVDC_P_SUPPORT_CMP_TEN_TAP_422_TO_444
         BCHP_FIELD_ENUM(CMP_0_V0_SURFACE_CTRL, FILT_CTRL, TEN_TAPS_FILTERING));
-#else
-        BCHP_FIELD_ENUM(CMP_0_V0_SURFACE_CTRL, FILT_CTRL, MULTI_TAPS_FILTERING));
-#endif
 
-#if BVDC_P_SUPPORT_CMP_DERINGING
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) &= ~(
         BCHP_MASK(CMP_0_V0_SURFACE_CTRL, DERING_EN));
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V0_SURFACE_CTRL) |=  (
         BCHP_FIELD_ENUM(CMP_0_V0_SURFACE_CTRL, DERING_EN, ENABLE));
-#endif
 
 #if BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT > 1
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V1_SURFACE_CTRL) &= ~(
         BCHP_MASK(CMP_0_V1_SURFACE_CTRL, FILT_CTRL));
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V1_SURFACE_CTRL) |=  (
-#if BVDC_P_SUPPORT_CMP_TEN_TAP_422_TO_444
         BCHP_FIELD_ENUM(CMP_0_V1_SURFACE_CTRL, FILT_CTRL, TEN_TAPS_FILTERING));
-#else
-        BCHP_FIELD_ENUM(CMP_0_V1_SURFACE_CTRL, FILT_CTRL, MULTI_TAPS_FILTERING));
-#endif  /* BVDC_P_SUPPORT_CMP_TEN_TAP_422_TO_444 */
 
-#if BVDC_P_SUPPORT_CMP_DERINGING
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V1_SURFACE_CTRL) &= ~(
         BCHP_MASK(CMP_0_V1_SURFACE_CTRL, DERING_EN));
     BVDC_P_CMP_GET_REG_DATA(CMP_0_V1_SURFACE_CTRL) |=  (
         BCHP_FIELD_ENUM(CMP_0_V1_SURFACE_CTRL, DERING_EN, ENABLE));
-#endif
 
 #endif  /* BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT > 1 */
 
@@ -625,7 +601,6 @@ void BVDC_P_Compositor_Init
         BCHP_FIELD_ENUM(CMP_0_CMP_OUT_CTRL, OUT_TO_VEC_CTRL, ENABLE) |
         BCHP_FIELD_ENUM(CMP_0_CMP_OUT_CTRL, CLIP_CTRL, DISABLE));
 
-#if BVDC_P_SUPPORT_CMP_CRC
     BVDC_P_CMP_GET_REG_DATA(CMP_0_CRC_CTRL) &= ~(
         BCHP_MASK(CMP_0_CRC_CTRL, INIT_VALUE) |
         BCHP_MASK(CMP_0_CRC_CTRL, PROBE_RATE) |
@@ -636,7 +611,6 @@ void BVDC_P_Compositor_Init
         BCHP_FIELD_ENUM(CMP_0_CRC_CTRL, PROBE_RATE, ONE_PICTURE_PERIOD) |
         BCHP_FIELD_ENUM(CMP_0_CRC_CTRL, CLEAR,      CLEAR) |
         BCHP_FIELD_DATA(CMP_0_CRC_CTRL, ENABLE,     1));
-#endif
 
     /* Initial new/current public states */
     pNewInfo = &hCompositor->stNewInfo;
@@ -695,28 +669,7 @@ static BERR_Code BVDC_P_Compositor_Validate
     }
 
     /* Get the new validated format from BVDC_P_Display! */
-#if BVDC_P_SUPPORT_OSCL
-    /* Certain chipsets rely on OSCL (output sclaer) within compositor to
-     * to achieve 1080p output. When in this mode, VEC is running at 1080p, but
-     * the whole BVN is configured as if the output format is 1080i.
-     * We use OSCL to convert the interlaced picture to frame then render it
-     * to VEC.
-     */
-    if ((BFMT_VideoFmt_e1080p == hCompositor->hDisplay->stNewInfo.pFmtInfo->eVideoFmt) ||
-        (BFMT_VideoFmt_e1080p_50Hz== hCompositor->hDisplay->stNewInfo.pFmtInfo->eVideoFmt))
-    {
-        hCompositor->stNewInfo.pFmtInfo =
-            BFMT_GetVideoFormatInfoPtr((BFMT_VideoFmt_e1080p == hCompositor->hDisplay->stNewInfo.pFmtInfo->eVideoFmt) ?
-                BFMT_VideoFmt_e1080i : BFMT_VideoFmt_e1080i_50Hz);
-    }
-    else
-    {
-        hCompositor->stNewInfo.pFmtInfo = hCompositor->hDisplay->stNewInfo.pFmtInfo;
-    }
-
-#else
     hCompositor->stNewInfo.pFmtInfo = hCompositor->hDisplay->stNewInfo.pFmtInfo;
-#endif
 
     /* keep track of which blender get used */
     for(i = 0; i < BVDC_P_CMP_MAX_BLENDER; i++)
@@ -1047,6 +1000,7 @@ void BVDC_P_CscMc_Print_isr
     return;
 }
 
+#if (BVDC_P_CMP_NON_LINEAR_CSC_VER == BVDC_P_NL_CSC_VER_2)
 /***************************************************************************
  * Print out CSC MA and MB
  */
@@ -1080,7 +1034,9 @@ void BVDC_P_CscMb_Print_isr
 #endif
     return;
 }
+#endif
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /***************************************************************************
  * {private}
  *
@@ -1321,8 +1277,9 @@ static void BVDC_P_Window_BuildCscRul_isr
         ulStartReg = BCHP_CMP_0_V0_R0_MC_COEFF_C00;
         BSTD_UNUSED(eWinInCmp);
     #endif
-        ulStartReg += (pCscCfg->ucSlotIdx * uMatrixBlockSize * sizeof(int32_t));
-
+    #ifdef BCHP_CMP_0_V0_R1_MC_COEFF_C00
+        ulStartReg += (pCscCfg->ucSlotIdx * (BCHP_CMP_0_V0_R1_MC_COEFF_C00 - BCHP_CMP_0_V0_R0_MC_COEFF_C00) * sizeof(int32_t));
+    #endif
         pCscCoeffs = &pCscCfg->stCscMC;
         BDBG_MODULE_MSG(BVDC_CMP_CSC,("cmp[%d]win[%d]CscSlot[%d] CMP_CSC_MC:", hCompositor->eId, eWinInCmp, pCscCfg->ucSlotIdx));
         BVDC_P_CscMc_Print_isr(pCscCoeffs);
@@ -1352,6 +1309,7 @@ static void BVDC_P_Window_BuildCscRul_isr
     BDBG_LEAVE(BVDC_P_Window_BuildCscRul_isr);
     return;
 }
+#endif
 
 
 #if (BVDC_P_SUPPORT_COLOR_CLIP)
@@ -1430,9 +1388,7 @@ static void BVDC_P_Compositor_BuildRul_Graphics_isr
     if(BVDC_P_CMP_COMPARE_FIELD_DATA(CMP_0_G0_SURFACE_CTRL, ENABLE, 1))
     {
         BVDC_P_CMP_BLOCK_WRITE_TO_RUL(CMP_0_G0_SURFACE_SIZE, CMP_0_G0_CANVAS_OFFSET, pList->pulCurrent);
-#if BVDC_P_SUPPORT_3D_VIDEO
         BVDC_P_CMP_WRITE_TO_RUL(CMP_0_G0_CANVAS_X_OFFSET_R, pList->pulCurrent);
-#endif
     }
 
 #if (BVDC_P_SUPPORT_CSC_MAT_COEF_VER >= 2)
@@ -1529,14 +1485,7 @@ static void BVDC_P_Compositor_BuildRul_Video_isr
         }
 
         BVDC_P_CMP_OFFSET_BLOCK_WRITE_TO_RUL(CMP_0_V0_SURFACE_SIZE, CMP_0_V0_CANVAS_OFFSET, ulV0V1Offset, pList->pulCurrent);
-
-#if BVDC_P_SUPPORT_3D_VIDEO
         BVDC_P_CMP_OFFSET_WRITE_TO_RUL(CMP_0_V0_CANVAS_X_OFFSET_R, ulV0V1Offset, pList->pulCurrent);
-#endif
-
-#if (BVDC_P_SUPPORT_DITHER)
-        BVDC_P_CMP_OFFSET_BLOCK_WRITE_TO_RUL(CMP_0_V0_MC_DITHER_CTRL, CMP_0_V0_MC_DITHER_LFSR_CTRL, ulV0V1Offset, pList->pulCurrent);
-#endif
 
 #if BVDC_P_SUPPORT_CMP_V0_CLEAR_RECT
         if(hCompositor->ulMosaicAdjust[eVId] || hCompositor->bInitial)
@@ -1663,7 +1612,9 @@ static void BVDC_P_Compositor_BuildRul_isr
 {
     BVDC_P_Window_DirtyBits *pV0CurDirty;
     BVDC_P_WindowId eV0Id, eV1Id = BVDC_P_WindowId_eComp0_V1;
+#ifndef BVDC_FOR_BOOTUPDATER
     uint32_t i;
+#endif
 
     BDBG_ENTER(BVDC_P_Compositor_BuildRul_isr);
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
@@ -1704,27 +1655,12 @@ static void BVDC_P_Compositor_BuildRul_isr
             hCompositor->ulColorKeyAdjust[eV1Id] = BVDC_P_RUL_UPDATE_THRESHOLD;
             hCompositor->bCscDemoCompute[eV1Id] = true;
         }
-        /*remove the software init after 7425*/
-#if (!BVDC_P_SUPPORT_3D_VIDEO)
-        BVDC_P_BUILD_RESET(pList->pulCurrent,
-            hCompositor->ulCoreResetAddr, hCompositor->ulCoreResetMask);
-#endif
 
-#if BVDC_P_SUPPORT_CMP_CRC
         /* Also make sure to enable CRC */
         BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CRC_CTRL, pList->pulCurrent);
-#endif
 
         BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_OUT_CTRL, pList->pulCurrent);
     }
-
-#if BVDC_P_SUPPORT_OSCL
-    /* Build OSCL RUL if it presents */
-    if (BVDC_CompositorId_eCompositor0 == hCompositor->eId)
-    {
-        BVDC_P_OSCL_BuildRul_isr(hCompositor, pList, eFieldId);
-    }
-#endif
 
 #ifndef BVDC_FOR_BOOTUPDATER
     if(eV0Id == BVDC_P_WindowId_eComp0_V0)
@@ -1759,10 +1695,7 @@ static void BVDC_P_Compositor_BuildRul_isr
     }
 #endif
 
-
-#if BVDC_P_SUPPORT_3D_VIDEO
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CMP_CTRL, pList->pulCurrent);
-#endif
 
 #if BVDC_P_SUPPORT_CMP_DEMO_MODE
     BVDC_P_CMP_WRITE_TO_RUL(CMP_0_CSC_DEMO_SETTING, pList->pulCurrent);
@@ -2104,7 +2037,7 @@ void BVDC_P_Compositor_WindowsReader_isr
     if(!hCompositor->bIsBypass)
     {
         BFMT_VideoFmt eDspFmt = hCompositor->stCurInfo.pFmtInfo->eVideoFmt;
-        BAVC_MatrixCoefficients eOutAvcMatrixCoeffs = hCompositor->hDisplay->stCurInfo.eHdmiOutput;
+        BAVC_MatrixCoefficients eOutAvcMatrixCoeffs = hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eMatrixCoeffs;
         hCompositor->eOutEotf = hCompositor->hDisplay->stCurInfo.stHdmiSettings.stSettings.eEotf;
 
         if (BVDC_P_IS_CUSTOMFMT(eDspFmt))
@@ -2305,20 +2238,16 @@ void BVDC_P_Compositor_WindowsReader_isr
         BCHP_FIELD_DATA(CMP_0_CANVAS_SIZE, HSIZE, ulHSize) |
         BCHP_FIELD_DATA(CMP_0_CANVAS_SIZE, VSIZE, ulVSize));
 
-#if BVDC_P_SUPPORT_3D_VIDEO
-    {
-        if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
-            eOrientation = pFmtInfo->eOrientation;
+    if(BFMT_IS_3D_MODE(pFmtInfo->eVideoFmt))
+        eOrientation = pFmtInfo->eOrientation;
 
 #if (BVDC_P_DCX_3D_WORKAROUND)
-        if(bEnableDcxm)
-            eOrientation = BFMT_Orientation_e2D;
+    if(bEnableDcxm)
+        eOrientation = BFMT_Orientation_e2D;
 #endif
 
-        BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
-            BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
-    }
-#endif
+    BVDC_P_CMP_GET_REG_DATA(CMP_0_CMP_CTRL) = (
+        BCHP_FIELD_DATA(CMP_0_CMP_CTRL, BVB_VIDEO, eOrientation));
 
     BDBG_LEAVE(BVDC_P_Compositor_WindowsReader_isr);
     return;

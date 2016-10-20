@@ -17,10 +17,9 @@ VG paint object handling implementation.
 
 /* VG_PAINT_BPRINT_T doesn't actually exist (it would be empty) */
 
-void vg_paint_bprint_term(void *p, uint32_t size)
+void vg_paint_bprint_term(MEM_HANDLE_T handle)
 {
-   UNUSED(p);
-   UNUSED(size);
+   UNUSED(handle);
 }
 
 void vg_paint_bprint_from_stem(MEM_HANDLE_T handle)
@@ -28,17 +27,15 @@ void vg_paint_bprint_from_stem(MEM_HANDLE_T handle)
    vcos_assert(vg_is_stem(handle));
 
    mem_set_desc(handle, "VG_PAINT_BPRINT_T");
-   mem_set_term(handle, vg_paint_bprint_term);
+   mem_set_term(handle, vg_paint_bprint_term, NULL);
 }
 
 vcos_static_assert(sizeof(VG_PAINT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_PAINT_T) <= VG_STEM_ALIGN);
 
-void vg_paint_term(void *p, uint32_t size)
+void vg_paint_term(MEM_HANDLE_T handle)
 {
-   VG_PAINT_T *paint = (VG_PAINT_T *)p;
-
-   UNUSED(size);
+   VG_PAINT_T *paint = (VG_PAINT_T *)mem_lock(handle, NULL);
 
    if (paint->pattern != MEM_INVALID_HANDLE) {
       mem_release(paint->pattern);
@@ -51,6 +48,8 @@ void vg_paint_term(void *p, uint32_t size)
    if (paint->ramp_stops != MEM_INVALID_HANDLE) {
       mem_release(paint->ramp_stops);
    }
+
+   mem_unlock(handle);
 }
 
 static void init(VG_PAINT_T *paint)
@@ -95,7 +94,7 @@ MEM_HANDLE_T vg_paint_alloc(void)
    init((VG_PAINT_T *)mem_lock(handle, NULL));
    mem_unlock(handle);
 
-   mem_set_term(handle, vg_paint_term);
+   mem_set_term(handle, vg_paint_term, NULL);
 
    return handle;
 }
@@ -112,7 +111,7 @@ bool vg_paint_from_bprint(MEM_HANDLE_T handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_PAINT_T");
-   mem_set_term(handle, vg_paint_term);
+   mem_set_term(handle, vg_paint_term, NULL);
 
    return true;
 }

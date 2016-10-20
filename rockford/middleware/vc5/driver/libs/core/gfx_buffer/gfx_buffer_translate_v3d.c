@@ -11,7 +11,7 @@ v3d_memory_format_t gfx_buffer_translate_memory_format(
    const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
 {
    const GFX_BUFFER_DESC_PLANE_T *p = &desc->planes[plane_i];
-   assert(gfx_lfmt_is_2d(p->lfmt) || gfx_lfmt_is_3d(p->lfmt)); /* TLB can load/store a slice of a 3D image */
+
    switch (gfx_lfmt_get_swizzling(&p->lfmt))
    {
    case GFX_LFMT_SWIZZLING_RSO:     return V3D_MEMORY_FORMAT_RASTER;
@@ -107,19 +107,25 @@ static v3d_tfu_iformat_t buffer_desc_to_tfu_iformat(const GFX_BUFFER_DESC_T *des
 
    assert(plane_idx < desc->num_planes);
 
-   switch (gfx_lfmt_get_swizzling(&desc->planes[plane_idx].lfmt))
+   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&desc->planes[plane_idx].lfmt);
+   if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+   {
+      /* Assume TFU's configured DRAM MAP version is correct... */
+      assert(gfx_lfmt_is_bigend_sand_family((GFX_LFMT_T)swizzling) == V3D_VER_AT_LEAST(3,3,0,0));
+      switch (gfx_lfmt_sandcol_w_in_bytes(swizzling))
+      {
+      case 128:   tfu_iformat = V3D_TFU_IFORMAT_SAND_128; break;
+      case 256:   tfu_iformat = V3D_TFU_IFORMAT_SAND_256; break;
+      default:    unreachable();
+      }
+   }
+   else switch (swizzling)
    {
    case GFX_LFMT_SWIZZLING_UIF_NOUTILE:
       tfu_iformat = V3D_TFU_IFORMAT_UIF_NO_XOR;
       break;
    case GFX_LFMT_SWIZZLING_UIF_NOUTILE_XOR:
       tfu_iformat = V3D_TFU_IFORMAT_UIF_XOR;
-      break;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-      tfu_iformat = V3D_TFU_IFORMAT_SAND_128;
-      break;
-   case GFX_LFMT_SWIZZLING_SAND_256:
-      tfu_iformat = V3D_TFU_IFORMAT_SAND_256;
       break;
    default:
       tfu_iformat = v3d_tfu_iformat_from_memory_format(

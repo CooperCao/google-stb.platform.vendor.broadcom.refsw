@@ -1,22 +1,42 @@
 /***************************************************************************
- *     Copyright (c) 2002-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  ***************************************************************************/
 
 #ifndef __SPLASH_MAGNUM_H__
@@ -32,7 +52,6 @@
 /* This header file is a extremely simplified version of the magnum stack */
 /* Handles for example are either not required at all and are simplfied to nothing */
 typedef void * BREG_Handle ;
-typedef void * BMEM_Handle ;
 
 #define REG_BASE ((void *)(PHYS_TO_K1(BCHP_PHYSICAL_OFFSET)))
 
@@ -66,13 +85,13 @@ typedef void * BMEM_Handle ;
 
 typedef enum BPXL_Format
 {
-	/* RGB */
-	BPXL_eA8_R8_G8_B8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
+    /* RGB */
+    BPXL_eA8_R8_G8_B8      = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x8888,
 
-	BPXL_eR5_G6_B5         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x0565,
-	BPXL_eA8_Y8_Cb8_Cr8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_AYCbCr | 0x8888,
+    BPXL_eR5_G6_B5         = BPXL_P_COLOR | BPXL_P_RGB | BPXL_P_LOC_ARGB | 0x0565,
+    BPXL_eA8_Y8_Cb8_Cr8    = BPXL_P_ALPHA | BPXL_P_COLOR | BPXL_P_YCbCr | BPXL_P_LOC_AYCbCr | 0x8888,
 
-	BPXL_INVALID           = 0
+    BPXL_INVALID           = 0
 } BPXL_Format;
 
 typedef int BFMT_VideoFmt ;
@@ -84,69 +103,84 @@ typedef unsigned int BERR_Code ;
 
 /***************************************************************************
 Summary:
-	Extracts the bitfield value of a register using RDB name.
+    Extracts the bitfield value of a register using RDB name.
 **************************************************************************/
 #define BCHP_GET_FIELD_DATA(Memory,Register,Field) \
-	((((Memory) & BCHP_MASK(Register,Field)) >> \
-	BCHP_SHIFT(Register,Field)))
+    ((((Memory) & BCHP_MASK(Register,Field)) >> \
+    BCHP_SHIFT(Register,Field)))
 
 /***************************************************************************
 Summary:
-	Push a value into a register bitfield using RDB name.
+    Push a value into a register bitfield using RDB name.
 **************************************************************************/
 
 #define BCHP_FIELD_DATA(Register,Field,Data) \
-	((Data) << BCHP_SHIFT(Register,Field))
+    ((uint64_t)(Data) << BCHP_SHIFT(Register,Field))
 
 /***************************************************************************
 Summary:
-	Push a  value name into a register bitfield using RDB name.
+    Push a  value name into a register bitfield using RDB name.
 **************************************************************************/
 #define BCHP_FIELD_ENUM(Register,Field,Name) \
-	BCHP_FIELD_DATA(Register,Field, BCHP_##Register##_##Field##_##Name)
+    BCHP_FIELD_DATA(Register,Field, BCHP_##Register##_##Field##_##Name)
 
 /*************************************************************************
 Summary:
-	Provide a mask for a specific register field.
+    Provide a mask for a specific register field.
 **************************************************************************/
 #define BCHP_MASK(Register,Field) \
-	BCHP_##Register##_##Field##_MASK
+    BCHP_##Register##_##Field##_MASK
 
 /*************************************************************************
 Summary:
-	Provide a shift for a specific register field.
+    Provide a shift for a specific register field.
 **************************************************************************/
 #define BCHP_SHIFT(Register,Field) \
-	BCHP_##Register##_##Field##_SHIFT
+    BCHP_##Register##_##Field##_SHIFT
 
 
 /* KNI related calls */
-#define BKNI_Memcpy(d,s,c)	memcpy(d,s,c)
-/* #define BMEM_AllocAligned(Heap, Size, Alignment, Boundry)	BCM_K0_TO_K1( (uint32_t)KMALLOC(Size, (1<<Alignment))) */
-void *BMEM_AllocAligned
+#define BKNI_Memcpy(d,s,c)  memcpy(d,s,c)
+
+typedef BSTD_DeviceOffset BMMA_DeviceOffset;
+typedef void* BMMA_HEAP_Handle;
+typedef void* BMMA_Block_Handle;
+
+BMMA_Block_Handle BMMA_Alloc
 (
-	BMEM_Handle       pheap,       /* Heap to allocate from */
-	size_t            ulSize,      /* size in bytes of block to allocate */
-	unsigned int      ucAlignBits, /* alignment for the block */
-	unsigned int      Boundary     /* boundry restricting allocated value */
+    BMMA_Heap_Handle heap,              /* Heap to allocate from */
+    size_t size,                        /* Size in bytes of block to allocate */
+    unsigned alignment,                 /* Size in bytes of block to allocate */
+    const BMMA_AllocationSettings *pSettings    /* Unused */
 );
 
-BERR_Code BMEM_ConvertAddressToOffset(BMEM_Handle heap, void* addr, uint32_t* offset) ;
-uint32_t AlignAddress(
-		uint32_t	ui32Address,	/* [in] size in bytes of block to allocate */
-		unsigned int uiAlignBits	/* [in] alignment for the block */
-		);
-
-BERR_Code BMEM_Heap_ConvertAddressToCached(
-		BMEM_Handle Heap, 
-		void *pvAddress, 
-		void **ppvCachedAddress
+void* BMMA_Lock
+(
+    BMMA_Block_Handle block
 );
 
-BERR_Code BMEM_Heap_FlushCache(
-		BMEM_Handle Heap,
-		void *pvCachedAddress,
-		size_t size
+BMMA_DeviceOffset BMMA_LockOffset
+(
+    BMMA_Block_Handle block
+);
+
+void BMMA_Unlock
+(
+    BMMA_Block_Handle block,
+    const void *addr
+);
+
+void BMMA_UnlockOffset
+(
+    BMMA_Block_Handle block,
+    BMMA_DeviceOffset offset
+);
+
+void BMMA_FlushCache
+(
+    BMMA_Block_Handle block,
+    const void *addr,
+    size_t size
 );
 
 #define BDBG_MODULE(x)
@@ -163,4 +197,3 @@ BERR_Code BMEM_Heap_FlushCache(
 #endif /* __SPLASH_MAGNUM_H__ */
 
 /* End of File */
-

@@ -1157,6 +1157,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open3461(unsigned index, const N
         BDBG_OBJECT_SET(pDevice, NEXUS_3461);
 
         pDevice->openSettings = *pSettings;
+        NEXUS_CallbackDesc_Init(&pDevice->updateGainCallbackDesc);
 
         pDevice->pGenericDeviceHandle = pFrontendDevice;
 #if NEXUS_SHARED_FRONTEND_INTERRUPT

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,7 @@
 #include "bstd.h"
 #include "bkni.h"
 
-#include "bmem.h"
+#include "bmma.h"
 #include "bint.h"
 
 #include "nexus_platform.h"
@@ -78,15 +78,15 @@
 BDBG_MODULE(splashrun);
 
 int splash_script_run(
-BREG_Handle hReg, BMEM_Handle *phMem, SplashData* pSplashData);
+BREG_Handle hReg, BMMA_Heap_Handle *phMma, SplashData* pSplashData);
 
 
 int main(void)
 {
     NEXUS_Error rc;
     NEXUS_PlatformSettings platformSettings;
-	NEXUS_MemoryStatus stat;
-	BMEM_Handle  *phMem;
+    NEXUS_MemoryStatus stat;
+    BMMA_Heap_Handle  *phMma;
     int ii, jj;
 #ifdef SPLASH_VERSION_2
 
@@ -99,22 +99,22 @@ int main(void)
  *  splashgen. Just type one or two function names directly. Don't bother with
  *  the macro. This complexity exists only to solve a problem in splashrun.
  */
-	SplashData* pSplashData = SPLASH_RUL_FUNCTION();
+    SplashData* pSplashData = SPLASH_RUL_FUNCTION();
 #else
-	SplashData lSplashData = {
-		BSPLASH_NUM_MEM,
-		0,                        /* Fill in later */
-		BSPLASH_NUM_SURFACE,
-		&g_SplashSurfaceInfo[0],
-		BSPLASH_NUM_DISPLAY,
-		&g_SplashDisplayInfo[0],
-		sizeof(g_aTriggerMap)/sizeof(g_aTriggerMap[0]),
-		&g_aTriggerMap[0],
-		sizeof(g_aulReg)/(2*sizeof(g_aulReg[0])),
-		&g_aulReg[0]
-	};
-	SplashData* pSplashData = &lSplashData;
-	lSplashData.iRulMemIdx = g_iRulMemIdx;
+    SplashData lSplashData = {
+            BSPLASH_NUM_MEM,
+            0,                        /* Fill in later */
+            BSPLASH_NUM_SURFACE,
+            &g_SplashSurfaceInfo[0],
+            BSPLASH_NUM_DISPLAY,
+            &g_SplashDisplayInfo[0],
+            sizeof(g_aTriggerMap)/sizeof(g_aTriggerMap[0]),
+            &g_aTriggerMap[0],
+            sizeof(g_aulReg)/(2*sizeof(g_aulReg[0])),
+            &g_aulReg[0]
+    };
+    SplashData* pSplashData = &lSplashData;
+    lSplashData.iRulMemIdx = g_iRulMemIdx;
 #endif
 
     NEXUS_SetEnv("NEXUS_BASE_ONLY_INIT","y");
@@ -127,69 +127,65 @@ int main(void)
 
     BDBG_ASSERT(!rc);
 
-	phMem =
-		(BMEM_Handle *)BKNI_Malloc(sizeof(BMEM_Handle) * pSplashData->ulNumMem);
-	BKNI_Memset(
-		(void *)phMem, 0, sizeof(BMEM_Handle) * pSplashData->ulNumMem);
-	for (ii=0; ii<NEXUS_MAX_HEAPS; ii++)
-	{
-		if (g_pCoreHandles->heap[ii].nexus == NULL)
-			continue;
+    phMma =
+        (BMMA_Heap_Handle *)BKNI_Malloc(
+            sizeof(BMMA_Heap_Handle) * pSplashData->ulNumMem);
+    BKNI_Memset(
+        (void *)phMma, 0, sizeof(BMMA_Heap_Handle) * pSplashData->ulNumMem);
 
-		rc = NEXUS_Heap_GetStatus(g_pCoreHandles->heap[ii].nexus, &stat);
-		if (!rc)
-		{
-			bool bGotAll = true;
+    for (ii=0; ii<NEXUS_MAX_HEAPS; ii++)
+    {
+        if (g_pCoreHandles->heap[ii].nexus == NULL)
+            continue;
 
-			BDBG_MSG(("mem %d: idx %d, type 0x%x", ii, stat.memcIndex, stat.memoryType));
-			if (stat.memcIndex<pSplashData->ulNumMem &&
-				stat.memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED /* &&
-				stat.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED */)
-			{
-				*(phMem+stat.memcIndex) = NEXUS_Heap_GetMemHandle(g_pCoreHandles->heap[ii].nexus);
-				BDBG_MSG(("   hMem %p", (void*)(*(phMem + stat.memcIndex))));
-			}
+        rc = NEXUS_Heap_GetStatus(g_pCoreHandles->heap[ii].nexus, &stat);
+        if (!rc)
+        {
+            bool bGotAll = true;
 
-			for (jj=0; jj<(int)pSplashData->ulNumMem; jj++)
-			{
-				if (NULL == *(phMem+jj))
-				{
-					bGotAll = false; break;
-				}
-			}
-			if (bGotAll) break;
-		}
-	}
+            BDBG_MSG(("mem %d: idx %d, type 0x%x", ii, stat.memcIndex, stat.memoryType));
+            if (stat.memcIndex<pSplashData->ulNumMem &&
+                stat.memoryType & NEXUS_MEMORY_TYPE_APPLICATION_CACHED /* &&
+                stat.memoryType & NEXUS_MEMORY_TYPE_DRIVER_CACHED */)
+            {
+                *(phMma+stat.memcIndex) =
+                    NEXUS_Heap_GetMmaHandle(g_pCoreHandles->heap[ii].nexus);
+            }
 
-	for(ii=0; ii<(int)pSplashData->ulNumMem; ii++)
-	{
-		BMEM_HeapInfo  info;
-
-		if (NULL == *(phMem+ii))
-		{
-			BDBG_ERR(("Failed to get heap %d.", ii));
-			return 1;
-		}
-		BMEM_Heap_GetInfo(*(phMem+ii), &info);
-		BDBG_ERR(("mem %d start addr:  virtual(0x%8.8x), offet(0x%8.8x), size %d",
-			   ii, (uint32_t) info.pvAddress, info.ulOffset, info.zSize));
-	}
+            for (jj=0; jj<(int)pSplashData->ulNumMem; jj++)
+            {
+                if (NULL == *(phMma+jj))
+                {
+                    bGotAll = false; break;
+                }
+            }
+            if (bGotAll) break;
+        }
+    }
+    for(ii=0; ii<(int)pSplashData->ulNumMem; ii++)
+    {
+        if (NULL == *(phMma+ii))
+        {
+            BDBG_ERR(("Failed to get heap %d.", ii));
+            return 1;
+        }
+    }
 
 #ifdef debug_only
     splash_script_run(NULL,NULL,NULL);
 #else
-    splash_script_run(g_pCoreHandles->reg, phMem, pSplashData);
+    splash_script_run(g_pCoreHandles->reg, phMma, pSplashData);
 #endif
 
-	BKNI_Free(phMem);
+    BKNI_Free(phMma);
     NEXUS_Platform_Uninit();
     return 0;
 }
 
 void APP_BREG_Write32(BREG_Handle RegHandle, uint32_t reg, uint32_t data)
 {
-	BSTD_UNUSED(RegHandle) ;
-	BSTD_UNUSED(reg) ;
-	BSTD_UNUSED(data) ;
+    BSTD_UNUSED(RegHandle) ;
+    BSTD_UNUSED(reg) ;
+    BSTD_UNUSED(data) ;
 }
 /* End of File */

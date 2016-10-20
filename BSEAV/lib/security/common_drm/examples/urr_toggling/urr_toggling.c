@@ -1145,8 +1145,37 @@ static void setHeapsSecure(bool markSecure)
     NEXUS_HeapRuntimeSettings heapSettings;
     NEXUS_MemoryStatus status;
     NEXUS_Error rc;
+    uint8_t secureGfxHeap=~0;
 
     NEXUS_Platform_GetConfiguration(&platformConfig);
+
+    /* Is there any secure gfx? */
+    for (i=0;i<NEXUS_MAX_HEAPS;i++)
+    {
+        if(!platformConfig.heap[i])
+            continue;
+
+        rc=NEXUS_Heap_GetStatus(platformConfig.heap[i], &status);
+        if(rc)
+            continue;
+
+        if(status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
+        {
+            secureGfxHeap=i;
+        }
+    }
+
+    if((!markSecure) && (secureGfxHeap!=(__typeof__(secureGfxHeap))~0))
+    {
+        /* If disabling.... must disable secure gfx FIRST */
+        heapSettings.secure=false;
+        rc=NEXUS_Platform_SetHeapRuntimeSettings(platformConfig.heap[secureGfxHeap], &heapSettings);
+        if(rc)
+        {
+            BDBG_ERR(("Failed NEXUS_Platform_SetHeapRuntimeSettings (0x%x)", rc));
+        }
+    }
+
     for (i=0;i<NEXUS_MAX_HEAPS;i++)
     {
         if(!platformConfig.heap[i])
@@ -1174,6 +1203,17 @@ static void setHeapsSecure(bool markSecure)
 
         heapSettings.secure=markSecure;
         rc=NEXUS_Platform_SetHeapRuntimeSettings(platformConfig.heap[i], &heapSettings);
+        if(rc)
+        {
+            BDBG_ERR(("Failed NEXUS_Platform_SetHeapRuntimeSettings (0x%x)", rc));
+        }
+    }
+
+    if((markSecure) && (secureGfxHeap!=(__typeof__(secureGfxHeap))~0))
+    {
+        /* If enabling.... must enable secure gfx LAST */
+        heapSettings.secure=true;
+        rc=NEXUS_Platform_SetHeapRuntimeSettings(platformConfig.heap[secureGfxHeap], &heapSettings);
         if(rc)
         {
             BDBG_ERR(("Failed NEXUS_Platform_SetHeapRuntimeSettings (0x%x)", rc));

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -122,8 +122,9 @@ typedef enum baudio_format {
    baudio_format_ilbc,
    baudio_format_isac,
    baudio_format_opus,
-   baudio_format_als,               /* MPEG-4 Audio Lossless Coding */
-   baudio_format_ac4                /* Dolby AC4 audio */
+   baudio_format_als,               /* MPEG-4 Audio Lossless Coding - ES */
+   baudio_format_als_loas,          /* MPEG-4 Audio Lossless Coding - LOAS packed */
+   baudio_format_ac4               /* Dolby AC4 audio */
 } baudio_format;
 
 /*

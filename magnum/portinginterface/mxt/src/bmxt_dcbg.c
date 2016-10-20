@@ -207,6 +207,11 @@ BERR_Code BMXT_Dcbg_Open(BMXT_Handle hMxt, BMXT_Dcbg_Handle *phDcbg, unsigned in
     BDBG_ASSERT(pSettings);
     BDBG_ASSERT(phDcbg);
 
+    if (hMxt->platform.regoffsetsDcbg==NULL) {
+        BDBG_ERR(("No DCBG support on this demod chip"));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
+    }
+
     if (index >= BMXT_MAX_NUM_DCBG) {
         /* TODO: could check that BMXT_MAX_NUM_DCBG == BMXT_NUMELEM_DCBG_45308[BMXT_RESOURCE_DCBG0_CTRL] */
         BDBG_ERR(("DCBG index %u not supported", index));

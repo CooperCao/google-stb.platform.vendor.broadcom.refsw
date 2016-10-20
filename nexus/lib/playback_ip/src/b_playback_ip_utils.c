@@ -457,7 +457,15 @@ B_PlaybackIp_UtilsFlushAvPipeline(
     }
 #ifdef NEXUS_HAS_SIMPLE_DECODER
     if (playback_ip->nexusHandles.simpleAudioDecoder) {
-        NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoder);
+        int i;
+        if (playback_ip->nexusHandles.simpleAudioDecoderCount) {
+            for (i=0; i<playback_ip->nexusHandles.simpleAudioDecoderCount; i++) {
+                NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoders[i]);
+            }
+        }
+        else {
+            NEXUS_SimpleAudioDecoder_Flush(playback_ip->nexusHandles.simpleAudioDecoder);
+        }
     }
 #endif
 #endif
@@ -2260,6 +2268,34 @@ error:
 #endif
 
 B_PlaybackIpError
+B_PlaybackIp_UtilsGetTcpWriteQueueSize(int socketFd, int *pWriteQueueDepth)
+{
+    int writeQueueSize = 0;
+    socklen_t len;
+    B_PlaybackIpError rc;
+
+    len = sizeof(writeQueueSize);
+    if (getsockopt(socketFd, SOL_SOCKET, SO_SNDBUF, &writeQueueSize, &len)) {
+        BDBG_ERR(("%s: ERROR: SO_SNDBUF Failed for socketFd=%d", __FUNCTION__, socketFd));
+        rc = B_ERROR_PROTO;
+        goto error;
+    }
+
+    /* SIOCOUQ returns the # of bytes that are 'not yet acked and not yet sent (due to receiver or congestion window)' */
+    /* In other words, these are all the bytes that are sitting in the socket queue depth. */
+    *pWriteQueueDepth = 0;
+    if (ioctl(socketFd, SIOCOUTQ, pWriteQueueDepth)) {
+        BDBG_WRN(("%s: SIOCOUTQ failed for socket %d", __FUNCTION__, socketFd));
+    }
+
+    BDBG_MSG(("%s: socketFd=%d writeQueueSize=%d writeQueueDepth=%d", __FUNCTION__, socketFd, writeQueueSize, *pWriteQueueDepth));
+    return B_ERROR_SUCCESS;
+
+error:
+    return rc;
+}
+
+B_PlaybackIpError
 B_PlaybackIp_UtilsStreamingCtxOpen(struct bfile_io_write_net *data)
 {
     socklen_t len;
@@ -3438,8 +3474,6 @@ void B_PlaybackIp_UtilsBuildPictureOutputCountBtp(
     B_PlaybackIp_UtilsBuildBtpPacket( pid, &btp, timestampOffset, pkt);
 }
 
-
-
 #if defined(LOG_IP_LATENCY)
 #define DEF_TRK_STATS_MS (1000)
 #define DEF_TRK_STATS_SLOW_MS (10000)
@@ -3475,6 +3509,7 @@ void B_PlaybackIp_UtilsTrkStatsInit(
     )
 {
     struct B_PlaybackIpTrkStats tmpStat = *trkStats;
+
     memset(trkStats, 0, sizeof(*trkStats));
     trkStats->logIntervalMs = logIntervalMs;
     if (logName) {
@@ -3485,7 +3520,6 @@ void B_PlaybackIp_UtilsTrkStatsInit(
     }
 }
 
-
 unsigned int B_PlaybackIp_UtilsGetVideoDecoderPts(
     B_PlaybackIpHandle playback_ip
     )
@@ -3494,22 +3528,24 @@ unsigned int B_PlaybackIp_UtilsGetVideoDecoderPts(
     uint32_t currentPts=0;
 
     if (playback_ip->nexusHandles.videoDecoder) {
-        if (!NEXUS_VideoDecoder_GetStatus (playback_ip->nexusHandles.videoDecoder, &decStatus)){
+        if (!NEXUS_VideoDecoder_GetStatus(playback_ip->nexusHandles.videoDecoder, &decStatus)) {
             currentPts = decStatus.pts;
         }
     }
     else if (playback_ip->nexusHandles.simpleVideoDecoder) {
-        if (!NEXUS_SimpleVideoDecoder_GetStatus (playback_ip->nexusHandles.simpleVideoDecoder, &decStatus)){
+        if (!NEXUS_SimpleVideoDecoder_GetStatus(playback_ip->nexusHandles.simpleVideoDecoder, &decStatus)) {
             currentPts = decStatus.pts;
         }
     }
     return currentPts;
 }
 
-NEXUS_Error B_PlaybackIp_UtilsGetVideoDecoderFifoStatus(B_PlaybackIpHandle playback_ip, NEXUS_VideoDecoderFifoStatus *pfifoStatus)
+NEXUS_Error B_PlaybackIp_UtilsGetVideoDecoderFifoStatus(
+    B_PlaybackIpHandle playback_ip,
+    NEXUS_VideoDecoderFifoStatus *pfifoStatus
+    )
 {
     NEXUS_Error nrc = NEXUS_NOT_AVAILABLE;
-
 
     if (playback_ip->nexusHandles.videoDecoder) {
         nrc = NEXUS_VideoDecoder_GetFifoStatus(playback_ip->nexusHandles.videoDecoder, pfifoStatus);
@@ -3525,9 +3561,8 @@ static void B_PlaybackIp_UtilsTrackStatsUpdate(
     int newValue
     )
 {
-//    BDBG_MSG(("%s %s newValue=%d",__FUNCTION__, trkStats->logName, newValue));
-    if(trkStats->max == 0)
-    {
+    BDBG_MSG_FLOW(("%s %s newValue=%d",__FUNCTION__, trkStats->logName, newValue));
+    if (trkStats->max == 0) {
         if (newValue != 0) { /* throw away initial zero values */
             trkStats->min = newValue;
             trkStats->max = newValue;
@@ -3536,13 +3571,10 @@ static void B_PlaybackIp_UtilsTrackStatsUpdate(
             trkStats->cnt++;
         }
     }
-    else
-    {
-        if(trkStats->max < newValue)
-            trkStats->max = newValue;
-        if(trkStats->min > newValue && newValue!=0) /* don't trackStats 0(s)*/
-            trkStats->min = newValue;
-        trkStats->avgArray[trkStats->cnt%B_PlaybackIpTrkArraySize] = newValue;
+    else {
+        if (trkStats->max < newValue) trkStats->max = newValue;
+        if (trkStats->min > newValue && newValue!=0) trkStats->min = newValue; /* don't trackStats 0(s)*/
+        trkStats->avgArray[trkStats->cnt % B_PlaybackIpTrkArraySize] = newValue;
         trkStats->cnt++;
     }
     trkStats->last = newValue;
@@ -3578,14 +3610,13 @@ void B_PlaybackIp_UtilsTrackAddNew(
     )
 {
     if (pTsVar->count<5) {
-//        BDBG_LOG(("%s 32bit=%u %ums", pTsVar->logName, val, val/45));
-        printf("%s 32bit=%u %ums\n", pTsVar->logName, val, val/45);
+        BDBG_LOG(("%s 32bit=%u %ums", pTsVar->logName, val, val/45));
     }
     pTsVar->count++;
-    if(pTsVar->first == 0){
+    if (pTsVar->first == 0) {
         pTsVar->first = val;
     }
-    if (pTsVar->buffer == 0){
+    if (pTsVar->buffer == 0) {
         pTsVar->buffer = val;
     }
     pTsVar->last = val;
@@ -3599,7 +3630,9 @@ void B_PlaybackIp_UtilsTrackAddNew(
 #define LIMIT_LATENCY_MIN_NUM_FRAME_SAMPLES (200) /* this is the min number of queuedFrame Samples, not sampled periodically, so not too reliable */
 #define LIMIT_LATENCY_MIN_QUEUED_VIDEO_FRAMES (3) /* chztbd should be frame rate dependent */
 #define LIMIT_LATENCY_MIN_QUEUED_AUDIO_FRAMES (3)
-void B_PlaybackIp_UtilsTrkLatency_LimitLatency(B_PlaybackIpHandle playback_ip)
+void B_PlaybackIp_UtilsTrkLatency_LimitLatency(
+    B_PlaybackIpHandle playback_ip
+    )
 {
     static B_Time prevTime={0,0};
     B_Time curTime;
@@ -3620,7 +3653,7 @@ void B_PlaybackIp_UtilsTrkLatency_LimitLatency(B_PlaybackIpHandle playback_ip)
                 NEXUS_StcChannel_SetStc(playback_ip->nexusHandles.stcChannel, stc);
                 BDBG_LOG(("Pull in stc=%u", stc));
             }
-            if (playback_ip->nexusHandles.simpleStcChannel){
+            if (playback_ip->nexusHandles.simpleStcChannel) {
                 uint32_t stc;
                 NEXUS_SimpleStcChannel_GetStc(playback_ip->nexusHandles.simpleStcChannel, &stc);
                 stc += 16*45;
@@ -3651,8 +3684,6 @@ void B_PlaybackIp_UtilsTrkLatencyLog(
 #endif
 }
 
-
-
 void B_PlaybackIp_UtilsTrkLatencyPesPts(
     B_PlaybackIpHandle playback_ip,
     TS_packet *pTsPkt,
@@ -3660,7 +3691,7 @@ void B_PlaybackIp_UtilsTrkLatencyPesPts(
     uint8_t pesHeaderMask
     )
 {
-    if(pTsPkt->payload_unit_start_indicator && pTsPkt->adaptation_field_control & 0x1 && pTsPkt->data_size > 7){
+    if (pTsPkt->payload_unit_start_indicator && pTsPkt->adaptation_field_control & 0x1 && pTsPkt->data_size > 7) {
         const uint8_t *p = pTsPkt->p_data_byte;
 //        BDBG_LOG(("payload %02x%02x%02x%02x %02x%02x%02x%02x\n", p[0],p[1],p[2],p[3],p[4],p[5],p[6],p[7]));
         if (p[0]==0 && p[1]==0 && p[2]==1) {  /* PES header frame sync 001*/
@@ -3682,6 +3713,7 @@ void B_PlaybackIp_UtilsTrkLatencyPesPts(
         }
     }
 }
+
 void B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(
     B_PlaybackIpHandle playback_ip,
     TS_packet *pTsPkt
@@ -3690,12 +3722,12 @@ void B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(
     B_PlaybackIp_UtilsTrkLatencyPesPts(playback_ip, pTsPkt, 0xE0, 0xF0); /* 0xE0-EF video PES header ID */
     if (playback_ip->trkPts.count) {
         NEXUS_VideoDecoderStatus videoStatus;
-        if (B_PlaybackIp_UtilsGetVideoDecoderStatus(playback_ip, &videoStatus)==NEXUS_SUCCESS){
+        if (B_PlaybackIp_UtilsGetVideoDecoderStatus(playback_ip, &videoStatus)==NEXUS_SUCCESS) {
             if (videoStatus.pts) {
                 if (playback_ip->trkPts.last < videoStatus.pts) {
                     BDBG_WRN(("%s: playback_ip->trkPts.last=%u < videoStatus.pts=%u", __FUNCTION__, playback_ip->trkPts.last ,videoStatus.pts));
                 }
-                else{
+                else {
                     /* tbd, too simple, should track discontinuities (ie ignore until new pts arrives from decoder)*/
                     B_PlaybackIp_UtilsTrackStatsUpdate(&playback_ip->videoLatency, (playback_ip->trkPts.last - videoStatus.pts)/45);
                     B_PlaybackIp_UtilsTrackStatsUpdate(&playback_ip->videoQueuedFrames, videoStatus.queueDepth);
@@ -3704,12 +3736,12 @@ void B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(
         }
         /* could pull audio pts from stream as well, but might be in private pid, so just use stream video pts as reference */
         NEXUS_AudioDecoderStatus audioStatus;
-        if (B_PlaybackIp_UtilsGetAudioDecoderStatus(playback_ip, NULL, &audioStatus)==NEXUS_SUCCESS){
+        if (B_PlaybackIp_UtilsGetAudioDecoderStatus(playback_ip, NULL, &audioStatus)==NEXUS_SUCCESS) {
             if (audioStatus.pts) {
                 if (playback_ip->trkPts.last < audioStatus.pts) {
                     BDBG_WRN(("%s: playback_ip->trkPts.last=%u < audioStatus.pts=%u", __FUNCTION__, playback_ip->trkPts.last ,audioStatus.pts));
                 }
-                else{
+                else {
                     /* tbd, too simple, should track discontinuities (ie ignore until new pts arrives from decoder)*/
                     B_PlaybackIp_UtilsTrackStatsUpdate(&playback_ip->audioLatency, (playback_ip->trkPts.last - audioStatus.pts)/45);
                     B_PlaybackIp_UtilsTrackStatsUpdate(&playback_ip->audioQueuedFrames, audioStatus.queuedFrames);
@@ -3721,14 +3753,15 @@ void B_PlaybackIp_UtilsTrkLatencyStreamToDecodePts(
 }
 
 void B_PlaybackIp_UtilsTrkPcrJitter(
-    B_PlaybackIpHandle playback_ip, TS_packet *pTsPkt
+    B_PlaybackIpHandle playback_ip,
+    TS_packet *pTsPkt
     )
 {
     B_Time curTime;
     uint32_t pcr32;
 
-    if (pTsPkt->adaptation_field.discontinuity_indicator){
-        if (playback_ip->pcrJitter.logIntervalMs != -1){
+    if (pTsPkt->adaptation_field.discontinuity_indicator) {
+        if (playback_ip->pcrJitter.logIntervalMs != -1) {
             BDBG_WRN(("adaptation_field.discontinuity_indicator, resetting prevPcrTime"));
         }
         playback_ip->prevPcr = 0;
@@ -3736,7 +3769,7 @@ void B_PlaybackIp_UtilsTrkPcrJitter(
         playback_ip->prevPcrTime.tv_usec=0;
     }
 
-    if (!pTsPkt->adaptation_field.PCR_flag){
+    if (!pTsPkt->adaptation_field.PCR_flag) {
         return;
     }
 
@@ -3747,14 +3780,16 @@ void B_PlaybackIp_UtilsTrkPcrJitter(
         if (playback_ip->pcrJitter.cnt < 5 && playback_ip->pcrJitter.logIntervalMs != -1) {
             BDBG_LOG(("pcr=%llu pcr32=%d (%dms)", pTsPkt->adaptation_field.program_clock_reference_base, pcr32, pcr32/45));
         }
-        if (playback_ip->prevPcrTime.tv_sec && playback_ip->prevPcr){
+        if (playback_ip->prevPcrTime.tv_sec && playback_ip->prevPcr) {
             int msDiff = B_Time_Diff(&curTime, &playback_ip->prevPcrTime);
             int pcrDiff = (pcr32 - playback_ip->prevPcr)/45;
             int pcrJitterMs = msDiff - pcrDiff;
-            if (abs(pcrJitterMs) > 150 && playback_ip->pcrJitter.logIntervalMs != -1) {
-                BDBG_LOG((" msDiff %dms  pcr32=%u prevPcr=%u %dms  pcrJitterMs=%d", msDiff, pcr32, playback_ip->prevPcr, pcrDiff, pcrJitterMs));
+
+            if (abs(pcrJitterMs) > playback_ip->openSettings.maxNetworkJitter && playback_ip->pcrJitter.logIntervalMs != -1) {
+                BDBG_LOG((">>>> High Jitter PCR: msDiff %dms  pcr32=%u prevPcr=%u %dms pcrJitterMs=%d maxIpNetworkJitterInMs=%d",
+                            msDiff, pcr32, playback_ip->prevPcr, pcrDiff, pcrJitterMs, playback_ip->openSettings.maxNetworkJitter ));
             }
-            else{
+            else {
                 B_PlaybackIp_UtilsTrackStatsUpdate(&playback_ip->pcrJitter, pcrJitterMs);
             }
 
@@ -3764,7 +3799,6 @@ void B_PlaybackIp_UtilsTrkPcrJitter(
         }
         playback_ip->prevPcr = pcr32;
         playback_ip->prevPcrTime = curTime;
-        playback_ip->pcrJitter.cnt++;
     }
     B_PlaybackIp_UtilsTrkLatencyLog(playback_ip);
 }
@@ -3789,7 +3823,43 @@ void B_PlaybackIp_UtilsTrkLatencyInit(
     memset(&playback_ip->trkPts, 0, sizeof(playback_ip->trkPts));
     sprintf(playback_ip->trkPts.logName, "PTS ");
     memset(&playback_ip->prevPcrTime, 0, sizeof(playback_ip->prevPcrTime));
-
 }
 
-#endif
+#endif /* LOG_IP_LATENCY */
+
+bool B_PlaybackIp_UtilsDiscardBufferedData(
+    B_PlaybackIpHandle playback_ip,
+    int socketFd,
+    int socketType
+    )
+{
+    size_t bufferSize = 1500;
+    ssize_t bytesRead;
+    size_t bytesDiscarded = 0;
+    char *pBuffer = NULL;
+
+    if ( (pBuffer = BKNI_Malloc(bufferSize)) == NULL) {
+        BDBG_WRN(("%s: playback_ip=%p: Failed to allocated %d bytes", __FUNCTION__, (void *)playback_ip, (unsigned)bufferSize));
+        return false;
+    }
+
+    BDBG_WRN(("%s: playback_ip=%p: >>>>> Discarding on socketFd=%d",__FUNCTION__, (void *)playback_ip, socketFd ));
+    /* Keep discarding until we get a timeout on the socket. */
+    if (socketType == SOCK_DGRAM) {
+        do {
+            if (playback_ip->playback_state == B_PlaybackIpState_eStopping || (playback_ip->playback_state == B_PlaybackIpState_eStopped)) {
+                BDBG_WRN(("%s: playback_ip=%p: breaking due to state=%d change!", __FUNCTION__, (void *)playback_ip, playback_ip->playback_state));
+                break;
+            }
+            bytesRead = recvfrom(socketFd, pBuffer, bufferSize, MSG_DONTWAIT, NULL, NULL);
+            if (bytesRead > 0) bytesDiscarded += bytesRead;
+        } while (bytesRead > 0);
+    }
+    else {
+        BDBG_WRN(("%s: TODO: need to add this logic for SOCK_STREAM type..", __FUNCTION__));
+    }
+
+    BDBG_WRN(("%s: playback_ip=%p: >>>>> Discarded %d bytes of initially buffered data",__FUNCTION__, (void *)playback_ip, (unsigned)bytesDiscarded ));
+    if (pBuffer) BKNI_Free(pBuffer);
+    return true;
+}

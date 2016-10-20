@@ -864,6 +864,7 @@ static void NEXUS_StcChannel_P_Notify_isr(NEXUS_StcChannelHandle stcChannel, NEX
     if (decoder->settings.stcValid_isr) {
         (*decoder->settings.stcValid_isr)(decoder->settings.pCallbackContext);
     }
+    decoder->stcValid = true;
 }
 
 static void NEXUS_StcChannel_P_SetSwPcrOffset_isr(NEXUS_StcChannelHandle stcChannel, unsigned offset)
@@ -2310,8 +2311,8 @@ void NEXUS_StcChannel_ReportDecoderHang_priv(NEXUS_StcChannelDecoderConnectionHa
     BDBG_OBJECT_ASSERT(stcChannel, NEXUS_StcChannel);
     NEXUS_ASSERT_MODULE();
 
-    flush = false;
-    zeroFill = false;
+    decoder->status.flush = flush = false;
+    decoder->status.zeroFill = zeroFill = false;
     gap = false;
     stalled = false;
     wait = false;
@@ -2329,6 +2330,9 @@ void NEXUS_StcChannel_ReportDecoderHang_priv(NEXUS_StcChannelDecoderConnectionHa
 
     /* copy passed in status report */
     decoder->fifoWatchdogStatus = *pStatus;
+    if (!decoder->stcValid) {
+        decoder->fifoWatchdogStatus.tsmWait = true;
+    }
 
     BDBG_MSG_TRACE(("%u:FIFO Watchdog Report:%s: buf %u%% %s%s%s",
         stcChannel->stcIndex,
@@ -2495,6 +2499,7 @@ void NEXUS_StcChannel_ReportDecoderFlush_priv(NEXUS_StcChannelDecoderConnectionH
     BDBG_OBJECT_ASSERT(decoder, NEXUS_StcChannelDecoderConnection);
     NEXUS_ASSERT_MODULE();
     decoder->status.flush = false;
+    decoder->stcValid = false;
 }
 
 void NEXUS_StcChannel_ReportDecoderZeroFill_priv(NEXUS_StcChannelDecoderConnectionHandle decoder)

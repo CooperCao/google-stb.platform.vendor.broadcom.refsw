@@ -64,9 +64,6 @@ BDBG_MODULE(BVBI);
 ***************************************************************************/
 
 static uint32_t P_GetCoreOffset_isr (bool is656, uint8_t hwCoreIndex);
-#ifdef P_CGMS_SOFTWARE_CRC
-static uint32_t P_CalculateCRC (uint32_t  ulData);
-#endif
 
 
 /***************************************************************************
@@ -146,13 +143,8 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
             --bot_line;
         }
         line_start  = BCHP_CGMSAE_0_Bot_Control_VBI_START_LINE256;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_ePAL_M:
@@ -163,13 +155,8 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
         top_line    = 17;
         bot_line    = 280 - 256;
         line_start  = BCHP_CGMSAE_0_Bot_Control_VBI_START_LINE256;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e1080i:
@@ -181,13 +168,8 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
         top_line    = 19;
         bot_line    = 582 - 544;
         line_start  = BCHP_CGMSAE_0_Bot_Control_VBI_START_LINE544;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e720p:
@@ -202,11 +184,7 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
         top_line    = 24;
         bot_line    = 0;
         line_start  = 0;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_ENABLE_DISABLED;
         break;
 
@@ -237,11 +215,7 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
             --top_line;
         }
         line_start  = 0;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_ENABLE_DISABLED;
         break;
 
@@ -282,40 +256,28 @@ BERR_Code BVBI_P_CGMSA_Enc_Program (
             BCHP_MASK       ( CGMSAE_0_Top_Control, GAIN                 ) |
             BCHP_MASK       ( CGMSAE_0_Top_Control, RAW_COUNT            ) |
             BCHP_MASK       ( CGMSAE_0_Top_Control, VBI_LINE             ) |
-#if defined(BVBI_P_CGMSAE_VER1) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)
             BCHP_MASK       ( CGMSAE_0_Top_Control, BIT_ORDER            ) |
-#endif
             BCHP_MASK       ( CGMSAE_0_Top_Control, ENABLE               ) );
         ulTop_ControlReg |= (
             BCHP_FIELD_DATA ( CGMSAE_0_Top_Control, RISE_TIME, rise_time ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Top_Control, GAIN,           gain ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Top_Control, RAW_COUNT,        21 ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Top_Control, VBI_LINE,   top_line ) |
-#if defined(BVBI_P_CGMSAE_VER1) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)
             BCHP_FIELD_ENUM ( CGMSAE_0_Top_Control, BIT_ORDER, LSB_FIRST ) |
-#endif
             BCHP_FIELD_DATA ( CGMSAE_0_Top_Control, ENABLE,   enable_top ) );
         ulBot_ControlReg &= ~(
             BCHP_MASK       ( CGMSAE_0_Bot_Control, GAIN                 ) |
             BCHP_MASK       ( CGMSAE_0_Bot_Control, RAW_COUNT            ) |
             BCHP_MASK       ( CGMSAE_0_Bot_Control, VBI_LINE             ) |
             BCHP_MASK       ( CGMSAE_0_Bot_Control, VBI_START            ) |
-#if defined(BVBI_P_CGMSAE_VER1) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)
             BCHP_MASK       ( CGMSAE_0_Bot_Control, BIT_ORDER            ) |
-#endif
             BCHP_MASK       ( CGMSAE_0_Bot_Control, ENABLE               ) );
         ulBot_ControlReg |= (
             BCHP_FIELD_DATA ( CGMSAE_0_Bot_Control, GAIN,           gain ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Bot_Control, RAW_COUNT,        21 ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Bot_Control, VBI_LINE,   bot_line ) |
             BCHP_FIELD_DATA ( CGMSAE_0_Bot_Control, VBI_START,line_start ) |
-#if defined(BVBI_P_CGMSAE_VER1) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5)
             BCHP_FIELD_ENUM ( CGMSAE_0_Bot_Control, BIT_ORDER, LSB_FIRST ) |
-#endif
             BCHP_FIELD_DATA ( CGMSAE_0_Bot_Control, ENABLE,   enable_bot ) );
 
         /* Program the format registers */
@@ -460,60 +422,33 @@ BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     case BFMT_VideoFmt_e720x482_NTSC:
     case BFMT_VideoFmt_e720x482_NTSC_J:
     case BFMT_VideoFmt_ePAL_M:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e1080i:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e1080i_50Hz:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e720p:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_ENABLE_DISABLED;
         break;
 
     case BFMT_VideoFmt_e720p_50Hz:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_ENABLE_DISABLED;
         break;
 
     case BFMT_VideoFmt_e480p:
     case BFMT_VideoFmt_e720x483p:
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Bot_Control_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_ENABLE_DISABLED;
         break;
 
@@ -572,9 +507,6 @@ BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     return BERR_SUCCESS;
 }
 #endif
-
-#if defined(BVBI_P_CGMSAE_VER2) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5) /** { **/
 
 /***************************************************************************
  *
@@ -676,20 +608,12 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     uint32_t line_start;
     uint32_t enable_top;
     uint32_t enable_bot;
-#if !defined(BVBI_P_CGMSAE_VER4)
     uint32_t bit_order;
-#endif
-#if !defined(BVBI_P_CGMSAE_VER2)
     uint32_t crc_meth;
-#endif
 
     BERR_Code eErr = BERR_SUCCESS;
 
     BDBG_ENTER(BVBI_P_CGMSB_Enc_Program);
-
-#if defined(BVBI_P_CGMSAE_VER2)
-    BSTD_UNUSED (bCea805dStyle);
-#endif
 
     /* Figure out which encoder core to use */
     ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
@@ -721,13 +645,8 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
             --bot_line;
         }
         line_start  = BCHP_CGMSAE_0_Bot_Control_B_VBI_START_LINE256;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Top_Control_B_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Top_Control_B_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e1080i:
@@ -739,13 +658,8 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
         top_line    = 18;
         bot_line    = 581 - 544;
         line_start  = BCHP_CGMSAE_0_Bot_Control_B_VBI_START_LINE544;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top = BCHP_CGMSAE_0_Top_Control_B_ENABLE_RAW_DATA;
-        enable_bot = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_RAW_DATA;
-#else
         enable_top = BCHP_CGMSAE_0_Top_Control_B_ENABLE_CGMSA;
         enable_bot = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_CGMSA;
-#endif
         break;
 
     case BFMT_VideoFmt_e720p:
@@ -757,11 +671,7 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
         top_line    = 23;
         bot_line    = 0;
         line_start  = 0;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Top_Control_B_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Top_Control_B_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_DISABLED;
         break;
 
@@ -792,11 +702,7 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
             --top_line;
         }
         line_start  = 0;
-#ifdef P_CGMS_SOFTWARE_CRC
-        enable_top  = BCHP_CGMSAE_0_Top_Control_B_ENABLE_RAW_DATA;
-#else
         enable_top  = BCHP_CGMSAE_0_Top_Control_B_ENABLE_CGMSA;
-#endif
         enable_bot  = BCHP_CGMSAE_0_Bot_Control_B_ENABLE_DISABLED;
         break;
 
@@ -821,7 +727,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     }
 
     /* Make the choice defined in CEA-805-D */
-#if defined(BVBI_P_CGMSAE_VER3) || defined(BVBI_P_CGMSAE_VER5)/** { **/
 /* Being careful */
 #if BCHP_CGMSAE_0_Top_Control_BIT_ORDER_MSB_FIRST != \
     BCHP_CGMSAE_0_Bot_Control_BIT_ORDER_MSB_FIRST
@@ -831,7 +736,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     BCHP_CGMSAE_0_Bot_Control_BIT_ORDER_LSB_FIRST
     #error Programming error
 #endif
-#endif /** } **/
 #if BCHP_CGMSAE_0_Top_Control_B_CRC_METHOD_METHOD1 != \
     BCHP_CGMSAE_0_Bot_Control_B_CRC_METHOD_METHOD1
     #error Programming error
@@ -848,9 +752,7 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     {
         crc_meth = BCHP_CGMSAE_0_Top_Control_B_CRC_METHOD_METHOD1;
     }
-#if !defined(BVBI_P_CGMSAE_VER4)
         bit_order = BCHP_CGMSAE_0_Top_Control_BIT_ORDER_MSB_FIRST;
-#endif
 
     BKNI_EnterCriticalSection();
 
@@ -869,48 +771,32 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
             BCHP_MASK       (CGMSAE_0_Top_Control_B, GAIN                ) |
             BCHP_MASK       (CGMSAE_0_Top_Control_B, RAW_COUNT           ) |
             BCHP_MASK       (CGMSAE_0_Top_Control_B, VBI_LINE            ) |
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_MASK       (CGMSAE_0_Top_Control_B, BIT_ORDER           ) |
-#endif
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_MASK       (CGMSAE_0_Top_Control_B, CRC_METHOD          ) |
-#endif
             BCHP_MASK       (CGMSAE_0_Top_Control_B, ENABLE              ) );
         ulTop_ControlReg |= (
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, RISE_TIME, rise_time) |
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, GAIN,           gain) |
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, RAW_COUNT,        21) |
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, VBI_LINE,   top_line) |
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, BIT_ORDER, bit_order) |
-#endif
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, CRC_METHOD, crc_meth) |
-#endif
             BCHP_FIELD_DATA (CGMSAE_0_Top_Control_B, ENABLE,   enable_top) );
         ulBot_ControlReg &= ~(
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, GAIN                ) |
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, RAW_COUNT           ) |
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, VBI_LINE            ) |
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, VBI_START           ) |
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, BIT_ORDER           ) |
-#endif
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, CRC_METHOD          ) |
-#endif
             BCHP_MASK       (CGMSAE_0_Bot_Control_B, ENABLE              ) );
         ulBot_ControlReg |= (
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, GAIN,           gain) |
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, RAW_COUNT,        21) |
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, VBI_LINE,   bot_line) |
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, VBI_START,line_start) |
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, BIT_ORDER, bit_order) |
-#endif
-#if !defined(BVBI_P_CGMSAE_VER4)
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, CRC_METHOD, crc_meth) |
-#endif
             BCHP_FIELD_DATA (CGMSAE_0_Bot_Control_B, ENABLE,   enable_bot) );
 
         /* Program the format registers */
@@ -969,9 +855,6 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     return eErr;
 }
 
-#endif /** } **/
-
-
 /***************************************************************************
 * Static (private) functions
 ***************************************************************************/
@@ -1015,53 +898,3 @@ static uint32_t P_GetCoreOffset_isr (bool is656, uint8_t hwCoreIndex)
 
     return ulCoreOffset;
 }
-
-#ifdef P_CGMS_SOFTWARE_CRC
-/**********************************************************************func*
- * P_CalculateCRC
- *
- * Calculates the CRC value for CGMS data. This was done due to replace
- * the calculation done by hardware.
- *
- * Tests:
- *   0x141 -> CRC of 0x3d
- *   0x1c0 -> CRC of 0x0b
- *   0x0c1 -> CRC of 0x24
- */
-static uint32_t P_CalculateCRC (uint32_t  ulData)
-{
-    int     i;
-    uint32_t  ulGate;
-    uint32_t  ulCRC = (((uint32_t)1) << 6) - 1;  /* initially set to all 1s */
-    uint32_t  ulGatePolynomial;
-
-    /* mask out any current CRC */
-    ulData &= (((uint32_t)1)<<14) - 1;
-
-    /* traverse through all data bits */
-    for (i=0; i<14; ++i)
-    {
-        /* calculate 1 bit gate value */
-        ulGate = ((ulData >> i) ^ (ulCRC)) & 0x1;
-
-        /* gate set? */
-        if (ulGate)
-        {
-            /* use polynomial */
-            ulGatePolynomial = 0x10;
-
-        /* gate not set */
-        } else
-        {
-            /* don't use gate polynomial */
-            ulGatePolynomial = 0x0;
-        }
-
-        /* calculate new CRC */
-        ulCRC = ((ulCRC >> 1) ^ ulGatePolynomial) | (ulGate << 5);
-    }
-
-    /* return data with calculated CRC */
-    return ulData | (ulCRC << 14);
-}
-#endif

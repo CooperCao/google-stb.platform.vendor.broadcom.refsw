@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2004-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 
@@ -80,7 +70,7 @@ struct nexus_driver_callback_entry {
     struct nexus_driver_callback_key key;
     struct nexus_driver_callback_data now,prev; /* store current and previous data, previous is used when need to restore mapping */
     int callback_param; /* this is bypass argument, it's passed as is between user/kernel callbacks */
-    void *client;
+    const struct b_objdb_client *client;
     void *context;
 };
 
@@ -202,7 +192,7 @@ nexus_driver_p_callback_remove_entry_locked(struct nexus_driver_callback_map *ma
 
 /* returns an existing entry or, if not found, creates a new one */
 static struct nexus_driver_callback_entry *
-nexus_driver_p_callback_get_entry_locked(struct nexus_driver_callback_map *map, void *handle, unsigned id, struct nexus_driver_client_state *client, void *context)
+nexus_driver_p_callback_get_entry_locked(struct nexus_driver_callback_map *map, void *handle, unsigned id, const struct b_objdb_client *client, void *context)
 {
     struct nexus_driver_callback_entry *entry, *prev, *id_match, *prev_id;
 
@@ -262,7 +252,7 @@ nexus_driver_p_callback_get_entry_locked(struct nexus_driver_callback_map *map, 
 
 
 void
-nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, void *client, void *context)
+nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, const struct b_objdb_client *client, struct nexus_driver_slave_scheduler *context)
 {
     struct nexus_driver_callback_map *map;
     struct nexus_driver_callback_entry *entry;

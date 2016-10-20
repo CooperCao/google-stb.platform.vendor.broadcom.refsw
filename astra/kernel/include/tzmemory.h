@@ -66,7 +66,7 @@ public:
 
 public:
     static void init(void *devTree);
-    static void freeInitRamFS();
+    static void freeInitRamFS(VirtAddr vaStart, VirtAddr vaEnd);
 
     static PhysAddr _allocPage(int pid);
     static int _freePage(PhysAddr page);

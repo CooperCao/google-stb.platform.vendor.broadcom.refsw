@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,17 +70,17 @@
 /***************************************************************************
  *HDMI_RX_SHARED - HDMI Receiver Shared Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_RX_SHARED_DIGITAL_FRONT_END_CFG_0 0x206f0c00 /* [RW] First HDMI Receiver Digital Front End Configuration Register */
-#define BCHP_HDMI_RX_SHARED_HDCP_INTEGRITY_CFG   0x206f0c04 /* [RW] HDCP INTEGRITY Check Configuration Parameters. */
-#define BCHP_HDMI_RX_SHARED_HDCP_GCP_WINDOW_CFG_0 0x206f0c08 /* [RW] Defines the window position to capture the general control packet */
-#define BCHP_HDMI_RX_SHARED_HDCP_GCP_WINDOW_CFG_1 0x206f0c0c /* [RW] Defines the window latency delay through BCH block */
-#define BCHP_HDMI_RX_SHARED_HDCP_I2C_DELAY_CFG   0x206f0c10 /* [RW] HDCP I<sup><small>2</sup></small>C Configuration */
-#define BCHP_HDMI_RX_SHARED_HDCP_I2C_MISC_CFG    0x206f0c14 /* [RW] HDCP I<sup><small>2</sup></small>C Configuration */
-#define BCHP_HDMI_RX_SHARED_SCDCS_I2C_MISC_CONFIG 0x206f0c18 /* [RW] SCDCS I<sup><small>2</sup></small>C Configuration */
-#define BCHP_HDMI_RX_SHARED_I2C_GEN_START_STOP_CONTROL 0x206f0c1c /* [RW] I2C_GEN_START_STOP_CONTROL */
-#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CFG 0x206f0c20 /* [RW] I2C_FREQ_DETECTION_CFG */
-#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CNTRL1 0x206f0c24 /* [RW] I2C_FREQ_DETECTION_CNTRL1 */
-#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CNTRL2 0x206f0c28 /* [RW] I2C_FREQ_DETECTION_CNTRL2 */
+#define BCHP_HDMI_RX_SHARED_DIGITAL_FRONT_END_CFG_0 0x206f0c00 /* [RW][32] First HDMI Receiver Digital Front End Configuration Register */
+#define BCHP_HDMI_RX_SHARED_HDCP_INTEGRITY_CFG   0x206f0c04 /* [RW][32] HDCP INTEGRITY Check Configuration Parameters. */
+#define BCHP_HDMI_RX_SHARED_HDCP_GCP_WINDOW_CFG_0 0x206f0c08 /* [RW][32] Defines the window position to capture the general control packet */
+#define BCHP_HDMI_RX_SHARED_HDCP_GCP_WINDOW_CFG_1 0x206f0c0c /* [RW][32] Defines the window latency delay through BCH block */
+#define BCHP_HDMI_RX_SHARED_HDCP_I2C_DELAY_CFG   0x206f0c10 /* [RW][32] HDCP I<sup><small>2</sup></small>C Configuration */
+#define BCHP_HDMI_RX_SHARED_HDCP_I2C_MISC_CFG    0x206f0c14 /* [RW][32] HDCP I<sup><small>2</sup></small>C Configuration */
+#define BCHP_HDMI_RX_SHARED_SCDCS_I2C_MISC_CONFIG 0x206f0c18 /* [RW][32] SCDCS I<sup><small>2</sup></small>C Configuration */
+#define BCHP_HDMI_RX_SHARED_I2C_GEN_START_STOP_CONTROL 0x206f0c1c /* [RW][32] I2C_GEN_START_STOP_CONTROL */
+#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CFG 0x206f0c20 /* [RW][32] I2C_FREQ_DETECTION_CFG */
+#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CNTRL1 0x206f0c24 /* [RW][32] I2C_FREQ_DETECTION_CNTRL1 */
+#define BCHP_HDMI_RX_SHARED_I2C_FREQ_DETECTION_CNTRL2 0x206f0c28 /* [RW][32] I2C_FREQ_DETECTION_CNTRL2 */
 
 /***************************************************************************
  *DIGITAL_FRONT_END_CFG_0 - First HDMI Receiver Digital Front End Configuration Register

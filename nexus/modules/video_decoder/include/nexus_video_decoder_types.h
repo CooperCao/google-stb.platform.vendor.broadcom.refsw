@@ -212,9 +212,8 @@ typedef enum NEXUS_VideoDecoderScanMode
     NEXUS_VideoDecoderScanMode_eAuto, /* default. use the correct display table (CDT) for interlaced scan-out.
                                          that is, do 1080i scan-out for 1080p@24/25/30 sources.
                                          this setting has no effect on 1080p60 because 1080p60 sources must be scanned out by a 1080p60 capable MFD. */
-    NEXUS_VideoDecoderScanMode_ePsF,  /* progressive segmented frame (PsF) technique in the display.
-                                         that is, do 2-vsync 1080p scan-out for 1080p@24/25/30 sources.
-                                         this setting has no effect on 1080p60. see above. */
+    NEXUS_VideoDecoderScanMode_ePsF,  /* deprecated */
+    NEXUS_VideoDecoderScanMode_e1080p, /* scan 1080p@24/25/30 as progressive */
     NEXUS_VideoDecoderScanMode_eMax
 } NEXUS_VideoDecoderScanMode;
 

@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2004-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,16 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ************************************************************/
 #ifndef B_OBJDB_H__
@@ -102,7 +92,12 @@ struct b_objdb_module {
 typedef void (*b_objdb_callback)(void *handle);
 
 
+#if NEXUS_ABICOMPAT_MODE
+#define B_OBJDB_TABLE_BEGIN(NAME) const struct b_objdb_class NAME[] = {
+#else
 #define B_OBJDB_TABLE_BEGIN(NAME) static const struct b_objdb_class NAME[] = {
+#endif
+
 #define B_OBJDB_TABLE_END {NULL,NULL,NULL}};
 #define B_OBJDB_TABLE_ENTRY(handletype,releasefunc,destructorfunc) {& handletype##_BaseObject_Descriptor, (void (*)(void *))releasefunc, (void (*)(void *))destructorfunc},
 
@@ -169,7 +164,7 @@ struct api_pointer_descriptor {
 
 struct api_function_descriptor {
     const char *name;
-#if !defined(NEXUS_MODE_driver)
+#if defined(NEXUS_ABICOMPAT_MODE) || !defined(NEXUS_MODE_driver)
     uint16_t in_buf_size;
     uint16_t out_buf_size;
 #endif
@@ -181,12 +176,12 @@ struct api_function_descriptor {
 };
 
 NEXUS_Error nexus_p_api_call_verify(const struct b_objdb_client *client, NEXUS_ModuleHandle module,const struct api_function_descriptor *function, void *in_data
-#if !defined(NEXUS_MODE_driver)
+#if defined(NEXUS_ABICOMPAT_MODE) || !defined(NEXUS_MODE_driver)
         , unsigned in_data_size, unsigned out_mem_size
 #endif
         );
 void nexus_p_api_call_completed(const struct b_objdb_client *client, NEXUS_ModuleHandle module, const struct api_function_descriptor *function, void *in_data
-#if !defined(NEXUS_MODE_driver)
+#if defined(NEXUS_ABICOMPAT_MODE) || !defined(NEXUS_MODE_driver)
         , void *out_data
 #endif
         );

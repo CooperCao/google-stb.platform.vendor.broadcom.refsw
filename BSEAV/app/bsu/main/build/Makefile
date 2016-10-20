@@ -274,7 +274,7 @@ $(BSU_BIN_DIR):
 	$(Q_)${MKDIR} ${BSU_BIN_DIR}
 
 ifeq ($(BUILD),)
-    BUILD=normal
+    BUILD=test
 endif
 
 BUILD_UART = A
@@ -282,6 +282,9 @@ UCOS ?= lib
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     CPU = arm
+    ifeq ($(filter $(NEXUS_PLATFORM),97271), $(NEXUS_PLATFORM))
+        export ARM_ARCH=V8
+    endif
 else
     ifeq ($(filter $(NEXUS_PLATFORM),97208 97358 97360 97401 97468 97550 97552), $(NEXUS_PLATFORM))
         CPU = bmips3300
@@ -295,7 +298,7 @@ else
                 ifeq ($(NEXUS_PLATFORM),97325)
                     CPU = mti34kf
                 else
-                    Unknown platform
+                    $(error Unknown platform)
                 endif
             endif
         endif
@@ -541,7 +544,18 @@ ifeq ($(filter $(BUILD_MOCA_SUPPORT),1 2), $(BUILD_MOCA_SUPPORT))
         moca20core-gen23.o
 endif
 
-ifeq ($(BUILD), test)
+ifeq ($(BUILD), gui)
+    VPATH += \
+        $(BSEAV_DIR)/app/bsu/main/src/gui
+    CFLAGS += \
+        -DBSU_GUI \
+        -I$(BSEAV_DIR)/app/bsu/main/src/gui
+
+    APP_OBJECTS += \
+        bsu_bfont.o \
+        bsu_gui.o \
+        bsu_picdecoder.o
+else
     VPATH += \
         $(BSEAV_DIR)/app/bsu/main/src/test
     CFLAGS += \
@@ -604,17 +618,6 @@ ifeq ($(BUILD), test)
         CFLAGS += \
             -DBSU_SAT_TEST
     endif
-else
-    VPATH += \
-        $(BSEAV_DIR)/app/bsu/main/src/gui
-    CFLAGS += \
-        -DBSU_GUI \
-        -I$(BSEAV_DIR)/app/bsu/main/src/gui
-
-    APP_OBJECTS += \
-        bsu_bfont.o \
-        bsu_gui.o \
-        bsu_picdecoder.o
 endif
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
@@ -733,7 +736,8 @@ else
     endif
 endif
 
-# No WEBHIF timer exists for 7250
+# No WEBHIF timer exists for 7250, so use UPG timer 3 instead.
+# Important:  when adding a new platform, need to modify respective bint_xxx.c file, to add support for the BSU_USE_UPG_TIMER compile flag.
 ifeq ($(filter $(NEXUS_PLATFORM),97145 97250 97268 97271 97364 97366), $(NEXUS_PLATFORM))
     export NEXUS_EXTRA_CFLAGS += -DNEXUS_TMR_EXCLUSION_MASK=0x8 \
                                  -DBSU_USE_UPG_TIMER

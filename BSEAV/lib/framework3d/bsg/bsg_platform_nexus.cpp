@@ -351,11 +351,12 @@ static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_Mem
 
    orig3DSize = platformSettings->heap[heap3DIndex].size;
 
-   /* Do we have enough 3D memory? */
+   // If we resize the heaps or not, we will reinitialise the platform anyway
+   NEXUS_Platform_Uninit();
+
+   /* Do we have enough 3D memory already? */
    if (orig3DSize < target3DSize)
    {
-      NEXUS_Platform_Uninit();
-
       /* If we still don't have enough, reduce the main heap - leaving at least 64MB */
       if (orig3DSize + saved < target3DSize && platformSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size > 64 * 1024 * 1024)
       {
@@ -387,11 +388,9 @@ static bool InitMaxMemConfig(NEXUS_PlatformSettings *platformSettings, NEXUS_Mem
       /* Minimise video memory usage */
       NEXUS_GetDefaultMemoryConfigurationSettings(memConfigSettings);
       NexusMemMinimum(memConfigSettings);
-
-      return true;
    }
 
-   return false;
+   return true;
 }
 
 static void InitializeNexusSingle(bool secure)

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bhab_3520_priv.h"
 
 BDBG_MODULE(BHAB);
@@ -43,7 +60,7 @@ BERR_Code BHAB_3520_Open(
 	h3520Dev = (BHAB_3520_P_Handle *)BKNI_Malloc(sizeof(BHAB_3520_P_Handle));
 	BDBG_ASSERT(h3520Dev);
 	hDev->pImpl = (void*)h3520Dev;
-	
+
 	h3520Dev->hRegister = (BREG_I2C_Handle)pReg;
 	BKNI_Memcpy((void*)(&(hDev->settings)), (void*)pDefSettings, sizeof(BHAB_Settings));
 
@@ -57,7 +74,7 @@ BERR_Code BHAB_3520_Open(
 
 	h3520Dev->last_page_16_15 = 0xFF;
 	h3520Dev->last_page_14_7 = 0xFF;
-	h3520Dev->last_mbox_15_8 = 0xFF;	
+	h3520Dev->last_mbox_15_8 = 0xFF;
 
 	for(i=0; i<BHAB_DevId_eMax; i++){
 		h3520Dev->InterruptCallbackInfo[i].func = NULL;
@@ -82,7 +99,7 @@ BERR_Code BHAB_3520_Close(BHAB_Handle handle)
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
 	BDBG_ASSERT(handle);
-   
+
 	retCode = BHAB_3520_P_DisableInterrupts(handle);
 	BKNI_DestroyEvent(p3520->hInterruptEvent);
 	BKNI_DestroyEvent(p3520->hApiEvent);
@@ -112,7 +129,7 @@ BERR_Code BHAB_3520_InitAp(
 	const uint8_t *pImage;
 	uint8_t sb, retries;
 
-	/* disable interrupts */	
+	/* disable interrupts */
 	BHAB_CHK_RETCODE(BHAB_3520_P_DisableInterrupts(handle));
 	BHAB_CHK_RETCODE(BHAB_3520_P_EnableHostInterrupt(handle, false));
 
@@ -125,46 +142,46 @@ BERR_Code BHAB_3520_InitAp(
 	{
 		n = (*pImage++ << 8);
 		n |= *pImage++;
-		
+
 		if (n == 0)
 			break;
-		
+
 		addr = (*pImage++ << 8);
 		addr |= *pImage++;
-		
+
 		for (retries = 0; retries < 3; retries++)
 		{
 			BHAB_CHK_RETCODE(BHAB_3520_WriteMemory(handle, addr, (uint8_t *)pImage, n));
 			pImage += n;
-			
+
 			/* check for host transfer error */
-			BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));			
+			BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));
 			if ((sb & DEVICE(STAT1_H_ER)) == 0)
 				break;
-			
-			BDBG_WRN(("host transfer error\n"));
-			BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));			
+
+			BDBG_WRN(("host transfer error"));
+			BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));
 		}
 	}
-	
+
 	/* enable init done interrupt */
 	BHAB_CHK_RETCODE(BHAB_3520_P_EnableInitDoneInterrupt(handle));
-	
+
 	/* clear H_STAT1 */
 	sb = 0xFF;
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));	
-	
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));
+
 	/* start running the AP */
 	if ((retCode = BHAB_3520_P_RunAp(handle)) != BERR_SUCCESS)
 		goto done;
-	
+
 	/* wait for init done interrupt */
 	if (BHAB_3520_P_WaitForEvent(handle, p3520->hInitDoneEvent, 10) != BERR_SUCCESS)
 	{
-		BDBG_ERR(("AP initialization timeout\n")); 
-		BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);            
+		BDBG_ERR(("AP initialization timeout"));
+		BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
 	}
-	
+
 
 
  done:
@@ -187,7 +204,7 @@ BERR_Code BHAB_3520_GetApStatus(
 	*pStatus = 0;
 	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), buf, 3));
 	*pStatus = buf[0] | (buf[1] << 8) | (buf[2] << 16);
-   
+
  done:
 	return retCode;
 }
@@ -239,7 +256,7 @@ BERR_Code BHAB_3520_ReadRegister(
 	if ((reg >= 0x80) && (reg <= 0xFF))
 	{
 		/* accessing host register space */
-		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, reg, &sb, 1));      
+		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, reg, &sb, 1));
 		*val = (uint32_t)sb;
 	}
 	else
@@ -270,7 +287,7 @@ BERR_Code BHAB_3520_WriteRegister(
 	{
 		/* accessing host register space */
 		sb = (uint8_t)(*val);
-		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, reg, &sb, 1));      
+		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, reg, &sb, 1));
 	}
 	else
 	{
@@ -287,7 +304,7 @@ BERR_Code BHAB_3520_WriteRegister(
  BHAB_3520_ReadMemory()
 ******************************************************************************/
 BERR_Code BHAB_3520_ReadMemory(BHAB_Handle handle, uint16_t addr, uint8_t *buf, uint16_t n)
-{   
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
@@ -295,7 +312,7 @@ BERR_Code BHAB_3520_ReadMemory(BHAB_Handle handle, uint16_t addr, uint8_t *buf, 
 		return BERR_TRACE(BERR_INVALID_PARAMETER);
 
 	BHAB_CHK_RETCODE(BHAB_3520_P_SetApWindow(handle, BHAB_WINDOW_IRAM + addr));
-	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, addr & 0x7F, buf, n));   
+	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, addr & 0x7F, buf, n));
 
  done:
 	return retCode;
@@ -306,7 +323,7 @@ BERR_Code BHAB_3520_ReadMemory(BHAB_Handle handle, uint16_t addr, uint8_t *buf, 
  BHAB_3520_WriteMemory()
 ******************************************************************************/
 BERR_Code BHAB_3520_WriteMemory(BHAB_Handle handle, uint16_t addr, uint8_t *buf, uint16_t n)
-{   
+{
 	BERR_Code retCode = BERR_SUCCESS;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint16_t  curr_addr, nbytes, bytes_left;
@@ -343,7 +360,7 @@ BERR_Code BHAB_3520_ReadMbox(
 	uint16_t    reg,  /* [in] RBUS register address */
 	uint32_t    *val  /* [out] value read from register */
 )
-{   
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t sb, i, buf[4];
@@ -352,7 +369,7 @@ BERR_Code BHAB_3520_ReadMbox(
 	sb = reg >> 8;
 	if (sb != p3520->last_mbox_15_8)
 	{
-		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_IO_MBOX_A_15_8), &sb, 1));	
+		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_IO_MBOX_A_15_8), &sb, 1));
 		p3520->last_mbox_15_8 = sb;
 	}
 
@@ -363,7 +380,7 @@ BERR_Code BHAB_3520_ReadMbox(
 	/* check for mbox transfer complete */
 	for (i = 0; i < 3; i++)
 	{
-		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_IO_MBOX_STATUS), &sb, 1));       
+		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_IO_MBOX_STATUS), &sb, 1));
 		if ((sb & 0x80) == 0)
 		{
 			if (sb & 0x40)
@@ -385,7 +402,7 @@ BERR_Code BHAB_3520_ReadMbox(
 	{
 		/* this should not happen */
 		BERR_TRACE(retCode = BHAB_ERR_IOMB_BUSY);
-		BDBG_ERR(("IO_MBOX busy\n"));
+		BDBG_ERR(("IO_MBOX busy"));
 	}
 
  done:
@@ -401,7 +418,7 @@ BERR_Code BHAB_3520_WriteMbox(
 	uint16_t    reg,  /* [in] RBUS register address */
 	uint32_t    *val  /* [in] value to write */
 )
-{	
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t buf[6], sb, i;
@@ -411,7 +428,7 @@ BERR_Code BHAB_3520_WriteMbox(
 	buf[1] = *val >> 24;
 	buf[2] = *val >> 16;
 	buf[3] = *val >> 8;
-	buf[4] = *val & 0xFF; 
+	buf[4] = *val & 0xFF;
 	buf[5] = (reg & 0xFC) | 0x01;
 	i = (buf[0] != p3520->last_mbox_15_8) ? 0 : 1;
 	p3520->last_mbox_15_8 = buf[0];
@@ -421,7 +438,7 @@ BERR_Code BHAB_3520_WriteMbox(
 	{
 		/* check for mbox transfer complete */
 		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_IO_MBOX_STATUS), &sb, 1));
-		
+
 		if ((sb & 0x80) == 0)
 		{
 			if (sb & 0x40)
@@ -436,7 +453,7 @@ BERR_Code BHAB_3520_WriteMbox(
 	{
 		/* this should not happen */
 		BERR_TRACE(retCode = BHAB_ERR_IOMB_BUSY);
-		BDBG_ERR(("IO_MBOX busy\n"));
+		BDBG_ERR(("IO_MBOX busy"));
 	}
 
  done:
@@ -454,10 +471,10 @@ BERR_Code BHAB_3520_HandleInterrupt_isr(
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
 	BDBG_ASSERT(handle);
-   
+
 	handle->settings.interruptEnableFunc(false, handle->settings.interruptEnableFuncParam);
-	BKNI_SetEvent(p3520->hApiEvent);   
-	BKNI_SetEvent(p3520->hInterruptEvent);  
+	BKNI_SetEvent(p3520->hApiEvent);
+	BKNI_SetEvent(p3520->hInterruptEvent);
 
 	return BERR_SUCCESS;
 }
@@ -471,11 +488,11 @@ BERR_Code BHAB_3520_ProcessInterruptEvent(
 )
 {
 	BERR_Code retCode;
-   
+
 	BDBG_ASSERT(handle);
 	BHAB_CHK_RETCODE(BHAB_3520_P_DecodeInterrupt(handle));
 	BHAB_3520_P_EnableHostInterrupt(handle, true);
-   
+
  done:
 	return retCode;
 }
@@ -483,7 +500,7 @@ BERR_Code BHAB_3520_ProcessInterruptEvent(
 
 /******************************************************************************
  BHAB_3520_EnableLockInterrupt()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_EnableLockInterrupt(
 	BHAB_Handle handle,  /* [in] BHAB handle */
 	BHAB_DevId eDevId,    /* [in] Device ID */
@@ -498,24 +515,24 @@ BERR_Code BHAB_3520_EnableLockInterrupt(
 
 	BHAB_3520_P_EnableHostInterrupt(handle, false);
 	sb = bEnable ? DEVICE(STAT2_LOCK_MASK) : 0;
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT2), &sb, 1)); 				
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE2), &sb, 1));  		
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT2), &sb, 1));
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE2), &sb, 1));
 	BHAB_3520_P_EnableHostInterrupt(handle, true);
 
  done:
-	return retCode;   
+	return retCode;
 }
-	
+
 
 /******************************************************************************
  BHAB_3520_InstallInterruptCallback()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_InstallInterruptCallback(
 	BHAB_Handle handle,  /* [in] BHAB handle */
 	BHAB_DevId eDevId,    /* [in] Device ID */
 	BHAB_InterruptType eInterruptType, /* [in] Id for Interrupt to install the callback*/
 	BHAB_IntCallbackFunc fCallBack,
-	void * pParm1, 
+	void * pParm1,
 	int parm2
 )
 {
@@ -523,7 +540,7 @@ BERR_Code BHAB_3520_InstallInterruptCallback(
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
 	BDBG_ASSERT(handle);
-	
+
 	if (eInterruptType >= BHAB_Interrupt_eMax) {
 		return BERR_TRACE(BERR_INVALID_PARAMETER);
 	}
@@ -545,7 +562,7 @@ BERR_Code BHAB_3520_InstallInterruptCallback(
 
 /******************************************************************************
  BHAB_3520_UnInstallInterruptCallback()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_UnInstallInterruptCallback(
 	BHAB_Handle handle,  /* [in] BHAB handle */
 	BHAB_DevId eDevId,    /* [in] Device ID */
@@ -556,7 +573,7 @@ BERR_Code BHAB_3520_UnInstallInterruptCallback(
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
 	BDBG_ASSERT(handle);
-	
+
 	if (eInterruptType >= BHAB_Interrupt_eMax) {
 		return BERR_TRACE(BERR_INVALID_PARAMETER);
 	}
@@ -572,8 +589,8 @@ BERR_Code BHAB_3520_UnInstallInterruptCallback(
 	callback->parm2 = (int)NULL;
 
 	return BERR_TRACE(BERR_SUCCESS);
-}	
-	
+}
+
 
 /******************************************************************************
  BHAB_3520_SendHabCommand()
@@ -581,8 +598,8 @@ BERR_Code BHAB_3520_UnInstallInterruptCallback(
 BERR_Code BHAB_3520_SendHabCommand(
 	BHAB_Handle handle, /* [in] BHAB PI Handle */
 	uint8_t *write_buf, /* [in] specifies the HAB command to send */
-	uint16_t write_len,  /* [in] number of bytes in the HAB command */ 
-	uint8_t *read_buf,  /* [out] holds the data read from the HAB */ 
+	uint16_t write_len,  /* [in] number of bytes in the HAB command */
+	uint8_t *read_buf,  /* [out] holds the data read from the HAB */
 	uint16_t read_len,   /* [in] number of bytes to read from the HAB */
 	bool bCheckForAck,  /* [in] true = determine if the AP has serviced the command */
 	bool bInsertTermination /* [in] true = insert termination byte 0x00 in write buffer at read_len position */
@@ -591,12 +608,12 @@ BERR_Code BHAB_3520_SendHabCommand(
 	BERR_Code retCode;
 
 	BHAB_P_ACQUIRE_MUTEX(handle);
-   
+
 	if ((write_len > 127) || (read_len > 127) || (write_len == 0))
 		return (BERR_TRACE(BERR_INVALID_PARAMETER));
 
 	BHAB_CHK_RETCODE(BHAB_3520_P_CheckHab(handle));
-  
+
 	/* write the command to the HAB */
 	BHAB_CHK_RETCODE(BHAB_3520_P_WriteHab(handle, 0, write_buf, write_len));
 
@@ -609,7 +626,7 @@ BERR_Code BHAB_3520_SendHabCommand(
 
 	/* wait for the AP to service the HAB, and then read any return data */
 	BHAB_CHK_RETCODE(BHAB_3520_P_ServiceHab(handle, read_buf, read_len, bCheckForAck, write_buf[0] | 0x80));
- 
+
  done:
 	BHAB_P_RELEASE_MUTEX(handle);
 
@@ -650,7 +667,7 @@ BERR_Code BHAB_3520_GetInterruptEventHandle(
 
 
 /******************************************************************************
- BHAB_3520_P_EnableHostInterrupt() 
+ BHAB_3520_P_EnableHostInterrupt()
 ******************************************************************************/
 BERR_Code BHAB_3520_P_EnableHostInterrupt(
 	BHAB_Handle handle, /* [in] HAB handle */
@@ -659,7 +676,7 @@ BERR_Code BHAB_3520_P_EnableHostInterrupt(
 {
 	BKNI_EnterCriticalSection();
 	handle->settings.interruptEnableFunc(bEnable, handle->settings.interruptEnableFuncParam);
-	BKNI_LeaveCriticalSection();   
+	BKNI_LeaveCriticalSection();
 
 	return BERR_SUCCESS;
 }
@@ -667,37 +684,37 @@ BERR_Code BHAB_3520_P_EnableHostInterrupt(
 
 /******************************************************************************
  BHAB_3520_P_DisableInterrupts()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_P_DisableInterrupts(
 	BHAB_Handle handle   /* [in] BHAB Handle */
 )
-{   
+{
 	BERR_Code err;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	const uint8_t val[4] = {0, 0, 0, 0};
-   
+
 	/* clear IEx registers */
 	err = BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), val, 4);
-	return err;   
+	return err;
 }
 
 
 /******************************************************************************
  BHAB_3520_P_EnableInitDoneInterrupt()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_P_EnableHabDoneInterrupt(
 	BHAB_Handle handle /* [in] BHAB PI Handle */
 )
-{  
-	BERR_Code retCode;	
+{
+	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t sb;
-   
+
 	sb = DEVICE(STAT1_HAB_DONE);
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb, 1));
 	sb = DEVICE(STAT1_HAB_DONE);
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), &sb, 1));
-   
+
  done:
 	return retCode;
 }
@@ -705,20 +722,20 @@ BERR_Code BHAB_3520_P_EnableHabDoneInterrupt(
 
 /******************************************************************************
  BHAB_3520_P_EnableInitDoneInterrupt()
-******************************************************************************/ 
+******************************************************************************/
 BERR_Code BHAB_3520_P_EnableInitDoneInterrupt(
 	BHAB_Handle handle /* [in] BHAB PI Handle */
 )
-{  
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t sb;
-   
+
 	sb = DEVICE(STAT2_INIT_DONE);
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT2), &sb, 1));	
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT2), &sb, 1));
 	sb = DEVICE(STAT2_INIT_DONE);
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE2), &sb, 1));
-   
+
  done:
 	return retCode;
 }
@@ -732,23 +749,23 @@ BERR_Code BHAB_3520_P_WaitForEvent(
 	BKNI_EventHandle hEvent,   /* [in] event to wait on */
 	int timeoutMsec            /* [in] timeout in milliseconds */
 )
-{	
+{
 	BERR_Code retCode = BERR_SUCCESS;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
 	while (1)
-	{   
+	{
 		BHAB_3520_P_EnableHostInterrupt(handle, true);
 		if ((retCode = BKNI_WaitForEvent(p3520->hApiEvent, timeoutMsec)) == BERR_TIMEOUT)
 			break;
-		
+
 		BHAB_3520_P_DecodeInterrupt(handle);
 		if ((retCode = BKNI_WaitForEvent(hEvent, 0)) == BERR_SUCCESS)
 			break;
 	}
 
 	BHAB_3520_P_EnableHostInterrupt(handle, true);
-   
+
 	return retCode;
 
 }
@@ -770,24 +787,24 @@ BERR_Code BHAB_3520_P_RunAp(BHAB_Handle handle)
 	{
 		/* start running the AP */
 		sb2 = DEVICE(AP_RUN);
-		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb2, 1));		
+		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb2, 1));
 
 		/* verify that the AP is running */
-		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb, 1));		
+		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb, 1));
 		if ((sb & DEVICE(AP_MASK)) != DEVICE(AP_RUN))
 		{
-			BDBG_ERR(("unable to run the AP\n"));
+			BDBG_ERR(("unable to run the AP"));
 			BERR_TRACE(retCode = BHAB_ERR_AP_FAIL);
 			goto done;
 		}
 
 		/* clear AP_change state bit */
 		sb2 = DEVICE(STAT1_AP_OP_CHG);
-		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb2, 1));	
+		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT1), &sb2, 1));
 	}
 	else
 	{
-		BDBG_WRN(("BHAB_P_RunAp(): AP already running\n"));
+		BDBG_WRN(("BHAB_P_RunAp(): AP already running"));
 	}
 
  done:
@@ -799,14 +816,14 @@ BERR_Code BHAB_3520_P_RunAp(BHAB_Handle handle)
  BHAB_3520_P_ResetAp()
 ******************************************************************************/
 BERR_Code BHAB_3520_P_ResetAp(BHAB_Handle handle)
-{   
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t i, sb, buf[4];
 
 	/* initialize JDEC */
 	sb = DEVICE(JDEC_RAM);
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_JDEC), &sb, 1));   
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_JDEC), &sb, 1));
 
 	/* reset the AP */
 	sb = DEVICE(AP_RESET);
@@ -826,10 +843,10 @@ BERR_Code BHAB_3520_P_ResetAp(BHAB_Handle handle)
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_MSG1), buf, 2));
 
 	/* verify that AP is reset */
-	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb, 1));   
+	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb, 1));
 	if ((sb & DEVICE(AP_MASK)) != DEVICE(AP_RESET))
 	{
-		BDBG_ERR(("unable to reset the AP\n"));
+		BDBG_ERR(("unable to reset the AP"));
 		BERR_TRACE(retCode = BHAB_ERR_AP_FAIL);
 	}
 
@@ -848,7 +865,7 @@ BERR_Code BHAB_3520_P_SetApWindow(
 	BHAB_Handle handle,    /* [in] BHAB PI Handle */
 	uint32_t window   /* [in] base address of the 128-byte window */
 )
-{   
+{
 	BERR_Code retCode = BERR_SUCCESS;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t   haddr_16_15 = (window >> 15) & 0x03;
@@ -865,7 +882,7 @@ BERR_Code BHAB_3520_P_SetApWindow(
 	}
 	else if (p3520->last_page_14_7 != haddr_14_7)
 	{
-		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_H_ADR_14_7), &haddr_14_7, 1));     
+		BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_SFR_H_ADR_14_7), &haddr_14_7, 1));
 		p3520->last_page_14_7 = haddr_14_7;
 	}
 
@@ -879,7 +896,7 @@ BERR_Code BHAB_3520_P_SetApWindow(
 ******************************************************************************/
 BERR_Code BHAB_3520_P_ReadHab(BHAB_Handle handle, uint8_t addr, uint8_t *buf, uint8_t n)
 {
-   
+
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 
@@ -924,43 +941,43 @@ BERR_Code BHAB_3520_P_WriteHab(BHAB_Handle handle, uint8_t addr, uint8_t *buf, u
 ******************************************************************************/
 BERR_Code BHAB_3520_P_ServiceHab(
 	BHAB_Handle handle,   /* [in] BHAB PI Handle */
-	uint8_t *read_buf,  /* [out] holds the data read from the HAB */ 
+	uint8_t *read_buf,  /* [out] holds the data read from the HAB */
 	uint8_t read_len,   /* [in] number of bytes to read from the HAB */
 	bool bCheckForAck,  /* [in] true = determine if the AP has serviced the command */
 	uint8_t ack_byte    /* [in] value of the ack byte to expect */
 )
-{   
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t   sb, ie2, buf[2];
-       
+
 	BHAB_3520_P_EnableHostInterrupt(handle, false);
-   
+
 	/* save ie2 */
 	if((retCode = BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE2), &ie2, 1)) != BERR_SUCCESS )
 		return retCode;
-   
+
 	/* clear ie2 */
 	buf[0] = buf[1] = 0;
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), buf, 2));
 
-	BKNI_WaitForEvent(p3520->hHabDoneEvent, 0);      
+	BKNI_WaitForEvent(p3520->hHabDoneEvent, 0);
 
-   
+
 	/* send the command */
 	sb = DEVICE(AP_HABR);
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_CTL1), &sb, 1));
-	   
 
-	/* enable the hab done interrupt mask */	
+
+	/* enable the hab done interrupt mask */
 	BHAB_CHK_RETCODE(BHAB_3520_P_EnableHabDoneInterrupt(handle));
-	
-	/* wait for HAB done interrupt */  
+
+	/* wait for HAB done interrupt */
 	if (BHAB_3520_P_WaitForEvent(handle, p3520->hHabDoneEvent, 100) == BERR_TIMEOUT)
 	{
-		BDBG_ERR(("HAB timeout\n"));   
+		BDBG_ERR(("HAB timeout"));
 		sb = 0;
-		BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), &sb, 1);	
+		BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), &sb, 1);
 		BERR_TRACE(retCode = BHAB_ERR_HAB_TIMEOUT);
 		goto done;
 	}
@@ -973,12 +990,12 @@ BERR_Code BHAB_3520_P_ServiceHab(
 		{
 			if (ack_byte != read_buf[0])
 			{
-				BDBG_ERR(("HAB command not serviced!\n"));
+				BDBG_ERR(("HAB command not serviced!"));
 				BERR_TRACE(retCode = BHAB_ERR_HAB_NO_ACK);
 			}
 		}
 	}
-	
+
  done:
 	BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE2), &ie2, 1);
 
@@ -990,35 +1007,35 @@ BERR_Code BHAB_3520_P_ServiceHab(
  BHAB_3520_P_DecodeInterrupt()
 ******************************************************************************/
 BERR_Code BHAB_3520_P_DecodeInterrupt(BHAB_Handle handle)
-{  
+{
 	BERR_Code retCode;
 	BHAB_3520_P_Handle *p3520 = (BHAB_3520_P_Handle *)(handle->pImpl);
 	uint8_t   h_ie[2], h_fstat[2], new_stat2;
-	
+
 	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_FSTAT1), h_fstat, 2));
 	BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), h_ie, 2));
-	
+
 	new_stat2 = 0;
-	
+
 	if (!h_fstat[0] && !h_fstat[1])
 	{
 		return BERR_SUCCESS;
 	}
-   
+
 	/*HAB DONE INTERRUPT*/
 	if (h_fstat[0] & DEVICE(STAT1_HAB_DONE))
 	{
 		h_ie[0] = 0;
-		BKNI_SetEvent(p3520->hHabDoneEvent);				
+		BKNI_SetEvent(p3520->hHabDoneEvent);
 	}
-   
+
 	/*INIT DONE INTERRUPT*/
 	if (h_fstat[1] & DEVICE(STAT2_INIT_DONE))
 	{
-		h_ie[1] &= ~DEVICE(STAT2_INIT_DONE);		
+		h_ie[1] &= ~DEVICE(STAT2_INIT_DONE);
 		BKNI_SetEvent(p3520->hInitDoneEvent);
 	}
-      
+
 	/*LOCK INTERRUPT*/
 	if (h_fstat[1] & DEVICE(STAT2_LOCK_MASK))
 	{
@@ -1037,15 +1054,15 @@ BERR_Code BHAB_3520_P_DecodeInterrupt(BHAB_Handle handle)
 		}
 		else
 		{
-			h_ie[1] |= DEVICE(STAT2_IN_LOCK);  
-			BDBG_MSG(("not locked"));			
+			h_ie[1] |= DEVICE(STAT2_IN_LOCK);
+			BDBG_MSG(("not locked"));
 		}
 	}
-         
+
 	/* clear the interrupt status */
-	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), h_ie, 2));   
+	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_IE1), h_ie, 2));
 	BHAB_CHK_RETCODE(BREG_I2C_Write(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_STAT2), &new_stat2, 1));
-    
+
  done:
 	return retCode;
 }
@@ -1075,7 +1092,7 @@ BERR_Code BHAB_3520_P_DecodeError(
 		retCode = BHAB_ERR_HAB_ERR;
 	else if (*pApStatus & BHAB_APSTATUS_AP_ERR)
 	{
-		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_MSG1), &sb, 1));		
+		BHAB_CHK_RETCODE(BREG_I2C_Read(p3520->hRegister, handle->settings.chipAddr, DEVICE(SH_AP_SFR_H_MSG1), &sb, 1));
 		switch (sb)
 		{
 		case 1:
@@ -1115,7 +1132,7 @@ BERR_Code BHAB_3520_P_DecodeError(
 		  break;
 
 		default:
-		  BDBG_ERR(("unknown MSG1 (=0x%02X)\n", sb));
+		  BDBG_ERR(("unknown MSG1 (=0x%02X)", sb));
 		  retCode = BHAB_ERR_AP_UNKNOWN;
 		  break;
 		}
@@ -1141,10 +1158,10 @@ BERR_Code BHAB_3520_P_CheckHab(
 		retCode = BERR_SUCCESS;
 	else
 	{
-		BDBG_ERR(("AP status = 0x%08X\n", (uint32_t)status));
+		BDBG_ERR(("AP status = 0x%08X", (uint32_t)status));
 		BERR_TRACE(retCode = BHAB_3520_P_DecodeError(handle, &status));
 	}
-	
+
  done:
 	return retCode;
 }

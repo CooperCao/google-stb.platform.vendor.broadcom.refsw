@@ -45,7 +45,6 @@
 #include "bstd.h"
 #include "bvdc.h"
 #include "bdbg.h"
-#include "bvdc_hist_priv.h"
 #include "bvdc_window_priv.h"
 
 #define BVDC_P_SUPPORT_PEP_VER_0                             (0)
@@ -59,13 +58,6 @@
 #include "bchp_pep_cmp_0_v0.h"
 #endif
 
-#if(BVDC_P_SUPPORT_HIST_VER >= BVDC_P_SUPPORT_HIST_VER_2)
-#include "bchp_hist.h"
-#endif
-
-#if (BVDC_P_SUPPORT_TAB)
-#include "bchp_tab_0.h"
-#endif
 #if (BVDC_P_SUPPORT_TNT)
 #include "bchp_tnt_cmp_0_v0.h"
 #endif
@@ -89,9 +81,7 @@ BDBG_OBJECT_ID_DECLARE(BVDC_HST);
 #endif
 
 #if (BVDC_P_SUPPORT_HIST)
-#if (BVDC_P_SUPPORT_HIST_VER >= BVDC_P_SUPPORT_HIST_VER_2)
-#define BVDC_P_HISTO_TABLE_SIZE (BCHP_HIST_RD_BINi_ARRAY_END + 1)
-#elif BCHP_PEP_CMP_0_V0_HISTO_DATA_COUNT_i_ARRAY_END
+#if BCHP_PEP_CMP_0_V0_HISTO_DATA_COUNT_i_ARRAY_END
 #define BVDC_P_HISTO_TABLE_SIZE (BCHP_PEP_CMP_0_V0_HISTO_DATA_COUNT_i_ARRAY_END + 1)
 #else
 #define BVDC_P_HISTO_TABLE_SIZE 1  /* hush warnings */
@@ -261,10 +251,6 @@ void BVDC_P_Pep_SetInfo_isr
     ( BVDC_P_Pep_Handle            hPep,
       BVDC_P_PictureNode          *pPicture );
 
-void BVDC_P_Tab_BuildRul_isr
-    ( const BVDC_Window_Handle     hWindow,
-      BVDC_P_ListInfo             *pList );
-
 void BVDC_P_Pep_DynamicContrast_isr
     ( const BVDC_ContrastStretch  *pCS,
       BVDC_P_PepContext           *pPep,
@@ -282,11 +268,6 @@ void BVDC_P_Pep_Cms
       const BVDC_ColorBar         *pHueGain,
       bool                         bIsHd,
       uint32_t                    *pulCabTable );
-
-void BVDC_P_Sharpness_Calculate_Peak_Values
-    ( const int16_t                sSharpness,
-      uint32_t                    *ulPeakSetting,
-      uint32_t                    *ulPeakScale );
 
 void BVDC_P_Sharpness_Calculate_Gain_Value_isr
     ( const int16_t                sSharpness,
@@ -310,7 +291,7 @@ void BVDC_P_Pep_GetHueAngleTable
       bool                         bIsHd,
       const uint16_t             **ppHueAngleTable );
 
-#if(BVDC_P_SUPPORT_HIST && BVDC_P_SUPPORT_HIST_VER == BVDC_P_SUPPORT_HIST_VER_1)
+#if(BVDC_P_SUPPORT_HIST)
 void BVDC_P_Histo_UpdateHistoData_isr
     ( BVDC_P_Pep_Handle            hPep );
 #endif

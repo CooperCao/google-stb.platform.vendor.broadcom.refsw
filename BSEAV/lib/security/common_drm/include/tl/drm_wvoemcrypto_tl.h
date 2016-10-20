@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 #ifndef __DRM_WVOEMCRYPTO_TL_H__
 #define __DRM_WVOEMCRYPTO_TL_H__
@@ -270,10 +269,10 @@ DrmRC drm_WVOemCrypto_InstallKeybox(const uint8_t* keybox,
 DrmRC drm_WVOemCrypto_IsKeyboxValid(int *wvRc);
 
 DrmRC drm_WVOemCrypto_GetDeviceID(uint8_t* deviceID,
-                                  uint32_t* idLength,int*wvRc);
+                                  size_t* idLength,int*wvRc);
 
 DrmRC drm_WVOemCrypto_GetKeyData(uint8_t* keyData,
-                                 uint32_t* keyDataLength,int *wvRc);
+                                 size_t* keyDataLength,int *wvRc);
 
 DrmRC drm_WVOemCrypto_GetRandom(uint8_t* randomData, uint32_t dataLength);
 
@@ -294,7 +293,7 @@ DrmRC drm_WVOemCrypto_RewrapDeviceRSAKey(uint32_t session,
                                              uint32_t enc_rsa_key_length,
                                              const uint8_t* enc_rsa_key_iv,
                                              uint8_t* wrapped_rsa_key,
-                                             uint32_t*  wrapped_rsa_key_length,
+                                             size_t*  wrapped_rsa_key_length,
                                              int *wvRc);
 
 DrmRC drm_WVOemCrypto_LoadDeviceRSAKey(uint32_t session,
@@ -306,7 +305,7 @@ DrmRC drm_WVOemCrypto_GenerateRSASignature(uint32_t session,
                                                const uint8_t* message,
                                                uint32_t message_length,
                                                uint8_t* signature,
-                                               uint32_t* signature_length,
+                                               size_t* signature_length,
                                                WvOemCryptoRSA_Padding_Scheme padding_scheme,
                                                int *wvRc);
 
@@ -344,7 +343,7 @@ DrmRC drm_WVOemCrypto_Generic_Sign(uint32_t session,
                                        uint32_t buffer_length,
                                        int algorithm,
                                        uint8_t* signature,
-                                       uint32_t* signature_length,
+                                       size_t* signature_length,
                                        int *wvRc);
 
 DrmRC drm_WVOemCrypto_Generic_Verify(uint32_t session,
@@ -462,7 +461,7 @@ DrmRC DRM_WVOemCrypto_ReportUsage(uint32_t sessionContext,
                                   const uint8_t *pst,
                                   uint32_t pst_length,
                                   WvOEMCryptoPstReport *buffer,
-                                  uint32_t *buffer_length,
+                                  size_t *buffer_length,
                                   int *wvRc);
 
 
@@ -563,6 +562,11 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
  * [in] data_addr: An unaligned pointer to the buffer to be copied.
  * [in] data_length: The length of the buffer, in bytes.
  * [in] destination: A callerowned buffer where the data has to be copied
+ * [in] buffer_type: The type of output buffer memory
+ * [in] subsample_flags: bitwise flags indicating if this is the first, middle,
+ *      or last subsample in a chunk of data. 1 = first subsample, 2 = last
+ *      subsample, 3 = both first and last subsample, 0 = neither first nor
+ *      last subsample.
  *
  * RETURNS:
  * SAGE_OEMCrypto_SUCCESS success
@@ -573,7 +577,9 @@ DrmRC DRM_WVOemCrypto_GetMaxNumberOfSessions(uint32_t* noOfMaxSessions,int *wvRc
  ****************************************************************************************/
 DrmRC Drm_WVOemCrypto_CopyBuffer(uint8_t* destination,
                            const uint8_t* data_addr,
-                           uint32_t data_length
+                           uint32_t data_length,
+                           Drm_WVOemCryptoBufferType_t buffer_type,
+                           uint32_t subsample_flags
                            );
 
 /*****************************************************************************************

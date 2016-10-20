@@ -638,18 +638,14 @@ static BEGL_Error DispGetNativeFormat(void *context,
 }
 
 static BEGL_Error DispDecodeNativeFormat(void *context,
-                                         uint32_t nativeFormat,
+                                         void *buffer,
                                          BEGL_BufferSettings *settings)
 {
-   RSOAN_Display  *data = (RSOAN_Display*)context;
-   android_native_buffer_t *androidBuffer;
-   BEGL_Error res = BEGL_Success;
-
-   if (settings && ((android_native_buffer_t *)nativeFormat != NULL))
+   if (settings && buffer)
    {
       memset(settings, 0, sizeof(BEGL_BufferSettings));
 
-      androidBuffer = (android_native_buffer_t *)nativeFormat;
+      android_native_buffer_t *androidBuffer = (android_native_buffer_t *)buffer;
 
       settings->format = ((struct private_handle_t *)androidBuffer->handle)->oglFormat;
       settings->width = androidBuffer->width;
@@ -658,11 +654,33 @@ static BEGL_Error DispDecodeNativeFormat(void *context,
 
       settings->physOffset = ((struct private_handle_t *)androidBuffer->handle)->nxSurfacePhysicalAddress;
       settings->cachedAddr = (void *)(intptr_t)(((struct private_handle_t *)androidBuffer->handle)->nxSurfaceAddress);
+
+      return BEGL_Success;
    }
    else
-      res = BEGL_Fail;
+      return BEGL_Fail;
+}
 
-   return res;
+static BEGL_Error DispSurfaceChangeRefCount(void *context, void *buffer, BEGL_RefCountMode incOrDec)
+{
+   android_native_buffer_t *androidBuffer = (android_native_buffer_t *)buffer;
+
+   switch (incOrDec)
+   {
+   case BEGL_Increment: androidBuffer->common.incRef(&androidBuffer->common); break;
+   case BEGL_Decrement: androidBuffer->common.decRef(&androidBuffer->common); break;
+   default: assert(0); return BEGL_Fail;
+   }
+   return BEGL_Success;
+}
+
+static BEGL_Error DispSurfaceVerifyImageTarget(void *context,
+   void *nativeSurface, uint32_t eglTarget)
+{
+   UNUSED(context);
+   UNUSED(nativeSurface);
+
+   return eglTarget == EGL_NATIVE_BUFFER_ANDROID ? BEGL_Success : BEGL_Fail;
 }
 
 __attribute__((visibility("default")))
@@ -707,6 +725,8 @@ BEGL_DisplayInterface *RSOANPL_CreateDisplayInterface(BEGL_MemoryInterface *mem,
          disp->WindowPlatformStateDestroy = DispWindowStateDestroy;
          disp->GetNativeFormat = DispGetNativeFormat;
          disp->DecodeNativeFormat = DispDecodeNativeFormat;
+         disp->SurfaceChangeRefCount = DispSurfaceChangeRefCount;
+         disp->SurfaceVerifyImageTarget = DispSurfaceVerifyImageTarget;
 
          /* Store the memory interface */
          data->memInterface = mem;

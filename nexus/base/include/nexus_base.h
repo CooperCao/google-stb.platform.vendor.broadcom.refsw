@@ -485,7 +485,7 @@ Description:
 See Also:
 NEXUS_IsrCallback_Create
 **/
-#define NEXUS_IsrCallback_Set(callback, pDesc) NEXUS_Module_IsrCallback_Set((callback), (pDesc))
+#define NEXUS_IsrCallback_Set(callback, pDesc) NEXUS_Module_IsrCallback_Set((callback), (pDesc), BDBG_STRING(#callback))
 
 /**
 Summary:
@@ -541,7 +541,8 @@ NEXUS_IsrCallback_Set
 **/
 void NEXUS_Module_IsrCallback_Set(
         NEXUS_IsrCallbackHandle callback,
-        const NEXUS_CallbackDesc *pDesc
+        const NEXUS_CallbackDesc *pDesc,
+        const char *debug
         );
 
 /**
@@ -611,7 +612,7 @@ Description:
 See Also:
 NEXUS_TaskCallback_Create
 **/
-#define NEXUS_TaskCallback_Set(callback, pDesc) NEXUS_Module_TaskCallback_Set((callback), (pDesc))
+#define NEXUS_TaskCallback_Set(callback, pDesc) NEXUS_Module_TaskCallback_Set((callback), (pDesc), BDBG_STRING(#callback))
 
 /**
 Summary:
@@ -654,7 +655,8 @@ NEXUS_TaskCallback_Set
 **/
 void NEXUS_Module_TaskCallback_Set(
         NEXUS_TaskCallbackHandle handle,
-        const NEXUS_CallbackDesc *pDesc
+        const NEXUS_CallbackDesc *pDesc,
+        const char *debug
         );
 
 /**
@@ -725,18 +727,6 @@ NEXUS_Module_UnregisterEvent
 #else
 #define NEXUS_UnregisterEvent(event) NEXUS_Module_UnregisterEvent(NEXUS_MODULE_SELF, event, NULL, 0)
 #endif
-
-
-/**
-Summary:
-Initialize NEXUS_CallbackDesc structure
-
-Description:
-This is required in order to make application code resilient to the addition of new strucutre members in the future.
-**/
-void NEXUS_CallbackDesc_Init(
-    NEXUS_CallbackDesc *desc /* [out] */
-    );
 
 /**
 Summary:
@@ -1038,7 +1028,7 @@ See Also:
 NEXUS_CallbackHandler_Init
 NEXUS_CallbackHandler_Stop
 **/
-#define NEXUS_CallbackHandler_PrepareCallback(h, _callback) do { BDBG_OBJECT_ASSERT(&(h), NEXUS_CallbackHandler);(_callback).context=&(h);(_callback).callback=NEXUS_Base_P_CallbackHandler_Dispatch;(_callback).param=0;} while(0)
+#define NEXUS_CallbackHandler_PrepareCallback(h, _callback) do { BDBG_OBJECT_ASSERT(&(h), NEXUS_CallbackHandler);NEXUS_CallbackDesc_Init(&(_callback));(_callback).context=&(h);(_callback).callback=NEXUS_Base_P_CallbackHandler_Dispatch;} while(0)
 
 
 
@@ -1161,6 +1151,10 @@ size_t NEXUS_P_SizeAlign(
     size_t v,
     size_t alignment
 );
+
+/* unit type for IPC, variable size arrays would use this type, and would be aligned to size of this type */
+typedef unsigned long NEXUS_Ipc_Unit;
+#define B_IPC_DATA_ALIGN(size) (size+(sizeof(NEXUS_Ipc_Unit)-1)-(size + sizeof(NEXUS_Ipc_Unit) - 1)%sizeof(NEXUS_Ipc_Unit))
 
 #endif /* !defined NEXUS_BASE_H */
 

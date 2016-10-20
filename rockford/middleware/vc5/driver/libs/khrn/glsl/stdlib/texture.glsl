@@ -110,6 +110,9 @@ highp ivec2 textureSize(sampler2DShadow        sampler, int lod) { return max($$
 highp ivec2 textureSize(samplerCubeShadow      sampler, int lod) { return max($$textureSize(sampler) >> ivec2(lod), ivec2(1)); }
 highp ivec3 textureSize(sampler2DArrayShadow   sampler, int lod) { return max($$textureSize(sampler) >> ivec3(lod, lod, 0), ivec3(1)); }
 highp ivec3 textureSize(samplerCubeArrayShadow sampler, int lod) { return max($$textureSize(sampler) >> ivec3(lod, lod, 0), ivec3(1)); }
+highp int   textureSize( samplerBuffer sampler) { return $$textureSize(sampler); }
+highp int   textureSize(isamplerBuffer sampler) { return $$textureSize(sampler); }
+highp int   textureSize(usamplerBuffer sampler) { return $$textureSize(sampler); }
 
 // These are likely different from all other texture functions.
 // TODO: Consider integrating them into the texture function script
@@ -121,6 +124,9 @@ uvec4 texelFetch (usampler2DMS sampler, ivec2 P, int s) { return $$texture(2, sa
  vec4 texelFetch ( sampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
 ivec4 texelFetch (isampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
 uvec4 texelFetch (usampler2DMSArray sampler, ivec3 P, int s) { return $$texture(2, sampler, ivec3(2*P.xy + ivec2(s & 1, s >> 1), P.z), 0); }
+ vec4 texelFetch ( samplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
+ivec4 texelFetch (isamplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
+uvec4 texelFetch (usamplerBuffer sampler, int P) { return $$texture(2, sampler, P, 0); }
 
 // Old texture lookup functions
 vec4 texture2D(sampler2D sampler, vec2 coord, float bias) { return $$texture(0, sampler,coord,bias); }

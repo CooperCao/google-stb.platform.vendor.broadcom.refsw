@@ -35,7 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * [File Description:]
+ * Module Description:
  *
  ***************************************************************************/
 
@@ -543,7 +543,7 @@ BERR_Code BXDM_PPDBG_P_DecoderDropLog_isr(
    return BERR_SUCCESS;
 }
 
-void BXDM_MODULE_MSG_isr(
+void BXDM_MODULE_MSG_pp_isr(
    const BXDM_PictureProvider_Handle hXdmPP,
    const BXDM_Debug_MsgType eMessageType,
    char * psFormat,
@@ -553,7 +553,7 @@ void BXDM_MODULE_MSG_isr(
    va_list argList;
    char szString[128];
 
-   BDBG_ENTER( BXDM_MODULE_MSG_isr );
+   BDBG_ENTER( BXDM_MODULE_MSG_pp_isr );
 
    BDBG_ASSERT( hXdmPP );
 
@@ -586,7 +586,7 @@ void BXDM_MODULE_MSG_isr(
          break;
    }
 
-   BDBG_LEAVE( BXDM_MODULE_MSG_isr );
+   BDBG_LEAVE( BXDM_MODULE_MSG_pp_isr );
 
    return;
 }

@@ -12,6 +12,30 @@ FILE DESCRIPTION
 #define V3D_SHADREC_H
 
 #include "v3d_gen.h"
+#include "vcos_types.h"
+
+VCOS_EXTERN_C_BEGIN
+
+typedef struct v3d_nv_shader_record_alloc_sizes
+{
+   size_t   packed_shader_rec_size;
+   size_t   packed_shader_rec_align;
+   size_t   defaults_size;
+   size_t   defaults_align;
+} V3D_NV_SHADER_RECORD_ALLOC_SIZES_T;
+
+// Determine the sizes and alignments of memory needed to create an NV shader record
+void v3d_get_nv_shader_record_alloc_sizes(V3D_NV_SHADER_RECORD_ALLOC_SIZES_T *sizes);
+
+// Create NV shader record
+void v3d_create_nv_shader_record(uint32_t *packed_shader_rec_ptr, v3d_addr_t packed_shader_rec_addr,
+                                 uint32_t *defaults_ptr, v3d_addr_t defaults_addr, v3d_addr_t fshader_addr,
+                                 v3d_addr_t funif_addr, v3d_addr_t vdata_addr, bool does_z_writes,
+                                 v3d_threading_t threading);
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+void v3d_workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record);
+#endif
 
 static inline uint32_t v3d_attr_type_get_size_in_memory(v3d_attr_type_t type, unsigned num_elems)
 {
@@ -83,5 +107,7 @@ static inline const char *v3d_desc_shader_type_br(bool render, v3d_shader_type_t
    assert(desc);
    return desc;
 }
+
+VCOS_EXTERN_C_END
 
 #endif

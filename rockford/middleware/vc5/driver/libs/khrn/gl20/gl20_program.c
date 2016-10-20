@@ -333,7 +333,7 @@ static bool save_linked_program_data(GL20_PROGRAM_T *program, GLSL_PROGRAM_T *pr
    free(common->uniform_data);
    free(common->ubo_binding_point);
    free(common->ssbo_binding_point);
-   free(common->linked_glsl_program);
+   glsl_program_free(common->linked_glsl_program);
 
    common->linked_glsl_program = program_ir;
    common->uniform_data        = uniform_data;
@@ -409,6 +409,15 @@ static GLSL_PROGRAM_T *link_graphics(GL20_PROGRAM_T *program)
 
    if (program->fragment && program->fragment->binary == NULL) {
       gl20_program_save_error(program, "Link Error: Fragment shader not compiled");
+      return NULL;
+   }
+
+   if ((program->transform_feedback.buffer_mode == GL_SEPARATE_ATTRIBS  &&
+            program->transform_feedback.varying_count > GLXX_CONFIG_MAX_TF_SEPARATE_COMPONENTS) ||
+        (program->transform_feedback.buffer_mode == GL_INTERLEAVED_ATTRIBS &&
+            program->transform_feedback.varying_count > GLXX_CONFIG_MAX_TF_INTERLEAVED_COMPONENTS))
+   {
+      gl20_program_save_error(program, "Link Error: Total number of components to capture exceeds allowed limit");
       return NULL;
    }
 

@@ -277,7 +277,7 @@ static BEGL_MemHandle MemAllocBlock(void *context, size_t numBytes, size_t align
    cs.size = numBytes;
    cs.desc = use_alloc_desc_str ? desc : NULL;
 
-   if ((flags & BEGL_USAGE_HINT_CPU_UNCACHED) ||
+   if ((flags & BEGL_USAGE_COHERENT) ||
        !(flags & BEGL_USAGE_CPU_READ) ||
        ctx->force_writecombine)
    {

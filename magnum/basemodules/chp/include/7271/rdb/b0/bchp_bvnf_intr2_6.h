@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *BVNF_INTR2_6 - BVN Front Interrupt Controller 6 (RDC Descriptors _31_00_ INTR to RAAGA) Registers
  ***************************************************************************/
-#define BCHP_BVNF_INTR2_6_RAAGA0_STATUS          0x20606600 /* [RO] RAAGA0 interrupt Status Register */
-#define BCHP_BVNF_INTR2_6_RAAGA0_SET             0x20606604 /* [WO] RAAGA0 interrupt Set Register */
-#define BCHP_BVNF_INTR2_6_RAAGA0_CLEAR           0x20606608 /* [WO] RAAGA0 interrupt Clear Register */
-#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_STATUS     0x2060660c /* [RO] RAAGA0 interrupt Mask Status Register */
-#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_SET        0x20606610 /* [WO] RAAGA0 interrupt Mask Set Register */
-#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_CLEAR      0x20606614 /* [WO] RAAGA0 interrupt Mask Clear Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_STATUS          0x20606618 /* [RO] RAAGA1 interrupt Status Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_SET             0x2060661c /* [WO] RAAGA1 interrupt Set Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_CLEAR           0x20606620 /* [WO] RAAGA1 interrupt Clear Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_STATUS     0x20606624 /* [RO] RAAGA1 interrupt Mask Status Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_SET        0x20606628 /* [WO] RAAGA1 interrupt Mask Set Register */
-#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_CLEAR      0x2060662c /* [WO] RAAGA1 interrupt Mask Clear Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_STATUS          0x20606600 /* [RO][32] RAAGA0 interrupt Status Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_SET             0x20606604 /* [WO][32] RAAGA0 interrupt Set Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_CLEAR           0x20606608 /* [WO][32] RAAGA0 interrupt Clear Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_STATUS     0x2060660c /* [RO][32] RAAGA0 interrupt Mask Status Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_SET        0x20606610 /* [WO][32] RAAGA0 interrupt Mask Set Register */
+#define BCHP_BVNF_INTR2_6_RAAGA0_MASK_CLEAR      0x20606614 /* [WO][32] RAAGA0 interrupt Mask Clear Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_STATUS          0x20606618 /* [RO][32] RAAGA1 interrupt Status Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_SET             0x2060661c /* [WO][32] RAAGA1 interrupt Set Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_CLEAR           0x20606620 /* [WO][32] RAAGA1 interrupt Clear Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_STATUS     0x20606624 /* [RO][32] RAAGA1 interrupt Mask Status Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_SET        0x20606628 /* [WO][32] RAAGA1 interrupt Mask Set Register */
+#define BCHP_BVNF_INTR2_6_RAAGA1_MASK_CLEAR      0x2060662c /* [WO][32] RAAGA1 interrupt Mask Clear Register */
 
 /***************************************************************************
  *RAAGA0_STATUS - RAAGA0 interrupt Status Register

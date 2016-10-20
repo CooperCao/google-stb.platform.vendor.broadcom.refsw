@@ -553,7 +553,8 @@ static bool mem_defrag()
             /* We don't want to use this one again! */
             sysAllocs[biggest] = NULL;
 
-            nptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, hdr->allocedSize, hdr->align);
+            bool secure = !!(hdr->flags & MEM_FLAG_SECURE);
+            nptr = g_mgr.memInterface->Alloc(g_mgr.memInterface->context, hdr->allocedSize, hdr->align, secure);
 
             /* Put the data back into device memory
             * This should not fail, but we need to do something sensible if it does
@@ -841,13 +842,15 @@ Otherwise:
 - The reference count of the MEM_HANDLE_T is decremented.
 */
 
-void mem_release_inner(MEM_HEADER_T *h)
+void mem_release_inner(MEM_HANDLE_T handle)
 {
+   MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
+
    /* put me back in if things start to go wrong */
    /*assert((handle != MEM_ZERO_SIZE_HANDLE) && (handle != MEM_EMPTY_STRING_HANDLE));*/
 
    if (h->term)
-      h->term(h->ptr, h->size);
+      h->term(handle);
 
    if (h->ptr != NULL)
    {
@@ -1006,12 +1009,14 @@ MEM_HANDLE_T no longer has a terminator).
 
 void mem_set_term(
    MEM_HANDLE_T handle,
-   MEM_TERM_T term)
+   MEM_TERM_T term,
+   void *param)
 {
    MEM_HEADER_T *h = (MEM_HEADER_T *)handle;
    assert(h->magic == MAGIC);
    assert(h->ref_count != 0);
    h->term = term;
+   h->param = param;
 }
 
 /*
@@ -1292,8 +1297,6 @@ uintptr_t mem_lock_offset(MEM_HANDLE_T handle)
    return res;
 }
 
-
-
 /*
 A MEM_HANDLE_T with a lock count greater than 0 is considered to be locked
 and may not be moved by the memory manager.
@@ -1417,7 +1420,7 @@ void mem_unretain(
 }
 
 void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc,
-                uint16_t width, uint16_t height, int32_t stride)
+                uint16_t width, uint16_t height, int32_t stride, int32_t dstStride, bool secure)
 {
    MEM_HEADER_T *src = (MEM_HEADER_T *)hSrc;
    MEM_HEADER_T *dst = (MEM_HEADER_T *)hDst;
@@ -1465,7 +1468,9 @@ void mem_copy2d(KHRN_IMAGE_FORMAT_T format, MEM_HANDLE_T hDst, MEM_HANDLE_T hSrc
             params.width = width;
             params.height = height;
             params.stride = stride;
+            params.dstStride = dstStride;
             params.format = conv_format;
+            params.secure = secure;
 
             g_mgr.memInterface->MemCopy2d(g_mgr.memInterface->context, &params);
          }
@@ -1508,4 +1513,52 @@ MEM_HANDLE_T mem_strdup_ex(
    strcpy((char *)mem_lock(handle, NULL), str);
    mem_unlock(handle);
    return handle;
+}
+
+/******************************************************************************
+special interface only for KHRN_AUTOCLIF
+******************************************************************************/
+void *autoclif_addr_to_ptr(uint32_t addr)
+{
+   /* non optional interface if autoclif is on.  Crash if not present */
+   if (g_mgr.memInterface != NULL && g_mgr.memInterface->DebugAutoclifAddrToPtr != NULL)
+      return g_mgr.memInterface->DebugAutoclifAddrToPtr(g_mgr.memInterface->context, addr);
+   else
+   {
+      UNREACHABLE();
+      return NULL;
+   }
+}
+
+uint32_t autoclif_ptr_to_addr(void *p)
+{
+   /* non optional interface if autoclif is on.  Crash if not present */
+   if (g_mgr.memInterface != NULL && g_mgr.memInterface->DebugAutoclifPtrToAddr != NULL)
+      return g_mgr.memInterface->DebugAutoclifPtrToAddr(g_mgr.memInterface->context, p);
+   else
+   {
+      UNREACHABLE();
+      return 0;
+   }
+}
+
+const char *autoclif_get_clif_filename(void)
+{
+   /* non optional interface if autoclif is on.  Crash if not present */
+   if (g_mgr.memInterface != NULL && g_mgr.memInterface->DebugAutoclifGetClifFilename != NULL)
+      return g_mgr.memInterface->DebugAutoclifGetClifFilename(g_mgr.memInterface->context);
+   else
+   {
+      UNREACHABLE();
+      return NULL;
+   }
+}
+
+void autoclif_reset(void)
+{
+   /* optional interface depending on the platform */
+   if (g_mgr.memInterface != NULL && g_mgr.memInterface->DebugAutoclifReset != NULL)
+      g_mgr.memInterface->DebugAutoclifReset(g_mgr.memInterface->context);
+   else
+      return;
 }

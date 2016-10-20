@@ -82,7 +82,7 @@
         } while(0)
 
 /* needed by server process */
-void RF4CE_UnpairReq(RF4CE_UnpairReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
+//void RF4CE_UnpairReq(RF4CE_UnpairReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 //void RF4CE_StartReq(RF4CE_StartReqDescr_t *request) { STUB_DUMP_ERROR_MSG; }
 
 //void RF4CE_GDP_HeartbeatReq(RF4CE_GDP_HeartbeatReqDescr_t *request) {}
@@ -161,7 +161,11 @@ void Mail_TestEngineHelloInd(TE_HelloCommandIndParams_t *ind)
     sysEventSubscribeHostHandler_Call(&eventMap);
     //SYS_EventSubscribe_Call(&eventMap);
 }
-//void TE_RoutingChangeReq(TE_RoutingChangeReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+void Mail_TestEnginePing(TE_PingCommandReqDescr_t *const req) { STUB_DUMP_ERROR_MSG; }
+void Mail_TestEngineMailboxAckReq(TE_MailboxAckDescr_t *const req) { STUB_DUMP_ERROR_MSG; }
+void Mail_TestEngineHaltInd(TE_AssertLogIdCommandIndParams_t *const indParams) { STUB_DUMP_ERROR_MSG; }
+void TE_RoutingChangeReq(TE_RoutingChangeReqDescr_t *const reqDescr) { STUB_DUMP_ERROR_MSG; }
+void Mail_TestEngineSendHello(void) { STUB_DUMP_ERROR_MSG; }
 void MailUnitTest_f1(MailUnitTest_f1Descr_t *req) { STUB_DUMP_ERROR_MSG; }
 void MailUnitTest_f2(MailUnitTest_f2Descr_t *req) { STUB_DUMP_ERROR_MSG; }
 void MailUnitTest_f3(MailUnitTest_f3Descr_t *req) { STUB_DUMP_ERROR_MSG; }

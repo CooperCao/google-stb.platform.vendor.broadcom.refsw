@@ -59,11 +59,6 @@
 #include "bfpga.h"
 #endif
 
-#if NEXUS_HAS_SPI_FRONTPANEL
-#include "nexus_gpio.h"
-#include "nexus_spi.h"
-#endif
-
 #ifndef NEXUS_NUM_XVD_DEVICES
 /* NEXUS_NUM_XVD_DEVICES is used throughout platform code; this provides backward compatibility */
 #define NEXUS_NUM_XVD_DEVICES NEXUS_MAX_XVD_DEVICES
@@ -78,8 +73,6 @@ internally see http://www.sj.broadcom.com/projects/MIPS3300/. */
  #define BMIPS5000_40NM 1
 #elif BCHP_CHIP==7344 || BCHP_CHIP==7346 || BCHP_CHIP==7231 || BCHP_CHIP==7584 || BCHP_CHIP==7563 || BCHP_CHIP==7362 || BCHP_CHIP==7228 ||  BCHP_CHIP==75635 || BCHP_CHIP==73625 || BCHP_CHIP==75845 || BCHP_CHIP==73465 || BCHP_CHIP==75525
  #define BMIPS4380_40NM 1
-#elif BCHP_CHIP==7552 || BCHP_CHIP==7358 || BCHP_CHIP==7360
- #define BMIPS3300 1
 #endif
 
 #define NEXUS_NUM_L1_REGISTERS BINT_INTC_SIZE
@@ -210,18 +203,6 @@ Uninit board-specific state. See nexus_platform_$(NEXUS_PLATFORM).c.
 **/
 void NEXUS_Platform_P_UninitBoard(void);
 
-/**
-Summary:
-Memory layout of single memory controller
-*/
-typedef struct NEXUS_PlatformMemcMemory {
-    uint64_t length; /* no MEMC if 0 */
-    struct {
-        NEXUS_Addr base; /* physical address. 0 is valid. */
-        uint64_t length; /* no region if 0 */
-    } region[NEXUS_NUM_MEMC_REGIONS];
-} NEXUS_PlatformMemcMemory;
-
 typedef struct NEXUS_PlatformOsRegion {
     NEXUS_Addr base; /* physical address */
     uint64_t length; /* no region if 0 */
@@ -241,33 +222,13 @@ These structure members are arranged to be backward compatible with NEXUS_Platfo
 **/
 typedef struct NEXUS_PlatformMemory
 {
-    /* DDR sizes detected on the board, per MEMC, per physical addressing region */
-    NEXUS_PlatformMemcMemory memc[NEXUS_MAX_MEMC];
+    BCHP_MemoryLayout memoryLayout;
 
     /* OS's report of usable memory by physical address */
     NEXUS_PlatformOsRegion osRegion[NEXUS_MAX_HEAPS];
 
     unsigned max_dcache_line_size; /* reported by OS. BMEM alignment must be >= this to avoid cache coherency bugs. */
 } NEXUS_PlatformMemory;
-
-/**
-Summary:
-Read board strapping option to determine MEMC configuration.
-
-Description:
-Sets pMemory->memc[].length.
-May modify pSettings (platform settings) based on those strapping options.
-Called from NEXUS_Platform_P_InitCore.
-**/
-NEXUS_Error NEXUS_Platform_P_ReadMemcConfig(
-    NEXUS_PlatformMemory *pMemory, /* [out] */
-    NEXUS_PlatformSettings *pSettings /* [out] */
-    );
-
-NEXUS_Error NEXUS_Platform_P_ReadGenericMemcConfig(
-    NEXUS_PlatformMemory *pMemory,
-    NEXUS_PlatformSettings *pSettings
-    );
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(
     NEXUS_PlatformSettings *pSettings, unsigned boxMode
@@ -300,7 +261,7 @@ Summary:
 Get the memory regions that the OS says can be used by nexus/magnum
 **/
 NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory);
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemory *pMemory);
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory);
 
 /***************************************************************************
 Summary:
@@ -574,9 +535,10 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
 /* requiring NEXUS_Core_PreInitState be passed in a few key places to encode proper state initialization (that is, we must already be in preinit state) */
 void NEXUS_Platform_Priv_GetDefaultSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformSettings *pSettings );
 void NEXUS_P_GetDefaultMemoryConfigurationSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryConfigurationSettings *pSettings);
-void NEXUS_P_GetDefaultMemoryRtsSettings(NEXUS_MemoryRtsSettings *pRtsSettings);
+void NEXUS_P_GetDefaultMemoryRtsSettings(const NEXUS_Core_PreInitState *preInitState, NEXUS_MemoryRtsSettings *pRtsSettings);
 NEXUS_Error NEXUS_P_ApplyMemoryConfiguration(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryConfigurationSettings *pMemConfig, const NEXUS_MemoryRtsSettings *pRtsSettings, NEXUS_PlatformSettings *pSettings);
 void NEXUS_P_SupportVideoDecoderCodec( NEXUS_MemoryConfigurationSettings *pSettings, NEXUS_VideoCodec codec );
+bool nexus_p_has_secure_decoder_on_memc(const NEXUS_Core_PreInitState *preInitState, const NEXUS_MemoryRtsSettings *pRtsSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned memcIndex);
 
 enum nexus_memconfig_picbuftype
 {

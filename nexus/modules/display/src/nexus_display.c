@@ -72,6 +72,7 @@ NEXUS_Display_GetDefaultSettings(NEXUS_DisplaySettings *pSettings)
     pSettings->display3DSettings.overrideOrientation = false;
     pSettings->display3DSettings.orientation = NEXUS_VideoOrientation_e2D;
     pSettings->display3DSettings.sourceBuffer = NEXUS_Display3DSourceBuffer_eDefault;
+    NEXUS_CallbackDesc_Init(&pSettings->vsyncCallback);
     return;
 }
 
@@ -324,7 +325,7 @@ static void NEXUS_Display_GetCaptureBuffer_isr(NEXUS_DisplayHandle display)
             break;
         }
 
-        BDBG_MSG(("L:%u;C:%u;W:%u;H:%u;P:%u;T:%#x;S:%#x;I:%u;R:%u;X:%u;Y:%u",
+        BDBG_MSG(("L:%u ; C:%u ; W:%u ; H:%u ; P:%u ; PTS:%#x ; Lo:%#x ; Hi:%u ; ID: %u ; R:%u ; X:%u ; Y:%u",
             picture.ulLumaOffset,
             picture.ulChromaOffset,
             picture.ulWidth,
@@ -2136,7 +2137,7 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         vdcSettings.vip.stMemSettings.ulMaxWidth = pSettings->vip.stMemSettings.ulMaxWidth;
         vdcSettings.vip.stMemSettings.bSupportInterlaced = pSettings->vip.stMemSettings.bSupportInterlaced;
         stgEnabled = true;
-        BDBG_MSG(("VIP heap set to %p", vdcSettings.vip.hHeap));
+        BDBG_MSG(("VIP heap set to %p", (void *)(vdcSettings.vip.hHeap)));
         rc = BVDC_Display_SetStgConfiguration(display->displayVdc, stgEnabled, &vdcSettings);
         if (rc) {
             return BERR_TRACE(rc);
@@ -2208,7 +2209,7 @@ NEXUS_Error NEXUS_Display_SetEncoderCallback_priv(NEXUS_DisplayHandle display, N
         BVDC_Display_GetStgConfiguration(display->displayVdc, &stgEnabled, &vdcSettings);
         vdcSettings.vip.hHeap = NULL;
         stgEnabled = true; /* always leave STG enabled to have hw trigger and interrupt */
-        BDBG_MSG(("VIP heap set to %p", vdcSettings.vip.hHeap));
+        BDBG_MSG(("VIP heap set to %p", (void *)(vdcSettings.vip.hHeap)));
         rc = BVDC_Display_SetStgConfiguration(display->displayVdc, stgEnabled, &vdcSettings);
         if (rc) { return BERR_TRACE(rc); }
 #else

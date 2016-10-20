@@ -33,7 +33,45 @@ size_t gfx_buffer_block_offset(
       y_in_blocks = h_in_blocks - y_in_blocks - 1;
    }
 
-   switch (gfx_lfmt_collapse_uif_family(swizzling)) {
+   if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+   {
+      uint32_t col_w_in_bytes = gfx_lfmt_sandcol_w_in_bytes(swizzling);
+      uint32_t col_w_in_blocks = gfx_udiv_exactly(col_w_in_bytes, bd->bytes_per_block);
+      uint32_t col = x_in_blocks / col_w_in_blocks;
+      size_t offset = plane->offset +
+         (col * col_w_in_blocks * plane->pitch) +
+         (((y_in_blocks * col_w_in_blocks) + (x_in_blocks % col_w_in_blocks)) * bd->bytes_per_block);
+
+      switch (gfx_lfmt_dram_map_version(swizzling))
+      {
+      case 2:
+         break;
+      case 5:
+         if (offset & ((col_w_in_bytes == 128) ? 0x100 : 0x200))
+            offset ^= 32;
+         break;
+      case 8:
+         assert(col_w_in_bytes == 256);
+         if ((offset ^ (offset >> 1)) & 0x100)
+            offset ^= 32;
+         break;
+      default:
+         unreachable();
+      }
+
+      /* See GFXH-1344 */
+      if (gfx_lfmt_is_bigend_sand_family((GFX_LFMT_T)swizzling))
+      {
+         assert((plane->offset % 32) == 0);
+         offset ^= 31;
+         offset -= bd->bytes_per_block - 1;
+      }
+
+      return offset;
+   }
+
+   switch (gfx_lfmt_collapse_uif_family(swizzling))
+   {
    case GFX_LFMT_SWIZZLING_RSO:
       return plane->offset +
          (x_in_blocks * bd->bytes_per_block) +
@@ -107,39 +145,6 @@ size_t gfx_buffer_block_offset(
             (x_in_blocks % bd->ut_w_in_blocks_2d)) * bd->bytes_per_block) +
             z_in_blocks * plane->slice_pitch;
       }
-   }
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256:
-   {
-      uint32_t col_w_in_blocks = gfx_lfmt_sandcol_w_in_blocks_2d(bd, swizzling);
-      uint32_t col = x_in_blocks / col_w_in_blocks;
-      size_t offset = plane->offset +
-         (col * col_w_in_blocks * plane->pitch) +
-         (((y_in_blocks * col_w_in_blocks) + (x_in_blocks % col_w_in_blocks)) * bd->bytes_per_block);
-
-      switch (GFX_DRAM_MAP_MODE)
-      {
-      case 2:
-         break;
-      case 5:
-         if (offset & ((swizzling == GFX_LFMT_SWIZZLING_SAND_128) ? 0x100 : 0x200))
-            offset ^= 32;
-         break;
-      case 8:
-         assert(swizzling == GFX_LFMT_SWIZZLING_SAND_256);
-         if ((offset ^ (offset >> 1)) & 0x100)
-            offset ^= 32;
-         break;
-      default:
-         unreachable();
-      }
-
-      /* See GFXH-1344 */
-      assert((plane->offset % 32) == 0);
-      offset ^= 31;
-      offset -= bd->bytes_per_block - 1;
-
-      return offset;
    }
    default:
       unreachable();

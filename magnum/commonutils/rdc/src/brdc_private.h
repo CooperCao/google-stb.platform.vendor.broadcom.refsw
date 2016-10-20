@@ -53,12 +53,56 @@ extern "C" {
 /***************************************************************************
  * Defines
  ***************************************************************************/
+#if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
+#define BRDC_P_64BIT_SUPPORT                    1
+#else
+#define BRDC_P_64BIT_SUPPORT                    0
+#endif
 
 #define BRDC_P_Read32(hRdc, reg)                BREG_Read32(hRdc->hReg, reg)
 #define BRDC_P_Write32(hRdc, reg, data)         BREG_Write32(hRdc->hReg, reg, data)
 
 #define BRDC_Slot_P_Read32(hSlot, reg)          BRDC_P_Read32(hSlot->hRdc, reg)
 #define BRDC_Slot_P_Write32(hSlot, reg, data)   BRDC_P_Write32(hSlot->hRdc, reg, data)
+
+#if BRDC_P_64BIT_SUPPORT /* 64-bit support */
+#define BRDC_P_ADDR_PTR(ptr)                    (uint64_t*)(ptr)
+#define BRDC_P_ADDR_OFFSET(offset)              ((uint64_t)(offset))
+
+#define BRDC_P_ADDR_REG_SIZE                    sizeof(uint64_t)
+
+
+#define BRDC_P_OP_IMM_TO_ADDR                   BRDC_OP_IMM_TO_REG64
+#define BRDC_P_OP_IMMS_TO_ADDRS                 BRDC_OP_IMMS_TO_REGS64
+#define BRDC_P_OP_IMM_TO_VAR                    BRDC_OP_IMM_TO_VAR64
+#define BRDC_P_OP_REG_TO_VAR                    BRDC_OP_REG_TO_VAR64
+#define BRDC_P_OP_VAR_AND_VAR_TO_VAR            BRDC_OP_VAR_AND_VAR_TO_VAR64
+#define BRDC_P_OP_NOT_VAR_TO_VAR                BRDC_OP_NOT_VAR_TO_VAR64
+#define BRDC_P_OP_VAR_OR_VAR_TO_VAR             BRDC_OP_VAR_OR_VAR_TO_VAR64
+#define BRDC_P_OP_VAR_SUM_VAR_TO_VAR            BRDC_OP_VAR_SUM_VAR_TO_VAR64
+#define BRDC_P_OP_VAR_TO_REG                    BRDC_OP_VAR_TO_REG64
+#define BRDC_P_OP_VAR_SUM_IMM_TO_VAR            BRDC_OP_VAR_SUM_IMM_TO_VAR64
+#define BRDC_P_OP_XOR_SUM_IMM_TO_VAR            BRDC_OP_VAR_XOR_IMM_TO_VAR64
+#else
+#define BRDC_P_ADDR_PTR(ptr)                    (uint32_t*)(ptr)
+#define BRDC_P_ADDR_OFFSET(offset)              ((uint32_t)(offset))
+
+#define BRDC_P_ADDR_REG_SIZE                    sizeof(uint32_t)
+
+
+
+#define BRDC_P_OP_IMM_TO_ADDR                   BRDC_OP_IMM_TO_REG
+#define BRDC_P_OP_IMMS_TO_ADDRS                 BRDC_OP_IMMS_TO_REGS
+#define BRDC_P_OP_IMM_TO_VAR                    BRDC_OP_IMM_TO_VAR
+#define BRDC_P_OP_REG_TO_VAR                    BRDC_OP_REG_TO_VAR
+#define BRDC_P_OP_VAR_AND_VAR_TO_VAR            BRDC_OP_VAR_AND_VAR_TO_VAR
+#define BRDC_P_OP_NOT_VAR_TO_VAR                BRDC_OP_NOT_VAR_TO_VAR
+#define BRDC_P_OP_VAR_OR_VAR_TO_VAR             BRDC_OP_VAR_OR_VAR_TO_VAR
+#define BRDC_P_OP_VAR_SUM_VAR_TO_VAR            BRDC_OP_VAR_SUM_VAR_TO_VAR
+#define BRDC_P_OP_VAR_TO_REG                    BRDC_OP_VAR_TO_REG
+#define BRDC_P_OP_VAR_SUM_IMM_TO_VAR            BRDC_OP_VAR_SUM_IMM_TO_VAR
+#define BRDC_P_OP_XOR_SUM_IMM_TO_VAR            BRDC_OP_VAR_XOR_IMM_TO_VAR
+#endif
 
 /* Number of rul to capture. */
 #define BRDC_P_MAX_COUNT                        (1024*1024)
@@ -97,10 +141,19 @@ Description:
 
     /* the first 32 scratch registers are reserved for RDC slot execution tracking */
     #define BRDC_P_SCRATCH_REG_START   (0)
+    #if BRDC_P_64BIT_SUPPORT /* 64-bit RDC has separate 64-bit scratch registers */
+    #define BRDC_P_SCRATCH_REG_END     (BCHP_RDC_scratch64_i_ARRAY_END - BRDC_P_NUM_OF_SCRATCH_FOR_VBI)
+
+    #define BRDC_P_SCRATCH_REG_ADDR(varx) \
+        (BCHP_RDC_scratch64_i_ARRAY_BASE + ((varx) * sizeof(uint64_t)))
+    #define BRDC_P_SCRATCH_REG_SIZE     sizeof(uint64_t)
+    #else
     #define BRDC_P_SCRATCH_REG_END     (BCHP_RDC_scratch_i_ARRAY_END - BRDC_P_NUM_OF_SCRATCH_FOR_VBI)
 
     #define BRDC_P_SCRATCH_REG_ADDR(varx) \
         (BCHP_RDC_scratch_i_ARRAY_BASE + ((varx) * sizeof(uint32_t)))
+    #define BRDC_P_SCRATCH_REG_SIZE     sizeof(uint32_t)
+    #endif
 
     /* track all slots */
     #define BRDC_P_TRACK_REG_ADDR(x) BRDC_P_SCRATCH_REG_ADDR(x)
@@ -118,6 +171,7 @@ Description:
 
     #define BRDC_P_SCRATCH_REG_ADDR(varx) \
         (BCHP_RDC_data_i_ARRAY_BASE + ((varx) * sizeof(uint32_t)))
+    #define BRDC_P_SCRATCH_REG_SIZE     sizeof(uint32_t)
 
     /* BRDC_P_SCRATCH_FIRST_AVAILABLE needs to exclude RDC internally reserved
        slot-tracking registers;
@@ -251,7 +305,7 @@ typedef struct BRDC_P_List_Handle
 
     BMMA_Block_Handle   hRULBlock;         /* Managed memory block */
     uint32_t           *pulRULAddr;        /* RUL address */
-    uint32_t            ulAddrOffset;      /* Device offset address */
+    BMMA_DeviceOffset   ulAddrOffset;      /* Device offset address */
     uint32_t            ulEntries;         /* Number of entries in slot */
     uint32_t            ulMaxEntries;      /* Max number of entries */
     bool                bLastExecuted;     /* Check if last list assignment executed. */
@@ -288,12 +342,10 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
 
 BERR_Code BRDC_P_AcquireSemaphore_isr
     ( BRDC_Handle                      hRdc,
-      BRDC_List_Handle                 hList,
       BRDC_SlotId                      eSlotId );
 
 void BRDC_P_ReleaseSemaphore_isr
     ( BRDC_Handle                      hRdc,
-      BRDC_List_Handle                 hList,
       BRDC_SlotId                      eSlotId );
 
 BERR_Code BRDC_P_AcquireSync
@@ -311,8 +363,12 @@ BERR_Code BRDC_P_ArmSync_isr
 
 void BRDC_P_DumpSlot_isr
     ( BRDC_Handle                      hRdc,
-      BRDC_List_Handle                 hList,
       BRDC_SlotId                      eSlotId );
+
+BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
+    ( BRDC_Slot_Handle                *phSlots,
+      BRDC_List_Handle                 hList,
+      uint32_t                         ulNum);
 
 #ifdef __cplusplus
 }

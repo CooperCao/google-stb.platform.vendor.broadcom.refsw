@@ -79,33 +79,57 @@ typedef struct NEXUS_Graphicsv3dFenceEvent *NEXUS_Graphicsv3dFenceEventHandle;
 #define NEXUS_GRAPHICSV3D_MAX_IDENTS            4
 #define NEXUS_GRAPHICSV3D_MAX_HUB_IDENTS        4
 
-#define NEXUS_GRAPHICSV3D_SYNC_CORE_READ            (1u << 0)
-#define NEXUS_GRAPHICSV3D_SYNC_CORE_WRITE           (1u << 1)
-#define NEXUS_GRAPHICSV3D_SYNC_CORE                 (NEXUS_GRAPHICSV3D_SYNC_CORE_READ | NEXUS_GRAPHICSV3D_SYNC_CORE_WRITE)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ        (1u << 2)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE       (1u << 3)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA             (NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ | NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE)
-#define NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ      (1u << 4)
-#define NEXUS_GRAPHICSV3D_SYNC_QPU_IU_READ          (1u << 5)
-#define NEXUS_GRAPHICSV3D_SYNC_VCD_READ             (1u << 6)
-#define NEXUS_GRAPHICSV3D_SYNC_TFU_READ             (1u << 7)
-#define NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE            (1u << 8)
-#define NEXUS_GRAPHICSV3D_SYNC_TFU                  (NEXUS_GRAPHICSV3D_SYNC_TFU_READ | NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE)
+#define NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ         (1u << 0)
+#define NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ    (1u << 1)
+#define NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ       (1u << 2)
+#define NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ    (1u << 3)
+#define NEXUS_GRAPHICSV3D_SYNC_VCD_READ            (1u << 4)
+#define NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ      (1u << 5)
+#define NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ       (1u << 6)
+#define NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ     (1u << 7)
+#define NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE        (1u << 8)
+#define NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ  (1u << 9)
+#define NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE (1u << 10)
+#define NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ        (1u << 11)
+#define NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE       (1u << 12)
+#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ       (1u << 13)
+#define NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE      (1u << 14)
+#define NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ      (1u << 15)
+#define NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE     (1u << 16)
+#define NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ         (1u << 17)
+#define NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE        (1u << 18)
+#define NEXUS_GRAPHICSV3D_SYNC_TFU_READ            (1u << 19)
+#define NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE           (1u << 20)
+#define NEXUS_GRAPHICSV3D_SYNC_CPU_READ            (1u << 24)
+#define NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE           (1u << 25)
 
-#define NEXUS_GRAPHICSV3D_SYNC_V3D_READ             (NEXUS_GRAPHICSV3D_SYNC_CORE_READ |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_QPU_IU_READ |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_TFU_READ |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_VCD_READ)
-#define NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE            (NEXUS_GRAPHICSV3D_SYNC_CORE_WRITE |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE |\
-                                                     NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE)
-#define NEXUS_GRAPHICSV3D_SYNC_V3D                  (NEXUS_GRAPHICSV3D_SYNC_V3D_READ | NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE)
+#define NEXUS_GRAPHICSV3D_SYNC_V3D_READ (\
+   NEXUS_GRAPHICSV3D_SYNC_CLE_CL_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_CLE_SHADREC_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_CLE_PRIM_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_CLE_DRAWREC_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_VCD_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_QPU_INSTR_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_QPU_UNIF_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_TMU_CONFIG_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_READ\
+ | NEXUS_GRAPHICSV3D_SYNC_TFU_READ)
 
-#define NEXUS_GRAPHICSV3D_SYNC_CPU_READ             (1u << 9)
-#define NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE            (1u << 10)
-#define NEXUS_GRAPHICSV3D_SYNC_CPU                  (NEXUS_GRAPHICSV3D_SYNC_CPU_READ | NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE)
+#define NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE (\
+   NEXUS_GRAPHICSV3D_SYNC_PTB_TF_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_PTB_TILESTATE_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_PTB_PCF_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_TMU_DATA_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_TLB_IMAGE_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_TLB_OQ_WRITE\
+ | NEXUS_GRAPHICSV3D_SYNC_TFU_WRITE)
+
+#define NEXUS_GRAPHICSV3D_SYNC_V3D_RW (NEXUS_GRAPHICSV3D_SYNC_V3D_READ | NEXUS_GRAPHICSV3D_SYNC_V3D_WRITE)
+#define NEXUS_GRAPHICSV3D_SYNC_CPU_RW (NEXUS_GRAPHICSV3D_SYNC_CPU_READ | NEXUS_GRAPHICSV3D_SYNC_CPU_WRITE)
 
 #define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_NONE 0
 #define NEXUS_GRAPHICSV3D_EMPTY_TILE_MODE_SKIP 1
@@ -175,19 +199,13 @@ typedef struct NEXUS_Graphicsv3dQueryResponse
 
 /**
 Summary:
-A function pointer for completion callbacks
-**/
-typedef void (*NEXUS_Graphicsv3dCompletionFn)(void *, uint64_t, NEXUS_Graphicsv3dJobStatus);
-
-/**
-Summary:
 Structure returned from a completion callback query NEXUS_Graphicsv3d_GetCompletions
 **/
 typedef struct NEXUS_Graphicsv3dCompletion
 {
    uint64_t                      uiJobId;
-   NEXUS_Graphicsv3dCompletionFn pfnCallback;
-   void                         *pData;
+   uint64_t                      uiCallback;
+   uint64_t                      uiData;
    NEXUS_Graphicsv3dJobStatus    eStatus;
    NEXUS_Graphicsv3dJobType      eType;
 } NEXUS_Graphicsv3dCompletion;
@@ -215,8 +233,8 @@ typedef struct NEXUS_Graphicsv3dJobBase
    NEXUS_Graphicsv3dJobType            eType;
    NEXUS_Graphicsv3dSchedDependencies  sCompletedDependencies;
    NEXUS_Graphicsv3dSchedDependencies  sFinalizedDependencies;
-   NEXUS_Graphicsv3dCompletionFn       pfnCompletion;
-   void                               *pCompletionData;
+   uint64_t                            uiCompletion;
+   uint64_t                            uiCompletionData;
    uint32_t                            uiSyncFlags;
    bool                                bSecure;
    uint64_t                            uiPagetablePhysAddr;
@@ -345,19 +363,14 @@ typedef struct NEXUS_Graphicsv3dJobTest
 } NEXUS_Graphicsv3dJobTest;
 
 /**
-A function pointer for usermode callbacks
-**/
-typedef void (*NEXUS_Graphicsv3dUsermodeFn)(void *pData);
-
-/**
 Summary:
 Usermode callback jobs record returned by query function NEXUS_Graphicsv3d_GetUsermode
 **/
 typedef struct NEXUS_Graphicsv3dUsermode
 {
    uint64_t                      uiJobId;
-   NEXUS_Graphicsv3dUsermodeFn   pfnCallback;
-   void                         *pData;
+   uint64_t                      uiCallback;
+   uint64_t                      uiData;
    bool                          bHaveJob;
 } NEXUS_Graphicsv3dUsermode;
 
@@ -367,9 +380,9 @@ Usermode callback jobs hold a closure to invoke back in user space
 **/
 typedef struct NEXUS_Graphicsv3dJobUsermode
 {
-   NEXUS_Graphicsv3dJobBase        sBase;
-   NEXUS_Graphicsv3dUsermodeFn     pfnFunction;
-   void                           *pData;
+   NEXUS_Graphicsv3dJobBase      sBase;
+   uint64_t                      uiFunction;
+   uint64_t                      uiData;
 } NEXUS_Graphicsv3dJobUsermode;
 
 /**

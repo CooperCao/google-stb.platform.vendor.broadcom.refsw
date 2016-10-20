@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: I2c
 *    Specific APIs related to I2c Control.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -1006,18 +998,35 @@ NEXUS_Error NEXUS_I2cModule_Standby_priv(bool enabled, const NEXUS_StandbySettin
     else {
         for ( magnumI2cHandle = BLST_S_FIRST(&g_magnum_i2c_channels); NULL != magnumI2cHandle; magnumI2cHandle = BLST_S_NEXT(magnumI2cHandle, node) )
         {
+            NEXUS_I2cHandle i2cHandle;
+            NEXUS_I2cSettings *pSettings;
+
             BDBG_OBJECT_ASSERT(magnumI2cHandle, magnum_i2c);
             if (magnumI2cHandle->channel || !magnumI2cHandle->s3standby) { continue; }
 
-            BI2C_GetBscIndexDefaultSettings(g_NEXUS_i2cHandle, magnumI2cHandle->index, magnumI2cHandle->settings.softI2c, &channelSettings);
-            channelSettings.clkRate = magnumI2cHandle->settings.clockRate;
-            channelSettings.intMode = magnumI2cHandle->settings.interruptMode;
-            channelSettings.timeoutMs = magnumI2cHandle->settings.timeout;
-            channelSettings.burstMode = magnumI2cHandle->settings.burstMode;
-            channelSettings.autoI2c.enabled = magnumI2cHandle->settings.autoI2c.enabled;
-            channelSettings.softI2c = magnumI2cHandle->settings.softI2c;
-            channelSettings.fourByteXferMode = magnumI2cHandle->settings.fourByteXferMode;
-            channelSettings.inputSwitching5V = magnumI2cHandle->settings.use5v;
+            for (i2cHandle = BLST_S_FIRST(&g_i2c_channels); i2cHandle; i2cHandle = BLST_S_NEXT(i2cHandle, link)) {
+                if (i2cHandle->index == magnumI2cHandle->index) {
+                    break;
+                }
+            }
+            if (i2cHandle == NULL) {
+                BDBG_ERR(("Could find nexus i2c handle for index %d", magnumI2cHandle->index));
+                return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+            }
+            pSettings = &i2cHandle->settings;
+
+            BI2C_GetBscIndexDefaultSettings(g_NEXUS_i2cHandle, i2cHandle->index, magnumI2cHandle->settings.softI2c, &channelSettings);
+            channelSettings.clkRate = pSettings->clockRate;
+            channelSettings.intMode = pSettings->interruptMode;
+            channelSettings.timeoutMs = pSettings->timeout;
+            channelSettings.burstMode = pSettings->burstMode;
+            channelSettings.autoI2c.enabled = pSettings->autoI2c.enabled;
+            channelSettings.softI2c = pSettings->softI2c;
+            channelSettings.fourByteXferMode = pSettings->fourByteXferMode;
+            channelSettings.inputSwitching5V = pSettings->use5v;
+            BDBG_MSG(("Open I2C Channel %d: clk %d, int %d, timeout %d, burst %d, softI2c %d, autoI2c %d, four byte xfer mode %d",
+            i2cHandle->index, channelSettings.clkRate, channelSettings.intMode, channelSettings.timeoutMs, channelSettings.burstMode, channelSettings.softI2c,
+            channelSettings.autoI2c.enabled, channelSettings.fourByteXferMode));
 
             /* BI2C handle can be closed/re-opened, but the BREG_I2C handle must NOT be destroyed/re-created,
                because other magnum modules (e.g. HDM) will keep using that handle */
@@ -1027,19 +1036,12 @@ NEXUS_Error NEXUS_I2cModule_Standby_priv(bool enabled, const NEXUS_StandbySettin
             /* asyncReg.context is normally set to the BI2C_ChannelHandle via BI2C_CreateI2cRegHandle and must be updated
                syncReg.context is always set to NEXUS_magnum_i2c, so should not be touched */
             magnumI2cHandle->asyncReg.context = magnumI2cHandle->channel;
-
-            /* copy to all nexus handles */
-            {
-                NEXUS_I2cHandle i2cHandle;
-                for (i2cHandle = BLST_S_FIRST(&g_i2c_channels); i2cHandle; i2cHandle = BLST_S_NEXT(i2cHandle, link)) {
-                    if (i2cHandle->index == magnumI2cHandle->index) {
-                        i2cHandle->channel = magnumI2cHandle->channel;
-                        i2cHandle->asyncReg = magnumI2cHandle->asyncReg;
-                    }
-                }
-            }
-
+            magnumI2cHandle->settings = *pSettings;
             magnumI2cHandle->s3standby = false;
+
+            i2cHandle->channel = magnumI2cHandle->channel;
+            i2cHandle->asyncReg = magnumI2cHandle->asyncReg;
+
         }
     }
 
@@ -1050,4 +1052,3 @@ NEXUS_Error NEXUS_I2cModule_Standby_priv(bool enabled, const NEXUS_StandbySettin
     return NEXUS_SUCCESS;
 #endif
 }
-

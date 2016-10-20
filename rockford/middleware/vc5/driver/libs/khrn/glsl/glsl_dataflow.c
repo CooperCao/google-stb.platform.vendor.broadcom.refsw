@@ -70,6 +70,7 @@ static const struct dataflow_op_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] = {
 
    { DATAFLOW_SHL,                 "shl",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_BITWISE, DF_ARG_BITWISE } },
    { DATAFLOW_SHR,                 "shr",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_BITWISE, DF_ARG_BITWISE } },
+   { DATAFLOW_ROR,                 "ror",                  DF_RET_MATCH_ARG0, 2, { DF_ARG_BITWISE, DF_ARG_BITWISE } },
 
    { DATAFLOW_ADDRESS_LOAD,        "address_load",         DF_RET_UNDEFINED   },
    { DATAFLOW_ADDRESS_STORE,       "address_store",        DF_RET_UNDEFINED   },
@@ -439,14 +440,14 @@ Dataflow *glsl_dataflow_construct_ternary_op(DataflowFlavour flavour, Dataflow *
 }
 
 Dataflow *glsl_dataflow_construct_address(Dataflow *operand) {
-   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_ADDRESS, DF_INT);
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_ADDRESS, DF_UINT);
    dataflow->d.unary_op.operand = operand;
    dataflow->dependencies_count = 1;
    return dataflow;
 }
 
 Dataflow *glsl_dataflow_construct_buf_size(Dataflow *operand) {
-   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_BUF_SIZE, DF_INT);
+   Dataflow *dataflow = dataflow_construct_common(DATAFLOW_BUF_SIZE, DF_UINT);
    dataflow->d.unary_op.operand = operand;
    dataflow->dependencies_count = 1;
    return dataflow;
@@ -614,7 +615,6 @@ Dataflow *glsl_dataflow_construct_texture_size(Dataflow *sampler)
    Dataflow *ret = dataflow_construct_common(DATAFLOW_TEXTURE_SIZE, DF_VOID);
    ret->dependencies_count = 1;
    ret->d.texture_size.sampler = sampler;
-
    return ret;
 }
 
@@ -641,7 +641,6 @@ Dataflow *glsl_dataflow_construct_image_info_param(Dataflow *sampler, ImageInfoP
    ret->dependencies_count = 1;
    ret->d.image_info_param.sampler = sampler;
    ret->u.image_info_param.param = param;
-
    return ret;
 }
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  ***************************************************************************/
 #include "nexus_audio_module.h"
 #include "priv/nexus_pid_channel_priv.h"
@@ -100,8 +99,8 @@ struct itb_entry_t {
 };
 #define ITB_SIZE sizeof(struct itb_entry_t)
 
-#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.transport)
-#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.transport)
+#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
+#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
 
 static void reset_primer(NEXUS_AudioDecoderPrimerHandle primer);
 static void NEXUS_AudioDecoderPrimer_P_AcquireStartResources(NEXUS_AudioDecoderPrimerHandle primer);
@@ -137,12 +136,12 @@ static void NEXUS_AudioDecoder_P_PrintItb2(NEXUS_AudioDecoderPrimerHandle primer
 
     BDBG_OBJECT_ASSERT(primer, NEXUS_AudioDecoderPrimer);
 
-	from_itb = NEXUS_OffsetToCachedAddr(from);
-	BDBG_ASSERT(from_itb);
-	to_itb = NEXUS_OffsetToCachedAddr(to);
-	BDBG_ASSERT(to_itb);
+    from_itb = NEXUS_OffsetToCachedAddr(from);
+    BDBG_ASSERT(from_itb);
+    to_itb = NEXUS_OffsetToCachedAddr(to);
+    BDBG_ASSERT(to_itb);
     BDBG_ASSERT(from_itb <= to_itb);
-	NEXUS_FlushCache(from_itb, (to_itb-from_itb)*sizeof(struct itb_entry_t));
+    NEXUS_FlushCache(from_itb, (to_itb-from_itb)*sizeof(struct itb_entry_t));
     count = 0;
     while (from_itb < to_itb) {
         BDBG_MSG(("primer: %p ITB %p: %08x %08x %08x %08x", primer, from_itb, from_itb->word0, from_itb->word1, from_itb->word2, from_itb->word3));
@@ -230,7 +229,7 @@ static void NEXUS_AudioDecoder_P_SetReadPtr(NEXUS_AudioDecoderPrimerHandle prime
             data to come. */
             return;
         }
-		itb=NEXUS_OffsetToCachedAddr(itb_read);
+        itb=NEXUS_OffsetToCachedAddr(itb_read);
         itb->word0 = 0x22800000; /* pcr offset, marked valid */
         itb->word1 = primer->gops[primer->consumed_gop].pcr_offset;
         itb->word2 = 0;
@@ -320,17 +319,17 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 
     BDBG_OBJECT_ASSERT(primer, NEXUS_AudioDecoderPrimer);
 
-	pitb = NEXUS_OffsetToCachedAddr(primer->sitb_read);
-	if (!pitb) {
-		rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-		return;
-	}
-	pitb_end = NEXUS_OffsetToCachedAddr(itb_valid);
-	if (!pitb_end) {
-		rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-		return;
-	}
-	NEXUS_FlushCache (pitb, (pitb_end-pitb)*sizeof(struct itb_entry_t));
+    pitb = NEXUS_OffsetToCachedAddr(primer->sitb_read);
+    if (!pitb) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
+    pitb_end = NEXUS_OffsetToCachedAddr(itb_valid);
+    if (!pitb_end) {
+        rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        return;
+    }
+    NEXUS_FlushCache (pitb, (pitb_end-pitb)*sizeof(struct itb_entry_t));
 
     while (pitb < pitb_end) {
         if (primer->playback && primer->full)
@@ -401,11 +400,11 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
 #define ITB_OVERFLOW 0x20000
         case 0x20: /* base_address  */
             primer->cdb_base_entry = pitb->word1;
-			primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
-			if (!primer->itb_base_entry) {
-				 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-				 return;
-			}
+            primer->itb_base_entry = NEXUS_AddrToOffset(pitb);
+            if (!primer->itb_base_entry) {
+                 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                 return;
+            }
 
             if(0 != ( (CDB_OVERFLOW|ITB_OVERFLOW) & pitb->word2)){
 
@@ -425,11 +424,11 @@ static void NEXUS_AudioDecoder_P_PrimerProcessItb(NEXUS_AudioDecoderPrimerHandle
         UNLOCK_TRANSPORT();
     }
 
-	primer->sitb_read = NEXUS_AddrToOffset(pitb);
-	if (!primer->sitb_read) {
-		 rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
-		 return;
-	}
+    primer->sitb_read = NEXUS_AddrToOffset(pitb);
+    if (!primer->sitb_read) {
+         rc = BERR_TRACE(NEXUS_INVALID_PARAMETER);
+         return;
+    }
 }
 
 static void NEXUS_AudioDecoder_P_PrimerCallback(void *context)

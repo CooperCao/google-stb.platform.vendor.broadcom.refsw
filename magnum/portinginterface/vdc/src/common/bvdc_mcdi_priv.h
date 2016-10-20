@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -54,8 +54,6 @@
  * MCDI
  ***************************************************************************/
 /* 7420 */
-#define BVDC_P_MCDI_VER_0                        (0)
-#define BVDC_P_MCDI_VER_1                        (1)
 /* 7422 */
 #define BVDC_P_MCDI_VER_2                        (2)
 /* 7425 */
@@ -112,88 +110,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-#ifdef BCHP_MDI_TOP_5_REG_START
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi5==(eMcdiId)) ? (BCHP_MDI_TOP_5_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi4==(eMcdiId)) ? (BCHP_MDI_TOP_4_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_4_REG_START
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi4==(eMcdiId)) ? (BCHP_MDI_TOP_4_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_3_REG_START
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_2_REG_START
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_1_REG_START
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_0_REG_START) \
-        :(0))
-#else
-#define BVDC_P_MDI_GET_REG_OFFSET(eMcdiId)           (0)
-#endif /* Mcdi_1 */
-#endif /* Mcdi_2 */
-#endif /* Mcdi_3 */
-#endif /* Mcdi_4 */
-#endif /* Mcdi_5 */
-#ifdef BCHP_MDI_TOP_5_REG_START
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi5==(eMcdiId)) ? (BCHP_MDI_TOP_5_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi4==(eMcdiId)) ? (BCHP_MDI_TOP_4_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_4_REG_START
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi4==(eMcdiId)) ? (BCHP_MDI_TOP_4_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_3_REG_START
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi3==(eMcdiId)) ? (BCHP_MDI_TOP_3_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_2_REG_START
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi2==(eMcdiId)) ? (BCHP_MDI_TOP_2_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(0))
-#else
-#ifdef BCHP_MDI_TOP_1_REG_START
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId) \
-        ((BVDC_P_McdiId_eMcdi1==(eMcdiId)) ? (BCHP_MDI_TOP_1_REG_START - BCHP_MDI_TOP_1_REG_START) \
-        :(0))
-#else
-#define BVDC_P_MDI_GET_REG1_OFFSET(eMcdiId)           (0)
-#endif /* Mcdi_1 */
-#endif /* Mcdi_2 */
-#endif /* Mcdi_3 */
-#endif /* Mcdi_4 */
-#endif /* Mcdi_5 */
+
 
 #if ((BVDC_P_SUPPORT_MCDI_VER >= BVDC_P_MCDI_VER_8) &&(BVDC_P_SUPPORT_MADR_VER ==BVDC_P_MADR_VER_10))
 #define BVDC_P_SUPPORT_MCDI_SUPERSET            (0)
@@ -761,7 +678,9 @@ typedef struct BVDC_P_McdiContext
     uint32_t                       ulMosaicMaxChannels;
 
     /* Pixel Field Memory Store */
+#if (BVDC_P_MAX_MCDI_BUFFER_COUNT > 0)
     BVDC_P_HeapNodePtr             apHeapNode[BAVC_MOSAIC_MAX][BVDC_P_MAX_MCDI_BUFFER_COUNT];
+#endif
     uint32_t                       ulPxlBufCnt[BAVC_MOSAIC_MAX];
     uint32_t                       ulPxlBufSize[BAVC_MOSAIC_MAX];
 

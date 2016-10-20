@@ -110,6 +110,12 @@ CFLAGS += -I$(BSEAV_TOP)/../magnum/syslib/sagelib/include
 CFLAGS += -I$(BSEAV_TOP)/lib/security/sage/srai/include
 endif
 
+ifeq ($(SAGE_VERSION), 2x)
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+else
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+endif
+
 PLAYREADY_LIB_PATH :=
 ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
 
@@ -117,19 +123,19 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIB
 
 ifeq ($(SAGE_SUPPORT),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk64_host
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
+LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk64_host
+PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
 else
-LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk_host
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk_host
+PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 endif
 else
 ifeq "$(GCC_GTEQ_485)" "1"
-LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/eglibc -lplayreadypk
+LDFLAGS +=  -L${PRDY_LIB_PATH}/eglibc -lplayreadypk
 else
-LDFLAGS +=  -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk
+LDFLAGS +=  -L${PRDY_LIB_PATH} -lplayreadypk
 endif
-PLAYREADY_LIB_PATH = ${CP} -pv ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
+PLAYREADY_LIB_PATH = ${CP} -pv ${PRDY_LIB_PATH}/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 endif
 
@@ -227,15 +233,15 @@ ifeq ($(filter $(target), playready playready_svp urr_toggling), $(target))
 	cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
-	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
+	cp -f ${PRDY_LIB_PATH}/libplayreadypk64_host.so  ${NEXUS_BIN_DIR}
 else
-	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+	cp -f ${PRDY_LIB_PATH}/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 endif
 else
 ifeq "$(GCC_GTEQ_485)" "1"
-	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/eglibc/libplayreadypk.so  ${NEXUS_BIN_DIR}
+	cp -f ${PRDY_LIB_PATH}/eglibc/libplayreadypk.so  ${NEXUS_BIN_DIR}
 else
-	cp -f ${BSEAV}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
+	cp -f ${PRDY_LIB_PATH}/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 endif
 endif

@@ -8,7 +8,7 @@ All rights reserved.
 #include <stddef.h>
 #include <assert.h>
 
-bool SurfaceInterface_Create(const struct SurfaceInterface *si,
+bool SurfaceInterface_Create(const SurfaceInterface *si,
       void *surface, uint32_t width, uint32_t height, BEGL_BufferFormat format,
       bool secure)
 {
@@ -21,7 +21,7 @@ bool SurfaceInterface_Create(const struct SurfaceInterface *si,
    return si->create(si->base.context, surface, width, height, format, secure);
 }
 
-void SurfaceInterface_Destroy(const struct SurfaceInterface *si,
+void SurfaceInterface_Destroy(const SurfaceInterface *si,
       void *surface)
 {
    assert(si != NULL);

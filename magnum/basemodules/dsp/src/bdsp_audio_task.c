@@ -119,7 +119,7 @@ BERR_Code BDSP_AudioTask_Freeze(
      BDBG_ASSERT(NULL != pFreezeSettings);
 
      BDBG_MSG(("%s", __FUNCTION__));
-     BDBG_MSG(("\tDummy addr %08x mask %08x value %08x",
+     BDBG_MSG(("      Dummy addr %08x mask %08x value %08x",
      pFreezeSettings->fmmOutputAddress,
      pFreezeSettings->fmmOutputMask,
      pFreezeSettings->fmmOutputValue));
@@ -144,7 +144,7 @@ BERR_Code BDSP_AudioTask_UnFreeze(
      BDBG_ASSERT(NULL != pUnFreezeSettings);
 
      BDBG_MSG(("%s", __FUNCTION__));
-     BDBG_MSG(("\tDummy addr %08x mask %08x value %08x",
+     BDBG_MSG(("      Dummy addr %08x mask %08x value %08x",
      pUnFreezeSettings->fmmOutputAddress,
      pUnFreezeSettings->fmmOutputMask,
      pUnFreezeSettings->fmmOutputValue));
@@ -205,6 +205,7 @@ BERR_Code BDSP_AudioTask_SetInterruptHandlers_isr(
     }
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
         void *pSettingsBuffer,        /* [out] */
         size_t settingsBufferSize   /*[In]*/
@@ -220,6 +221,7 @@ BERR_Code BDSP_AudioTask_GetDefaultDatasyncSettings(
 
     return BERR_SUCCESS;
 }
+#endif /*!B_REFSW_MINIMAL*/
 
 BERR_Code BDSP_AudioTask_GetDefaultTsmSettings(
         void *pSettingsBuffer,        /* [out] */

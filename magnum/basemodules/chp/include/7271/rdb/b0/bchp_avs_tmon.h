@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,15 +70,15 @@
 /***************************************************************************
  *AVS_TMON - AVS Temperature Monitor
  ***************************************************************************/
-#define BCHP_AVS_TMON_TEMPERATURE_MEASUREMENT_STATUS 0x204d1500 /* [RO] Indicate temperature measurement data and validity of data */
-#define BCHP_AVS_TMON_ENABLE_OVER_TEMPERATURE_RESET 0x204d1504 /* [RW] Enable over temperature reset */
-#define BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD 0x204d1508 /* [RW] Represent threshold for over temperature reset */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_IDLE_TIME 0x204d1510 /* [RW] No new temperature interrupt can be generated for interval defined by this idle time */
-#define BCHP_AVS_TMON_ENABLE_TEMPERATURE_INTERRUPT_SOURCES 0x204d1514 /* [RW] Enable high and low temperature interrupts */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_THRESHOLDS 0x204d1518 /* [RW] Represent thresholds for high and low temperature interrupts */
-#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_TEMPERATURE 0x204d151c /* [RO] Temperature code associated with temperature interrupt event */
-#define BCHP_AVS_TMON_TP_TMON_TEST_ENABLE        0x204d1520 /* [RW] Enabling TP mode to use data from tp_in for testing TMON */
-#define BCHP_AVS_TMON_SPARE_0                    0x204d1524 /* [RW] Spare register 0 for AVS TEMPERATURE MONITOR core */
+#define BCHP_AVS_TMON_TEMPERATURE_MEASUREMENT_STATUS 0x204d1500 /* [RO][32] Indicate temperature measurement data and validity of data */
+#define BCHP_AVS_TMON_ENABLE_OVER_TEMPERATURE_RESET 0x204d1504 /* [RW][32] Enable over temperature reset */
+#define BCHP_AVS_TMON_TEMPERATURE_RESET_THRESHOLD 0x204d1508 /* [RW][32] Represent threshold for over temperature reset */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_IDLE_TIME 0x204d1510 /* [RW][32] No new temperature interrupt can be generated for interval defined by this idle time */
+#define BCHP_AVS_TMON_ENABLE_TEMPERATURE_INTERRUPT_SOURCES 0x204d1514 /* [RW][32] Enable high and low temperature interrupts */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_THRESHOLDS 0x204d1518 /* [RW][32] Represent thresholds for high and low temperature interrupts */
+#define BCHP_AVS_TMON_TEMPERATURE_INTERRUPT_TEMPERATURE 0x204d151c /* [RO][32] Temperature code associated with temperature interrupt event */
+#define BCHP_AVS_TMON_TP_TMON_TEST_ENABLE        0x204d1520 /* [RW][32] Enabling TP mode to use data from tp_in for testing TMON */
+#define BCHP_AVS_TMON_SPARE_0                    0x204d1524 /* [RW][32] Spare register 0 for AVS TEMPERATURE MONITOR core */
 
 /***************************************************************************
  *TEMPERATURE_MEASUREMENT_STATUS - Indicate temperature measurement data and validity of data

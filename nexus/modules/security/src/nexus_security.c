@@ -154,10 +154,18 @@ void NEXUS_GetSecurityCapabilities( NEXUS_SecurityCapabilities *pCaps )
     rc = BHSM_GetCapabilities( g_security.hsm, &hsmCaps );
     if( rc != BERR_SUCCESS ) { (void)BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
-    pCaps->version.zeus = NEXUS_ZEUS_VERSION_CALC ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR, NEXUS_SECURITY_ZEUS_VERSION_MINOR );
+    pCaps->version.zeus = NEXUS_ZEUS_VERSION_CALC_3 ( NEXUS_SECURITY_ZEUS_VERSION_MAJOR,
+                                                      NEXUS_SECURITY_ZEUS_VERSION_MINOR,
+                                                      NEXUS_SECURITY_ZEUS_VERSION_SUBMINOR );
     pCaps->version.firmware = NEXUS_BFW_VERSION_CALC( hsmCaps.version.firmware.bseck.major,
                                                       hsmCaps.version.firmware.bseck.minor,
                                                       hsmCaps.version.firmware.bseck.subMinor );
+
+    if( hsmCaps.version.firmware.bfwEpoch.valid )
+    {
+        pCaps->firmwareEpoch.valid = true;
+        pCaps->firmwareEpoch.value = hsmCaps.version.firmware.bfwEpoch.value;
+    }
 
     numTypes = hsmCaps.keyslotTypes.numKeySlotTypes;
     numTypes = MIN( numTypes , sizeof( pCaps->keySlotTableSettings.numKeySlotsForType ) );
@@ -197,7 +205,7 @@ void NEXUS_Security_PrintArchViolation_priv( void )
     if( !hHsm ) { BERR_TRACE( NEXUS_INVALID_PARAMETER ); return; }
 
     BKNI_Memset( &memInfo, 0, sizeof( memInfo ) );
-    magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->reg, &memInfo );
+    magnumRc = BCHP_GetMemoryInfo( g_pCoreHandles->chp, &memInfo );
     if( magnumRc != BERR_SUCCESS ) { BERR_TRACE( magnumRc ); return; }
 
     maxMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
@@ -330,6 +338,7 @@ static NEXUS_Error secureFirmwareRave( void )
     NEXUS_Addr regionAddress = 0;
    #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
     void *pRaveFirmwareDeviceMem = NULL;
+    NEXUS_MemoryAllocationSettings memSettings;
    #endif
 
     BDBG_ENTER(secureFirmwareRave);
@@ -343,7 +352,9 @@ static NEXUS_Error secureFirmwareRave( void )
     NEXUS_TransportModule_GetRaveFirmware_isrsafe( &pRaveFirmware, &raveFirmwareSize );
 
    #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW /*dump binaries */
-    rc = NEXUS_Memory_Allocate( raveFirmwareSize, NULL, &pRaveFirmwareDeviceMem );
+    NEXUS_Memory_GetDefaultAllocationSettings(&memSettings);
+    memSettings.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
+    rc = NEXUS_Memory_Allocate( raveFirmwareSize, &memSettings, &pRaveFirmwareDeviceMem );
     if( rc ) { return BERR_TRACE(rc); }
 
     BKNI_Memcpy( pRaveFirmwareDeviceMem, pRaveFirmware, raveFirmwareSize );
@@ -354,7 +365,7 @@ static NEXUS_Error secureFirmwareRave( void )
                                                  regionAddress,
                                                  raveFirmwareSize );
    #if NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE || NEXUS_REGION_VERIFICATION_DUMP_FIRMWARE_RAW
-    NEXUS_Memory_Free( &pRaveFirmwareDeviceMem );
+    NEXUS_Memory_Free( pRaveFirmwareDeviceMem );
    #endif
     if (rc) { return BERR_TRACE(rc); }
 

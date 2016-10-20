@@ -140,10 +140,9 @@ image
 vcos_static_assert(sizeof(VG_IMAGE_BPRINT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_IMAGE_BPRINT_T) <= VG_STEM_ALIGN);
 
-void vg_image_bprint_term(void *p, uint32_t size)
+void vg_image_bprint_term(MEM_HANDLE_T handle)
 {
-   UNUSED(p);
-   UNUSED(size);
+   UNUSED(handle);
 }
 
 /*
@@ -190,19 +189,19 @@ void vg_image_bprint_from_stem(
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_IMAGE_BPRINT_T");
-   mem_set_term(handle, vg_image_bprint_term);
+   mem_set_term(handle, vg_image_bprint_term, NULL);
 }
 
 vcos_static_assert(sizeof(VG_IMAGE_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_IMAGE_T) <= VG_STEM_ALIGN);
 
-void vg_image_term(void *p, uint32_t size)
+void vg_image_term(MEM_HANDLE_T handle)
 {
-   VG_IMAGE_T *image = (VG_IMAGE_T *)p;
-
-   UNUSED(size);
+   VG_IMAGE_T *image = (VG_IMAGE_T *)mem_lock(handle, NULL);
 
    mem_release(image->image);
+
+   mem_unlock(handle);
 }
 
 /*
@@ -273,7 +272,7 @@ bool vg_image_from_bprint(MEM_HANDLE_T handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_IMAGE_T");
-   mem_set_term(handle, vg_image_term);
+   mem_set_term(handle, vg_image_term, NULL);
 
    return true;
 }
@@ -312,7 +311,7 @@ MEM_HANDLE_T vg_image_alloc_from_image(MEM_HANDLE_T src_handle)
    mem_unlock(src_handle);
    mem_unlock(handle);
 
-   mem_set_term(handle, vg_image_term);
+   mem_set_term(handle, vg_image_term, NULL);
 
    return handle;
 }
@@ -336,7 +335,7 @@ void vg_image_from_stem_and_image(MEM_HANDLE_T handle, MEM_HANDLE_T src_handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_IMAGE_T");
-   mem_set_term(handle, vg_image_term);
+   mem_set_term(handle, vg_image_term, NULL);
 }
 
 VG_IMAGE_T *vg_image_lock_adam(
@@ -407,32 +406,32 @@ child image
 vcos_static_assert(sizeof(VG_CHILD_IMAGE_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_CHILD_IMAGE_T) <= VG_STEM_ALIGN);
 
-void vg_child_image_bprint_term(void *p, uint32_t size) /* also works for instantiated-type VG_CHILD_IMAGE_Ts */
+void vg_child_image_bprint_term(MEM_HANDLE_T handle) /* also works for instantiated-type VG_CHILD_IMAGE_Ts */
 {
-   VG_CHILD_IMAGE_T *child_image = (VG_CHILD_IMAGE_T *)p;
-   MEM_HANDLE_T handle, parent_handle;
-
-   UNUSED(size);
+   VG_CHILD_IMAGE_T *child_image = (VG_CHILD_IMAGE_T *)mem_lock(handle, NULL);
+   MEM_HANDLE_T parent_handle;
 
    /*
       the following should hopefully be equivalent to
       mem_release(child_image->parent) but without recursion
    */
 
-   handle = child_image->parent;
-   while (!mem_try_release(handle)) {
-      MEM_TERM_T term = mem_get_term(handle);
+   parent_handle = child_image->parent;
+   while (!mem_try_release(parent_handle)) {
+      MEM_TERM_T term = mem_get_term(parent_handle);
       if ((term == vg_image_term) || (term == vg_image_bprint_term)) {
-         mem_release(handle);
+         mem_release(parent_handle);
          break;
       }
       vcos_assert((term == vg_child_image_term) || (term == vg_child_image_bprint_term));
-      parent_handle = ((VG_CHILD_IMAGE_T *)mem_lock(handle, NULL))->parent;
-      mem_unlock(handle);
-      mem_set_term(handle, NULL);
-      mem_release(handle);
-      handle = parent_handle;
+      MEM_HANDLE_T handle = ((VG_CHILD_IMAGE_T *)mem_lock(parent_handle, NULL))->parent;
+      mem_unlock(parent_handle);
+      mem_set_term(parent_handle, NULL, NULL);
+      mem_release(parent_handle);
+      parent_handle = handle;
    }
+
+   mem_unlock(handle);
 }
 
 void vg_child_image_bprint_from_stem(
@@ -456,12 +455,12 @@ void vg_child_image_bprint_from_stem(
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_CHILD_IMAGE_T (blueprint)");
-   mem_set_term(handle, vg_child_image_bprint_term);
+   mem_set_term(handle, vg_child_image_bprint_term, NULL);
 }
 
-void vg_child_image_term(void *p, uint32_t size)
+void vg_child_image_term(MEM_HANDLE_T handle)
 {
-   vg_child_image_bprint_term(p, size); /* will do the right thing */
+   vg_child_image_bprint_term(handle); /* will do the right thing */
 }
 
 bool vg_child_image_from_bprint(MEM_HANDLE_T handle)
@@ -513,7 +512,7 @@ bool vg_child_image_from_bprint(MEM_HANDLE_T handle)
       }
       vcos_assert(term == vg_child_image_bprint_term);
       mem_set_desc(handle, "VG_CHILD_IMAGE_T (instantiated)");
-      mem_set_term(handle, vg_child_image_term);
+      mem_set_term(handle, vg_child_image_term, NULL);
       parent_handle = ((VG_CHILD_IMAGE_T *)mem_lock(handle, NULL))->parent;
       mem_unlock(handle);
       handle = parent_handle;

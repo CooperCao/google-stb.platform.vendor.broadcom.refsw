@@ -61,28 +61,15 @@ namespace bsg
 {
 
 #ifdef BIG_ENDIAN_CPU
-#define BSWAP32(a) (a)
+#define BSWAP16(x) (x)
 #else
+#define BSWAP16 static_bswap16
 
-#if defined(_MSC_VER)
-#define BSWAP32 _byteswap_ulong
-#elif defined(__GNUC__)
-#if __GNUC__ > 4 || (__GNUC__ == 4 &&  __GNUC_MINOR__ > 2)
-#define BSWAP32 __builtin_bswap32
-#else
-#define BSWAP32 static_bswap32
-
-static unsigned int static_bswap32(unsigned int b)
+static uint16_t static_bswap16(uint16_t x)
 {
-   return (b & 0x000000ff) << 24 |
-          (b & 0x0000ff00) << 8  |
-          (b & 0x00ff0000) >> 8  |
-          (b & 0xff000000) >> 24;
+   return (x & 0x00ff) << 8 |
+          (x & 0xff00) >> 8;
 }
-#endif
-#else
-#endif
-
 #endif /* BIG_ENDIAN_CPU */
 
 // The ETC2 package includes the following codecs:
@@ -135,6 +122,16 @@ const uint32_t ETC2PACKAGE_SRGB_NO_MIPMAPS      = 9;
 const uint32_t ETC2PACKAGE_SRGBA_NO_MIPMAPS     = 10;
 const uint32_t ETC2PACKAGE_SRGBA1_NO_MIPMAPS    = 11;
 
+static uint16_t ReadUInt16(FILE *fp, const char *err)
+{
+   int16_t n;
+
+   if (fread(&n, sizeof(int16_t), 1, fp) != 1)
+      BSG_THROW(err);
+
+   return BSWAP16(n);
+}
+
 ImagePKM::ImagePKM(const string &fileName)
 {
    /////////////////////
@@ -172,11 +169,7 @@ ImagePKM::ImagePKM(const string &fileName)
 #endif
 
    // Check texture format
-   uint32_t format;
-
-   if (fread(&format, sizeof(unsigned char), 2, fp) != 2)
-      BSG_THROW("Couldn't read format");
-   format  = BSWAP32(format) >> 16;
+   uint16_t format= ReadUInt16(fp, "Couldn't read format");
 
    uint32_t bpp = 4;
 
@@ -207,24 +200,14 @@ ImagePKM::ImagePKM(const string &fileName)
    // READ THE PIXELS
    /////////////////////
 
-   uint32_t width;
-   uint32_t height;
+   uint16_t width;
+   uint16_t height;
 
-   if (fread(&width, sizeof(uint8_t), 2, fp) != 2)
-      BSG_THROW("Couldn't read width");
-   width = BSWAP32(width) >> 16;
+   width  = ReadUInt16(fp, "Couldn't read width");
+   height = ReadUInt16(fp, "Couldn't read height");
 
-   if (fread(&height, sizeof(uint8_t), 2, fp) != 2)
-      BSG_THROW("Couldn't read height");
-   height = BSWAP32(height) >> 16;
-
-   if (fread(&m_width, sizeof(uint8_t), 2, fp) != 2)
-      BSG_THROW("Couldn't read width");
-   m_width = BSWAP32(m_width) >> 16;
-
-   if (fread(&m_height, sizeof(uint8_t), 2, fp) != 2)
-      BSG_THROW("Couldn't read height");
-   m_height = BSWAP32(m_height) >> 16;
+   m_width  = ReadUInt16(fp, "Couldn't read active width");
+   m_height = ReadUInt16(fp, "Couldn't read active height");
 
    /* allocate enough for bpp */
    m_size = (width * height * bpp) / 8;

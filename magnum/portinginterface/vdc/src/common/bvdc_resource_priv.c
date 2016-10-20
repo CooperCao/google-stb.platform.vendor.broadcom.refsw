@@ -47,15 +47,14 @@
 #include "bvdc_capture_priv.h"
 #include "bvdc_scaler_priv.h"
 #include "bvdc_xsrc_priv.h"
+#include "bvdc_vfc_priv.h"
 #include "bvdc_tntd_priv.h"
 #include "bvdc_hscaler_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_dnr_priv.h"
 #include "bvdc_anr_priv.h"
 #include "bvdc_feeder_priv.h"
 #include "bvdc_boxdetect_priv.h"
 #include "bvdc_window_priv.h"
-#include "bvdc_hist_priv.h"
 #include "bvdc_vnetcrc_priv.h"
 #include "bvdc_mcvp_priv.h"
 
@@ -75,12 +74,11 @@ if ( BERR_SUCCESS != BERR_TRACE(result)) \
  * contiguous */
 #define BVDC_P_NUM_SHARED_VFD          0
 #define BVDC_P_NUM_SHARED_CAP          0
-#define BVDC_P_NUM_SHARED_MAD          BVDC_P_SUPPORT_MAD
 #define BVDC_P_NUM_SHARED_MCVP         BVDC_P_SUPPORT_MCVP
 #define BVDC_P_NUM_SHARED_DNR          BVDC_P_SUPPORT_DNR
 #define BVDC_P_NUM_SHARED_XSRC         BVDC_P_SUPPORT_XSRC
+#define BVDC_P_NUM_SHARED_VFC          BVDC_P_SUPPORT_VFC
 #define BVDC_P_NUM_SHARED_TNTD         BVDC_P_SUPPORT_TNTD
-#define BVDC_P_NUM_SHARED_HIST         BVDC_P_SUPPORT_HIST
 #define BVDC_P_NUM_SHARED_BOX          BVDC_P_SUPPORT_BOX_DETECT
 #if((BCHP_CHIP==7422) || (BCHP_CHIP==7425) || (BCHP_CHIP==7435) || \
     (BCHP_CHIP==7439) || (BCHP_CHIP==7366) || \
@@ -94,7 +92,7 @@ if ( BERR_SUCCESS != BERR_TRACE(result)) \
 #define BVDC_P_NUM_SHARED_FCH          BVDC_P_SUPPORT_FREE_CHANNEL
 #define BVDC_P_ID0_SHARED_FCH          BVDC_P_FreeChId_eCh0
 #define BVDC_P_NUM_SHARED_LPBK         BVDC_P_SUPPORT_LOOP_BACK
-#define BVDC_P_NUM_SHARED_VNET_CRC     BVDC_P_SUPPORT_VNET_CRC
+#define BVDC_P_NUM_SHARED_VNET_CRC     1
 #define BVDC_P_NUM_SHARED_DRN_F        BVDC_P_SUPPORT_DRAIN_F
 #define BVDC_P_NUM_SHARED_DRN_B        BVDC_P_SUPPORT_DRAIN_B
 
@@ -158,15 +156,6 @@ static const uint32_t s_ulScalerAbleFlags[] =
 };
 #endif
 
-#if (BVDC_P_NUM_SHARED_MAD > 0)
-static const uint32_t s_ulMadAbleFlags[] =
-{
-    /* BVDC_P_MadId_eMad0 */      (BVDC_P_Able_eMem0),
-    /* BVDC_P_MadId_eMad1 */      (BVDC_P_Able_eHd | BVDC_P_Able_eMem1),
-    /* BVDC_P_MadId_eUnknown */
-};
-#endif
-
 #if (BVDC_P_NUM_SHARED_MCVP > 0)
 static const uint32_t s_ulMcvpAbleFlags[] =
 {
@@ -206,19 +195,21 @@ static const uint32_t s_ulXsrcAbleFlags[] =
 };
 #endif
 
+#if (BVDC_P_NUM_SHARED_VFC > 0)
+static const uint32_t s_ulVfcAbleFlags[] =
+{
+    /* BVDC_P_VfcId_eVfc0 */    (0),
+    /* BVDC_P_VfcId_eVfc1 */    (0),
+    /* BVDC_P_VfcId_eVfc2 */    (0),
+    /* BVDC_P_VfcId_eUnknown */
+};
+#endif
+
 #if (BVDC_P_NUM_SHARED_TNTD > 0)
 static const uint32_t s_ulTntdAbleFlags[] =
 {
     /* BVDC_P_TntdId_eTntd0 */    (0),
     /* BVDC_P_TntdId_eUnknown */
-};
-#endif
-
-#if (BVDC_P_NUM_SHARED_HIST > 0)
-static const uint32_t s_ulHistAbleFlags[] =
-{
-    /* BVDC_P_HistId_eHist0 */    (0),
-    /* BVDC_P_HistId_eUnknown */
 };
 #endif
 
@@ -274,14 +265,13 @@ static const BVDC_P_ResourceInfoEntry s_aResInfoTbl[] =
     /* shared resources represented by handle */
     BVDC_P_MAKE_RES(eVfd,        SHARED_VFD,   BVDC_P_FeederId_eVfd0         ),
     BVDC_P_MAKE_RES(eCap,        SHARED_CAP,   BVDC_P_CaptureId_eCap0        ),
-    BVDC_P_MAKE_RES(eMad,        SHARED_MAD,   BVDC_P_MadId_eMad0            ),
     BVDC_P_MAKE_RES(eXsrc,       SHARED_XSRC,  BVDC_P_XsrcId_eXsrc0          ),
+    BVDC_P_MAKE_RES(eVfc,        SHARED_VFC,   BVDC_P_VfcId_eVfc0            ),
     BVDC_P_MAKE_RES(eTntd,       SHARED_TNTD,  BVDC_P_TntdId_eTntd0          ),
-    BVDC_P_MAKE_RES(eMcvp,       SHARED_MCVP,  BVDC_P_McvpId_eMcvp0          ),
+    BVDC_P_MAKE_RES(eMcvp,       SHARED_MCVP,  BVDC_P_MvpId_eMvp0            ),
     BVDC_P_MAKE_RES(eDnr,        SHARED_DNR,   BVDC_P_DnrId_eDnr0            ),
     BVDC_P_MAKE_RES(eBoxDetect,  SHARED_BOX,   BVDC_P_BoxDetectId_eBoxDetect0),
     BVDC_P_MAKE_RES(eScl,        SHARED_SCL,   BVDC_P_ID0_SHARED_SCL         ),
-    BVDC_P_MAKE_RES(eHist,       SHARED_HIST,  BVDC_P_HistId_eHist0          ),
     BVDC_P_MAKE_RES(eVnetCrc,    SHARED_VNET_CRC, BVDC_P_VnetCrcId_eVnetCrc0 ),
 
     /* separator between handle resources and HwId resources */
@@ -416,16 +406,6 @@ BERR_Code  BVDC_P_Resource_Create
                 break;
 #endif
 
-#if (BVDC_P_NUM_SHARED_MAD > 0)
-            case BVDC_P_ResourceType_eMad:
-                eResult = BVDC_P_Mad_Create(
-                    (BVDC_P_Mad_Handle *) (void *)&(pEntry->Id.pvHandle), hVdc->hRegister,
-                    (BVDC_P_MadId) (s_aResInfoTbl[eType].ulFirstId + ii), pResource);
-                BVDC_P_RSRC_END_ON_FAIL(eResult);
-                pEntry->ulCapabilities = s_ulMadAbleFlags[ii];
-                break;
-#endif
-
 #if (BVDC_P_NUM_SHARED_XSRC > 0)
             case BVDC_P_ResourceType_eXsrc:
                 eResult = BVDC_P_Xsrc_Create(
@@ -434,6 +414,17 @@ BERR_Code  BVDC_P_Resource_Create
                     pResource, hVdc->hRegister);
                 BVDC_P_RSRC_END_ON_FAIL(eResult);
                 pEntry->ulCapabilities = s_ulXsrcAbleFlags[ii];
+                break;
+#endif
+
+#if (BVDC_P_NUM_SHARED_VFC > 0)
+            case BVDC_P_ResourceType_eVfc:
+                eResult = BVDC_P_Vfc_Create(
+                    (BVDC_P_Vfc_Handle *) (void *)&(pEntry->Id.pvHandle),
+                    (BVDC_P_VfcId) (s_aResInfoTbl[eType].ulFirstId + ii),
+                    pResource, hVdc->hRegister);
+                BVDC_P_RSRC_END_ON_FAIL(eResult);
+                pEntry->ulCapabilities = s_ulVfcAbleFlags[ii];
                 break;
 #endif
 
@@ -488,17 +479,6 @@ BERR_Code  BVDC_P_Resource_Create
                     pResource, hVdc->hRegister);
                 BVDC_P_RSRC_END_ON_FAIL(eResult);
                 pEntry->ulCapabilities = s_ulScalerAbleFlags[ii];
-                break;
-#endif
-
-#if (BVDC_P_NUM_SHARED_HIST > 0)
-            case BVDC_P_ResourceType_eHist:
-                eResult = BVDC_P_Hist_Create(
-                    (BVDC_P_Hist_Handle *) (void *)&(pEntry->Id.pvHandle),
-                    (BVDC_P_HistId) (s_aResInfoTbl[eType].ulFirstId + ii),
-                    hVdc->hRegister, pResource);
-                BVDC_P_RSRC_END_ON_FAIL(eResult);
-                pEntry->ulCapabilities = s_ulHistAbleFlags[ii];
                 break;
 #endif
 
@@ -618,17 +598,17 @@ void  BVDC_P_Resource_Destroy
                     break;
 #endif
 
-#if (BVDC_P_NUM_SHARED_MAD > 0)
-                case BVDC_P_ResourceType_eMad:
-                    BVDC_P_Mad_Destroy(
-                        (BVDC_P_Mad_Handle) (pEntry->Id.pvHandle));
-                    break;
-#endif
-
 #if (BVDC_P_NUM_SHARED_XSRC > 0)
                 case BVDC_P_ResourceType_eXsrc:
                     BVDC_P_Xsrc_Destroy(
                         (BVDC_P_XsrcContext *) (pEntry->Id.pvHandle));
+                    break;
+#endif
+
+#if (BVDC_P_NUM_SHARED_VFC > 0)
+                case BVDC_P_ResourceType_eVfc:
+                    BVDC_P_Vfc_Destroy(
+                        (BVDC_P_VfcContext *) (pEntry->Id.pvHandle));
                     break;
 #endif
 
@@ -665,13 +645,6 @@ void  BVDC_P_Resource_Destroy
                     BVDC_P_Scaler_Destroy(
                         (BVDC_P_Scaler_Handle) (pEntry->Id.pvHandle));
                     break;
-#endif
-
-#if (BVDC_P_NUM_SHARED_HIST > 0)
-            case BVDC_P_ResourceType_eHist:
-                BVDC_P_Hist_Destroy(
-                    (BVDC_P_Hist_Handle)(pEntry->Id.pvHandle));
-                break;
 #endif
 
 #if (BVDC_P_NUM_SHARED_VNET_CRC > 0)
@@ -1143,11 +1116,6 @@ void BVDC_P_Resource_GetResourceId
             break;
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-        case BVDC_P_ResourceType_eMad:
-            pulCapabilitiesTable = &s_ulMadAbleFlags[0];
-            break;
-#endif
 
 #if (BVDC_P_SUPPORT_MCVP)
         case BVDC_P_ResourceType_eMcvp:
@@ -1167,19 +1135,19 @@ void BVDC_P_Resource_GetResourceId
             break;
 #endif
 
+#if (BVDC_P_SUPPORT_VFC)
+        case BVDC_P_ResourceType_eVfc:
+            pulCapabilitiesTable = &s_ulVfcAbleFlags[0];
+            break;
+#endif
+
 #if (BVDC_P_SUPPORT_TNTD)
         case BVDC_P_ResourceType_eTntd:
             pulCapabilitiesTable = &s_ulTntdAbleFlags[0];
             break;
 #endif
 
-#if (BVDC_P_SUPPORT_HIST)
-        case BVDC_P_ResourceType_eHist:
-            pulCapabilitiesTable = &s_ulHistAbleFlags[0];
-            break;
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
+#if (BVDC_P_NUM_SHARED_VNET_CRC > 0)
         case BVDC_P_ResourceType_eVnetCrc:
             pulCapabilitiesTable = &s_ulVnetCrcAbleFlags[0];
             break;

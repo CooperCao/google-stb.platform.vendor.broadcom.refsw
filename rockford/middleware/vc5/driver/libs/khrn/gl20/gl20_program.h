@@ -17,14 +17,13 @@ OpenGL ES 2.0 program structure declaration.
 #include "../common/khrn_mem.h"
 
 #include "../glxx/glxx_int_config.h"
-#include "../glxx/glxx_server.h"
 
 #include "../glsl/glsl_program.h"
 #include "../glsl/glsl_source.h"
 
-#include "../glxx/glxx_server.h"
-
 #include "gl20_shader.h"
+#include "../glxx/glxx_server_state.h"
+#include "../glxx/glxx_shader_cache.h"
 
 /*
    The state required per program object consists of:

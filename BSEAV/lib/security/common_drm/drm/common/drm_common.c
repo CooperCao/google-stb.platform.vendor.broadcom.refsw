@@ -313,9 +313,7 @@ DrmRC DRM_Common_BasicInitialize(
         bUseExternalHeap = true;
     }
 
-#ifndef COMMON_DRM_65NM_CHIP
     rc = DRM_Common_P_DetermineAskmMode();
-#endif
 
     DrmCommon_InitCounter++;
     BDBG_MSG(("%s - incrementing drm common init counter to (0x%08x)", __FUNCTION__, DrmCommon_InitCounter));
@@ -891,9 +889,7 @@ static DrmRC DRM_Common_P_DetermineAskmMode(void)
     uint8_t arg_buffer[16] = {0x00};
     uint8_t digest[32] = {0x00};
     NEXUS_ReadMspIO mspStruct;
-#ifndef COMMON_DRM_65NM_CHIP
     readMsp.readMspEnum = NEXUS_OtpCmdMsp_eDestinationDisallowKeyA;
-#endif
     NEXUS_Security_ReadMSP(&readMsp,&mspStruct);
 
     BDBG_MSG(("%s - mspDataBuf = 0x%02x 0x%02x 0x%02x 0x%02x \n\n", __FUNCTION__,
@@ -2051,40 +2047,24 @@ DrmRC DRM_Common_FetchDeviceIds(drm_chip_info_t *pStruct)
     DrmRC		rc = Drm_Success;
     NEXUS_ReadOtpIO readOtpIO;
     NEXUS_OtpCmdReadRegister	readOtpEnum;
-#ifndef COMMON_DRM_65NM_CHIP
     NEXUS_OtpKeyType            keyType;
-#endif
 
     BKNI_Memset(&readOtpIO, 0x00, sizeof(NEXUS_ReadOtpIO));
 
     for(count = 0; count < 2; count++)
     {
-#ifndef COMMON_DRM_65NM_CHIP
         readOtpEnum = NEXUS_OtpCmdReadRegister_eKeyID;
-#endif
 
         if(count == 0)
         {
-#ifndef COMMON_DRM_65NM_CHIP
             keyType = NEXUS_OtpKeyType_eA;
-#else /* 65nm */
-                        readOtpEnum = NEXUS_OtpCmdReadRegister_eIdAWord;
-#endif
         }
         else
         {
-#ifndef COMMON_DRM_65NM_CHIP
             keyType = NEXUS_OtpKeyType_eB;
-#else /* 65nm */
-                        readOtpEnum = NEXUS_OtpCmdReadRegister_eIdBWord;
-#endif
         }
 
-#ifndef COMMON_DRM_65NM_CHIP
         if(NEXUS_Security_ReadOTP(readOtpEnum, keyType, &readOtpIO) != NEXUS_SUCCESS)
-#else /* 65nm */
-                if(NEXUS_Security_ReadOTP(readOtpEnum, &readOtpIO) != NEXUS_SUCCESS)
-#endif
         {
             BDBG_ERR(("%s - Call to 'NEXUS_Security_ReadOTP' FAILED.", __FUNCTION__));
             rc = Drm_BindingErr;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,33 +70,33 @@
 /***************************************************************************
  *LBOX_0 - Letter Box Detector 0 Registers
  ***************************************************************************/
-#define BCHP_LBOX_0_REVISION_ID                  0x20624000 /* [RO] Chip Revision ID. */
-#define BCHP_LBOX_0_CTRL                         0x20624004 /* [RW] OPERATIONS MODES (Control). */
-#define BCHP_LBOX_0_CONFIGURATION                0x20624008 /* [RW] OPERATIONS MODES (Control). */
-#define BCHP_LBOX_0_HORIZONTAL_WINDOW_REGION     0x2062400c /* [RW] Top/Bottom Horizontal Region (Control). */
-#define BCHP_LBOX_0_VERTICAL_WINDOW_REGION       0x20624010 /* [RW] Left/Right Vertical Region (Control). */
-#define BCHP_LBOX_0_PIXEL_THRESHOLD              0x20624014 /* [RW] Black Pixel Threshold (Control). */
-#define BCHP_LBOX_0_BLACK_LINE_THRESHOLD_NTA     0x20624018 /* [RW] Black Line Threshold (Control - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_BLACK_COL_THRESHOLD_NTA      0x2062401c /* [RW] Black Column Threshold (Control - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_WHITE_LINE_THRESHOLD_NTA     0x20624020 /* [RW] White Line Threshold (Control - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_WHITE_COL_THRESHOLD_NTA      0x20624024 /* [RW] White Column Threshold (Control - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_BLACK_LINE_THRESHOLD_LSUM    0x20624028 /* [RW] Black Line Threshold (Control - Luma Sum Algorithm) */
-#define BCHP_LBOX_0_WHITE_LINE_THRESHOLD_LSUM    0x2062402c /* [RW] White Line Threshold (Control - Luma Sum Algorithm) */
-#define BCHP_LBOX_0_NON_BLACK_LINE               0x20624030 /* [RO] First/Last Non-Black Line (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_FIRST_WHITE_LINE             0x20624034 /* [RO] First White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_LAST_WHITE_LINE              0x20624038 /* [RO] Last White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_MINMAX_NON_BLACK_LINES       0x2062403c /* [RO] Min/Max Non-Black Line (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_MIN_WHITE_LINE               0x20624040 /* [RO] Minimum First White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_MAX_WHITE_LINE               0x20624044 /* [RO] Maximum Last White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
-#define BCHP_LBOX_0_NON_BLACK_COL                0x20624048 /* [RO] First/Last Non-Black Column (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_FIRST_WHITE_COL              0x2062404c /* [RO] First White Column Statistics (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_LAST_WHITE_COL               0x20624050 /* [RO] Last White Column Statistics (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_MINMAX_NON_BLACK_COL         0x20624054 /* [RO] Min/Max Non-Black Column (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_MIN_WHITE_COL                0x20624058 /* [RO] Minimum First White Column Statistics (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_MAX_WHITE_COL                0x2062405c /* [RO] Maximum Last White Column Statistics (Status - Number & Threshold Algorithm) */
-#define BCHP_LBOX_0_MIN_LUMA_VALUE               0x20624060 /* [RO] The minimum luma value over all time (Control). */
-#define BCHP_LBOX_0_CLEAR_STATUS                 0x2062406c /* [WO] Clear all of the Status registers. */
-#define BCHP_LBOX_0_SCRATCH                      0x20624070 /* [RW] Reserved Register For Future Use. */
+#define BCHP_LBOX_0_REVISION_ID                  0x20624000 /* [RO][32] Chip Revision ID. */
+#define BCHP_LBOX_0_CTRL                         0x20624004 /* [RW][32] OPERATIONS MODES (Control). */
+#define BCHP_LBOX_0_CONFIGURATION                0x20624008 /* [RW][32] OPERATIONS MODES (Control). */
+#define BCHP_LBOX_0_HORIZONTAL_WINDOW_REGION     0x2062400c /* [RW][32] Top/Bottom Horizontal Region (Control). */
+#define BCHP_LBOX_0_VERTICAL_WINDOW_REGION       0x20624010 /* [RW][32] Left/Right Vertical Region (Control). */
+#define BCHP_LBOX_0_PIXEL_THRESHOLD              0x20624014 /* [RW][32] Black Pixel Threshold (Control). */
+#define BCHP_LBOX_0_BLACK_LINE_THRESHOLD_NTA     0x20624018 /* [RW][32] Black Line Threshold (Control - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_BLACK_COL_THRESHOLD_NTA      0x2062401c /* [RW][32] Black Column Threshold (Control - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_WHITE_LINE_THRESHOLD_NTA     0x20624020 /* [RW][32] White Line Threshold (Control - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_WHITE_COL_THRESHOLD_NTA      0x20624024 /* [RW][32] White Column Threshold (Control - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_BLACK_LINE_THRESHOLD_LSUM    0x20624028 /* [RW][32] Black Line Threshold (Control - Luma Sum Algorithm) */
+#define BCHP_LBOX_0_WHITE_LINE_THRESHOLD_LSUM    0x2062402c /* [RW][32] White Line Threshold (Control - Luma Sum Algorithm) */
+#define BCHP_LBOX_0_NON_BLACK_LINE               0x20624030 /* [RO][32] First/Last Non-Black Line (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_FIRST_WHITE_LINE             0x20624034 /* [RO][32] First White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_LAST_WHITE_LINE              0x20624038 /* [RO][32] Last White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_MINMAX_NON_BLACK_LINES       0x2062403c /* [RO][32] Min/Max Non-Black Line (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_MIN_WHITE_LINE               0x20624040 /* [RO][32] Minimum First White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_MAX_WHITE_LINE               0x20624044 /* [RO][32] Maximum Last White Line Statistics (Status - Number & Threshold and Luma Sum Algorithms) */
+#define BCHP_LBOX_0_NON_BLACK_COL                0x20624048 /* [RO][32] First/Last Non-Black Column (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_FIRST_WHITE_COL              0x2062404c /* [RO][32] First White Column Statistics (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_LAST_WHITE_COL               0x20624050 /* [RO][32] Last White Column Statistics (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_MINMAX_NON_BLACK_COL         0x20624054 /* [RO][32] Min/Max Non-Black Column (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_MIN_WHITE_COL                0x20624058 /* [RO][32] Minimum First White Column Statistics (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_MAX_WHITE_COL                0x2062405c /* [RO][32] Maximum Last White Column Statistics (Status - Number & Threshold Algorithm) */
+#define BCHP_LBOX_0_MIN_LUMA_VALUE               0x20624060 /* [RO][32] The minimum luma value over all time (Control). */
+#define BCHP_LBOX_0_CLEAR_STATUS                 0x2062406c /* [WO][32] Clear all of the Status registers. */
+#define BCHP_LBOX_0_SCRATCH                      0x20624070 /* [RW][32] Reserved Register For Future Use. */
 
 /***************************************************************************
  *REVISION_ID - Chip Revision ID.

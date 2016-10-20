@@ -45,7 +45,6 @@
 #include "bvdc_feeder_priv.h"
 #include "bvdc_compositor_priv.h"
 #include "bvdc_pep_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_mcdi_priv.h"
 
@@ -127,12 +126,9 @@ BERR_Code BVDC_Test_P_Window_CapturePicture_isr
     BVDC_P_BufferHeapNode  *pHeapNode;
     BVDC_P_BufferHeap_Info *pHeapInfo;
     uint32_t ulBlockOffset = 0;
-
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     BVDC_P_BufferHeapNode  *pHeapNode_R;
     BVDC_P_BufferHeap_Info *pHeapInfo_R;
     uint32_t ulBlockOffset_R = 0;
-#endif
 
     BDBG_ENTER(BVDC_Test_P_Window_CapturePicture_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -168,7 +164,6 @@ BERR_Code BVDC_Test_P_Window_CapturePicture_isr
         pCapturedPic->hPicBlock = pHeapNode->pHeapInfo->hMmaBlock;
         pCapturedPic->ulPicBlockOffset = pHeapNode->ulBlockOffset + ulBlockOffset;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(pCapturedPic->pPicture->pHeapNode_R != NULL)
         {
             pHeapNode_R = pCapturedPic->pPicture->pHeapNode_R;
@@ -186,7 +181,6 @@ BERR_Code BVDC_Test_P_Window_CapturePicture_isr
         }
 
         pCapturedPic->eDispOrientation = pCapturedPic->pPicture->eDispOrientation;
-#endif
 
         /* Get polarity */
         pCapturedPic->ePolarity = (BVDC_P_VNET_USED_SCALER_AT_WRITER(pCapturedPic->pPicture->stVnetMode)
@@ -337,12 +331,8 @@ BERR_Code BVDC_Test_Window_GetBuffer_isr
         pCapturedImage->ePxlFmt = stCaptPic.ePxlFmt;
         pCapturedImage->eCapturePolarity = stCaptPic.ePolarity;
         pCapturedImage->ulSourceRate = stCaptPic.ulSourceRate;
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         pCapturedImage->ulPicBlockOffset_R = stCaptPic.ulPicBlockOffset_R;
         pCapturedImage->eDispOrientation = stCaptPic.eDispOrientation;
-#else
-        pCapturedImage->ulPicBlockOffset_R = 0;
-#endif
         pCapturedImage->ulOrigPTS = stCaptPic.ulOrigPTS;
         pCapturedImage->bStallStc = stCaptPic.bStallStc;
         pCapturedImage->bIgnorePicture = stCaptPic.bIgnorePicture;
@@ -391,20 +381,6 @@ BERR_Code BVDC_Test_Window_ReturnBuffer_isr
         }
     }
 
-    /* syang: the following is copied from BVDC_Winow_ReturnBuffer,
-       but looks wrong to me
-#if (BVDC_P_SUPPORT_3D_VIDEO)
-    if (pCapturedImage->pvBufAddrR)
-    {
-        eRet = BVDC_Test_P_Window_ReleasePicture_isr(hWindow, pCapturedImage->pvBufAddrR);
-        if (eRet != BERR_SUCCESS)
-        {
-            return BERR_TRACE(eRet);
-        }
-    }
-#endif
-    */
-
     BDBG_LEAVE(BVDC_Test_Window_ReturnBuffer_isr);
     return BERR_SUCCESS;
 }
@@ -420,28 +396,16 @@ BERR_Code BVDC_Test_Window_SetMadOsd
       uint32_t                         ulHpos,
       uint32_t                         ulVpos)
 {
-    BVDC_P_Mad_Handle  hMad32 = NULL;
     BVDC_P_Mcdi_Handle  hMcdi  = NULL;
     BDBG_ENTER(BVDC_Test_Window_SetMadOsd);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    hMad32 = hWindow->stCurResource.hMad32;
-
     hMcdi = hWindow->stCurResource.hMcvp->hMcdi;
 
-    if(!(hMad32 || hMcdi))
+    if(!hMcdi)
     {
-        BDBG_ERR(("Window %d doesn't support deinterlacing Mad %p Mcdi%p", hWindow->eId, (void *)hMad32, (void *)hMcdi));
+        BDBG_ERR(("Window %d doesn't support deinterlacing  Mcdi%p", hWindow->eId, (void *)hMcdi));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if(hMad32)
-    {
-        /* set new value */
-        hMad32->bEnableOsd = bEnable;
-        /* Note: ulHPos must be an even number due to YUV422 format */
-        hMad32->ulOsdHpos  = ulHpos & (~1);
-        hMad32->ulOsdVpos  = ulVpos;
     }
 
     if(hMcdi)
@@ -467,27 +431,18 @@ BERR_Code BVDC_Test_Window_GetMadOsd
       uint32_t                        *pulHpos,
       uint32_t                        *pulVpos)
 {
-    BVDC_P_Mad_Handle hMad32;
     BVDC_P_Mcdi_Handle hMcdi = NULL;
     BDBG_ENTER(BVDC_Test_Window_GetMadOsd);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-    hMad32 = hWindow->stCurResource.hMad32;
     hMcdi = hWindow->stCurResource.hMcvp->hMcdi;
-    if((!(hMad32 || hMcdi)) ||
+    if((!hMcdi) ||
         (!(pbEnable && pulHpos && pulVpos)))
     {
-        BDBG_ERR(("Mad %p Mcdi %p", (void *)hMad32, (void *)hMcdi));
+        BDBG_ERR(("Mcdi %p", (void *)hMcdi));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     /* Use BREG_Write32 to load table first */
-
-    if(hMad32)
-    {
-        *pbEnable = hMad32->bEnableOsd;
-        *pulHpos  = hMad32->ulOsdHpos;
-        *pulVpos  = hMad32->ulOsdVpos;
-    }
 
     if(hMcdi)
     {

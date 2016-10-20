@@ -560,7 +560,7 @@ typedef struct BGRC_P_PacketContext
     BGRC_P_Packet_SurCompressedBits saved_stSurCompressed;
     bool      saved_bBlitInvalid;
 
-    void     *pSwPktFifoBaseAlloc;
+    BMMA_Block_Handle pSwPktFifoBaseAlloc;
     uint8_t  *pSwPktFifoBase;
     uint32_t  ulSwPktFifoSize;
 
@@ -572,7 +572,7 @@ typedef struct BGRC_P_PacketContext
     uint32_t  ulSwPktSizeToProc;  /* 0 means no more sw pkts in sw pkt fifo */
     bool      bPktsInPipe;   /* need to report status in next BGRC_Packet_GetContextStatus */
 
-    uint32_t  ulSyncHwPktOffset;
+    BSTD_DeviceOffset ulSyncHwPktOffset;
     uint32_t  ulSwPktSizeBeforeSync;
     BGRC_PACKET_P_SyncState eSyncState;
     uint32_t  ulSyncCntr;

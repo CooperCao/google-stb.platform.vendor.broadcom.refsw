@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,56 +70,56 @@
 /***************************************************************************
  *XPT_PSUB - XPT PSUB Control Registers
  ***************************************************************************/
-#define BCHP_XPT_PSUB_PSUB0_CTRL0                0x20a02a00 /* [RW] Channel 0 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB0_CTRL1                0x20a02a04 /* [RW] Channel 0 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB0_CTRL2                0x20a02a08 /* [RW] Channel 0 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB0_STAT0                0x20a02a0c /* [RW] Channel 0 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB0_STAT1                0x20a02a10 /* [RO] Channel 0 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB0_STAT2                0x20a02a14 /* [RO] Channel 0 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB1_CTRL0                0x20a02a18 /* [RW] Channel 1 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB1_CTRL1                0x20a02a1c /* [RW] Channel 1 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB1_CTRL2                0x20a02a20 /* [RW] Channel 1 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB1_STAT0                0x20a02a24 /* [RW] Channel 1 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB1_STAT1                0x20a02a28 /* [RO] Channel 1 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB1_STAT2                0x20a02a2c /* [RO] Channel 1 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB2_CTRL0                0x20a02a30 /* [RW] Channel 2 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB2_CTRL1                0x20a02a34 /* [RW] Channel 2 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB2_CTRL2                0x20a02a38 /* [RW] Channel 2 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB2_STAT0                0x20a02a3c /* [RW] Channel 2 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB2_STAT1                0x20a02a40 /* [RO] Channel 2 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB2_STAT2                0x20a02a44 /* [RO] Channel 2 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB3_CTRL0                0x20a02a48 /* [RW] Channel 3 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB3_CTRL1                0x20a02a4c /* [RW] Channel 3 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB3_CTRL2                0x20a02a50 /* [RW] Channel 3 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB3_STAT0                0x20a02a54 /* [RW] Channel 3 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB3_STAT1                0x20a02a58 /* [RO] Channel 3 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB3_STAT2                0x20a02a5c /* [RO] Channel 3 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB4_CTRL0                0x20a02a60 /* [RW] Channel 4 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB4_CTRL1                0x20a02a64 /* [RW] Channel 4 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB4_CTRL2                0x20a02a68 /* [RW] Channel 4 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB4_STAT0                0x20a02a6c /* [RW] Channel 4 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB4_STAT1                0x20a02a70 /* [RO] Channel 4 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB4_STAT2                0x20a02a74 /* [RO] Channel 4 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB5_CTRL0                0x20a02a78 /* [RW] Channel 5 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB5_CTRL1                0x20a02a7c /* [RW] Channel 5 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB5_CTRL2                0x20a02a80 /* [RW] Channel 5 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB5_STAT0                0x20a02a84 /* [RW] Channel 5 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB5_STAT1                0x20a02a88 /* [RO] Channel 5 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB5_STAT2                0x20a02a8c /* [RO] Channel 5 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB6_CTRL0                0x20a02a90 /* [RW] Channel 6 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB6_CTRL1                0x20a02a94 /* [RW] Channel 6 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB6_CTRL2                0x20a02a98 /* [RW] Channel 6 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB6_STAT0                0x20a02a9c /* [RW] Channel 6 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB6_STAT1                0x20a02aa0 /* [RO] Channel 6 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB6_STAT2                0x20a02aa4 /* [RO] Channel 6 Status Word 2 */
-#define BCHP_XPT_PSUB_PSUB7_CTRL0                0x20a02aa8 /* [RW] Channel 7 Control Word 0 */
-#define BCHP_XPT_PSUB_PSUB7_CTRL1                0x20a02aac /* [RW] Channel 7 Control Word 1 */
-#define BCHP_XPT_PSUB_PSUB7_CTRL2                0x20a02ab0 /* [RW] Channel 7 Control Word 2 */
-#define BCHP_XPT_PSUB_PSUB7_STAT0                0x20a02ab4 /* [RW] Channel 7 Status Word 0 */
-#define BCHP_XPT_PSUB_PSUB7_STAT1                0x20a02ab8 /* [RO] Channel 7 Status Word 1 */
-#define BCHP_XPT_PSUB_PSUB7_STAT2                0x20a02abc /* [RO] Channel 7 Status Word 2 */
-#define BCHP_XPT_PSUB_DEBUG_REG                  0x20a02b84 /* [RO] PSUB Debug Register */
-#define BCHP_XPT_PSUB_PR_FALLBACK_CTRL           0x20a02b88 /* [RW] PR FALLBACK Control Register */
+#define BCHP_XPT_PSUB_PSUB0_CTRL0                0x20a02a00 /* [RW][32] Channel 0 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB0_CTRL1                0x20a02a04 /* [RW][32] Channel 0 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB0_CTRL2                0x20a02a08 /* [RW][32] Channel 0 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB0_STAT0                0x20a02a0c /* [RW][32] Channel 0 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB0_STAT1                0x20a02a10 /* [RO][32] Channel 0 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB0_STAT2                0x20a02a14 /* [RO][32] Channel 0 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB1_CTRL0                0x20a02a18 /* [RW][32] Channel 1 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB1_CTRL1                0x20a02a1c /* [RW][32] Channel 1 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB1_CTRL2                0x20a02a20 /* [RW][32] Channel 1 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB1_STAT0                0x20a02a24 /* [RW][32] Channel 1 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB1_STAT1                0x20a02a28 /* [RO][32] Channel 1 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB1_STAT2                0x20a02a2c /* [RO][32] Channel 1 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB2_CTRL0                0x20a02a30 /* [RW][32] Channel 2 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB2_CTRL1                0x20a02a34 /* [RW][32] Channel 2 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB2_CTRL2                0x20a02a38 /* [RW][32] Channel 2 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB2_STAT0                0x20a02a3c /* [RW][32] Channel 2 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB2_STAT1                0x20a02a40 /* [RO][32] Channel 2 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB2_STAT2                0x20a02a44 /* [RO][32] Channel 2 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB3_CTRL0                0x20a02a48 /* [RW][32] Channel 3 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB3_CTRL1                0x20a02a4c /* [RW][32] Channel 3 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB3_CTRL2                0x20a02a50 /* [RW][32] Channel 3 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB3_STAT0                0x20a02a54 /* [RW][32] Channel 3 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB3_STAT1                0x20a02a58 /* [RO][32] Channel 3 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB3_STAT2                0x20a02a5c /* [RO][32] Channel 3 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB4_CTRL0                0x20a02a60 /* [RW][32] Channel 4 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB4_CTRL1                0x20a02a64 /* [RW][32] Channel 4 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB4_CTRL2                0x20a02a68 /* [RW][32] Channel 4 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB4_STAT0                0x20a02a6c /* [RW][32] Channel 4 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB4_STAT1                0x20a02a70 /* [RO][32] Channel 4 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB4_STAT2                0x20a02a74 /* [RO][32] Channel 4 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB5_CTRL0                0x20a02a78 /* [RW][32] Channel 5 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB5_CTRL1                0x20a02a7c /* [RW][32] Channel 5 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB5_CTRL2                0x20a02a80 /* [RW][32] Channel 5 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB5_STAT0                0x20a02a84 /* [RW][32] Channel 5 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB5_STAT1                0x20a02a88 /* [RO][32] Channel 5 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB5_STAT2                0x20a02a8c /* [RO][32] Channel 5 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB6_CTRL0                0x20a02a90 /* [RW][32] Channel 6 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB6_CTRL1                0x20a02a94 /* [RW][32] Channel 6 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB6_CTRL2                0x20a02a98 /* [RW][32] Channel 6 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB6_STAT0                0x20a02a9c /* [RW][32] Channel 6 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB6_STAT1                0x20a02aa0 /* [RO][32] Channel 6 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB6_STAT2                0x20a02aa4 /* [RO][32] Channel 6 Status Word 2 */
+#define BCHP_XPT_PSUB_PSUB7_CTRL0                0x20a02aa8 /* [RW][32] Channel 7 Control Word 0 */
+#define BCHP_XPT_PSUB_PSUB7_CTRL1                0x20a02aac /* [RW][32] Channel 7 Control Word 1 */
+#define BCHP_XPT_PSUB_PSUB7_CTRL2                0x20a02ab0 /* [RW][32] Channel 7 Control Word 2 */
+#define BCHP_XPT_PSUB_PSUB7_STAT0                0x20a02ab4 /* [RW][32] Channel 7 Status Word 0 */
+#define BCHP_XPT_PSUB_PSUB7_STAT1                0x20a02ab8 /* [RO][32] Channel 7 Status Word 1 */
+#define BCHP_XPT_PSUB_PSUB7_STAT2                0x20a02abc /* [RO][32] Channel 7 Status Word 2 */
+#define BCHP_XPT_PSUB_DEBUG_REG                  0x20a02b84 /* [RO][32] PSUB Debug Register */
+#define BCHP_XPT_PSUB_PR_FALLBACK_CTRL           0x20a02b88 /* [RW][32] PR FALLBACK Control Register */
 
 /***************************************************************************
  *PSUB0_CTRL0 - Channel 0 Control Word 0

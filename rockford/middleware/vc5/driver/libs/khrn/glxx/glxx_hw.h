@@ -15,6 +15,7 @@ Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
 #include "glxx_server.h"
 #include "../egl/egl_context_gl.h"
 #include "glxx_inner.h"
+#include "../gl20/gl20_program.h"
 
 typedef struct
 {
@@ -89,8 +90,6 @@ extern GLXX_HW_RENDER_STATE_T *glxx_find_existing_rs_for_fb(const GLXX_HW_FRAMEB
 extern GLXX_HW_RENDER_STATE_T* glxx_install_rs(GLXX_SERVER_STATE_T *state,
       const GLXX_HW_FRAMEBUFFER_T *fb, bool for_tlb_blit);
 
-extern bool glxx_tf_emit_spec(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
-   uint8_t **instr, bool point_size_used);
 
 /*
  * Creates a collection of ref counted images from framebuffer attachments.
@@ -105,10 +104,14 @@ extern void glxx_assign_hw_framebuffer(GLXX_HW_FRAMEBUFFER_T *a, const GLXX_HW_F
 extern bool glxx_draw_rect(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_CLEAR_T *clear, int x, int y, int xmax, int ymax);
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+
 uint32_t glxx_workaround_gfxh_1313_size(void);
 bool glxx_workaround_gfxh_1313(uint8_t** instr_ptr, KHRN_FMEM_T* fmem);
 
 uint32_t glxx_workaround_gfxh_1320_size(void);
 bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, KHRN_FMEM_T* fmem);
+
+#endif
 
 #endif

@@ -460,6 +460,7 @@ BERR_Code BWFE_P_SetAdcSampleFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
       return BERR_INVALID_PARAMETER;
 #endif
 
+   /* adc pll uses ANA_PLL3_WBADC vco limited to 6.8GHz */
    BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_PLL_CNTL0, ~0x00000F70, 0x000005B0); /* program ki and kp */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_PLL_CNTL2, 0x0A040000);   /* boost lc tank current */
 
@@ -600,13 +601,10 @@ BERR_Code BWFE_P_LoPowerUp(uint32_t loChan)
    BKNI_Sleep(50);
 
    BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_LOCK_STATUS, &pllstat);
-   if (pllstat & 0x1)
-      BKNI_Printf("lo%d PLL locked\n", loChan);
-   else
-      BKNI_Printf("lo%d PLL NOT locked\n", loChan);
-
-   /* power on driver */
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_CKDRV, 0x00010000);
+   if ((pllstat & 0x1) == 0)
+   {
+      BDBG_WRN(("lo%d PLL NOT locked\n", loChan));
+   }
 
    return BERR_SUCCESS;
 }
@@ -617,9 +615,6 @@ BERR_Code BWFE_P_LoPowerUp(uint32_t loChan)
 *****************************************************************************/
 BERR_Code BWFE_P_LoPowerDown(uint32_t loChan)
 {
-   /* power down driver */
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_CKDRV, 0x00000000);
-
    /* assert analog/digital resets */
    BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_RESET, 0x00000003);
 
@@ -633,8 +628,9 @@ BERR_Code BWFE_P_LoPowerDown(uint32_t loChan)
 /*****************************************************************************
  BWFE_P_LoSearchDiv()
 *****************************************************************************/
-#define BWFE_LO_FREQ_VCO_LOW_KHZ    4775000  /* vco_high = 4.775GHz */
-#define BWFE_LO_FREQ_VCO_HIGH_KHZ   7200000  /* vco_low = 7.2GHz */
+/* lo mixer pll uses ANA_PLL3_KUDIV2 */
+#define BWFE_LO_FREQ_VCO_LOW_KHZ    4775000  /* vco_low = 4.775GHz */
+#define BWFE_LO_FREQ_VCO_HIGH_KHZ   7000000  /* vco_high = 7.2GHz adjusted to 7GHz to avoid yield issue */
 #define BWFE_LO_FREQ_REF_MIN_KHZ    10000    /* fref_min = 10MHz */
 BERR_Code BWFE_P_LoSearchDiv(uint32_t freqKhz, uint32_t frefKhz, uint8_t *pdiv, uint16_t *ndiv, uint8_t *mdiv, uint8_t *outsel)
 {
@@ -726,12 +722,12 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 {
    BERR_Code retCode = BERR_SUCCESS;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t val, freqRefKhz, loChan = 2;  /* use loPLL2 for ADC0-3 */
+   uint32_t val, freqRefKhz;
    uint32_t n_xtal, m_xtal, gcd;
    uint16_t n;
    uint8_t p, m, outsel;
 
-   /* loPLL1 is the 1st stage PLL that generates CH5 CMOS reference shared between 2nd stage loPLL0 and loPLL2 */
+   /* loPLL2 is the 1st stage PLL that generates CH5 CMOS reference used by 2nd stage loPLL0 */
    p = 1;
    n = 56;
    m = 59;
@@ -741,46 +737,49 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
    freqRefKhz = ((h->pDevice->settings.xtalFreqKhz << 1) * n) / p;
    freqRefKhz = ((freqRefKhz / m) + 1) >> 1;    /* round */
 
-   /* set loPLL1 pdiv, ndiv, and outsel */
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
+   /* set loPLL2 pdiv, ndiv, and outsel */
+   BWFE_P_LoWriteReg(2, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
+   BWFE_P_LoWriteReg(2, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
 
-   /* set loPLL1 mdiv */
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
+   /* set loPLL2 mdiv */
+   BWFE_P_LoReadReg(2, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
    val &= ~0x000001FF;
    val |= m << 1;
-   BWFE_P_LoWriteReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, val);
+   BWFE_P_LoWriteReg(2, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, val);
 
-   /* power up loPLL1 to 47.669MHz */
-   BWFE_P_LoPowerUp(1);
+   /* power up loPLL2 to 47.669MHz */
+   BWFE_P_LoPowerUp(2);
 
    /* search for target dpm freq based on stage1 reference, expect p=m=1, n=52, outsel=0 for 2478MHz */
    retCode = BWFE_P_LoSearchDiv(freqKhz, freqRefKhz, &p, &n, &m, &outsel);
    if (retCode != BERR_SUCCESS)
       return retCode;
-   BKNI_Printf("BWFE_P_LoSearchDiv: p=%d, n=%d, m=%d\n", p, n, m);
+   BKNI_Printf("BWFE_P_LoSearchDiv: p=%d, n=%d, m=%d, outsel=%d\n", p, n, m, outsel);
 
    /* set pdiv, ndiv, and outsel */
    /* To select FVCO/3 output, OUTPUT_SEL = 4 (first MUX), TEST_SEL = 5 (second MUX) */
    /* To select CH5 postdiv output, OUTPUT_SEL = 0 (first MUX), TEST_SEL = 3 (second MUX) */
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
+   BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_DIV, ((p & 0xF) << 10) | (n & 0x1FF));
+   BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, outsel);
 
    /* set mdiv */
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
+   BWFE_P_LoReadReg(0, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
    val &= ~0x000001FF;
    val |= m << 1;
-   BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, val);
+   BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, val);
+
+   /* TBD cmos reference clock? */
+   BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_MISC, 0x00000000);
 
    if (outsel == 4)
    {
-      /* set test_sel=5, enable test buffer for loPLL1 */
-      BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_TEST, 0x0000000B);
+      /* set test_sel=5, enable test buffer for loPLL0 */
+      BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_TEST, 0x0000000B);
    }
    else
    {
-      /* select ch5 post-div, enable test buffer for loPLL1 */
-      BWFE_P_LoWriteReg(loChan, BCHP_PLL_LOD2_0_PLL_TEST, 0x00000007);
+      /* select ch5 post-div, enable test buffer for loPLL0 */
+      BWFE_P_LoWriteReg(0, BCHP_PLL_LOD2_0_PLL_TEST, 0x00000007);
    }
 
    /* calculate QDDFS ratio */
@@ -813,18 +812,18 @@ BERR_Code BWFE_P_SetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t freqKhz)
 BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 {
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
-   uint32_t val, loChan = 2;  /* use loPLL2 for ADC0-3 */
+   uint32_t val;
    uint16_t ndiv;
    uint8_t pdiv, mdiv, outsel;
 
-   /* loPLL1 is the 1st stage PLL that generates CH5 CMOS reference shared between 2nd stage loPLL0 and loPLL2 */
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_DIV, &val);
+   /* loPLL2 is the 1st stage PLL that generates CH5 CMOS reference used by 2nd stage loPLL0 */
+   BWFE_P_LoReadReg(2, BCHP_PLL_LOD2_0_PLL_DIV, &val);
    pdiv = (val >> 10) & 0xF;
    ndiv = val & 0x1FF;
 
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
+   BWFE_P_LoReadReg(2, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
    outsel = val & 0x7;
-   BWFE_P_LoReadReg(1, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
+   BWFE_P_LoReadReg(2, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
    mdiv = (val >> 1) & 0xFF;
 
    /* calculate stage1 reference freq = f_xtal / pdiv * ndiv_int / mdiv_ch5 */
@@ -832,13 +831,13 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
    *freqKhz = ((*freqKhz / mdiv) + 1) >> 1;  /* round */
    /*BKNI_Printf("lo1: %d\n", *freqKhz);*/
 
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_DIV, &val);
+   BWFE_P_LoReadReg(0, BCHP_PLL_LOD2_0_PLL_DIV, &val);
    pdiv = (val >> 10) & 0xF;
    ndiv = val & 0x1FF;
 
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
+   BWFE_P_LoReadReg(0, BCHP_PLL_LOD2_0_PLL_OUTSEL_SEL, &val);
    outsel = val & 0x7;
-   BWFE_P_LoReadReg(loChan, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
+   BWFE_P_LoReadReg(0, BCHP_PLL_LOD2_0_PLL_CHANNEL_CTRL_CH_5, &val);
    mdiv = (val >> 1) & 0xFF;
    /*BKNI_Printf("lo%d: p=%d, m=%d, n=%d, outsel=%d\n", loChan, pdiv, mdiv, ndiv, outsel);*/
 
@@ -860,9 +859,8 @@ BERR_Code BWFE_P_GetDpmPilotFreq(BWFE_ChannelHandle h, uint32_t *freqKhz)
 ******************************************************************************/
 BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 {
-   uint32_t loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   BWFE_P_LoPowerUp(loChan);
+   /* use loPLL0 for ADC0-3 */
+   BWFE_P_LoPowerUp(0);
 
    /* inject dpm tone to adc input */
    BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER01, 0x00000010);
@@ -876,9 +874,11 @@ BERR_Code BWFE_P_EnableDpmPilot(BWFE_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BWFE_P_DisableDpmPilot(BWFE_ChannelHandle h)
 {
-   uint32_t loChan = 2; /* use loPLL2 for ADC0-3 */
-
-   BWFE_P_LoPowerDown(loChan);
+   /* do not disable lo pll */
+#if 0
+   /* use loPLL0 for ADC0-3 */
+   BWFE_P_LoPowerDown(0);
+#endif
 
    /* disable dpm tone injection */
    BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER01, ~0x00000010);
@@ -928,10 +928,12 @@ BERR_Code BWFE_P_InitAdc(BWFE_ChannelHandle h)
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL7, 0x1801001F);
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL8, 0x0A952A54);   /* (orig: 22008008) 4552: both R5 and R8 are set to 22008008 */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL9, 0x00000000);
-   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL10, 0x77777777);  /* default coarse-fine timing */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL11, 0x45480000);  /* ISBUF in regulator mode */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL12, 0x00006020);  /* 6020 to set CK5G_dly_cntl_1p5 = 1000 */
    BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL13, 0x0A952A54);
+
+   /* adjusted coarse-fine timing */
+   BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
 
 #if 0
    /* low power adc settings */

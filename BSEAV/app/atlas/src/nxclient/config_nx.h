@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,7 +58,7 @@ public:
     virtual CBoardResourcesNx * getBoardResources(void) { return(_pResources); }
 
     NxClient_AllocResults * getAllocResultsMain(void) { return(&_allocResultsMain); }
-    NxClient_AllocResults * getAllocResultsPip(void) { return(&_allocResultsPip); }
+    NxClient_AllocResults * getAllocResultsPip(void)  { return(&_allocResultsPip); }
 
 protected:
     NxClient_AllocResults _allocResultsMain;

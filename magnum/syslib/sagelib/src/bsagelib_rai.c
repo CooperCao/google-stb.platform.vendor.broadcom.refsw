@@ -83,7 +83,49 @@ BSAGElib_P_Rai_Adjust_ContainerCache(
     BSAGElib_Tools_ContainerCache_SetMax(hSAGElibClient->hContainerCache, max);
 }
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+BERR_Code
+BSAGElib_Rai_Platform_Install(BSAGElib_ClientHandle hSAGElibClient,
+                                        uint32_t platformId,
+                                        uint8_t *binBuff,
+                                        uint32_t binSize)
+{
+	BSTD_UNUSED(hSAGElibClient);
+    BSTD_UNUSED(platformId);
+	BSTD_UNUSED(binBuff);
+    BSTD_UNUSED(binSize);
 
+    BDBG_WRN(("This API is valid only for SAGE 3x and later binaries"));
+
+	return BERR_SUCCESS;
+}
+
+BERR_Code
+BSAGElib_Rai_Platform_UnInstall(BSAGElib_ClientHandle hSAGElibClient,
+                                        uint32_t platformId)
+{
+	BSTD_UNUSED(hSAGElibClient);
+	BSTD_UNUSED(platformId);
+
+	BDBG_WRN(("This API is valid only for SAGE 3x and later binaries"));
+
+	return BERR_SUCCESS;
+}
+
+BERR_Code
+BSAGElib_Rai_Platform_EnableCallbacks(
+    BSAGElib_RpcRemoteHandle platform,
+    uint32_t *pAsync_id /* [out] */)
+{
+	BSTD_UNUSED(platform);
+    BSTD_UNUSED(pAsync_id);
+
+	BDBG_WRN(("This API is valid only for SAGE 3x and later binaries"));
+
+	return BERR_SUCCESS;
+}
+
+#else /* SAGE_3X and later */
 static BERR_Code
 BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t async_id)
 {
@@ -104,20 +146,15 @@ BSAGELib_Rai_P_WaitForResponse(BSAGElib_ClientHandle hSAGElibClient, uint32_t as
 static bool
 _P_IsSdlValid(
     BSAGElib_Handle hSAGElib,
-    uint8_t *sdlBuff,
-    uint32_t sdlBuffSize)
+    BSAGElib_SDLHeader *pHeader)
 {
     bool rc = false;
     uint32_t sdlTHLSigShort;
-    BSAGElib_SDLHeader *pHeader = (BSAGElib_SDLHeader *)sdlBuff;
-    if (sdlBuffSize < sizeof(BSAGElib_SDLHeader)) {
-        BDBG_ERR(("%s: The binary size is not even as large as the SDL header structure", __FUNCTION__));
-        goto end;
-    }
 
-#if 0
-    rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
-    if (rc != true) {
+    if ((pHeader->ucSsfVersion[0] | pHeader->ucSsfVersion[1] |
+         pHeader->ucSsfVersion[2] | pHeader->ucSsfVersion[3]) != 0) {
+      rc = (BKNI_Memcmp(pHeader->ucSsfVersion, hSAGElib->frameworkInfo.version, 4) == 0);
+      if (rc != true) {
         BDBG_ERR(("%s: The SDL is compiled using SAGE version %u.%u.%u.%u SDK",
                   __FUNCTION__, pHeader->ucSsfVersion[0],
                   pHeader->ucSsfVersion[1],
@@ -125,14 +162,18 @@ _P_IsSdlValid(
                   pHeader->ucSsfVersion[3]));
         BDBG_ERR(("%s: The SDL is not compiled from the same SDK as the running Framework",
                   __FUNCTION__));
-        BDBG_ERR(("%s: The SDL shall be recompiled using SAGE version %u.%u.%u.%u SDK",
+        BDBG_ERR(("%s: The SDL must be recompiled using SAGE version %u.%u.%u.%u SDK",
                   __FUNCTION__, hSAGElib->frameworkInfo.version[0],
                   hSAGElib->frameworkInfo.version[1],
                   hSAGElib->frameworkInfo.version[2],
                   hSAGElib->frameworkInfo.version[3]));
         goto end;
+      }
     }
-#endif
+    else {
+      BDBG_MSG(("%s: SSF version not found in SDL image, skipping SSF version check", __FUNCTION__));
+    }
+
     sdlTHLSigShort = pHeader->ucSsfThlShortSig[0] | (pHeader->ucSsfThlShortSig[1] << 8) |
                      (pHeader->ucSsfThlShortSig[2] << 16) | (pHeader->ucSsfThlShortSig[3] << 24);
 
@@ -140,13 +181,46 @@ _P_IsSdlValid(
     if (rc != true) {
         BDBG_ERR(("%s: The SDL THL Signature Short (0x%08x) differs from the one inside the loaded SAGE Framework (0x%08x)",
                   __FUNCTION__, sdlTHLSigShort, hSAGElib->frameworkInfo.THLShortSig));
-        BDBG_ERR(("%s: The SDL shall be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
+        BDBG_ERR(("%s: The SDL must be linked against the same THL (Thin Layer) as the one inside the SAGE Framework",
                   __FUNCTION__));
         goto end;
     }
 
 end:
     return rc;
+}
+
+#define CASE_PLATFORM_NAME_TO_STRING(name) case BSAGE_PLATFORM_ID_##name:  platform_name = #name; break
+
+static char *
+_P_LookupPlatformName(uint32_t platformId)
+{
+
+  char *platform_name = NULL;
+  switch (platformId) {
+    /* NOTE: system and system_crit platforms are not SDL TAs */
+    CASE_PLATFORM_NAME_TO_STRING(COMMONDRM);
+    CASE_PLATFORM_NAME_TO_STRING(HDCP22);
+    CASE_PLATFORM_NAME_TO_STRING(MANUFACTURING);
+    CASE_PLATFORM_NAME_TO_STRING(UTILITY);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYREADY_30);
+    CASE_PLATFORM_NAME_TO_STRING(ANTIROLLBACK);
+    CASE_PLATFORM_NAME_TO_STRING(SECURE_VIDEO);
+    CASE_PLATFORM_NAME_TO_STRING(SECURE_LOGGING);
+    CASE_PLATFORM_NAME_TO_STRING(ADOBE_DRM);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYREADY_25);
+    CASE_PLATFORM_NAME_TO_STRING(NETFLIX_ANNEXB);
+    CASE_PLATFORM_NAME_TO_STRING(NETFLIX);
+    CASE_PLATFORM_NAME_TO_STRING(WIDEVINE);
+    CASE_PLATFORM_NAME_TO_STRING(PLAYBACK);
+    CASE_PLATFORM_NAME_TO_STRING(DTCP_IP);
+    CASE_PLATFORM_NAME_TO_STRING(MIRACAST);
+    CASE_PLATFORM_NAME_TO_STRING(MARLIN);
+    CASE_PLATFORM_NAME_TO_STRING(EDRM);
+    default:
+      break;
+  }
+  return platform_name;
 }
 
 BERR_Code
@@ -157,13 +231,40 @@ BSAGElib_Rai_Platform_Install(
     uint32_t binSize)
 {
     BERR_Code rc = BERR_SUCCESS;
-    BSAGElib_InOutContainer * container;
+    BSAGElib_InOutContainer * container = NULL;
     uint32_t async_id;
+    BSAGElib_SDLHeader *pHeader = NULL;
+    char *platform_name = _P_LookupPlatformName(platformId);
+
+    if (binSize < sizeof(BSAGElib_SDLHeader)) {
+        BDBG_ERR(("%s: The binary size for TA 0x%X is less than the SDL header structure",
+                  __FUNCTION__, platformId));
+        goto err;
+    }
+    pHeader = (BSAGElib_SDLHeader *)binBuff;
 
     container = BSAGElib_Rai_Container_Allocate(hSAGElibClient);
     if(container == NULL)
         goto err;
 
+    if (platform_name == NULL) {
+        BDBG_LOG(("SAGE TA: [0x%X] [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+                  platformId,
+                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
+                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  ));
+    }
+    else {
+        BDBG_LOG(("SAGE TA: %s [Version=%u.%u.%u.%u, Signing Tool=%u.%u.%u.%u]",
+                  platform_name,
+                  pHeader->ucSdlVersion[0],pHeader->ucSdlVersion[1],
+                  pHeader->ucSdlVersion[2],pHeader->ucSdlVersion[3],
+                  pHeader->ucSageSecureBootToolVersion[0],pHeader->ucSageSecureBootToolVersion[1],
+                  pHeader->ucSageSecureBootToolVersion[2],pHeader->ucSageSecureBootToolVersion[3]
+                  ));
+    }
     BDBG_MSG(("%s: Platform %x %p %d",__FUNCTION__, platformId, binBuff,binSize  ));
     BDBG_MSG(("%s: System Platform %p %p",__FUNCTION__, (void *)hSAGElibClient->system_platform, (void*)hSAGElibClient->system_module ));
 
@@ -235,7 +336,7 @@ BSAGElib_Rai_Platform_Install(
 
     /* do it after the system platform open so we are sure the SAGE-side is booted
        and the status info are valid */
-    if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, binBuff, binSize)) {
+    if (!_P_IsSdlValid(hSAGElibClient->hSAGElib, pHeader)) {
         BDBG_ERR(("%s: Cannot install incompatible SDL", __FUNCTION__));
         rc = BERR_INVALID_PARAMETER;
         goto err;
@@ -361,6 +462,84 @@ end:
 }
 
 BERR_Code
+BSAGElib_Rai_Platform_EnableCallbacks(
+    BSAGElib_RpcRemoteHandle platform,
+    uint32_t *pAsync_id /* [out] */)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_RpcCommand command;
+    BSAGElib_InOutContainer *container = NULL;
+    BSAGElib_RpcMessage *message = NULL;
+    BSAGElib_Handle hSAGElib;
+    BSAGElib_ClientHandle hSAGElibClient;
+
+    BDBG_ENTER(BSAGElib_Rai_Platform_EnableCallbacks);
+
+    BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
+
+    if (platform->callbacks.container != NULL) {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: already enabled", __FUNCTION__));
+        goto end;
+    }
+
+    hSAGElibClient = platform->hSAGElibClient;
+    hSAGElib = hSAGElibClient->hSAGElib;
+
+    if (BSAGElib_iRpcCallbackRequest_isr == NULL) {
+        rc = BERR_INVALID_PARAMETER;
+        BDBG_ERR(("%s: client does not support callback requests", __FUNCTION__));
+        goto end;
+    }
+
+    container = BSAGElib_Rai_Container_Allocate(platform->hSAGElibClient);
+    if (container == NULL) {
+        BDBG_ERR(("%s: BSAGElib_Rai_Container_Allocate() failure (%u)", __FUNCTION__, rc));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    message = (BSAGElib_RpcMessage *)BSAGElib_Rai_Memory_Allocate(platform->hSAGElibClient,
+                                                                  sizeof(*message),
+                                                                  BSAGElib_MemoryType_Global);
+    if (message == NULL) {
+        BDBG_ERR(("%s: BSAGElib_Rai_Memory_Allocate() failure to allocate message (%u)", __FUNCTION__, rc));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    container->blocks[0].data.ptr = (uint8_t *)message;
+    container->blocks[0].len = sizeof(*message);
+    command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
+                                                                      &hSAGElib->i_memory_sync_isrsafe,
+                                                                      &hSAGElib->i_memory_map);
+    command.containerVAddr = container;
+    command.moduleCommandId = 0;
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
+    rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
+        goto end;
+    }
+
+    platform->callbacks.message = message;
+    message = NULL;
+
+    platform->callbacks.container = container;
+    container = NULL;
+
+end:
+    if (container) {
+        BSAGElib_Rai_Container_Free(platform->hSAGElibClient, container);
+    }
+    if (message) {
+        BSAGElib_Rai_Memory_Free(platform->hSAGElibClient, (uint8_t *)message);
+    }
+    BDBG_LEAVE(BSAGElib_Rai_Platform_EnableCallbacks);
+    return rc;
+}
+
+
+#endif
+BERR_Code
 BSAGElib_Rai_Platform_Open(
     BSAGElib_ClientHandle hSAGElibClient,
     uint32_t platformId,
@@ -477,13 +656,10 @@ BSAGElib_Rai_Platform_Close(
         command.containerOffset = 0;
         command.moduleCommandId = 0;
         command.systemCommandId = BSAGElib_SystemCommandId_ePlatformClose;
-        /* During S3 transtion Sys Crit needs to closed for clean up but SAGE cannont close Sys Crit. Hence SAGE command is not sent for this case */
-        if(platform->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT){
-            rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
-            if (rc != BERR_SUCCESS) {
-                BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
-                /* keep going */
-            }
+        rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
+        if (rc != BERR_SUCCESS) {
+            BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand failure (%u)", __FUNCTION__, rc));
+            /* keep going */
         }
     }
     else {
@@ -496,81 +672,8 @@ BSAGElib_Rai_Platform_Close(
     BDBG_LEAVE(BSAGElib_Rai_Platform_Close);
 }
 
-BERR_Code
-BSAGElib_Rai_Platform_EnableCallbacks(
-    BSAGElib_RpcRemoteHandle platform,
-    uint32_t *pAsync_id /* [out] */)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    BSAGElib_RpcCommand command;
-    BSAGElib_InOutContainer *container = NULL;
-    BSAGElib_RpcMessage *message = NULL;
-    BSAGElib_Handle hSAGElib;
-    BSAGElib_ClientHandle hSAGElibClient;
 
-    BDBG_ENTER(BSAGElib_Rai_Platform_EnableCallbacks);
 
-    BDBG_OBJECT_ASSERT(platform, BSAGElib_P_RpcRemote);
-
-    if (platform->callbacks.container != NULL) {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: already enabled", __FUNCTION__));
-        goto end;
-    }
-
-    hSAGElibClient = platform->hSAGElibClient;
-    hSAGElib = hSAGElibClient->hSAGElib;
-
-    if (BSAGElib_iRpcCallbackRequest_isr == NULL) {
-        rc = BERR_INVALID_PARAMETER;
-        BDBG_ERR(("%s: client does not support callback requests", __FUNCTION__));
-        goto end;
-    }
-
-    container = BSAGElib_Rai_Container_Allocate(platform->hSAGElibClient);
-    if (container == NULL) {
-        BDBG_ERR(("%s: BSAGElib_Rai_Container_Allocate() failure (%u)", __FUNCTION__, rc));
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        goto end;
-    }
-    message = (BSAGElib_RpcMessage *)BSAGElib_Rai_Memory_Allocate(platform->hSAGElibClient,
-                                                                  sizeof(*message),
-                                                                  BSAGElib_MemoryType_Global);
-    if (message == NULL) {
-        BDBG_ERR(("%s: BSAGElib_Rai_Memory_Allocate() failure to allocate message (%u)", __FUNCTION__, rc));
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        goto end;
-    }
-    container->blocks[0].data.ptr = (uint8_t *)message;
-    container->blocks[0].len = sizeof(*message);
-    command.containerOffset = BSAGElib_Tools_ContainerAddressToOffset(container,
-                                                                      &hSAGElib->i_memory_sync_isrsafe,
-                                                                      &hSAGElib->i_memory_map);
-    command.containerVAddr = container;
-    command.moduleCommandId = 0;
-    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
-    rc = BSAGElib_Rpc_SendCommand(platform, &command, pAsync_id);
-    if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: BSAGElib_Rpc_SendCommand (%u)", __FUNCTION__, rc));
-        goto end;
-    }
-
-    platform->callbacks.message = message;
-    message = NULL;
-
-    platform->callbacks.container = container;
-    container = NULL;
-
-end:
-    if (container) {
-        BSAGElib_Rai_Container_Free(platform->hSAGElibClient, container);
-    }
-    if (message) {
-        BSAGElib_Rai_Memory_Free(platform->hSAGElibClient, (uint8_t *)message);
-    }
-    BDBG_LEAVE(BSAGElib_Rai_Platform_EnableCallbacks);
-    return rc;
-}
 
 BERR_Code
 BSAGElib_Rai_Module_Init(

@@ -77,6 +77,7 @@ public:
     int start();
     int stop();
     int terminate();
+    int coredump();
 
     int getId();
 

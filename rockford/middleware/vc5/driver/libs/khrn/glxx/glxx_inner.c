@@ -28,7 +28,7 @@ Functions for driving the hardware for both GLES1.1 and GLES2.0.
 #include "libs/core/v3d/v3d_align.h"
 #include "libs/core/v3d/v3d_util.h"
 #include "libs/core/v3d/v3d_tile_size.h"
-#include "libs/core/v3d/v3d_choose_supertile.h"
+#include "libs/core/v3d/v3d_supertile.h"
 #include "libs/util/gfx_util/gfx_util_morton.h"
 
 #include "libs/platform/gmem.h"
@@ -50,30 +50,47 @@ LOG_DEFAULT_CAT("glxx_inner")
 static const uint32_t c_initial_tile_alloc_block_size = V3D_TILE_ALLOC_BLOCK_SIZE_MIN;
 static const uint32_t c_tile_alloc_block_size = 128;
 
-static void log_trace_rs(const GLXX_HW_RENDER_STATE_T *rs, const char *msg)
+static void log_trace_rs(const GLXX_HW_RENDER_STATE_T *rs, const char *context)
 {
    if (!log_trace_enabled() || !rs)
       return;
 
    const GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
    log_trace(
-      "%s [rs] ord = %u, label = %s, rt count = %u, fb size %u x %u, %s",
-      msg,
+      "[%s] ord = %u, label = %s, rt count = %u, fb size %u x %u, %s", context,
       khrn_hw_render_state_allocated_order(rs),
       "-",
       fb->rt_count,
       fb->width, fb->height,
-      fb->ms               ? "multisample "        : "");
+      fb->ms ? "ms" : "non-ms");
    for (unsigned b = 0; b < GLXX_MAX_RENDER_TARGETS; ++b)
       if (rs->color_buffer_state[b] != GLXX_BUFSTATE_MISSING)
       {
          GFX_LFMT_SPRINT(lfmt_desc, khrn_image_plane_lfmt(&fb->color[b]));
-         log_trace("[rs] color %u lfmt=%s %s",
+         log_trace("[%s] color %u lfmt=%s %s", context,
             b, lfmt_desc, glxx_bufstate_desc(rs->color_buffer_state[b]));
       }
 
-   log_trace("[rs] depth: %s", glxx_bufstate_desc(rs->depth_buffer_state));
-   log_trace("[rs] stencil: %s", glxx_bufstate_desc(rs->stencil_buffer_state));
+   log_trace("[%s] depth: %s", context, glxx_bufstate_desc(rs->depth_buffer_state));
+   log_trace("[%s] stencil: %s", context, glxx_bufstate_desc(rs->stencil_buffer_state));
+
+   for (unsigned i = 0; i != rs->num_blits; ++i)
+   {
+      const GLXX_BLIT_T *blit = &rs->tlb_blits[i];
+      if (blit->color)
+      {
+         for (uint32_t b = 0, mask = blit->color_draw_to_buf; mask; ++b, mask >>= 1)
+         {
+            if (mask & 1)
+            {
+               GFX_LFMT_SPRINT(dst_lfmt_desc, khrn_image_plane_lfmt(&blit->dst_fb.color[b]));
+               log_trace("[%s] blit color %u --> %s", context, blit->color_read_buffer, dst_lfmt_desc);
+            }
+         }
+      }
+      if (blit->depth)
+         log_trace("[%s] blit depth", context);
+   }
 }
 
 bool glxx_hw_record_write_if_image(KHRN_FMEM_T *fmem, KHRN_IMAGE_PLANE_T *image_plane)
@@ -109,8 +126,13 @@ static void glxx_hw_render_state_delete(GLXX_HW_RENDER_STATE_T *rs)
 
    glxx_destroy_hw_framebuffer(&rs->installed_fb);
 
-   KHRN_MEM_ASSIGN(rs->last_occlusion_query.query, NULL);
-   rs->last_occlusion_query.instance = 0;
+   for (unsigned i = 0; i < GLXX_Q_COUNT; i++)
+   {
+      KHRN_MEM_ASSIGN(rs->last_started_query[i].query, NULL);
+      rs->last_started_query[i].instance = 0;
+   }
+
+   KHRN_MEM_ASSIGN(rs->tf.last_used, NULL);
 
    for (unsigned i=0; i<rs->num_blits; i++) {
       glxx_destroy_hw_framebuffer(&rs->tlb_blits[i].dst_fb);
@@ -219,59 +241,9 @@ bool glxx_hw_start_frame_internal(GLXX_HW_RENDER_STATE_T *rs,
 
    glxx_hw_render_state_reset_z_prepass(rs);
 
+   log_trace_rs(rs, VCOS_FUNCTION);
+
    return true;
-}
-
-static void master_cl_supertile_range(
-   uint32_t *morton_flags, uint32_t *begin_supertile, uint32_t *end_supertile,
-   uint32_t num_cores, uint32_t core,
-   unsigned int num_supertiles_x, unsigned int num_supertiles_y)
-{
-   uint32_t num_supertiles = num_supertiles_y * num_supertiles_x;
-
-   *morton_flags = 0;
-
-   if (khrn_options.partition_supertiles_in_sw)
-   {
-      /* Same supertile order for all cores, but give each core an exclusive
-       * subset of the supertiles... */
-
-      uint32_t supertiles_per_core = num_supertiles / num_cores;
-      uint32_t extra_supertiles = num_supertiles - (num_cores * supertiles_per_core);
-
-      *begin_supertile = core * supertiles_per_core;
-      *end_supertile = (core + 1) * supertiles_per_core;
-
-      /* Distribute extra supertiles */
-      *begin_supertile += gfx_umin(core, extra_supertiles);
-      *end_supertile += gfx_umin(core + 1, extra_supertiles);
-
-      assert(*begin_supertile <= *end_supertile);
-      assert(*end_supertile <= num_supertiles);
-   }
-   else
-   {
-      /* All cores are given all supertiles, but in a different order */
-
-      /* TODO Experiment with this */
-      switch (khrn_options.all_cores_same_st_order ? 0 :
-         /* TODO Quick hack for 8 cores */
-         (core & 3))
-      {
-      case 0:  break;
-      case 1:  *morton_flags |= GFX_MORTON_REVERSE; break;
-      case 2:  *morton_flags |= GFX_MORTON_FLIP_Y; break;
-      case 3:  *morton_flags |= GFX_MORTON_FLIP_Y | GFX_MORTON_REVERSE; break;
-      default: not_impl();
-      }
-
-      *begin_supertile = 0;
-      *end_supertile = num_supertiles;
-   }
-
-   /* TODO Is this sensible? */
-   if (num_supertiles_x < num_supertiles_y)
-      *morton_flags |= GFX_MORTON_TRANSPOSE;
 }
 
 struct glxx_hw_tile_cfg
@@ -288,8 +260,6 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
    uint32_t num_cores, uint32_t core)
 {
    GLXX_HW_FRAMEBUFFER_T *fb = &rs->installed_fb;
-
-   log_trace_rs(rs, "[create_master_cl]");;
 
    size_t r_size = 0;  // Render list size
 
@@ -542,10 +512,11 @@ static bool create_master_cl(GLXX_HW_RENDER_STATE_T *rs,
    else
    {
       uint32_t morton_flags, begin_supertile, end_supertile;
-      master_cl_supertile_range(
-         &morton_flags, &begin_supertile, &end_supertile,
-         num_cores, core,
-         frame_w_in_supertiles, frame_h_in_supertiles);
+      v3d_supertile_range(&morton_flags, &begin_supertile, &end_supertile,
+                          num_cores, core,
+                          frame_w_in_supertiles, frame_h_in_supertiles,
+                          khrn_options.partition_supertiles_in_sw,
+                          khrn_options.all_cores_same_st_order);
 
       GFX_MORTON_STATE_T morton;
       gfx_morton_init(&morton, frame_w_in_supertiles, frame_h_in_supertiles, morton_flags);
@@ -581,7 +552,6 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
          + V3D_CL_OCCLUSION_QUERY_COUNTER_ENABLE_SIZE
          + V3D_CL_FLUSH_VCD_CACHE_SIZE
          + V3D_CL_START_TILE_BINNING_SIZE
-         + V3D_CL_PRIM_LIST_FORMAT_SIZE
          + V3D_CL_WAIT_TRANSFORM_FEEDBACK_SIZE;
       uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, size);
       if (!instr)
@@ -612,10 +582,6 @@ static bool create_bin_cl(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_
       v3d_cl_flush_vcd_cache(&instr);
 
       v3d_cl_start_tile_binning(&instr);
-
-      /* see GFXT-9 for an explanation:
-       * http://jira.cam.broadcom.com/jira/browse/GFXT-9?focusedCommentId=121814#comment-121814 */
-      v3d_cl_prim_list_format(&instr, 3, /*xy=*/false, /*d3dpvsf=*/false);
 
       /* Reset transform feedback counter to 0 (0 here is a special value meaning
        * reset to 0 -- 1 does not mean reset to 1!) */
@@ -670,7 +636,10 @@ bool glxx_hw_render_state_discard_and_restart(
 
    khrn_fmem_common_persist* fmem_common = khrn_fmem_get_common_persist(&rs->fmem);
    assert(fmem_common->occlusion_query_list == NULL);
-   assert(rs->tf_used == false);
+#if V3D_HAS_NEW_TF
+   assert(fmem_common->prim_counts_query_list == NULL);
+#endif
+   assert(rs->tf.used == false);
 
    if (!khrn_fmem_reset(&rs->fmem, (KHRN_RENDER_STATE_T*)rs))
       return false;
@@ -715,9 +684,12 @@ bool glxx_hw_render_state_discard_and_restart(
 #endif
 
    glxx_hw_render_state_reset_z_prepass(rs);
+   rs->has_tcs_barriers = false;
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    // reset workaround state
    rs->workaround_gfxh_1313 = false;
+#endif
 
    // reset uses flow control state
    rs->fmem.br_info.bin_workaround_gfxh_1181 = false;
@@ -759,7 +731,7 @@ static bool create_master_cls(GLXX_HW_RENDER_STATE_T *rs,
    unsigned num_cores = khrn_get_num_render_subjobs();
    // Buffer writes are not suitably coherent on multiple cores and frame isolation
    // also disables multicore.
-   if (rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
+   if (rs->has_tcs_barriers || rs->base.has_buffer_writes || khrn_options.isolate_frame == khrn_fmem_frame_i)
       num_cores = 1;
 
    for (unsigned core = 0; core != num_cores; ++core)
@@ -780,15 +752,12 @@ static bool create_master_cls(GLXX_HW_RENDER_STATE_T *rs,
 
 static bool create_bin_cls(GLXX_HW_RENDER_STATE_T *rs, const struct glxx_hw_tile_cfg *tile_cfg, uint8_t* draw_clist_ptr)
 {
-   /* GFXH-1179 workaround */
-   rs->fmem.br_info.bin_offset = 4096 - (4095 &
-      gfx_uround_up_p2(
-         c_initial_tile_alloc_block_size * tile_cfg->num_tiles_x * tile_cfg->num_tiles_y,
-         c_tile_alloc_block_size
-         ));
-
    // can only enable multi-core binning if we don't have transform feedback waits in CL
-   unsigned max_cores = rs->do_multicore_bin && rs->tf_waited_count == 0 ? khrn_get_num_bin_subjobs() : 1;
+   unsigned max_cores = !rs->has_tcs_barriers && rs->do_multicore_bin && rs->tf.waited_count == 0
+#if V3D_HAS_NEW_TF
+      && khrn_fmem_get_common_persist(&rs->fmem)->prim_counts_query_list == NULL
+#endif
+      ? khrn_get_num_bin_subjobs() : 1;
 
    // estimated total number of shaded vertices in control list
    uint64_t bin_cost_total = rs->cl_records[rs->num_cl_records].bin_cost_cumulative;
@@ -962,7 +931,7 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 {
    khrn_render_state_begin_flush((KHRN_RENDER_STATE_T*)rs);
 
-   log_trace_rs(rs, "\n[glxx_hw_render_state_flush] begin");
+   log_trace_rs(rs, VCOS_FUNCTION);
 
    /* Interlock transfer delayed until we know that we can't fail */
 
@@ -970,6 +939,24 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
    uint8_t *draw_clist_ptr = rs->fmem.cle_first;
    if (draw_clist_ptr != NULL)
    {
+#if V3D_HAS_NEW_TF
+      /* write prim counts feedback if we have any prim_gen or prim_written
+       * queries that were not written back yet */
+      if (rs->last_started_query[GLXX_Q_PRIM_GEN].query ||
+            rs->last_started_query[GLXX_Q_PRIM_WRITTEN].query)
+      {
+         if (!glxx_write_prim_counts_feedback(rs))
+            goto quit;
+      }
+
+      if (!glxx_store_tf_buffers_state(rs))
+         goto quit;
+
+      /* Need to disable TF at end of frame to avoid issues with bin queueing.
+       * See SWVC5-718. */
+      glxx_tf_record_disable(rs);
+#endif
+
       // add return from sub-list
       uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_RETURN_SIZE);
       if (!instr)
@@ -1014,13 +1001,14 @@ void glxx_hw_render_state_flush(GLXX_HW_RENDER_STATE_T *rs)
 
    invalidate_interlocks_based_on_bufstates(rs);
 
+   if (rs->has_tcs_barriers && khrn_get_num_cores() > 1)
+      v3d_scheduler_wait_all();
+
    glxx_hw_render_state_delete(rs);
    return;
 
 quit:
    /* todo: report this error */
-   log_trace_rs(rs, "[glxx_hw_render_state_flush] frame discarded");
-
    glxx_hw_discard_frame(rs);
 
    return;

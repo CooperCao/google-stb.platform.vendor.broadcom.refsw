@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -497,7 +497,7 @@ const BVDC_P_CscAbCoeffs * const s_aaCMP_MB_Tbl[][7] =
 #define BVDC_P_L2NL_BYPASS  0
 #endif
 
-uint8_t s_aCMP_CSC_NL2L_Tbl[] =
+const uint8_t s_aCMP_CSC_NL2L_Tbl[] =
 {
     BVDC_P_NL2L_1886,                 /* BAVC_HDMI_DRM_EOTF_eSDR */
     BVDC_P_NL2L_PQ,                   /* BAVC_HDMI_DRM_EOTF_eHDR */
@@ -506,7 +506,7 @@ uint8_t s_aCMP_CSC_NL2L_Tbl[] =
     BVDC_P_NL2L_1886                  /* BAVC_HDMI_DRM_EOTF_eMax */
 };
 
-uint8_t s_aCMP_CSC_L2NL_Tbl[] =
+const uint8_t s_aCMP_CSC_L2NL_Tbl[] =
 {
     BVDC_P_L2NL_1886,                 /* BAVC_HDMI_DRM_EOTF_eSDR */
     BVDC_P_L2NL_PQ,                   /* BAVC_HDMI_DRM_EOTF_eHDR */
@@ -522,7 +522,7 @@ static const BVDC_P_CscLRangeAdj * const s_aaCMP_LRangeAdj_Tbl[][4] =
         &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eSDR */
         &s_CMP_LRangeAdj_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eHDR */
         &s_CMP_LRangeAdj_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-        &s_CMP_LRangeAdj_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eFuture */
+        &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eFuture */
     },
 
     /* BAVC_HDMI_DRM_EOTF_eHDR */
@@ -530,7 +530,7 @@ static const BVDC_P_CscLRangeAdj * const s_aaCMP_LRangeAdj_Tbl[][4] =
         &s_CMP_LRangeAdj_2084_to_1886,    /* BAVC_HDMI_DRM_EOTF_eSDR */
         &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eHDR */
         &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-        &s_CMP_LRangeAdj_Identity         /* BAVC_HDMI_DRM_EOTF_eFuture */
+        &s_CMP_LRangeAdj_2084_to_1886     /* BAVC_HDMI_DRM_EOTF_eFuture */
     },
 
     /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
@@ -538,15 +538,15 @@ static const BVDC_P_CscLRangeAdj * const s_aaCMP_LRangeAdj_Tbl[][4] =
         &s_CMP_LRangeAdj_2084_to_1886,    /* BAVC_HDMI_DRM_EOTF_eSDR */
         &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eHDR */
         &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-        &s_CMP_LRangeAdj_Identity         /* BAVC_HDMI_DRM_EOTF_eFuture */
+        &s_CMP_LRangeAdj_2084_to_1886     /* BAVC_HDMI_DRM_EOTF_eFuture */
     },
 
     /* BAVC_HDMI_DRM_EOTF_eFuture */
     {
-        &s_CMP_LRangeAdj_2084_to_1886,    /* BAVC_HDMI_DRM_EOTF_eSDR */
-        &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eHDR */
-        &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
-        &s_CMP_LRangeAdj_Identity         /* BAVC_HDMI_DRM_EOTF_eFuture */
+        &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eSDR */
+        &s_CMP_LRangeAdj_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eHDR */
+        &s_CMP_LRangeAdj_1886_to_2084,    /* BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084 */
+        &s_CMP_LRangeAdj_Identity,        /* BAVC_HDMI_DRM_EOTF_eFuture */
     }
 };
 
@@ -1485,6 +1485,7 @@ void BVDC_P_Window_GetCscTable_isrsafe
     return;
 }
 
+#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2))
 /***************************************************************************
  * Return the desired EOTF conversion for CSC in compositor.
  *
@@ -1495,7 +1496,6 @@ void BVDC_P_Window_GetEotfConvTable_isrsafe
       BVDC_Window_Handle               hWindow,
       BAVC_HDMI_DRM_EOTF               eInEotf )
 {
-#if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2))
     BAVC_HDMI_DRM_EOTF eOutEotf = hWindow->hCompositor->eOutEotf;
 
     pEotfConvCfg->ucSlotIdx = ucSlotIdx;
@@ -1509,15 +1509,10 @@ void BVDC_P_Window_GetEotfConvTable_isrsafe
 
         BDBG_MODULE_MSG(BVDC_NLCSC, ("SLOT[%d] AVC Eotf %d->%d, NL2L %d, L2NL %d", ucSlotIdx, eInEotf, eOutEotf,pEotfConvCfg->ucNL2L, pEotfConvCfg->ucL2NL));
     }
-#else
-    BSTD_UNUSED(pEotfConvCfg);
-    BSTD_UNUSED(ucSlotIdx);
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(eInEotf);
-#endif /* #if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)) */
 
     return;
 }
+#endif /* #if ((BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC!=0) && (BVDC_P_CMP_NON_LINEAR_CSC_VER >= BVDC_P_NL_CSC_VER_2)) */
 
 /***************************************************************************
  * Return the desired matrices for converting between YCbCr and R'G'B' for

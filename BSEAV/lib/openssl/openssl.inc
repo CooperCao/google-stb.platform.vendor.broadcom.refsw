@@ -36,13 +36,8 @@
 # ANY LIMITED REMEDY.
 #############################################################################
 
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-DEBUG_SUFFIX=debug
-else
-DEBUG_SUFFIX=release
-endif
-
+ifndef B_OPENSSL_INC_DEFINED
+B_OPENSSL_INC_DEFINED := y
 
 #  Define the OpenSSL's Makefile directory... probably the same dir that this file is in.
 B_OPENSSL_BUILD_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/lib/openssl)
@@ -50,9 +45,9 @@ B_OPENSSL_BUILD_DIR := $(abspath $(NEXUS_TOP)/../BSEAV/lib/openssl)
 B_OPENSSL_VER?=1.0.2h
 B_OPENSSL_NAME?=openssl-${B_OPENSSL_VER}
 
-B_OPENSSL_SOURCE_DEST:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/openssl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))
+B_OPENSSL_SOURCE_DEST:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/openssl)
 B_OPENSSL_SOURCE_PATH:=${B_OPENSSL_SOURCE_DEST}/${B_OPENSSL_NAME}
-B_OPENSSL_TOP_INSTALL_DIR ?= $(abspath ${B_OPENSSL_SOURCE_PATH}/..)
+B_OPENSSL_TOP_INSTALL_DIR ?= $(abspath ${B_REFSW_OBJ_ROOT}/target/usr/local)
 
 #  Define the dirs where the Broadcom openssl wrapper makefile installs things.
 B_OPENSSL_LIB_INSTALL_DIR ?= ${B_OPENSSL_TOP_INSTALL_DIR}/lib
@@ -75,3 +70,5 @@ B_OPENSSL_LDFLAGS:= -L${B_OPENSSL_LIB_INSTALL_DIR}/ -lssl -lcrypto
 
 #  Where to store downloaded open-source files for local sharing
 B_REFSW_CACHE_DIR ?= $(realpath /projects/stbdev/open-source)
+
+endif #ifndef B_OPENSSL_INC_DEFINED

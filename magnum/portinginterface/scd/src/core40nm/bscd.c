@@ -278,7 +278,7 @@ BERR_Code BSCD_Open(
 
     /* Get the chip information for Bcm7038 */
   /*  BCHP_GetChipInfo( moduleHandle->chipHandle, &moduleHandle->chipId, &moduleHandle->chipRev );
-    BDBG_MSG(( "chipId=%d, chipRev=%d\n", moduleHandle->chipId, moduleHandle->chipRev ));*/
+    BDBG_MSG(( "chipId=%d, chipRev=%d", moduleHandle->chipId, moduleHandle->chipRev ));*/
 /*** move clock setting  to channel OPen */
 
     /***************************************************************
@@ -331,14 +331,14 @@ BERR_Code BSCD_Close(
     BDBG_ASSERT( inout_handle );
 
     BKNI_EnterCriticalSection();
-    BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, (inout_handle ==  NULL) );
+    BSCD_P_CHECK_ERR_CODE_CONDITION_CriSec( errCode, BSCD_STATUS_FAILED, (inout_handle ==  NULL) );
     BKNI_LeaveCriticalSection();
 
     BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
         (inout_handle->ulMagicNumber != BSCD_P_HANDLE_MAGIC_NUMBER ) );
 
     BKNI_EnterCriticalSection();
-    BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
+    BSCD_P_CHECK_ERR_CODE_CONDITION_CriSec( errCode, BSCD_STATUS_FAILED,
         (inout_handle->bIsOpen ==  false) );
     BKNI_LeaveCriticalSection();
 
@@ -533,8 +533,8 @@ BERR_Code BSCD_Channel_Open(
     BSCD_P_CHECK_ERR_CODE_FUNC( errCode, BINT_EnableCallback(channelHandle->channelIntCallback) );
 
 
-    BDBG_MSG(("in_channelNo = %d\n", in_channelNo));
-    BDBG_MSG(("channelHandle->ulRegStartAddr = 0x%x\n", (unsigned int)channelHandle->ulRegStartAddr));
+    BDBG_MSG(("in_channelNo = %d", in_channelNo));
+    BDBG_MSG(("channelHandle->ulRegStartAddr = 0x%x", (unsigned int)channelHandle->ulRegStartAddr));
 
 	if (inp_channelDefSettings != NULL){
                 BSCD_Channel_P_SetSrcClock(
@@ -582,7 +582,7 @@ BERR_Code BSCD_Channel_Open(
                 (ulVal |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_093_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_092_SHIFT)));
-            BDBG_MSG(( "7422, need to switch io pin\n" ));
+            BDBG_MSG(( "7422, need to switch io pin" ));
 #elif (BCHP_CHIP==7445)
                 #if (BCHP_VER >= BCHP_VER_D0)
         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -624,7 +624,7 @@ BERR_Code BSCD_Channel_Open(
                                 (0x00000004 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11_gpio_049_SHIFT)));
 
                 #endif
-                BDBG_MSG(( "7445, need to switch io pin\n" ));
+                BDBG_MSG(( "7445, need to switch io pin" ));
 
 #elif (BCHP_CHIP==7145)
                 ulVal = BREG_Read32 (in_handle->regHandle,
@@ -643,7 +643,7 @@ BERR_Code BSCD_Channel_Open(
                                 (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11_gpio_076_SHIFT) |
                                 (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11_gpio_077_SHIFT) |
                                 (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11_gpio_078_SHIFT ) ));
-                BDBG_MSG(( "7145, need to switch io pin\n" ));
+                BDBG_MSG(( "7145, need to switch io pin" ));
 
 #elif ((BCHP_CHIP==7346) || (BCHP_CHIP==73465))
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -660,7 +660,7 @@ BERR_Code BSCD_Channel_Open(
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_010_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_009_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_008_SHIFT ) ));
-            BDBG_MSG(( "7346[5], need to switch io pin\n" ));
+            BDBG_MSG(( "7346[5], need to switch io pin" ));
 #elif(BCHP_CHIP==7231)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                     BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9);
@@ -680,7 +680,7 @@ BERR_Code BSCD_Channel_Open(
                 (ulVal |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_83_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_82_SHIFT) ));
-            BDBG_MSG(( "7231, need to switch io pin\n" ));
+            BDBG_MSG(( "7231, need to switch io pin" ));
 #elif(BCHP_CHIP==7358)||(BCHP_CHIP==7552)||(BCHP_CHIP==7360)||(BCHP_CHIP==7584)||(BCHP_CHIP==75845)||(BCHP_CHIP==7362)||(BCHP_CHIP==7228) || (BCHP_CHIP==73625)||(BCHP_CHIP==75525)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                     BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
@@ -696,7 +696,7 @@ BERR_Code BSCD_Channel_Open(
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_81_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_80_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10_gpio_79_SHIFT ) ));
-            BDBG_MSG(( "7358, need to switch io pin\n" ));
+            BDBG_MSG(( "7358, need to switch io pin" ));
 #elif(BCHP_CHIP==7344)
                                                 ulVal = BREG_Read32 (in_handle->regHandle,
                                                                 BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
@@ -716,7 +716,7 @@ BERR_Code BSCD_Channel_Open(
                                                         (ulVal |
                                                                 (0x00000004 << BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_05_SHIFT) |
                                                                 (0x00000004 << BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_04_SHIFT)  ));
-                                                BDBG_MSG(( "7344, need to switch io pin\n" ));
+                                                BDBG_MSG(( "7344, need to switch io pin" ));
 #elif(BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
                                         ulVal = BREG_Read32 (in_handle->regHandle,
                                                         BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10);
@@ -743,7 +743,7 @@ BERR_Code BSCD_Channel_Open(
                                                                 BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7_gpio_063_MASK);
                                         BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7,ulVal);
 #endif
-                                        BDBG_MSG(( "7429, need to switch io pin\n" ));
+                                        BDBG_MSG(( "7429, need to switch io pin" ));
 
 #elif ((BCHP_CHIP==7563) || (BCHP_CHIP==75635))
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -764,7 +764,7 @@ BERR_Code BSCD_Channel_Open(
                         BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_83_SHIFT)));
-                        BDBG_MSG(( "7563, need to switch io pin\n" ));
+                        BDBG_MSG(( "7563, need to switch io pin" ));
 #elif(BCHP_CHIP==7366)
 
 #if (BCHP_VER > BCHP_VER_A0)
@@ -828,7 +828,7 @@ BERR_Code BSCD_Channel_Open(
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13_onoff_gpio_086_SHIFT)));
 #endif
-                        BDBG_MSG(( "7366, need to switch io pin\n" ));
+                        BDBG_MSG(( "7366, need to switch io pin" ));
 #elif(BCHP_CHIP==7439)
         #if(BCHP_VER < BCHP_VER_B0)
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -869,7 +869,7 @@ BERR_Code BSCD_Channel_Open(
                                 (ulVal |
                                         (0x00000004 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13_gpio_049_SHIFT)));
         #endif
-                        BDBG_MSG(( "7439, need to switch io pin\n" ));
+                        BDBG_MSG(( "7439, need to switch io pin" ));
 
 #elif (BCHP_CHIP == 7364)
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -932,7 +932,7 @@ BERR_Code BSCD_Channel_Open(
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_096_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_095_SHIFT) |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_094_SHIFT ) ));
-            BDBG_MSG(( "7422, need to switch io pin\n" ));
+            BDBG_MSG(( "7422, need to switch io pin" ));
 #elif (BCHP_CHIP==7445)
             #if (BCHP_VER >= BCHP_VER_D0)
                 ulVal = BREG_Read32 (in_handle->regHandle,
@@ -976,7 +976,7 @@ BERR_Code BSCD_Channel_Open(
                 (ulVal |
                     (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_17_gpio_090_SHIFT)));
                         #endif
-            BDBG_MSG(( "7445, need to switch io pin\n" ));
+            BDBG_MSG(( "7445, need to switch io pin" ));
 #elif (BCHP_CHIP==7145)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                                         BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8);
@@ -994,7 +994,7 @@ BERR_Code BSCD_Channel_Open(
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_052_SHIFT) |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_053_SHIFT) |
                                         (0x00000003 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8_gpio_056_SHIFT ) ));
-                        BDBG_MSG(( "7145, need to switch io pin\n" ));
+                        BDBG_MSG(( "7145, need to switch io pin" ));
 
 #elif ((BCHP_CHIP==7346) || (BCHP_CHIP==73465))
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -1015,7 +1015,7 @@ BERR_Code BSCD_Channel_Open(
                         BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11,
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11_gpio_029_SHIFT)  ));
-                        BDBG_MSG(( "7346[5], need to switch io pin\n" ));
+                        BDBG_MSG(( "7346[5], need to switch io pin" ));
 
 #elif(BCHP_CHIP==7231)
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -1036,7 +1036,7 @@ BERR_Code BSCD_Channel_Open(
             BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,
                 (ulVal |
                     (0x00000002 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_33_SHIFT) ));
-            BDBG_MSG(( "7231, need to switch io pin\n" ));
+            BDBG_MSG(( "7231, need to switch io pin" ));
 #elif(BCHP_CHIP==7358)||(BCHP_CHIP==7552)||(BCHP_CHIP==7360)||(BCHP_CHIP==7584)||(BCHP_CHIP==75845)||(BCHP_CHIP==7362)||(BCHP_CHIP==7228) || (BCHP_CHIP==73625)||(BCHP_CHIP==75525)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                     BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4);
@@ -1056,7 +1056,7 @@ BERR_Code BSCD_Channel_Open(
             BREG_Write32 (in_handle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5,
                 (ulVal |
                     (0x00000002 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5_gpio_37_SHIFT) ));
-            BDBG_MSG(( "7358, need to switch io pin\n" ));
+            BDBG_MSG(( "7358, need to switch io pin" ));
 #elif(BCHP_CHIP==7344)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                                         BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12);
@@ -1072,7 +1072,7 @@ BERR_Code BSCD_Channel_Open(
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_54_SHIFT) |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_53_SHIFT) |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_52_SHIFT ) ));
-                        BDBG_MSG(( "7344, need to switch io pin\n" ));
+                        BDBG_MSG(( "7344, need to switch io pin" ));
 
 #elif(BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -1089,7 +1089,7 @@ BERR_Code BSCD_Channel_Open(
                                         (0x00000002 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_035_SHIFT) |
                                         (0x00000002 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_034_SHIFT) |
                                         (0x00000002 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4_gpio_033_SHIFT ) ));
-                        BDBG_MSG(( "7429, need to switch io pin\n" ));
+                        BDBG_MSG(( "7429, need to switch io pin" ));
 #elif(BCHP_CHIP==7584)||(BCHP_CHIP==75845)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                                         BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12);
@@ -1105,9 +1105,9 @@ BERR_Code BSCD_Channel_Open(
                                         (0x00000007 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_98_SHIFT) |
                                         (0x00000007 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_97_SHIFT) |
                                         (0x00000007 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12_gpio_96_SHIFT ) ));
-                        BDBG_MSG(( "7584, need to switch io pin\n" ));
+                        BDBG_MSG(( "7584, need to switch io pin" ));
 #elif((BCHP_CHIP==7563)|| (BCHP_CHIP==75635))
-        BDBG_WRN(("SC1 is not found in 7563 RDB!\n"));
+        BDBG_WRN(("SC1 is not found in 7563 RDB!"));
 #elif(BCHP_CHIP==7366)
 
 #if (BCHP_VER > BCHP_VER_A0)
@@ -1150,7 +1150,7 @@ BERR_Code BSCD_Channel_Open(
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14_onoff_gpio_094_SHIFT)));
 #endif
-                        BDBG_MSG(( "7366, need to switch io pin\n" ));
+                        BDBG_MSG(( "7366, need to switch io pin" ));
 #elif(BCHP_CHIP==7439)
         #if(BCHP_VER < BCHP_VER_B0)
                         ulVal = BREG_Read32 (in_handle->regHandle,
@@ -1191,7 +1191,7 @@ BERR_Code BSCD_Channel_Open(
                                 (ulVal |
                                         (0x00000001 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_19_gpio_090_SHIFT)));
         #endif
-                        BDBG_MSG(( "7439, need to switch io pin\n" ));
+                        BDBG_MSG(( "7439, need to switch io pin" ));
 #elif (BCHP_CHIP == 7364)
                         ulVal = BREG_Read32 (in_handle->regHandle,
                                         BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_0);
@@ -1211,7 +1211,7 @@ BERR_Code BSCD_Channel_Open(
                         BREG_Write32 (in_handle->regHandle, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1,
                                 (ulVal |
                                         (0x00000003 << BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_1_aon_gpio_08_SHIFT)      ));
-                        BDBG_MSG(( "7364, need to switch io pin\n" ));
+                        BDBG_MSG(( "7364, need to switch io pin" ));
 
 
 #endif
@@ -1267,7 +1267,7 @@ BERR_Code BSCD_Channel_Open(
 	if(ulVal&BCHP_SCA_SC_STATUS_1_card_pres_MASK)
 		channelHandle->channelStatus.bCardPresent = true;
 
-	BKNI_EnterCriticalSection();
+    BKNI_EnterCriticalSection();
     BSCD_Channel_P_EnableInterrupts_isr(channelHandle);   /* Todo:  Only enable intr for ATR */
     BKNI_LeaveCriticalSection();
 BSCD_P_DONE_LABEL:
@@ -1548,7 +1548,7 @@ BERR_Code BSCD_Channel_SetParameters(
 	 in_channelHandle->currentChannelSettings.bIsAnalogIntf =inp_sSettings->bIsAnalogIntf;
 
         if(inp_sSettings->srcClkFreqInHz !=in_channelHandle->moduleHandle->currentSettings.moduleClkFreq.ulClkFreq){
-                BDBG_MSG(("changing the clock frequency...\n"));
+                BDBG_MSG(("changing the clock frequency..."));
 
      in_channelHandle->moduleHandle->currentSettings.moduleClkFreq.ulClkFreq =  inp_sSettings->srcClkFreqInHz;
 	/*
@@ -1566,7 +1566,7 @@ BERR_Code BSCD_Channel_SetParameters(
             in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e24MHZ;
             break;
         default:
-            BDBG_ERR(("Unknown SC clock freq %d!\n",inp_sSettings->srcClkFreqInHz ));
+            BDBG_ERR(("Unknown SC clock freq %d!",inp_sSettings->srcClkFreqInHz ));
             break;
 
     }*/
@@ -1672,7 +1672,7 @@ BERR_Code BSCD_Channel_SetParameters(
     ulValue = BREG_Read32(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE));
-    BDBG_MSG(("orig BSCD_P_PRESCALE = 0x%x\n", ulValue));
+    BDBG_MSG(("orig BSCD_P_PRESCALE = 0x%x", ulValue));
 
 
 
@@ -1680,7 +1680,7 @@ BERR_Code BSCD_Channel_SetParameters(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE),
         in_channelHandle->currentChannelSettings.unPrescale);
-    BDBG_MSG(("New BSCD_P_PRESCALE = 0x%x\n", (unsigned int)in_channelHandle->currentChannelSettings.unPrescale));
+    BDBG_MSG(("New BSCD_P_PRESCALE = 0x%x", (unsigned int)in_channelHandle->currentChannelSettings.unPrescale));
 
 #if 1
     /* Don't enable clock here since auto_clk need to be set first in ResetIFD before
@@ -1688,7 +1688,7 @@ BERR_Code BSCD_Channel_SetParameters(
     ulValue = BREG_Read32(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD));
-    BDBG_MSG(("orig ucClkCmd = 0x%x\n",  ulValue));
+    BDBG_MSG(("orig ucClkCmd = 0x%x",  ulValue));
 
     /* If enabled before, change the the value.  Otherwise leave it intact. */
     ulValue = ulValue & BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
@@ -1712,17 +1712,17 @@ BERR_Code BSCD_Channel_SetParameters(
                     (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD),
                     ulValue);
         }
-        BDBG_MSG(("New SC_CLK_CMD = 0x%x\n", ulValue));
+        BDBG_MSG(("New SC_CLK_CMD = 0x%x", ulValue));
     }
 #endif
 
-    BDBG_MSG(("address  = 0x%x\n", (unsigned int)in_channelHandle->ulRegStartAddr));
-    BDBG_MSG(("BSCD_P_UART_CMD_2 address  = 0x%x\n", (unsigned int)(in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2)));
+    BDBG_MSG(("address  = 0x%x", (unsigned int)in_channelHandle->ulRegStartAddr));
+    BDBG_MSG(("BSCD_P_UART_CMD_2 address  = 0x%x", (unsigned int)(in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2)));
     /* Update the BSCD_P_UART_CMD_2 */
     ulValue = BREG_Read32(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2));
-    BDBG_MSG(("orig BSCD_P_UART_CMD_2 = 0x%x\n",    ulValue));
+    BDBG_MSG(("orig BSCD_P_UART_CMD_2 = 0x%x",    ulValue));
 
 #ifndef SMARTCARD_32_BIT_REGISTER
         ulValue  &=  (BCHP_SCA_SC_UART_CMD_2_convention_MASK);
@@ -1749,7 +1749,7 @@ BERR_Code BSCD_Channel_SetParameters(
         (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2),
         ulValue);
 
-    BDBG_MSG(("BSCD_P_UART_CMD_2 = 0x%x\n",     ulValue));
+    BDBG_MSG(("BSCD_P_UART_CMD_2 = 0x%x",     ulValue));
 
     /* Update the BSCD_P_PROTO_CMD */
     ulValue =  BREG_Read32(
@@ -1911,7 +1911,7 @@ BERR_Code BSCD_Channel_Deactivate(
     BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
         (in_channelHandle->ulMagicNumber != BSCD_P_CHANNEL_HANDLE_MAGIC_NUMBER ) );
 
-    BDBG_MSG(("In BSCD_Channel_Deactivate\n"));
+    BDBG_MSG(("In BSCD_Channel_Deactivate"));
     /* Disable all interrupts */
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
@@ -2106,10 +2106,10 @@ BERR_Code BSCD_Channel_ResetIFD(
 #endif
         }
 
-    BDBG_MSG(("Inside Reset: Before Cold Reset ulIFCmdVal = 0x%x\n", ulIFCmdVal));
+    BDBG_MSG(("Inside Reset: Before Cold Reset ulIFCmdVal = 0x%x", ulIFCmdVal));
     /* Cold Reset or Warm Reset */
     if (in_resetType == BSCD_ResetType_eCold) {
-        BDBG_MSG(("Cold Reset\n"));
+        BDBG_MSG(("Cold Reset"));
         in_channelHandle->resetType = BSCD_ResetType_eCold;  /* Cold Reset */
 
 		if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
@@ -2169,20 +2169,20 @@ BERR_Code BSCD_Channel_ResetIFD(
          0);
 
     if(in_channelHandle->currentChannelSettings.bIsPresHigh){
-        BDBG_MSG(("Change Presence Polarity\n"));
+        BDBG_MSG(("Change Presence Polarity"));
 
         ulIFCmdVal |= BCHP_SCA_SC_IF_CMD_1_pres_pol_MASK;
         BREG_Write32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1),
              ulIFCmdVal);
-            BDBG_MSG(("Finished Change Presence Polarity\n"));
+            BDBG_MSG(("Finished Change Presence Polarity"));
         }
 
 
     }
     else {
-        BDBG_MSG(("Warm Reset\n"));
+        BDBG_MSG(("Warm Reset"));
         in_channelHandle->resetType = BSCD_ResetType_eWarm;  /* Warm Reset */
 
         ulIFCmdVal = BREG_Read32(
@@ -2190,15 +2190,15 @@ BERR_Code BSCD_Channel_ResetIFD(
             (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1));
     }
 
-    BDBG_MSG(("Inside Reset: After Cold Reset ulIFCmdVal = 0x%x\n", ulIFCmdVal));
+    BDBG_MSG(("Inside Reset: After Cold Reset ulIFCmdVal = 0x%x", ulIFCmdVal));
 	ulValue = BREG_Read32(
 				in_channelHandle->moduleHandle->regHandle,
 				(in_channelHandle->ulRegStartAddr + BSCD_P_STATUS_1));
-	BDBG_MSG(("Inside Reset: After Cold Reset STATUS 1 = 0x%x\n", ulValue));
+	BDBG_MSG(("Inside Reset: After Cold Reset STATUS 1 = 0x%x", ulValue));
     /* Use Auto Deactivation instead of TDA8004 */
     if (in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true) {
 
-        BDBG_MSG(("Inside Reset: Before auto clk  BSCD_P_CLK_CMD = 0x%x\n",
+        BDBG_MSG(("Inside Reset: Before auto clk  BSCD_P_CLK_CMD = 0x%x",
                 BREG_Read32(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD))));
@@ -2244,7 +2244,7 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
                 ((in_channelHandle->currentChannelSettings.ucBaudDiv == 31) ? 0 : 1);
 
-    BDBG_MSG(("Reset: BCM_SC_CLK_CMD = 0x%x\n", ulValue));
+    BDBG_MSG(("Reset: BCM_SC_CLK_CMD = 0x%x", ulValue));
 
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
@@ -2255,18 +2255,18 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE),
          in_channelHandle->currentChannelSettings.unPrescale);
-    BDBG_MSG(("Reset: BSCD_P_PRESCALE = 0x%lx\n", in_channelHandle->currentChannelSettings.unPrescale));
+    BDBG_MSG(("Reset: BSCD_P_PRESCALE = 0x%lx", in_channelHandle->currentChannelSettings.unPrescale));
 
     /* Use Auto Deactivation instead of TDA8004 */
     if (in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true) {
 
-        BDBG_MSG(("Inside Reset: Before auto io ulIFCmdVal = 0x%x\n", ulIFCmdVal));
+        BDBG_MSG(("Inside Reset: Before auto io ulIFCmdVal = 0x%x", ulIFCmdVal));
         ulIFCmdVal |= BCHP_SCA_SC_IF_CMD_1_auto_io_MASK;
         BREG_Write32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1),
              ulIFCmdVal);
-        BDBG_MSG(("Inside Reset: after auto io ulIFCmdVal = 0x%x\n", ulIFCmdVal));
+        BDBG_MSG(("Inside Reset: after auto io ulIFCmdVal = 0x%x", ulIFCmdVal));
     }
 
 #if 0 /*ndef BSCD_DSS_ICAM*/
@@ -2287,7 +2287,7 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
             (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1),
              ulValue);
 
-    BDBG_MSG(("Inside Reset: Before SmartCardEnableInt\n"));
+    BDBG_MSG(("Inside Reset: Before SmartCardEnableInt"));
 #if 1
 
 		/* check presence status again if card is already inserted. */
@@ -2297,16 +2297,17 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
 #endif
 
     /* Enable 2 interrupts with callback */
-    BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
+    BKNI_EnterCriticalSection();
+    BSCD_P_CHECK_ERR_CODE_FUNC_CriSec(errCode,
                 BSCD_Channel_EnableIntrCallback_isr (
                 in_channelHandle, BSCD_IntType_eCardInsertInt,
                        BSCD_Channel_P_CardInsertCB_isr));
 
-    BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
+    BSCD_P_CHECK_ERR_CODE_FUNC_CriSec(errCode,
                 BSCD_Channel_EnableIntrCallback_isr (
                 in_channelHandle, BSCD_IntType_eCardRemoveInt,
                        BSCD_Channel_P_CardRemoveCB_isr));
-
+    BKNI_LeaveCriticalSection();
     BREG_Write32(
         in_channelHandle->moduleHandle->regHandle,
         (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1),
@@ -2336,7 +2337,7 @@ if(in_channelHandle->currentChannelSettings.bConnectDirectly == true){
 
     /* If equal to zero, then UART reset has gone low, so return success */
     if ((ulValue & BCHP_SCA_SC_UART_CMD_1_uart_rst_MASK) == 0) {
-        BDBG_MSG(("Reset Success\n"));
+        BDBG_MSG(("Reset Success"));
 
         /*
         **   INITIAL_CWI_SC_PROTO_CMD = 0x0f is required so that
@@ -2373,6 +2374,10 @@ BERR_Code BSCD_Channel_PowerICC(
     BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
         (in_channelHandle->ulMagicNumber != BSCD_P_CHANNEL_HANDLE_MAGIC_NUMBER ) );
 
+   if(in_iccAction == BSCD_PowerICC_ePowerUp){
+	BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
+		(in_channelHandle->channelStatus.bCardPresent != true ) );
+   }
     if(in_channelHandle->currentChannelSettings.bConnectDirectly == false){
 
         switch (in_iccAction) {
@@ -2466,7 +2471,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                 QPSK connection before calling this function or your smartcard
                 will be damaged.
     ***************************************************************/
-    BDBG_MSG(("BSCD_Channel_SetVccLevel: in_vccLevel = 0x%x\n", in_vccLevel));
+    BDBG_MSG(("BSCD_Channel_SetVccLevel: in_vccLevel = 0x%x", in_vccLevel));
 
     BKNI_EnterCriticalSection();
         in_channelHandle->currentChannelSettings.vcc = in_vccLevel;
@@ -2512,7 +2517,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                         BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << (86 - 64 + 6), 0);
                         break;
                 case 1:
-                        BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                        BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                         break;
         }
 #elif (BCHP_CHIP == 7358)||(BCHP_CHIP==7552)||(BCHP_CHIP==7360)||(BCHP_CHIP==7584)||(BCHP_CHIP==75845)||(BCHP_CHIP==7362)||(BCHP_CHIP==7228) || (BCHP_CHIP==73625)||(BCHP_CHIP==75525)
@@ -2527,7 +2532,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << ( 86 - 64), 0);
                                 break;
                         case 1:
-                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                                 break;
                 }
 #elif (BCHP_CHIP == 7344)
@@ -2540,7 +2545,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_IODIR_LO, 1 << 8, 0);
                                                 break;
                                         case 1:
-                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                                                 break;
                                 }
 
@@ -2554,7 +2559,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT, 1 << (86 - 64 + 4), 0);
                                                 break;
                                         case 1:
-                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                                                 break;
                                         }
 #elif (BCHP_CHIP == 7445)
@@ -2575,7 +2580,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                 BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_IODIR_EXT_HI, 1 << (93 - 88), 0);
                                                 break;
                                         case 0:
-                                                BDBG_WRN(("Slot 0 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                                                BDBG_WRN(("Slot 0 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                                                 break;
                                                 }
 #elif (BCHP_CHIP == 7439)
@@ -2640,7 +2645,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                                                 BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,ulValue );
                                                 break;
                                         case 1:
-                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage\n"));
+                                                BDBG_WRN(("Slot 1 not supported in BRCM reference board, please use customer callback function to set the correct voltage"));
                                                 break;
                                 }
 #elif (BCHP_CHIP == 7364)
@@ -2687,27 +2692,27 @@ BERR_Code BSCD_Channel_SetVccLevel(
 											break;
                                 }
 #elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
-							switch( in_channelHandle->ucChannelNumber){
-										case 0:
-												ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
-																		BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
-												ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_MASK ;
-												ulValue |=(0x00000008 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_SHIFT);
-												BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,ulValue );
-												break;
-										case 1:
-												ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
-																	BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
-												ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_MASK ;
-												ulValue |=(0x00000005 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_SHIFT);
-												BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1,ulValue );
+				switch( in_channelHandle->ucChannelNumber){
+					case 0:
+						ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
+											BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3);
+						ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_MASK ;
+						ulValue |=(0x00000008 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3_gpio_020_SHIFT);
+						BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3,ulValue );
+						break;
+					case 1:
+						ulValue = BREG_Read32 (in_channelHandle->moduleHandle->regHandle,
+										BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1);
+						ulValue &= ~BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_MASK ;
+						ulValue |=(0x00000005 << BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1_gpio_008_SHIFT);
+						BREG_Write32 (in_channelHandle->moduleHandle->regHandle, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1,ulValue );
 
-												break;
-								}
+						break;
+				}
 
 
 #else
-        BDBG_MSG(("Chip is not supported or it may use default pin mux setting!\n"));
+        BDBG_MSG(("Chip is not supported or it may use default pin mux setting!"));
 #endif
 
     switch (in_vccLevel) {
@@ -2725,7 +2730,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 0);
 #elif (BCHP_CHIP==7344)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_AON_DATA_LO, 1 << 8, 0);
-#elif (BCHP_CHIP==7145)||(BCHP_CHIP==7366)||(BCHP_CHIP==7439)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)
+#elif (BCHP_CHIP==7145)||(BCHP_CHIP==7366)||(BCHP_CHIP==7439)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278)
             ulValue =  BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
@@ -2735,7 +2740,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),
                     ulValue);
 #else
-            BDBG_WRN(("Chip is not supported!\n"));
+            BDBG_WRN(("Chip is not supported!"));
 #endif
             break;
 
@@ -2752,7 +2757,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (93 - 88), 1 << (93 - 88));
 #elif (BCHP_CHIP==7429)||(BCHP_CHIP==7241)||(BCHP_CHIP==74295)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT, 1 << (86 - 64 + 4), 1 << (86 - 64 + 4));
-#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)
+#elif (BCHP_CHIP==7439)||(BCHP_CHIP==7366)||(BCHP_CHIP==7145)||(BCHP_CHIP==7364)||(BCHP_CHIP==7250)|| (BCHP_CHIP==7586)||(BCHP_CHIP==7563)|| (BCHP_CHIP==75635)||(BCHP_CHIP == 7346) || (BCHP_CHIP==73465)||(BCHP_CHIP==7271)||(BCHP_CHIP==7268)||(BCHP_CHIP==7260)||(BCHP_CHIP==7278)
             ulValue =  BCHP_SCA_SC_IF_CMD_3_vpp_MASK | BREG_Read32(
                     in_channelHandle->moduleHandle->regHandle,
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3)) ;
@@ -2761,7 +2766,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
                     (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),
                     ulValue);
 #else
-            BDBG_WRN(("Chip is not supported!\n"));
+            BDBG_WRN(("Chip is not supported!"));
 #endif
             break;
 
@@ -2769,13 +2774,13 @@ BERR_Code BSCD_Channel_SetVccLevel(
 #if (BCHP_CHIP==7250)
             BREG_AtomicUpdate32 (in_channelHandle->moduleHandle->regHandle, BCHP_GIO_DATA_EXT_HI, 1 << (92 - 64), 0);
 #else
-            BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here.\n"));
+            BDBG_WRN(("1.8V is not supported in BRCM ref board, please add customer code here."));
 #endif
             break;
 
         default:
             errCode = BERR_TRACE(BSCD_STATUS_FAILED);
-            BDBG_ERR(("BSCD_Channel_SetVccLevel: Do not support VCC Level switch = 0x%x, \n", in_vccLevel));
+            BDBG_ERR(("BSCD_Channel_SetVccLevel: Do not support VCC Level switch = 0x%x, ", in_vccLevel));
             goto BSCD_P_DONE_LABEL;
         }
 
@@ -2798,7 +2803,7 @@ BERR_Code BSCD_Channel_SetVccLevel(
 								(in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_3),ulValue);
 					break;
 				case BSCD_VccLevel_e1P8V:
-					BDBG_WRN(("1.8V is not supported in BRCM ref board, please set your own pin mux.\n"));
+					BDBG_WRN(("1.8V is not supported in BRCM ref board, please set your own pin mux."));
 					break;
 			}
 		}
@@ -2971,10 +2976,10 @@ static BERR_Code BSCD_startATRTimers (BSCD_ChannelHandle  in_channelHandle)
     timer.bIsTimerEnable = true;
     timer.bIsTimerInterruptEnable = false;
 
-    BDBG_MSG(("Activating: Event1 timer \n"));
+    BDBG_MSG(("Activating: Event1 timer "));
     if(BERR_SUCCESS != BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue))
     {
-        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer\n"));
+        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer"));
         return BSCD_STATUS_FAILED;
     }
 
@@ -2987,10 +2992,10 @@ static BERR_Code BSCD_startATRTimers (BSCD_ChannelHandle  in_channelHandle)
     eEventTimerMode.start_event = BSCD_P_EVENT1_INTR_EVENT_SRC;
     eEventTimerMode.incr_event = BSCD_P_EVENT1_INTR_EVENT_SRC;
 
-    BDBG_MSG(("Activating: Event2 timer \n"));
+    BDBG_MSG(("Activating: Event2 timer "));
     if(BERR_SUCCESS != BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue))
     {
-        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer\n"));
+        BDBG_ERR(("not able to configure BSCD_TimerType_eEvent1Timer Timer"));
     }
 
     timer.eTimerType = BSCD_TimerType_eWaitTimer;
@@ -2999,7 +3004,7 @@ static BERR_Code BSCD_startATRTimers (BSCD_ChannelHandle  in_channelHandle)
     timer.bIsTimerInterruptEnable = true;
 
     /* Enable WWT to ensure the max interval between 2 consecutive ATR chars of 10080 ETU */
-    BDBG_MSG(("Activating: Set WWT timer \n"));
+    BDBG_MSG(("Activating: Set WWT timer "));
     if (in_channelHandle->currentChannelSettings.scStandard == BSCD_Standard_eEMV2000)
         timeValue.ulValue = BSCD_MAX_ETU_PER_ATR_BYTE_EMV2000;
     else /* EMV 96 or the rest */
@@ -3084,7 +3089,7 @@ BERR_Code BSCD_Channel_ResetCard(
             }
            break;
         case BSCD_ResetCardAction_eReceiveAndDecode:
-            BDBG_MSG(("BSCD_ResetCardAction_eReceiveAndDecode \n"));
+            BDBG_MSG(("BSCD_ResetCardAction_eReceiveAndDecode "));
             if (  ((errCode = BSCD_Channel_P_Activating(in_channelHandle)) != BERR_SUCCESS) ||
                    ((errCode = BSCD_Channel_P_ReceiveAndDecode(in_channelHandle)) != BERR_SUCCESS) ) {
                    errCode = BERR_TRACE(errCode);
@@ -3105,7 +3110,7 @@ BSCD_P_DONE_LABEL:
             BSCD_Channel_Deactivate(in_channelHandle);
 			BREG_Write32( in_channelHandle->moduleHandle->regHandle, (in_channelHandle->ulRegStartAddr + BSCD_P_INTR_EN_1), BCHP_SCA_SC_INTR_EN_1_pres_ien_MASK);
         }
-    BDBG_MSG(("Leave ResetCard erroCode = 0x%x\n", errCode));
+    BDBG_MSG(("Leave ResetCard erroCode = 0x%x", errCode));
     return( errCode );
 }
 
@@ -3204,7 +3209,7 @@ BERR_Code BSCD_Channel_Receive(
                         in_channelHandle->moduleHandle->regHandle,
                         (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CNT));
                 if(ev2cnt != *outp_ulNumRcvBytes) {
-                    BDBG_ERR(("events 2 counter %d != atr len %d\n",  ev2cnt, (unsigned int)*outp_ulNumRcvBytes));
+                    BDBG_ERR(("events 2 counter %d != atr len %d",  ev2cnt, (unsigned int)*outp_ulNumRcvBytes));
                     *outp_ulNumRcvBytes = 0;
                     errCode = BSCD_STATUS_FAILED;
                 }
@@ -3229,11 +3234,11 @@ BERR_Code BSCD_Channel_Receive(
     if (*outp_ulNumRcvBytes > 0) {
 
         /* Ignore the ReadTimeOut error returned by SmartCardByteRead */
-        /* BDBG_MSG (("success in SmartCardReadCmd\n")); */
+        /* BDBG_MSG (("success in SmartCardReadCmd")); */
     }
 
     else {
-        BDBG_MSG (("No Response detected...deactivating, scerr = %02x\n",errCode));
+        BDBG_MSG (("No Response detected...deactivating, scerr = %02x",errCode));
         BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED, true);
     }
 
@@ -3242,7 +3247,7 @@ BERR_Code BSCD_Channel_Receive(
 BSCD_P_DONE_LABEL:
 
     BDBG_LEAVE(BSCD_Channel_Receive);
-    /* BDBG_MSG(("Leave BSCD_Channel_Receive = 0x%x\n", errCode)); */
+    /* BDBG_MSG(("Leave BSCD_Channel_Receive = 0x%x", errCode)); */
     return( errCode );
 }
 
@@ -3253,7 +3258,7 @@ BERR_Code BSCD_Channel_ConfigTimer(
         BSCD_TimerValue             *inp_unCount
 )
 {
-    return BSCD_Channel_P_ConfigTimer_generic(in_channelHandle, inp_timer, inp_unCount, true);
+    return BSCD_Channel_P_ConfigTimer_generic_isrsafe(in_channelHandle, inp_timer, inp_unCount, true);
 }
 
 BERR_Code BSCD_Channel_EnableIntrCallback_isr(
@@ -3293,7 +3298,7 @@ BERR_Code BSCD_Channel_EnableIntrCallback_isr(
         unReg = BSCD_P_PROTO_CMD;
     }
     else {
-        BDBG_ERR(("Interrupt not supported, in_eIntType = %d\n", in_eIntType));
+        BDBG_ERR(("Interrupt not supported, in_eIntType = %d", in_eIntType));
         BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,  true);
     }
 
@@ -3618,7 +3623,7 @@ BERR_Code BSCD_Channel_DisableIntrCallback_isr(
         unReg = BSCD_P_PROTO_CMD;
     }
     else {
-        BDBG_MSG(("Interrupt not supported\n"));
+        BDBG_MSG(("Interrupt not supported"));
         BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,  true);
     }
 
@@ -3731,6 +3736,7 @@ BERR_Code BSCD_Channel_EnableInterrupts(
     BKNI_EnterCriticalSection();
     if ( (errCode = BSCD_Channel_P_EnableInterrupts_isr(in_channelHandle)) != BERR_SUCCESS) {
         errCode = BERR_TRACE(errCode);
+        BKNI_LeaveCriticalSection();
         goto BSCD_P_DONE_LABEL;
     }
     BKNI_LeaveCriticalSection();
@@ -3791,178 +3797,178 @@ void BSCD_Channel_DumpRegisters(
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1));
-    BDBG_MSG(("UART_CMD_1 = %02x \n",ulVal));
+    BDBG_MSG(("UART_CMD_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_2));
-    BDBG_MSG(("UART_CMD_2 = %02x \n",ulVal));
+    BDBG_MSG(("UART_CMD_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_PROTO_CMD));
-    BDBG_MSG(("PROTO = %02x \n",ulVal));
+    BDBG_MSG(("PROTO = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_FLOW_CMD));
-    BDBG_MSG(("FLOW_CMD = %02x \n",ulVal));
+    BDBG_MSG(("FLOW_CMD = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1));
-    BDBG_MSG(("IF_CMD_1 = %02x \n",ulVal));
+    BDBG_MSG(("IF_CMD_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_2));
-    BDBG_MSG(("IF_CMD_2 = %02x \n",ulVal));
+    BDBG_MSG(("IF_CMD_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_INTR_STAT_1));
-    BDBG_MSG(("INTR_STAT_1 = %02x \n",ulVal));
+    BDBG_MSG(("INTR_STAT_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_INTR_STAT_2));
-    BDBG_MSG(("INTR_STAT_2 = %02x \n",ulVal));
+    BDBG_MSG(("INTR_STAT_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_INTR_EN_1));
-    BDBG_MSG(("INTR_EN_1 = %02x \n",ulVal));
+    BDBG_MSG(("INTR_EN_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_INTR_EN_2));
-    BDBG_MSG(("INTR_EN_2 = %02x \n",ulVal));
+    BDBG_MSG(("INTR_EN_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD));
-    BDBG_MSG(("CLK_CMD = %02x \n",ulVal));
+    BDBG_MSG(("CLK_CMD = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE));
-    BDBG_MSG(("PRESCALE = %02x \n",ulVal));
+    BDBG_MSG(("PRESCALE = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD));
-    BDBG_MSG(("TIMER_CMD = %02x \n",ulVal));
+    BDBG_MSG(("TIMER_CMD = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_BGT));
-    BDBG_MSG(("BGT = %02x \n",ulVal));
+    BDBG_MSG(("BGT = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CNT_1));
-    BDBG_MSG(("TIMER_CNT_1 = %02x \n",ulVal));
+    BDBG_MSG(("TIMER_CNT_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CNT_2));
-    BDBG_MSG(("TIMER_CNT_2 = %02x \n",ulVal));
+    BDBG_MSG(("TIMER_CNT_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMP_1));
-    BDBG_MSG(("TIMER_CMP_1 = %02x \n",ulVal));
+    BDBG_MSG(("TIMER_CMP_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMP_2));
-    BDBG_MSG(("TIMER_CMP_2 = %02x \n",ulVal));
+    BDBG_MSG(("TIMER_CMP_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_1));
-    BDBG_MSG(("SC_WAIT_1 = %02x \n",ulVal));
+    BDBG_MSG(("SC_WAIT_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_2));
-    BDBG_MSG(("SC_WAIT_2 = %02x \n",ulVal));
+    BDBG_MSG(("SC_WAIT_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_WAIT_3));
-    BDBG_MSG(("SC_WAIT_3 = %02x \n",ulVal));
+    BDBG_MSG(("SC_WAIT_3 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_TGUARD));
-    BDBG_MSG(("TGUARD = %02x \n",ulVal));
+    BDBG_MSG(("TGUARD = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_1));
-    BDBG_MSG(("BSCD_P_EVENT1_CMD_1 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT1_CMD_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_2));
-    BDBG_MSG(("BSCD_P_EVENT1_CMD_2 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT1_CMD_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_3));
-    BDBG_MSG(("BSCD_P_EVENT1_CMD_3 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT1_CMD_3 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMD_4));
-    BDBG_MSG(("BSCD_P_EVENT1_CMD_4 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT1_CMD_4 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT1_CMP));
-    BDBG_MSG(("BSCD_P_EVENT1_CMP = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT1_CMP = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_1));
-    BDBG_MSG(("BSCD_P_EVENT2_CMD_1 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT2_CMD_1 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_2));
-    BDBG_MSG(("BSCD_P_EVENT2_CMD_2 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT2_CMD_2 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_3));
-    BDBG_MSG(("BSCD_P_EVENT2_CMD_3 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT2_CMD_3 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMD_4));
-    BDBG_MSG(("BSCD_P_EVENT2_CMD_4 = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT2_CMD_4 = %02x ",ulVal));
 
     ulVal = BREG_Read32(
             in_channelHandle->moduleHandle->regHandle,
             (in_channelHandle->ulRegStartAddr + BSCD_P_EVENT2_CMP));
-    BDBG_MSG(("BSCD_P_EVENT2_CMP = %02x \n",ulVal));
+    BDBG_MSG(("BSCD_P_EVENT2_CMP = %02x ",ulVal));
 
     /*
     bcmDeviceRead(inp_device, eSize8, BCM_SC_TRANSMIT, (void *)&ulVal);
-    BDBG_MSG(("TRANSMIT = %02x \n",ulVal));
+    BDBG_MSG(("TRANSMIT = %02x ",ulVal));
     bcmDeviceRead(inp_device, eSize8, BCM_SC_RECEIVE, (void *)&ulVal);
-    BDBG_MSG(("RECEIVE = %02x \n",ulVal));
+    BDBG_MSG(("RECEIVE = %02x ",ulVal));
 
 
     bcmDeviceRead(inp_device, eSize8, BCM_SC_TLEN_1, (void *)&ulVal);
-    BDBG_MSG(("TLEN_1 = %02x \n",ulVal));
+    BDBG_MSG(("TLEN_1 = %02x ",ulVal));
     bcmDeviceRead(inp_device, eSize8, BCM_SC_TLEN_2, (void *)&ulVal);
-    BDBG_MSG(("TLEN_2 = %02x \n",ulVal));
+    BDBG_MSG(("TLEN_2 = %02x ",ulVal));
     bcmDeviceRead(inp_device, eSize8, BCM_SC_RLEN_1, (void *)&ulVal);
-    BDBG_MSG(("RLEN_1 = %02x \n",ulVal));
+    BDBG_MSG(("RLEN_1 = %02x ",ulVal));
     bcmDeviceRead(inp_device, eSize8, BCM_SC_RLEN_2, (void *)&ulVal);
-    BDBG_MSG(("RLEN_2 = %02x \n",ulVal));
+    BDBG_MSG(("RLEN_2 = %02x ",ulVal));
 
     */
 }

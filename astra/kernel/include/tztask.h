@@ -355,6 +355,7 @@ private:
     void createUContext();
     void destroyUContext();
     void printURegs();
+    void doCoreDump();
 
 public:
 

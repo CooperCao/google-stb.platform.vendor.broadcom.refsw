@@ -166,7 +166,8 @@ BXVD_SOURCES += \
 BXVD_SOURCES += \
 	$(MAGNUM)/portinginterface/xvd/src/bxvd_core_avd_reve0.c \
 	$(MAGNUM)/portinginterface/xvd/src/bxvd_core_avd_revk0.c \
-	$(MAGNUM)/portinginterface/xvd/src/bxvd_core_avd_revn0.c
+	$(MAGNUM)/portinginterface/xvd/src/bxvd_core_avd_revn0.c \
+	$(MAGNUM)/portinginterface/xvd/src/bxvd_core_avd_revt0.c
 
 #### Platform specific file(s) ####
 ifeq ($(BXVD_DM_VERSION),2)

@@ -275,12 +275,12 @@ static bool convert_async(
 
       // we sync the whole plane, though the address could be inside this plane
       gmem_v3d_sync_list_add_range(&completion_data->sync_list, src->handle,
-            src_plane_off, src->base.plane_sizes[p], GMEM_SYNC_CORE_READ | GMEM_SYNC_RELAXED);
+            src_plane_off, src->base.plane_sizes[p], GMEM_SYNC_TLB_IMAGE_READ | GMEM_SYNC_RELAXED);
    }
 
    size_t dst_plane_off = dst->offset + dst_off + dst->base.desc.planes[0].offset;
    gmem_v3d_sync_list_add_range(&completion_data->sync_list, dst->handle,
-      dst_plane_off, dst->base.plane_sizes[0], GMEM_SYNC_CORE_WRITE | GMEM_SYNC_RELAXED);
+      dst_plane_off, dst->base.plane_sizes[0], GMEM_SYNC_TLB_IMAGE_WRITE | GMEM_SYNC_RELAXED);
 
    *job_id = v3d_scheduler_submit_render_job(deps, &completion_data->sync_list,
                                              &render_info, conversion_completed, completion_data);

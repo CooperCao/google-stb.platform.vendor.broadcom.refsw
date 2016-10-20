@@ -1169,12 +1169,12 @@ highp float ldexp(highp float x, highp int e)
 {
    /* Deal with overflow, push e >= 128 down into range */
    if (e >= 128) {
-      const float _2exp127 = uintBitsToFloat(0x7F000000u);
+      const highp float _2exp127 = uintBitsToFloat(0x7F000000u);
       x *= _2exp127;
       e -= 127;
    }
 
-   float e_p = intBitsToFloat(max(e + 127, 0) << 23);
+   highp float e_p = intBitsToFloat(max(e + 127, 0) << 23);
    return x * e_p;
 }
 

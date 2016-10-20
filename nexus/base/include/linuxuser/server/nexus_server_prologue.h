@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2004-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *    Common part of all kernel drivers
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef _NEXUS_SERVER_PROLOGUE_H_
 #define _NEXUS_SERVER_PROLOGUE_H_
@@ -58,6 +50,8 @@
 #include "b_objdb.h"
 
 struct nexus_driver_callback_map;
+
+#define NEXUS_P_API_ID(module, api) NEXUS_P_API_##module##api##_id
 
 /*
 nexus_driver_client_state - one per client (including one for the server)
@@ -103,7 +97,7 @@ void nexus_driver_recv_addr_cached(void **paddr); /* inplace convert address fro
 
 /* nexus_driver_callbacks */
 void nexus_driver_callback_to_driver(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id, 
-    void *client, void *context);
+    const struct b_objdb_client *client, struct nexus_driver_slave_scheduler *context);
 void nexus_driver_callback_to_user(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
 void nexus_driver_callback_update(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *old_handle, unsigned id, void *new_handle);
 void nexus_driver_callback_to_driver_commit(struct nexus_driver_module_header *header, NEXUS_CallbackDesc *callback, void *handle, unsigned id);
@@ -116,6 +110,5 @@ struct nexus_p_server_process_output {
     void *data;
     unsigned size;
 };
-
 
 #endif /* _NEXUS_SERVER_PROLOGUE_H_ */

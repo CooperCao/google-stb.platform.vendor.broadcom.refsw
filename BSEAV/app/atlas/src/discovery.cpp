@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -124,6 +124,7 @@ CAutoDiscoveryServer::CAutoDiscoveryServer(
         _pIfInterfaceList = get_ifaddrs();
         /* every time same server starts enforce a fresh new beacon */
         srand(time(NULL));
+        /* coverity[secure_coding] */
         _beacon_version = rand();
     }
 }
@@ -199,17 +200,16 @@ void CAutoDiscoveryServer::close()
     }
 } /* close */
 
-
 void CAutoDiscoveryServer::timerCallback(void * pTimer)
 {
     BSTD_UNUSED(pTimer);
-    int beacon_size;
-    static int ifRefreshInterval =0;
-    const int minute = 15000;
+    int        beacon_size;
+    static int ifRefreshInterval = 0;
+    const int  minute            = 15000;
     ifRefreshInterval += _beaconIntervalMsec;
-    if(ifRefreshInterval > minute )
+    if (ifRefreshInterval > minute)
     {
-        ifRefreshInterval=0;
+        ifRefreshInterval = 0;
         updateIfAddrs();
     }
     /* _beacon_version++; */
@@ -231,10 +231,11 @@ void CAutoDiscoveryServer::timerCallback(void * pTimer)
         {
             beacon_size = sprintf(_beacon, "%s(%s) %u ", _server_name.s(), GET_STR(_pCfg, BOARD_NAME), _beacon_version);
         }
-#endif /* if 0 */
-        beacon_size = sprintf(_beacon, "%s(%s) %u ", _server_name.s(), GET_STR(_pCfg, BOARD_NAME), _beacon_version);
-        /* BDBG_WRN(("beacon %s, size %d",_beacon,beacon_size)); */
+#endif /* if 0 max size of _beacon is 50 */
+        beacon_size = snprintf(_beacon, 49, "%s(%s) %u ", _server_name.s(), GET_STR(_pCfg, BOARD_NAME), _beacon_version);
+        /*BDBG_MSG(("beacon %s, size %d",_beacon,beacon_size)); */
 
+        /* coverity[check_return] */
         BDBG_MSG(("sending beacon:%s from ip:"INET_ADDR_PRINTF_FMT, _beacon, INET_ADDR_PRINTF_ARG(pIfInterface->s_addr)));
         sendto(_beacon_fd, _beacon, beacon_size, 0, (struct sockaddr *) &_beacon_addr, sizeof(_beacon_addr));
     }
@@ -319,7 +320,8 @@ void CDiscoveredServer::httpClientFinishedCallback()
 
         while (index < _playlistBuffer.length())
         {
-            sscanf(_playlistBuffer.s()+ index, "%s", url);
+            /* coverity[secure_coding]*/
+            sscanf(_playlistBuffer.s()+ index, "%511s", url);
             pIpChannel = new CChannelBip(getWidgetEngine()->getCfg());
             if (!pIpChannel)
             {
@@ -328,7 +330,7 @@ void CDiscoveredServer::httpClientFinishedCallback()
             }
             pIpChannel->setUrl(url);
             /* discovered channels are not in the channel list so they can be stopped.
-               bip channels in the channel list cannot be stopped - user must tune away instead. */
+             * bip channels in the channel list cannot be stopped - user must tune away instead. */
             pIpChannel->setStopAllowed(true);
             BDBG_MSG(("adding channel:%s", url));
             addChannel(pIpChannel);
@@ -535,10 +537,14 @@ CDiscoveredServer::CDiscoveredServer(const CDiscoveredServer &server) :
     _strPort(server._strPort),
     _pModel(server._pModel),
     _socket(server._socket),
+    _hHttpClientThread(0),
+    _bShutdownHttpClientThread(false),
     _playlistBuffer(server._playlistBuffer),
     _playlistBufferMutex(NULL),
     _bAddedToDb(server._bAddedToDb)
 {
+    /* even though the Server is copied you still need to create
+     * another HTTP Client thread and Shutdown Client thread */
 }
 
 CDiscoveredServer::~CDiscoveredServer()
@@ -994,20 +1000,21 @@ void CAutoDiscoveryClient::removeServer(CDiscoveredServer * pDiscoveredServer)
 
 void CAutoDiscoveryClient::removeTimedOutServers(void)
 {
-    CDiscoveredServer * pServer = NULL;
+    CDiscoveredServer * pServer     = NULL;
+    CDiscoveredServer * pServerNext = NULL;
     time_t              timestamp;
 
     time(&timestamp);
 
-    for (pServer = _serverList.first(); pServer; pServer = _serverList.next())
+    for (pServer = _serverList.first(); pServer; pServer = pServerNext)
     {
+        pServerNext = _serverList.next();
         if ((timestamp- pServer->_timeStamp) > _beaconExpiryTimeout)
         {
             removeServer(pServer);
-            pServer = _serverList.prev();
         }
     }
-}
+} /* removeTimedOutServers */
 
 void CAutoDiscoveryClient::removeAllServers(void)
 {
@@ -1022,7 +1029,8 @@ void CAutoDiscoveryClient::removeAllServers(void)
 
 void CAutoDiscoveryClient::refreshDiscoveredServers(CDiscoveredServer * pDiscoveredServer)
 {
-    CDiscoveredServer * pServer = NULL;
+    CDiscoveredServer * pServer     = NULL;
+    CDiscoveredServer * pServerNext = NULL;
     time_t              timestamp;
     bool                bAddNewServer = true;
 
@@ -1033,8 +1041,9 @@ void CAutoDiscoveryClient::refreshDiscoveredServers(CDiscoveredServer * pDiscove
         return;
     }
 
-    for (pServer = _serverList.first(); pServer; pServer = _serverList.next())
+    for (pServer = _serverList.first(); pServer; pServer = pServerNext)
     {
+        pServerNext = _serverList.next();
         if (pServer->_s_addr == pDiscoveredServer->_s_addr)
         {
             if (pServer->_beaconVersion == pDiscoveredServer->_beaconVersion)
@@ -1047,7 +1056,6 @@ void CAutoDiscoveryClient::refreshDiscoveredServers(CDiscoveredServer * pDiscove
             {
                 /* beacon version changed, remove and add new server  */
                 removeServer(pServer);
-                pServer       = _serverList.prev();
                 bAddNewServer = true;
                 break;
             }
@@ -1077,7 +1085,8 @@ void CAutoDiscoveryClient::processServerBeacons(void)
     while (recvfrom(_beacon_fd, _message, sizeof(_message), 0, (struct sockaddr *)&addr, &addrlen) > 0)
     {
         time(&discoveredServer._timeStamp);
-        sscanf(_message, "%s %u", _serverName, &discoveredServer._beaconVersion);
+        /* coverity[secure_coding] */
+        sscanf(_message, "%49s %u", _serverName, &discoveredServer._beaconVersion);
         discoveredServer._s_addr = addr.sin_addr.s_addr;
         discoveredServer._serverName.strncpy((const char *)_serverName);
         /*

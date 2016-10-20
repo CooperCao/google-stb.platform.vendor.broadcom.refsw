@@ -299,13 +299,6 @@ static BERR_Code BINT_P_InitializeL2Register(BINT_P_L2Register *L2Reg, struct BI
     int L1Shift = BINT_MAP_GET_L1SHIFT(intMapEntry);
 
     BDBG_MSG(("L2: %d %#x(%#x) %s %s %s %s", L1Shift, intMapEntry->L2RegOffset, intMapEntry->L2InvalidMask, intMapEntry->L2Name, (intMapEntry->L1Shift & BINT_IS_STANDARD)==BINT_IS_STANDARD?"STANDARD":"",(intMapEntry->L1Shift & BINT_P_MAP_MISC_WEAK_MASK)==BINT_P_MAP_MISC_WEAK_MASK?"WEAK_MASK":"", (intMapEntry->L1Shift & BINT_P_MAP_MISC_L3_MASK)==BINT_P_MAP_MISC_L3_MASK?"L3":"" ));
-    if (intMapEntry->L2RegOffset & BCHP_INT_ID_ADDR_HOLE_MASK)
-    {
-        BDBG_ERR(("L2 register %s address == %#x, %#x & %#x != 0, it will break BCHP_INT_ID_GET_REG", intMapEntry->L2Name, (unsigned)intMapEntry->L2RegOffset, (unsigned)intMapEntry->L2RegOffset, BCHP_INT_ID_ADDR_HOLE_MASK));
-
-        /* BINT is not going to work, must re-design BCHP_INT_ID_CREATE / BCHP_INT_ID_GET_REG!!! */
-        BDBG_ASSERT(false);
-    }
     if(BINT_MAP_IS_EXTERNAL(intMapEntry)) { /* external interrupt */
         state->countExternal ++;
         return BERR_NOT_SUPPORTED; /* no trace here */
@@ -1134,7 +1127,6 @@ BERR_Code BINT_TriggerInterruptByHandle_isr( BINT_CallbackHandle cbHandle )
     return BERR_SUCCESS;
 }
 
-#if (BINT_NEW_INT_MODEL)
 void BINT_GetL1BitMask(BINT_Handle intHandle, uint32_t *BitMask)
 {
     int i;
@@ -1176,34 +1168,6 @@ void BINT_GetL1BitMask(BINT_Handle intHandle, uint32_t *BitMask)
         }
     }
 }
-#else
-void BINT_GetL1BitMask( BINT_Handle intHandle, uint32_t *pBitMaskLo, uint32_t *pBitMaskHi )
-{
-    int i;
-
-    BDBG_OBJECT_ASSERT(intHandle, BINT);
-
-    *pBitMaskLo = 0;
-    *pBitMaskHi = 0;
-
-    for(i=0; i<BINT_P_L1_SIZE; i++ ) {
-        const BINT_P_L2Register *L2Reg = BLST_S_FIRST(&intHandle->L1[i].L2RegList);
-        unsigned L1Shift;
-        if(L2Reg==NULL) {
-            continue;
-        }
-        L1Shift = L2Reg->intMapEntry.L1Shift;
-        if( L1Shift >= 32 )
-        {
-            *pBitMaskHi |= 1ul<<(L1Shift-32);
-        }
-        else
-        {
-            *pBitMaskLo |= 1ul<<L1Shift;
-        }
-    }
-}
-#endif
 
 BINT_CallbackHandle BINT_GetCallbackFirst( BINT_Handle intHandle )
 {
@@ -1405,7 +1369,7 @@ static uint32_t BINT_P_GetElapsedTime_isr( uint32_t ulTimerStart, uint32_t ulTim
     uint32_t ulTimerMax;
     uint32_t ulTimerElapsed;
 
-    ulTimerMax = BTMR_ReadTimerMax();
+    ulTimerMax = BTMR_ReadTimerMax_isrsafe();
 
     if (ulTimerEnd < ulTimerStart)
     {

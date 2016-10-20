@@ -159,7 +159,10 @@ BERR_Code BWFE_g3_Corr_P_StartCorrelator(BWFE_ChannelHandle h, uint32_t freqHz, 
    BERR_Code retCode = BERR_SUCCESS;
    
    hChn->corrFreqHz = freqHz;
-   
+
+   /* enable corr clock */
+   BWFE_P_OrRegister(h, BCHP_WFE_ANA_CLK_CTRL, 0x00000008);
+
    /* stop correlator */
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRCTL, 0x00000000);
    BWFE_P_ToggleBit(h, BCHP_WFE_CORE_CORRCTL, 0x00000001);  /* correlator clear */
@@ -348,8 +351,7 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
          if (bNegative)
             hChn->corrDelay[k] = -(hChn->corrDelay[k]);
 
-         /*BDBG_MSG(("AGC=%08X, DLY=0x%08X (%d)", hChn->corrAgc[k], hChn->corrDelay[k], hChn->corrDelay[k]));*/
-         BKNI_Printf("k%d: AGC=%08X, DLY=0x%08X (%d)\n", k, hChn->corrAgc[k], hChn->corrDelay[k], hChn->corrDelay[k]);
+         /*BDBG_MSG(("k%d: DLY=0x%08X (%d)\n", k, hChn->corrDelay[k], hChn->corrDelay[k]));*/
       }
    }
 
@@ -364,7 +366,7 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
          hChn->sliceDelay[0] -= hChn->corrDelay[k];
    }
    hChn->sliceDelay[0] >>= 3;
-   BKNI_Printf("slc delay=%d\n", hChn->sliceDelay[0]);
+   BWFE_DEBUG_CORR(BKNI_Printf("slc delay=%d\n", hChn->sliceDelay[0]));
 
    /* continue with next function */
    if (hChn->postCalcDelayFunct != NULL)
@@ -375,117 +377,222 @@ BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h)
 
 
 /******************************************************************************
- BWFE_g3_Corr_P_AccumulateOffset() - ISR context
+ BWFE_g3_Corr_P_CoarseAdjust() - ISR context
 ******************************************************************************/
-BERR_Code BWFE_g3_Corr_P_AccumulateOffset(BWFE_ChannelHandle h)
+BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h)
 {
-   /* BWFE_g3_P_Handle *hDev = h->pDevice->pImpl; */
+   BERR_Code retCode = BERR_SUCCESS;
    BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
    uint32_t P_hi, P_lo, Q_hi, Q_lo;
-   uint32_t avg_hi, avg_lo;
-   int32_t avg, offset, delay[BWFE_NUM_SLICES];
-   uint8_t k;
-   bool bNegative = false;
+   uint32_t absDelay;
 
-   avg_hi = avg_lo = 0;
+   BWFE_DEBUG_CORR(BKNI_Printf("BWFE_g3_Corr_P_CoarseAdjust: measDelay=%d\n", hChn->sliceDelay[0]));
 
-   /* calculate average delay */
-   for (k = 0; k < BWFE_NUM_SLICES; k++)
+   hChn->adjRight = 7;
+   hChn->adjLeft = 7;
+
+   /* meas_delay = (delay / 2^32 * pi) / Fs_adc * 1e12(ps) where Fs_adc=5022320000 */
+   /* rt = rt +/- abs(int(meas_delay/0.2))+1 */
+   /* lt = lt +/- abs(int(meas_delay/0.2))-1 */
+
+   /* remove sign */
+   if (hChn->sliceDelay[0] < 0)
+      absDelay = -hChn->sliceDelay[0];
+   else
+      absDelay = hChn->sliceDelay[0];
+
+   BMTH_HILO_32TO64_Mul(absDelay, 314159265 * 5, &P_hi, &P_lo);   /* pi * 1e8 / 0.2 */
+   BMTH_HILO_64TO64_Div32(P_hi, P_lo, 502232, &Q_hi, &Q_lo);      /* div by Fs_adc/10000 */
+   BMTH_HILO_64TO64_Add(Q_hi, Q_lo, 0, 2147483647, &Q_hi, &Q_lo); /* ceil(result) */
+   BWFE_DEBUG_CORR(BKNI_Printf("absDelay=%d -> Q=%08X %08X\n", absDelay, Q_hi, Q_lo));
+
+   if (hChn->sliceDelay[0] < 0)
    {
-      /* sign extension */
-      P_lo = hChn->corrDelay[k];
-      if (hChn->corrDelay[k] < 0)
-         P_hi = 0xFFFFFFFF;
-      else
-         P_hi = 0;
-
-      /* accumulate for average */
-      BMTH_HILO_64TO64_Add(avg_hi, avg_lo, P_hi, P_lo, &avg_hi, &avg_lo);
-   }
-
-   /* remove sign since 64-bit div is unsigned */
-   if ((int32_t)avg_hi < 0)
-   {
-      bNegative = true;
-      BMTH_HILO_64TO64_Neg(avg_hi, avg_lo, &avg_hi, &avg_lo);
+      hChn->adjRight = hChn->adjRight - Q_hi + 1;
+      hChn->adjLeft = hChn->adjLeft + Q_hi - 1;
    }
    else
-      bNegative = false;
-
-   /* divide to get average */
-   BMTH_HILO_64TO64_Div32(avg_hi, avg_lo, BWFE_NUM_SLICES, &Q_hi, &Q_lo);
-   avg = (int32_t)Q_lo;
-
-   /* recover sign for average */
-   if (bNegative)
-      avg = -avg;
-
-   for (k = 0; k < BWFE_NUM_SLICES; k++)
    {
-      offset = hChn->corrDelay[k] - avg;
-      if (offset < 0)
-      {
-         bNegative = true;
-         offset = -offset;
-      }
-      else
-         bNegative = false;
+      hChn->adjRight = hChn->adjRight + Q_hi;
+      hChn->adjLeft = hChn->adjLeft - Q_hi;
+   }
+   BWFE_DEBUG_CORR(BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft));
+   BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
 
-      /* offset = beta * (corrDelay - avg) / Fs_adc * 1.0e12 */
-      BMTH_HILO_32TO64_Mul(offset, hChn->corrDelayBeta * 1000000, &P_hi, &P_lo);  /* (corrDelay - avg) * 1.0e6 * beta(in 0.05 steps) */
-      BMTH_HILO_64TO64_Div32(P_hi, P_lo, (hChn->adcSampleFreqKhz / 1000) * 3, &Q_hi, &Q_lo);  /* div by Fs_adc in MHz, div by 0.15 */
-      delay[k] = (Q_hi << 5) | (Q_lo >> 27); /* undo cordic phase scaling, keep 4-bit frac delay */
-      if (bNegative)
-         delay[k] = -delay[k];
-
-      delay[k] += hChn->analogDelay[k];   /* accumulate offset to previous delay */
-      /*BKNI_Printf("{%08X} delay[%d]=%08X\n", hChn->analogDelay[k], k, delay[k]);*/
-
-      /* restrict delay to boundaries */
-      if (delay[k] > (80 << 4)) delay[k] = (80 << 4);
-      if (delay[k] < 0) delay[k] = 0;
-
-      /* store current delay for next iteration */
-      hChn->analogDelay[k] = delay[k];
+#if 0
+   /* re-measure delay */
+   BKNI_Sleep(100);
+   retCode = BWFE_CalibrateAnalogDelay(hWfeChannel[0]);
+   if (retCode)
+   {
+      BKNI_Printf("BWFE_CalibrateAnalogDelay() error 0x%X\n", retCode);
    }
 
-   /* analog delay compensation */
-   return BWFE_g3_Corr_P_CompensateDelay(h, (int32_t *)delay);
+   BKNI_Sleep(200);
+   BWFE_GetAnalogDelay(hWfeChannel[0], delay);
+   measDelay = (int32_t)delay[0];
+#else
+   /* re-measure delay */
+   BWFE_P_EnableDpmPilot(h);  /* enable DPM tone, disable DPM after delay calculations */
+   hChn->postCalcDelayFunct = BWFE_g3_Corr_P_FineAdjust;    /* fine adjustment after delay measurement */
+   BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
+#endif
+   return retCode;
 }
 
 
 /******************************************************************************
- BWFE_g3_Corr_P_CompensateDelay() - ISR context
+ BWFE_g3_Corr_P_FineAdjust() - ISR context
 ******************************************************************************/
-BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, int32_t *delay)
+BERR_Code BWFE_g3_Corr_P_FineAdjust(BWFE_ChannelHandle h)
 {
-#if (BCHP_CHIP==4538)
-   BERR_Code retCode = BERR_SUCCESS;
-   uint32_t val;
-   uint8_t k, delay_c[BWFE_NUM_SLICES], delay_f[BWFE_NUM_SLICES];
+   BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
 
-   for (k = 0; k < BWFE_NUM_SLICES; k++)
+   /* fine correction linear search */
+   hChn->calState = 0;
+   hChn->calCount = 1;
+   hChn->initDelay = hChn->sliceDelay[0];
+   return BWFE_g3_Corr_P_FineAdjust1(h);
+}
+
+
+/******************************************************************************
+ BWFE_g3_Corr_P_FineAdjust1() - ISR context
+******************************************************************************/
+BERR_Code BWFE_g3_Corr_P_FineAdjust1(BWFE_ChannelHandle h)
+{
+   BERR_Code retCode = BERR_SUCCESS;
+   BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
+
+   BWFE_DEBUG_CORR(BKNI_Printf("BWFE_g3_Corr_P_FineAdjust: measDelay=%d\n", hChn->sliceDelay[0]));
+
+   while (1)
    {
-      delay_c[k] = delay[k] >> 4;   /* extract coarse delay */
-      delay_f[k] = delay[k] & 0xF;  /* extract fine delay */
-      /*printf("delay_c=%d, delay_f=%d\n", delay_c[k], delay_f[k]);*/
+      /*BKNI_Printf("BWFE_g3_Corr_P_FineAdjust(): state=%d\n", hChn->calState);*/
+      switch (hChn->calState)
+      {
+         case 0:
+            if (hChn->initDelay > 0)
+            {
+               BWFE_DEBUG_CORR(BKNI_Printf("R loop...\n"));
+               if (hChn->calCount & 1)
+                  hChn->adjRight++; /* right */
+               else
+                  hChn->adjLeft--;  /* left */
+            }
+            else
+            {
+               BWFE_DEBUG_CORR(BKNI_Printf("L loop...\n"));
+               if (hChn->calCount & 1)
+                  hChn->adjRight--; /* right */
+               else
+                  hChn->adjLeft++;  /* left */
+            }
+
+            BWFE_DEBUG_CORR(BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft));
+            BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
+            hChn->calState = 1;
+            break;
+
+         case 1:
+            /* re-measure delay */
+            BWFE_P_EnableDpmPilot(h);  /* enable DPM tone, disable DPM after delay calculations */
+            hChn->calState = 2;
+            hChn->prevDelay = hChn->sliceDelay[0];
+            hChn->postCalcDelayFunct = BWFE_g3_Corr_P_FineAdjust1;    /* continue linear search after delay measurement */
+            return BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
+
+         case 2:
+            BWFE_DEBUG_CORR(BKNI_Printf("%d: measDelay=%d | prevDelay=%d\n", hChn->calCount, hChn->sliceDelay[0], hChn->prevDelay));
+
+            if ((hChn->prevDelay > 0) && (hChn->sliceDelay[0] < 0))
+            {
+               if (BWFE_ABS(hChn->sliceDelay[0]) < BWFE_ABS(hChn->prevDelay))
+               {
+                  /* exit if measDelay switched signs and is less than prevDelay */
+                  BWFE_DEBUG_CORR(BKNI_Printf("exit R loop\n"));
+               }
+               else
+               {
+                  /* revert linear adjustments */
+                  BWFE_DEBUG_CORR(BKNI_Printf("revert to prev R\n"));
+                  hChn->sliceDelay[0] = hChn->prevDelay;
+                  if (hChn->calCount & 1)
+                     hChn->adjRight--; /* right */
+                  else
+                     hChn->adjLeft++;  /* left */
+                  BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
+               }
+               hChn->calState = 3;
+            }
+            else if ((hChn->prevDelay < 0) && (hChn->sliceDelay[0] > 0))
+            {
+               if (BWFE_ABS(hChn->sliceDelay[0]) < BWFE_ABS(hChn->prevDelay))
+               {
+                  /* exit if measDelay switched signs and is less than prevDelay */
+                  BWFE_DEBUG_CORR(BKNI_Printf("exit L loop\n"));
+               }
+               else
+               {
+                  /* revert linear adjustments */
+                  BWFE_DEBUG_CORR(BKNI_Printf("revert to prev L\n"));
+                  hChn->sliceDelay[0] = hChn->prevDelay;
+                  if (hChn->calCount & 1)
+                     hChn->adjRight++; /* right */
+                  else
+                     hChn->adjLeft--;  /* left */
+                  BWFE_g3_Corr_P_CompensateDelay(h, hChn->adjRight, hChn->adjLeft);
+               }
+               hChn->calState = 3;
+            }
+            else
+            {
+               hChn->calCount++;
+               if (hChn->calCount < 16)
+                  hChn->calState = 0;
+               else
+                  hChn->calState = 3;
+            }
+            break;
+
+         case 3:
+            /* finished linear search */
+            BKNI_Printf("rt=%d/lt=%d\n", hChn->adjRight, hChn->adjLeft);
+            BKNI_Printf("FINAL measDelay=%d\n", hChn->sliceDelay[0]);
+            BKNI_SetEvent(hChn->hDelayCalDone);
+            return retCode;
+
+         default:
+            BDBG_ERR(("invalid state"));
+            BERR_TRACE(retCode = BERR_UNKNOWN);
+            break;
+      }
    }
 
-   /* set analog delays */
-   val = (delay_c[3] << 24) | (delay_c[2] << 16) | (delay_c[1] << 8) | delay_c[0];
-   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_WBADC_TIMING_CNTL_IN, val);     /* coarse delays */
-   val = (delay_f[3] << 24) | (delay_f[2] << 16) | (delay_f[1] << 8) | delay_f[0];
-   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_WBADC_TIMING_CNTL1_IN, val);    /* fine delays */
+   return retCode;
+}
 
-   BWFE_P_ToggleBit(h, BCHP_WFE_ANA_WBADC_TIMING_CNTL_IN, 0x80808080);  /* latch in delays */
-   BWFE_P_ToggleBit(h, BCHP_WFE_ANA_WBADC_TIMING_CNTL1_IN, 0x80808080); /* latch in fine delays */
+
+/******************************************************************************
+ BWFE_g3_Corr_P_CompensateDelay()
+******************************************************************************/
+BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t adjRight, uint32_t adjLeft)
+{
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t val;
+
+   /* cap adjustments */
+   if (adjRight > 15)
+      adjRight = 15;
+   if (adjLeft > 15)
+      adjLeft = 15;
+
+   /* override coarse-fine timing */
+   val = (adjLeft << 12) | (adjLeft << 8) | (adjLeft << 4) | adjLeft;   /* S0 left adjust */
+   val |= (adjRight << 28) | (adjRight << 24) | (adjRight << 20) | (adjRight << 16);   /* S1 right adjust */
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL10, val);
 
    return retCode;
-#else
-   BSTD_UNUSED(h);
-   BSTD_UNUSED(delay);
-   return BERR_NOT_SUPPORTED;
-#endif
 }
 #endif
 

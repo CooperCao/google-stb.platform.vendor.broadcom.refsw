@@ -739,7 +739,11 @@ char *wl_rate_print(
                             printf( "%s:\n\n\n", __FUNCTION__ );
                         }
 
-                        Bsysperf_Free( (char*) pData );
+                        {
+                            char *temp = (char*) pData;
+                            Bsysperf_Free( temp );
+                            pData = NULL;
+                        }
                     }
                 }
             }
@@ -1225,7 +1229,11 @@ int Bsysperf_WifiAmpdu_GetReport(
                 memset( percentages, 0, sizeof( percentages ));
                 pos = Bsysperf_WifiAmpdu_ParseVht( pos, "RX VHT SGI:", values, percentages, tempFilename );
 
-                Bsysperf_Free( (char*) ampdu );
+                {
+                    char *temp = (char*) ampdu;
+                    Bsysperf_Free( temp );
+                    ampdu = NULL;
+                }
             }
         }
         Bsysperf_WifiUninit();
@@ -1390,7 +1398,12 @@ RX VHT SGI 1x1	0			RX VHT SGI 1x1 %	0
 
             pos = eol;
         } while (pos);
-        Bsysperf_Free( (char*) contents );
+
+        {
+            char *temp = (char*) contents;
+            Bsysperf_Free( temp );
+            contents = NULL;
+        }
     }
 
     /*Bsysperf_WifiPrintAntennas( pAmpduData->antennas );*/
@@ -1579,7 +1592,11 @@ int Bsysperf_WifiGetRssiAnt(
 
                 memcpy(pRssiAnt, rssi_ant_p, sizeof(*pRssiAnt) );
 
-                Bsysperf_Free( (char*) rssi_ant_p );
+                {
+                    char *temp = (char*) rssi_ant_p;
+                    Bsysperf_Free( temp );
+                    rssi_ant_p = NULL;
+                }
             }
         }
         Bsysperf_WifiUninit();

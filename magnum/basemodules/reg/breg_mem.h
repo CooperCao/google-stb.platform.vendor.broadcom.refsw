@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2003-2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2003-2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,6 +64,8 @@ typedef struct BREG_OpenSettings {
     void *callbackContext;
     bool (*isRegisterAtomic_isrsafe)(void *, uint32_t reg); /* this function called to verify that proper function used to access atomic registers */
     void (*systemUpdate32_isrsafe)(void *, uint32_t reg, uint32_t mask, uint32_t value, bool atomic); /* this function called for each BREG_AtomicUpdate32 or BREG_Update32 call*/
+    void (*runSerialized_isrsafe)(void *, void (*action)(BREG_Handle, void *), void *action_context);  /* this function called to execute 'action' serialized with any other calls to the same function */
+    unsigned msatChannel; /* static HIF_MSAT channel used for serialized accesses */
 } BREG_OpenSettings;
 
 void BREG_GetDefaultOpenSettings(
@@ -101,6 +103,37 @@ void BREG_Close(
                            BREG_Handle RegHandle /* Register handle created by BREG_CreateRegHandle() */
                            );
 
+/*
+Summary:
+This function writes 64 bits to a 64-bit register.
+
+Description:
+Although this function will never return an error it will assert if the
+RegHandle is invalid or during a debug build if the reg offset is larger
+than the MaxRegOffset specified in the BREG_CreateRegHandle function.
+*/
+void BREG_Write64_isrsafe(
+                  BREG_Handle RegHandle, /* Register handle created by BREG_CreateRegHandle() */
+                  uint32_t reg, /* Register offset to write */
+                  uint64_t data /* Data value to write to register */
+                  );
+
+/*
+Summary:
+This function reads 64 bits from a register.
+
+Description:
+Although this function cannot return an error it will assert if the
+RegHandle is invalid or during a debug build if the reg offset is larger
+than the MaxRegOffset specified in the BREG_CreateRegHandle function.
+*/
+uint64_t BREG_Read64_isrsafe(
+                 BREG_Handle RegHandle, /* Register handle created by BREG_CreateRegHandle() */
+                 uint32_t reg /* Register offset to read */
+                 );
+
+#define BREG_Write64(handle, reg, data) BREG_Write64_isrsafe(handle, reg, data)
+#define BREG_Read64(handle, reg) BREG_Read64_isrsafe(handle, reg)
 
 #if BDBG_DEBUG_BUILD != 1
 
@@ -113,7 +146,7 @@ Summary:
 This function writes 32 bits to a register.
 
 Description:
-Although this fuction will never return an error it will assert if the
+Although this function will never return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -128,7 +161,7 @@ Summary:
 This function writes 16 bits to a register.
 
 Description:
-Although this fuction will never return an error it will assert if the
+Although this function will never return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -143,7 +176,7 @@ Summary:
 This function writes 8 bits to a register.
 
 Description:
-Although this fuction will never return an error it will assert if the
+Although this function will never return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -158,7 +191,7 @@ Summary:
 This function reads 32 bits from a register.
 
 Description:
-Although this fuction cannot return an error it will assert if the
+Although this function cannot return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -172,7 +205,7 @@ Summary:
 This function reads 16 bits from a register.
 
 Description:
-Although this fuction cannot return an error it will assert if the
+Although this function cannot return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -186,7 +219,7 @@ Summary:
 This function reads 8 bits from a register.
 
 Description:
-Although this fuction cannot return an error it will assert if the
+Although this function cannot return an error it will assert if the
 RegHandle is invalid or during a debug build if the reg offset is larger
 than the MaxRegOffset specified in the BREG_CreateRegHandle function.
 */
@@ -356,6 +389,30 @@ Summary:
 This function reads 32 bits from a register.  Used for _isr context.
 */
 #define BREG_Read32_isr BREG_Read32
+
+/*
+Summary:
+This function writes device offset
+*/
+#define BREG_WriteAddr_isrsafe BREG_Write64_isrsafe
+
+/*
+Summary:
+This function writes device offset
+*/
+#define BREG_ReadAddr_isrsafe BREG_Read64_isrsafe
+
+/*
+Summary:
+This function writes device offset
+*/
+#define BREG_WriteAddr BREG_Write64
+
+/*
+Summary:
+This function writes device offset
+*/
+#define BREG_ReadAddr BREG_Read64
 
 /* Internal representation of the BREG handle */
 BDBG_OBJECT_ID_DECLARE(BREG);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -119,18 +119,18 @@
 #define SPLASH_NUM_MEM        1
 
 /* heap for RUL bufs */
-#define SPLASH_RUL_MEM        0   /* idx to BMEM_Handle array */
+#define SPLASH_RUL_MEM        0   /* idx to BMMA_Handle array */
 
 /* number of surface */
 #define SPLASH_NUM_SURFACE    2
 
 /* surface 0 info */
-#define SPLASH_SURF0_MEM      0   /* idx to BMEM_Handle array */
+#define SPLASH_SURF0_MEM      0   /* idx to BMMA_Handle array */
 #define SPLASH_SURF0_PXL_FMT  BPXL_eR5_G6_B5
 #define SPLASH_SURF0_BMP      "splash.bmp"
 
 /* surface 1 info */
-#define SPLASH_SURF1_MEM      0   /* idx to BMEM_Handle array */
+#define SPLASH_SURF1_MEM      0   /* idx to BMMA_Handle array */
 #define SPLASH_SURF1_PXL_FMT  BPXL_eR5_G6_B5
 #define SPLASH_SURF1_BMP      "splash.bmp"
 

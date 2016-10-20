@@ -53,6 +53,12 @@ void NEXUS_Message_GetDefaultSettings(NEXUS_MessageSettings *pSettings)
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->bufferSize = 4 * 1024;
     pSettings->maxContiguousMessageSize = 4 * 1024;
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
+    NEXUS_CallbackDesc_Init(&pSettings->overflow);
+    NEXUS_CallbackDesc_Init(&pSettings->psiLengthError);
+    NEXUS_CallbackDesc_Init(&pSettings->crcError);
+    NEXUS_CallbackDesc_Init(&pSettings->pesLengthError);
+    NEXUS_CallbackDesc_Init(&pSettings->pesStartCodeError);
 }
 
 static void NEXUS_message_p_dataready_callback_isr(void *data, int unused)

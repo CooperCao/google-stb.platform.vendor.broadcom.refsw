@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2009-2015 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
 # Module Description:
-#
-# Revision History:
-#
-# $brcm_Log: $
 #
 #############################################################################
 
@@ -59,7 +51,12 @@ ifndef NEXUS_TOP
 endif
 
 # Identify object directory
+ifeq ($(DTCP_IP_SUPPORT),y)
 B_DTCP_IP_LIB_OUTPUT_NAME := b_dtcp_ip
+else
+B_DTCP_IP_LIB_OUTPUT_NAME := b_dtcp_ip_stubs
+endif
+
 B_REFSW_OBJ_DIR ?= obj.${NEXUS_PLATFORM}
 B_REFSW_OBJ_ROOT ?= ${NEXUS_TOP}/../${B_REFSW_OBJ_DIR}
 B_DTCP_IP_LIB_OBJ_DIR := ${B_REFSW_OBJ_ROOT}/nexus/lib/$(B_DTCP_IP_LIB_OUTPUT_NAME)
@@ -213,4 +210,11 @@ B_DTCP_IP_LIB_PUBLIC_INCLUDES += $(B_LIB_TOP)/../../nexus/modules/security/$(BCH
 endif
 
 B_DTCP_IP_LIB_CFLAGS += $(addprefix -I,$(B_DTCP_IP_LIB_PUBLIC_INCLUDES)) $(addprefix -D,$(B_DTCP_IP_LIB_DEFINES))
-B_DTCP_IP_LIB_LDFLAGS += -L$(B_DTCP_IP_LIB_OBJ_DIR)  -l$(B_DTCP_IP_LIB_OUTPUT_NAME)
+
+ifeq ($(DTCP_IP_SUPPORT),y)
+B_DTCP_IP_LIB_LDFLAGS += -L$(B_DTCP_IP_LIB_OBJ_DIR) -l$(B_DTCP_IP_LIB_OUTPUT_NAME)
+else
+# Build DTCP/IP library as a static library when app is not using real DTCP/IP library.
+# This avoids .so file cluttering.
+B_DTCP_IP_LIB_LDFLAGS += $(B_DTCP_IP_LIB_OBJ_DIR)/lib$(B_DTCP_IP_LIB_OUTPUT_NAME).a
+endif

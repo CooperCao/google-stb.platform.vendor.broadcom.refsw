@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -189,6 +189,8 @@ BAVC_AudioCompressionStd NEXUS_P_AudioCodec_ToMagnum(NEXUS_AudioCodec codec)
         return BAVC_AudioCompressionStd_eOpus;
     case NEXUS_AudioCodec_eAls:
         return BAVC_AudioCompressionStd_eAls;
+    case NEXUS_AudioCodec_eAlsLoas:
+        return BAVC_AudioCompressionStd_eAlsLoas;
     case NEXUS_AudioCodec_eAc4:
         return BAVC_AudioCompressionStd_eAc4;
     default:
@@ -273,6 +275,8 @@ NEXUS_AudioCodec NEXUS_P_AudioCodec_FromMagnum(BAVC_AudioCompressionStd std)
         return NEXUS_AudioCodec_eOpus;
     case BAVC_AudioCompressionStd_eAls:
         return NEXUS_AudioCodec_eAls;
+    case BAVC_AudioCompressionStd_eAlsLoas:
+        return NEXUS_AudioCodec_eAlsLoas;
     case BAVC_AudioCompressionStd_eAc4:
         return NEXUS_AudioCodec_eAc4;
     default:

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bpwm.h"
 #include "bchp.h"
@@ -75,7 +92,7 @@ typedef struct BPWM_P_ChannelHandle
 	uint32_t            magicId;                    /* Used to check if structure is corrupt */
 	BPWM_Handle         hPwm;
 	uint32_t            chnNo;
-    uint32_t        	coreOffset;					/* added to support multiple PWM cores */
+    uint32_t            coreOffset;                 /* added to support multiple PWM cores */
 	BPWM_ChannelSettings settings;
 	struct {
 		unsigned OnInterval;
@@ -153,7 +170,7 @@ BERR_Code BPWM_Open(
 	{
 		*pPwm = NULL;
 		retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		BDBG_ERR(("BPWM_Open: BKNI_malloc() failed\n"));
+		BDBG_ERR(("BPWM_Open: BKNI_malloc() failed"));
 		goto done;
 	}
 	BKNI_Memset(hDev, 0, sizeof(*hDev));
@@ -269,7 +286,7 @@ BERR_Code BPWM_OpenChannel(
 			{
 				*phChn = NULL;
 				retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-				BDBG_ERR(("BPWM_OpenChannel: BKNI_malloc() failed\n"));
+				BDBG_ERR(("BPWM_OpenChannel: BKNI_malloc() failed"));
 				goto done;
 			}
 
@@ -852,7 +869,7 @@ BERR_Code BPWM_GetOpenDrainConfig
 }
 
 #if ((BCHP_CHIP==35230) || (BCHP_CHIP==35125) || (BCHP_CHIP==35233))
-BERR_Code BPWM_SetControlWordSet1 
+BERR_Code BPWM_SetControlWordSet1
 (
 	BPWM_ChannelHandle  hChn,           /* [in] Device channel handle */
 	uint16_t            cWord           /* [in] control word to program for register set 1 */
@@ -878,7 +895,7 @@ BERR_Code BPWM_SetControlWordSet1
 	return( retCode );
 }
 
-BERR_Code BPWM_GetControlWordSet1 
+BERR_Code BPWM_GetControlWordSet1
 (
 	BPWM_ChannelHandle  hChn,           /* [in] Device channel handle */
 	uint16_t            *cWord          /* [out] control word to program for register set 1 */
@@ -908,7 +925,7 @@ BERR_Code BPWM_GetControlWordSet1
 
 BERR_Code BPWM_SetOnAndPeriodIntervalSet1
 (
-	BPWM_ChannelHandle  hChn,           	/* [in] Device channel handle */
+	BPWM_ChannelHandle  hChn,               /* [in] Device channel handle */
 	uint16_t            OnInterval,         /* [in] OnInterval  to program */
 	uint16_t            PeriodInterval      /* [in] Period Interval  to program */
 )
@@ -922,7 +939,7 @@ BERR_Code BPWM_SetOnAndPeriodIntervalSet1
 
 	hDev = hChn->hPwm;
 
-	lval = (((uint32_t)(PeriodInterval)) << BCHP_PWM_PWM1_RSET1_R1_period_SHIFT) | 
+	lval = (((uint32_t)(PeriodInterval)) << BCHP_PWM_PWM1_RSET1_R1_period_SHIFT) |
 			((uint32_t)(OnInterval));
 	if (EVEN_CHANNEL(hChn->chnNo))
 	{
@@ -938,7 +955,7 @@ BERR_Code BPWM_SetOnAndPeriodIntervalSet1
 
 BERR_Code BPWM_GetOnAndPeriodIntervalSet1
 (
-	BPWM_ChannelHandle  hChn,           	/* [in] Device channel handle */
+	BPWM_ChannelHandle  hChn,               /* [in] Device channel handle */
 	uint16_t            *OnInterval,        /* [out] OnInterval  to program */
 	uint16_t            *PeriodInterval     /* [out] Period Interval  to program */
 )
@@ -1064,7 +1081,7 @@ BERR_Code BPWM_GetDblBufMode
 	}
 	else
 	{
-		*dblBufMode = (BPWM_DblBufMode)((lval & BCHP_PWM_CTRL3_pwm2_dbl_buf_mode_MASK) >> 
+		*dblBufMode = (BPWM_DblBufMode)((lval & BCHP_PWM_CTRL3_pwm2_dbl_buf_mode_MASK) >>
 											BCHP_PWM_CTRL3_pwm2_dbl_buf_mode_SHIFT);
 	}
 
@@ -1138,7 +1155,7 @@ BERR_Code BPWM_GetSyncEdge
 	{
 		lval &= BCHP_PWM_CTRL2_pwm2_sync_edge_sel_MASK;
 	}
-	
+
 	*SyncEdgeSel = ((lval == 0) ? SyncEdgeNeg : SyncEdgePos);
 
 	return (retCode);
@@ -1284,7 +1301,7 @@ BERR_Code BPWM_GetOutputPolarity
 	{
 		lval &= BCHP_PWM_CTRL2_pwm2_out_polarity_MASK;
 	}
-	
+
 	*OutPolSel = ((lval == 0) ? OutPolarityHigh : OutPolarityLow);
 
 	return (retCode);

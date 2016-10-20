@@ -186,6 +186,7 @@ eRet CSurfaceClient::setBlend(
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SurfaceCompositorClientSettings settingsClientSurface;
 
     NEXUS_SurfaceCompositor_GetClientSettings(_surfaceCompositor, _surfaceClient, &settingsClientSurface);
@@ -209,6 +210,7 @@ eRet CSurfaceClient::setZOrder(uint16_t zOrder)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
+    /* coverity[stack_use_local_overflow] */
     NEXUS_SurfaceCompositorClientSettings settingsClientSurface;
 
     NEXUS_SurfaceCompositor_GetClientSettings(_surfaceCompositor, _surfaceClient, &settingsClientSurface);
@@ -437,137 +439,142 @@ eRet CGraphics::initGraphics(
     NEXUS_SurfaceCreateSettings  surfaceSettings;
     NEXUS_Graphics2DFillSettings fillSettings;
 
-    BDBG_ASSERT(NULL != _pDisplayPrimary);
     BDBG_ASSERT(NULL != _pModel);
 
-    _blitter = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
-
-    _checkpointEvent = B_Event_Create(NULL);
-    CHECK_PTR_ERROR_GOTO("graphics checkpoint event create failed", _checkpointEvent, ret, eRet_ExternalError, error);
-    _inactiveEvent = B_Event_Create(NULL);
-    CHECK_PTR_ERROR_GOTO("graphics inactive event create failed", _inactiveEvent, ret, eRet_ExternalError, error);
-
-    NEXUS_Graphics2D_GetSettings(_blitter, &graphicsSettings);
-    graphicsSettings.checkpointCallback.callback = setEventCallback;
-    graphicsSettings.checkpointCallback.context  = _checkpointEvent;
-    nerror = NEXUS_Graphics2D_SetSettings(_blitter, &graphicsSettings);
-    CHECK_NEXUS_ERROR_GOTO("unable to set graphics2D settings", ret, nerror, error);
-
+    /* headless box modes will not have any available displays, so we
+     * will not open any graphics.  note that we will still need bwin
+     * to handle notifications and the main loop! */
+    if ((NULL != getDisplay(0)) || (NULL != getDisplay(1)))
     {
-        MRect rectMaxGraphicsHD = _pDisplayPrimary->getMaxGraphicsGeometry();
+        _blitter = NEXUS_Graphics2D_Open(NEXUS_ANY_ID, NULL);
 
-        if (rectMaxGraphicsHD.width() < width)
+        _checkpointEvent = B_Event_Create(NULL);
+        CHECK_PTR_ERROR_GOTO("graphics checkpoint event create failed", _checkpointEvent, ret, eRet_ExternalError, error);
+        _inactiveEvent = B_Event_Create(NULL);
+        CHECK_PTR_ERROR_GOTO("graphics inactive event create failed", _inactiveEvent, ret, eRet_ExternalError, error);
+
+        NEXUS_Graphics2D_GetSettings(_blitter, &graphicsSettings);
+        graphicsSettings.checkpointCallback.callback = setEventCallback;
+        graphicsSettings.checkpointCallback.context  = _checkpointEvent;
+        nerror = NEXUS_Graphics2D_SetSettings(_blitter, &graphicsSettings);
+        CHECK_NEXUS_ERROR_GOTO("unable to set graphics2D settings", ret, nerror, error);
+
         {
-            /* use nexus reported max graphics size instead of given size */
-            width  = rectMaxGraphicsHD.width();
-            height = rectMaxGraphicsHD.height();
-            BDBG_WRN(("Nexus reported max graphics size differs from given size.  Using width:%d height:%d", width, height));
+            MRect rectMaxGraphicsHD = _pDisplayPrimary->getMaxGraphicsGeometry();
+
+            if (rectMaxGraphicsHD.width() < width)
+            {
+                /* use nexus reported max graphics size instead of given size */
+                width  = rectMaxGraphicsHD.width();
+                height = rectMaxGraphicsHD.height();
+                BDBG_WRN(("Nexus reported max graphics size differs from given size.  Using width:%d height:%d", width, height));
+            }
         }
-    }
 
-    /* create framebuffer surface for main atlas */
-    NEXUS_Surface_GetDefaultCreateSettings(&surfaceSettings);
-    surfaceSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
-    surfaceSettings.width       = width;
-    surfaceSettings.height      = height;
-    /* surfaceSettings.heap        = NEXUS_Platform_GetFramebufferHeap(0); */
-    _surface = NEXUS_Surface_Create(&surfaceSettings);
-    BDBG_MSG(("Creating _surface w=%d h=%d", surfaceSettings.width, surfaceSettings.height));
-    CHECK_PTR_ERROR_GOTO("surface create for desktopClient failed.", _surface, ret, eRet_ExternalError, error);
+        /* create framebuffer surface for main atlas */
+        NEXUS_Surface_GetDefaultCreateSettings(&surfaceSettings);
+        surfaceSettings.pixelFormat = NEXUS_PixelFormat_eA8_R8_G8_B8;
+        surfaceSettings.width       = width;
+        surfaceSettings.height      = height;
+        /* surfaceSettings.heap        = NEXUS_Platform_GetFramebufferHeap(0); */
+        _surface = NEXUS_Surface_Create(&surfaceSettings);
+        BDBG_MSG(("Creating _surface w=%d h=%d", surfaceSettings.width, surfaceSettings.height));
+        CHECK_PTR_ERROR_GOTO("surface create for desktopClient failed.", _surface, ret, eRet_ExternalError, error);
 
-    /* fill main atlas surface with transparent */
-    NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
-    fillSettings.surface = _surface;
-    fillSettings.color   = 0x0; /* set default to transparent for video window to show through */
-    nerror               = NEXUS_Graphics2D_Fill(_blitter, &fillSettings);
-    CHECK_NEXUS_ERROR_GOTO("graphics fill for _surface error", ret, nerror, error);
+        /* fill main atlas surface with transparent */
+        NEXUS_Graphics2D_GetDefaultFillSettings(&fillSettings);
+        fillSettings.surface = _surface;
+        fillSettings.color   = 0x0; /* set default to transparent for video window to show through */
+        nerror               = NEXUS_Graphics2D_Fill(_blitter, &fillSettings);
+        CHECK_NEXUS_ERROR_GOTO("graphics fill for _surface error", ret, nerror, error);
 
-    graphicsCheckpoint();
+        graphicsCheckpoint();
 
-    /* create surface compositor */
-    {
-        NEXUS_SurfaceCompositorSettings settings;
-
-        _surfaceCompositor = NEXUS_SurfaceCompositor_Create(0);
-        NEXUS_SurfaceCompositor_GetSettings(_surfaceCompositor, &settings);
-        settings.inactiveCallback.callback = setEventCallback;
-        settings.inactiveCallback.context  = _inactiveEvent;
-
-        MRect rectMaxGraphicsHD = _pDisplayPrimary->getMaxGraphicsGeometry();
-
-        NEXUS_Display_GetGraphicsSettings(_pDisplayPrimary->getDisplay(), &settings.display[0].graphicsSettings);
-        settings.display[0].graphicsSettings.enabled    = true;
-        settings.display[0].display                     = _pDisplayPrimary->getDisplay();
-        settings.display[0].framebuffer.number          = 2;
-        settings.display[0].framebuffer.width           = rectMaxGraphicsHD.width();
-        settings.display[0].framebuffer.height          = rectMaxGraphicsHD.height();
-        settings.display[0].framebuffer.backgroundColor = 0x0; /* transparent background for video window to show through*/
-        settings.display[0].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(0);
-        BDBG_WRN(("HD framebuffer w:%d h:%d", settings.display[0].framebuffer.width, settings.display[0].framebuffer.height));
-
-        if (NULL != _pDisplaySecondary)
+        /* create surface compositor */
         {
-            MRect rectMaxGraphicsSD = _pDisplaySecondary->getMaxGraphicsGeometry();
+            NEXUS_SurfaceCompositorSettings settings;
 
-            NEXUS_Display_GetGraphicsSettings(_pDisplaySecondary->getDisplay(), &settings.display[1].graphicsSettings);
-            settings.display[1].graphicsSettings.enabled    = true;
-            settings.display[1].display                     = _pDisplaySecondary->getDisplay();
-            settings.display[1].framebuffer.number          = 2;
-            settings.display[1].framebuffer.width           = rectMaxGraphicsSD.width();
-            settings.display[1].framebuffer.height          = rectMaxGraphicsSD.height();
-            settings.display[1].framebuffer.backgroundColor = 0x0; /*transparent background for video window to show through*/
-            settings.display[1].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(1);
-            BDBG_WRN(("SD framebuffer w:%d h:%d", settings.display[1].framebuffer.width, settings.display[1].framebuffer.height));
+            _surfaceCompositor = NEXUS_SurfaceCompositor_Create(0);
+            NEXUS_SurfaceCompositor_GetSettings(_surfaceCompositor, &settings);
+            settings.inactiveCallback.callback = setEventCallback;
+            settings.inactiveCallback.context  = _inactiveEvent;
+
+            MRect rectMaxGraphicsHD = _pDisplayPrimary->getMaxGraphicsGeometry();
+
+            NEXUS_Display_GetGraphicsSettings(_pDisplayPrimary->getDisplay(), &settings.display[0].graphicsSettings);
+            settings.display[0].graphicsSettings.enabled    = true;
+            settings.display[0].display                     = _pDisplayPrimary->getDisplay();
+            settings.display[0].framebuffer.number          = 2;
+            settings.display[0].framebuffer.width           = rectMaxGraphicsHD.width();
+            settings.display[0].framebuffer.height          = rectMaxGraphicsHD.height();
+            settings.display[0].framebuffer.backgroundColor = 0x0; /* transparent background for video window to show through*/
+            settings.display[0].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(0);
+            BDBG_WRN(("HD framebuffer w:%d h:%d", settings.display[0].framebuffer.width, settings.display[0].framebuffer.height));
+
+            if (NULL != _pDisplaySecondary)
+            {
+                MRect rectMaxGraphicsSD = _pDisplaySecondary->getMaxGraphicsGeometry();
+
+                NEXUS_Display_GetGraphicsSettings(_pDisplaySecondary->getDisplay(), &settings.display[1].graphicsSettings);
+                settings.display[1].graphicsSettings.enabled    = true;
+                settings.display[1].display                     = _pDisplaySecondary->getDisplay();
+                settings.display[1].framebuffer.number          = 2;
+                settings.display[1].framebuffer.width           = rectMaxGraphicsSD.width();
+                settings.display[1].framebuffer.height          = rectMaxGraphicsSD.height();
+                settings.display[1].framebuffer.backgroundColor = 0x0; /*transparent background for video window to show through*/
+                settings.display[1].framebuffer.heap            = NEXUS_Platform_GetFramebufferHeap(1);
+                BDBG_WRN(("SD framebuffer w:%d h:%d", settings.display[1].framebuffer.width, settings.display[1].framebuffer.height));
+            }
+
+            /*
+             * settings.frameBufferCallback.callback = framebuffer_callback;
+             * settings.frameBufferCallback.context  = _surfaceCompositor;
+             */
+            nerror = NEXUS_SurfaceCompositor_SetSettings(_surfaceCompositor, &settings);
+            CHECK_NEXUS_ERROR_GOTO("surface compositor set settings error", ret, nerror, error);
         }
 
         /*
-         * settings.frameBufferCallback.callback = framebuffer_callback;
-         * settings.frameBufferCallback.context  = _surfaceCompositor;
+         * create desktopClient - atlas is a surface server but also draws like a client
+         *      default settings make it fullscreen, zorder=0
          */
-        nerror = NEXUS_SurfaceCompositor_SetSettings(_surfaceCompositor, &settings);
-        CHECK_NEXUS_ERROR_GOTO("surface compositor set settings error", ret, nerror, error);
+        {
+            /* BLENDING_TYPE_SRC_OVER_NON_PREMULTIPLIED */
+            NEXUS_BlendEquation alphaBlendEquation = {
+                NEXUS_BlendFactor_eSourceAlpha,
+                NEXUS_BlendFactor_eOne,
+                false,
+                NEXUS_BlendFactor_eDestinationAlpha,
+                NEXUS_BlendFactor_eInverseSourceAlpha,
+                false,
+                NEXUS_BlendFactor_eZero
+            };
+            /* BLENDING_TYPE_SRC_OVER_NON_PREMULTIPLIED */
+            NEXUS_BlendEquation colorBlendEquation = {
+                NEXUS_BlendFactor_eSourceColor,
+                NEXUS_BlendFactor_eSourceAlpha,
+                false,
+                NEXUS_BlendFactor_eDestinationColor,
+                NEXUS_BlendFactor_eInverseSourceAlpha,
+                false,
+                NEXUS_BlendFactor_eZero
+            };
+
+            _pSurfaceClientDesktop = (CSurfaceClient *)_pBoardResources->checkoutResource(_pModel->getId(), eBoardResource_surfaceClient);
+            CHECK_PTR_ERROR_GOTO("unable to checkout Desktop surface client resource", _pSurfaceClientDesktop, ret, eRet_NotAvailable, error);
+            ret = _pSurfaceClientDesktop->open(_surfaceCompositor);
+            CHECK_ERROR_GOTO("unable to open desktop surface client", ret, error);
+            ret = _pSurfaceClientDesktop->setBlend(&alphaBlendEquation, &colorBlendEquation);
+            CHECK_ERROR_GOTO("unable to set blend equations for desktop surface client", ret, error);
+            ret = _pSurfaceClientDesktop->setZOrder(1); /* raise atlas surface z order above close caption */
+            CHECK_ERROR_GOTO("unable to set z-order for desktop surface client", ret, error);
+            ret = _pSurfaceClientDesktop->setSurface(_surface);
+            CHECK_ERROR_GOTO("unable to set surface with desktop surface client", ret, error);
+        }
+
+        _graphicsWidth  = width;
+        _graphicsHeight = height;
     }
-
-    /*
-     * create desktopClient - atlas is a surface server but also draws like a client
-     *      default settings make it fullscreen, zorder=0
-     */
-    {
-        /* BLENDING_TYPE_SRC_OVER_NON_PREMULTIPLIED */
-        NEXUS_BlendEquation alphaBlendEquation = {
-            NEXUS_BlendFactor_eSourceAlpha,
-            NEXUS_BlendFactor_eOne,
-            false,
-            NEXUS_BlendFactor_eDestinationAlpha,
-            NEXUS_BlendFactor_eInverseSourceAlpha,
-            false,
-            NEXUS_BlendFactor_eZero
-        };
-        /* BLENDING_TYPE_SRC_OVER_NON_PREMULTIPLIED */
-        NEXUS_BlendEquation colorBlendEquation = {
-            NEXUS_BlendFactor_eSourceColor,
-            NEXUS_BlendFactor_eSourceAlpha,
-            false,
-            NEXUS_BlendFactor_eDestinationColor,
-            NEXUS_BlendFactor_eInverseSourceAlpha,
-            false,
-            NEXUS_BlendFactor_eZero
-        };
-
-        _pSurfaceClientDesktop = (CSurfaceClient *)_pBoardResources->checkoutResource(_pModel->getId(), eBoardResource_surfaceClient);
-        CHECK_PTR_ERROR_GOTO("unable to checkout Desktop surface client resource", _pSurfaceClientDesktop, ret, eRet_NotAvailable, error);
-        ret = _pSurfaceClientDesktop->open(_surfaceCompositor);
-        CHECK_ERROR_GOTO("unable to open desktop surface client", ret, error);
-        ret = _pSurfaceClientDesktop->setBlend(&alphaBlendEquation, &colorBlendEquation);
-        CHECK_ERROR_GOTO("unable to set blend equations for desktop surface client", ret, error);
-        ret = _pSurfaceClientDesktop->setZOrder(1); /* raise atlas surface z order above close caption */
-        CHECK_ERROR_GOTO("unable to set z-order for desktop surface client", ret, error);
-        ret = _pSurfaceClientDesktop->setSurface(_surface);
-        CHECK_ERROR_GOTO("unable to set surface with desktop surface client", ret, error);
-    }
-
-    _graphicsWidth  = width;
-    _graphicsHeight = height;
 
     ret = initBwin(_surface);
     CHECK_ERROR_GOTO("unable to initialize bwidgets/bwin", ret, error);
@@ -672,14 +679,15 @@ bwin_font_t CGraphics::getFont(uint8_t size)
 /* start bwin and bwidgets */
 eRet CGraphics::initBwin(NEXUS_SurfaceHandle surface)
 {
-    eRet                 ret = eRet_Ok;
-    bwin_engine_settings bwinSettings;
+    eRet ret = eRet_Ok;
 
-    BDBG_ASSERT(NULL != surface);
+    BDBG_ASSERT(NULL != _bwinEngine);
 
-    bwin_engine_settings_init(&bwinSettings);
-    _bwinEngine = bwin_open_engine(&bwinSettings);
-    CHECK_PTR_ERROR_GOTO("Unable to open bwin engine", _bwinEngine, ret, eRet_ExternalError, error);
+    if (NULL == surface)
+    {
+        /* no graphics */
+        goto done;
+    }
 
     _font10 = bwin_open_font(_bwinEngine, "fonts/verdana_10.bwin_font", -1, true);
     CHECK_PTR_ERROR_GOTO("Font creation failed - 'make install' and untar the tarball before starting Atlas.", _font10, ret, eRet_ExternalError, error);
@@ -742,11 +750,7 @@ void CGraphics::uninitBwin()
         _font17 = NULL;
     }
 
-    if (NULL != _bwinEngine)
-    {
-        bwin_close_engine(_bwinEngine);
-        _bwinEngine = NULL;
-    }
+    setBwin(NULL);
 } /* uninitBwin */
 
 eRet CGraphics::getFramebufferSettings(bwin_framebuffer_settings * pSettings)

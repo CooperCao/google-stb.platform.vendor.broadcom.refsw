@@ -7,7 +7,7 @@ All rights reserved.
 #include <stdlib.h>
 
 bool fence_queue_init(struct fence_queue *fq, size_t num_fences,
-      const struct FenceInterface *fence_interface)
+      const FenceInterface *fence_interface)
 {
    fq->fence_interface = fence_interface;
    return ring_buffer_init(&fq->fences, num_fences, sizeof(int));

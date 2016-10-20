@@ -66,37 +66,34 @@ BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/src/common
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp.c
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/$(BCHP_CHIP)/bchp_$(BCHP_CHIP).c
 
-# BCHP_PWR basemodule. 
+# BCHP_PWR basemodule.
 include $(MAGNUM)/basemodules/chp/build/bchp_pwr.inc
 
 # BCHP_AVS code.  More extensive AVS solution is being included in the newer 40nm parts.
 ifeq ($(filter $(BCHP_CHIP), 7425 7435 7344 7346 73465 7358 7231 7552 75525 7360 7429 74295 7563 75635 7584 75845 7543 7362 73625 7228), $(BCHP_CHIP))
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_40nm.c
-endif
-
-# 28nm
-ifeq ($(filter $(BCHP_CHIP), 7445 7366 7439 74371 7364 7250 7586 11360 7271 7268 7260), $(BCHP_CHIP))
-# BCHP_AVS code.  (even) More extensive AVS solution is being included in the newer 28nm parts.
-BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_28nm.c
-# For 28nm and beyond, we have a unified BCHP implementation for the SoC
-BCHP_DEFINES += BCHP_UNIFIED_IMPL
-endif
 
 # Use the unified approach for 7563[5]/7584[5]/7362[5] to use 5 digit chip IDs.
 ifeq ($(filter $(BCHP_CHIP), 7563 75635 75845 7362 73625 74295 75525 73465), $(BCHP_CHIP))
+BCHP_DEFINES += BCHP_UNIFIED_IMPL
+endif
+else
+# 28nm
+# BCHP_AVS code.  (even) More extensive AVS solution is being included in the newer 28nm parts.
+BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_avs_28nm.c
+
+BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_reset_common.c
+BCHP_DEFINES += BCHP_RESET_COMMON
+
+# For 28nm and beyond, we have a unified BCHP implementation for the SoC
 BCHP_DEFINES += BCHP_UNIFIED_IMPL
 endif
 
 #
 # Handle conditional options
 #
-ifneq ($(BCHP_QAM_CHIP),)
-# 3250 support
-BCHP_INCLUDES += $(MAGNUM)/basemodules/chp/include/$(BCHP_QAM_CHIP)/common
-BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/$(BCHP_QAM_CHIP)/bchp_$(BCHP_QAM_CHIP).c
-endif
-
 # SAGE related
 ifeq ($(SAGE_SUPPORT),y)
+BCHP_INCLUDES += $(MAGNUM)/syslib/sagelib/include
 BCHP_SOURCES += $(MAGNUM)/basemodules/chp/src/common/bchp_sage.c
 endif

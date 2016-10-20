@@ -41,7 +41,6 @@ struct v3d_bin_job
    uint32_t n;
    uint32_t start[V3D_MAX_BIN_SUBJOBS];
    uint32_t end[V3D_MAX_BIN_SUBJOBS];
-   uint32_t offset; /* GFXH-1179 */
    uint32_t workaround_gfxh_1181 : 1;   /* GFXH-1181 */
    uint32_t reserved_ : 31;
    uint32_t minInitialBinBlockSize;

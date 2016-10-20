@@ -57,9 +57,12 @@
 #endif
 #include "bchp_sun_top_ctrl.h"
 
+#define NEXUS_PLATFORM_7445_EXT24D_DAISY_OVERRIDE 0 /* MTSIF load-balancing options: 0 for normal daisychain config. 1 for hybrid daisychain config. See below */
+
 BDBG_MODULE(nexus_platform_frontend);
 
 #if NEXUS_USE_7445_EXT24
+#include "priv/nexus_frontend_mtsif_priv.h"
 #include "nexus_gpio.h"
 
 #define NEXUS_PLATFORM_NUM_FRONTEND_INTERRUPTS 2
@@ -70,6 +73,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
     NEXUS_FrontendDeviceHandle device;
+    NEXUS_FrontendDeviceHandle firstDevice = NULL;
     unsigned i=0;
     unsigned offset = 0;
     NEXUS_FrontendDeviceOpenSettings deviceSettings;
@@ -81,6 +85,8 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
     deviceSettings.i2cDevice = pConfig->i2c[4];
     deviceSettings.i2cAddress = 0x68;
+    deviceSettings.mtsif[0].clockRate = 135000000;
+    deviceSettings.mtsif[1].clockRate = 135000000;
 
     NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
     if (probeResults.chip.familyId != 0) {
@@ -118,15 +124,19 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
             }
             offset = i;
+            firstDevice = device;
         } else {
             BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
         }
     }
 
     /* open second frontend */
+    device = NULL;
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
     deviceSettings.i2cDevice = pConfig->i2c[4];
     deviceSettings.i2cAddress = 0x69;
+    deviceSettings.mtsif[0].clockRate = 135000000;
+    deviceSettings.mtsif[1].clockRate = 135000000;
 
     NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
     if (probeResults.chip.familyId != 0) {
@@ -162,11 +172,72 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                     continue;
                 }
                 BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i+offset]));
+
+#if NEXUS_PLATFORM_7445_EXT24D_DAISY_OVERRIDE /* option 2: 45216 routes 4 PBs to 45208. Both devices have a single MTSIF connection to backend */
+                if (i < 12) {
+                    NEXUS_FrontendUserParameters params;
+                    if (firstDevice && i==0) {
+                        uint32_t val;
+                        NEXUS_FrontendDeviceLinkSettings settings;
+                        NEXUS_FrontendDevice_GetDefaultLinkSettings(&settings);
+                        settings.mtsif = NEXUS_FrontendDeviceMtsifOutput_eDaisy;
+                        NEXUS_FrontendDevice_Link(firstDevice, device, &settings);
+
+                        /* pinmux to enable RX on 45208 (firstDevice) */
+                        NEXUS_Frontend_ReadRegister(pConfig->frontend[0], 0x6920218, &val);
+                        val &= ~(0xfffff000);
+                        val |= 0x11111000;
+                        NEXUS_Frontend_WriteRegister(pConfig->frontend[0], 0x6920218, val);
+                        NEXUS_Frontend_ReadRegister(pConfig->frontend[0], 0x692021c, &val);
+                        val &= ~(0xfffff);
+                        val |= 0x11111;
+                        NEXUS_Frontend_WriteRegister(pConfig->frontend[0], 0x692021c, val);
+                    }
+                    NEXUS_Frontend_GetUserParameters(pConfig->frontend[i+offset], &params);
+                    NEXUS_FRONTEND_USER_PARAM1_SET_MTSIF_TX(params.param1, 0);
+                    NEXUS_FRONTEND_USER_PARAM1_SET_DAISYCHAIN_OVERRIDE(params.param1, 1);
+                    NEXUS_Frontend_SetUserParameters(pConfig->frontend[i+offset], &params);
+                }
+                else {
+                    NEXUS_FrontendUserParameters params;
+                    NEXUS_Frontend_GetUserParameters(pConfig->frontend[i+offset], &params);
+                    NEXUS_FRONTEND_USER_PARAM1_SET_MTSIF_TX(params.param1, 1);
+                    NEXUS_Frontend_SetUserParameters(pConfig->frontend[i+offset], &params);
+                }
+#endif
             }
         } else {
             BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
         }
     }
+
+#if (!NEXUS_PLATFORM_7445_EXT24D_DAISY_OVERRIDE) /* option 1: 45208 routes 8 PBs to 45216. 45216 has two MTSIF connections to backend */
+    if (firstDevice && device) {
+        NEXUS_FrontendDeviceLinkSettings settings;
+        NEXUS_FrontendUserParameters params;
+        NEXUS_FrontendDevice_GetDefaultLinkSettings(&settings);
+        settings.mtsif = NEXUS_FrontendDeviceMtsifOutput_eDaisy;
+        NEXUS_FrontendDevice_Link(device, firstDevice, &settings);
+
+        for (i=0; i<12; i++) { /* load-balance MTSIF by sending half the PBs on TX0 and half on TX1 */
+            if (pConfig->frontend[i]==NULL) {
+                BDBG_ERR(("No frontend handle at index %u", i));
+                continue;
+            }
+            if (i < 8) {
+                NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &params);
+                NEXUS_FRONTEND_USER_PARAM1_SET_MTSIF_TX(params.param1, 1); /* 45208_TX1 (not TX0) is the one that's wired */
+                NEXUS_FRONTEND_USER_PARAM1_SET_DAISYCHAIN_MTSIF_TX(params.param1, 1);
+                NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &params);
+            }
+            else {
+                NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &params);
+                NEXUS_FRONTEND_USER_PARAM1_SET_MTSIF_TX(params.param1, 1); /* send the first 4 PBs from 45216 to TX1, along with the daisy'd PBs */
+                NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &params);
+            }
+        }
+    }
+#endif
 
     return BERR_SUCCESS;
 }

@@ -11,7 +11,7 @@ FILE DESCRIPTION
 #include "glsl_const_operators.h"
 #include "glsl_dataflow_simplify.h"
 
-//#define DATAFLOW_DONT_OPTIMISE_CONST_ZERO
+//#define NAN_CORRECT_OPTIMISATION
 //#define DISABLE_CONSTANT_FOLDING
 
 typedef enum {
@@ -58,6 +58,7 @@ static const struct dataflow_fold_info_s dataflow_info[DATAFLOW_FLAVOUR_COUNT] =
 
    { DATAFLOW_SHL,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_shl,   op_bitwise_shl   }, },
    { DATAFLOW_SHR,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_i_bitwise_shr, op_u_bitwise_shr }, },
+   { DATAFLOW_ROR,                 FOLDER_RET_MATCH, 2, .bf = { NULL, NULL, op_bitwise_ror,   op_bitwise_ror }, },
 
    { DATAFLOW_ADDRESS_LOAD,        FOLDER_CANT_FOLD, },
    { DATAFLOW_ADDRESS_STORE,       FOLDER_CANT_FOLD, },
@@ -212,14 +213,22 @@ static int float_as_small_int(const_value f) {
 
 static Dataflow *simplify_small_pow(Dataflow *log, Dataflow *pow) {
    Dataflow *x = log->d.unary_op.operand;
-   int p = float_as_small_int(pow->u.constant.value);
-   if (p == -1) return NULL;      /* A power we don't optimise */
+   switch (pow->u.constant.value) {
+      case 0xBF000000:  return glsl_dataflow_construct_unary_op(DATAFLOW_RSQRT, x); /* -0.5 */
+      case 0x3F000000:  return glsl_dataflow_construct_unary_op(DATAFLOW_SQRT,  x); /*  0.5 */
+      case 0xBF800000:  return glsl_dataflow_construct_unary_op(DATAFLOW_RCP,   x); /* -1.0 */
+      default:
+      {
+         int p = float_as_small_int(pow->u.constant.value);
+         if (p == -1) return NULL;      /* A power we don't optimise */
 
-   Dataflow *xx = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, x, x);
-   if (p == 2) return xx;
-   if (p == 3) return glsl_dataflow_construct_binary_op(DATAFLOW_MUL, xx, x);
-   if (p == 4) return glsl_dataflow_construct_binary_op(DATAFLOW_MUL, xx, xx);
-   return NULL;
+         Dataflow *xx = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, x, x);
+         if (p == 2) return xx;
+         if (p == 3) return glsl_dataflow_construct_binary_op(DATAFLOW_MUL, xx, x);
+         if (p == 4) return glsl_dataflow_construct_binary_op(DATAFLOW_MUL, xx, xx);
+         return NULL;
+      }
+   }
 }
 
 static Dataflow *simplify_unary_op (DataflowFlavour flavour, Dataflow *operand) {
@@ -339,7 +348,7 @@ static Dataflow *smul_high_const(Dataflow *left, int32_t r) {
    return mulhigh;
 }
 
-void compute_signed_magic(int32_t d, int32_t *mul, unsigned *shift) {
+static void compute_signed_magic(int32_t d, int32_t *mul, unsigned *shift) {
    bool neg = (d < 0);
    uint32_t d_a = (d < 0) ? -d : d;    /* d_a = abs(d) */
 
@@ -418,6 +427,113 @@ static Dataflow *int_div_magic(Dataflow *left, Dataflow *right) {
    return glsl_dataflow_construct_binary_op(DATAFLOW_SUB, res, neg);
 }
 
+static unsigned ceil_log2(uint32_t x) {
+   assert((x & (x-1)) != 0);  /* x must be npot, as we compute floor(log2)+1 */
+   unsigned log_2 = 0;
+   while (x != 0) {
+      x >>= 1;
+      log_2++;
+   }
+   return log_2;
+}
+
+static void compute_unsigned_magic(uint32_t d, uint32_t num_bits, uint32_t *mul, unsigned *pre_shift, unsigned *post_shift, bool *inc) {
+   assert((d & (d-1)) != 0);  /* d must be npot */
+
+   /* We compute m = ceil(2^k / d) for increasing k starting at 32. To prevent
+    * overflow we start at 31 and progressively increase k until a suitable
+    * value is found. */
+   uint32_t p2 = (1u << 31);
+   uint32_t q_magic = p2 / d;    /* Our guesses for the magic number m */
+   uint32_t r_magic = p2 % d;
+
+   uint32_t ceil_log2_d = ceil_log2(d);
+
+   unsigned shift = 32 - num_bits;
+
+   bool found_down = false;
+   uint32_t down_mul   = 0;   /* Initialise to silence compiler warning, */
+   unsigned down_shift = 0;   /* always overwritten before use           */
+
+   /* Unlike the signed case we just let n_m == 2^32 for unsigned. I'm not sure why */
+   unsigned k;
+   for (k = 0; ; k++) {
+      /* Unlike in the signed case 2 * r_magic could be too big to fit in a
+       * uint32_t, making the comparison unreliable. (Wrapping behaviour means
+       * that the answer still comes out correct though).   */
+      if (r_magic >= d - r_magic) {
+         q_magic = 2*q_magic + 1;
+         r_magic = 2*r_magic - d;
+      } else {
+         q_magic *= 2;
+         r_magic *= 2;
+      }
+
+      /* The simpler n_m value here makes the error condition simpler */
+      if ((k + shift) >= ceil_log2_d || (d - r_magic) <= (1u << (k + shift))) break;
+
+      if (!found_down && r_magic <= (1u << (k + shift))) {
+         found_down = true;
+         down_mul = q_magic;
+         down_shift = k;
+      }
+   }
+
+   /* This algorithm can produce 33-bit magic numbers. This has happened if
+    * k == ceil(log_2(d)) */
+   if (k < ceil_log2_d) {
+      *mul = q_magic + 1;
+      *pre_shift = 0;
+      *post_shift = k;
+      *inc = false;
+   } else if ((d & 1) == 0) {
+      /* d is even, so shift down and do a smaller divide */
+      unsigned extra_shift = 0;
+      while ((d & 1) == 0) {
+         d >>= 1;
+         extra_shift++;
+      }
+      compute_unsigned_magic(d, num_bits - extra_shift, mul, pre_shift, post_shift, inc);
+      assert(*pre_shift == 0 && *inc == false);
+      *pre_shift = extra_shift;
+   } else {
+      /* Fall back to using 'inc' which is the slowest of the options */
+      assert(found_down);
+      *mul = down_mul;
+      *pre_shift = 0;
+      *post_shift = down_shift;
+      *inc = true;
+   }
+}
+
+static Dataflow *sat_inc(Dataflow *x) {
+   Dataflow *n    = glsl_dataflow_construct_unary_op(DATAFLOW_BITWISE_NOT, x);
+   Dataflow *cond = glsl_dataflow_construct_binary_op(DATAFLOW_EQUAL, n, glsl_dataflow_construct_const_uint(0));
+   Dataflow *inc  = glsl_dataflow_construct_binary_op(DATAFLOW_ADD,   x, glsl_dataflow_construct_const_uint(1));
+   return glsl_dataflow_construct_ternary_op(DATAFLOW_CONDITIONAL, cond, x, inc);
+}
+
+static Dataflow *uint_div_magic(Dataflow *left, Dataflow *right) {
+   assert(right->flavour == DATAFLOW_CONST);
+   uint32_t d = right->u.constant.value;
+   uint32_t mul;
+   unsigned pre_shift, post_shift;
+   bool inc;
+   compute_unsigned_magic(d, 32, &mul, &pre_shift, &post_shift, &inc);
+
+   if (pre_shift != 0) left = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, left, glsl_dataflow_construct_const_uint(pre_shift));
+   if (inc) left = sat_inc(left);
+   Dataflow *res = umul_high_const(left, mul);
+   if (post_shift != 0) res = glsl_dataflow_construct_binary_op(DATAFLOW_SHR, res, glsl_dataflow_construct_const_uint(post_shift));
+   return res;
+}
+
+static Dataflow *uint_rem_magic(Dataflow *left, Dataflow *right) {
+   Dataflow *q = uint_div_magic(left, right);
+   Dataflow *q_r = glsl_dataflow_construct_binary_op(DATAFLOW_MUL, q, right);
+   return glsl_dataflow_construct_binary_op(DATAFLOW_SUB, left, q_r);
+}
+
 #define OR_BUF_SIZE 50
 static bool push_ors(Dataflow *it, Dataflow **ors, int *n_ors);
 
@@ -474,6 +590,8 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
             return glsl_dataflow_construct_binary_op(DATAFLOW_SHR, left, l2);
          } else if (right->type == DF_INT) {
             return int_div_magic(left, right);
+         } else if (right->type == DF_UINT) {
+            return uint_div_magic(left, right);
          }
       }
    }
@@ -502,6 +620,8 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
             return glsl_dataflow_construct_binary_op(DATAFLOW_BITWISE_AND, left, rm1);
          } else if (left->type == DF_INT) {
             return int_rem_magic(left, right);
+         } else if (left->type == DF_UINT) {
+            return uint_rem_magic(left, right);
          }
       }
    }
@@ -547,7 +667,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
 
    if (left->flavour == DATAFLOW_CONST) {
       if (left->type == DF_FLOAT) {
-#if !defined(DATAFLOW_DONT_OPTIMISE_CONST_ZERO)
+#ifndef NAN_CORRECT_OPTIMISATION
          if (left->u.constant.value == CONST_FLOAT_ZERO || left->u.constant.value == CONST_FLOAT_MINUS_ZERO) {
             if (flavour == DATAFLOW_MUL) return left;
             if (flavour == DATAFLOW_ADD) return right;
@@ -591,7 +711,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
 
    if (right->flavour == DATAFLOW_CONST) {
       if (right->type == DF_FLOAT) {
-#if !defined(DATAFLOW_DONT_OPTIMISE_CONST_ZERO)
+#ifndef NAN_CORRECT_OPTIMISATION
          if (right->u.constant.value == CONST_FLOAT_ZERO || right->u.constant.value == CONST_FLOAT_MINUS_ZERO) {
             if (flavour == DATAFLOW_MUL) return right;
             if (flavour == DATAFLOW_ADD) return left;
@@ -634,7 +754,6 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
    }
 
    if (left == right) {
-      /* These operations are NaN-correct */
       if (flavour == DATAFLOW_BITWISE_AND) return left;
       if (flavour == DATAFLOW_BITWISE_OR)  return left;
       if (flavour == DATAFLOW_BITWISE_XOR) return glsl_dataflow_construct_const_value(left->type, 0);
@@ -643,7 +762,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
       if (flavour == DATAFLOW_LOGICAL_AND) return left;
       if (flavour == DATAFLOW_LOGICAL_XOR) return glsl_dataflow_construct_const_bool(0);
       if (flavour == DATAFLOW_LOGICAL_OR)  return left;
-      /* These are not */
+#ifndef NAN_CORRECT_OPTIMISATION
       if (flavour == DATAFLOW_SUB)                return glsl_dataflow_construct_const_value(left->type, 0);
       if (flavour == DATAFLOW_LESS_THAN)          return glsl_dataflow_construct_const_bool(0);
       if (flavour == DATAFLOW_LESS_THAN_EQUAL)    return glsl_dataflow_construct_const_bool(1);
@@ -651,6 +770,7 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
       if (flavour == DATAFLOW_GREATER_THAN_EQUAL) return glsl_dataflow_construct_const_bool(1);
       if (flavour == DATAFLOW_EQUAL)              return glsl_dataflow_construct_const_bool(1);
       if (flavour == DATAFLOW_NOT_EQUAL)          return glsl_dataflow_construct_const_bool(0);
+#endif
    }
 
    // simplify common guard expressions
@@ -730,6 +850,14 @@ static Dataflow *simplify_binary_op (DataflowFlavour flavour, Dataflow *left, Da
             return res;
          }
       }
+   }
+
+   if (flavour == DATAFLOW_LOGICAL_AND) {
+      /* Optimise x && x --> x in expressions like x && (x && y) */
+      if (left->flavour == DATAFLOW_LOGICAL_AND)
+         if (left->d.binary_op.left == right || left->d.binary_op.right == right) return left;
+      if (right->flavour == DATAFLOW_LOGICAL_AND)
+         if (right->d.binary_op.left == left || right->d.binary_op.right == left) return right;
    }
 
    return NULL;

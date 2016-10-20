@@ -355,6 +355,520 @@ static void closePidChannel(
     }
 }
 
+static NEXUS_PidChannelHandle openPidChannel(
+    BIP_PlayerHandle                        hPlayer,
+    unsigned                                pid,
+    const NEXUS_PlaybackPidChannelSettings  *pSettings,
+    NEXUS_PlaypumpHandle                    hPlaypump
+    )
+{
+    BIP_Status bipStatus = BIP_ERR_INTERNAL;
+    NEXUS_PidChannelHandle hPidChannel = NULL;
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p trackId=0x%x useNexusPlaypump=%s usePlaypump2ForAudio=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, pid,
+                hPlayer->useNexusPlaypump ? "Y": "N", hPlayer->usePlaypump2ForAudio ? "Y": "N" ));
+    if (hPlayer->useNexusPlaypump)
+    {
+        if (!hPlaypump)
+        {
+            /* Caller didn't have an explicit playpump handle to use, so choose the ones associated w/ the hPlayer object. */
+            if (hPlayer->usePlaypump2ForAudio && pSettings->pidSettings.pidType == NEXUS_PidType_eAudio)
+            {
+                hPlaypump = hPlayer->hPlaypump2;
+            }
+            else
+            {
+                hPlaypump = hPlayer->hPlaypump;
+            }
+        }
+        hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlaypump, pid, &pSettings->pidSettings);
+        BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened hPidChannel=%p for trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
+    }
+    else
+    {
+        hPidChannel = NEXUS_Playback_OpenPidChannel(hPlayer->hPlayback, pid, pSettings);
+        BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playback_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playback_OpenPidChannel opened hPidChannel=%p trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
+    }
+
+error:
+    return hPidChannel;
+} /* openPidChannel */
+
+static BIP_Status openAndConfigureNexusPlaypump(
+    BIP_PlayerHandle                hPlayer,
+    NEXUS_PlaypumpOpenSettings      *pPlaypumpOpenSettings,
+    const NEXUS_PlaypumpSettings    *pPlaypumpSettings,
+    NEXUS_TransportType             transportType,
+    NEXUS_PlaypumpHandle            *phPlaypump
+    )
+{
+    BIP_Status      completionStatus = BIP_SUCCESS;
+    NEXUS_Error     nrc;
+
+    /* Open Nexus Playpump if caller didn't provide one! */
+    if (*phPlaypump == NULL)
+    {
+        NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
+
+        if (!pPlaypumpOpenSettings)
+        {
+            NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
+            playpumpOpenSettings.fifoSize *= 2;
+            playpumpOpenSettings.numDescriptors = 200;
+        }
+        else
+        {
+            playpumpOpenSettings = *pPlaypumpOpenSettings;
+        }
+        *phPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
+        BIP_CHECK_GOTO(( *phPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)*phPlaypump ));
+    }
+
+    /* Now configure Playpump */
+    {
+        NEXUS_PlaypumpSettings settings;
+
+        NEXUS_Playpump_GetSettings(*phPlaypump, &settings);
+        settings = *pPlaypumpSettings;
+        settings.transportType = transportType;
+        nrc = NEXUS_Playpump_SetSettings(*phPlaypump, &settings);
+        BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
+
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup: transportType=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)*phPlaypump, BIP_ToStr_NEXUS_TransportType(transportType) ));
+    }
+    completionStatus = BIP_SUCCESS;
+
+error:
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: completionStatus=%d" BIP_MSG_PRE_ARG, (void *)hPlayer, completionStatus));
+    return (completionStatus);
+} /* openAndConfigureNexusPlaypump */
+
+static BIP_PlayerTrackListEntryHandle findTrackEntryUsingTrackId(
+    BIP_PlayerHandle                            hPlayer,
+    unsigned                                    trackId
+    )
+{
+    BIP_PlayerTrackListEntryHandle hTrackEntry;
+
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: trackId 0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId));
+    /* Find the matching trackEntry & return it. */
+    for (
+         hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+         hTrackEntry;
+         hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+         if (trackId == hTrackEntry->trackId)
+         {
+             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: trackId 0x%x hTrackEntry=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId, (void *)hTrackEntry ));
+             break;
+         }
+    }
+
+    return (hTrackEntry);
+} /* findTrackEntryUsingTrackId */
+
+static void releaseAudioDecoderAndRemoveFromTrackEntry(
+    BIP_PlayerHandle                    hPlayer,
+    BIP_PlayerTrackListEntryHandle      hTrackEntry
+    )
+{
+#if NXCLIENT_SUPPORT
+    BDBG_ASSERT(hTrackEntry);
+    if (!hTrackEntry) return;
+    if (hTrackEntry->appOwnedDecoders) return;
+
+    if (hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder)
+    {
+        NEXUS_SimpleAudioDecoder_Release(hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Released hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder));
+        hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder = NULL;
+    }
+
+    if (hTrackEntry->connected)
+    {
+        NxClient_Disconnect(hTrackEntry->connectId);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Disconnected NxClient connectId=%d " BIP_MSG_PRE_ARG, (void *)hPlayer, hTrackEntry->connectId ));
+        hTrackEntry->connected = false;
+    }
+
+    if (hTrackEntry->alloced) NxClient_Free(&hTrackEntry->allocResults);
+    hTrackEntry->alloced = false;
+#else
+    BSTD_UNUSED(hPlayer);
+    BSTD_UNUSED(hTrackEntry);
+#endif
+} /* releaseAudioDecoderAndRemoveFromTrackEntry */
+
+static BIP_Status acquireAudioDecoderAndAddToTrackEntry(
+    BIP_PlayerHandle                    hPlayer,
+    BIP_PlayerTrackListEntryHandle      hTrackEntry
+    )
+{
+    BIP_Status                      bipStatus;
+#if NXCLIENT_SUPPORT
+    {
+        NxClient_AllocSettings      allocSettings;
+        NxClient_ConnectSettings    connectSettings;
+        NEXUS_Error                 rc;
+
+        hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder = NULL;
+
+        /* Allocate */
+        NxClient_GetDefaultAllocSettings(&allocSettings);
+        allocSettings.simpleAudioDecoder = 1;
+        rc = NxClient_Alloc( &allocSettings, &hTrackEntry->allocResults); /* allocResults are needed in NxClient_Free() */
+        BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NxClient_Alloc Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+        hTrackEntry->alloced = true;
+
+        /* Connect to NxServer. */
+        hTrackEntry->connectId = -1;
+        NxClient_GetDefaultConnectSettings( &connectSettings );
+        connectSettings.simpleAudioDecoder.id = hTrackEntry->allocResults.simpleAudioDecoder.id;
+        connectSettings.simpleAudioDecoder.primer = true;
+        rc = NxClient_Connect(&connectSettings, &hTrackEntry->connectId);
+        BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NxClient_Connect Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+        hTrackEntry->connected = true;
+
+        /* Acquire audio decoder handle. */
+        hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder = NEXUS_SimpleAudioDecoder_Acquire(hTrackEntry->allocResults.simpleAudioDecoder.id);
+        BIP_CHECK_GOTO(( hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder ), ( "NEXUS_SimpleAudioDecoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+
+        bipStatus = BIP_SUCCESS;
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: allocated: nxClient connectId=%d hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, hTrackEntry->connectId, (void *)hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder));
+    }
+error:
+#else
+    {
+        BSTD_UNUSED(hTrackEntry);
+        BDBG_ERR(( BIP_MSG_PRE_FMT "hPlayer=%p: non-NxClient mode is not yet supported!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+        bipStatus = BIP_ERR_NOT_SUPPORTED;
+    }
+#endif
+    if (bipStatus != BIP_SUCCESS)
+    {
+        releaseAudioDecoderAndRemoveFromTrackEntry(hPlayer, hTrackEntry);
+    }
+    return (bipStatus);
+} /* acquireAudioDecoderAndAddToTrackEntry */
+
+static void releasePerTrackResources(
+    BIP_PlayerHandle                hPlayer,
+    BIP_PlayerTrackListEntryHandle  hTrackEntry
+    )
+{
+    if (hTrackEntry->hPidChannel) closePidChannel(hPlayer, hTrackEntry->hPidChannel);
+    hTrackEntry->hPidChannel = NULL;
+
+    if (hTrackEntry->hPlaypump) NEXUS_Playpump_Close(hTrackEntry->hPlaypump);
+    hTrackEntry->hPlaypump = NULL;
+
+    releaseAudioDecoderAndRemoveFromTrackEntry(hPlayer, hTrackEntry);
+} /* releasePerTrackResources */
+
+/*
+ * Function to return real trackId associated with a BIP_MediaInfo Track.
+ * This virtual trackId can be different from the realTrackId as multiple tracks in a stream may have same trackId.
+ * e.g. for HLS container formats, audio may not be muxed into the main stream and is accessed via a separate URL.
+ * In that case, multiple audio tracks can have same real trackId.
+ */
+static unsigned int getRealAudioTrackId(
+    BIP_PlayerHandle    hPlayer,
+    BIP_MediaInfoTrack  *pMediaInfoTrack
+    )
+{
+    unsigned int realTrackId;
+    if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
+    {
+        realTrackId = pMediaInfoTrack->info.audio.containerSpecificInfo.hls.hlsAudioPid;
+    }
+    else
+    {
+        realTrackId = pMediaInfoTrack->trackId;
+    }
+
+    return (realTrackId);
+} /* getRealAudioTrackId */
+
+static BIP_Status acquireResourcesForAudioPrimersUsingMediaInfo(
+    BIP_PlayerHandle                    hPlayer,
+    BIP_MediaInfoHandle                 hMediaInfo,
+    NEXUS_PlaybackPidChannelSettings    *pCurrentAudioPidChannelSettings,
+    NEXUS_PlaybackSettings              *pPlaybackSettings
+    )
+{
+    BIP_Status                          bipStatus = BIP_ERR_INTERNAL;
+    BIP_PlayerTrackListEntryHandle      hTrackEntry = NULL;
+    BIP_MediaInfoStream                 *pMediaInfoStream = NULL;
+    BIP_MediaInfoTrackGroup             *pMediaInfoTrackGroup = NULL;
+    bool                                trackGroupPresent = false;
+    BIP_MediaInfoTrack                  *pMediaInfoTrack = NULL;
+
+    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
+    BDBG_ASSERT(pMediaInfoStream);
+    BIP_CHECK_GOTO( (pMediaInfoStream), ( "pMediaInfoStream is NULL!" ), error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+
+    if (pMediaInfoStream->numberOfTrackGroups != 0)
+    {
+        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+        trackGroupPresent = true;
+    }
+    else
+    {
+        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
+        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
+    }
+
+    if (!pMediaInfoTrack)
+    {
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Stream contains no audio tracks, so can't initialize audio primers!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+        return (BIP_SUCCESS);
+    }
+
+    while (pMediaInfoTrack)
+    {
+        if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
+                pMediaInfoTrack->trackId != hPlayer->audioTrackId)          /* This audio trackId doesn't match the main/primary audio track that was already added during initial audio track selection. */
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Building resources for Audio trackId=0x%x!" BIP_MSG_PRE_ARG, (void *)hPlayer, pMediaInfoTrack->trackId));
+
+            hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_PlayerTrackListEntry));
+            BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, bipStatus );
+
+            hTrackEntry->trackId = pMediaInfoTrack->trackId;
+
+            BIP_Player_GetDefaultOpenPidChannelSettings(&hTrackEntry->settings);
+            hTrackEntry->settings.pidSettings = *pCurrentAudioPidChannelSettings;
+            hTrackEntry->settings.pidSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
+            hTrackEntry->settings.pidSettings.pidSettings.pidTypeSettings.audio.codec = pMediaInfoTrack->info.audio.codec;
+
+            hTrackEntry->appOwnedDecoders = false; /* as we will open a dedicated audio decoder for this audio trackId. */
+            bipStatus = acquireAudioDecoderAndAddToTrackEntry(hPlayer, hTrackEntry); /* audio decoder handle in stored in the hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder */
+            BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "acquireAudioDecoderAndAddToTrackEntry() Failed!"), error, bipStatus, bipStatus );
+
+            /* If this audio track requires its own playpump for feeding incoming stream, then open that. */
+            if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls &&
+                pMediaInfoTrack->info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio)
+            {
+                NEXUS_TransportType transportType;
+                transportType = pMediaInfoTrack->info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+                bipStatus = openAndConfigureNexusPlaypump(hPlayer, NULL /* OpenSettings. */, &pPlaybackSettings->playpumpSettings, transportType, &hTrackEntry->hPlaypump);
+                BIP_CHECK_GOTO(( bipStatus == BIP_SUCCESS ), ( "openAndConfigureNexusPlaypump Failed"), error, bipStatus, bipStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened & setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
+            }
+
+            /* Now Open the PidChannel associated w/ this audio track. */
+            {
+                hTrackEntry->hPidChannel = openPidChannel( hPlayer, getRealAudioTrackId(hPlayer, pMediaInfoTrack), &hTrackEntry->settings.pidSettings, hTrackEntry->hPlaypump );
+                BIP_CHECK_GOTO(( hTrackEntry->hPidChannel ), ( "openPidChannel Failed for the new audio track!"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+            }
+
+            /* We have all the necessary resources for priming the audio track, so add it to the track list. */
+            BLST_Q_INSERT_TAIL( &hPlayer->trackListHead, hTrackEntry, trackListNext );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Acquired resources for Audio Priming: hTrackEntry=%p: (trackId 0x%x), hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, (void *)hTrackEntry->hPidChannel));
+        }
+
+        /* Select the next MediaInfo track. */
+        if (true == trackGroupPresent)
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
+        }
+        else
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
+        }
+    }
+    bipStatus = BIP_SUCCESS;
+
+error:
+    if (bipStatus != BIP_SUCCESS)
+    {
+        /* Free-up the trackList & its associated resources. */
+        if (hTrackEntry)
+        {
+            releasePerTrackResources(hPlayer, hTrackEntry);
+            B_Os_Free(hTrackEntry);
+        }
+    }
+    return (bipStatus);
+} /* acquireResourcesForAudioPrimersUsingMediaInfo */
+
+static void stopResourcesForAudioPrimers(
+    BIP_PlayerHandle                hPlayer
+    )
+{
+    BIP_PlayerTrackListEntryHandle          hTrackEntry;
+    NEXUS_SimpleAudioDecoderHandle          hSimpleAudioDecoder;
+
+    /* Start the resources for the priming tracks. */
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->appOwnedDecoders) continue; /* AV Decoder resources are owned by the app for the main track, so it has started them. */
+
+        if (hTrackEntry->settings.pidSettings.pidSettings.pidType != NEXUS_PidType_eAudio) continue;
+
+        if (hTrackEntry->hPlaypump) NEXUS_Playpump_Stop(hTrackEntry->hPlaypump);
+
+        if ( (hSimpleAudioDecoder = hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder) != NULL )
+        {
+            NEXUS_Error nrc;
+            NEXUS_SimpleAudioDecoder_Stop(hSimpleAudioDecoder);
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Stopped hSimpleAudioDecoder=%p trackId=0x%x " BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hSimpleAudioDecoder, hTrackEntry->trackId ));
+
+            nrc = NEXUS_SimpleAudioDecoder_SetStcChannel(hSimpleAudioDecoder, NULL);
+            if ( nrc == NEXUS_SUCCESS )
+            {
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Cleared hSimpleStcChannel from hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hSimpleAudioDecoder));
+            }
+            else
+            {
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Failed to clear hSimpleStcChannel from hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hSimpleAudioDecoder));
+            }
+        }
+        else
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Audio Primer logic is not yet supported for non-NxClient mode!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+        }
+    }
+} /* stopResourcesForAudioPrimers */
+
+static BIP_Status startResourcesForAudioPrimers(
+    BIP_PlayerHandle                hPlayer,
+    const BIP_PlayerStartSettings   *pStartSettings
+    )
+{
+    NEXUS_Error                             rc;
+    BIP_Status                              bipStatus = BIP_SUCCESS;
+    NEXUS_SimpleAudioDecoderStartSettings   audioProgram;
+    NEXUS_SimpleAudioDecoderHandle          hSimpleAudioDecoder;
+    BIP_PlayerTrackListEntryHandle          hTrackEntry;
+
+    /* Start the resources for the priming tracks. */
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->appOwnedDecoders) continue; /* AV Decoder resources are owned by the app for the main track, so it has started them. */
+
+        if (hTrackEntry->settings.pidSettings.pidSettings.pidType != NEXUS_PidType_eAudio) continue;
+        if ( (hSimpleAudioDecoder = hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder) != NULL )
+        {
+            rc = NEXUS_SimpleAudioDecoder_SetStcChannel(hSimpleAudioDecoder, hPlayer->hSimpleStcChannel);
+            BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Assigned hSimpleStcChannel=%p to hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleStcChannel, (void *)hSimpleAudioDecoder));
+
+            /* Start w/ App provided start settings. */
+            audioProgram = pStartSettings->simpleAudioStartSettings;
+            audioProgram.primary.codec = hTrackEntry->settings.pidSettings.pidSettings.pidTypeSettings.audio.codec;
+            audioProgram.primary.pidChannel = hTrackEntry->hPidChannel;
+            audioProgram.primer.compressed = true;
+            audioProgram.primer.pcm = true;
+            rc = NEXUS_SimpleAudioDecoder_Start(hSimpleAudioDecoder, &audioProgram);
+            BIP_CHECK_GOTO(( rc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_Start Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+
+            if (hTrackEntry->hPlaypump)
+            {
+                rc = NEXUS_Playpump_Start(hTrackEntry->hPlaypump);
+                BIP_CHECK_GOTO(( rc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_Start Failed"), error, BIP_ERR_NEXUS, bipStatus );
+            }
+
+            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Started hSimpleAudioDecoder=%p trackId=0x%x codec=%s pidChannel=%p hPlaypump=%p"
+                        BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hSimpleAudioDecoder, hTrackEntry->trackId, BIP_ToStr_NEXUS_AudioCodec(audioProgram.primary.codec), (void *)audioProgram.primary.pidChannel, (void *)hTrackEntry->hPlaypump ));
+        }
+        else
+        {
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Audio Primer logic is not yet supported for non-NxClient mode!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+            BDBG_ASSERT(NULL);
+        }
+    }
+    bipStatus = BIP_SUCCESS;
+
+error:
+    if (bipStatus != BIP_SUCCESS)
+    {
+        stopResourcesForAudioPrimers(hPlayer);
+    }
+    return (bipStatus);
+} /* startResourcesForAudioPrimers */
+
+static void updatePrimaryAudioVideoInTrackList(
+    BIP_PlayerHandle hPlayer,
+    unsigned newVideoTrackId,
+    NEXUS_VideoCodec newVideoCodec,
+    unsigned newAudioTrackId,
+    NEXUS_AudioCodec newAudioCodec
+    )
+{
+
+    /* Update the video track */
+    BIP_PlayerTrackListEntryHandle          hTrackEntry;
+
+    /* Start the resources for the priming tracks. */
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->appOwnedDecoders && hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eVideo)
+        {
+            hPlayer->hSimpleVideoDecoder = hTrackEntry->settings.pidSettings.pidTypeSettings.video.simpleDecoder;
+            hPlayer->hVideoPidChannel = hTrackEntry->hPidChannel;
+            hTrackEntry->settings.pidSettings.pidTypeSettings.video.codec = newVideoCodec;
+            hTrackEntry->trackId = newVideoTrackId;
+            hPlayer->videoTrackId = hPlayer->playerSettings.videoTrackId = newVideoTrackId;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Updated Primary Video hTrackEntry=%p with trackId 0x%x codec=%s"
+                        BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, BIP_ToStr_NEXUS_VideoCodec(newVideoCodec) ));
+            break;
+        }
+    }
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->appOwnedDecoders && hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eAudio)
+        {
+            hPlayer->hSimplePrimaryAudioDecoder = hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder;
+            hPlayer->hPrimaryAudioPidChannel = hTrackEntry->hPidChannel;
+            hTrackEntry->settings.pidSettings.pidSettings.pidTypeSettings.audio.codec = newAudioCodec;
+            hTrackEntry->trackId = newAudioTrackId;
+            hPlayer->audioTrackId = hPlayer->playerSettings.audioTrackId = newAudioTrackId;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Updated Primary Audio hTrackEntry=%p with trackId 0x%x codec=%s"
+                        BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec) ));
+            break;
+        }
+    }
+} /* updatePrimaryAudioVideoInTrackList */
+
+static void removePrimerTracksAndReleaseResources(
+    BIP_PlayerHandle        hPlayer
+    )
+{
+    BIP_PlayerTrackListEntryHandle hTrackEntry = NULL;
+
+    /* Free up the resources asociated w/ the primer tracks. */
+    while ( (hTrackEntry = BLST_Q_LAST( &hPlayer->trackListHead)) != NULL && !hTrackEntry->appOwnedDecoders )
+    {
+        BLST_Q_REMOVE( &hPlayer->trackListHead, hTrackEntry, trackListNext );
+        releasePerTrackResources(hPlayer, hTrackEntry);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Destroying hTrackEntry=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry));
+        B_Os_Free(hTrackEntry);
+    }
+} /* removePrimerTracksAndReleaseResources */
+
+
 static void closeAndRemoveAllPidChannelsFromTrackList(
     BIP_PlayerHandle    hPlayer
     )
@@ -371,10 +885,10 @@ static void closeAndRemoveAllPidChannelsFromTrackList(
         BLST_Q_REMOVE( &hPlayer->trackListHead, hTrackEntry, trackListNext );
         BDBG_ASSERT( hTrackEntry->hPidChannel );
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry->hPidChannel));
-        closePidChannel(hPlayer, hTrackEntry->hPidChannel);
+        releasePerTrackResources(hPlayer, hTrackEntry);
         B_Os_Free(hTrackEntry);
     }
-}
+} /* closeAndRemoveAllPidChannelsFromTrackList */
 
 static BIP_Status closeAndRemovePidChannelFromTrackList(
     BIP_PlayerHandle        hPlayer,
@@ -386,11 +900,12 @@ static BIP_Status closeAndRemovePidChannelFromTrackList(
     /* Check if new track matches either both Id & type or just one of them of an existing track and take the correct action. */
     for (
             hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
-            hTrackEntry && hPidChannel == hTrackEntry->hPidChannel;
+            hTrackEntry;
             hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
         )
     {
-        closePidChannel(hPlayer, hPidChannel);
+        if (hPidChannel != hTrackEntry->hPidChannel) continue;
+        releasePerTrackResources(hPlayer, hTrackEntry);
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: closed hPidChannel=%p, remove remove & destroy hTrackEntry=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, (void *)hTrackEntry));
         BLST_Q_REMOVE( &hPlayer->trackListHead, hTrackEntry, trackListNext );
@@ -398,7 +913,130 @@ static BIP_Status closeAndRemovePidChannelFromTrackList(
         return (BIP_SUCCESS);
     }
     return (BIP_INF_NOT_AVAILABLE);
-}
+} /* closeAndRemovePidChannelFromTrackList */
+
+static bool getTrackOfTrackId(
+    BIP_MediaInfoHandle     hMediaInfo,
+    unsigned                trackId,
+    BIP_MediaInfoTrack      *pMediaInfoTrackOut
+    )
+{
+    bool                    trackFound = false;
+    BIP_MediaInfoStream     *pMediaInfoStream;
+    BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
+    bool                    trackGroupPresent = false;
+    BIP_MediaInfoTrack      *pMediaInfoTrack;
+
+    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
+    BDBG_ASSERT(pMediaInfoStream);
+    if (!pMediaInfoStream) return false;
+
+    if (pMediaInfoStream->numberOfTrackGroups != 0)
+    {
+        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
+        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
+        trackGroupPresent = true;
+    }
+    else
+    {
+        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
+        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
+    }
+
+    if (!pMediaInfoTrack) return false;
+
+    while (pMediaInfoTrack)
+    {
+        if (pMediaInfoTrack->trackId == trackId)
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackType=%s with trackId=0x%x" BIP_MSG_PRE_ARG, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType), pMediaInfoTrack->trackId));
+            *pMediaInfoTrackOut = *pMediaInfoTrack;
+            trackFound = true;
+            break;
+        }
+
+        if (true == trackGroupPresent)
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
+        }
+        else
+        {
+            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
+        }
+    }
+    return (trackFound);
+} /* getTrackOfTrackId */
+
+static BIP_Status setAdditionalAlternateAudioInfo(
+    BIP_PlayerHandle                    hPlayer,
+    B_PlaybackIpSessionStartSettings    *pPbipStartSettings
+    )
+{
+    int                             i;
+    BIP_Status                      bipStatus;
+    BIP_PlayerTrackListEntryHandle  hTrackEntry;
+    BIP_MediaInfoTrack              trackInfo;
+    bool                            trackFound;
+
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead), i = 0;
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eVideo ||
+            (hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eAudio && hTrackEntry->trackId == hPlayer->audioTrackId) )
+        {
+            /* skip the main audio track as it will be already handled. */
+            continue;
+        }
+        trackFound = getTrackOfTrackId(hPlayer->hMediaInfo, hTrackEntry->trackId, &trackInfo);
+        BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , (void *)hPlayer, hTrackEntry->trackId )
+                , error, BIP_ERR_INVALID_PARAMETER, bipStatus );
+        {
+            pPbipStartSettings->additionalAltAudioRenditionInfoCount++;
+            pPbipStartSettings->additionalAltAudioInfo[i].groupId = trackInfo.info.audio.containerSpecificInfo.hls.pGroupId;
+            pPbipStartSettings->additionalAltAudioInfo[i].pid = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid;
+            pPbipStartSettings->additionalAltAudioInfo[i].containerType = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+            pPbipStartSettings->additionalAltAudioInfo[i].language = trackInfo.info.audio.containerSpecificInfo.hls.pHlsLanguageCode;
+            pPbipStartSettings->additionalAltAudioInfo[i].hPlaypump = hTrackEntry->hPlaypump;
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added audio primer entry for hTrackEntry=%p with trackId 0x%x realTrackId=0x%x language=%s"
+                        BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId,
+                        pPbipStartSettings->additionalAltAudioInfo[i].pid, pPbipStartSettings->alternateAudio.language ));
+            i++;
+        }
+    }
+    bipStatus = BIP_SUCCESS;
+
+error:
+    return (bipStatus);
+} /* setAdditionalAlternateAudioInfo */
+
+static void updatePbipAudioDecoderHandles(
+    BIP_PlayerHandle                    hPlayer,
+    B_PlaybackIpNexusHandles            *pNexusHandles
+    )
+{
+    BIP_PlayerTrackListEntryHandle  hTrackEntry;
+
+    pNexusHandles->simpleAudioDecoderCount = 0;
+    for (
+            hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+            hTrackEntry;
+            hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+        )
+    {
+        if (hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eVideo || !hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder)
+        {
+            /* skip the main video track as it will be already handled. */
+            continue;
+        }
+        pNexusHandles->simpleAudioDecoders[pNexusHandles->simpleAudioDecoderCount] = hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder;
+        pNexusHandles->simpleAudioDecoderCount++;
+        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Added AudioDecoderHandle=%p for hTrackEntry=%p with trackId 0x%x"
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder, (void *)hTrackEntry, hTrackEntry->trackId));
+    }
+} /* updatePbipAudioDecoderHandles */
 
 static BIP_Status openAndAddPidChannelToTrackList(
     BIP_PlayerHandle                            hPlayer,
@@ -414,15 +1052,18 @@ static BIP_Status openAndAddPidChannelToTrackList(
     /* Check if new track matches either both Id & type or just one of them of an existing track and take the correct action. */
     for (
          hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
-         hTrackEntry && trackId == hTrackEntry->trackId;
+         hTrackEntry;
          hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
         )
     {
-        /* Duplicate track, return its pidChannel. */
-        *phPidChannel = hTrackEntry->hPidChannel;
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Duplicate entry: (trackId 0x%x), returning existing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId, (void *)*phPidChannel));
-        bipStatus = BIP_SUCCESS;
-        return (bipStatus);
+         if (trackId == hTrackEntry->trackId)
+         {
+             /* Duplicate track, return its pidChannel. */
+             *phPidChannel = hTrackEntry->hPidChannel;
+             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Duplicate entry: (trackId 0x%x), returning existing hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, trackId, (void *)*phPidChannel));
+             bipStatus = BIP_SUCCESS;
+             return (bipStatus);
+         }
     }
 
     /* We haven't found this trackId in current list, create a new entry, open an associated PidChannel and store its settings. */
@@ -1449,6 +2090,9 @@ static BIP_Status processConnectingState_locked(
 {
     BIP_Status completionStatus = BIP_INF_IN_PROGRESS;
     BIP_PlayerConnectSettings *pSettings;
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BSTD_UNUSED( threadOrigin );
 
@@ -1624,6 +2268,7 @@ static BIP_Status processConnectingState_locked(
                      ));
 
             hPlayer->pbipState.ipSessionOpenSettings.security.dmaHandle = hPlayer->hDma;
+            hPlayer->pbipState.ipSessionOpenSettings.maxNetworkJitter = hPlayer->connectSettings.maxIpNetworkJitterInMs;
 
             hPlayer->pbipState.status = B_PlaybackIp_SessionOpen(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.ipSessionOpenSettings, &hPlayer->pbipState.ipSessionOpenStatus);
             BIP_CHECK_GOTO(( hPlayer->pbipState.status == B_ERROR_IN_PROGRESS || hPlayer->pbipState.status == B_ERROR_SUCCESS), ( "B_PlaybackIp_SessionOpen Failed"), error, BIP_ERR_PLAYER_CONNECT, completionStatus );
@@ -2057,58 +2702,6 @@ static bool useLiveModeForIpPlayback(
     return useLiveIpMode;
 }
 
-static bool getTrackOfTrackId(
-    BIP_MediaInfoHandle     hMediaInfo,
-    unsigned                trackId,
-    BIP_MediaInfoTrack      *pMediaInfoTrackOut
-    )
-{
-    bool                    trackFound = false;
-    BIP_MediaInfoStream     *pMediaInfoStream;
-    BIP_MediaInfoTrackGroup *pMediaInfoTrackGroup = NULL;
-    bool                    trackGroupPresent = false;
-    BIP_MediaInfoTrack      *pMediaInfoTrack;
-
-    pMediaInfoStream = BIP_MediaInfo_GetStream(hMediaInfo);
-    BDBG_ASSERT(pMediaInfoStream);
-    if (!pMediaInfoStream) return false;
-
-    if (pMediaInfoStream->numberOfTrackGroups != 0)
-    {
-        pMediaInfoTrackGroup = pMediaInfoStream->pFirstTrackGroupInfo;
-        pMediaInfoTrack = pMediaInfoTrackGroup->pFirstTrackForTrackGroup;
-        trackGroupPresent = true;
-    }
-    else
-    {
-        /* None of the track belongs to any trackGroup, in this case stream out all tracks from mediaInfoStream.*/
-        pMediaInfoTrack = pMediaInfoStream->pFirstTrackInfoForStream;
-    }
-
-    if (!pMediaInfoTrack) return false;
-
-    while (pMediaInfoTrack)
-    {
-        if (pMediaInfoTrack->trackId == trackId)
-        {
-            BDBG_MSG(( BIP_MSG_PRE_FMT "Found trackType=%s with trackId=0x%x" BIP_MSG_PRE_ARG, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType), pMediaInfoTrack->trackId));
-            *pMediaInfoTrackOut = *pMediaInfoTrack;
-            trackFound = true;
-            break;
-        }
-
-        if (true == trackGroupPresent)
-        {
-            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForTrackGroup;
-        }
-        else
-        {
-            pMediaInfoTrack = pMediaInfoTrack->pNextTrackForStream;
-        }
-    }
-    return (trackFound);
-} /* getTrackOfTrackId */
-
 static bool getTrackOfLanguage(
     BIP_MediaInfoHandle hMediaInfo,
     const char          *pLanguage,
@@ -2144,8 +2737,6 @@ static bool getTrackOfLanguage(
 
     while (pMediaInfoTrack)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x language=%s with type=%s" BIP_MSG_PRE_ARG,
-                    pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
         if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
                 pMediaInfoTrack->info.audio.pLanguage && strcmp(pMediaInfoTrack->info.audio.pLanguage, pLanguage) == 0)
         {
@@ -2321,9 +2912,6 @@ static bool getTrackOfLanguageAndAc3Descriptor(
     /* Search for explicit track first: one that matches both language & descriptor preference. */
     while (pMediaInfoTrack)
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "trackId=0x%x bsmod=%d language=%s with type=%s" BIP_MSG_PRE_ARG,
-                    pMediaInfoTrack->trackId, pMediaInfoTrack->info.audio.descriptor.ac3.bsmod, pMediaInfoTrack->info.audio.pLanguage, BIP_ToStr_BIP_MediaInfoTrackType(pMediaInfoTrack->trackType) ));
-
         if (pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio &&
                 pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid && ac3Descriptor.bsmod == pMediaInfoTrack->info.audio.descriptor.ac3.bsmod &&
                 pMediaInfoTrack->info.audio.pLanguage && strcmp(pMediaInfoTrack->info.audio.pLanguage, pLanguage) == 0)
@@ -2786,44 +3374,6 @@ error:
     return (completionStatus);
 } /* processProbingState_locked */
 
-static NEXUS_PidChannelHandle openPidChannel(
-    BIP_PlayerHandle                        hPlayer,
-    unsigned                                pid,
-    const NEXUS_PlaybackPidChannelSettings  *pSettings /* attr{null_allowed=n} */
-    )
-{
-    BIP_Status bipStatus = BIP_ERR_INTERNAL;
-    NEXUS_PidChannelHandle hPidChannel = NULL;
-
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p trackId=0x%x useNexusPlaypump=%s usePlaypump2ForAudio=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, pid,
-                hPlayer->useNexusPlaypump ? "Y": "N", hPlayer->usePlaypump2ForAudio ? "Y": "N" ));
-    if (hPlayer->useNexusPlaypump)
-    {
-        NEXUS_PlaypumpHandle hPlaypump;
-
-        if (hPlayer->usePlaypump2ForAudio && pSettings->pidSettings.pidType == NEXUS_PidType_eAudio)
-        {
-            hPlaypump = hPlayer->hPlaypump2;
-        }
-        else
-        {
-            hPlaypump = hPlayer->hPlaypump;
-        }
-        hPidChannel = NEXUS_Playpump_OpenPidChannel(hPlaypump, pid, &pSettings->pidSettings);
-        BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playpump_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playpump_OpenPidChannel opened hPidChannel=%p for trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
-    }
-    else
-    {
-        hPidChannel = NEXUS_Playback_OpenPidChannel(hPlayer->hPlayback, pid, pSettings);
-        BIP_CHECK_GOTO(( hPidChannel ), ( "NEXUS_Playback_OpenPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p NEXUS_Playback_OpenPidChannel opened hPidChannel=%p trackId=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPidChannel, pid ));
-    }
-
-error:
-    return hPidChannel;
-} /* openPidChannel */
-
 /*
  * Video Discard threshold default:
  * -Video doesn't distinguish values between Push vs Pull modes.
@@ -2887,8 +3437,16 @@ static BIP_Status prepareForPullMode(
              *    App will do that when it is receiving UDP/RTP stream in a very low jitter environment
              *    and wants to do low-latency decode & display.
              */
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
-                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            if (hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            }
+            else
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: using STC Channel in audioMasterAutoMode for UDP/RTP protocol=%d"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->playerProtocol));
+            }
             settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
             /*
              * Also, for Music Channels w/ Video Stills, we need to increase the video PTS discard threshold (by default it is 2 sec for video).
@@ -2950,11 +3508,9 @@ static BIP_Status prepareForPullMode(
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Lowered audio discard threshold to=%u sec" BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_AUDIO_DISCARD_THRESHHOLD_FOR_LIVE));
         }
     }
-    else /* non-simple stcChannel case. */
+    else if (hPlayer->hStcChannel) /* non-simple stcChannel case. */
     {
         NEXUS_StcChannelSettings settings;
-
-        BDBG_ASSERT(hPlayer->hStcChannel);
 
         hPlayer->lockedTimebase = NEXUS_Timebase_Open(NEXUS_ANY_ID);
         BIP_CHECK_GOTO(( hPlayer->lockedTimebase != NEXUS_Timebase_eInvalid), ( "NEXUS_Timebase_Open Failed"), error, BIP_ERR_NEXUS, bipStatus );
@@ -2971,14 +3527,32 @@ static BIP_Status prepareForPullMode(
             settings.modeSettings.Auto.transportType = hPlayer->streamInfo.transportType;
         }
 
-        if (hPlayer->audioTrackId != UINT_MAX && hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+        if (hPlayer->audioTrackId != UINT_MAX &&
+                (hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid ||
+                hPlayer->playerProtocol == BIP_PlayerProtocol_eSimpleUdp || hPlayer->playerProtocol == BIP_PlayerProtocol_eRtp) )
         {
             /*
-             * We use audio master mode if a audioTrackId matches the PCR Pid.
-             * This is typically the case for Music Channels w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             * We use audio master mode in following cases when audio track is present in the stream:
+             *
+             *  - if a audioTrackId matches the PCR Pid. This is typically the case for Music Channels
+             *    w/ Video Stills where we would want to stay in Audio Master mode in all cases.
+             *
+             *  - if playerProtocol for this stream happens to be UDP or RTP. Note here that we are in the
+             *    pull clock recovery mode logic (which typically is not applicable for UDP/RTP protocols).
+             *    So app must have over-ridden clock recovery mode to ePull in the BIP_Player_Prepare().
+             *    App will do that when it is receiving UDP/RTP stream in a very low jitter environment
+             *    and wants to do low-latency decode & display.
              */
-            BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
-                      BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            if (hPlayer->audioTrackId == hPlayer->streamInfo.mpeg2Ts.pcrPid)
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: AudioTrackId(0x%x) matches the PcrTrackId(0x%x), using STC Channel in audioMasterAutoMode"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, hPlayer->streamInfo.mpeg2Ts.pcrPid ));
+            }
+            else
+            {
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: using STC Channel in audioMasterAutoMode for UDP/RTP protocol=%d"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->playerProtocol));
+            }
             settings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
             /*
              * Also, for Music Channels w/ Video Stills, we need to increase the PTS discard threshold (by default it is 2 sec for video).
@@ -3707,13 +4281,14 @@ static BIP_PlayerMode determinePlayerMode(
 
 static BIP_Status selectAudioTrackAndCodec(
     const BIP_PlayerHandle      hPlayer,
-    const BIP_PlayerSettings    *pPlayerSettings,
+    const BIP_PlayerSettings    *pPlayerSettings,               /* contains the input track settings including the preferences, etc. */
     BIP_PlayerMode              playerMode,
-    unsigned                    *pAudioTrackId,
+    unsigned                    *pAudioTrackId,                 /* selected track output */
     NEXUS_AudioCodec            *pAudioCodec,
     bool                        *pUsePlaypump2ForAudio,
     NEXUS_TransportType         *pTransportTypeForPlaypump2,
-    bool                        *pAudioTrackIdChanged
+    bool                        *pAudioTrackIdChanged,
+    BIP_MediaInfoTrack          *pUpdatedAudioInfoTrack         /* MediaInfoTrack corresponding to the selected audio track. */
     )
 {
     BIP_MediaInfoTrack  trackInfo;
@@ -3748,7 +4323,7 @@ static BIP_Status selectAudioTrackAndCodec(
             BIP_CHECK_GOTO(( trackFound == true ), ( "hPlayer=%p: Failed to lookup trackInfo using explicit trackId=0x%x for HLS Container type" , (void *)hPlayer, *pAudioTrackId )
                     , error, BIP_ERR_INVALID_PARAMETER, bipStatus );
 
-            *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : pPlayerSettings->audioTrackId;
+            *pAudioTrackId = pPlayerSettings->audioTrackId;
             *pUsePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
             *pAudioCodec = trackInfo.info.audio.codec;
             *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
@@ -3817,7 +4392,7 @@ static BIP_Status selectAudioTrackAndCodec(
             {
                 if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
                 {
-                    *pAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : trackInfo.trackId;
+                    *pAudioTrackId = trackInfo.trackId;
                     *pTransportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
                     *pUsePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
                 }
@@ -3850,15 +4425,15 @@ static BIP_Status selectAudioTrackAndCodec(
         /* Check if the selected trackId is different from the current one and set the output flag. */
         if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
         {
-            if ( hPlayer->audioTrackInfo.trackId != trackInfo.trackId )
+            if ( hPlayer->audioTrackId != trackInfo.trackId )
             {
                 *pAudioTrackIdChanged = true;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId changed: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, trackInfo.trackId ));
             }
             else
             {
                 *pAudioTrackIdChanged = false;
-                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackInfo.trackId, trackInfo.trackId ));
+                BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: audioTrackId didn't change: cur=0x%x, new=0x%x" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->audioTrackId, trackInfo.trackId ));
             }
         }
         else
@@ -3876,7 +4451,7 @@ static BIP_Status selectAudioTrackAndCodec(
         }
     }
 
-    if (trackFound) hPlayer->audioTrackInfo = trackInfo;
+    if (trackFound) *pUpdatedAudioInfoTrack = trackInfo;
     bipStatus = BIP_SUCCESS;
 
 error:
@@ -4000,8 +4575,19 @@ static void stopVideoDecoder(
     }
     else if (hPlayer->hSimpleVideoDecoder)
     {
+        NEXUS_Error nrc;
         NEXUS_SimpleVideoDecoder_Stop(hPlayer->hSimpleVideoDecoder);
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple VideoDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleVideoDecoder ));
+
+        nrc = NEXUS_SimpleVideoDecoder_SetStcChannel(hPlayer->hSimpleVideoDecoder, NULL);
+        if ( nrc == NEXUS_SUCCESS )
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Cleared hSimpleStcChannel from hSimpleVideoDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleVideoDecoder));
+        }
+        else
+        {
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Failed to clear hSimpleStcChannel from hSimpleVideoDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleVideoDecoder));
+        }
     }
 } /* stopVideoDecoder */
 
@@ -4024,6 +4610,9 @@ static BIP_Status startVideoDecoder(
     }
     else if (hPlayer->hSimpleVideoDecoder)
     {
+        nrc = NEXUS_SimpleVideoDecoder_SetStcChannel(hPlayer->hSimpleVideoDecoder, hPlayer->hSimpleStcChannel);
+        BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleVideoDecoder_SetStcChannel() Failed during Video Track Change"), error, BIP_ERR_NEXUS, completionStatus );
+
         hPlayer->startSettings.simpleVideoStartSettings.settings.pidChannel = hVideoPidChannel;
         hPlayer->startSettings.simpleVideoStartSettings.settings.codec = newVideoCodec;
         nrc = NEXUS_SimpleVideoDecoder_Start( hPlayer->hSimpleVideoDecoder, &hPlayer->startSettings.simpleVideoStartSettings );
@@ -4047,8 +4636,20 @@ static void stopAudioDecoder(
     }
     else if (hPlayer->hSimplePrimaryAudioDecoder)
     {
+        NEXUS_Error nrc;
+
         NEXUS_SimpleAudioDecoder_Stop(hPlayer->hSimplePrimaryAudioDecoder);
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: simple AudioDecoder=%p is stopped" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimplePrimaryAudioDecoder ));
+
+        nrc = NEXUS_SimpleAudioDecoder_SetStcChannel(hPlayer->hSimplePrimaryAudioDecoder, NULL);
+        if ( nrc == NEXUS_SUCCESS )
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Cleared hSimpleStcChannel from hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimplePrimaryAudioDecoder));
+        }
+        else
+        {
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Failed to clear hSimpleStcChannel from hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimplePrimaryAudioDecoder));
+        }
     }
 } /* stopAudioDecoder */
 
@@ -4071,6 +4672,10 @@ static BIP_Status startAudioDecoder(
     }
     else if (hPlayer->hSimplePrimaryAudioDecoder)
     {
+        nrc = NEXUS_SimpleAudioDecoder_SetStcChannel(hPlayer->hSimplePrimaryAudioDecoder, hPlayer->hSimpleStcChannel);
+        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_SimpleAudioDecoder_SetStcChannel Failed" ), error, BIP_ERR_NEXUS, completionStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Assigned hSimpleStcChannel=%p to hSimpleAudioDecoder=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hSimpleStcChannel, (void *)hPlayer->hSimplePrimaryAudioDecoder));
+
         hPlayer->startSettings.simpleAudioStartSettings.primary.pidChannel = hAudioPidChannel;
         hPlayer->startSettings.simpleAudioStartSettings.primary.codec = newAudioCodec;
         nrc = NEXUS_SimpleAudioDecoder_Start( hPlayer->hSimplePrimaryAudioDecoder, &hPlayer->startSettings.simpleAudioStartSettings );
@@ -4201,7 +4806,7 @@ static BIP_Status determineAndReConfigureClockRecovery(
             nrc = NEXUS_SimpleStcChannel_SetSettings( hPlayer->hSimpleStcChannel, &settings );
             BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_SimpleStcChannel_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
         }
-        else /* non-simple stcChannel case. */
+        else if (hPlayer->hStcChannel) /* non-simple stcChannel case. */
         {
             NEXUS_StcChannelSettings settings;
 
@@ -4217,10 +4822,12 @@ error:
     return (completionStatus);
 } /* determineAndReConfigureClockRecovery */
 
+/* Called by setSettings to reconfigure the audio track when audio primers are not enabled. */
 static BIP_Status playerReconfigureAudioTrack(
     BIP_PlayerHandle    hPlayer,
     unsigned            newAudioTrackId,
     NEXUS_AudioCodec    newAudioCodec,
+    BIP_MediaInfoTrack  *pMediaInfoTrackAudio,
     bool                usePlaypump2ForNewAudio,
     NEXUS_TransportType transportTypeForPlaypump2,
     const NEXUS_PlaybackPidChannelSettings *pNewPidChannelSettings
@@ -4252,11 +4859,6 @@ static BIP_Status playerReconfigureAudioTrack(
     /* If Player is currently in one of the Audio Decode modes, Stop Audio Decoder & Close current pid channel */
     if ( (hPlayer->mode == BIP_PlayerMode_eAudioVideoDecode || hPlayer->mode == BIP_PlayerMode_eAudioOnlyDecode) && hPlayer->hPrimaryAudioPidChannel)
     {
-#if 0
-        /* TODO: */
-        /* May need to pause the playpump if we have to stop the audio decoder. */
-        NEXUS_Playpump_SetPause(hPlayer->hPlaypump, true);
-#endif
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Audio Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
         stopAudioDecoder(hPlayer);
         closePidChannel(hPlayer, hPlayer->hPrimaryAudioPidChannel);
@@ -4272,35 +4874,14 @@ static BIP_Status playerReconfigureAudioTrack(
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump2=%p Closed as it is no longer needed for the next audio track" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
     }
 
-    /* Open Playpump2 if it is not already opened & is needed. */
+    /* If Playpump2 is needed, then open & configure it. */
     if (usePlaypump2ForNewAudio)
     {
-        if (!hPlayer->hPlaypump2)
-        {
-            NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
-
-            NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-            playpumpOpenSettings.fifoSize *= 2;
-            playpumpOpenSettings.numDescriptors = 200;
-            hPlayer->hPlaypump2 = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
-            BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
-        }
-
-        /* Now configure the PP2 */
-        {
-            NEXUS_PlaypumpSettings settings;
-
-            NEXUS_Playpump_GetSettings(hPlayer->hPlaypump2, &settings);
-            settings = hPlayer->playerSettings.playbackSettings.playpumpSettings;
-            settings.transportType = transportTypeForPlaypump2;
-            nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump2, &settings);
-            BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
-
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup: transportTypeForPlaypump2=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump, BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2) ));
-            hPlayer->usePlaypump2ForAudio = true;
-            hPlayer->transportTypeForPlaypump2 = transportTypeForPlaypump2;
-        }
+        completionStatus = openAndConfigureNexusPlaypump(hPlayer, NULL /* OpenSettings. */, &hPlayer->playerSettings.playbackSettings.playpumpSettings, transportTypeForPlaypump2, &hPlayer->hPlaypump2);
+        BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "openAndConfigureNexusPlaypump Failed"), error, completionStatus, completionStatus );
+        hPlayer->usePlaypump2ForAudio = true;
+        hPlayer->transportTypeForPlaypump2 = transportTypeForPlaypump2;
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup: transportTypeForPlaypump2=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2, BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2) ));
     }
 
     /* Open audioPidChannel corresponding to the new audio track. */
@@ -4311,7 +4892,7 @@ static BIP_Status playerReconfigureAudioTrack(
         pidChannelSettings = *pNewPidChannelSettings;
         pidChannelSettings.pidSettings.pidTypeSettings.audio.codec = newAudioCodec;
         pidChannelSettings.pidSettings.pidType = NEXUS_PidType_eAudio;
-        hPlayer->hPrimaryAudioPidChannel = openPidChannel( hPlayer, newAudioTrackId, &pidChannelSettings );
+        hPlayer->hPrimaryAudioPidChannel = openPidChannel( hPlayer, getRealAudioTrackId(hPlayer, pMediaInfoTrackAudio), &pidChannelSettings, NULL );
         BIP_CHECK_GOTO(( hPlayer->hPrimaryAudioPidChannel ), ( "openPidChannel Failed for the new audio track!"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
     }
 
@@ -4336,20 +4917,89 @@ static BIP_Status playerReconfigureAudioTrack(
         hPlayer->pbipState.settings.nexusHandles.playpump2 = hPlayer->hPlaypump2;
         hPlayer->pbipState.settings.nexusHandlesValid = true;
         hPlayer->pbipState.settings.alternateAudio.containerType = transportTypeForPlaypump2;
-        hPlayer->pbipState.settings.alternateAudio.language = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.pHlsLanguageCode;
-        hPlayer->pbipState.settings.alternateAudio.groupId = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.pGroupId;
-        hPlayer->pbipState.settings.alternateAudio.pid = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid;
+        hPlayer->pbipState.settings.alternateAudio.language = pMediaInfoTrackAudio->info.audio.containerSpecificInfo.hls.pHlsLanguageCode;
+        hPlayer->pbipState.settings.alternateAudio.groupId = pMediaInfoTrackAudio->info.audio.containerSpecificInfo.hls.pGroupId;
+        hPlayer->pbipState.settings.alternateAudio.pid = pMediaInfoTrackAudio->info.audio.containerSpecificInfo.hls.hlsAudioPid;
         rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
         BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
 
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Alternate Rendition Playback is started in HLS Player!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
     }
+
+    /* Update this new audio PidChannel in the trackList. */
+    {
+        BIP_PlayerTrackListEntryHandle hTrackEntry;
+        for (
+                hTrackEntry = BLST_Q_FIRST( &hPlayer->trackListHead);
+                hTrackEntry;
+                hTrackEntry = BLST_Q_NEXT( hTrackEntry, trackListNext)
+            )
+        {
+            if (hTrackEntry->appOwnedDecoders && hTrackEntry->settings.pidSettings.pidSettings.pidType == NEXUS_PidType_eAudio)
+            {
+                hTrackEntry->settings.pidSettings.pidSettings.pidTypeSettings.audio.codec = newAudioCodec;
+                hTrackEntry->trackId = hPlayer->audioTrackId = hPlayer->playerSettings.audioTrackId = newAudioTrackId;
+                hTrackEntry->hPidChannel = hPlayer->hPrimaryAudioPidChannel;
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Updated Primary Audio hTrackEntry=%p with trackId 0x%x codec=%s"
+                            BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec) ));
+                break;
+            }
+        }
+    }
     completionStatus = BIP_SUCCESS;
 
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: trackId=0x%x realTrackId=0x%x Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer, newAudioTrackId, getRealAudioTrackId(hPlayer, pMediaInfoTrackAudio) ));
 error:
     return (completionStatus);
 } /* playerReconfigureAudioTrack */
+
+BIP_Status playerReconfigureAudioDecoders(
+    BIP_PlayerHandle    hPlayer,
+    BIP_PlayerTrackListEntryHandle hCurTrackEntry,
+    BIP_PlayerTrackListEntryHandle hNewTrackEntry
+    )
+{
+    BIP_Status bipStatus = BIP_SUCCESS;
+
+#if NXCLIENT_SUPPORT
+    {
+        NEXUS_Error                 nrc;
+        NxClient_ReconfigSettings   reconfigSettings;
+
+        NxClient_GetDefaultReconfigSettings(&reconfigSettings);
+        reconfigSettings.command[0].connectId1 = hCurTrackEntry->connectId;
+        reconfigSettings.command[0].connectId2 = hNewTrackEntry->connectId;
+        reconfigSettings.command[0].type = NxClient_ReconfigType_eRerouteAudio;
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Reconfiging SimpleAudioDecoder from trackId:connectId=0x%x:%d to trackId:connectId=0x%x:%d "
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, hCurTrackEntry->trackId, reconfigSettings.command[0].connectId1, hNewTrackEntry->trackId, reconfigSettings.command[0].connectId2));
+        nrc = NxClient_Reconfig(&reconfigSettings);
+        BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NxClient_Reconfig Failed" ), error, BIP_ERR_NEXUS, bipStatus );
+
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Reconfigured SimpleAudioDecoder!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+    }
+#else
+    {
+        BDBG_MSG((BIP_MSG_PRE_FMT "hPlayer=%p: Switching Audio tracks (trackId=0x%x to trackId=0x%x) using Primers is not yet supported in the non-NxClient mode!"
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, hCurTrackEntry->trackId, hNewTrackEntry->trackId));
+        BDBG_ASSERT(NULL);
+    }
+#endif
+    /* Tell PBIP about the current AudioDecoderHandle. */
+    {
+        B_PlaybackIpError rc;
+        B_PlaybackIp_GetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+        hPlayer->pbipState.settings.nexusHandles.simpleAudioDecoder = hNewTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder;
+        hPlayer->pbipState.settings.nexusHandlesValid = true;
+        rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+        BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_PLAYER_PBIP, bipStatus );
+
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Notified PBIP about selected hPrimaryAudioDecoder=%p!"
+                    BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->pbipState.settings.nexusHandles.simpleAudioDecoder ));
+    }
+    bipStatus = BIP_SUCCESS;
+error:
+    return (bipStatus);
+} /* playerReconfigureAudioDecoders */
 
 static BIP_Status setSettings(
     BIP_PlayerHandle hPlayer,
@@ -4366,6 +5016,9 @@ static BIP_Status setSettings(
     bool                    audioTrackIdChanged = false;
     bool                    usePlaypump2ForAudio = false;
     NEXUS_TransportType     transportTypeForPlaypump2;
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT
                 "Settings: videoTrackId=0x%x, videoCodec=%s, audioTrackId=0x%x, audioCodec=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
@@ -4397,7 +5050,7 @@ static BIP_Status setSettings(
     selectVideoTrackAndCodec(hPlayer, pNewPlayerSettings, newPlayerMode, &newVideoTrackId, &newVideoCodec, &videoTrackIdChanged);
 
     /* Using the new PlayerSettings, determine app has changed audio track. */
-    completionStatus = selectAudioTrackAndCodec( hPlayer, pNewPlayerSettings, newPlayerMode, &newAudioTrackId, &newAudioCodec, &usePlaypump2ForAudio, &transportTypeForPlaypump2, &audioTrackIdChanged);
+    completionStatus = selectAudioTrackAndCodec( hPlayer, pNewPlayerSettings, newPlayerMode, &newAudioTrackId, &newAudioCodec, &usePlaypump2ForAudio, &transportTypeForPlaypump2, &audioTrackIdChanged, &hPlayer->audioTrackInfo);
     BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "selectAudioTrackAndCodec Failed"), error, completionStatus, completionStatus );
 
     /* Validate settings that can be changed during runtime. */
@@ -4411,7 +5064,7 @@ static BIP_Status setSettings(
     /* Now we have valid settings, so apply them. */
 
     /* We start w/ track related changes. */
-    if ( videoTrackIdChanged  && hPlayer->videoTrackId != newVideoTrackId )
+    if ( videoTrackIdChanged && hPlayer->videoTrackId != newVideoTrackId )
     {
         BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: video trackId has changed: cur=0x%x new0x%x modes cur=%s new=%s " BIP_MSG_PRE_ARG,
                     (void *)hPlayer, hPlayer->videoTrackId, newVideoTrackId, BIP_ToStr_BIP_PlayerMode(hPlayer->mode), BIP_ToStr_BIP_PlayerMode(newPlayerMode) ));
@@ -4421,11 +5074,28 @@ static BIP_Status setSettings(
 
     if ( audioTrackIdChanged )
     {
-        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audio trackId has changed: ReConfigure to play different audio track" BIP_MSG_PRE_ARG, (void *)hPlayer));
-        hPlayer->hPrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary;
-        hPlayer->hSimplePrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder;
-        completionStatus = playerReconfigureAudioTrack(hPlayer, newAudioTrackId, newAudioCodec, usePlaypump2ForAudio, transportTypeForPlaypump2, &pNewPlayerSettings->audioTrackSettings );
-        BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "playerReconfigureAudioTrack Failed"), error, completionStatus, completionStatus );
+        BIP_PlayerTrackListEntryHandle hCurTrackEntry, hNewTrackEntry;
+
+        /* Find trackEntry corresponding to current & new trackIds. */
+        /* If both exist & are not the same, then we do have multiple tracks setup and thus can just switch to audio decoder of the new trackId. */
+        hCurTrackEntry = findTrackEntryUsingTrackId( hPlayer, hPlayer->audioTrackId );
+        hNewTrackEntry = findTrackEntryUsingTrackId( hPlayer, newAudioTrackId );
+        if (hCurTrackEntry && hNewTrackEntry && hCurTrackEntry != hNewTrackEntry)
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audio trackId has changed: Switch the decoders!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            completionStatus = playerReconfigureAudioDecoders(hPlayer, hCurTrackEntry, hNewTrackEntry);
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "playerReconfigureAudioDecoders Failed"), error, completionStatus, completionStatus );
+            hPlayer->hSimplePrimaryAudioDecoder = hNewTrackEntry->settings.pidSettings.pidTypeSettings.audio.simpleDecoder;
+            hPlayer->hPrimaryAudioPidChannel = hNewTrackEntry->hPidChannel;
+        }
+        else
+        {
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: audio trackId has changed: ReConfigure to play different audio track" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            hPlayer->hPrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary;
+            hPlayer->hSimplePrimaryAudioDecoder = pNewPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder;
+            completionStatus = playerReconfigureAudioTrack(hPlayer, newAudioTrackId, newAudioCodec, &hPlayer->audioTrackInfo, usePlaypump2ForAudio, transportTypeForPlaypump2, &pNewPlayerSettings->audioTrackSettings );
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "playerReconfigureAudioTrack Failed"), error, completionStatus, completionStatus );
+        }
 
         /* All is well, so cache the updated trackId. */
         hPlayer->audioTrackId = newAudioTrackId;
@@ -4451,7 +5121,13 @@ static BIP_Status setSettings(
         hPlayer->mode = newPlayerMode;
     }
     hPlayer->playerSettings = *pNewPlayerSettings;
-    BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Complete!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+    if (pNewPlayerSettings->pPreferredAudioLanguage)
+    {
+        completionStatus = BIP_String_StrcpyChar(hPlayer->hPreferredAudioLanguage, pNewPlayerSettings->pPreferredAudioLanguage);
+        hPlayer->playerSettings.pPreferredAudioLanguage = BIP_String_GetString(hPlayer->hPreferredAudioLanguage);
+        BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "BIP_String_StrcatPrintf Failed"), error, completionStatus, completionStatus );
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Cached playerSettings.pPreferredAudioLanguage=%s!" BIP_MSG_PRE_ARG, (void *)hPlayer, hPlayer->playerSettings.pPreferredAudioLanguage ));
+    }
 error:
     return (completionStatus);
 } /* setSettings */
@@ -4550,39 +5226,38 @@ static BIP_Status selectTracksAndReconfigDecoders(
          */
         if ( hPlayer->mode == BIP_PlayerMode_eAudioOnlyDecode || hPlayer->mode == BIP_PlayerMode_eAudioVideoDecode )
         {
-            BIP_MediaInfoTrack trackInfo;
             bool trackFound = false;
 
-            if (BIP_String_GetString(hPlayer->hPreferredAudioLanguage) && hPlayer->playerSettings.ac3Descriptor.bsmodValid)
+            if (BIP_String_GetLength(hPlayer->hPreferredAudioLanguage) && hPlayer->playerSettings.ac3Descriptor.bsmodValid)
             {
-                trackFound = getTrackOfLanguageAndAc3Descriptor(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), hPlayer->playerSettings.ac3Descriptor, &trackInfo);
+                trackFound = getTrackOfLanguageAndAc3Descriptor(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), hPlayer->playerSettings.ac3Descriptor, &hPlayer->audioTrackInfo);
             }
-            if (!trackFound && BIP_String_GetString(hPlayer->hPreferredAudioLanguage))
+            if (!trackFound && BIP_String_GetLength(hPlayer->hPreferredAudioLanguage))
             {
-                trackFound = getTrackOfLanguage(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), &trackInfo);
+                trackFound = getTrackOfLanguage(hPlayer->hMediaInfo, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), &hPlayer->audioTrackInfo);
             }
             if (!trackFound && hPlayer->playerSettings.ac3Descriptor.bsmodValid)
             {
-                trackFound = getTrackOfAc3Descriptor(hPlayer->hMediaInfo, hPlayer->playerSettings.ac3Descriptor, &trackInfo);
+                trackFound = getTrackOfAc3Descriptor(hPlayer->hMediaInfo, hPlayer->playerSettings.ac3Descriptor, &hPlayer->audioTrackInfo);
             }
             if (!trackFound)
             {
-                (trackFound = getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &trackInfo));
+                (trackFound = getTrackOfType(hPlayer->hMediaInfo, BIP_MediaInfoTrackType_eAudio, &hPlayer->audioTrackInfo));
             }
 
             if (trackFound)
             {
                 if (hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls)
                 {
-                    newAudioTrackId = trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid ? trackInfo.info.audio.containerSpecificInfo.hls.hlsAudioPid : trackInfo.trackId;
-                    transportTypeForPlaypump2 = trackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
-                    usePlaypump2ForAudio = trackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
+                    newAudioTrackId = hPlayer->audioTrackInfo.trackId;
+                    transportTypeForPlaypump2 = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
+                    usePlaypump2ForAudio = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.requiresSecondPlaypumForAudio;
                 }
                 else
                 {
-                    newAudioTrackId = trackInfo.trackId;
+                    newAudioTrackId = hPlayer->audioTrackInfo.trackId;
                 }
-                newAudioCodec = trackInfo.info.audio.codec;
+                newAudioCodec = hPlayer->audioTrackInfo.info.audio.codec;
                 BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: preferredLanguage=%s, matching trackId=0x%x audioCodec=%s transportType=%s usePlaypump2ForAudio=%s"
                             BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_String_GetString(hPlayer->hPreferredAudioLanguage), newAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec), BIP_ToStr_NEXUS_TransportType(transportTypeForPlaypump2), usePlaypump2ForAudio?"Y":"N" ));
             }
@@ -4598,18 +5273,21 @@ static BIP_Status selectTracksAndReconfigDecoders(
          * We have auto selected the tracks above. Now Reconfigure the AV Decode pipe with the new trackIds.
          */
 
+        /* Re-assign the primary AV decoders in hPlayer & update the trackList with the new AV tracks attributes */
+        {
+            updatePrimaryAudioVideoInTrackList(hPlayer, newVideoTrackId, newVideoCodec, newAudioTrackId, newAudioCodec);
+        }
+
         /* Stop AV Decoders. */
         {
-            if (newAudioTrackId != UINT_MAX && hPlayer->hPrimaryAudioPidChannel)
-            {
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Audio Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
-                stopAudioDecoder(hPlayer);
-            }
-            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stop Video Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stopping Audio Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+            stopAudioDecoder(hPlayer);
+            stopResourcesForAudioPrimers(hPlayer);
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Stopping Video Decoder!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
             stopVideoDecoder(hPlayer);
         }
 
-        /* Change Tracks. */
+        /* Change TrackIds in the Primary AV PidChannels . */
         {
             if (newVideoTrackId != UINT_MAX && hPlayer->hVideoPidChannel)
             {
@@ -4627,7 +5305,7 @@ static BIP_Status selectTracksAndReconfigDecoders(
             if (newAudioTrackId != UINT_MAX && hPlayer->hPrimaryAudioPidChannel)
             {
                 NEXUS_Error nrc;
-                nrc = NEXUS_PidChannel_ChangePid(hPlayer->hPrimaryAudioPidChannel, newAudioTrackId);
+                nrc = NEXUS_PidChannel_ChangePid(hPlayer->hPrimaryAudioPidChannel, getRealAudioTrackId(hPlayer, &hPlayer->audioTrackInfo));
                 if (nrc == NEXUS_SUCCESS)
                 {
                     BDBG_WRN((BIP_MSG_PRE_FMT "hPlayer=%p: Changed to newAudioTrackId=0x%x, codec=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, newAudioTrackId, BIP_ToStr_NEXUS_AudioCodec(newAudioCodec) ));
@@ -4664,6 +5342,34 @@ static BIP_Status selectTracksAndReconfigDecoders(
             rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
             BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed for resuming of PSI Parsing"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
         }
+
+        /* Re-setup Audio Primers as well. */
+        if (hPlayer->prepareSettings.enableAudioPrimer)
+        {
+            /* First, freeup the resources associated w/ current primers. */
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: EnableAudioPrimer is set, first release current audio primers related resources" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            removePrimerTracksAndReleaseResources(hPlayer);
+
+            /* And then re-initilize the primers. */
+            BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: Then, Re-acquire audio primers related resources for the new tracks" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            completionStatus = acquireResourcesForAudioPrimersUsingMediaInfo( hPlayer, hPlayer->hMediaInfo, &hPlayer->playerSettings.audioTrackSettings, &hPlayer->playerSettings.playbackSettings);
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "acquireResourcesForAudioPrimersUsingMediaInfo Failed"), error, completionStatus, completionStatus );
+
+            /* Finally, start the primers. */
+            completionStatus = startResourcesForAudioPrimers(hPlayer, hPlayer->startApi.pSettings);
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "startResourcesForAudioPrimers Failed"), error, completionStatus, completionStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Audio Primers are successfully started!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+
+            /* And then update PBIP w/ the list of all audio decoder handles as they are re-acquired here and PBIP needs to know the updated handles for trickmode controls. */
+            {
+                B_PlaybackIpError rc;
+                B_PlaybackIp_GetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+                updatePbipAudioDecoderHandles(hPlayer, &hPlayer->pbipState.settings.nexusHandles);
+                rc = B_PlaybackIp_SetSettings(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.settings);
+                BIP_CHECK_GOTO(( rc==B_ERROR_SUCCESS ), ( "B_PlaybackIp_SetSettings Failed"), error, BIP_ERR_PLAYER_PBIP, completionStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Notified PBIP about new hPrimaryAudioDecoders for Audio Priming mode!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+            }
+        }
     }
 
     completionStatus = BIP_SUCCESS;
@@ -4679,6 +5385,9 @@ static BIP_Status processPreparingState_locked(
     )
 {
     BIP_Status completionStatus = BIP_INF_IN_PROGRESS;
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     NEXUS_Error nrc;
     const BIP_PlayerPrepareSettings         *pPrepareSettings = hPlayer->prepareApi.pPrepareSettings;
@@ -4922,75 +5631,34 @@ static BIP_Status processPreparingState_locked(
             completionStatus = selectAudioTrackAndCodec(
                     hPlayer, pPlayerSettings, hPlayer->mode, &playerSettings.audioTrackId,
                     &playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec,
-                    &hPlayer->usePlaypump2ForAudio, &hPlayer->transportTypeForPlaypump2, NULL /* audioTrackIdChanged */);
+                    &hPlayer->usePlaypump2ForAudio, &hPlayer->transportTypeForPlaypump2, NULL /* audioTrackIdChanged */, &hPlayer->audioTrackInfo);
             BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "selectAudioTrackAndCodec Failed"), error, completionStatus, completionStatus );
         }
 
         /* If we have selected either audio or video tracks or are Recording, open & configure Playpump[s] (used for both Playback & Playpump modes). */
         if ( playerSettings.videoTrackId != UINT_MAX || playerSettings.audioTrackId != UINT_MAX || hPlayer->mode == BIP_PlayerMode_eRecord )
         {
-            if (!pPrepareSettings->hPlaypump)
+            /* Setup 1st Playpump, it is alwasy used whether we are using Playpump or Playback. */
             {
-                NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
-
-                NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-                playpumpOpenSettings.fifoSize *= 2;
-                playpumpOpenSettings.numDescriptors = 200;
-                hPlayer->hPlaypump = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
-                BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
-            }
-            else
-            {
+                /* Use the App provided playpump (if set) & playpumpSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
                 hPlayer->hPlaypump = pPrepareSettings->hPlaypump;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Using app provided playpump=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
+                /* Open Playpump (if app didn't provide it) & configure it. */
+                completionStatus = openAndConfigureNexusPlaypump(hPlayer, NULL /* OpenSettings. */, &pPlayerSettings->playbackSettings.playpumpSettings, hPlayer->streamInfo.transportType, &hPlayer->hPlaypump);
+                BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "openAndConfigureNexusPlaypump Failed"), error, completionStatus, completionStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened & setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
             }
 
+            /* Setup 2nd Playpump if needed. */
+            if (hPlayer->usePlaypump2ForAudio)
             {
-                NEXUS_PlaypumpSettings settings;
-
-                NEXUS_Playpump_GetSettings(hPlayer->hPlaypump, &settings);
-                /* Use the App provided playpumpSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
-                settings = pPlayerSettings->playbackSettings.playpumpSettings;
-                settings.transportType = hPlayer->streamInfo.transportType;
-                nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump, &settings);
-                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
-
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
-            }
-
-            if (!pPrepareSettings->hPlaypump2 && hPlayer->usePlaypump2ForAudio)
-            {
-                NEXUS_PlaypumpOpenSettings playpumpOpenSettings;
-
-                NEXUS_Playpump_GetDefaultOpenSettings(&playpumpOpenSettings);
-                /* TODO: need to consider the MPEG DASH buffering requirement for PP2. */
-                playpumpOpenSettings.fifoSize *= 2;
-                playpumpOpenSettings.numDescriptors = 200;
-                hPlayer->hPlaypump2 = NEXUS_Playpump_Open(NEXUS_ANY_ID, &playpumpOpenSettings);
-                BIP_CHECK_GOTO(( hPlayer->hPlaypump ), ( "NEXUS_Playpump_Open Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is opened!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
-            }
-            else
-            {
+                /* Use the App provided playpump2 handle & playpumpSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
                 hPlayer->hPlaypump2 = pPrepareSettings->hPlaypump2;
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: App provided playpump2=%p!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
+                completionStatus = openAndConfigureNexusPlaypump(hPlayer, NULL /* OpenSettings. */, &pPlayerSettings->playbackSettings.playpumpSettings, hPlayer->streamInfo.transportType, &hPlayer->hPlaypump2);
+                BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "openAndConfigureNexusPlaypump Failed"), error, completionStatus, completionStatus );
+                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump=%p is opened & setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
             }
 
-            if (hPlayer->hPlaypump2)
-            {
-                NEXUS_PlaypumpSettings settings;
-
-                NEXUS_Playpump_GetSettings(hPlayer->hPlaypump2, &settings);
-                /* Use the App provided playpumpSettings (which is initialized via BIP_Player_GetDefaultPrepareSettings */
-                settings = pPlayerSettings->playbackSettings.playpumpSettings;
-                settings.transportType = hPlayer->transportTypeForPlaypump2;
-                nrc = NEXUS_Playpump_SetSettings(hPlayer->hPlaypump2, &settings);
-                BIP_CHECK_GOTO(( nrc==NEXUS_SUCCESS ), ( "NEXUS_Playpump_SetSettings Failed"), error, BIP_ERR_NEXUS, completionStatus );
-
-                BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Nexus playpump2=%p is setup!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump2 ));
-            }
-
+            /* Setup Nexus Playback if needed. */
             if (!hPlayer->hPlayback && !hPlayer->useNexusPlaypump)
             {
                 NEXUS_PlaybackSettings settings;
@@ -5011,7 +5679,6 @@ static BIP_Status processPreparingState_locked(
                 nrc = NEXUS_Playback_SetSettings(hPlayer->hPlayback, &settings);
                 BIP_CHECK_GOTO(( nrc == NEXUS_SUCCESS ), ( "NEXUS_Playback_SetSettings Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
             }
-
         }
 
         /* AV Tracks have been selected, Plapumps have been opened & setup, so now create the PidChannels associated w/ the AV Tracks. */
@@ -5023,12 +5690,31 @@ static BIP_Status processPreparingState_locked(
                     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Open VideoPidChannel for videoTrackId=0x%x videoCodec=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
                                 playerSettings.videoTrackId, BIP_ToStr_NEXUS_VideoCodec( playerSettings.videoTrackSettings.pidTypeSettings.video.codec) ));
 
-                    hPlayer->hVideoPidChannel = openPidChannel(hPlayer, playerSettings.videoTrackId, &pPlayerSettings->videoTrackSettings);
+                    hPlayer->hVideoPidChannel = openPidChannel(hPlayer, playerSettings.videoTrackId, &pPlayerSettings->videoTrackSettings, NULL);
                     BIP_CHECK_GOTO(( hPlayer->hVideoPidChannel ), ( "openPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
 
                     hPlayer->videoTrackId = playerSettings.videoTrackId;
                     hPlayer->hVideoDecoder = pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder;
                     hPlayer->hSimpleVideoDecoder = pPlayerSettings->videoTrackSettings.pidTypeSettings.video.simpleDecoder;
+
+                    /* Add main video track to the trackList. */
+                    {
+                        BIP_PlayerTrackListEntryHandle      hTrackEntry;
+                        BIP_PlayerOpenPidChannelSettings    openPidChannelSettings;
+
+                        BIP_Player_GetDefaultOpenPidChannelSettings(&openPidChannelSettings);
+                        openPidChannelSettings.pidSettings = playerSettings.videoTrackSettings;
+
+                        hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_PlayerTrackListEntry));
+                        BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, completionStatus );
+
+                        hTrackEntry->trackId = playerSettings.videoTrackId;
+                        hTrackEntry->settings = openPidChannelSettings;
+                        hTrackEntry->appOwnedDecoders = true; /* Note video decoder handle is in openPidChannelSettings.pidSettings.pidTypeSettings.video */
+                        hTrackEntry->hPidChannel = hPlayer->hVideoPidChannel;
+                        BLST_Q_INSERT_TAIL( &hPlayer->trackListHead, hTrackEntry, trackListNext );
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added track entry=%p: (trackId 0x%x), returning hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, (void *)hTrackEntry->hPidChannel));
+                    }
                 }
                 else
                 {
@@ -5046,12 +5732,50 @@ static BIP_Status processPreparingState_locked(
                     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Open AudioPidChannel for audioTrackId=0x%x audioCodec=%s" BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer),
                                 playerSettings.audioTrackId, BIP_ToStr_NEXUS_AudioCodec(playerSettings.audioTrackSettings.pidSettings.pidTypeSettings.audio.codec) ));
 
-                    hPlayer->hPrimaryAudioPidChannel = openPidChannel(hPlayer, playerSettings.audioTrackId, &pPlayerSettings->audioTrackSettings);
+
+                    hPlayer->hPrimaryAudioPidChannel = openPidChannel(hPlayer, getRealAudioTrackId(hPlayer, &hPlayer->audioTrackInfo), &playerSettings.audioTrackSettings, NULL);
                     BIP_CHECK_GOTO(( hPlayer->hPrimaryAudioPidChannel ), ( "openPidChannel Failed"), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, completionStatus );
 
                     hPlayer->audioTrackId = playerSettings.audioTrackId;
-                    hPlayer->hPrimaryAudioDecoder = pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary;
-                    hPlayer->hSimplePrimaryAudioDecoder = pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder;
+                    hPlayer->hPrimaryAudioDecoder = playerSettings.audioTrackSettings.pidTypeSettings.audio.primary;
+                    hPlayer->hSimplePrimaryAudioDecoder = playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder;
+                    /* Add main audio track to the trackList. */
+                    {
+                        BIP_PlayerTrackListEntryHandle      hTrackEntry;
+                        BIP_PlayerOpenPidChannelSettings    openPidChannelSettings;
+
+                        BIP_Player_GetDefaultOpenPidChannelSettings(&openPidChannelSettings);
+                        openPidChannelSettings.pidSettings = playerSettings.audioTrackSettings;
+
+                        hTrackEntry = B_Os_Calloc( 1, sizeof(BIP_PlayerTrackListEntry));
+                        BIP_CHECK_GOTO( (hTrackEntry), ( "Failed to allocate memory (%zu bytes) for TrackEntry Object", sizeof(BIP_PlayerTrackListEntry) ), error, BIP_ERR_OUT_OF_SYSTEM_MEMORY, completionStatus );
+
+                        hTrackEntry->trackId = playerSettings.audioTrackId;
+                        hTrackEntry->settings = openPidChannelSettings;
+                        hTrackEntry->appOwnedDecoders = true; /* Note audio decoder handle is in openPidChannelSettings.pidSettings.pidTypeSettings.audio */
+                        hTrackEntry->hPidChannel = hPlayer->hPrimaryAudioPidChannel;
+                        hTrackEntry->connectId = playerSettings.audioConnectId;
+                        BLST_Q_INSERT_TAIL( &hPlayer->trackListHead, hTrackEntry, trackListNext );
+                        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer %p: Added track entry=%p: (trackId 0x%x), returning hPidChannel=%p" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hTrackEntry, hTrackEntry->trackId, (void *)hTrackEntry->hPidChannel));
+                    }
+
+                    /* If audioPriming is enabled, then add remaining audio tracks to the tracklist & also allocate the resources needed for priming. */
+                    /* Each primer track will need a PidChannel, Audio Decoder, */
+                    if (pPrepareSettings->enableAudioPrimer && playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder == NULL)
+                    {
+                        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: simpleAudioDecoder handle is not set! Audio Priming will NOT be enabled! Please compile app with NXCLIENT_SUPPORT!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                    }
+                    else if (pPrepareSettings->enableAudioPrimer && hPlayer->hMediaInfo == NULL)
+                    {
+                        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: hMediaInfo object wasn't created, so BIP_Player_ProbeMediaInfo wasn't called! Audio Priming will NOT be enabled unless app adds audio tracks to prime using BIP_Player_OpenPidChannel()!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                    }
+                    else if (pPrepareSettings->enableAudioPrimer)
+                    {
+                        BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer %p: enableAudioPrimer is set, so initializing audio primers!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+                        completionStatus = acquireResourcesForAudioPrimersUsingMediaInfo( hPlayer, hPlayer->hMediaInfo, &playerSettings.audioTrackSettings, &playerSettings.playbackSettings);
+                        BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "acquireResourcesForAudioPrimersUsingMediaInfo Failed"), error, completionStatus, completionStatus );
+                    }
+                    /* else enableAudioPrimer is not set, so we are done w/ audio track related setup. */
                 }
                 else
                 {
@@ -5218,6 +5942,9 @@ static BIP_Status processStartingState_locked(
     B_Error rc;
     NEXUS_Error nrc;
     BIP_Status completionStatus = BIP_ERR_INTERNAL;
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BSTD_UNUSED( threadOrigin );
 
@@ -5272,6 +5999,14 @@ static BIP_Status processStartingState_locked(
                 }
                 BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: unFreezeStc=%s" BIP_MSG_PRE_ARG, (void *)hPlayer, unFreezeStc? "Y":"N"));
             }
+        }
+
+        if (hPlayer->prepareSettings.enableAudioPrimer && (hPlayer->hSimplePrimaryAudioDecoder || hPlayer->hPrimaryAudioDecoder))
+        {
+            /* start resources needing for priming the audio tracks: audio decoders & optionally playpumps. */
+            completionStatus = startResourcesForAudioPrimers(hPlayer, hPlayer->startApi.pSettings);
+            BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "startResourcesForAudioPrimers Failed"), error, completionStatus, completionStatus );
+            BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Audio Primers are successfully started!" BIP_MSG_PRE_ARG, (void *)hPlayer));
         }
 
         /* Start PBIP so the playback can start. */
@@ -5337,6 +6072,17 @@ static BIP_Status processStartingState_locked(
                 hPlayer->pbipState.ipStartSettings.alternateAudio.containerType = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.hlsExtraAudioSpecificContainerType;
                 hPlayer->pbipState.ipStartSettings.alternateAudio.language = hPlayer->audioTrackInfo.info.audio.containerSpecificInfo.hls.pHlsLanguageCode;
             }
+            if (hPlayer->prepareSettings.enableAudioPrimer && (hPlayer->hSimplePrimaryAudioDecoder || hPlayer->hPrimaryAudioDecoder) && hPlayer->streamInfo.containerType == BIP_PlayerContainerType_eHls )
+            {
+                completionStatus = setAdditionalAlternateAudioInfo(hPlayer, &hPlayer->pbipState.ipStartSettings);
+                BIP_CHECK_GOTO(( completionStatus == BIP_SUCCESS ), ( "setAdditionalAlternateAudioInfo Failed"), error, completionStatus, completionStatus );
+            }
+
+            if (hPlayer->prepareSettings.enableAudioPrimer && hPlayer->hSimplePrimaryAudioDecoder)
+            {
+                updatePbipAudioDecoderHandles(hPlayer, &hPlayer->pbipState.ipStartSettings.nexusHandles);
+            }
+
             hPlayer->pbipState.ipStartSettings.monitorPsi = hPlayer->playerSettings.enableDynamicTrackSelection;
             if (getenv("monitorPsi")) hPlayer->pbipState.ipStartSettings.monitorPsi = true;
             hPlayer->pbipState.status = B_PlaybackIp_SessionStart(hPlayer->pbipState.hPlaybackIp, &hPlayer->pbipState.ipStartSettings, &hPlayer->pbipState.ipStartStatus);
@@ -5558,6 +6304,9 @@ static BIP_Status processGetServerStatusApiState_locked(
     )
 {
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     if (hPlayer->state < BIP_PlayerState_eConnected)
     {
@@ -5888,7 +6637,9 @@ static BIP_Status determinePauseTimeoutAndStartTimer(
 
     /* By default, set dontPause to false. We will only set it to true if we can't pause when current position is at the seek.begin & timeshift buffer is full. */
     *dontPause = false;
-    if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess && hPlayer->prepareSettings.pauseTimeoutAction == NEXUS_PlaybackLoopMode_ePlay)
+    if (hPlayer->dataAvailabilityModel == BIP_PlayerDataAvailabilityModel_eLimitedRandomAccess &&
+            hPlayer->prepareSettings.pauseTimeoutAction == NEXUS_PlaybackLoopMode_ePlay
+            && hPlayer->dlnaFlags.s0Increasing)  /* only start pause timeout if it is true timeshifted content, otherwise in progressive recording case, timeshift buffer doesn't fillup & pause timeout doesn't apply. */
     {
         hPlayer->pauseState.pauseTimeoutInMs =
             hPlayer->prepareSettings.timeshiftBufferMaxDurationInMs +
@@ -5982,6 +6733,9 @@ static BIP_Status processPauseApiState_locked(
 {
     B_Error rc;
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6091,6 +6845,9 @@ static BIP_Status processPlayApiState_locked(
     )
 {
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6214,6 +6971,9 @@ static BIP_Status processSeekApiSubState_locked(
     )
 {
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6355,6 +7115,9 @@ static BIP_Status processPlayAtRateApiSubState_locked(
     )
 {
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6548,6 +7311,9 @@ static BIP_Status processPlayByFrameApiSubState_locked(
     )
 {
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6656,6 +7422,9 @@ static BIP_Status processStopApiState_locked(
     BIP_Status completionStatus = BIP_INF_IN_PROGRESS;
     B_Error    rc;
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_MSG(( BIP_MSG_PRE_FMT BIP_PLAYER_STATE_PRINTF_FMT "Entering.." BIP_MSG_PRE_ARG, BIP_PLAYER_STATE_PRINTF_ARG(hPlayer) ));
 
@@ -6700,6 +7469,9 @@ static BIP_Status processStopApiState_locked(
             BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p hPlaypump=%p Stopped!" BIP_MSG_PRE_ARG, (void *)hPlayer, (void *)hPlayer->hPlaypump ));
         }
 
+        stopResourcesForAudioPrimers(hPlayer);
+        BDBG_MSG(( BIP_MSG_PRE_FMT "hPlayer=%p: Audio Primers are stopped!" BIP_MSG_PRE_ARG, (void *)hPlayer));
+
         hPlayer->stopState.apiState = BIP_PlayerApiState_eIdle;
         completionStatus = BIP_SUCCESS;
     }
@@ -6716,6 +7488,9 @@ static BIP_Status processStartedPausedOrAbortedState_locked(
     BIP_Status      completionStatus = BIP_INF_IN_PROGRESS;
     BIP_ArbHandle   hArb = NULL;
     bool            reRunState = true;
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player );
     BSTD_UNUSED( threadOrigin );
@@ -7158,6 +7933,9 @@ static BIP_Status processPlayerState_locked(
 {
     BIP_Status completionStatus = BIP_INF_IN_PROGRESS;
     BSTD_UNUSED( threadOrigin );
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     /* We call GetServerStatus irrespective */
     completionStatus = processGetServerStatusApiState_locked(hPlayer, threadOrigin);
@@ -7221,6 +7999,16 @@ void processPlayerState(
     BSTD_UNUSED(value);
     BDBG_ASSERT(hPlayer);
     BDBG_OBJECT_ASSERT( hPlayer, BIP_Player);
+
+
+    /*
+     * The following is to address Coverity false positive. The Coverity stack-size checker adds 4 bytes for every function call made.
+     * For very long function with lots of function calls, the 4 bytes addition will lead to stack-overflow Coverity false positive event.
+     * The following set the stack size for the function to 100K bytes to workaround the false positive.
+     */
+#if __COVERITY__
+    __coverity_stack_depth__(100*1024);
+#endif
 
     B_Mutex_Lock( hPlayer->hStateMutex );
     if (BIP_Arb_IsNew(hPlayer->getStatusApi.hArb) == false && BIP_Arb_IsNew(hPlayer->getStatusFromServerApi.hArb) == false)
@@ -7583,6 +8371,14 @@ void processPlayerState(
 
         /* Return the current cached settings. */
         *hPlayer->getSettingsApi.pSettings  = hPlayer->playerSettings;
+        if (BIP_String_GetLength(hPlayer->hPreferredAudioLanguage))
+        {
+            hPlayer->getSettingsApi.pSettings->pPreferredAudioLanguage = BIP_String_GetString(hPlayer->hPreferredAudioLanguage);
+        }
+        else
+        {
+            hPlayer->getSettingsApi.pSettings->pPreferredAudioLanguage = NULL;
+        }
 
         /* We are done this API Arb, so set its completion status. */
         completionStatus = BIP_SUCCESS;
@@ -7667,6 +8463,8 @@ void processPlayerState(
                 hPlayer->getStatusApi.pStatus->hMediaInfo = hPlayer->hMediaInfoForApp;
             }
         }
+        hPlayer->getStatusApi.pStatus->hAudioPidChannel = hPlayer->hPrimaryAudioPidChannel;
+        hPlayer->getStatusApi.pStatus->hSimpleAudioDecoder = hPlayer->hSimplePrimaryAudioDecoder;
         BIP_MSG_TRC(( BIP_MSG_PRE_FMT "hPlayer %p: GetStatus Arb request is complete: state=%s clockRecoveryMode=%s pos=%lu status=%s"
                     BIP_MSG_PRE_ARG, (void *)hPlayer, BIP_PLAYER_STATE(hPlayer->state), BIP_ToStr_BIP_PlayerClockRecoveryMode(hPlayer->clockRecoveryMode),
                     hPlayer->getStatusApi.pStatus->currentPositionInMs, BIP_StatusGetText(completionStatus) ));

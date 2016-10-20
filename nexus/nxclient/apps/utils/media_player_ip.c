@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2010-2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,15 +34,11 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  *****************************************************************************/
 #include "media_player.h"
-#include "media_player_priv.h"
 
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
+#include "media_player_priv.h"
 #if PLAYBACK_IP_SUPPORT
 
 /* media probe */
@@ -455,7 +451,7 @@ int media_player_ip_start(media_player_ip_t player, const media_player_start_set
             BDBG_WRN(("%s: Couldn't open 2nd playpump for IP Player", __FUNCTION__));
             goto error;
         }
-        BDBG_MSG(("%s: Opened Playpump with %d fifoSize", __FUNCTION__, playpumpOpenSettings.fifoSize));
+        BDBG_MSG(("%s: Opened Playpump with %d fifoSize", __FUNCTION__, (unsigned)playpumpOpenSettings.fifoSize));
 
         /* configure nexus playpump */
         NEXUS_Playpump_GetSettings(player->playpump1, &playpumpSettings);
@@ -991,3 +987,4 @@ int media_player_ip_get_set_tr69c_info(void *context, enum b_tr69c_type type, un
 #endif
 
 #endif /* PLAYBACK_IP_SUPPORT */
+#endif

@@ -52,6 +52,10 @@ BDBG_MODULE(nexus_platform_frontend);
 
 static NEXUS_GpioHandle gpioHandleInt = NULL;
 
+#if NEXUS_HAS_SPI
+static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
+#endif
+
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
@@ -71,17 +75,44 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Platform_GetStatus(&platformStatus);
         BDBG_MSG(("board major: %d, minor: %d",platformStatus.boardId.major,platformStatus.boardId.minor));
         if (platformStatus.boardId.major == 10) {
-            interrupt = 10;
-            i2c = true;
-            cd2 = true;
-            interruptType = NEXUS_GpioType_eAonStandard;
+            switch (platformStatus.boardId.minor) {
+            case 0: /* v00 */
+                interrupt = 10;
+                i2c = true;
+                cd2 = true;
+                interruptType = NEXUS_GpioType_eAonStandard;
+                break;
+            default:
+            case 1: /* v10 */
+                interrupt = 12;
+                i2c = false;
+                cd2 = true;
+                interruptType = NEXUS_GpioType_eAonStandard;
+                break;
+            }
         }
     }
 
+#if NEXUS_HAS_SPI
+    {
+        NEXUS_SpiSettings spiSettings;
+        NEXUS_Spi_GetDefaultSettings(&spiSettings);
+        spiSettings.clockActiveLow = true;
+        g_dc_spi[0] = NEXUS_Spi_Open(0, &spiSettings);
+        if (!g_dc_spi[0]) {
+            return BERR_TRACE(NEXUS_NOT_AVAILABLE);
+        }
+    }
+#endif
+
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceSettings);
 
-    deviceSettings.i2cDevice = pConfig->i2c[2];
-    deviceSettings.i2cAddress = 0x6b;
+    if (i2c) {
+        deviceSettings.i2cDevice = pConfig->i2c[2];
+        deviceSettings.i2cAddress = 0x6b;
+    } else {
+        deviceSettings.spiDevice = g_dc_spi[0];
+    }
 
     BDBG_MSG(("Setting up interrupt on %sGPIO %d", interruptType == NEXUS_GpioType_eAonStandard ? "AON " : "" , interrupt));
     NEXUS_Gpio_GetDefaultSettings(interruptType, &gpioSettings);
@@ -173,6 +204,14 @@ void NEXUS_Platform_UninitFrontend(void)
         NEXUS_Gpio_Close(gpioHandleInt);
         gpioHandleInt = NULL;
     }
+#if NEXUS_HAS_SPI
+    for (i=0; i < NEXUS_NUM_SPI_CHANNELS; i++) {
+        if (g_dc_spi[i]) {
+            NEXUS_Spi_Close(g_dc_spi[i]);
+            g_dc_spi[i] = NULL;
+        }
+    }
+#endif
     return;
 }
 

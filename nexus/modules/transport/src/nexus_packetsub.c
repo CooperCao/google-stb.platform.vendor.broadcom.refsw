@@ -230,6 +230,8 @@ NEXUS_PacketSubHandle NEXUS_PacketSub_Open( unsigned index, const NEXUS_PacketSu
 
     /* set default settings to match HW/PI default */
     packetSub->settings.outputRate = channelSettings.OutputRate;
+    NEXUS_CallbackDesc_Init(&packetSub->settings.finished);
+    NEXUS_CallbackDesc_Init(&packetSub->settings.dataCallback);
 
     rc = BXPT_PacketSub_OpenChannel(pTransport->xpt, &packetSub->xptPacketSub, index, &channelSettings);
     if (rc) {rc = BERR_TRACE(rc); goto error;}

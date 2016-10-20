@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -606,12 +606,18 @@ BIP_Status BIP_Player_PrepareAsync_impl(
         if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder || pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.primary )
         {
             avDecodeEnabled = true;
-            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.stcChannel ),    ( "hPlayer=%p: stcChannel can't be NULL for non-simple AV decoding case!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+            if ( !pPlayerSettings->playbackSettings.stcChannel )
+            {
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: stcChannel == NULL, so TSM is disabled!" BIP_MSG_PRE_ARG, (void *)hPlayer ));
+            }
         }
         if ( pPlayerSettings->videoTrackSettings.pidTypeSettings.video.simpleDecoder || pPlayerSettings->audioTrackSettings.pidTypeSettings.audio.simpleDecoder )
         {
             avDecodeEnabled = true;
-            BIP_CHECK_GOTO(( pPlayerSettings->playbackSettings.simpleStcChannel ),    ( "hPlayer=%p: simpleStcChannel can't be NULL for simple(NxClient) AV decoding case!", (void *)hPlayer ), error, BIP_ERR_INVALID_PARAMETER , bipStatus);
+            if ( !pPlayerSettings->playbackSettings.simpleStcChannel )
+            {
+                BDBG_WRN(( BIP_MSG_PRE_FMT "hPlayer=%p: simpleStcChannel == NULL, so TSM is disabled!" BIP_MSG_PRE_ARG , (void *)hPlayer ));
+            }
         }
 
         if (pPlayerSettings->videoTrackSettings.pidTypeSettings.video.decoder)

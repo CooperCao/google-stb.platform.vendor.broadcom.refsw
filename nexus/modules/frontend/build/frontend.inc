@@ -50,7 +50,6 @@
 #
 # Conditional Options for this Makefile
 #
-# NEXUS_FRONTEND_4500 - Enable support for the BCM4500 Satellite demodulator (cannot be used withother Sat frontends)
 # NEXUS_FRONTEND_4501 - Enable support for the BCM4501 Satellite tuner/demodulator
 # NEXUS_FRONTEND_4501_VER - Define 4501 chip revision (default=C0)
 # NEXUS_FRONTEND_4506 - Enable support for the BCM4506 Satellite tuner/demodulator
@@ -218,20 +217,6 @@ NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/3412/include/
 NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_3412
 NEXUS_FRONTEND_LNA_CHIPS += 3412
 BLNA_3412_SUPPORT := y
-endif
-
-#
-# SDS
-#
-ifdef NEXUS_FRONTEND_4500
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/4500/src/nexus_frontend_4500.c
-NEXUS_FRONTEND_SOURCES += $(NEXUS_TOP)/modules/frontend/4500/src/nexus_frontend_sds.c
-NEXUS_FRONTEND_SOURCES += $(MAGNUM)/portinginterface/sds/4500/bcm4500ap.c
-NEXUS_FRONTEND_PRIVATE_INCLUDES += $(MAGNUM)/portinginterface/sds/4500
-
-NEXUS_FRONTEND_PUBLIC_INCLUDES += $(NEXUS_TOP)/modules/frontend/4500/include/
-NEXUS_FRONTEND_MAGNUM_MODULES += $(MAGNUM)/portinginterface/sds/bsds.inc
-NEXUS_FRONTEND_DEFINES += NEXUS_FRONTEND_4500
 endif
 
 #
@@ -840,7 +825,7 @@ ifdef NEXUS_FRONTEND_3158
 ifdef NEXUS_FRONTEND_3158_VER
 BCHP_3158_VER := $(shell awk 'BEGIN{print tolower("$(NEXUS_FRONTEND_3158_VER)")}')
 else
-BCHP_3158_VER := a0
+BCHP_3158_VER := b0
 endif
 
 NEXUS_FRONTEND_DEFINES += NEXUS_HAS_FRONTEND_CTFE_IMG

@@ -589,7 +589,7 @@ static v3d_addr_t build_shader_uniforms(
             return false;
       }
 
-      cu.shared_ptr = khrn_fmem_lock_and_sync(&rs->fmem, cs->shared_buf, 0, GMEM_SYNC_TMU_DATA);
+      cu.shared_ptr = khrn_fmem_lock_and_sync(&rs->fmem, cs->shared_buf, 0, GMEM_SYNC_TMU_DATA_READ | GMEM_SYNC_TMU_DATA_WRITE);
       if (!cu.shared_ptr)
          return false;
    }
@@ -632,7 +632,7 @@ static unsigned build_shader_record(
    if (!khrn_fmem_record_res_interlock(fmem, link_data->fs.res_i, false, ACTION_RENDER))
       return 0;
 
-   v3d_addr_t fs_addr = khrn_fmem_lock_and_sync(fmem, link_data->fs.res_i->handle, 0, GMEM_SYNC_QPU_IU_READ);
+   v3d_addr_t fs_addr = khrn_fmem_lock_and_sync(fmem, link_data->fs.res_i->handle, 0, GMEM_SYNC_QPU_INSTR_READ);
    if (!fs_addr)
       return 0;
 
@@ -640,6 +640,9 @@ static unsigned build_shader_record(
    shader_record.no_ez = true;
    shader_record.scb_wait_on_first_thrsw = (link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW) != 0;
    shader_record.num_varys = link_data->num_varys;
+#if V3D_HAS_VARY_DISABLE
+   shader_record.disable_implicit_varys = true;
+#endif
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    shader_record.num_varys = gfx_umax(shader_record.num_varys, 1); // workaround GFXH-1276
 #endif
@@ -699,6 +702,9 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
       + V3D_CL_VIEWPORT_OFFSET_SIZE
       + V3D_CL_CLIPZ_SIZE
       + V3D_CL_COLOR_WMASKS_SIZE
+#if V3D_HAS_BASEINSTANCE
+      + V3D_CL_SET_INSTANCE_ID_SIZE
+#endif
       ;
    uint8_t* cl = khrn_fmem_begin_cle(&rs->fmem, cl_size);
    if (!cl)
@@ -776,6 +782,9 @@ static glxx_compute_render_state* create_compute_render_state(GLXX_SERVER_STATE_
    v3d_cl_viewport_offset(&cl, 0, 0);
    v3d_cl_clipz(&cl, 0.0f, 1.0f);
    v3d_cl_color_wmasks(&cl, -1);
+#if V3D_HAS_BASEINSTANCE
+   v3d_cl_set_instance_id(&cl, 0);
+#endif
 
    khrn_fmem_end_cle_exact(&rs->fmem, cl);
 
@@ -945,7 +954,9 @@ static bool begin_dispatch(GLXX_LINK_RESULT_DATA_T** link_data, GLXX_SERVER_STAT
       goto end;
 
    state->shaderkey_common.backend = 0
+#if !V3D_HAS_VARY_DISABLE
       | GLXX_PRIM_LINE
+#endif
       | (GLXX_FB_I32 | (V3D_HAS_GFXH1212_FIX ? 0 : GLXX_FB_ALPHA_16_WORKAROUND)) << GLXX_FB_GADGET_S;
 
    if (!glxx_compute_image_like_uniforms(state, &rs->base))

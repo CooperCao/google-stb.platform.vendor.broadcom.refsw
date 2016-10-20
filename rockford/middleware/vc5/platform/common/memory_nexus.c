@@ -114,6 +114,10 @@ static BEGL_MemHandle MemAllocBlock(void *ctx, size_t numBytes, size_t alignment
    bool                       secureHeap = (flags & BEGL_USAGE_SECURE) != 0;
    NEXUS_HeapHandle           heap    = secureHeap ? context->heapMapSecure.heap : context->heapMap.heap;
 
+   // Nexus heaps are cached so cannot be coherent.
+   if (flags & BEGL_USAGE_COHERENT)
+      return NULL;
+
 #if defined(NEXUS_MemoryBlock_Allocate) /* NEXUS_MemoryBlock_Allocate became a define when
                                            NEXUS_MemoryBlock_Allocate_tagged started to exist */
    block = NEXUS_MemoryBlock_Allocate_tagged(heap, numBytes, alignment, NULL, desc, context->processId);

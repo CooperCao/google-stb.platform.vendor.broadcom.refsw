@@ -400,6 +400,7 @@ struct NEXUS_StcChannelDecoderConnection {
     BLST_Q_ENTRY(NEXUS_StcChannelDecoderConnection) link;
     NEXUS_StcChannelHandle parent;
     BPCRlib_StcDecIface pcrlibInterface; /* interface expected by pcrlib */
+    bool stcValid;
     NEXUS_StcChannelDecoderConnectionSettings settings;
     NEXUS_StcChannelDecoderConnectionStatus status;
     NEXUS_StcChannelDecoderFifoWatchdogStatus fifoWatchdogStatus;

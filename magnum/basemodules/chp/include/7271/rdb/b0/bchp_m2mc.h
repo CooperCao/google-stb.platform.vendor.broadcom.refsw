@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,175 +70,175 @@
 /***************************************************************************
  *M2MC - Memory-to-Memory Compositor Registers
  ***************************************************************************/
-#define BCHP_M2MC_REVISION                       0x209b0000 /* [RO] M2MC Revision register */
-#define BCHP_M2MC_BLIT_GO                        0x209b0004 /* [WO] Blit GO bit */
-#define BCHP_M2MC_SCRATCH_NOT_LIST               0x209b0008 /* [RW] M2MC Scratch register (not included in DMA list structure) */
-#define BCHP_M2MC_LIST_CTRL                      0x209b000c /* [RW] RDMA Linked List Control Register */
-#define BCHP_M2MC_LIST_STATUS                    0x209b0010 /* [RO] RDMA Linked List Status Register */
-#define BCHP_M2MC_LIST_FIRST_PKT_ADDR            0x209b0014 /* [RW] RDMA Linked List First Packet Address Register */
-#define BCHP_M2MC_LIST_CURR_PKT_ADDR             0x209b0018 /* [RO] RDMA Linked List Current Packet Address Register */
-#define BCHP_M2MC_BLIT_STATUS                    0x209b001c /* [RO] Blit status */
-#define BCHP_M2MC_BLIT_SRC_ADDRESS_MSB           0x209b0020 /* [RO] Blit status source feeder current address MSB */
-#define BCHP_M2MC_BLIT_SRC_ADDRESS               0x209b0024 /* [RO] Blit status source feeder current address */
-#define BCHP_M2MC_BLIT_SRC_S1_ADDRESS_MSB        0x209b0028 /* [RO] Blit status source feeder current address MSB */
-#define BCHP_M2MC_BLIT_SRC_S1_ADDRESS            0x209b002c /* [RO] Blit status source feeder current address */
-#define BCHP_M2MC_BLIT_DEST_ADDRESS_MSB          0x209b0030 /* [RO] Blit status destination feeder current address MSB */
-#define BCHP_M2MC_BLIT_DEST_ADDRESS              0x209b0034 /* [RO] Blit status destination feeder current address */
-#define BCHP_M2MC_BLIT_OUTPUT_ADDRESS_MSB        0x209b0038 /* [RO] Blit status output feeder current address MSB */
-#define BCHP_M2MC_BLIT_OUTPUT_ADDRESS            0x209b003c /* [RO] Blit status output feeder current address */
-#define BCHP_M2MC_BLIT_MEM_HI                    0x209b0040 /* [RW] Blit memory protection address high */
-#define BCHP_M2MC_BLIT_MEM_LO                    0x209b0044 /* [RW] Blit memory protection address low */
-#define BCHP_M2MC_BLIT_EXT_MEM_HI_MSB            0x209b0048 /* [RW] Blit memory protection address high for Extension area */
-#define BCHP_M2MC_BLIT_EXT_MEM_HI                0x209b004c /* [RW] Blit memory protection address high */
-#define BCHP_M2MC_BLIT_EXT_MEM_LO_MSB            0x209b0050 /* [RW] Blit memory protection address low for Extension area */
-#define BCHP_M2MC_BLIT_EXT_MEM_LO                0x209b0054 /* [RW] Blit memory protection address low */
-#define BCHP_M2MC_SCBADDRSEL                     0x209b0058 /* [RW] scb address map select register */
-#define BCHP_M2MC_SCBADDRSEL_EXT                 0x209b005c /* [RW] scb address map select register for extension area */
-#define BCHP_M2MC_DITHER_CONTROL_0               0x209b0060 /* [RW] Source Feeder 10 to 8 bit conversion Dither Control for ch0, ch1 and ch2 */
-#define BCHP_M2MC_DITHER_CONTROL_1               0x209b0064 /* [RW] Source Feeder 10 to 8 bit conversion Dither Control for ch3 */
-#define BCHP_M2MC_DITHER_LFSR                    0x209b0068 /* [RW] Source Feeder 10 to 8 bit conversion Dither LFSR Control */
-#define BCHP_M2MC_DITHER_LFSR_INIT               0x209b006c /* [RW] Source Feeder 10 to 8 bit conversion Dither LFSR Init value and control */
-#define BCHP_M2MC_BSTC_COMPRESS_REVISION         0x209b0070 /* [RO] BSTC Compression Revision ID register */
-#define BCHP_M2MC_BSTC_COMPRESS_CONTROL          0x209b0074 /* [RW] BSTC Compression Control */
-#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_CONTROL 0x209b0078 /* [RW] BSTC Compression Checksum Control */
-#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_STATUS  0x209b007c /* [RO] BSTC Compression Checksum Status */
-#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_CLEAR   0x209b0080 /* [RW] BSTC Compression Checksum Clear */
-#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_CONTROL    0x209b0084 /* [RW] BSTC Compression Debug Control */
-#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_STATUS     0x209b0088 /* [RO] BSTC Compression Debug Status */
-#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_CLEAR      0x209b008c /* [RW] BSTC Compression Debug Clear */
-#define BCHP_M2MC_BSTC_DECOMPRESS_REVISION       0x209b0090 /* [RO] BSTC Decompression Revision ID register */
-#define BCHP_M2MC_BSTC_DECOMPRESS_STATUS_MUX     0x209b0094 /* [RW] BSTC Decompression Status Mux */
-#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_CONTROL 0x209b0098 /* [RW] BSTC Decompression Checksum Control */
-#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_STATUS 0x209b009c /* [RO] BSTC Decompression Checksum Status */
-#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_CLEAR 0x209b00a0 /* [RW] BSTC Decompression Checksum Status */
-#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_CONTROL  0x209b00a4 /* [RW] BSTC Decompression Debug Control */
-#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_STATUS   0x209b00a8 /* [RO] BSTC Decompression Debug Status */
-#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_CLEAR    0x209b00ac /* [RW] BSTC Decompression Debug Clear */
-#define BCHP_M2MC_DRAM_MAP                       0x209b00b0 /* [RW] DRAM MAP Version */
-#define BCHP_M2MC_SCRATCH_LIST                   0x209b0100 /* [RW] M2MC Scratch register (Included in DMA list structure) */
-#define BCHP_M2MC_SRC_FEEDER_ENABLE              0x209b0104 /* [RW] Source plane enable */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB         0x209b0108 /* [RW] Source surface 0 address MSB */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_0             0x209b010c /* [RW] Source surface 0 address */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_MSB 0x209b0110 /* [RW] Source surface 0, field 1 address MSB */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD     0x209b0114 /* [RW] Source surface 0, field 1  address */
-#define BCHP_M2MC_SRC_SURFACE_STRIDE_0           0x209b0118 /* [RW] Source surface 0 STRIDE */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_1_MSB         0x209b011c /* [RW] Source surface 1 address MSB */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_1             0x209b0120 /* [RW] Source surface 1 address */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_MSB 0x209b0124 /* [RW] Source surface 1, field 1 address MSB */
-#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD     0x209b0128 /* [RW] Source surface 1, field 1 address */
-#define BCHP_M2MC_SRC_SURFACE_STRIDE_1           0x209b012c /* [RW] Source surface 1 STRIDE */
-#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_1     0x209b0130 /* [RW] Source pixel format 1 for surface 0 */
-#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_2     0x209b0134 /* [RW] Source pixel format 2 for surface 0 */
-#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_3     0x209b0138 /* [RW] Source pixel format 3 for surface 0 */
-#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_1     0x209b013c /* [RW] Source pixel format 1 for surface 1 */
-#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_2     0x209b0140 /* [RW] Source pixel format 2 for surface 1 */
-#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_3     0x209b0144 /* [RW] Source pixel format 3 for surface 1 */
-#define BCHP_M2MC_SRC_W_ALPHA                    0x209b0148 /* [RW] Source Alpha W format */
-#define BCHP_M2MC_SRC_CONSTANT_COLOR             0x209b014c /* [RW] Source constant color */
-#define BCHP_M2MC_DEST_FEEDER_ENABLE             0x209b0150 /* [RW] Destination plane enable */
-#define BCHP_M2MC_DEST_SURFACE_ADDR_0_MSB        0x209b0154 /* [RW] Destination surface 0 address MSB */
-#define BCHP_M2MC_DEST_SURFACE_ADDR_0            0x209b0158 /* [RW] Destination surface 0 address */
-#define BCHP_M2MC_DEST_SURFACE_STRIDE_0          0x209b015c /* [RW] Destination surface 0 STRIDE */
-#define BCHP_M2MC_DEST_SURFACE_ADDR_1_MSB        0x209b0160 /* [RW] Destination surface 1 address MSB */
-#define BCHP_M2MC_DEST_SURFACE_ADDR_1            0x209b0164 /* [RW] Destination surface 1 address */
-#define BCHP_M2MC_DEST_SURFACE_STRIDE_1          0x209b0168 /* [RW] Destination surface 1 STRIDE */
-#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_1      0x209b016c /* [RW] Destination pixel format 1 */
-#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_2      0x209b0170 /* [RW] Destination pixel format 2 */
-#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_3      0x209b0174 /* [RW] Destination pixel format 3 */
-#define BCHP_M2MC_DEST_W_ALPHA                   0x209b0178 /* [RW] Destination Alpha W format */
-#define BCHP_M2MC_DEST_CONSTANT_COLOR            0x209b017c /* [RW] Destination constant color */
-#define BCHP_M2MC_OUTPUT_FEEDER_ENABLE           0x209b0180 /* [RW] Output plane enable */
-#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB      0x209b0184 /* [RW] Output surface 0 address MSB */
-#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0          0x209b0188 /* [RW] Output surface 0 address */
-#define BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0        0x209b018c /* [RW] Output surface 0 STRIDE */
-#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_MSB      0x209b0190 /* [RW] Output surface 1 address MSB */
-#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1          0x209b0194 /* [RW] Output surface 1 address */
-#define BCHP_M2MC_OUTPUT_SURFACE_STRIDE_1        0x209b0198 /* [RW] Output surface 1 STRIDE */
-#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_1    0x209b019c /* [RW] Output pixel format 1 */
-#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_2    0x209b01a0 /* [RW] Output pixel format 2 */
-#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_3    0x209b01a4 /* [RW] Output pixel format 3 */
-#define BCHP_M2MC_BLIT_HEADER                    0x209b01a8 /* [RW] Blit header and control */
-#define BCHP_M2MC_BLIT_SRC_TOP_LEFT_0            0x209b01ac /* [RW] Top left pixel coordinate in the Source surface 0. */
-#define BCHP_M2MC_BLIT_SRC_SIZE_0                0x209b01b0 /* [RW] Pixel width and height of operation in Source surface 0. */
-#define BCHP_M2MC_BLIT_SRC_UIF_FULL_HEIGHT       0x209b01b4 /* [RW] Source UIF Full Vertical Size */
-#define BCHP_M2MC_BLIT_SRC_TOP_LEFT_1            0x209b01b8 /* [RW] Top left pixel coordinate in the Source surface 1. */
-#define BCHP_M2MC_BLIT_SRC_SIZE_1                0x209b01bc /* [RW] Pixel width and height of operation in Source surface 1. */
-#define BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 0x209b01c0 /* [RW] width and height of stripe for surface 0 for the decoded frame image format. */
-#define BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_1 0x209b01c4 /* [RW] width and height of stripe for surface 1 for the decoded frame image format. */
-#define BCHP_M2MC_BLIT_DEST_TOP_LEFT             0x209b01c8 /* [RW] Top left pixel coordinate in the Destination */
-#define BCHP_M2MC_BLIT_DEST_SIZE                 0x209b01cc /* [RW] Pixel width and height of operation in destination */
-#define BCHP_M2MC_BLIT_DEST_UIF_FULL_HEIGHT      0x209b01d0 /* [RW] Destination UIF Full Vertical Size */
-#define BCHP_M2MC_BLIT_OUTPUT_TOP_LEFT           0x209b01d4 /* [RW] Top left pixel coordinate in the Output */
-#define BCHP_M2MC_BLIT_OUTPUT_SIZE               0x209b01d8 /* [RW] Pixel width and height of operation in the Output */
-#define BCHP_M2MC_BLIT_OUTPUT_UIF_FULL_HEIGHT    0x209b01dc /* [RW] Output UIF Full Vertical Size */
-#define BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_0      0x209b01e0 /* [RW] Pixel width of input stripe when striping for surface 0 */
-#define BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_1      0x209b01e4 /* [RW] Pixel width of input stripe when striping for surface 1 */
-#define BCHP_M2MC_BLIT_OUTPUT_STRIPE_WIDTH       0x209b01e8 /* [RW] Pixel width of output stripe when striping */
-#define BCHP_M2MC_BLIT_STRIPE_OVERLAP_0          0x209b01ec /* [RW] Pixel width of stripe overlap when striping for surface 0. */
-#define BCHP_M2MC_BLIT_STRIPE_OVERLAP_1          0x209b01f0 /* [RW] Pixel width of stripe overlap when striping for surface 1. */
-#define BCHP_M2MC_BLIT_CTRL                      0x209b01f4 /* [RW] Blit control */
-#define BCHP_M2MC_SCALER_CTRL                    0x209b01fc /* [RW] Scaler control */
-#define BCHP_M2MC_HORIZ_AVERAGER_COUNT           0x209b0200 /* [RW] Horizontal averager control count */
-#define BCHP_M2MC_HORIZ_AVERAGER_COEFF           0x209b0204 /* [RW] Horizontal averager control coefficient */
-#define BCHP_M2MC_VERT_AVERAGER_COUNT            0x209b0208 /* [RW] Vertical averager control count */
-#define BCHP_M2MC_VERT_AVERAGER_COEFF            0x209b020c /* [RW] Vertical averager control coefficient */
-#define BCHP_M2MC_HORIZ_SCALER_0_INITIAL_PHASE   0x209b0210 /* [RW] Horizontal scaler 0 initial phase */
-#define BCHP_M2MC_HORIZ_SCALER_0_STEP            0x209b0214 /* [RW] Horizontal scaler 0 step */
-#define BCHP_M2MC_HORIZ_SCALER_1_INITIAL_PHASE   0x209b0218 /* [RW] Horizontal scaler 1 initial phase */
-#define BCHP_M2MC_HORIZ_SCALER_1_STEP            0x209b021c /* [RW] Horizontal scaler 1 step */
-#define BCHP_M2MC_VERT_SCALER_0_INITIAL_PHASE    0x209b0220 /* [RW] Vertical scaler 0 initial phase */
-#define BCHP_M2MC_VERT_SCALER_0_STEP             0x209b0224 /* [RW] Vertical scaler 0 step */
-#define BCHP_M2MC_VERT_SCALER_1_INITIAL_PHASE    0x209b0228 /* [RW] Vertical scaler 1 initial phase */
-#define BCHP_M2MC_VERT_SCALER_1_STEP             0x209b022c /* [RW] Vertical scaler 1 step */
-#define BCHP_M2MC_BLEND_COLOR_OP                 0x209b0230 /* [RW] Color blend operation descriptor */
-#define BCHP_M2MC_BLEND_ALPHA_OP                 0x209b0234 /* [RW] Alpha blend operation descriptor */
-#define BCHP_M2MC_BLEND_CONSTANT_COLOR           0x209b0238 /* [RW] Blend constant color */
-#define BCHP_M2MC_BLEND_COLOR_KEY_ACTION         0x209b023c /* [RW] Action color keyed samples take in blender */
-#define BCHP_M2MC_ROP_OPERATION                  0x209b0240 /* [RW] Raster operation vector */
-#define BCHP_M2MC_ROP_PATTERN_TOP                0x209b0244 /* [RW] Top half of ROP pattern */
-#define BCHP_M2MC_ROP_PATTERN_BOTTOM             0x209b0248 /* [RW] Bottom half of ROP pattern */
-#define BCHP_M2MC_ROP_PATTERN_COLOR_0            0x209b024c /* [RW] ROP Color for 0 */
-#define BCHP_M2MC_ROP_PATTERN_COLOR_1            0x209b0250 /* [RW] ROP Color for 1 */
-#define BCHP_M2MC_SRC_COLOR_KEY_HIGH             0x209b0254 /* [RW] Source color key high */
-#define BCHP_M2MC_SRC_COLOR_KEY_LOW              0x209b0258 /* [RW] Source color key low */
-#define BCHP_M2MC_SRC_COLOR_KEY_MASK             0x209b025c /* [RW] Source color key mask */
-#define BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT      0x209b0260 /* [RW] Source color key replacement */
-#define BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT_MASK 0x209b0264 /* [RW] Source color key replacement mask */
-#define BCHP_M2MC_DEST_COLOR_KEY_HIGH            0x209b0268 /* [RW] Destination color key high */
-#define BCHP_M2MC_DEST_COLOR_KEY_LOW             0x209b026c /* [RW] Destination color key low */
-#define BCHP_M2MC_DEST_COLOR_KEY_MASK            0x209b0270 /* [RW] Destination color key mask */
-#define BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT     0x209b0274 /* [RW] Destination color key replacement */
-#define BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT_MASK 0x209b0278 /* [RW] Destination color key replacement mask */
-#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_01    0x209b027c /* [RW] Horizontal Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_2     0x209b0280 /* [RW] Horizontal Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_01    0x209b0284 /* [RW] Horizontal Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_2     0x209b0288 /* [RW] Horizontal Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_01    0x209b028c /* [RW] Horizontal Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_2     0x209b0290 /* [RW] Horizontal Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_01    0x209b0294 /* [RW] Horizontal Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_2     0x209b0298 /* [RW] Horizontal Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_01     0x209b029c /* [RW] Vertical Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_2      0x209b02a0 /* [RW] Vertical Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_01     0x209b02a4 /* [RW] Vertical Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_2      0x209b02a8 /* [RW] Vertical Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_01     0x209b02ac /* [RW] Vertical Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_2      0x209b02b0 /* [RW] Vertical Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
-#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_01     0x209b02b4 /* [RW] Vertical Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_2      0x209b02b8 /* [RW] Vertical Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
-#define BCHP_M2MC_SRC_CM_C00_C01                 0x209b02bc /* [RW] Color Conversion Matrix Coefficients C00 and C01 */
-#define BCHP_M2MC_SRC_CM_C02_C03                 0x209b02c0 /* [RW] Color Conversion Matrix Coefficients C02 and C03 */
-#define BCHP_M2MC_SRC_CM_C04                     0x209b02c4 /* [RW] Color Conversion Matrix Coefficients C04 */
-#define BCHP_M2MC_SRC_CM_C10_C11                 0x209b02c8 /* [RW] Color Conversion Matrix Coefficients C10 and C11 */
-#define BCHP_M2MC_SRC_CM_C12_C13                 0x209b02cc /* [RW] Color Conversion Matrix Coefficients C12 and C13 */
-#define BCHP_M2MC_SRC_CM_C14                     0x209b02d0 /* [RW] Color Conversion Matrix Coefficients C14 */
-#define BCHP_M2MC_SRC_CM_C20_C21                 0x209b02d4 /* [RW] Color Conversion Matrix Coefficients C20 and C21 */
-#define BCHP_M2MC_SRC_CM_C22_C23                 0x209b02d8 /* [RW] Color Conversion Matrix Coefficients C22 and C23 */
-#define BCHP_M2MC_SRC_CM_C24                     0x209b02dc /* [RW] Color Conversion Matrix Coefficients C24 */
-#define BCHP_M2MC_SRC_CM_C30_C31                 0x209b02e0 /* [RW] Color Conversion Matrix Coefficients C30 and C31 */
-#define BCHP_M2MC_SRC_CM_C32_C33                 0x209b02e4 /* [RW] Color Conversion Matrix Coefficients C32 and C33 */
-#define BCHP_M2MC_SRC_CM_C34                     0x209b02e8 /* [RW] Color Conversion Matrix Coefficients C34 */
-#define BCHP_M2MC_TIMEOUT_COUNTER_CONTROL        0x209b02ec /* [RW] M2MC timeout counter control register */
-#define BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL   0x209b02f0 /* [RW] M2MC clock gating and software init control register */
+#define BCHP_M2MC_REVISION                       0x209b0000 /* [RO][32] M2MC Revision register */
+#define BCHP_M2MC_BLIT_GO                        0x209b0004 /* [WO][32] Blit GO bit */
+#define BCHP_M2MC_SCRATCH_NOT_LIST               0x209b0008 /* [RW][32] M2MC Scratch register (not included in DMA list structure) */
+#define BCHP_M2MC_LIST_CTRL                      0x209b000c /* [RW][32] RDMA Linked List Control Register */
+#define BCHP_M2MC_LIST_STATUS                    0x209b0010 /* [RO][32] RDMA Linked List Status Register */
+#define BCHP_M2MC_LIST_FIRST_PKT_ADDR            0x209b0014 /* [RW][32] RDMA Linked List First Packet Address Register */
+#define BCHP_M2MC_LIST_CURR_PKT_ADDR             0x209b0018 /* [RO][32] RDMA Linked List Current Packet Address Register */
+#define BCHP_M2MC_BLIT_STATUS                    0x209b001c /* [RO][32] Blit status */
+#define BCHP_M2MC_BLIT_SRC_ADDRESS_MSB           0x209b0020 /* [RO][32] Blit status source feeder current address MSB */
+#define BCHP_M2MC_BLIT_SRC_ADDRESS               0x209b0024 /* [RO][32] Blit status source feeder current address */
+#define BCHP_M2MC_BLIT_SRC_S1_ADDRESS_MSB        0x209b0028 /* [RO][32] Blit status source feeder current address MSB */
+#define BCHP_M2MC_BLIT_SRC_S1_ADDRESS            0x209b002c /* [RO][32] Blit status source feeder current address */
+#define BCHP_M2MC_BLIT_DEST_ADDRESS_MSB          0x209b0030 /* [RO][32] Blit status destination feeder current address MSB */
+#define BCHP_M2MC_BLIT_DEST_ADDRESS              0x209b0034 /* [RO][32] Blit status destination feeder current address */
+#define BCHP_M2MC_BLIT_OUTPUT_ADDRESS_MSB        0x209b0038 /* [RO][32] Blit status output feeder current address MSB */
+#define BCHP_M2MC_BLIT_OUTPUT_ADDRESS            0x209b003c /* [RO][32] Blit status output feeder current address */
+#define BCHP_M2MC_BLIT_MEM_HI                    0x209b0040 /* [RW][32] Blit memory protection address high */
+#define BCHP_M2MC_BLIT_MEM_LO                    0x209b0044 /* [RW][32] Blit memory protection address low */
+#define BCHP_M2MC_BLIT_EXT_MEM_HI_MSB            0x209b0048 /* [RW][32] Blit memory protection address high for Extension area */
+#define BCHP_M2MC_BLIT_EXT_MEM_HI                0x209b004c /* [RW][32] Blit memory protection address high */
+#define BCHP_M2MC_BLIT_EXT_MEM_LO_MSB            0x209b0050 /* [RW][32] Blit memory protection address low for Extension area */
+#define BCHP_M2MC_BLIT_EXT_MEM_LO                0x209b0054 /* [RW][32] Blit memory protection address low */
+#define BCHP_M2MC_SCBADDRSEL                     0x209b0058 /* [RW][32] scb address map select register */
+#define BCHP_M2MC_SCBADDRSEL_EXT                 0x209b005c /* [RW][32] scb address map select register for extension area */
+#define BCHP_M2MC_DITHER_CONTROL_0               0x209b0060 /* [RW][32] Source Feeder 10 to 8 bit conversion Dither Control for ch0, ch1 and ch2 */
+#define BCHP_M2MC_DITHER_CONTROL_1               0x209b0064 /* [RW][32] Source Feeder 10 to 8 bit conversion Dither Control for ch3 */
+#define BCHP_M2MC_DITHER_LFSR                    0x209b0068 /* [RW][32] Source Feeder 10 to 8 bit conversion Dither LFSR Control */
+#define BCHP_M2MC_DITHER_LFSR_INIT               0x209b006c /* [RW][32] Source Feeder 10 to 8 bit conversion Dither LFSR Init value and control */
+#define BCHP_M2MC_BSTC_COMPRESS_REVISION         0x209b0070 /* [RO][32] BSTC Compression Revision ID register */
+#define BCHP_M2MC_BSTC_COMPRESS_CONTROL          0x209b0074 /* [RW][32] BSTC Compression Control */
+#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_CONTROL 0x209b0078 /* [RW][32] BSTC Compression Checksum Control */
+#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_STATUS  0x209b007c /* [RO][32] BSTC Compression Checksum Status */
+#define BCHP_M2MC_BSTC_COMPRESS_CHECKSUM_CLEAR   0x209b0080 /* [RW][32] BSTC Compression Checksum Clear */
+#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_CONTROL    0x209b0084 /* [RW][32] BSTC Compression Debug Control */
+#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_STATUS     0x209b0088 /* [RO][32] BSTC Compression Debug Status */
+#define BCHP_M2MC_BSTC_COMPRESS_DEBUG_CLEAR      0x209b008c /* [RW][32] BSTC Compression Debug Clear */
+#define BCHP_M2MC_BSTC_DECOMPRESS_REVISION       0x209b0090 /* [RO][32] BSTC Decompression Revision ID register */
+#define BCHP_M2MC_BSTC_DECOMPRESS_STATUS_MUX     0x209b0094 /* [RW][32] BSTC Decompression Status Mux */
+#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_CONTROL 0x209b0098 /* [RW][32] BSTC Decompression Checksum Control */
+#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_STATUS 0x209b009c /* [RO][32] BSTC Decompression Checksum Status */
+#define BCHP_M2MC_BSTC_DECOMPRESS_CHECKSUM_CLEAR 0x209b00a0 /* [RW][32] BSTC Decompression Checksum Status */
+#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_CONTROL  0x209b00a4 /* [RW][32] BSTC Decompression Debug Control */
+#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_STATUS   0x209b00a8 /* [RO][32] BSTC Decompression Debug Status */
+#define BCHP_M2MC_BSTC_DECOMPRESS_DEBUG_CLEAR    0x209b00ac /* [RW][32] BSTC Decompression Debug Clear */
+#define BCHP_M2MC_DRAM_MAP                       0x209b00b0 /* [RW][32] DRAM MAP Version */
+#define BCHP_M2MC_SCRATCH_LIST                   0x209b0100 /* [RW][32] M2MC Scratch register (Included in DMA list structure) */
+#define BCHP_M2MC_SRC_FEEDER_ENABLE              0x209b0104 /* [RW][32] Source plane enable */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_MSB         0x209b0108 /* [RW][32] Source surface 0 address MSB */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0             0x209b010c /* [RW][32] Source surface 0 address */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD_MSB 0x209b0110 /* [RW][32] Source surface 0, field 1 address MSB */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_0_BOT_FLD     0x209b0114 /* [RW][32] Source surface 0, field 1  address */
+#define BCHP_M2MC_SRC_SURFACE_STRIDE_0           0x209b0118 /* [RW][32] Source surface 0 STRIDE */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_MSB         0x209b011c /* [RW][32] Source surface 1 address MSB */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1             0x209b0120 /* [RW][32] Source surface 1 address */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD_MSB 0x209b0124 /* [RW][32] Source surface 1, field 1 address MSB */
+#define BCHP_M2MC_SRC_SURFACE_ADDR_1_BOT_FLD     0x209b0128 /* [RW][32] Source surface 1, field 1 address */
+#define BCHP_M2MC_SRC_SURFACE_STRIDE_1           0x209b012c /* [RW][32] Source surface 1 STRIDE */
+#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_1     0x209b0130 /* [RW][32] Source pixel format 1 for surface 0 */
+#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_2     0x209b0134 /* [RW][32] Source pixel format 2 for surface 0 */
+#define BCHP_M2MC_SRC_SURFACE_0_FORMAT_DEF_3     0x209b0138 /* [RW][32] Source pixel format 3 for surface 0 */
+#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_1     0x209b013c /* [RW][32] Source pixel format 1 for surface 1 */
+#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_2     0x209b0140 /* [RW][32] Source pixel format 2 for surface 1 */
+#define BCHP_M2MC_SRC_SURFACE_1_FORMAT_DEF_3     0x209b0144 /* [RW][32] Source pixel format 3 for surface 1 */
+#define BCHP_M2MC_SRC_W_ALPHA                    0x209b0148 /* [RW][32] Source Alpha W format */
+#define BCHP_M2MC_SRC_CONSTANT_COLOR             0x209b014c /* [RW][32] Source constant color */
+#define BCHP_M2MC_DEST_FEEDER_ENABLE             0x209b0150 /* [RW][32] Destination plane enable */
+#define BCHP_M2MC_DEST_SURFACE_ADDR_0_MSB        0x209b0154 /* [RW][32] Destination surface 0 address MSB */
+#define BCHP_M2MC_DEST_SURFACE_ADDR_0            0x209b0158 /* [RW][32] Destination surface 0 address */
+#define BCHP_M2MC_DEST_SURFACE_STRIDE_0          0x209b015c /* [RW][32] Destination surface 0 STRIDE */
+#define BCHP_M2MC_DEST_SURFACE_ADDR_1_MSB        0x209b0160 /* [RW][32] Destination surface 1 address MSB */
+#define BCHP_M2MC_DEST_SURFACE_ADDR_1            0x209b0164 /* [RW][32] Destination surface 1 address */
+#define BCHP_M2MC_DEST_SURFACE_STRIDE_1          0x209b0168 /* [RW][32] Destination surface 1 STRIDE */
+#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_1      0x209b016c /* [RW][32] Destination pixel format 1 */
+#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_2      0x209b0170 /* [RW][32] Destination pixel format 2 */
+#define BCHP_M2MC_DEST_SURFACE_FORMAT_DEF_3      0x209b0174 /* [RW][32] Destination pixel format 3 */
+#define BCHP_M2MC_DEST_W_ALPHA                   0x209b0178 /* [RW][32] Destination Alpha W format */
+#define BCHP_M2MC_DEST_CONSTANT_COLOR            0x209b017c /* [RW][32] Destination constant color */
+#define BCHP_M2MC_OUTPUT_FEEDER_ENABLE           0x209b0180 /* [RW][32] Output plane enable */
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0_MSB      0x209b0184 /* [RW][32] Output surface 0 address MSB */
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_0          0x209b0188 /* [RW][32] Output surface 0 address */
+#define BCHP_M2MC_OUTPUT_SURFACE_STRIDE_0        0x209b018c /* [RW][32] Output surface 0 STRIDE */
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1_MSB      0x209b0190 /* [RW][32] Output surface 1 address MSB */
+#define BCHP_M2MC_OUTPUT_SURFACE_ADDR_1          0x209b0194 /* [RW][32] Output surface 1 address */
+#define BCHP_M2MC_OUTPUT_SURFACE_STRIDE_1        0x209b0198 /* [RW][32] Output surface 1 STRIDE */
+#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_1    0x209b019c /* [RW][32] Output pixel format 1 */
+#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_2    0x209b01a0 /* [RW][32] Output pixel format 2 */
+#define BCHP_M2MC_OUTPUT_SURFACE_FORMAT_DEF_3    0x209b01a4 /* [RW][32] Output pixel format 3 */
+#define BCHP_M2MC_BLIT_HEADER                    0x209b01a8 /* [RW][32] Blit header and control */
+#define BCHP_M2MC_BLIT_SRC_TOP_LEFT_0            0x209b01ac /* [RW][32] Top left pixel coordinate in the Source surface 0. */
+#define BCHP_M2MC_BLIT_SRC_SIZE_0                0x209b01b0 /* [RW][32] Pixel width and height of operation in Source surface 0. */
+#define BCHP_M2MC_BLIT_SRC_UIF_FULL_HEIGHT       0x209b01b4 /* [RW][32] Source UIF Full Vertical Size */
+#define BCHP_M2MC_BLIT_SRC_TOP_LEFT_1            0x209b01b8 /* [RW][32] Top left pixel coordinate in the Source surface 1. */
+#define BCHP_M2MC_BLIT_SRC_SIZE_1                0x209b01bc /* [RW][32] Pixel width and height of operation in Source surface 1. */
+#define BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_0 0x209b01c0 /* [RW][32] width and height of stripe for surface 0 for the decoded frame image format. */
+#define BCHP_M2MC_BLIT_SRC_STRIPE_HEIGHT_WIDTH_1 0x209b01c4 /* [RW][32] width and height of stripe for surface 1 for the decoded frame image format. */
+#define BCHP_M2MC_BLIT_DEST_TOP_LEFT             0x209b01c8 /* [RW][32] Top left pixel coordinate in the Destination */
+#define BCHP_M2MC_BLIT_DEST_SIZE                 0x209b01cc /* [RW][32] Pixel width and height of operation in destination */
+#define BCHP_M2MC_BLIT_DEST_UIF_FULL_HEIGHT      0x209b01d0 /* [RW][32] Destination UIF Full Vertical Size */
+#define BCHP_M2MC_BLIT_OUTPUT_TOP_LEFT           0x209b01d4 /* [RW][32] Top left pixel coordinate in the Output */
+#define BCHP_M2MC_BLIT_OUTPUT_SIZE               0x209b01d8 /* [RW][32] Pixel width and height of operation in the Output */
+#define BCHP_M2MC_BLIT_OUTPUT_UIF_FULL_HEIGHT    0x209b01dc /* [RW][32] Output UIF Full Vertical Size */
+#define BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_0      0x209b01e0 /* [RW][32] Pixel width of input stripe when striping for surface 0 */
+#define BCHP_M2MC_BLIT_INPUT_STRIPE_WIDTH_1      0x209b01e4 /* [RW][32] Pixel width of input stripe when striping for surface 1 */
+#define BCHP_M2MC_BLIT_OUTPUT_STRIPE_WIDTH       0x209b01e8 /* [RW][32] Pixel width of output stripe when striping */
+#define BCHP_M2MC_BLIT_STRIPE_OVERLAP_0          0x209b01ec /* [RW][32] Pixel width of stripe overlap when striping for surface 0. */
+#define BCHP_M2MC_BLIT_STRIPE_OVERLAP_1          0x209b01f0 /* [RW][32] Pixel width of stripe overlap when striping for surface 1. */
+#define BCHP_M2MC_BLIT_CTRL                      0x209b01f4 /* [RW][32] Blit control */
+#define BCHP_M2MC_SCALER_CTRL                    0x209b01fc /* [RW][32] Scaler control */
+#define BCHP_M2MC_HORIZ_AVERAGER_COUNT           0x209b0200 /* [RW][32] Horizontal averager control count */
+#define BCHP_M2MC_HORIZ_AVERAGER_COEFF           0x209b0204 /* [RW][32] Horizontal averager control coefficient */
+#define BCHP_M2MC_VERT_AVERAGER_COUNT            0x209b0208 /* [RW][32] Vertical averager control count */
+#define BCHP_M2MC_VERT_AVERAGER_COEFF            0x209b020c /* [RW][32] Vertical averager control coefficient */
+#define BCHP_M2MC_HORIZ_SCALER_0_INITIAL_PHASE   0x209b0210 /* [RW][32] Horizontal scaler 0 initial phase */
+#define BCHP_M2MC_HORIZ_SCALER_0_STEP            0x209b0214 /* [RW][32] Horizontal scaler 0 step */
+#define BCHP_M2MC_HORIZ_SCALER_1_INITIAL_PHASE   0x209b0218 /* [RW][32] Horizontal scaler 1 initial phase */
+#define BCHP_M2MC_HORIZ_SCALER_1_STEP            0x209b021c /* [RW][32] Horizontal scaler 1 step */
+#define BCHP_M2MC_VERT_SCALER_0_INITIAL_PHASE    0x209b0220 /* [RW][32] Vertical scaler 0 initial phase */
+#define BCHP_M2MC_VERT_SCALER_0_STEP             0x209b0224 /* [RW][32] Vertical scaler 0 step */
+#define BCHP_M2MC_VERT_SCALER_1_INITIAL_PHASE    0x209b0228 /* [RW][32] Vertical scaler 1 initial phase */
+#define BCHP_M2MC_VERT_SCALER_1_STEP             0x209b022c /* [RW][32] Vertical scaler 1 step */
+#define BCHP_M2MC_BLEND_COLOR_OP                 0x209b0230 /* [RW][32] Color blend operation descriptor */
+#define BCHP_M2MC_BLEND_ALPHA_OP                 0x209b0234 /* [RW][32] Alpha blend operation descriptor */
+#define BCHP_M2MC_BLEND_CONSTANT_COLOR           0x209b0238 /* [RW][32] Blend constant color */
+#define BCHP_M2MC_BLEND_COLOR_KEY_ACTION         0x209b023c /* [RW][32] Action color keyed samples take in blender */
+#define BCHP_M2MC_ROP_OPERATION                  0x209b0240 /* [RW][32] Raster operation vector */
+#define BCHP_M2MC_ROP_PATTERN_TOP                0x209b0244 /* [RW][32] Top half of ROP pattern */
+#define BCHP_M2MC_ROP_PATTERN_BOTTOM             0x209b0248 /* [RW][32] Bottom half of ROP pattern */
+#define BCHP_M2MC_ROP_PATTERN_COLOR_0            0x209b024c /* [RW][32] ROP Color for 0 */
+#define BCHP_M2MC_ROP_PATTERN_COLOR_1            0x209b0250 /* [RW][32] ROP Color for 1 */
+#define BCHP_M2MC_SRC_COLOR_KEY_HIGH             0x209b0254 /* [RW][32] Source color key high */
+#define BCHP_M2MC_SRC_COLOR_KEY_LOW              0x209b0258 /* [RW][32] Source color key low */
+#define BCHP_M2MC_SRC_COLOR_KEY_MASK             0x209b025c /* [RW][32] Source color key mask */
+#define BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT      0x209b0260 /* [RW][32] Source color key replacement */
+#define BCHP_M2MC_SRC_COLOR_KEY_REPLACEMENT_MASK 0x209b0264 /* [RW][32] Source color key replacement mask */
+#define BCHP_M2MC_DEST_COLOR_KEY_HIGH            0x209b0268 /* [RW][32] Destination color key high */
+#define BCHP_M2MC_DEST_COLOR_KEY_LOW             0x209b026c /* [RW][32] Destination color key low */
+#define BCHP_M2MC_DEST_COLOR_KEY_MASK            0x209b0270 /* [RW][32] Destination color key mask */
+#define BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT     0x209b0274 /* [RW][32] Destination color key replacement */
+#define BCHP_M2MC_DEST_COLOR_KEY_REPLACEMENT_MASK 0x209b0278 /* [RW][32] Destination color key replacement mask */
+#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_01    0x209b027c /* [RW][32] Horizontal Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE0_2     0x209b0280 /* [RW][32] Horizontal Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_01    0x209b0284 /* [RW][32] Horizontal Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_0_COEFF_PHASE1_2     0x209b0288 /* [RW][32] Horizontal Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_01    0x209b028c /* [RW][32] Horizontal Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE0_2     0x209b0290 /* [RW][32] Horizontal Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_01    0x209b0294 /* [RW][32] Horizontal Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_HORIZ_FIR_1_COEFF_PHASE1_2     0x209b0298 /* [RW][32] Horizontal Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_01     0x209b029c /* [RW][32] Vertical Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE0_2      0x209b02a0 /* [RW][32] Vertical Scaler 0 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_01     0x209b02a4 /* [RW][32] Vertical Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_VERT_FIR_0_COEFF_PHASE1_2      0x209b02a8 /* [RW][32] Vertical Scaler 0 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_01     0x209b02ac /* [RW][32] Vertical Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE0_2      0x209b02b0 /* [RW][32] Vertical Scaler 1 Poly-Phase Filter Phase 0 Coefficients */
+#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_01     0x209b02b4 /* [RW][32] Vertical Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_VERT_FIR_1_COEFF_PHASE1_2      0x209b02b8 /* [RW][32] Vertical Scaler 1 Poly-Phase Filter Phase 1 Coefficients */
+#define BCHP_M2MC_SRC_CM_C00_C01                 0x209b02bc /* [RW][32] Color Conversion Matrix Coefficients C00 and C01 */
+#define BCHP_M2MC_SRC_CM_C02_C03                 0x209b02c0 /* [RW][32] Color Conversion Matrix Coefficients C02 and C03 */
+#define BCHP_M2MC_SRC_CM_C04                     0x209b02c4 /* [RW][32] Color Conversion Matrix Coefficients C04 */
+#define BCHP_M2MC_SRC_CM_C10_C11                 0x209b02c8 /* [RW][32] Color Conversion Matrix Coefficients C10 and C11 */
+#define BCHP_M2MC_SRC_CM_C12_C13                 0x209b02cc /* [RW][32] Color Conversion Matrix Coefficients C12 and C13 */
+#define BCHP_M2MC_SRC_CM_C14                     0x209b02d0 /* [RW][32] Color Conversion Matrix Coefficients C14 */
+#define BCHP_M2MC_SRC_CM_C20_C21                 0x209b02d4 /* [RW][32] Color Conversion Matrix Coefficients C20 and C21 */
+#define BCHP_M2MC_SRC_CM_C22_C23                 0x209b02d8 /* [RW][32] Color Conversion Matrix Coefficients C22 and C23 */
+#define BCHP_M2MC_SRC_CM_C24                     0x209b02dc /* [RW][32] Color Conversion Matrix Coefficients C24 */
+#define BCHP_M2MC_SRC_CM_C30_C31                 0x209b02e0 /* [RW][32] Color Conversion Matrix Coefficients C30 and C31 */
+#define BCHP_M2MC_SRC_CM_C32_C33                 0x209b02e4 /* [RW][32] Color Conversion Matrix Coefficients C32 and C33 */
+#define BCHP_M2MC_SRC_CM_C34                     0x209b02e8 /* [RW][32] Color Conversion Matrix Coefficients C34 */
+#define BCHP_M2MC_TIMEOUT_COUNTER_CONTROL        0x209b02ec /* [RW][32] M2MC timeout counter control register */
+#define BCHP_M2MC_CLK_GATE_AND_SW_INIT_CONTROL   0x209b02f0 /* [RW][32] M2MC clock gating and software init control register */
 
 /***************************************************************************
  *REVISION - M2MC Revision register

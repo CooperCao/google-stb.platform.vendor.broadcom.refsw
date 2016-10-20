@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -491,8 +491,9 @@ typedef struct BXPT_P_RaveHandle
     BINT_Handle hInt;
     void *lvXpt;
     unsigned ChannelNo;
+    BMMA_Heap_Handle mmaHeap, mmaRHeap;
 
-    BXPT_P_ContextHandle ContextTbl[ BXPT_NUM_RAVE_CONTEXTS ];
+    BXPT_P_ContextHandle *ContextTbl[ BXPT_NUM_RAVE_CONTEXTS ];
     bool SpliceQueueAllocated[ BXPT_P_NUM_SPLICING_QUEUES ];
     StartCodeIndexer ScdTable[ BXPT_NUM_SCD ];
     TpitIndexer TpitTable[ BXPT_NUM_TPIT ];
@@ -669,11 +670,6 @@ typedef struct BXPT_P_TransportData
 #if BXPT_SW7425_1323_WORKAROUND
     bool DoWorkaround;
 #endif
-
-    struct {
-        bool set;
-        BCHP_MemoryInfo info;
-    } memcInfo;
 }
 BXPT_P_TransportData;
 

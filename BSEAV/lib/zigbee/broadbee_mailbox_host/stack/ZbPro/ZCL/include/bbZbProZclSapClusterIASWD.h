@@ -442,7 +442,7 @@ void ZBPRO_ZCL_IASWDCmdStartWarningReq(ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t 
  *  command specific to IAS WD ZCL cluster.
  * \param[in]   reqDescr        Pointer to ZDO Local Request descriptor.
  */
-void ZBPRO_ZCL_IASWDCmdSquawkgReq(ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t *const  reqDescr);
+void ZBPRO_ZCL_IASWDCmdSquawkReq(ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t *const  reqDescr);
 
 
 #endif

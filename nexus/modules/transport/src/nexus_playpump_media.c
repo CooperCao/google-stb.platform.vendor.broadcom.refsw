@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,41 +35,13 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_transport_module.h"
 #include "nexus_playpump_impl.h"
 #include "bsink_playback.h"
 #include "blst_squeue.h"
-
-#if B_HAS_MSDRM_PD
-#include "priv/nexus_core_security.h"
-#if  B_HAS_MSDRM_PRDY
-#include "prdy_core.h"
-#include "prdy_decryptor.h"
-#include "prdy_mp4.h"
-#else
-#include "drmcore.h"
-#include "drmdecryptor.h"
-#endif
-#endif
-#if B_HAS_MSDRM_ND
-#include "bdrmnd_decryptor.h"
-#endif
-#if B_HAS_DIVX_DRM
-#include "priv/nexus_core_security.h"
-#include "bdrm_decrypt.h"
-#endif
-
 
 #if B_HAS_MEDIA
 /* saving PES dara to file is controlled in the  BSEAV/lib/utils/bsink_playback.c */
@@ -104,21 +76,6 @@ struct b_pump_demux {
     b_pid_map audio_map;
     b_pid_map other_map;
 };
-
-#if defined(B_HAS_ASF)
-extern void* b_media_asf_get_handle(bmedia_filter_t filter);
-void* 
-NEXUS_Playpump_GetAsfHandle_priv(NEXUS_PlaypumpHandle handle)
-{
-	void* asf = NULL;
-	NEXUS_LockModule();
-	if(handle)
-		asf = b_media_asf_get_handle(handle->demux->filter);
-	NEXUS_UnlockModule();
-	return asf;
-}
-#endif
-
 
 static void *
 b_mem_alloc(balloc_iface_t alloc, size_t size)
@@ -168,80 +125,6 @@ b_pump_reset_pes_feed(b_pump_demux_t demux)
     demux->pes_feed.forced_clear_events = 0;
     return;
 }
-
-#if (defined (B_HAS_MSDRM_PD) || defined (B_HAS_MSDRM_ND)) && defined (B_HAS_ASF) 
-static void 
-b_pump_update_asf_stream_cfg(void *cntx, unsigned stream_id, basf_stream_cfg *cfg)
-{
-    b_pump_demux_t demux = cntx;
-    BDBG_OBJECT_ASSERT(demux, b_pump_demux_t);
-#if defined (B_HAS_MSDRM_PD)
-    bdrm_update_asf_stream_cfg(&demux->dcrypt_ctx, stream_id, cfg);
-#elif defined (B_HAS_MSDRM_ND)
-    bdrmnd_update_asf_stream_cfg(&demux->dcrypt_ctx, stream_id, cfg);
-#endif
-    return;
-}
-#endif
-
-#if defined (B_HAS_MSDRM_PRDY)
-
-void b_pump_parse_bmp4_box(void *cntx, const batom_cursor *data, size_t payload_len)
-{
-    b_pump_demux_t demux = cntx;
-
-    if( demux->pump->settings.securityContext != NULL){
-        NEXUS_KeySlotTag drmContext;
-        NEXUS_KeySlot_GetTag((NEXUS_KeySlotHandle )demux->pump->settings.securityContext, &drmContext);
-        bdrm_parse_mp4_fragment_context((void *)drmContext, data, payload_len);
-    }
-}
-
-void b_pump_mp4_sample(void *cntx, uint32_t track_ID, unsigned sample_no, const batom_cursor *data, size_t payload_len)
-{
-    b_pump_demux_t demux = cntx;
-
-    if ( demux->pump->settings.securityContext != NULL){
-        NEXUS_KeySlotTag drmContext;
-        NEXUS_KeySlot_GetTag((NEXUS_KeySlotHandle )demux->pump->settings.securityContext, &drmContext);
-        bdrm_decrypt_mp4_sample( (void *)drmContext, track_ID, sample_no, data, payload_len);
-    }
-}
-
-static void 
-b_pump_update_mp4_fragment_cfg(void *cntx, bmp4_fragment_demux_cfg *cfg)
-{
-    b_pump_demux_t demux = cntx;
-    cfg->user_context = cntx;
-    cfg->traf_box = b_pump_parse_bmp4_box;
-    cfg->sample = b_pump_mp4_sample;
-
-    BDBG_OBJECT_ASSERT(demux, b_pump_demux_t);
-
-    return;
-}
-#endif
-
-
-#if defined(B_HAS_AVI) && B_HAS_DIVX_DRM
-static void 
-b_pump_activate_avi_stream(void *cntx, unsigned stream_id, bavi_parser_t parser, bavi_stream_t stream)
-{
-    b_pump_demux_t demux = cntx;
-    BDBG_OBJECT_ASSERT(demux, b_pump_demux_t);
-    bdrm_activate(&demux->dcrypt_ctx, stream_id, parser, stream);
-    return;
-}
-
-static void 
-b_pump_deactivate_avi_stream(void *cntx, unsigned stream_id, bavi_parser_t parser, bavi_stream_t stream)
-{
-    b_pump_demux_t demux = cntx;
-    BDBG_OBJECT_ASSERT(demux, b_pump_demux_t);
-    bdrm_deactivate(&demux->dcrypt_ctx, stream_id, parser, stream);
-    return;
-}
-#endif
 
 static void 
 b_pump_demux_stream_error(void *cntx)
@@ -307,24 +190,6 @@ b_pump_demux_create(NEXUS_PlaypumpHandle pump)
     filter_cfg.eos_len = B_PUMP_DEMUX_FILLER_SIZE;
     filter_cfg.application_cnxt = demux;
     filter_cfg.stream_error = b_pump_demux_stream_error;
-
-#if defined(B_HAS_ASF)
-#if defined (B_HAS_MSDRM_PD) ||  defined (B_HAS_MSDRM_ND)
-    filter_cfg.update_asf_stream_cfg = b_pump_update_asf_stream_cfg;
-#endif
-#endif /* asf drm support */
-
-#if defined (B_HAS_MSDRM_PRDY)
-    filter_cfg.update_mp4_fragment_cfg = b_pump_update_mp4_fragment_cfg;
-#endif
-
-#if defined(B_HAS_AVI)
-#if B_HAS_DIVX_DRM
-    BDBG_MSG(("ACTIVATE DIVX DRM"));
-    filter_cfg.avi[0].activate_avi_stream = b_pump_activate_avi_stream;
-    filter_cfg.avi[0].deactivate_avi_stream = b_pump_deactivate_avi_stream;
-#endif
-#endif
 
     BKNI_Memset((void *)filter_cfg.eos_data, 0, filter_cfg.eos_len);
     demux->filter = bmedia_filter_create(demux->factory, bmem_alloc, &filter_cfg);
@@ -821,26 +686,7 @@ b_pump_demux_start(b_pump_demux_t demux)
     if(demux->pump->settings.securityContext==NULL) {
        demux->dcrypt_ctx = NULL;
     }
-#else
-    if (0) { }
 #endif
-#if B_HAS_DIVX_DRM
-    else if (demux->pump->settings.transportType == NEXUS_TransportType_eAvi || demux->pump->settings.transportType == NEXUS_TransportType_eMkv){        
-        unsigned drmContext;
-        NEXUS_KeySlot_GetTag((NEXUS_KeySlotHandle )demux->pump->settings.securityContext, &drmContext);
-        BDBG_CASSERT( sizeof(demux->dcrypt_ctx) == sizeof(demux->pump->settings.securityContext));
-        demux->dcrypt_ctx = (void *)drmContext;
-    }
-#endif
-    else {
-#if B_HAS_MSDRM_PD
-        NEXUS_KeySlotTag drmContext;
-        NEXUS_KeySlot_GetTag((NEXUS_KeySlotHandle )demux->pump->settings.securityContext, &drmContext);
-        BDBG_CASSERT( sizeof(demux->dcrypt_ctx) == sizeof(demux->pump->settings.securityContext));
-        demux->dcrypt_ctx = (void *)drmContext;
-
-#endif
-    }
 
     if(!demux->pes_feed.pipe_in) {
         rc = b_pump_demux_set_stream_type(demux, demux->pump->settings.transportType, &supported);

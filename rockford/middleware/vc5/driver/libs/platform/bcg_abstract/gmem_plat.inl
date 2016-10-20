@@ -19,6 +19,18 @@ static inline void gmem_v3d_sync_list_init(struct gmem_v3d_sync_list *sync_list)
    sync_list->flags = 0;
 }
 
+static inline void gmem_v3d_sync_list_init_from(struct gmem_v3d_sync_list *sync_list,
+                                                const struct gmem_v3d_sync_list *from)
+{
+   sync_list->flags = from->flags;
+}
+
+static inline void gmem_v3d_sync_list_merge(struct gmem_v3d_sync_list *sync_list,
+                                            const struct gmem_v3d_sync_list *from)
+{
+   sync_list->flags |= from->flags;
+}
+
 static inline void gmem_v3d_sync_list_destroy(struct gmem_v3d_sync_list *sync_list)
 {
 }

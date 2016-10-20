@@ -46,7 +46,7 @@
 extern "C" {
 #endif
 
-
+#include "bkni.h"
 /* Define this for DSS ICAM */
 /* #define BSCD_DSS_ICAM */
 /* #define BSCD_NAGRA_36M_CLK*/
@@ -143,6 +143,13 @@ extern "C" {
         goto BSCD_P_DONE_LABEL; \
     }
 
+#define BSCD_P_CHECK_ERR_CODE_FUNC_CriSec( errCode, function )     \
+    if( (errCode = (function)) != BERR_SUCCESS )    \
+    {                           \
+        errCode = BERR_TRACE(errCode);  \
+        BKNI_LeaveCriticalSection(); 	\
+	goto BSCD_P_DONE_LABEL; \
+    }
 
 /* Don't change this without testing EMV 1704 */
 #define BSCD_P_CHECK_ERR_CODE_FUNC2( errCode, errCodeValue, function )          \
@@ -157,6 +164,14 @@ extern "C" {
     if( (condition) ) \
     { \
         errCode = BERR_TRACE((errCodeValue));       \
+        goto BSCD_P_DONE_LABEL;                         \
+    }
+
+#define BSCD_P_CHECK_ERR_CODE_CONDITION_CriSec( errCode, errCodeValue, condition )         \
+    if( (condition) ) \
+    { \
+        errCode = BERR_TRACE((errCodeValue));       \
+        BKNI_LeaveCriticalSection(); 	\
         goto BSCD_P_DONE_LABEL;                         \
     }
 

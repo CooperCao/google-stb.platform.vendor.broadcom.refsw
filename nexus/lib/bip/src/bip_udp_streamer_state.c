@@ -438,7 +438,7 @@ void processUdpStreamerState(
             /* Free-up any previously allocated outputState variables. */
             resetOutputState( hUdpStreamer );
 
-            hUdpStreamer->completionStatus = BIP_Streamer_SetOutputSettings( hUdpStreamer->hStreamer, BIP_StreamerProtocol_ePlainUdp, NULL );
+            hUdpStreamer->completionStatus = BIP_Streamer_SetOutputSettings( hUdpStreamer->hStreamer, BIP_StreamerProtocol_ePlainUdp, &hUdpStreamer->outputSettingsApi.pOutputSettings->streamerSettings );
             if ( hUdpStreamer->completionStatus == BIP_SUCCESS )
             {
                 hUdpStreamer->output.hIpAddress = BIP_String_CreateFromChar( hUdpStreamer->outputSettingsApi.pStreamerIpAddress );

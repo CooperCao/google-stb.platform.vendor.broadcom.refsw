@@ -51,6 +51,7 @@
 
 BDBG_MODULE(nexus_sage_image);
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
 {
     "sage_bl_dev.bin",              /* SAGE boot loader for development (ZS) chip */
@@ -62,6 +63,15 @@ static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
     "sage_ta_antirollback_dev.bin", /* SAGE AntiRollback TA binary for development (ZS) chip */
     "sage_ta_antirollback.bin",     /* SAGE AntiRollback TA binary for production (ZB or customer specific) chip */
 };
+#else
+static const char* firmware_images[SAGE_IMAGE_FirmwareID_Max] =
+{
+    "sage_bl_dev.bin",             /* SAGE boot loader for development (ZS) chip */
+    "sage_os_app_dev.bin",         /* SAGE kernel for development (ZS)c hip*/
+    "sage_bl.bin",                 /* SAGE boot loader for production (ZB or customer specific) chip */
+    "sage_os_app.bin",             /* SAGE kernel for production (ZB or custoemr specific) chip */
+};
+#endif
 
 void *SAGE_IMAGE_Context = (void *) firmware_images;
 

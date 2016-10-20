@@ -52,8 +52,6 @@
 #include <linux/tcp.h>
 #include <netinet/in.h>
 
-#include "asp_utils.h"
-
 /* Proxy Server Ports */
 #define ASP_PROXY_SERVER_PORT_FOR_PAYLOAD       "9999"
 #define ASP_PROXY_SERVER_PORT_FOR_RAW_FRAMES    "9998"
@@ -91,28 +89,28 @@ typedef struct
 typedef struct
 {
     int                 sockFd;
-    bool                msgHeaderValid;
+    unsigned            msgHeaderValid; /* 1 true and 0 false */
     ASP_ProxyServerMsgHeader msgHeader;
 } ASP_ProxyServerSocketMsgInfo;
 typedef ASP_ProxyServerSocketMsgInfo* ASP_ProxyServerSocketMsgInfoHandle;
 
 /* APIs to Receive the Message Request Header & Payload. */
 
-/* Returns true when complete message header has been read into the pAspProxyServerSocketMsgHeader. Doesn't return partial message header. */
-bool ASP_ProxyServerMsg_RecvHeader(
+/* Returns true:1 when complete message header has been read into the pAspProxyServerSocketMsgHeader. Doesn't return partial message header. */
+unsigned ASP_ProxyServerMsg_RecvHeader(
     int sockFd,
     ASP_ProxyServerMsgHeader *pAspProxyServerSocketMsgHeader
     );
 
 /* Returns true when msgPayloadLength have been read into the pMsgPayload. Doesn't return partial message payload. */
-bool ASP_ProxyServerMsg_RecvPayload(
+unsigned ASP_ProxyServerMsg_RecvPayload(
     int sockFd,
     size_t msgPayloadLength,
     void *msgPayload
     );
 
 /* Builds message header using type & length and sends it along w/ the msg payload. */
-bool ASP_ProxyServerMsg_Send(
+unsigned ASP_ProxyServerMsg_Send(
     int sockFd,
     ASP_ProxyServerMsg msgType,
     size_t msgPayloadLength,
@@ -128,25 +126,28 @@ typedef struct tcpState
     struct tcp_info     tcpInfo;
 } TcpState;
 
+#define ASP_MAC_ADDRESS_LENGTH 8
 typedef struct SocketState
 {
     TcpState            tcpState;
     struct sockaddr_in  remoteIpAddr;
+    unsigned char       remoteMacAddress[ASP_MAC_ADDRESS_LENGTH];
     struct sockaddr_in  localIpAddr;
+    unsigned char       localMacAddress[ASP_MAC_ADDRESS_LENGTH];
 } SocketState;
 typedef struct SocketState *hSocketState;
 
 typedef struct ASP_ProxyServerMsgOffloadConnxToAsp
 {
     SocketState         socketState;
-    bool                streamOut;
+    unsigned            streamOut;
 } ASP_ProxyServerMsgOffloadConnxToAsp;
 
 
 /********** ASP_ProxyServerMsg_eOffloadConnxToAspResp Message Type Format ***********/
 typedef struct ASP_ProxyServerMsgOffloadConnxToAspResp
 {
-    bool                offloadToAspSuccessful;
+    unsigned                offloadToAspSuccessful;
 } ASP_ProxyServerMsgOffloadConnxToAspResp;
 
 
@@ -167,7 +168,7 @@ typedef struct ASP_ProxyServerMsgOffloadConnxFromAspResp
 /********** ASP_ProxyServerMsg_eSendPayloadToAspResp Message Type Format ***********/
 typedef struct ASP_ProxyServerMsgSendPayloadToAspResp
 {
-    bool                payloadGivenToAspSuccess;
+    unsigned                payloadGivenToAspSuccess;
 } ASP_ProxyServerMsgSendPayloadToAspResp;
 
 

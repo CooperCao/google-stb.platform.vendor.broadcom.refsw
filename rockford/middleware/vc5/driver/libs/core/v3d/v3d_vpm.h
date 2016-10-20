@@ -47,9 +47,10 @@ typedef struct v3d_vpm_cfg_g
 void v3d_vpm_default_cfg_t(v3d_vpm_cfg_t* cfg_t);
 void v3d_vpm_default_cfg_g(v3d_vpm_cfg_g* cfg_g);
 
-void v3d_vpm_compute_cfg_t(
-   v3d_vpm_cfg_v* cfg_v,
-   v3d_vpm_cfg_t* cfg_t,
+bool v3d_vpm_compute_cfg_tg(
+   v3d_vpm_cfg_v* v,
+   v3d_vpm_cfg_t* t,
+   v3d_vpm_cfg_g* g,
    unsigned vpm_size_in_sectors,
    uint8_t const vs_input_words[2],
    uint8_t const vs_output_words[2],
@@ -57,10 +58,13 @@ void v3d_vpm_compute_cfg_t(
    uint8_t const tcs_patch_words[2],
    uint8_t const tcs_words[2],
    bool tcs_barriers,
-   uint8_t const tes_patch_vertices,
-   uint8_t const tes_words[2]);
+   uint8_t tes_patch_vertices,
+   uint8_t const tes_words[2],
+   v3d_cl_tess_type_t tess_type,
+   uint8_t gs_max_prim_vertices,
+   uint16_t const gs_output_words[2]);
 
-bool v3d_vpm_cfg_validate(
+void v3d_vpm_cfg_validate(
    v3d_vpm_cfg_v const* v,
    v3d_vpm_cfg_t const* t,
    v3d_vpm_cfg_g const* g,

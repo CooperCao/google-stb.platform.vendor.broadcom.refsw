@@ -646,8 +646,9 @@ static const struct platform _97439 = {
 };
 
 static const struct memc_memory_range bcm97271_2GB_memc[] = {
-    {0,  0x001000000, 0x5400000},
-    {0,  0x006410000, 0x79bf0000}
+    {0,  0x001000000, 0x1008000},
+    {0,  0x0020e7939, 70354631},
+    {0,  0x006410000, 2042560512}
 };
 
 static const struct board bcm97271_2GB = {
@@ -737,6 +738,7 @@ static void test_97250_1GB_custom_2(NEXUS_PlatformHeapSettings *heap)
     return;
 }
 
+
 static void test_97271_2GB_custom_1(NEXUS_PlatformHeapSettings *heap)
 {
     /*
@@ -750,6 +752,23 @@ static void test_97271_2GB_custom_1(NEXUS_PlatformHeapSettings *heap)
     heap[0].size = 0xa000000; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
     heap[3].size = 0x13b32000;
     heap[1].size = 0x20000000;
+    heap[4].size = 0x2000000; heap[4].alignment = 0x1000000; heap[4].placement.sage = true; heap[4].placement.first = true;
+    return;
+}
+
+static void test_97271_2GB_custom_2(NEXUS_PlatformHeapSettings *heap)
+{
+    /*
+     --- 00:00:01.336 nexus_platform_cma: MEMC0 Placed HEAP[2] 80MBytes(0x5000000 Bytes) with alignment 0x100000 SAGE at 0x07b000000 (1968 MByte)
+     --- 00:00:01.350 nexus_platform_cma: MEMC0 Placed HEAP[0] 96MBytes(0x6000000 Bytes) with alignment 0x100000 SAGE at 0x075000000 (1872 MByte)
+     --- 00:00:01.364 nexus_platform_cma: MEMC0 Placed HEAP[5] 238MBytes(0xeef1000 Bytes) with alignment 0x0 at 0x06610f000 (1633 MByte)
+     --- 00:00:01.377 nexus_platform_cma: MEMC0 Placed HEAP[1] 64MBytes(0x4000000 Bytes) with alignment 0x0 at 0x002400000 (36 MByte)
+     ### 00:00:01.504 nexus_platform_cma: MEMC0 Can't place HEAP[4] 32MBytes(33554432 Bytes) with alignment 0x100000 SAGE
+    */
+    heap[2].size = 0x5000000; heap[2].alignment = 0x1000000; heap[2].placement.sage = true;
+    heap[0].size = 0x6000000; heap[0].alignment = 0x1000000; heap[0].placement.sage = true;
+    heap[5].size = 0xeef1000;
+    heap[1].size = 0x4000000;
     heap[4].size = 0x2000000; heap[4].alignment = 0x1000000; heap[4].placement.sage = true; heap[4].placement.first = true;
     return;
 }
@@ -790,7 +809,8 @@ struct custom_test {
 
 static const struct custom_test custom_tests[] = {
     {"97268 2GB", &bcm97268_2GB, test_97268_2GB_custom_1},
-    {"97271 2GB", &bcm97271_2GB, test_97271_2GB_custom_1},
+    {"97271 2GB Test[1]", &bcm97271_2GB, test_97271_2GB_custom_1},
+    {"97271 2GB Test[2]", &bcm97271_2GB, test_97271_2GB_custom_2},
     {"97250 1GB Test[1]", &bcm97250_1GB, test_97250_1GB_custom_1},
     {"97250 1GB Test[2]", &bcm97250_1GB, test_97250_1GB_custom_2}
 };

@@ -221,9 +221,7 @@ static void bitCount__const_lowp_int__const_uint(const_int *result, const_uint *
    v = v - ((v >> 1) & 0x55555555u);                 // 2 bit counters
    v = (v & 0x33333333u) + ((v >> 2) & 0x33333333u); // 4 bit counters
    v = (v + (v >> 4)) & 0x0F0F0F0Fu;                 // 8 bit counters
-   v = (v + (v >> 8));  // 16 bit counters (8 LSB valid)
-   v = (v + (v >> 16)); // 32 bit counter (8 LSB valid)
-   *result = v & 0xFFu; // mask out invalid bits
+   *result = (v * 0x01010101u) >> 24;
 }
 
 static void bitCount__const_lowp_ivec2__const_uvec2(const_ivec2 *result, const_uvec2 *value)

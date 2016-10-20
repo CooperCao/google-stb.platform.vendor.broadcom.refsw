@@ -90,6 +90,7 @@ struct NEXUS_IrBlaster {
 void NEXUS_IrBlaster_GetDefaultSettings(NEXUS_IrBlasterSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->transmitComplete);
 }
 
 static void NEXUS_IrBlaster_P_Event(void *context)

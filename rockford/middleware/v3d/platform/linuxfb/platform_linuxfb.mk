@@ -13,11 +13,13 @@ V3D_DIR ?= $(NEXUS_TOP)/../rockford/middleware/v3d/driver
 
 CFLAGS += \
 	-fpic -DPIC \
+	-std=c99 \
 	-I. \
 	-I$(V3D_DIR)/interface/khronos/include \
 	-I$(NEXUS_TOP)/../BSEAV/lib/zlib \
 	-I$(NEXUS_TOP)/../BSEAV/lib/libpng \
-	-DBCHP_CHIP=$(BCHP_CHIP)
+	-DBCHP_CHIP=$(BCHP_CHIP) \
+	-D_XOPEN_SOURCE=600
 
 CFLAGS += -c $(foreach dir,$(NEXUS_APP_INCLUDE_PATHS),-I$(dir)) $(foreach def,$(NEXUS_APP_DEFINES),-D"$(def)")
 

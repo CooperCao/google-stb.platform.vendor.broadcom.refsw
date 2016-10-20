@@ -204,13 +204,21 @@ static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *co
     if (rc) {rc=BERR_TRACE(rc); return 0;}
 
     BKNI_Memset(&event, 0, sizeof(event));
+
+    rc = BKIR_IsPreambleA_isrsafe(hChn, &event.preamble.preambleA);
+    if (rc) {rc=BERR_TRACE(rc); return 0;}
+    rc = BKIR_IsPreambleB_isrsafe(hChn, &event.preamble.preambleB);
+    if (rc) {rc=BERR_TRACE(rc); return 0;}
+
     event.code = (uint32_t)kirCode[0] |
         ((uint32_t)kirCode[1] << 8) |
         ((uint32_t)kirCode[2] << 16) |
         ((uint32_t)kirCode[3] << 24);
     event.codeHigh = (uint32_t)kirCode[4] |
         ((uint32_t)kirCode[5] << 8);
-    BDBG_MSG(("NEXUS_IrInput_P_DataReady_isr dev %d, code %#x %#x", interruptDevice, event.code, event.codeHigh));
+
+    BDBG_MSG(("NEXUS_IrInput_P_DataReady_isr dev %d, code %#x %#x (%s%s)",
+	interruptDevice, event.code, event.codeHigh, event.preamble.preambleA?"A":"", event.preamble.preambleB?"B":""));
 
     if (interruptDevice < BKIR_KirInterruptDevice_eMax && irChannel->irInput[interruptDevice]) {
         NEXUS_IrInputHandle irInput = irChannel->irInput[interruptDevice];
@@ -232,7 +240,7 @@ static BERR_Code NEXUS_IrInput_P_DataReady_isr(BKIR_ChannelHandle hChn, void *co
             /* If the repeatFilter is NOT set, then use the hardware repeat */
             if (irInput->settings.repeatFilterTime == 0) {
                 /* TODO: should be BKIR_IsRepeated_isr. */
-                rc = BKIR_IsRepeated(hChn, &event.repeat);
+                rc = BKIR_IsRepeated_isrsafe(hChn, &event.repeat);
                 if (rc) {rc=BERR_TRACE(rc);}
                 break;
             }
@@ -276,6 +284,7 @@ void NEXUS_IrInput_GetDefaultSettings(NEXUS_IrInputSettings *pSettings)
     pSettings->repeatFilterTime = 0; /* assume they want to use hardware repeat mode */
     pSettings->eventQueueSize = 20;
     pSettings->mode = NEXUS_IrInputMode_eRemoteA;
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
 }
 
 /*
@@ -538,10 +547,10 @@ NEXUS_Error NEXUS_IrInput_GetPreambleStatus(NEXUS_IrInputHandle irInput, NEXUS_I
     BERR_Code rc;
     BDBG_OBJECT_ASSERT(irInput, NEXUS_IrInput);
 
-    rc = BKIR_IsPreambleA(irInput->irChannel->kirChannel, &pStatus->preambleA);
+    rc = BKIR_IsPreambleA_isrsafe(irInput->irChannel->kirChannel, &pStatus->preambleA);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
-    rc = BKIR_IsPreambleB(irInput->irChannel->kirChannel, &pStatus->preambleB);
+    rc = BKIR_IsPreambleB_isrsafe(irInput->irChannel->kirChannel, &pStatus->preambleB);
     if (rc) {rc = BERR_TRACE(rc); goto error;}
 
     return NEXUS_SUCCESS;
@@ -553,11 +562,14 @@ error:
 NEXUS_Error NEXUS_IrInput_ReadEvent(NEXUS_IrInputHandle irInput, NEXUS_IrInputEvent *pEvent)
 {
     uint32_t code, codeHigh;
+    bool preambleA, preambleB;
     BDBG_OBJECT_ASSERT(irInput, NEXUS_IrInput);
-    BKIR_GetLastKey(irInput->irChannel->kirChannel, &code, &codeHigh);
+    BKIR_GetLastKey(irInput->irChannel->kirChannel, &code, &codeHigh, &preambleA, &preambleB);
     BKNI_Memset(pEvent, 0, sizeof(*pEvent));
     pEvent->code = code;
     pEvent->codeHigh = codeHigh;
+    pEvent->preamble.preambleA = preambleA;
+    pEvent->preamble.preambleB = preambleB;
     return NEXUS_SUCCESS;
 }
 

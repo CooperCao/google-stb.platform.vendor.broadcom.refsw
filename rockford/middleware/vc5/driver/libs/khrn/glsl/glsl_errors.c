@@ -134,57 +134,27 @@ static const char * const ErrorsSemantic[] =
    //S0008
    "Illegal data type for input or output",
    //S0009
-   BAD_ERROR_CODE,
-   //S0010
-   BAD_ERROR_CODE,
-   //S0011
-   BAD_ERROR_CODE,
-   //S0012
-   BAD_ERROR_CODE,
-   //S0013
-   BAD_ERROR_CODE,
-   //S0014
-   BAD_ERROR_CODE,
-   //S0015
-   "Expression must be an integral constant expression",
-   //S0016
-   BAD_ERROR_CODE,
-   //S0017
-   "Array size must be greater than zero",
-   //S0018
-   BAD_ERROR_CODE,
-   //S0019
-   BAD_ERROR_CODE,
-   //S0020
-   "Indexing with a constant expression out of bounds",
-   //S0021
-   BAD_ERROR_CODE,
-   //S0022
-   "Redefinition of name in same scope",
-   //S0023
-   BAD_ERROR_CODE,
-   //S0024
-   BAD_ERROR_CODE,
-   //S0025
-   BAD_ERROR_CODE,
-   //S0026
-   "Illegal field selector",
-   //S0027
-   "Target of assignment is not an l-value",
-   //S0028
-   "Precision used with type other than integer, floating point or opaque type",
-   //S0029
-   "Declaring a main function with the wrong signature or return type",
-   //S0030
-   "Static recursion present",
-   //S0031
-   "Overloading built-in functions not allowed.",
-   //S0032
-   BAD_ERROR_CODE,
-   //S0033
-   "Expression that does not have an intrinsic precision where the default precision is not defined",
-   //S0034
    "Variable cannot be declared invariant",
+   //S0010
+   "Expression must be an integral constant expression",
+   //S0011
+   "Array size must be greater than zero",
+   //S0012
+   "Indexing with a constant expression out of bounds",
+   //S0013
+   "Redefinition of name in same scope",
+   //S0014
+   "Illegal field selector",
+   //S0015
+   "Target of assignment is not an l-value",
+   //S0016
+   "Precision used with type other than integer, floating point or opaque type",
+   //S0017
+   "Declaring a main function with the wrong signature or return type",
+   //S0018
+   "Static recursion present",
+   //S0019
+   "Overloading built-in functions not allowed.",
 };
 
 static const char * const ErrorsLinker[] =

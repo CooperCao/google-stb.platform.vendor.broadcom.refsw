@@ -1,23 +1,43 @@
 /***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
  * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -1514,15 +1534,15 @@ static SCD_RESULT BTFE_P_ChipStartFat(SCD_RESULT ret_val, SCD_HANDLE chip_handle
 
 					typedef enum
 					{
-   						VIDEO_MODE_VSB = 1,
-    						VIDEO_MODE_64QAM,
-    						VIDEO_MODE_256QAM,
-    						VIDEO_MODE_J83ABC,
-    						VIDEO_MODE_NTSC,
-    						VIDEO_MODE_COFDM,
-    						VIDEO_MODE_UCOFDM,
-    						VIDEO_MODE_DVBT,
-    						VIDEO_MODE_ISDBT
+						VIDEO_MODE_VSB = 1,
+						VIDEO_MODE_64QAM,
+						VIDEO_MODE_256QAM,
+						VIDEO_MODE_J83ABC,
+						VIDEO_MODE_NTSC,
+						VIDEO_MODE_COFDM,
+						VIDEO_MODE_UCOFDM,
+						VIDEO_MODE_DVBT,
+						VIDEO_MODE_ISDBT
 					} VideoStatusMode;
 
 					#define	VIDEO_STATUS_LOSS_DET		0x02
@@ -1915,7 +1935,7 @@ static SCD_RESULT BTFE_P_ChipSetROffset(SCD_HANDLE chip_handle, SCD_HANDLE handl
    if (tchip->rfOffset.freqOffset != freqOffset) /* make change if different than last setup */
    {
 	tchip->rfOffset.freqOffset = freqOffset;
-   	if (freqOffset > 0)
+	if (freqOffset > 0)
 		x = (uint32_t) freqOffset;
 	else
 		x = (uint32_t) (-freqOffset);
@@ -2181,14 +2201,14 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
                 }
 		  switch (temp8)
 		  {
-		  	case VIDEO_MODE_VSB:
+			case VIDEO_MODE_VSB:
 				data->DemodulationFormat = SCD_MOD_FORMAT__FAT_VSB;
 				break;
 #ifdef SCD_LEGACY_QAM
-		  	case VIDEO_MODE_64QAM:
+			case VIDEO_MODE_64QAM:
 				data->DemodulationFormat = SCD_MOD_FORMAT__FAT_QAM64;
 				break;
-		  	case VIDEO_MODE_256QAM:
+			case VIDEO_MODE_256QAM:
 				data->DemodulationFormat = SCD_MOD_FORMAT__FAT_QAM256;
 				break;
 #endif
@@ -2288,7 +2308,7 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
            if ((data->DemodulationFormat == SCD_MOD_FORMAT__FAT_VSB) ||
 		         (IS_QAM_FAT_MOD_FORMAT(data->DemodulationFormat))) /* VSB and Qam */
             {
-            	  uint32_t P_hi, P_lo, Q_hi, Q_lo, sample_freq, symbol_rate, val;
+		  uint32_t P_hi, P_lo, Q_hi, Q_lo, sample_freq, symbol_rate, val;
 		  int32_t freq_offset;
 		  int32_t coarse_offset;
 		  int32_t pilot_offset;
@@ -2300,29 +2320,29 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
 			temp32 = (tempBuffer[3] << 16) | (tempBuffer[4] << 8) | tempBuffer[5];
 		  }
 		  else
-		  	BTFE_P_ChipGetReg24(ret_val, chip_handle, ixFE_DC_NORMALIZED_IF_2, &temp32);
+			BTFE_P_ChipGetReg24(ret_val, chip_handle, ixFE_DC_NORMALIZED_IF_2, &temp32);
 
 		  /* diffFreq = diffIfNormRate * (sample_rate) / (1 << 24) */
 		  if (temp32 >= tchip->defaultIFNomRate)
-		  	diffNormRate = temp32 - tchip->defaultIFNomRate;
+			diffNormRate = temp32 - tchip->defaultIFNomRate;
 		  else
-		  	diffNormRate = tchip->defaultIFNomRate - temp32;
+			diffNormRate = tchip->defaultIFNomRate - temp32;
 
 		  /* printf("    diffNormRate 0x%x, defaultIFNomRate 0x%x, temp32 0x%x\n",
-		  	diffNormRate, tchip->defaultIFNomRate, temp32); */
+			diffNormRate, tchip->defaultIFNomRate, temp32); */
 
 		  sample_freq = FE_CRYSTAL_FREQ;
 		  BTFE_MultU32U32(diffNormRate, sample_freq, &P_hi, &P_lo);
 		  BTFE_DivU64U32(P_hi, P_lo, 16777216, &Q_hi, &Q_lo);
 
 		  if (temp32 >= tchip->defaultIFNomRate)
-		  	freq_offset = (int32_t) Q_lo;
+			freq_offset = (int32_t) Q_lo;
 		  else
-		  	freq_offset = (int32_t) -Q_lo;
+			freq_offset = (int32_t) -Q_lo;
 
 		  /* reverse carrie offset for low IF tuner */
 		  if (tchip->FatIfFrequency <= LOW_IF_MAX_FREQ)
-		  	freq_offset = -freq_offset;
+			freq_offset = -freq_offset;
 
 		  /* printf("    Q_hi %d, freq_offset %d\n", Q_hi, freq_offset); */
 		  if ((data->DemodulationFormat == SCD_MOD_FORMAT__FAT_VSB) && (tchip->Acquisition.acqConfig == SCD_SEARCH_SCAN))
@@ -2335,7 +2355,7 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
 			 * FE_DC_CO_STATUS: 14 bit register
 			 * (coarse_offset) * 2^-16 * 54E6/2
 			 */
-		  	BTFE_P_ChipGetReg16(ret_val, chip_handle, ixFE_DC_CO_STATUS_MSB, &temp16);
+			BTFE_P_ChipGetReg16(ret_val, chip_handle, ixFE_DC_CO_STATUS_MSB, &temp16);
 
 			/* compute val = abs(temp16) since the fixed point routines only work for unsigned numbers */
 			temp16 &= 0x3FFF; /* 14 bits register */
@@ -2345,7 +2365,7 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
 				val = ~temp32 + 1;
 			}
 			else
-   				val = (uint32_t) temp16;
+				val = (uint32_t) temp16;
 
 			BTFE_MultU32U32(val, 27000000, &P_hi, &P_lo); /* mutiply 54e6/2 */
 			BTFE_DivU64U32(P_hi, P_lo, 65536, &Q_hi, &Q_lo); /* divide by 2^16 */
@@ -2359,13 +2379,13 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
 			/*
 			 * pilot_offset * pow(2.0, -34.0) * symbol_rate, VSB_SYMBOL_RATE
 			 */
-		  	BTFE_P_ChipGetReg32(ret_val, chip_handle, ixFE_PILOT_FREQUENCY_OFFSET_3, &temp32);
+			BTFE_P_ChipGetReg32(ret_val, chip_handle, ixFE_PILOT_FREQUENCY_OFFSET_3, &temp32);
 
 			/* compute val = abs(temp32) since the fixed point routines only work for unsigned numbers */
 			if (temp32 & 0x80000000)
 				val = ~temp32 + 1;
 			else
-   				val = temp32;
+				val = temp32;
 
 			symbol_rate = VSB_SYMBOL_RATE;
 			BTFE_MultU32U32(val, symbol_rate, &P_hi, &P_lo);
@@ -2381,7 +2401,7 @@ static SCD_RESULT BTFE_P_ChipGetFat(SCD_HANDLE chip_handle, SCD_HANDLE handle, S
 			/*
 			 * qam_carrie_offset * pow(2,0, -35.0) * symbol_rate
 			 */
-		  	BTFE_P_ChipGetReg32(ret_val, chip_handle, ixEQ_CL_FREQ_OFFSET_3, &temp32);
+			BTFE_P_ChipGetReg32(ret_val, chip_handle, ixEQ_CL_FREQ_OFFSET_3, &temp32);
 			if (temp32 & 0x80000000)
 				val = ~temp32 + 1;
 			else
@@ -3041,7 +3061,7 @@ static SCD_RESULT BTFE_P_ChipGetEqTaps(SCD_HANDLE chip_handle, SCD_HANDLE handle
             /* do the FIR Q tap */
 			*adjustmentPointer=*dataPointer;
             *dataPointer = (int32_t) ((tempdata[j]) + ((tempdata[FIR_TAPSECTIONSIZE + j] & 0x0f) <<8)) + ((tempdata[FIR_TAPSECTIONSIZE + j] & 0x08) ? 0xfffff000 : 0);
-    		*adjustmentPointer=(*dataPointer++)-(*adjustmentPointer);
+		*adjustmentPointer=(*dataPointer++)-(*adjustmentPointer);
                 adjustmentPointer++;
 
             /* do the FIR I tap */
@@ -3052,8 +3072,8 @@ static SCD_RESULT BTFE_P_ChipGetEqTaps(SCD_HANDLE chip_handle, SCD_HANDLE handle
             adjustmentPointer++;
 
        /*     *avgnormPointer++=(int32_t)(((tempNorm[j] & 0xf0) >> 4)+((tempNorm[FIR_TAPSECTIONSIZE + j]) <<4))+((tempNorm[FIR_TAPSECTIONSIZE + j] & 0x80) ? 0xfffff000 : 0);
-	   		*avgnormPointer++=(int32_t)(tempNorm[j] +((tempNorm[FIR_TAPSECTIONSIZE + j]) <<8))+((tempNorm[FIR_TAPSECTIONSIZE + j] & 0x80) ? 0xffff0000 : 0); */
-	   		*avgnormPointer++=(int32_t)((tempNorm[(uint8_t)(j/8)])+((tempNorm[FIR_UNITSIZE + (uint8_t)(j/8)]) <<8));
+			*avgnormPointer++=(int32_t)(tempNorm[j] +((tempNorm[FIR_TAPSECTIONSIZE + j]) <<8))+((tempNorm[FIR_TAPSECTIONSIZE + j] & 0x80) ? 0xffff0000 : 0); */
+			*avgnormPointer++=(int32_t)((tempNorm[(uint8_t)(j/8)])+((tempNorm[FIR_UNITSIZE + (uint8_t)(j/8)]) <<8));
 			/*		*avgnormPointer++=((tempNorm[FIR_TAPSECTIONSIZE + j] & 0x80) ? 0xfffffE00 : 100);
 			*(avgnormPointer+FIR_TAPSECTIONSIZE)=abs(*avgnormPointer-temp32); */
 			/**avgnormPointer++=*(avgnormPointer-1);*/
@@ -3915,16 +3935,16 @@ static SCD_RESULT BTFE_P_ChipCheckMicrocode(SCD_RESULT ret_val, SCD_HANDLE chip_
 
         if (ret_val == SCD_RESULT__OK)
         {
-        	/* clear service request & status */
+		/* clear service request & status */
               ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_REQUEST, 0x00);
-        	ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_0, 0x00);
-       	ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_1, 0x00);
-        	ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_2, 0x00);
+		ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_0, 0x00);
+	ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_1, 0x00);
+		ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixHI_SERVICE_STATUS_2, 0x00);
 
-	 	/* reset the micro */
-        	ret_val = BTFE_P_ChipGetReg8(ret_val, chip_handle, ixUC_MEM_AGC_DWNLD_UPLD_CNTRL, &temp8);
-        	MODIFYFLD(temp8, UC_MEM_AGC_DWNLD_UPLD_CNTRL, uc_reset, 1);
-        	ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixUC_MEM_AGC_DWNLD_UPLD_CNTRL, temp8);
+		/* reset the micro */
+		ret_val = BTFE_P_ChipGetReg8(ret_val, chip_handle, ixUC_MEM_AGC_DWNLD_UPLD_CNTRL, &temp8);
+		MODIFYFLD(temp8, UC_MEM_AGC_DWNLD_UPLD_CNTRL, uc_reset, 1);
+		ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixUC_MEM_AGC_DWNLD_UPLD_CNTRL, temp8);
 		MODIFYFLD(temp8, UC_MEM_AGC_DWNLD_UPLD_CNTRL, uc_reset, 0);
 		ret_val = BTFE_P_ChipSetReg8(ret_val, chip_handle, ixUC_MEM_AGC_DWNLD_UPLD_CNTRL, temp8);
 	}

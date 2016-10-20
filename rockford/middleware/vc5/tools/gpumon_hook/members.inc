@@ -566,8 +566,14 @@ EGLBoolean (*map_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 #endif /* EGL_KHR_platform_x11*/
@@ -578,6 +584,13 @@ EGLBoolean (*map_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 #if EGL_KHR_wait_sync
 EGLint (*map_eglWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+void (*map_glBlendBarrierKHR)(void);
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 void (*map_glDebugMessageControlKHR)(GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled);
@@ -626,6 +639,13 @@ void (*map_glBlendFuncSeparateiOES)(GLuint buf, GLenum srcRGB, GLenum dstRGB, GL
 void (*map_glColorMaskiOES)(GLuint index, GLboolean r, GLboolean g, GLboolean b, GLboolean a);
 GLboolean (*map_glIsEnablediOES)(GLenum target, GLuint index);
 #endif /* GL_OES_draw_buffers_indexed*/
+
+#if GL_OES_draw_elements_base_vertex
+void (*map_glDrawElementsBaseVertexOES)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
+void (*map_glDrawRangeElementsBaseVertexOES)(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex);
+void (*map_glDrawElementsInstancedBaseVertexOES)(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex);
+void (*map_glMultiDrawElementsBaseVertexOES)(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, const GLint *basevertex);
+#endif /* GL_OES_draw_elements_base_vertex*/
 
 #if GL_OES_draw_texture
 void (*map_glDrawTexsOES)(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height);
@@ -679,12 +699,20 @@ void (*map_glGetBufferPointervOES)(GLenum target, GLenum pname, void **params);
 void (*map_glPointSizePointerOES)(GLenum type, GLsizei stride, const void *pointer);
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+void (*map_glPrimitiveBoundingBoxOES)(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW);
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 GLbitfield (*map_glQueryMatrixxOES)(GLfixed *mantissa, GLint *exponent);
 #endif /* GL_OES_query_matrix*/
 
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+void (*map_glMinSampleShadingOES)(GLfloat value);
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -808,6 +836,9 @@ EGLSurface (*map_eglCreatePlatformWindowSurfaceEXT)(EGLDisplay dpy, EGLConfig co
 EGLSurface (*map_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLint *attrib_list);
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
@@ -816,6 +847,12 @@ EGLSurface (*map_eglCreatePlatformPixmapSurfaceEXT)(EGLDisplay dpy, EGLConfig co
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+EGLBoolean (*map_eglBindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+EGLBoolean (*map_eglUnbindWaylandDisplayWL)(EGLDisplay dpy, struct wl_display *display);
+EGLBoolean (*map_eglQueryWaylandBufferWL)(EGLDisplay dpy, struct wl_resource *buffer, EGLint name, EGLint *value);
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
@@ -831,9 +868,6 @@ void (*map_glProvokingVertexBRCM)(GLenum mode);
 #if GL_BRCM_texture_1D
 void (*map_glTexImage1DBRCM)(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels);
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

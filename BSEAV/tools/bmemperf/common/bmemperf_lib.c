@@ -526,6 +526,44 @@ char *GetFileContents(
     return( contents );
 }                                                          /* GetFileContents */
 
+char *GetFileContentsSeek(
+    const char *filename,
+    unsigned int offset
+    )
+{
+    unsigned int remaining = 0;
+    char       *contents = NULL;
+    FILE       *fpInput  = NULL;
+    struct stat statbuf;
+
+    if (lstat( filename, &statbuf ) == -1)
+    {
+        /*printf( "%s: Could not stat (%s)\n", __FUNCTION__, filename );*/
+        return( NULL );
+    }
+
+    if ( offset >= statbuf.st_size ) {
+        return( NULL );
+    }
+
+    remaining = statbuf.st_size - offset;
+    printf("%s: remaining %d; size %d\n", __FUNCTION__, remaining, (int) statbuf.st_size );
+    contents = malloc( remaining + 1 );
+    if (contents == NULL) {return( NULL ); }
+
+    memset( contents, 0, remaining + 1 );
+
+    if ( remaining )
+    {
+        fpInput = fopen( filename, "r" );
+        fseek( fpInput, offset, SEEK_SET );
+        fread( contents, 1, remaining, fpInput );
+        fclose( fpInput );
+    }
+
+    return( contents );
+}                                                          /* GetFileContents */
+
 unsigned int GetFileLength(
     const char *filename
     )
@@ -1234,6 +1272,7 @@ char *getProductIdStr(
             /*printf("%s:%u\n", __FILE__, __LINE__ );fflush(stdout);fflush(stderr);*/
             familyId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID );
             productId = bmemperf_readReg32( BCHP_SUN_TOP_CTRL_PRODUCT_ID );
+            /*printf("%s:%u familyId 0x%x; productId 0x%x \n", __FILE__, __LINE__, familyId, productId );*/
 
             if (productId&0xF0000000)                          /* if upper nibble is non-zero, this value contains a 4-digit product id in bits 31:16 */
             {
@@ -1242,13 +1281,19 @@ char *getProductIdStr(
             else
             {
                 snprintf( lProductIdStr, sizeof( lProductIdStr ) - 1, "%x", productId>>8 );
-                if (strcmp( lProductIdStr, "72521" ) == 0)
+                /*printf("%s:%u lProductIdStr (%s) \n", __FILE__, __LINE__, lProductIdStr );*/
+                if (strcmp( lProductIdStr, "72511" ) == 0)
+                {
+                    strncpy( lProductIdStr, "7251S", sizeof( lProductIdStr ) - 1 );
+                }
+                else if ( (strcmp( lProductIdStr, "72525" ) == 0 ) ||
+                          (strcmp( lProductIdStr, "72521" ) == 0 ) ||
+                          (strcmp( lProductIdStr, "74481" ) == 0 ) ||
+                          (strcmp( lProductIdStr, "74491" ) == 0 ) ||
+                          (strcmp( lProductIdStr, "74495" ) == 0 )
+                        )
                 {
                     strncpy( lProductIdStr, "7252S", sizeof( lProductIdStr ) - 1 );
-                }
-                else if (strcmp( lProductIdStr, "72525" ) == 0)
-                {
-                    strncpy( lProductIdStr, "7252L", sizeof( lProductIdStr ) - 1 );
                 }
             }
             PRINTFLOG( "~DEBUG~productId %x (%s) ... familyId %x~", productId, lProductIdStr, familyId );
@@ -1644,22 +1689,6 @@ const char * executable_fullpath( const char * exe_name )
     return( line );
 }
 
-/**
- *  Function: This function will free a buffer allocated with malloc(). It will check for NULL before attempting
- *  the free.
- **/
-void Bsysperf_Free(
-    char *buffer
-    )
-{
-    if (buffer)
-    {
-        free( buffer );
-    }
-
-    return;
-}
-
 const char * get_executing_command( const char * exe_name )
 {
     static char   line[MAX_LENGTH_GETPIDOF_CMD];
@@ -1816,5 +1845,238 @@ int Bsysperf_RestoreNewline( char * posEol )
         posEol[0] = '\n';  /* restore the newline character */
     }
 
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will convert the specified character to it's integer hexidecimal value.
+ **/
+static long int atoix( char c )
+{
+    char lchar[2];
+    lchar[0] = c;
+    lchar[1] = 0;
+    return strtol(lchar, NULL, 16);
+}
+
+/**
+ *  Function: This function will convert the specified string from the encoded version that comes from the
+ *  browser to a decoded version that is a standard C string. For example "%20" gets changed to a space " "; the
+ *  value "%2F" gets changed to "/".
+ **/
+int decodeURL ( char * URL )
+{
+    char c, *s=NULL, *d=NULL;
+
+    for (d = s = URL; *s; s++, d++)
+    {
+        c = *s;
+        if (c == '%')
+        {
+            c = *++s;
+            if (c == '%') c = '%';
+            else {
+                c = atoix(c) << 4 | atoix(*++s);
+            }
+            *d = c;
+        }
+        else
+        {
+            *d = c;
+        }
+    }
+    *d = '\0';
+
+    return 0;
+}
+
+/**
+ *  Function: This function will return the frequency for the specified CPU.
+ *            You can use this command to list the current frequency:
+ *            $ cat /sys/devices/system/cpu/cpu0/cpufreq/cpuinfo_cur_freq
+ **/
+int get_cpu_frequency(
+    unsigned int cpuId
+    )
+{
+    long int      freq = 0;
+    FILE         *fp  = NULL;
+    struct stat   statbuf;
+    char          cpuinfo_cur_freq[64];
+
+    memset( &statbuf, 0, sizeof( statbuf ));
+
+    sprintf( cpuinfo_cur_freq, "/sys/devices/system/cpu/cpu%u/cpufreq/cpuinfo_cur_freq", cpuId );
+
+    PRINTF( "%s:%u - trying lstat(%s)\n", __FUNCTION__, __LINE__, cpuinfo_cur_freq );
+    if ( (lstat( cpuinfo_cur_freq, &statbuf ) == -1) || (statbuf.st_size == 0) )
+    {
+        PRINTF( "%s:%u - lstat(%s) failed; %s\n", __FUNCTION__, __LINE__, cpuinfo_cur_freq, strerror( errno ));
+        return( freq );
+    }
+
+    fp = fopen( cpuinfo_cur_freq, "r" );
+    if ( fp )
+    {
+        int  num_bytes = 0;
+        char freq_buffer[32];
+        memset(freq_buffer, 0, sizeof(freq_buffer));
+
+        num_bytes = fread(freq_buffer, 1, sizeof(freq_buffer) - 1, fp );
+        PRINTF( "%s:%u - fread() returned num_bytes %d \n", __FUNCTION__, __LINE__, num_bytes );
+        if ( num_bytes )
+        {
+            sscanf( freq_buffer, "%ld", &freq );
+            PRINTF( "%s:%u - sscanf(%s) returned freq %ld \n", __FUNCTION__, __LINE__, freq_buffer, freq );
+            freq /= 1000;
+        }
+    }
+
+    return ( freq );
+}                                                          /* get_cpu_frequency */
+
+/**
+ *  Function: This function will loop through all processors in the system
+ *  and look for the CPU frequency associated each one. If at least one
+ *  non-zero frequency is found, then all of the discovered frequencies will
+ *  be output using the CPUFREQUENCY tag. For older versions of BOLT (pre v1.20)
+ *  and kernel versions before 4.1-1.3, this CPU frequency data will not be
+ *  found in the /sys file system.
+ **/
+int output_cpu_frequencies( void )
+{
+    int numCpusConf = 0;
+    int cpu = 0;
+    char CPUFREQUENCY_line[512];
+    char cpu_freq_str[32];
+    int  cpu_freq_int;
+    bool cpu_freq_nonzero = false;
+
+    memset(CPUFREQUENCY_line, 0, sizeof(CPUFREQUENCY_line));
+
+    numCpusConf = sysconf( _SC_NPROCESSORS_CONF );
+    if (numCpusConf > BMEMPERF_MAX_NUM_CPUS)
+    {
+        numCpusConf = BMEMPERF_MAX_NUM_CPUS;
+    }
+
+    for (cpu = 0; cpu < numCpusConf; cpu++)
+    {
+        cpu_freq_int = get_cpu_frequency(cpu);
+
+        /* if at least one non-zero cpu frequency is found, remember this fact */
+        if ( cpu_freq_nonzero == false && cpu_freq_int > 0 ) cpu_freq_nonzero = true;
+
+        sprintf( cpu_freq_str, "%06u ", cpu_freq_int );
+        strncat( CPUFREQUENCY_line, cpu_freq_str, sizeof(CPUFREQUENCY_line) - strlen(CPUFREQUENCY_line) - 1 );
+    }
+
+    if ( cpu_freq_nonzero )
+    {
+        /* output the CPU frequency data */
+        printf( "~CPUFREQUENCY~%u %s~", numCpusConf, CPUFREQUENCY_line );
+    }
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will read the current scaling governor from the /sys
+ *            file system. The string value will be converted to an internal
+ *            enum and returned to the caller.
+ *            File: /sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+ **/
+int get_governor_control ( int cpu )
+{
+    DVFS_GOVERNOR_TYPES value = DVFS_GOVERNOR_PERFORMANCE;
+    char  filename[128];
+    char *contents = NULL;
+
+    memset(filename, 0, sizeof(filename));
+
+    sprintf( filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", cpu );
+    contents = GetFileContents( filename );
+    if ( contents )
+    {
+        /*printf("for filename (%s); contents (%s)\n", filename, contents );*/
+        if ( strstr(contents, "conservative" ) )
+        {
+            value = DVFS_GOVERNOR_CONSERVATIVE;
+        }
+        else if ( strstr(contents, "performance" ) )
+        {
+            value = DVFS_GOVERNOR_PERFORMANCE;
+        }
+        else if ( strstr(contents, "powersave" ) )
+        {
+            value = DVFS_GOVERNOR_POWERSAVE;
+        }
+        Bsysperf_Free( contents );
+    }
+
+    return ( value );
+}
+
+/**
+ *  Function: This function will set the scaling governor value using the caller's
+ *            input value. The input enum will be converted to the appropriate
+ *            string value before the string is stored in the /sys file system.
+ *            echo performance >/sys/devices/system/cpu/cpu0/cpufreq/scaling_governor
+ **/
+int set_governor_control ( int cpu, DVFS_GOVERNOR_TYPES GovernorSetting )
+{
+    char new_setting[32];
+    char cmd[64];
+
+    memset(new_setting, 0, sizeof(new_setting));
+    memset(cmd, 0, sizeof(cmd));
+
+    switch (GovernorSetting)
+    {
+        case DVFS_GOVERNOR_CONSERVATIVE:
+        {
+            strncpy( new_setting, "conservative", sizeof(new_setting) - 1 );
+            break;
+        }
+        default:
+        case DVFS_GOVERNOR_PERFORMANCE:
+        {
+            strncpy( new_setting, "performance", sizeof(new_setting) - 1 );
+            break;
+        }
+        case DVFS_GOVERNOR_POWERSAVE:
+        {
+            strncpy( new_setting, "powersave", sizeof(new_setting) - 1 );
+            break;
+        }
+    }
+    sprintf( cmd, "echo %s >/sys/devices/system/cpu/cpu%d/cpufreq/scaling_governor", new_setting, cpu );
+    printf("~issuing cmd (%s) ~", cmd );
+    system( cmd );
+
+    return ( 0 );
+}
+
+/**
+ *  Function: This function will return a string that contains the various CPU
+ *            frequencies that are supported by the chip. Sometimes, the number
+ *            of CPU frequencies is just 1.
+ *            cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_frequencies
+ **/
+int get_cpu_frequencies_supported( int cpu, char *cpu_frequencies_supported, int cpu_frequencies_supported_size )
+{
+    char cpu_frequencies_supported_filename[128];
+    char *contents = NULL;
+
+    if ( cpu_frequencies_supported == NULL ) return -1;
+
+    sprintf( cpu_frequencies_supported_filename, "/sys/devices/system/cpu/cpu%d/cpufreq/scaling_available_frequencies", cpu );
+    contents = GetFileContents ( cpu_frequencies_supported_filename );
+
+    if ( contents )
+    {
+        strcpy( cpu_frequencies_supported, contents );
+        Bsysperf_Free( contents );
+    }
     return ( 0 );
 }

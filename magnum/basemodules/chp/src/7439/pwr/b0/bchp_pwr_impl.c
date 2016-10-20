@@ -1524,19 +1524,19 @@ static void BCHP_PWR_P_HW_PLL_SC1_Control(BCHP_Handle handle, bool activate)
 
     BDBG_MSG(("HW_PLL_SC1: %s", activate?"on":"off"));
 
-    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_SC0_PLL_CTRL_WRAPPER_CONTROL);
-    mask = ( BCHP_CLKGEN_SC0_PLL_CTRL_WRAPPER_CONTROL_PWRDN_PLL_REQ_MASK );
+    reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_SC1_PLL_CTRL_WRAPPER_CONTROL);
+    mask = ( BCHP_CLKGEN_SC1_PLL_CTRL_WRAPPER_CONTROL_PWRDN_PLL_REQ_MASK );
     reg &= ~mask;
     reg |= activate?0:mask;
-    BREG_Write32(handle->regHandle, BCHP_CLKGEN_SC0_PLL_CTRL_WRAPPER_CONTROL, reg);
+    BREG_Write32(handle->regHandle, BCHP_CLKGEN_SC1_PLL_CTRL_WRAPPER_CONTROL, reg);
 
     /* Check for PLL lock */
     if(activate) {
         uint32_t cnt=50;
         while(cnt--) {
             BKNI_Delay(10);
-            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_SC0_PLL_LOCK_STATUS);
-            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_SC0_PLL_LOCK_STATUS, LOCK))
+            reg = BREG_Read32(handle->regHandle, BCHP_CLKGEN_PLL_SC1_PLL_LOCK_STATUS);
+            if (BCHP_GET_FIELD_DATA(reg, CLKGEN_PLL_SC1_PLL_LOCK_STATUS, LOCK))
                 break;
         }
         if(!cnt)

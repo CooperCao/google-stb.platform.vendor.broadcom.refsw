@@ -418,6 +418,7 @@ typedef struct BAVC_MFD_Picture
 
     /* 8 or 10-bit depth */
     BAVC_VideoBitDepth       eBitDepth;
+    BAVC_VideoBitDepth       eChromaBitDepth;
 
     /* Original PTS of the picture, relayed by STG to ViCE2 Mailbox.
      * Note, this PTS value could be either original coded PTS or interolated

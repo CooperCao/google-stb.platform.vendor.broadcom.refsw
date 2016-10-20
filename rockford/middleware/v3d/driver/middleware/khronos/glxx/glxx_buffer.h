@@ -96,7 +96,7 @@ typedef struct {
 } GLXX_BUFFER_T;
 
 extern void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name);
-extern void glxx_buffer_term(void *v, uint32_t size);
+extern void glxx_buffer_term(MEM_HANDLE_T handle);
 
 extern bool glxx_buffer_data(GLXX_BUFFER_T *buffer, int32_t size, const void *data, GLenum usage);
 extern void glxx_buffer_subdata(GLXX_BUFFER_T *buffer, int32_t offset, int32_t size, const void *data);

@@ -1,23 +1,43 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btnr.h"
@@ -36,7 +56,7 @@ BDBG_MODULE(btnr_3128ib);
 #define CHIP_ID_3147                    0x3147
 #define CHIP_ID_3144                    0x3144
 #define CHIP_ID_3145                    0x3145
-#define CHIP_ID_3184                    0x3184      
+#define CHIP_ID_3184                    0x3184
 #define BTNR_MAX_3462_CHANNELS          (1)
 #define BTNR_MAX_3127_CHANNELS          (4)
 #define BTNR_MAX_3147_CHANNELS          (4)
@@ -65,7 +85,7 @@ static const BTNR_IfDacSettings defIfdacSettings =
 BERR_Code BTNR_3128Ib_Open(
     BTNR_Handle *phDev,                 /* [output] Returns handle */
     BTNR_3128Ib_Settings *pSettings, /* [Input] settings structure */
-    BHAB_Handle hHab                  /* [Input] Hab Handle */   
+    BHAB_Handle hHab                  /* [Input] Hab Handle */
     )
 {
     BERR_Code retCode = BERR_SUCCESS;
@@ -73,20 +93,20 @@ BERR_Code BTNR_3128Ib_Open(
     BTNR_P_312xIb_Settings *pTnrImplData;
     BTNR_Handle hDev;
     BHAB_Capabilities capabilities={0, NULL};
-    uint16_t chipVer;    
-    uint32_t familyId, chipId;    
-    uint8_t apVer, minApVer, i=0, totalTunerChannels=0; 
+    uint16_t chipVer;
+    uint32_t familyId, chipId;
+    uint8_t apVer, minApVer, i=0, totalTunerChannels=0;
 
     BDBG_ENTER(BTNR_312xIb_Open);
     BDBG_ASSERT( hHab );
-    
+
     hDev = NULL;
     /* Alloc memory from the system heap */
     h312xIbDev = (BTNR_312xIb_Handle) BKNI_Malloc( sizeof( BTNR_P_312xIb_Handle ) );
     if( h312xIbDev == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BTNR_312xIb_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BTNR_312xIb_Open: BKNI_malloc() failed"));
         goto done;
     }
     BKNI_Memset( h312xIbDev, 0x00, sizeof( BTNR_P_312xIb_Handle ) );
@@ -95,7 +115,7 @@ BERR_Code BTNR_3128Ib_Open(
     if( hDev == NULL )
     {
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BTNR_312xIb_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BTNR_312xIb_Open: BKNI_malloc() failed"));
         BKNI_Free( h312xIbDev );
         goto done;
     }
@@ -110,7 +130,7 @@ BERR_Code BTNR_3128Ib_Open(
     h312xIbDev->hHab = hHab;
     hDev->hDevImpl = (void *) h312xIbDev;
     hDev->magicId = DEV_MAGIC_ID;
-    h312xIbDev->devId = BHAB_DevId_eTNR0; /* Here the device id is always defaulted to channel 0. */    
+    h312xIbDev->devId = BHAB_DevId_eTNR0; /* Here the device id is always defaulted to channel 0. */
     hDev->pSetRfFreq = (BTNR_SetRfFreqFunc) BTNR_312xIb_SetRfFreq;
     hDev->pGetRfFreq = (BTNR_GetRfFreqFunc) BTNR_312xIb_GetRfFreq;
     hDev->pGetAgcRegVal = (BTNR_GetAgcRegValFunc) BTNR_P_312xIb_GetAgcRegVal;
@@ -119,16 +139,16 @@ BERR_Code BTNR_3128Ib_Open(
     hDev->pClose = (BTNR_CloseFunc) BTNR_312xIb_Close;
     hDev->pGetPowerSaver = (BTNR_GetPowerSaverFunc) BTNR_312xIb_GetPowerSaver;
     hDev->pSetPowerSaver = (BTNR_SetPowerSaverFunc) BTNR_312xIb_SetPowerSaver;
-    hDev->pGetSettings = (BTNR_GetSettingsFunc) BTNR_312xIb_GetSettings;  
+    hDev->pGetSettings = (BTNR_GetSettingsFunc) BTNR_312xIb_GetSettings;
     hDev->pSetSettings = (BTNR_SetSettingsFunc) BTNR_312xIb_SetSettings;
-    hDev->pRequestSpectrumAnalyzerData = (BTNR_RequestSpectrumAnalyzerDataFunc) BTNR_312xIb_RequestSpectrumAnalyzerData;    
-    hDev->pGetSpectrumAnalyzerData = (BTNR_GetSpectrumAnalyzerDataFunc) BTNR_312xIb_GetSpectrumAnalyzerData;    
-    hDev->pInstallCallback = (BTNR_InstallCallbackFunc) BTNR_312xIb_InstallCallback;    
-    hDev->pVersionInfo = (BTNR_GetVersionInfoFunc) BTNR_312xIb_GetVersionInfo;    
-    hDev->pTuneIfDac = (BTNR_TuneIfDacFunc) BTNR_312xIb_TuneIfDac;    
-    hDev->pResetIfDacStatus = (BTNR_ResetIfDacStatusFunc) BTNR_312xIb_ResetIfDacStatus;    
-    hDev->pRequestIfDacStatus = (BTNR_RequestIfDacStatusFunc) BTNR_312xIb_RequestIfDacStatus;    
-    hDev->pGetIfDacStatus = (BTNR_GetIfDacStatusFunc) BTNR_312xIb_GetIfDacStatus;    
+    hDev->pRequestSpectrumAnalyzerData = (BTNR_RequestSpectrumAnalyzerDataFunc) BTNR_312xIb_RequestSpectrumAnalyzerData;
+    hDev->pGetSpectrumAnalyzerData = (BTNR_GetSpectrumAnalyzerDataFunc) BTNR_312xIb_GetSpectrumAnalyzerData;
+    hDev->pInstallCallback = (BTNR_InstallCallbackFunc) BTNR_312xIb_InstallCallback;
+    hDev->pVersionInfo = (BTNR_GetVersionInfoFunc) BTNR_312xIb_GetVersionInfo;
+    hDev->pTuneIfDac = (BTNR_TuneIfDacFunc) BTNR_312xIb_TuneIfDac;
+    hDev->pResetIfDacStatus = (BTNR_ResetIfDacStatusFunc) BTNR_312xIb_ResetIfDacStatus;
+    hDev->pRequestIfDacStatus = (BTNR_RequestIfDacStatusFunc) BTNR_312xIb_RequestIfDacStatus;
+    hDev->pGetIfDacStatus = (BTNR_GetIfDacStatusFunc) BTNR_312xIb_GetIfDacStatus;
 
     retCode = BHAB_GetApVersion(h312xIbDev->hHab, &familyId, &chipId, &chipVer, &apVer, &minApVer);
     if((chipId == 0x00) && (familyId == 0x3128))
@@ -151,11 +171,11 @@ BERR_Code BTNR_3128Ib_Open(
     }
     h312xIbDev->mxChnNo = totalTunerChannels;
     h312xIbDev->channelNo = capabilities.channelCapabilities[pSettings->channelNo].tunerChannelNumber;
-   
+
     if(pSettings->channelNo > h312xIbDev->mxChnNo)
     {
-        retCode = BERR_TRACE(BERR_NOT_SUPPORTED); 
-        BDBG_ERR(("Only %d TNR channels supported on on %x", h312xIbDev->mxChnNo, chipId)); 
+        retCode = BERR_TRACE(BERR_NOT_SUPPORTED);
+        BDBG_ERR(("Only %d TNR channels supported on on %x", h312xIbDev->mxChnNo, chipId));
     }
     else
         *phDev = hDev;
@@ -171,9 +191,9 @@ done:
             BKNI_Free( hDev );
         }
         *phDev = NULL;
-    }     
+    }
     BDBG_LEAVE(BTNR_312xIb_Open);
-    return( retCode );  
+    return( retCode );
 }
 
 BERR_Code BTNR_3128Ib_GetDefaultSettings(

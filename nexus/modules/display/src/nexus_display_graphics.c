@@ -643,3 +643,31 @@ void NEXUS_Graphics_GetDefaultFramebuffer3D(NEXUS_GraphicsFramebuffer3D *pFrameb
     return;
 }
 
+NEXUS_Error NEXUS_Display_GetGraphicsFramebufferStatus( NEXUS_DisplayHandle display, NEXUS_SurfaceHandle surface, NEXUS_GraphicsFramebufferStatus *pStatus )
+{
+    const NEXUS_DisplayModule_State *video= &g_NEXUS_DisplayModule_State;
+    struct NEXUS_DisplayGraphics *graphics;
+    BAVC_Gfx_Picture pic;
+    BERR_Code rc;
+    const BPXL_Plane *plane;
+
+    BDBG_OBJECT_ASSERT(display, NEXUS_Display);
+    pStatus->state = NEXUS_GraphicsFramebufferState_eUnused;
+    graphics = &display->graphics;
+    if (!graphics->source) {
+        return NEXUS_SUCCESS;
+    }
+    NEXUS_Module_Lock(video->modules.surface);
+    plane = NEXUS_Surface_GetPixelPlane_priv(surface);
+    NEXUS_Module_Unlock(video->modules.surface);
+    BKNI_EnterCriticalSection();
+    rc = BVDC_Source_GetSurface_isr(graphics->source, &pic);
+    BKNI_LeaveCriticalSection();
+    if (!rc && pic.pSurface == plane) {
+        pStatus->state = NEXUS_GraphicsFramebufferState_eDisplayed;
+    }
+    else if (graphics->queuedPlane == plane) {
+        pStatus->state = NEXUS_GraphicsFramebufferState_eQueued;
+    }
+    return NEXUS_SUCCESS;
+}

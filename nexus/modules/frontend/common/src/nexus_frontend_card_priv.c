@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend Card
 *    APIs to detect, open, and close removable frontend cards.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -297,46 +289,6 @@ static bool Probe_93520vsbdc(NEXUS_FrontendCard *pCard, const NEXUS_FrontendCard
 }
 #endif
 
-#ifdef NEXUS_FRONTEND_4500
-static const uint8_t address_4500[] = { 
-    /* Probe all valid 4500 I2C addresses */
-    /* 0x10, skip onboard */0x11,0x12,0x13,0x66,0x6E,0x76,0x7E };
-static bool Probe_4500(NEXUS_FrontendCard *pCard, const NEXUS_FrontendCardSettings *pSettings)
-{
-    NEXUS_Error errCode;
-    NEXUS_4500Settings settings;
-    NEXUS_4500ProbeResults results;
-    unsigned i;
-
-    NEXUS_Frontend_GetDefault4500Settings(&settings);
-    settings.i2cDevice = pSettings->i2cDevice;
-    settings.isrNumber = pSettings->isrNumber;
-    settings.bitWideSync = pSettings->bitWideSync;
-    BDBG_MSG(("Probing 4500"));
-    for (i=0;i<sizeof(address_4500)/sizeof(address_4500[0]);i++)
-    {
-        settings.i2cAddr = address_4500[i];
-        errCode = NEXUS_Frontend_Probe4500(&settings, &results);
-        if ( BERR_SUCCESS == errCode )
-        {
-            /* Found a 4500.  Open it. */
-            BDBG_MSG(("Found 4500 -- trying to open it"));
-            pCard->frontends[0] = NEXUS_Frontend_Open4500(&settings);
-            if ( pCard->frontends[0] )
-            {
-                BDBG_MSG(("Valid 4500 detected and opened"));
-                pCard->numChannels++;
-            }
-        }
-    }
-    if ( pCard->frontends[0] )
-    {
-        return true;
-    }
-    return false;
-}
-#endif
-
 #ifdef NEXUS_FRONTEND_3461
 static bool Probe_3461(NEXUS_FrontendCard *pCard, const NEXUS_FrontendCardSettings *pSettings)
 {
@@ -383,9 +335,6 @@ static ProbeFunc g_probeFuncs[] =
 {
 #ifdef NEXUS_FRONTEND_2940
     Probe_2940,
-#endif
-#ifdef NEXUS_FRONTEND_4500
-    Probe_4500,
 #endif
 #ifdef NEXUS_FRONTEND_4501
     Probe_4501,

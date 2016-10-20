@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -39,7 +39,6 @@
 #define BIP_PLAYER_H
 
 #include "bmedia_probe.h"
-#include "../../playback_ip/include/b_playback_ip_lib.h"
 #include "nexus_types.h"
 #include "nexus_playpump.h"
 #include "nexus_playback.h"
@@ -577,6 +576,8 @@ typedef struct BIP_PlayerSettings
     unsigned                            audioTrackId;                   /*!< Unique Track ID (PID for MPEG2-TS, track_ID for ISOBMFF). Defaults to UINT_MAX. */
                                                                         /*!< Audio Codec: audioTrackSettings.pidSettings.pidTypeSettings.audio.codec */
 
+    unsigned                            audioConnectId;                 /*!< NxClient ConnectId associated with the Primary Simple Audio Decoder. Only applies in the NxClient Mode. */
+
     unsigned                            videoTrackId;                   /*!< Unique Track ID (PID for MPEG2-TS, track_ID for ISOBMFF). Defaults to UINT_MAX. */
                                                                         /*!< Video Codec: videoTrackSettings.pidTypeSettings.video.codec */
 
@@ -738,6 +739,9 @@ typedef struct BIP_PlayerPrepareSettings
     NEXUS_PlaypumpHandle            hPlaypump2;             /*!< If set, BIP will use it, otherwise, it will internally open it if needed. Used for Adaptive protocols where alternate audio may have same trackId as the one in main video. */
 
     int                             timeoutInMs;            /*!< API timeout: This API fails if it is not completed in this timeout interval. -1: waits until completion or error. */
+
+    bool                            enableAudioPrimer;      /*! <if set, BIP Player will prime all audio tracks to enable fast switching among audio tracks (for SAP support). */
+                                                            /*! BIP Player will internally allocate the resources (Audio Decoders, PidChannels, Playpumps, etc) needed for priming various audio tracks). */
 
     BIP_SETTINGS(BIP_PlayerPrepareSettings)                 /*!< Internal use... for init verification. */
 } BIP_PlayerPrepareSettings;
@@ -1470,6 +1474,10 @@ typedef struct BIP_PlayerStatus
                                                             /*!< This handle can be different from the one returned during initial Probe if App enables Player to detect any PSI changes in the stream & seemlessly play the next trackGroup (program). */
                                                             /*!< App enables this logic by not explicitly selecting the initial AV Tracks using their trackIds & instead selecting them either using a preference or leaving the trackIds un-initialized. */
                                                             /*!< Please review the BIP_PlayerSettings for further details. */
+
+    NEXUS_SimpleAudioDecoderHandle  hSimpleAudioDecoder;    /*!< Audio Decoder handle of the currently playing audio track (can be different from the initial one if enableAudioPrimer is set & audio tracks are switched). */
+    NEXUS_PidChannelHandle          hAudioPidChannel;       /*!< PID Channel handle associated with the currently playing audio track. */
+
 } BIP_PlayerStatus;
 
 /**

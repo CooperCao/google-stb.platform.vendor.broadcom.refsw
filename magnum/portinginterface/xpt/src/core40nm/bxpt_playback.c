@@ -859,17 +859,10 @@ BERR_Code BXPT_Playback_AddDescriptors(
 #endif
 
     BMEM_ConvertAddressToOffset( hPb->hMemory, ( void * ) FirstDesc, &DescPhysAddr );
-    {
-        BXPT_Handle hXpt = hPb->vhXpt;
-        if (!hXpt->memcInfo.set) {
-            BCHP_GetMemoryInfo(hXpt->hRegister, &hXpt->memcInfo.info);
-            hXpt->memcInfo.set = true;
-        }
-        /* warn if descriptor is inaccessible. this is a stopgap solution until we get "box mode" */
-        if (hXpt->memcInfo.info.memc[1].offset && (DescPhysAddr >= hXpt->memcInfo.info.memc[1].offset)) {
-            BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
+    /* fail if descriptor not on MEMC0 */
+    if (!BCHP_OffsetOnMemc(hPb->hChip, DescPhysAddr, 0)) {
+        BDBG_ERR(("Descriptor at offset 0x%08x is not on MEMC0 and inaccessible by default RTS", DescPhysAddr));
+        return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
     if( LastDescriptor_Cached )

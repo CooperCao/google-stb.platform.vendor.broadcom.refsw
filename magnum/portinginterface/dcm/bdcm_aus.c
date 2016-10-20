@@ -78,7 +78,7 @@ BDCM_AusChannelHandle BDCM_Aus_OpenChannel(
     BDBG_ASSERT(pSettings);
     if(hDevice->hAus)
     {
-        BDBG_WRN(("%s AUS channel already opened hAus %ul",__FUNCTION__,(unsigned int)hDevice->hAus));
+        BDBG_WRN(("%s AUS channel already opened hAus %p",__FUNCTION__,(void*)hDevice->hAus));
         retCode = BERR_INVALID_PARAMETER;
         goto done;
     }

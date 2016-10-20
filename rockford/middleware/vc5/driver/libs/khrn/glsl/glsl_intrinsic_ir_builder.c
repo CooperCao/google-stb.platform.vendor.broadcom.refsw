@@ -40,6 +40,7 @@ static const struct intrinsic_ir_info_s intrinsic_ir_info[INTRINSIC_COUNT] = {
    { INTRINSIC_FDX,            DATAFLOW_FDX,            1 },
    { INTRINSIC_FDY,            DATAFLOW_FDY,            1 },
    { INTRINSIC_CLZ,            DATAFLOW_CLZ,            1 },
+   { INTRINSIC_ROR,            DATAFLOW_ROR,            2 },
    { INTRINSIC_REINTERPF,      DATAFLOW_REINTERP,       1 },
    { INTRINSIC_REINTERPI,      DATAFLOW_REINTERP,       1 },
    { INTRINSIC_REINTERPU,      DATAFLOW_REINTERP,       1 },
@@ -278,7 +279,7 @@ static void calculate_dataflow_atomic_op(BasicBlock *ctx, Dataflow **scalar_valu
    if (m->flavour == DATAFLOW_ADDRESS_LOAD) addr = m->d.unary_op.operand;
    else if (m->flavour == DATAFLOW_GET_VEC4_COMPONENT) {
       assert(m->d.dependencies[0]->flavour == DATAFLOW_VECTOR_LOAD);
-      addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, m->d.dependencies[0]->d.dependencies[0], glsl_dataflow_construct_const_int(4*m->u.get_vec4_component.component_index));
+      addr = glsl_dataflow_construct_binary_op(DATAFLOW_ADD, m->d.dependencies[0]->d.dependencies[0], glsl_dataflow_construct_const_uint(4*m->u.get_vec4_component.component_index));
    }
    else addr = m;
 

@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -185,13 +185,13 @@ void BAPE_PathNode_P_FindConsumersBySubtype(
 Summary:
 Search for outputs on this path
 ***************************************************************************/
-void BAPE_PathNode_P_GetConnectedOutputs(
+void BAPE_PathNode_P_GetConnectedOutputs_isrsafe(
     BAPE_PathNode *pNode,
     unsigned maxOutputs,
     unsigned *pNumFound,        /* [out] */
     BAPE_OutputPort *pOutputs   /* [out] Must be an array of at least maxOutputs length */
     );
-
+#define BAPE_PathNode_P_GetConnectedOutputs BAPE_PathNode_P_GetConnectedOutputs_isrsafe
 /***************************************************************************
 Summary:
 Determine if a node is a consumer from this node
@@ -242,10 +242,12 @@ void BAPE_Connector_P_SetSampleRate_isr(
 Summary:
 Retrieve a connector's format
 ***************************************************************************/
-void BAPE_Connector_P_GetFormat(
+void BAPE_Connector_P_GetFormat_isrsafe(
     BAPE_Connector connector,
     BAPE_FMT_Descriptor *pFormat    /* [out] */
     );
+
+#define BAPE_Connector_P_GetFormat BAPE_Connector_P_GetFormat_isrsafe
 
 /***************************************************************************
 Summary:

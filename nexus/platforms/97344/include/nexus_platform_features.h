@@ -138,16 +138,6 @@ upon the chip usage. See below */
 #endif
 #endif
 
-
-/* #define NEXUS_MAX_3255_ADSCHN 0
-#define NEXUS_3255_OOB_TUNER_IFFREQ (1250000) 1.25 MHz */
-
-#if (BCHP_CHIP==7344)
-#define NEXUS_KEYPAD_AON_GPIO 10
-#else
-#define NEXUS_KEYPAD_AON_GPIO 25
-#endif
-
 /* I2C Channels */
 #define NEXUS_NUM_I2C_CHANNELS  4
 

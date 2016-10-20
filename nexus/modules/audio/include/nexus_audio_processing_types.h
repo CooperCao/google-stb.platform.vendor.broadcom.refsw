@@ -73,6 +73,18 @@ typedef struct NEXUS_AutoVolumeLevelSettings
 
 /***************************************************************************
 Summary:
+Auto Volume Level Status
+***************************************************************************/
+typedef struct NEXUS_AutoVolumeLevelStatus
+{
+    unsigned numChannels;                   /* number of channels AVL is currently processing */
+    int peakLevel[NEXUS_AudioChannel_eMax]; /* describes the level for each channel in -dB below unity */
+    int rmsLevel[NEXUS_AudioChannel_eMax];  /* describes the level for each channel in -dB below unity */
+    uint32_t pts;                           /* 45kHz based PTS indicating the PTS at the time the peak and RMS values were sampled */
+} NEXUS_AutoVolumeLevelStatus;
+
+/***************************************************************************
+Summary:
 TruVolume Block Size
 ***************************************************************************/
 typedef enum NEXUS_TruVolumeBlockSize

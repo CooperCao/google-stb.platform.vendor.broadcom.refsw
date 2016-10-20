@@ -480,8 +480,8 @@ bool Playready30Decryptor::GenerateKeyRequest(std::string initData)
     DRM_RESULT dr = DRM_SUCCESS;
     char *pCh_url = NULL;
     uint8_t *pCh_data = NULL;
-    size_t urlLen;
-    size_t chLen;
+    DRM_DWORD urlLen;
+    DRM_DWORD chLen;
     std::vector<unsigned char> challenge;
     DRM_CHAR *pszCustomDataUsed = NULL;
     DRM_DWORD cchCustomDataUsed = 0;

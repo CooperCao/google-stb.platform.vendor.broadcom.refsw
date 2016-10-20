@@ -699,6 +699,26 @@ int astra_call_smc(
     astra_client_handle hClient,
     uint8_t mode);
 
+/*****************************************************************************
+Summary:
+    Generate the core dump of the peer user app in Astra world
+
+Description:
+
+Input:
+    hFile - astra file handle
+    paddr - physical address of memory to generate Coredump
+    bytes - size of memory
+
+Output:
+
+Returns:
+
+******************************************************************************/
+
+void astra_uapp_coredump(
+    astra_uapp_handle hUapp);
+
 #ifdef __cplusplus
 }
 #endif

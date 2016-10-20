@@ -3,7 +3,7 @@
 
    #include <stdbool.h>
 
-   #include "glsl_globals.h"  /* XXX: For GLSL_SHADER_VERSION */
+   #include "glsl_common.h"  /* XXX: For GLSL_SHADER_VERSION */
 
    int vvinput(char *buf, int buf_size, yyscan_t scanner);
 

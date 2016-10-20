@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,8 +36,9 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "media_player.h"
-#include "media_player_priv.h"
 
+#if NEXUS_HAS_PLAYBACK && NEXUS_HAS_SIMPLE_DECODER
+#include "media_player_priv.h"
 #if PLAYBACK_IP_SUPPORT
 #include "bip.h"
 
@@ -795,4 +796,5 @@ int media_player_bip_frame_advance(media_player_bip_t player, bool forward)
     return NEXUS_NOT_SUPPORTED;
 }
 
+#endif
 #endif

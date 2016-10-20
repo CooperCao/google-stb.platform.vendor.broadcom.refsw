@@ -1,42 +1,40 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
-
- ******************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_frontend_module.h"
 #include "nexus_platform_features.h"
 #include "priv/nexus_transport_priv.h"
@@ -1036,46 +1034,46 @@ static void NEXUS_Frontend_P_Process3255DeviceRpcNotification(
                 }
             }
             break;
-		case BRPC_DevId_ECM_DS0:
-		case BRPC_DevId_ECM_DS1:
-		case BRPC_DevId_ECM_DS2:
-		case BRPC_DevId_ECM_DS3:
-		case BRPC_DevId_ECM_DS4:
-		case BRPC_DevId_ECM_DS5:
-		case BRPC_DevId_ECM_DS6:
-		case BRPC_DevId_ECM_DS7:
-		case BRPC_DevId_ECM_DS8:
-		case BRPC_DevId_ECM_DS9:
-		case BRPC_DevId_ECM_DS10:
-		case BRPC_DevId_ECM_DS11:
-		case BRPC_DevId_ECM_DS12:
-		case BRPC_DevId_ECM_DS13:
-		case BRPC_DevId_ECM_DS14:
-		case BRPC_DevId_ECM_DS15:
-			id = device_id - BRPC_DevId_ECM_DS0;
-			rpc_event = BRPC_GET_NOTIFICATION_EVENT(event);
-			BDBG_MSG(("channel id %u",id));
-			channelHandle = NEXUS_Frontend_P_Get3255ChannelHandle(deviceHandle,id);
-			if (channelHandle)
-			{
-				if (rpc_event == BRPC_Notification_Event_DsChannelPower)
-				{
-					BDBG_MSG((" got DS power notification"));
-					channelHandle->ads_status.status.dsChannelPower = BRPC_GET_DS_POWER(event);
-					if (channelHandle->ads_status.statusCallback)
-						NEXUS_TaskCallback_Fire(channelHandle->ads_status.statusCallback);
-					if (channelHandle->asyncStatusAppCallback)
-						NEXUS_TaskCallback_Fire(channelHandle->asyncStatusAppCallback);
-				}
-				else
-				{
-					if (channelHandle->tune_started == true) /* only handle notification when tuner is active*/
-					{
-						BADS_ProcessNotification(channelHandle->ads_chn, event);
-					}
-				}
-			}
-			break;
+        case BRPC_DevId_ECM_DS0:
+        case BRPC_DevId_ECM_DS1:
+        case BRPC_DevId_ECM_DS2:
+        case BRPC_DevId_ECM_DS3:
+        case BRPC_DevId_ECM_DS4:
+        case BRPC_DevId_ECM_DS5:
+        case BRPC_DevId_ECM_DS6:
+        case BRPC_DevId_ECM_DS7:
+        case BRPC_DevId_ECM_DS8:
+        case BRPC_DevId_ECM_DS9:
+        case BRPC_DevId_ECM_DS10:
+        case BRPC_DevId_ECM_DS11:
+        case BRPC_DevId_ECM_DS12:
+        case BRPC_DevId_ECM_DS13:
+        case BRPC_DevId_ECM_DS14:
+        case BRPC_DevId_ECM_DS15:
+            id = device_id - BRPC_DevId_ECM_DS0;
+            rpc_event = BRPC_GET_NOTIFICATION_EVENT(event);
+            BDBG_MSG(("channel id %u",id));
+            channelHandle = NEXUS_Frontend_P_Get3255ChannelHandle(deviceHandle,id);
+            if (channelHandle)
+            {
+                if (rpc_event == BRPC_Notification_Event_DsChannelPower)
+                {
+                    BDBG_MSG((" got DS power notification"));
+                    channelHandle->ads_status.status.dsChannelPower = BRPC_GET_DS_POWER(event);
+                    if (channelHandle->ads_status.statusCallback)
+                        NEXUS_TaskCallback_Fire(channelHandle->ads_status.statusCallback);
+                    if (channelHandle->asyncStatusAppCallback)
+                        NEXUS_TaskCallback_Fire(channelHandle->asyncStatusAppCallback);
+                }
+                else
+                {
+                    if (channelHandle->tune_started == true) /* only handle notification when tuner is active*/
+                    {
+                        BADS_ProcessNotification(channelHandle->ads_chn, event);
+                    }
+                }
+            }
+            break;
 #if defined(NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT)
     case BRPC_DevId_3255_OB0:
             if(deviceHandle->frontendHandle[deviceHandle->oobFrontendIndex])
@@ -1113,22 +1111,22 @@ static void NEXUS_Frontend_P_Process3255DeviceRpcNotification(
         case BRPC_DevId_3255_TNR5:
         case BRPC_DevId_3255_TNR6:
         case BRPC_DevId_3255_TNR7:
-		case BRPC_DevId_ECM_TNR0:
-		case BRPC_DevId_ECM_TNR1:
-		case BRPC_DevId_ECM_TNR2:
-		case BRPC_DevId_ECM_TNR3:
-		case BRPC_DevId_ECM_TNR4:
-		case BRPC_DevId_ECM_TNR5:
-		case BRPC_DevId_ECM_TNR6:
-		case BRPC_DevId_ECM_TNR7:
-		case BRPC_DevId_ECM_TNR8:
-		case BRPC_DevId_ECM_TNR9:
-		case BRPC_DevId_ECM_TNR10:
-		case BRPC_DevId_ECM_TNR11:
-		case BRPC_DevId_ECM_TNR12:
-		case BRPC_DevId_ECM_TNR13:
-		case BRPC_DevId_ECM_TNR14:
-		case BRPC_DevId_ECM_TNR15:
+        case BRPC_DevId_ECM_TNR0:
+        case BRPC_DevId_ECM_TNR1:
+        case BRPC_DevId_ECM_TNR2:
+        case BRPC_DevId_ECM_TNR3:
+        case BRPC_DevId_ECM_TNR4:
+        case BRPC_DevId_ECM_TNR5:
+        case BRPC_DevId_ECM_TNR6:
+        case BRPC_DevId_ECM_TNR7:
+        case BRPC_DevId_ECM_TNR8:
+        case BRPC_DevId_ECM_TNR9:
+        case BRPC_DevId_ECM_TNR10:
+        case BRPC_DevId_ECM_TNR11:
+        case BRPC_DevId_ECM_TNR12:
+        case BRPC_DevId_ECM_TNR13:
+        case BRPC_DevId_ECM_TNR14:
+        case BRPC_DevId_ECM_TNR15:
         default:
             BDBG_WRN((" unknown notification from 3255 device %d", device_id));
     }
@@ -1142,20 +1140,20 @@ static void NEXUS_Frontend_3255DeviceRpcNotificationThread(void *arg)
     while(deviceHandle->rpc_notification_enabled) {
 #if NEXUS_POWER_MANAGEMENT
         BKNI_AcquireMutex(deviceHandle->rpcMutex);
-        BDBG_MSG(("check_rpc(): Enter notified Thread\n"));
+        BDBG_MSG(("check_rpc(): Enter notified Thread"));
 #endif
         BRPC_CheckNotification(deviceHandle->rpc_handle,  &device_id, &event, 100);
 #if NEXUS_POWER_MANAGEMENT
-        BDBG_MSG(("check_rpc(): End notified Thread\n"));
+        BDBG_MSG(("check_rpc(): End notified Thread"));
         BKNI_ReleaseMutex(deviceHandle->rpcMutex);
 #endif
         if (BRPC_GET_NOTIFICATION_EVENT(event)) {
-            BDBG_MSG(("check_rpc(): notified by server (device_id = %08x) event is %x\n", device_id, event));
+            BDBG_MSG(("check_rpc(): notified by server (device_id = %08x) event is %x", device_id, event));
             NEXUS_LockModule();
             NEXUS_Frontend_P_Process3255DeviceRpcNotification(device_id, event, arg);
             NEXUS_UnlockModule();
         }
-		BKNI_Sleep(100);
+        BKNI_Sleep(100);
     }
 }
 
@@ -1364,7 +1362,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
 
 #if NEXUS_POWER_MANAGEMENT
             BKNI_AcquireMutex(deviceHandle->rpcMutex);
-            BDBG_MSG(("check_rpc(): Enter 1 heardbeat Thread\n"));
+            BDBG_MSG(("check_rpc(): Enter 1 heartbeat Thread"));
 #endif
             retCode = BRPC_CallProc(deviceHandle->rpc_handle,
                                     BRPC_ProcId_ADS_GetVersion,
@@ -1373,7 +1371,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
                                     (uint32_t *)&outVerParam,
                                     sizeInLong(outVerParam), &retVal);
 #if NEXUS_POWER_MANAGEMENT
-            BDBG_MSG(("check_rpc(): End 1 heardbeat Thread\n"));
+            BDBG_MSG(("check_rpc(): End 1 heartbeat Thread"));
             BKNI_ReleaseMutex(deviceHandle->rpcMutex);
 #endif
             need_restart = (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS) && (!deviceHandle->rpc_notification_count);
@@ -1382,7 +1380,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
                 BKNI_Sleep(100);
 #if NEXUS_POWER_MANAGEMENT
                 BKNI_AcquireMutex(deviceHandle->rpcMutex);
-                BDBG_MSG(("check_rpc(): Enter 2 heardbeat Thread\n"));
+                BDBG_MSG(("check_rpc(): Enter 2 heartbeat Thread"));
 #endif
                 retCode = BRPC_CallProc(deviceHandle->rpc_handle,
                                         BRPC_ProcId_ADS_GetVersion,
@@ -1392,7 +1390,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
                                         sizeInLong(outVerParam),
                                         &retVal);
 #if NEXUS_POWER_MANAGEMENT
-                BDBG_MSG(("check_rpc(): End 2 heardbeat Thread\n"));
+                BDBG_MSG(("check_rpc(): End 2 heartbeat Thread"));
                 BKNI_ReleaseMutex(deviceHandle->rpcMutex);
 #endif
                 need_restart = (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS)&&(!deviceHandle->rpc_notification_count);
@@ -1413,7 +1411,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
                     BDBG_MSG((" waiting for eCM booting up!"));
 #if NEXUS_POWER_MANAGEMENT
                     BKNI_AcquireMutex(deviceHandle->rpcMutex);
-                    BDBG_MSG(("check_rpc(): Enter 3 heardbeat Thread\n"));
+                    BDBG_MSG(("check_rpc(): Enter 3 heartbeat Thread"));
 #endif
                     retCode = BRPC_CallProc(deviceHandle->rpc_handle,
                                             BRPC_ProcId_InitSession,
@@ -1421,7 +1419,7 @@ static void NEXUS_Frontend_P_3255DeviceHeartbeatThread(void * arg)
                                             sizeof(Param)/4,
                                             NULL, 0, &retVal);
 #if NEXUS_POWER_MANAGEMENT
-                    BDBG_MSG(("check_rpc(): End 3 heardbeat Thread\n"));
+                    BDBG_MSG(("check_rpc(): End 3 heartbeat Thread"));
                     BKNI_ReleaseMutex(deviceHandle->rpcMutex);
 #endif
                     need_restart = (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS);
@@ -1611,16 +1609,16 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
 
     if (deviceHandle->currentPowerState == pSettings->mode)
     {
-        BDBG_ERR(("3255 Device already in standby mode: %d \n", pSettings->mode));
-    	return NEXUS_SUCCESS;
+        BDBG_ERR(("3255 Device already in standby mode: %d", pSettings->mode));
+        return NEXUS_SUCCESS;
     }
 
     Param.devId = BRPC_DevId_3255;
 
     if ((pSettings->mode == NEXUS_StandbyMode_ePassive) || (pSettings->mode == NEXUS_StandbyMode_eDeepSleep))
-    	Param.mode = BRPC_ECM_PowerMode_Standby1;
+        Param.mode = BRPC_ECM_PowerMode_Standby1;
     else if ((pSettings->mode == NEXUS_StandbyMode_eActive) || (pSettings->mode == NEXUS_StandbyMode_eOn))
-    	Param.mode = BRPC_ECM_PowerMode_On;
+        Param.mode = BRPC_ECM_PowerMode_On;
     else
     {
         BDBG_ERR((" Unsupported standby mode"));
@@ -1628,10 +1626,10 @@ static NEXUS_Error NEXUS_Frontend_P_3255Standby(void *handle, bool enabled, cons
     }
 
     retCode = BRPC_CallProc(deviceHandle->rpc_handle, BRPC_ProcId_ECM_PowerSaver,
-			(const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);
+            (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);
     if (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS )
     {
-    	BDBG_ERR((" Unable to transistion to Standby mode "));
+        BDBG_ERR((" Unable to transistion to Standby mode "));
         return NEXUS_INVALID_PARAMETER;
     }
 
@@ -1803,12 +1801,12 @@ NEXUS_3255DeviceHandle NEXUS_Frontend_Open3255Device(
      */
     BSTD_UNUSED(index);
 
-	pFrontendDevice = NEXUS_FrontendDevice_P_Create();
-	if (NULL == pFrontendDevice)
-	{
-		errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		goto err_malloc;;
-	}
+    pFrontendDevice = NEXUS_FrontendDevice_P_Create();
+    if (NULL == pFrontendDevice)
+    {
+        errCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto err_malloc;;
+    }
 
     deviceHandle = BKNI_Malloc(sizeof(NEXUS_3255Device));
     if ( NULL == deviceHandle )
@@ -1857,7 +1855,7 @@ NEXUS_3255DeviceHandle NEXUS_Frontend_Open3255Device(
     }
     else
     {
-    	if (bonded_ch == 0) BDBG_MSG(("no docsis bonded channel exists"));
+        if (bonded_ch == 0) BDBG_MSG(("no docsis bonded channel exists"));
         else BDBG_MSG(("docsis bonded channels 0-%u",bonded_ch-1));
     }
     deviceHandle->numDocsisChannels = bonded_ch;
@@ -1929,17 +1927,17 @@ oob_done:
         /* Retrieve Chip Id and Rev */
         errCode = BADS_GetVersion(deviceHandle->ads, &version);
         if (errCode) goto err_rpc;
-		BDBG_WRN(("BADS_GetVersion: major 0x%x minor 0x%x", version.majVer, version.minVer));
+        BDBG_WRN(("BADS_GetVersion: major 0x%x minor 0x%x", version.majVer, version.minVer));
 
-		if (version.minVer <= 0x9)
-		{
-			BMXT_3383_GetDefaultSettings(&mxtSettings);
-		}
-		else
-		{
-			BMXT_3384_GetDefaultSettings(&mxtSettings);
-			mxtSettings.MtsifTxCfg[0].TxClockPolarity = 0;
-		}
+        if (version.minVer <= 0x9)
+        {
+            BMXT_3383_GetDefaultSettings(&mxtSettings);
+        }
+        else
+        {
+            BMXT_3384_GetDefaultSettings(&mxtSettings);
+            mxtSettings.MtsifTxCfg[0].TxClockPolarity = 0;
+        }
         for (i=0; i<BMXT_NUM_MTSIF; i++) {
             mxtSettings.MtsifTxCfg[i].Enable = pSettings->mtsif;
             NEXUS_Module_Lock(g_NEXUS_frontendModuleSettings.transport);
@@ -1992,11 +1990,11 @@ oob_done:
             goto err_init;
         }
         /* start RPC notification thread*/
-	deviceHandle->rpc_notification_enabled = true;
+    deviceHandle->rpc_notification_enabled = true;
     if (NEXUS_GetEnv("no_3255") != NULL){
-		BDBG_WRN(("Disabling RPC notification since 3255 is not used"));
-			deviceHandle->rpc_notification_enabled = false;
-	}
+        BDBG_WRN(("Disabling RPC notification since 3255 is not used"));
+            deviceHandle->rpc_notification_enabled = false;
+    }
 #if NEXUS_POWER_MANAGEMENT
     result = BKNI_CreateMutex(&deviceHandle->rpcMutex);
     if(BERR_SUCCESS == result)
@@ -2144,8 +2142,8 @@ void NEXUS_Frontend_Close3255Device(NEXUS_3255DeviceHandle deviceHandle)
     NEXUS_LockModule();             /* The rpc_notification thread should be gone by now.  Get the module lock again. */
     NEXUS_TaskCallback_Destroy(deviceHandle->eCMStatusCallback);
     BRPC_Close_SocketImpl(deviceHandle->rpc_handle);
-	if (deviceHandle->pGenericDeviceHandle)
-		BKNI_Free(deviceHandle->pGenericDeviceHandle);
+    if (deviceHandle->pGenericDeviceHandle)
+        BKNI_Free(deviceHandle->pGenericDeviceHandle);
     BDBG_OBJECT_DESTROY(deviceHandle, NEXUS_3255Device);
     BKNI_Free(deviceHandle);
     return;
@@ -2235,27 +2233,27 @@ void NEXUS_Frontend_GetDefault3255ChannelSettings(
 static NEXUS_Error NEXUS_Frontend_P_3255TransmitDebugPacket(void* handle, NEXUS_FrontendDebugPacketType type,const uint8_t *pBuffer, size_t size)
 {
 #if NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT
-	NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
-	NEXUS_3255DeviceHandle deviceHandle = channelHandle->deviceHandle;
-	NEXUS_Error rc = NEXUS_SUCCESS;
-	BERR_Code retCode = BERR_SUCCESS;
+    NEXUS_3255ChannelHandle channelHandle = (NEXUS_3255ChannelHandle)handle;
+    NEXUS_3255DeviceHandle deviceHandle = channelHandle->deviceHandle;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    BERR_Code retCode = BERR_SUCCESS;
 
-	/* The Starvue transmit packet size is fixed at 54 bytes */
-	if ((handle == NULL) || (pBuffer == NULL) || (size != 54) || (type != NEXUS_FrontendDebugPacketType_eOob))
-	{
-		BDBG_ERR(("Parameters is not valid\n"));
-		return NEXUS_INVALID_PARAMETER;
-	}
-	BDBG_ASSERT(channelHandle);
-	BDBG_ASSERT(deviceHandle);
-	BDBG_ASSERT(deviceHandle->aus);
+    /* The Starvue transmit packet size is fixed at 54 bytes */
+    if ((handle == NULL) || (pBuffer == NULL) || (size != 54) || (type != NEXUS_FrontendDebugPacketType_eOob))
+    {
+        BDBG_ERR(("Parameters is not valid"));
+        return NEXUS_INVALID_PARAMETER;
+    }
+    BDBG_ASSERT(channelHandle);
+    BDBG_ASSERT(deviceHandle);
+    BDBG_ASSERT(deviceHandle->aus);
 
-	retCode = BAUS_TransmitStarvuePkt(deviceHandle->aus, (uint8_t *)pBuffer, size);
-	if (retCode != BERR_SUCCESS){
-		BDBG_ERR(("NOT SUCCESS\n"));
-		rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)? NEXUS_OUT_OF_DEVICE_MEMORY : NEXUS_INVALID_PARAMETER;
-	}
-	return rc;
+    retCode = BAUS_TransmitStarvuePkt(deviceHandle->aus, (uint8_t *)pBuffer, size);
+    if (retCode != BERR_SUCCESS){
+        BDBG_ERR(("NOT SUCCESS"));
+        rc = (retCode = BERR_OUT_OF_DEVICE_MEMORY)? NEXUS_OUT_OF_DEVICE_MEMORY : NEXUS_INVALID_PARAMETER;
+    }
+    return rc;
 #else
     BSTD_UNUSED(handle);
     BSTD_UNUSED(type);
@@ -2355,7 +2353,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open3255Channel(
         frontendHandle->getTemperature = NEXUS_Frontend_P_3255GetTemperature;
         frontendHandle->standby = NEXUS_Frontend_P_3255Standby;
         deviceHandle->oobFrontendIndex = deviceHandle->numOfFrontends;
-		frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
+        frontendHandle->transmitDebugPacket= NEXUS_Frontend_P_3255TransmitDebugPacket;
     }
     #endif
 
@@ -2550,7 +2548,7 @@ NEXUS_Error NEXUS_Frontend_GetDocsisChannelStatus(
 
     if (docsisChannel >= deviceHandle->numDocsisChannels)
     {
-	BDBG_ERR(("Invalid Docsis Index: %u \n", docsisChannel));
+        BDBG_ERR(("Invalid Docsis Index: %u", docsisChannel));
         return NEXUS_INVALID_PARAMETER;
     }
 
@@ -2580,7 +2578,7 @@ NEXUS_Error NEXUS_Frontend_GetDocsisChannelStatus(
     pStatus->upstreamPowerLevel = outParam.upstreamPowerLevel;
     pStatus->upStreamSymbolrate = outParam.upStreamSymbolrate;
     pStatus->lastKnownGoodFreq = outParam.lastKnownGoodFreq;
-	pStatus->snrEstimate = outParam.snrEstimated;
+    pStatus->snrEstimate = outParam.snrEstimated;
 
     pStatus->macAddress[0] = (outParam.ecmMacAddressHi>>24)&0xff;
     pStatus->macAddress[1] = (outParam.ecmMacAddressHi>>16)&0xff;
@@ -2612,11 +2610,11 @@ NEXUS_Error NEXUS_Docsis_GetSystemInfo(
     BERR_Code retVal;
     BADS_Version version;
 
-	BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
+    BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
     BDBG_ASSERT( deviceHandle->rpc_handle);
 
     BKNI_Memset(pSystemInfo, 0, sizeof(NEXUS_DocsisSystemInfo));
-	BKNI_Memset(&systemInfo, 0, sizeof(BRPC_Param_ECM_GetSystemInfo));
+    BKNI_Memset(&systemInfo, 0, sizeof(BRPC_Param_ECM_GetSystemInfo));
 
     if (deviceHandle->deviceStatus != NEXUS_3255DeviceStatus_eOperational) return (NEXUS_SUCCESS);
 
@@ -2633,53 +2631,53 @@ NEXUS_Error NEXUS_Docsis_GetSystemInfo(
         BDBG_ERR((" NEXUS_Docsis_GetSystemInfo Fail"));
         return NEXUS_NOT_SUPPORTED;
     }
-	BKNI_Memcpy(pSystemInfo->ecmMfctName,systemInfo.ecmMfctName,64);
-	pSystemInfo->ecmMfctName[63] = '\0';
-	BKNI_Memcpy(pSystemInfo->ecmMfctOUI,systemInfo.ecmMfctOUI,64);
-	pSystemInfo->ecmMfctOUI[63] = '\0';
-	BKNI_Memcpy(pSystemInfo->ecmMfctDate,systemInfo.ecmMfctDate,64);
-	pSystemInfo->ecmMfctDate[63] = '\0';
-	BKNI_Memcpy(pSystemInfo->ecmSwVersion,systemInfo.ecmSwVersion,64);
-	pSystemInfo->ecmSwVersion[63] = '\0';
-	BKNI_Memcpy(pSystemInfo->ecmHwVersion,systemInfo.ecmHwVersion,64);
-	pSystemInfo->ecmHwVersion[63] = '\0';
-	BKNI_Memcpy(pSystemInfo->ecmSerialNum,systemInfo.ecmSerialNum,64);
-	pSystemInfo->ecmSerialNum[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmMfctName,systemInfo.ecmMfctName,64);
+    pSystemInfo->ecmMfctName[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmMfctOUI,systemInfo.ecmMfctOUI,64);
+    pSystemInfo->ecmMfctOUI[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmMfctDate,systemInfo.ecmMfctDate,64);
+    pSystemInfo->ecmMfctDate[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmSwVersion,systemInfo.ecmSwVersion,64);
+    pSystemInfo->ecmSwVersion[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmHwVersion,systemInfo.ecmHwVersion,64);
+    pSystemInfo->ecmHwVersion[63] = '\0';
+    BKNI_Memcpy(pSystemInfo->ecmSerialNum,systemInfo.ecmSerialNum,64);
+    pSystemInfo->ecmSerialNum[63] = '\0';
 
     switch(systemInfo.ecmStandard)
-	{
-	case 0:
-		pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e1_x;
-		break;
-	case 1:
-		pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e2_x;
-		break;
-	case 2:
-		pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e3_x;
-		break;
-	default:
-		pSystemInfo->ecmStandard = NEXUS_DocsisStandard_eMax;
-		break;
-	}
+    {
+    case 0:
+        pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e1_x;
+        break;
+    case 1:
+        pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e2_x;
+        break;
+    case 2:
+        pSystemInfo->ecmStandard = NEXUS_DocsisStandard_e3_x;
+        break;
+    default:
+        pSystemInfo->ecmStandard = NEXUS_DocsisStandard_eMax;
+        break;
+    }
 
     switch(systemInfo.ecmIpMode)
-	{
-	case 0:
-		pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eNone;
-		break;
-	case 1:
-		/*IPV4 LAN address*/
-		pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eV4;
-		break;
-	case 2:
-		/*IPV4 LAN address*/
-		pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eV6;
-		break;
-	default:
-		pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eMax;
-		break;
-	}
-	/* LAN mac address*/
+    {
+    case 0:
+        pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eNone;
+        break;
+    case 1:
+        /*IPV4 LAN address*/
+        pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eV4;
+        break;
+    case 2:
+        /*IPV4 LAN address*/
+        pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eV6;
+        break;
+    default:
+        pSystemInfo->ecmIpMode = NEXUS_EcmIpMode_eMax;
+        break;
+    }
+    /* LAN mac address*/
     pSystemInfo->ecmMacAddress[0] = (systemInfo.ecmMacAddressHi>>24)&0xff;
     pSystemInfo->ecmMacAddress[1] = (systemInfo.ecmMacAddressHi>>16)&0xff;
     pSystemInfo->ecmMacAddress[2] = (systemInfo.ecmMacAddressHi>>8)&0xff;
@@ -2688,35 +2686,35 @@ NEXUS_Error NEXUS_Docsis_GetSystemInfo(
     pSystemInfo->ecmMacAddress[5] = (systemInfo.ecmMacAddressLo>>16)&0xff;
     pSystemInfo->ecmMacAddress[6] = (systemInfo.ecmMacAddressLo>>8)&0xff;
     pSystemInfo->ecmMacAddress[7] = (systemInfo.ecmMacAddressLo)&0xff;
-	/* IP address*/
-	if (systemInfo.ecmIpMode == NEXUS_EcmIpMode_eV4 || systemInfo.ecmIpMode == NEXUS_EcmIpMode_eV6)
-	{
-		b_convert_ipaddr(pSystemInfo->ecmIpAddress, systemInfo.ecmIpAddress);
+    /* IP address*/
+    if (systemInfo.ecmIpMode == NEXUS_EcmIpMode_eV4 || systemInfo.ecmIpMode == NEXUS_EcmIpMode_eV6)
+    {
+        b_convert_ipaddr(pSystemInfo->ecmIpAddress, systemInfo.ecmIpAddress);
         b_convert_ipaddr(&pSystemInfo->ecmIpv6Address[0],systemInfo.ecmIpv6Address0);
         b_convert_ipaddr(&pSystemInfo->ecmIpv6Address[4],systemInfo.ecmIpv6Address1);
         b_convert_ipaddr(&pSystemInfo->ecmIpv6Address[8],systemInfo.ecmIpv6Address2);
         b_convert_ipaddr(&pSystemInfo->ecmIpv6Address[12],systemInfo.ecmIpv6Address3);
-	}
-	switch(systemInfo.ecmWapInterface)
-	{
-	case 0:
-		pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eNone;
-		break;
-	case 1:
-		pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_e2_4g;
-		break;
-	case 2:
-		pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_e5g;
-		break;
-	case 3:
-		pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eDual;
-		break;
-	default:
-		pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eMax;
-		break;
-	}
-	pSystemInfo->ecmMtaInfoAvailable = systemInfo.ecmHasMtaInfo;
-	pSystemInfo->ecmRouterInfoAvailable = systemInfo.ecmHasRouterInfo;
+    }
+    switch(systemInfo.ecmWapInterface)
+    {
+    case 0:
+        pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eNone;
+        break;
+    case 1:
+        pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_e2_4g;
+        break;
+    case 2:
+        pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_e5g;
+        break;
+    case 3:
+        pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eDual;
+        break;
+    default:
+        pSystemInfo->ecmWapInterface = NEXUS_DocsisWapInterfaceType_eMax;
+        break;
+    }
+    pSystemInfo->ecmMtaInfoAvailable = systemInfo.ecmHasMtaInfo;
+    pSystemInfo->ecmRouterInfoAvailable = systemInfo.ecmHasRouterInfo;
     return NEXUS_SUCCESS;
 }
 
@@ -2731,9 +2729,9 @@ NEXUS_Error NEXUS_Docsis_GetWapStatus(
     BRPC_Param_ECM_WapInterfaceType Param;
     BERR_Code retVal;
     BADS_Version version;
-	uint32_t i = 0;
+    uint32_t i = 0;
 
-	BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
+    BDBG_OBJECT_ASSERT(deviceHandle, NEXUS_3255Device);
     BDBG_ASSERT( deviceHandle->rpc_handle);
 
     if (deviceHandle->deviceStatus != NEXUS_3255DeviceStatus_eOperational) return (NEXUS_SUCCESS);
@@ -2742,14 +2740,14 @@ NEXUS_Error NEXUS_Docsis_GetWapStatus(
     if (retVal) return NEXUS_NOT_SUPPORTED;
 
     BKNI_Memset(pWapStatus, 0, sizeof(NEXUS_DocsisWapStatus));
-	/* use malloc to avoid kernel stack overflow*/
-	pDcmWapStatus = (BRPC_Param_ECM_GetWapStatus *)BKNI_Malloc(sizeof(BRPC_Param_ECM_GetWapStatus));
-	if(!pDcmWapStatus)
-	{
-		BDBG_ERR(("Out of system memory"));
+    /* use malloc to avoid kernel stack overflow*/
+    pDcmWapStatus = (BRPC_Param_ECM_GetWapStatus *)BKNI_Malloc(sizeof(BRPC_Param_ECM_GetWapStatus));
+    if(!pDcmWapStatus)
+    {
+        BDBG_ERR(("Out of system memory"));
         return NEXUS_OUT_OF_SYSTEM_MEMORY;
-	}
-	BKNI_Memset(pDcmWapStatus, 0, sizeof(BRPC_Param_ECM_GetWapStatus));
+    }
+    BKNI_Memset(pDcmWapStatus, 0, sizeof(BRPC_Param_ECM_GetWapStatus));
     Param.type = wapIfType;
     BDBG_MSG((" NEXUS_Docsis_GetWapStatus"));
 
@@ -2758,16 +2756,16 @@ NEXUS_Error NEXUS_Docsis_GetWapStatus(
     if (retCode != BERR_SUCCESS || retVal != BERR_SUCCESS )
     {
         BDBG_ERR((" NEXUS_Docsis_GetWapStatus Fail"));
-		BKNI_Free(pDcmWapStatus);
+        BKNI_Free(pDcmWapStatus);
         return NEXUS_NOT_SUPPORTED;
     }
 
-	if (pDcmWapStatus->numberSSID > NEXUS_DOCSIS_MAX_SSID)
-	{
-		pDcmWapStatus->numberSSID = NEXUS_DOCSIS_MAX_SSID;
-	}
+    if (pDcmWapStatus->numberSSID > NEXUS_DOCSIS_MAX_SSID)
+    {
+        pDcmWapStatus->numberSSID = NEXUS_DOCSIS_MAX_SSID;
+    }
 
-	pWapStatus->numSsid = pDcmWapStatus->numberSSID;
+    pWapStatus->numSsid = pDcmWapStatus->numberSSID;
     pWapStatus->wapMacAddress[0] = (pDcmWapStatus->wapMacAddressHi>>24)&0xff;
     pWapStatus->wapMacAddress[1] = (pDcmWapStatus->wapMacAddressHi>>16)&0xff;
     pWapStatus->wapMacAddress[2] = (pDcmWapStatus->wapMacAddressHi>>8)&0xff;
@@ -2777,67 +2775,67 @@ NEXUS_Error NEXUS_Docsis_GetWapStatus(
     pWapStatus->wapMacAddress[6] = (pDcmWapStatus->wapMacAddressLo>>8)&0xff;
     pWapStatus->wapMacAddress[7] = (pDcmWapStatus->wapMacAddressLo)&0xff;
 
-	for (i=0; i < pDcmWapStatus->numberSSID; i++){
-		NEXUS_DocsisWapSsidInfo *pSsidInfo = &pWapStatus->ssidInfo[i];
-		BKNI_Memcpy(&pSsidInfo->ssid[0],&pDcmWapStatus->ssidInfo[i].SSID[0],64);
-		pSsidInfo->ssid[63] = '\0';
-		pSsidInfo->ssidEnabled = pDcmWapStatus->ssidInfo[i].ssidEnabled;
-		pSsidInfo->ssidChannelNo = pDcmWapStatus->ssidInfo[i].ssidChannelNo;
-		/* map wap protocol to nexus*/
-		switch(pDcmWapStatus->ssidInfo[i].protocol)
-		{
-		case 0:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_eUnused;
-			break;
-		case 1:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211b;
-			break;
-		case 2:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211g;
-			break;
-		case 3:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Bg;
-			break;
-		case 4:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Mixed;
-			break;
-		case 5:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211n;
-			break;
-		case 6:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Ac;
-			break;
-		default:
-			pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_eMax;
-			break;
-		}
-		/* map wap security scheme to nexus*/
-		switch(pDcmWapStatus->ssidInfo[i].security)
-		{
-		case 0:
-			pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eWpa;
-			break;
-		case 1:
-			pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eMixed;
-			break;
-		case 2:
-			pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eWpa2Aes;
-			break;
-		default:
-			pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eMax;
-			break;
-		}
-		/* wap mac address*/
-		pSsidInfo->macAddress[0] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>24)&0xff;
-		pSsidInfo->macAddress[1] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>16)&0xff;
-		pSsidInfo->macAddress[2] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>8)&0xff;
-		pSsidInfo->macAddress[3] = (pDcmWapStatus->ssidInfo[i].macAddressHi)&0xff;
-		pSsidInfo->macAddress[4] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>24)&0xff;
-		pSsidInfo->macAddress[5] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>16)&0xff;
-		pSsidInfo->macAddress[6] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>8)&0xff;
-		pSsidInfo->macAddress[7] = (pDcmWapStatus->ssidInfo[i].macAddressLo)&0xff;
-	}
-	BKNI_Free(pDcmWapStatus);
+    for (i=0; i < pDcmWapStatus->numberSSID; i++){
+        NEXUS_DocsisWapSsidInfo *pSsidInfo = &pWapStatus->ssidInfo[i];
+        BKNI_Memcpy(&pSsidInfo->ssid[0],&pDcmWapStatus->ssidInfo[i].SSID[0],64);
+        pSsidInfo->ssid[63] = '\0';
+        pSsidInfo->ssidEnabled = pDcmWapStatus->ssidInfo[i].ssidEnabled;
+        pSsidInfo->ssidChannelNo = pDcmWapStatus->ssidInfo[i].ssidChannelNo;
+        /* map wap protocol to nexus*/
+        switch(pDcmWapStatus->ssidInfo[i].protocol)
+        {
+        case 0:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_eUnused;
+            break;
+        case 1:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211b;
+            break;
+        case 2:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211g;
+            break;
+        case 3:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Bg;
+            break;
+        case 4:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Mixed;
+            break;
+        case 5:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211n;
+            break;
+        case 6:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_e80211Ac;
+            break;
+        default:
+            pSsidInfo->protocol = NEXUS_DocsisWapWifiProtocolType_eMax;
+            break;
+        }
+        /* map wap security scheme to nexus*/
+        switch(pDcmWapStatus->ssidInfo[i].security)
+        {
+        case 0:
+            pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eWpa;
+            break;
+        case 1:
+            pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eMixed;
+            break;
+        case 2:
+            pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eWpa2Aes;
+            break;
+        default:
+            pSsidInfo->security = NEXUS_DocsisWapWifiSecurityType_eMax;
+            break;
+        }
+        /* wap mac address*/
+        pSsidInfo->macAddress[0] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>24)&0xff;
+        pSsidInfo->macAddress[1] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>16)&0xff;
+        pSsidInfo->macAddress[2] = (pDcmWapStatus->ssidInfo[i].macAddressHi>>8)&0xff;
+        pSsidInfo->macAddress[3] = (pDcmWapStatus->ssidInfo[i].macAddressHi)&0xff;
+        pSsidInfo->macAddress[4] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>24)&0xff;
+        pSsidInfo->macAddress[5] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>16)&0xff;
+        pSsidInfo->macAddress[6] = (pDcmWapStatus->ssidInfo[i].macAddressLo>>8)&0xff;
+        pSsidInfo->macAddress[7] = (pDcmWapStatus->ssidInfo[i].macAddressLo)&0xff;
+    }
+    BKNI_Free(pDcmWapStatus);
 
     return NEXUS_SUCCESS;
 }
@@ -2864,7 +2862,7 @@ NEXUS_Error NEXUS_Docsis_GetMtaStatus(
     retVal = BADS_GetVersion(deviceHandle->ads, &version);
     if (retVal) return NEXUS_NOT_SUPPORTED;
 
-	BKNI_Memset(&dcmMtaStatus, 0, sizeof(BRPC_Param_ECM_GetMtaStatus));
+    BKNI_Memset(&dcmMtaStatus, 0, sizeof(BRPC_Param_ECM_GetMtaStatus));
 
     BDBG_MSG((" NEXUS_Docsis_GetMtaStatus"));
 
@@ -2879,7 +2877,7 @@ NEXUS_Error NEXUS_Docsis_GetMtaStatus(
         return NEXUS_NOT_SUPPORTED;
     }
 
-	pMtaStatus->mtaEnabled = dcmMtaStatus.iActive;
+    pMtaStatus->mtaEnabled = dcmMtaStatus.iActive;
     pMtaStatus->mtaNumLines = dcmMtaStatus.iNumLines;
     for (i=0; i< dcmMtaStatus.iNumLines; i++)
     {
@@ -2921,7 +2919,7 @@ NEXUS_Error NEXUS_Docsis_GetRouterStatus(
 
     BKNI_Memset(pRouterStatus, 0, sizeof(NEXUS_DocsisRouterStatus));
 
-	BKNI_Memset(&dcmRouterStatus, 0, sizeof(NEXUS_DocsisRouterStatus));
+    BKNI_Memset(&dcmRouterStatus, 0, sizeof(NEXUS_DocsisRouterStatus));
 
     BDBG_MSG((" NEXUS_Docsis_GetRouterStatus"));
 
@@ -2936,7 +2934,7 @@ NEXUS_Error NEXUS_Docsis_GetRouterStatus(
         return NEXUS_NOT_SUPPORTED;
     }
 
-	pRouterStatus->routerEnabled = dcmRouterStatus.iActive;
+    pRouterStatus->routerEnabled = dcmRouterStatus.iActive;
 
     b_convert_ipaddr(pRouterStatus->routerExtIpv4Address, dcmRouterStatus.routerExtIPv4Address);
     b_convert_ipaddr(&pRouterStatus->routerExtIpv6Address[0],dcmRouterStatus.routerExtIPv6Address0);
@@ -2944,7 +2942,7 @@ NEXUS_Error NEXUS_Docsis_GetRouterStatus(
     b_convert_ipaddr(&pRouterStatus->routerExtIpv6Address[8],dcmRouterStatus.routerExtIPv6Address2);
     b_convert_ipaddr(&pRouterStatus->routerExtIpv6Address[12],dcmRouterStatus.routerExtIPv6Address3);
 
-	return NEXUS_SUCCESS;
+    return NEXUS_SUCCESS;
 }
 
 /***************************************************************************
@@ -2958,9 +2956,9 @@ NEXUS_Error NEXUS_Docsis_GetVsi(
     const NEXUS_DocsisVsiRequest *pVsiRequest,
     NEXUS_DocsisVsi  *pVsi)
 {
-	BSTD_UNUSED(handle);
-	BSTD_UNUSED(pVsiRequest);
-	BSTD_UNUSED(pVsi);
+    BSTD_UNUSED(handle);
+    BSTD_UNUSED(pVsiRequest);
+    BSTD_UNUSED(pVsi);
 #ifdef VENDOR_REQUEST
     BERR_Code retCode = BERR_SUCCESS;
     NEXUS_3255DeviceHandle deviceHandle = (NEXUS_3255DeviceHandle) (handle->pDevice);
@@ -3114,7 +3112,7 @@ NEXUS_Error NEXUS_Frontend_Set3255LockStatusForHostChannels(
                 return NEXUS_INVALID_PARAMETER;
         }
 
-	deviceHandle->NonCmControlledVideoChLockStatus = lockStatus;
+    deviceHandle->NonCmControlledVideoChLockStatus = lockStatus;
 
     return ret;
 }
@@ -3126,10 +3124,10 @@ NEXUS_Error NEXUS_Frontend_Config3255Lna(
         NEXUS_Error ret = NEXUS_SUCCESS;
         BERR_Code retCode = BERR_SUCCESS;
         BERR_Code retVal;
-	BRPC_Param_ECM_DoLnaReConfig Param;
+    BRPC_Param_ECM_DoLnaReConfig Param;
         NEXUS_3255DeviceHandle deviceHandle = (NEXUS_3255DeviceHandle)handle;
 
-	Param.devId = BRPC_DevId_3255;
+    Param.devId = BRPC_DevId_3255;
 
         retCode = BRPC_CallProc(deviceHandle->rpc_handle, BRPC_ProcId_ECM_DoLnaReConfig,
                                                         (const uint32_t *)&Param, sizeInLong(Param), NULL, 0, &retVal);

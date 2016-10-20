@@ -61,9 +61,6 @@
 #include "bchp_dmisc.h"
 #endif
 
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_MAD_ANR)
-#include "bchp_siob_0.h"
-#endif
 
 
 BDBG_MODULE(BVDC_ANR);
@@ -268,12 +265,8 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     int  ii, ulChannelId;
     uint32_t ulNoiseSigma;
     bool     bMemSaving;
-    uint32_t ulTopCapBufAddr=0, ulTopVfdBufAddr=0, ulBotCapBufAddr=0, ulBotVfdBufAddr=0;
     BVDC_P_HeapNodePtr pHeapNode;
-#if ((BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER >= BVDC_P_VIDEO_TESTFEATURE1_VER_5) && (BVDC_P_SUPPORT_MCVP))
-     uint32_t ulCompression;
-#endif
-    BVDC_P_Compression_Settings   *pstCompression = hAnr->pstCompression;
+    BMMA_DeviceOffset ullBufAddr[4]; /*0: ullTopCapBufAddr, 1: ullTopVfdBufAddr, 2: ullBotCapBufAddr, 3:ullBotVfdBufAddr*/;
 
     BDBG_OBJECT_ASSERT(hAnr, BVDC_ANR);
     ulRegOffset = hAnr->ulRegOffset;
@@ -364,7 +357,6 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
 #endif
 
     /* MCTF init */
-    BDBG_ASSERT(pstCompression);
 
     ulDemoSetting =
         ((BVDC_SplitScreenMode_eDisable == hAnr->eDemoMode)?
@@ -376,72 +368,11 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_DEMO_SETTING, DEMO_BOUNDARY, ulHSize / 2);
 
     /* memory saving mode will share deinterlacer's memory! */
-    bMemSaving = BVDC_P_VNET_USED_MAD(pPicture->stVnetMode);
-#if BVDC_P_SUPPORT_ANR_MAD_MEM_SAVING_MODE
+    bMemSaving = BVDC_P_MVP_USED_MAD(pPicture->stMvpMode);
     if(!bMemSaving)
-#endif
     {
         bool  bInterlaced;
         bInterlaced = (BAVC_Polarity_eFrame != pPicture->PicComRulInfo.eSrcOrigPolarity);
-
-        /* Programe TestFeature1 here only in !bMemSaving mode, otherwise, programe
-         * it in MAD */
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_MAD_ANR)
-#if (BVDC_P_SUPPORT_MAD)
-        BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_MAD_SIOB_0_DCX_PRED_CFG, ulRegOffset,
-            ((BCHP_MAD_SIOB_0_DCX_COMPR_CFG1 - BCHP_MAD_SIOB_0_DCX_PRED_CFG) / 4) + 1);
-
-        /* MAD_SIOB_0_DCX_PRED_CFG */
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_PRED_CFG, ENABLE,          pstCompression->bEnable    ) |
-            BCHP_FIELD_ENUM(MAD_SIOB_0_DCX_PRED_CFG, CONVERT_RGB,     Disable ) |
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_PRED_CFG, PREDICTION_MODE, pstCompression->ulPredictionMode) |
-            BCHP_FIELD_ENUM(MAD_SIOB_0_DCX_PRED_CFG, EDGE_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(MAD_SIOB_0_DCX_PRED_CFG, LEFT_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(MAD_SIOB_0_DCX_PRED_CFG, ABCD_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(MAD_SIOB_0_DCX_PRED_CFG, LS_PRED_ENA,     Enable  ));
-
-        /* MAD_SIOB_0_DCX_COMPR_CFG1 */
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_COMPR_CFG1, PIXELS_PER_GROUP,  pstCompression->ulPixelPerGroup) |
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_COMPR_CFG1, TGT_OFFSET_HI,     0xfa   ) |
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_COMPR_CFG1, TGT_OFFSET_LO,     12     ) |
-            BCHP_FIELD_DATA(MAD_SIOB_0_DCX_COMPR_CFG1, TGT_BPG, pstCompression->ulBitsPerGroup));
-#elif (BVDC_P_SUPPORT_MCVP)
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER < BVDC_P_VIDEO_TESTFEATURE1_VER_5)
-        BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_SIOB_0_DCX_PRED_CFG, ulRegOffset,
-            BVDC_P_REGS_ENTRIES(SIOB_0_DCX_PRED_CFG, SIOB_0_DCX_COMPR_CFG1));
-
-        /* SIOB_0_DCX_PRED_CFG */
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_DATA(SIOB_0_DCX_PRED_CFG, ENABLE,          pstCompression->bEnable    ) |
-            BCHP_FIELD_ENUM(SIOB_0_DCX_PRED_CFG, CONVERT_RGB,     Disable ) |
-            BCHP_FIELD_DATA(SIOB_0_DCX_PRED_CFG, PREDICTION_MODE, pstCompression->ulPredictionMode) |
-            BCHP_FIELD_ENUM(SIOB_0_DCX_PRED_CFG, EDGE_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(SIOB_0_DCX_PRED_CFG, LEFT_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(SIOB_0_DCX_PRED_CFG, ABCD_PRED_ENA,   Enable  ) |
-            BCHP_FIELD_ENUM(SIOB_0_DCX_PRED_CFG, LS_PRED_ENA,     Enable  ));
-
-        /* SIOB_0_DCX_COMPR_CFG1 */
-        *pList->pulCurrent++ = (
-            BCHP_FIELD_DATA(SIOB_0_DCX_COMPR_CFG1, PIXELS_PER_GROUP,  pstCompression->ulPixelPerGroup) |
-            BCHP_FIELD_DATA(SIOB_0_DCX_COMPR_CFG1, TGT_OFFSET_HI,     0xfa   ) |
-            BCHP_FIELD_DATA(SIOB_0_DCX_COMPR_CFG1, TGT_OFFSET_LO,     12     ) |
-            BCHP_FIELD_DATA(SIOB_0_DCX_COMPR_CFG1, TGT_BPG, pstCompression->ulBitsPerGroup));
-#else
-        ulCompression = (hAnr->pstCompression->ulBitsPerGroup > BVDC_37BITS_PER_GROUP)
-                    ? BCHP_SIOB_0_DCXS_CFG_COMPRESSION_BPP_11p25_OR_11 /* 11 bpp */
-                    : BCHP_SIOB_0_DCXS_CFG_COMPRESSION_BPP_9p25_OR_9; /* 09 bpp */
-        BVDC_P_SUBRUL_ONE_REG(pList, BCHP_SIOB_0_DCXS_CFG, ulRegOffset,
-            BCHP_FIELD_DATA(SIOB_0_DCXS_CFG, ENABLE,       pstCompression->bEnable                ) |
-            BCHP_FIELD_ENUM(SIOB_0_DCXS_CFG, APPLY_QERR,   Apply_Qerr                           ) | /* nominal */
-            BCHP_FIELD_DATA(SIOB_0_DCXS_CFG, FIXED_RATE,   BCHP_SIOB_0_DCXS_CFG_FIXED_RATE_Fixed) | /* nominal */
-            BCHP_FIELD_DATA(SIOB_0_DCXS_CFG, COMPRESSION,  ulCompression                        ));
-#endif
-#endif
-#else
-        BSTD_UNUSED(pstCompression);
-#endif
 
 #if ((BVDC_P_DCX_ANR_CROSS_OVER_WORKAROUND) && (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_VER))
         if(hAnr->stCompression.bEnable)
@@ -452,30 +383,28 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
 
                 /* Split anr buffers */
                 BVDC_P_BufferHeap_GetHeapSizeById_isr(hAnr->hHeap, hAnr->eBufHeapId, &ulHeapSize);
-                ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
-                ulTopVfdBufAddr = ulTopCapBufAddr + ulHeapSize / 2;
-                ulBotCapBufAddr = bInterlaced
+                ullBufAddr[0] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
+                ullBufAddr[1] = ullBufAddr[0] + ulHeapSize / 2;
+                ullBufAddr[2] = bInterlaced
                     ? BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[1])
                     : BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
-                ulBotVfdBufAddr = ulBotCapBufAddr + ulHeapSize / 2;
+                ullBufAddr[3] = ullBufAddr[2] + ulHeapSize / 2;
             }
             else
             {
                 if(bInterlaced)
                 {
                     /* interlaced */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
-                    ulTopVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[1]);
-                    ulBotCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[2]);
-                    ulBotVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[3]);
+                    ullBufAddr[0] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
+                    ullBufAddr[1] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[1]);
+                    ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[2]);
+                    ullBufAddr[3] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[3]);
                 }
                 else
                 {
                     /* progressive */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
-                    ulTopVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[2]);
-                    ulBotCapBufAddr = ulTopCapBufAddr;
-                    ulBotVfdBufAddr = ulTopVfdBufAddr;
+                    ullBufAddr[0] = ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[0]);
+                    ullBufAddr[1] = ullBufAddr[3] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[2]);
                 }
             }
         }
@@ -490,24 +419,26 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
                 if(bInterlaced)
                 {
                     /* Interlaced: need 4 field buffers, alloc 4 field buffers */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
-                    ulTopVfdBufAddr = BVDC_P_ALIGN_UP(ulTopCapBufAddr + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
-                    ulBotCapBufAddr = BVDC_P_ALIGN_UP(ulTopVfdBufAddr + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
-                    ulBotVfdBufAddr = BVDC_P_ALIGN_UP(ulBotCapBufAddr + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
+                    ullBufAddr[0] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
+                    ullBufAddr[1] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[0] + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
+                    ullBufAddr[2] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[1] + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
+                    ullBufAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[2] + ulPxlBufSize, BVDC_P_PITCH_ALIGN);
 
-                    BDBG_MSG(("anr[%d] bufsize %d interlaced top cap %x vfd %x bottom cap %x vfd %x",
-                        hAnr->eId, ulPxlBufSize, ulTopCapBufAddr, ulTopVfdBufAddr, ulBotCapBufAddr, ulBotVfdBufAddr));
+                    BDBG_MSG(("anr[%d] bufsize %d interlaced top cap "BDBG_UINT64_FMT" vfd "BDBG_UINT64_FMT" bottom cap "BDBG_UINT64_FMT" vfd "BDBG_UINT64_FMT,
+                        hAnr->eId, ulPxlBufSize,
+                        BDBG_UINT64_ARG(ullBufAddr[0]), BDBG_UINT64_ARG(ullBufAddr[1]),
+                        BDBG_UINT64_ARG(ullBufAddr[2]), BDBG_UINT64_ARG(ullBufAddr[3])));
                 }
                 else
                 {
                     /* progressive: need 2 frame buffers, alloc 4 field buffers.
                     Use 2 field buffers as 1 frame buffer for progressive */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
-                    ulTopVfdBufAddr = BVDC_P_ALIGN_UP(ulTopCapBufAddr + 2*ulPxlBufSize, BVDC_P_PITCH_ALIGN);
-                    ulBotCapBufAddr = ulTopCapBufAddr;
-                    ulBotVfdBufAddr = ulTopVfdBufAddr;
-                    BDBG_MSG(("anr[%d] bufsize %d progressive top cap %x vfd %x bottom cap %x vfd %x",
-                        hAnr->eId, ulPxlBufSize, ulTopCapBufAddr, ulTopVfdBufAddr, ulBotCapBufAddr, ulBotVfdBufAddr));
+                    ullBufAddr[0] = ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
+                    ullBufAddr[1] = ullBufAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[0] + 2*ulPxlBufSize, BVDC_P_PITCH_ALIGN);
+                    BDBG_MSG(("anr[%d] bufsize %d progressive top cap "BDBG_UINT64_FMT" vfd "BDBG_UINT64_FMT" bottom cap "BDBG_UINT64_FMT" vfd "BDBG_UINT64_FMT,
+                        hAnr->eId, ulPxlBufSize,
+                        BDBG_UINT64_ARG(ullBufAddr[0]), BDBG_UINT64_ARG(ullBufAddr[1]),
+                        BDBG_UINT64_ARG(ullBufAddr[2]), BDBG_UINT64_ARG(ullBufAddr[3])));
                 }
             }
             else
@@ -519,19 +450,17 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
                 if(bInterlaced)
                 {
                     /* Interlaced: need 4 field buffers, alloc 4 field buffers */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
-                    ulTopVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode1);
-                    ulBotCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode2);
-                    ulBotVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode3);
+                    ullBufAddr[0] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
+                    ullBufAddr[1] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode1);
+                    ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode2);
+                    ullBufAddr[3] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode3);
                 }
                 else
                 {
                     /* progressive: need 2 frame buffers, alloc 4 field buffers.
                        Use 2 field buffers as 1 frame buffer for progressive */
-                    ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
-                    ulTopVfdBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode2);
-                ulBotCapBufAddr = ulTopCapBufAddr;
-                ulBotVfdBufAddr = ulTopVfdBufAddr;
+                    ullBufAddr[0] = ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode);
+                    ullBufAddr[1] = ullBufAddr[3] = BVDC_P_BUFFERHEAP_GetDeviceOffset(pHeapNode2);
                 }
             }
         }
@@ -587,15 +516,14 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
 #endif
 
     BVDC_P_SUBRUL_START_BLOCK(pList, BCHP_HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, ulRegOffset,
-        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1));
+        BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HD_ANR_MCTF_0_CONT_0_DEMO_SETTING));
     *pList->pulCurrent++ =               /* BVB_IN_SIZE */
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HSIZE, ulHSize) |
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, VSIZE, ulVSize);
     *pList->pulCurrent++ = ulDemoSetting;/* DEMO_SETTING */
-    *pList->pulCurrent++ = ulTopCapBufAddr; /* FRAME_OR_TOP_MSTART_0 */
-    *pList->pulCurrent++ = ulTopVfdBufAddr; /* FRAME_OR_TOP_MSTART_1 */
-    *pList->pulCurrent++ = ulBotCapBufAddr; /* BOTTOM_MSTART_0 */
-    *pList->pulCurrent++ = ulBotVfdBufAddr; /* BOTTOM_MSTART_1 */
+    BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
+        BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0 + ulRegOffset,
+        BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
 
     /* control registers */
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_ME_CTRL, ulRegOffset, 0x3);  /* SEL_7X5 */
@@ -605,7 +533,7 @@ void BVDC_P_Anr_BuildRul_SrcInit_isr
     hAnr->ulTopCtrlReg =
 #if (BVDC_P_SUPPORT_MANR_VER >= BVDC_P_MANR_VER_2)
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_TOP_CTRL, BVB_VIDEO,
-            BVDC_P_VNET_USED_ANR_AT_WRITER(pPicture->stVnetMode) ?
+            BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode) ?
             pPicture->eSrcOrientation : pPicture->eDispOrientation) |
 #endif
 #if (BCHP_HD_ANR_MCTF_0_TOP_CTRL_SCB_MODE_SEL_SHIFT)
@@ -684,12 +612,13 @@ static void BVDC_P_Anr_BuildRul_Mosaic_isr
       BVDC_P_ListInfo               *pList)
 {
     uint32_t ulHSize, ulVSize, ulBufSize;
-    uint32_t ulChannelId, ulTopCapBufAddr, ulTopVfdBufAddr, ulBotCapBufAddr, ulBotVfdBufAddr;
-    uint32_t ulRegOffset = hAnr->ulRegOffset;
+    uint32_t ulChannelId;
     bool     bInterlace = (BAVC_Polarity_eFrame != pPicture->eSrcPolarity), bMemSaving;
+    uint32_t ulRegOffset = hAnr->ulRegOffset;
+    BMMA_DeviceOffset ullBufAddr[4]; /*0: ullTopCapBufAddr, 1: ullTopVfdBufAddr, 2: ullBotCapBufAddr, 3:ullBotVfdBufAddr*/;
     ulHSize = pPicture->pAnrIn->ulWidth;
     ulVSize = pPicture->pAnrIn->ulHeight >>(pPicture->PicComRulInfo.eSrcOrigPolarity != BAVC_Polarity_eFrame);
-    bMemSaving = BVDC_P_VNET_USED_MAD(pPicture->stVnetMode);
+    bMemSaving = BVDC_P_MVP_USED_MAD(pPicture->stMvpMode);
     BVDC_P_SUBRUL_ONE_REG(pList, BCHP_HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, ulRegOffset,
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, HSIZE, ulHSize) |
         BCHP_FIELD_DATA(HD_ANR_MCTF_0_CONT_0_BVB_IN_SIZE, VSIZE, ulVSize));
@@ -699,26 +628,19 @@ static void BVDC_P_Anr_BuildRul_Mosaic_isr
         ulBufSize   = hAnr->ulPxlBufSize[ulChannelId];
         if(bInterlace)
         {
-            ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[ulChannelId][0]);
-            ulTopVfdBufAddr = BVDC_P_ALIGN_UP(ulTopCapBufAddr + ulBufSize, BVDC_P_PITCH_ALIGN);
-            ulBotCapBufAddr = BVDC_P_ALIGN_UP(ulTopVfdBufAddr + ulBufSize, BVDC_P_PITCH_ALIGN);
-            ulBotVfdBufAddr = BVDC_P_ALIGN_UP(ulBotCapBufAddr + ulBufSize, BVDC_P_PITCH_ALIGN);
+            ullBufAddr[0] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[ulChannelId][0]);
+            ullBufAddr[1] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[0] + ulBufSize, BVDC_P_PITCH_ALIGN);
+            ullBufAddr[2] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[1] + ulBufSize, BVDC_P_PITCH_ALIGN);
+            ullBufAddr[3] = BVDC_P_ADDR_ALIGN_UP(ullBufAddr[2] + ulBufSize, BVDC_P_PITCH_ALIGN);
         }
         else
         {
-            ulTopCapBufAddr = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[ulChannelId][0]);
-            ulTopVfdBufAddr = BVDC_P_ALIGN_UP (ulTopCapBufAddr + 2*ulBufSize, BVDC_P_PITCH_ALIGN);
-            ulBotCapBufAddr = ulTopCapBufAddr;
-            ulBotVfdBufAddr = ulTopVfdBufAddr;
+            ullBufAddr[0] = ullBufAddr[2] = BVDC_P_BUFFERHEAP_GetDeviceOffset(hAnr->apHeapNode[ulChannelId][0]);
+            ullBufAddr[1] = ullBufAddr[3] = BVDC_P_ADDR_ALIGN_UP (ullBufAddr[0] + 2*ulBufSize, BVDC_P_PITCH_ALIGN);
         }
-        BVDC_P_SUBRUL_START_BLOCK(
-            pList, BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0, ulRegOffset,
-            BVDC_P_REGS_ENTRIES(HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0,
-            HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1));
-        *pList->pulCurrent++ = ulTopCapBufAddr; /* FRAME_OR_TOP_MSTART_0 */
-        *pList->pulCurrent++ = ulTopVfdBufAddr; /* FRAME_OR_TOP_MSTART_1 */
-        *pList->pulCurrent++ = ulBotCapBufAddr; /* BOTTOM_MSTART_0 */
-        *pList->pulCurrent++ = ulBotVfdBufAddr; /* BOTTOM_MSTART_1 */
+        BRDC_AddrRul_ImmsToRegs_isr(&pList->pulCurrent,
+            BCHP_HD_ANR_MCTF_0_CONT_0_FRAME_OR_TOP_MSTART_0+ulRegOffset,
+            BCHP_HD_ANR_MCTF_0_CONT_0_BOTTOM_MSTART_1 + ulRegOffset,ullBufAddr);
     }
 }
 #endif
@@ -741,7 +663,7 @@ void BVDC_P_Anr_BuildRul_SetEnable_isr
         uint32_t ulChannelId = pPicture->ulPictureIdx;
         BAVC_Polarity    eSrcNxtFldId = pPicture->PicComRulInfo.eSrcOrigPolarity;
 
-        bMemSaving = BVDC_P_VNET_USED_MAD(pPicture->stVnetMode);
+        bMemSaving = BVDC_P_MVP_USED_MAD(pPicture->stMvpMode);
 
         bInitAnr = (hAnr->ulMosaicInit>>ulChannelId) & 1;
         hAnr->ulMosaicInit &=~(1<< ulChannelId);
@@ -821,7 +743,7 @@ void BVDC_P_Anr_BuildRul_SetEnable_isr
 
         if(pPicture->hBuffer->hWindow->stCurInfo.hSource->bSrcIs444)
         {
-            if(BVDC_P_VNET_USED_ANR_AT_WRITER(pPicture->hBuffer->hWindow->stVnetMode))
+            if(BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode))
             {
                 /* SRC -> ANR */
                 hAnr->stDnSampler.eFilterType = BVDC_444To422Filter_eStandard;
@@ -1048,75 +970,6 @@ void BVDC_P_Anr_BuildRul_StatisRead_isr
     return;
 }
 
-
-/***************************************************************************/
-/* No support for any anr */
-#else
-
-#include "bvdc_errors.h"
-
-BDBG_MODULE(BVDC_ANR);
-BDBG_OBJECT_ID(BVDC_ANR);
-
-BERR_Code BVDC_P_Anr_Create
-    ( BVDC_P_Anr_Handle *          phAnr,
-      BVDC_P_AnrId                 eAnrId,
-      BREG_Handle                  hRegister,
-      BVDC_P_Resource_Handle       hResource )
-{
-    BDBG_ASSERT(phAnr);
-    *phAnr = NULL;
-    BSTD_UNUSED(eAnrId);
-    BSTD_UNUSED(hRegister);
-    BSTD_UNUSED(hResource);
-    return BERR_TRACE(BVDC_ERR_ANR_HW_NOT_AVAILABLE);
-}
-
-BERR_Code BVDC_P_Anr_Destroy
-    ( BVDC_P_Anr_Handle            hAnr )
-{
-    BSTD_UNUSED(hAnr);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_Anr_SetDemoMode_isr
-    ( BVDC_P_Anr_Handle            hAnr,
-      BVDC_SplitScreenMode         eDemoMode )
-{
-    BSTD_UNUSED(hAnr);
-    BSTD_UNUSED(eDemoMode);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_Anr_BuildRul_SrcInit_isr
-    ( BVDC_P_AnrContext             *pAnr,
-      BVDC_P_ListInfo               *pList,
-      BVDC_P_PictureNode            *pPicture )
-{
-    BSTD_UNUSED(pAnr);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(pPicture);
-}
-
-void BVDC_P_Anr_BuildRul_SetEnable_isr
-    ( BVDC_P_AnrContext             *pAnr,
-      BVDC_P_PictureNode            *pPicture,
-      BVDC_P_ListInfo               *pList,
-      bool                           bEnable)
-{
-    BSTD_UNUSED(pAnr);
-    BSTD_UNUSED(pPicture);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(bEnable);
-}
-
-void BVDC_P_Anr_BuildRul_StatisRead_isr
-    ( BVDC_P_AnrContext             *pAnr,
-      BVDC_P_ListInfo               *pList)
-{
-    BSTD_UNUSED(pAnr);
-    BSTD_UNUSED(pList);
-}
 #endif  /* #if (BVDC_P_SUPPORT_MANR) */
 
 /* End of file. */

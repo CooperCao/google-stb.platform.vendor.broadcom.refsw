@@ -455,7 +455,7 @@ EGLSyncKHR SpyToolReplay::MapEGLSync(uint32_t handle)                   { return
 void SpyToolReplay::AddEGLImageMapping(uint32_t handle, EGLImageKHR real) { m_eglImageMap[handle] = real; }
 EGLImageKHR SpyToolReplay::MapEGLImage(uint32_t handle)                   { return m_eglImageMap[handle]; }
 
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
 void SpyToolReplay::AddSyncMapping(uint32_t handle, GLsync real)  { m_syncMap[handle] = real; }
 GLsync SpyToolReplay::MapSync(uint32_t handle)                    { return m_syncMap[handle]; }
 
@@ -490,7 +490,7 @@ GLuint SpyToolReplay::MapUniform(uint32_t handle, uint32_t program)
    return m_uniformMap[std::make_pair(program, handle)];
 }
 
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
 void SpyToolReplay::AddUniformBlockIndexMapping(uint32_t handle, GLuint real, uint32_t program)
 {
    m_uniformBlockMap[std::make_pair(program, handle)] = real;

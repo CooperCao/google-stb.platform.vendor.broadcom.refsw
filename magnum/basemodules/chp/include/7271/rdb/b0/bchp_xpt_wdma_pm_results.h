@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,29 +70,29 @@
 /***************************************************************************
  *XPT_WDMA_PM_RESULTS - PerfMeter Status Registers
  ***************************************************************************/
-#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_MOVED 0x20a68600 /* [RO] Perfmeter: Number of accepted input data words. */
-#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_NOT_READY 0x20a68604 /* [RO] Perfmeter: Number of cycles with READY=0 at the input */
-#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_NOT_ACCEPTED 0x20a68608 /* [RO] Perfmeter: Number of cycles with READY=1, ACCEPT=0 at the input */
-#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_HEADER_MOVED 0x20a6860c /* [RO] Perfmeter: Total number of X-header words accepted from XPT Security */
-#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_PAYLD_MOVED 0x20a68610 /* [RO] Perfmeter: Total number of X-packet payload words accepted from XPT Security */
-#define BCHP_XPT_WDMA_PM_RESULTS_NUM_INPUT_PACKETS_TOTAL 0x20a68614 /* [RO] Perfmeter: Total number of packets accepted from XPT Security */
-#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_MOVED 0x20a68618 /* [RO] Perfmeter: Number of accepted output data words */
-#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_NOT_READY 0x20a6861c /* [RO] Perfmeter: Number of cycles with READY=0 at the output */
-#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_NOT_ACCEPTED 0x20a68620 /* [RO] Perfmeter: Number of cycles with READY=1, ACCEPT=0 at the output */
-#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_HEADER_MOVED 0x20a68624 /* [RO] Perfmeter: Total number of X-header words sent to XMEMIF */
-#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_PAYLD_MOVED 0x20a68628 /* [RO] Perfmeter: Total number of X-packet payload sent to XMEMIF */
-#define BCHP_XPT_WDMA_PM_RESULTS_NUM_OUTPUT_PACKETS_TOTAL 0x20a6862c /* [RO] Perfmeter: Total number of packets sent to XMEMIF Security */
-#define BCHP_XPT_WDMA_PM_RESULTS_NUM_DESCRIPTORS 0x20a68630 /* [RO] Perfmeter: Number of Descriptors read */
-#define BCHP_XPT_WDMA_PM_RESULTS_DESCR_READS     0x20a68634 /* [RO] Perfmeter: Number of Descriptor read Transactions */
-#define BCHP_XPT_WDMA_PM_RESULTS_DATA_STALL_CLOCKS 0x20a68638 /* [RO] Perfmeter: Number of clocks when the data transfer was stalled */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_SELECT     0x20a6863c /* [RW] Perfmeter: Specify the channel number for per_channel statistics. */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_BYTES_TXFERED 0x20a68640 /* [RO] Perfmeter: Number of bytes transferred by the channel */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_DATA_STALL_CLOCKS 0x20a68644 /* [RO] Perfmeter: Number of clocks when the data transfer was stalled for the channel */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_ACCEPTED 0x20a68648 /* [RO] Perfmeter: Number of Packets accepted by the channel */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_REJECTED_OVERFLOW 0x20a6864c /* [RO] Perfmeter: Number of Packets dropped by the channel due to Overflow */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_REJECTED_RUN_VERSION 0x20a68650 /* [RO] Perfmeter: Number of Packets dropped by the channel due to RUN_VERSION mismatch */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_READING_DESCRIPTORS 0x20a68654 /* [RO] Perfmeter: Number of clocks spent by the channel reading descriptors */
-#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_SLEEP      0x20a68658 /* [RO] Perfmeter: Number of clocks spent by the channel in SLEEP state */
+#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_MOVED 0x20a68600 /* [RO][32] Perfmeter: Number of accepted input data words. */
+#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_NOT_READY 0x20a68604 /* [RO][32] Perfmeter: Number of cycles with READY=0 at the input */
+#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_DATA_NOT_ACCEPTED 0x20a68608 /* [RO][32] Perfmeter: Number of cycles with READY=1, ACCEPT=0 at the input */
+#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_HEADER_MOVED 0x20a6860c /* [RO][32] Perfmeter: Total number of X-header words accepted from XPT Security */
+#define BCHP_XPT_WDMA_PM_RESULTS_INPUT_PAYLD_MOVED 0x20a68610 /* [RO][32] Perfmeter: Total number of X-packet payload words accepted from XPT Security */
+#define BCHP_XPT_WDMA_PM_RESULTS_NUM_INPUT_PACKETS_TOTAL 0x20a68614 /* [RO][32] Perfmeter: Total number of packets accepted from XPT Security */
+#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_MOVED 0x20a68618 /* [RO][32] Perfmeter: Number of accepted output data words */
+#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_NOT_READY 0x20a6861c /* [RO][32] Perfmeter: Number of cycles with READY=0 at the output */
+#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_DATA_NOT_ACCEPTED 0x20a68620 /* [RO][32] Perfmeter: Number of cycles with READY=1, ACCEPT=0 at the output */
+#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_HEADER_MOVED 0x20a68624 /* [RO][32] Perfmeter: Total number of X-header words sent to XMEMIF */
+#define BCHP_XPT_WDMA_PM_RESULTS_OUTPUT_PAYLD_MOVED 0x20a68628 /* [RO][32] Perfmeter: Total number of X-packet payload sent to XMEMIF */
+#define BCHP_XPT_WDMA_PM_RESULTS_NUM_OUTPUT_PACKETS_TOTAL 0x20a6862c /* [RO][32] Perfmeter: Total number of packets sent to XMEMIF Security */
+#define BCHP_XPT_WDMA_PM_RESULTS_NUM_DESCRIPTORS 0x20a68630 /* [RO][32] Perfmeter: Number of Descriptors read */
+#define BCHP_XPT_WDMA_PM_RESULTS_DESCR_READS     0x20a68634 /* [RO][32] Perfmeter: Number of Descriptor read Transactions */
+#define BCHP_XPT_WDMA_PM_RESULTS_DATA_STALL_CLOCKS 0x20a68638 /* [RO][32] Perfmeter: Number of clocks when the data transfer was stalled */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_SELECT     0x20a6863c /* [RW][32] Perfmeter: Specify the channel number for per_channel statistics. */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_BYTES_TXFERED 0x20a68640 /* [RO][32] Perfmeter: Number of bytes transferred by the channel */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_DATA_STALL_CLOCKS 0x20a68644 /* [RO][32] Perfmeter: Number of clocks when the data transfer was stalled for the channel */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_ACCEPTED 0x20a68648 /* [RO][32] Perfmeter: Number of Packets accepted by the channel */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_REJECTED_OVERFLOW 0x20a6864c /* [RO][32] Perfmeter: Number of Packets dropped by the channel due to Overflow */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_PACKETS_REJECTED_RUN_VERSION 0x20a68650 /* [RO][32] Perfmeter: Number of Packets dropped by the channel due to RUN_VERSION mismatch */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_READING_DESCRIPTORS 0x20a68654 /* [RO][32] Perfmeter: Number of clocks spent by the channel reading descriptors */
+#define BCHP_XPT_WDMA_PM_RESULTS_CHAN_SLEEP      0x20a68658 /* [RO][32] Perfmeter: Number of clocks spent by the channel in SLEEP state */
 
 /***************************************************************************
  *INPUT_DATA_MOVED - Perfmeter: Number of accepted input data words.

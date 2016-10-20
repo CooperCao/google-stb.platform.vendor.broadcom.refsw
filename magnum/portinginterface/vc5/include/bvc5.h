@@ -66,33 +66,57 @@ extern "C" {
 #define BVC5_MAX_IDENTS                4
 #define BVC5_MAX_HUB_IDENTS            4
 
-#define BVC5_SYNC_CORE_READ            (1u << 0)
-#define BVC5_SYNC_CORE_WRITE           (1u << 1)
-#define BVC5_SYNC_CORE                 (BVC5_SYNC_CORE_READ | BVC5_SYNC_CORE_WRITE)
-#define BVC5_SYNC_TMU_DATA_READ        (1u << 2)
-#define BVC5_SYNC_TMU_DATA_WRITE       (1u << 3)
-#define BVC5_SYNC_TMU_DATA             (BVC5_SYNC_TMU_DATA_READ | BVC5_SYNC_TMU_DATA_WRITE)
-#define BVC5_SYNC_TMU_CONFIG_READ      (1u << 4)
-#define BVC5_SYNC_QPU_IU_READ          (1u << 5)
-#define BVC5_SYNC_VCD_READ             (1u << 6)
-#define BVC5_SYNC_TFU_READ             (1u << 7)
-#define BVC5_SYNC_TFU_WRITE            (1u << 8)
-#define BVC5_SYNC_TFU                  (BVC5_SYNC_TFU_READ | BVC5_SYNC_TFU_WRITE)
+#define BVC5_SYNC_CLE_CL_READ          (1u << 0)
+#define BVC5_SYNC_CLE_SHADREC_READ     (1u << 1)
+#define BVC5_SYNC_CLE_PRIM_READ        (1u << 2)
+#define BVC5_SYNC_CLE_DRAWREC_READ     (1u << 3)
+#define BVC5_SYNC_VCD_READ             (1u << 4)
+#define BVC5_SYNC_QPU_INSTR_READ       (1u << 5)
+#define BVC5_SYNC_QPU_UNIF_READ        (1u << 6)
+#define BVC5_SYNC_TMU_CONFIG_READ      (1u << 7)
+#define BVC5_SYNC_PTB_TF_WRITE         (1u << 8)
+#define BVC5_SYNC_PTB_TILESTATE_READ   (1u << 9)
+#define BVC5_SYNC_PTB_TILESTATE_WRITE  (1u << 10)
+#define BVC5_SYNC_PTB_PCF_READ         (1u << 11)
+#define BVC5_SYNC_PTB_PCF_WRITE        (1u << 12)
+#define BVC5_SYNC_TMU_DATA_READ        (1u << 13)
+#define BVC5_SYNC_TMU_DATA_WRITE       (1u << 14)
+#define BVC5_SYNC_TLB_IMAGE_READ       (1u << 15)
+#define BVC5_SYNC_TLB_IMAGE_WRITE      (1u << 16)
+#define BVC5_SYNC_TLB_OQ_READ          (1u << 17)
+#define BVC5_SYNC_TLB_OQ_WRITE         (1u << 18)
+#define BVC5_SYNC_TFU_READ             (1u << 19)
+#define BVC5_SYNC_TFU_WRITE            (1u << 20)
+#define BVC5_SYNC_CPU_READ             (1u << 24)
+#define BVC5_SYNC_CPU_WRITE            (1u << 25)
 
-#define BVC5_SYNC_V3D_READ             (BVC5_SYNC_CORE_READ |\
-                                        BVC5_SYNC_TMU_DATA_READ |\
-                                        BVC5_SYNC_TMU_CONFIG_READ |\
-                                        BVC5_SYNC_QPU_IU_READ |\
-                                        BVC5_SYNC_TFU_READ |\
-                                        BVC5_SYNC_VCD_READ)
-#define BVC5_SYNC_V3D_WRITE            (BVC5_SYNC_CORE_WRITE |\
-                                        BVC5_SYNC_TMU_DATA_WRITE |\
-                                        BVC5_SYNC_TFU_WRITE)
-#define BVC5_SYNC_V3D                  (BVC5_SYNC_V3D_READ | BVC5_SYNC_V3D_WRITE)
+#define BVC5_SYNC_V3D_READ (\
+   BVC5_SYNC_CLE_CL_READ\
+ | BVC5_SYNC_CLE_SHADREC_READ\
+ | BVC5_SYNC_CLE_PRIM_READ\
+ | BVC5_SYNC_CLE_DRAWREC_READ\
+ | BVC5_SYNC_VCD_READ\
+ | BVC5_SYNC_QPU_INSTR_READ\
+ | BVC5_SYNC_QPU_UNIF_READ\
+ | BVC5_SYNC_TMU_CONFIG_READ\
+ | BVC5_SYNC_PTB_TILESTATE_READ\
+ | BVC5_SYNC_PTB_PCF_READ\
+ | BVC5_SYNC_TMU_DATA_READ\
+ | BVC5_SYNC_TLB_IMAGE_READ\
+ | BVC5_SYNC_TLB_OQ_READ\
+ | BVC5_SYNC_TFU_READ)
 
-#define BVC5_SYNC_CPU_READ             (1u << 9)
-#define BVC5_SYNC_CPU_WRITE            (1u << 10)
-#define BVC5_SYNC_CPU                  (BVC5_SYNC_CPU_READ | BVC5_SYNC_CPU_WRITE)
+#define BVC5_SYNC_V3D_WRITE (\
+   BVC5_SYNC_PTB_TF_WRITE\
+ | BVC5_SYNC_PTB_TILESTATE_WRITE\
+ | BVC5_SYNC_PTB_PCF_WRITE\
+ | BVC5_SYNC_TMU_DATA_WRITE\
+ | BVC5_SYNC_TLB_IMAGE_WRITE\
+ | BVC5_SYNC_TLB_OQ_WRITE\
+ | BVC5_SYNC_TFU_WRITE)
+
+#define BVC5_SYNC_V3D_RW (BVC5_SYNC_V3D_READ | BVC5_SYNC_V3D_WRITE)
+#define BVC5_SYNC_CPU_RW (BVC5_SYNC_CPU_READ | BVC5_SYNC_CPU_WRITE)
 
 #define BVC5_EMPTY_TILE_MODE_NONE      0u
 #define BVC5_EMPTY_TILE_MODE_SKIP      1u
@@ -182,13 +206,11 @@ typedef enum BVC5_JobStatus
    BVC5_JobStatus_eERROR
 } BVC5_JobStatus;
 
-typedef void (*BVC5_CompletionFn)(void *, uint64_t, BVC5_JobStatus);
-
 typedef struct BVC5_Completion
 {
    uint64_t          uiJobId;
-   BVC5_CompletionFn pfnCallback;
-   void              *pData;
+   uint64_t          uiCallback;
+   uint64_t          uiData;
    BVC5_JobStatus    eStatus;
    BVC5_JobType      eType;
 } BVC5_Completion;
@@ -204,8 +226,8 @@ typedef struct BVC5_JobBase
    BVC5_JobType            eType;
    BVC5_SchedDependencies  sCompletedDependencies;
    BVC5_SchedDependencies  sFinalizedDependencies;
-   BVC5_CompletionFn       pfnCompletion;
-   void                   *pData;
+   uint64_t                uiCompletion;
+   uint64_t                uiData;
    uint32_t                uiSyncFlags;
    bool                    bSecure;
    uint64_t                uiPagetablePhysAddr;
@@ -301,13 +323,11 @@ typedef struct BVC5_JobTest
    uint32_t                uiDelay;
 } BVC5_JobTest;
 
-typedef void (*BVC5_UsermodeFn)(void *data);
-
 typedef struct BVC5_JobUsermode
 {
    BVC5_JobBase            sBase;
-   BVC5_UsermodeFn         pfnUsermode;
-   void                   *pData;
+   uint64_t                uiUsermode;
+   uint64_t                uiData;
 } BVC5_JobUsermode;
 
 /**
@@ -317,8 +337,8 @@ Usermode callback jobs record returned by query function NEXUS_Graphicsv3d_GetUs
 typedef struct BVC5_Usermode
 {
    uint64_t          uiJobId;
-   BVC5_UsermodeFn   pfnCallback;
-   void             *pData;
+   uint64_t          uiCallback;
+   uint64_t          uiData;
    bool              bHaveJob;
 } BVC5_Usermode;
 

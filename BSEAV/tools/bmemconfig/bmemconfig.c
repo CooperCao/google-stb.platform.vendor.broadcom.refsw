@@ -71,6 +71,7 @@
 #include "../../../nexus/utils/namevalue.inc"
 #include "bmemperf_utils.h"
 #include "bmemperf_info.h"
+#include "bmemperf_lib.h"
 
 BDBG_MODULE(bmemconfig);
 /**
@@ -856,10 +857,7 @@ static char *getNamedValue(
         token = strtok( NULL, "&" );
         count++;
     }
-    if (lQueryString)
-    {
-        free( lQueryString );
-    }
+    Bsysperf_Free( lQueryString );
     return( posvalue );
 } /* getNamedValue */
 
@@ -1633,10 +1631,8 @@ static void print_heaps(
             PRINTF( "%s: heap %u: usageBytes %08lu; memc[%u].display %08u<br>\n", __FUNCTION__, heapIdx, usageBytes, heapInfo.memcIndex,
                 platformStatus.estimatedMemory.memc[heapInfo.memcIndex].display.general );
 
-            if (heapNameNbsp)
-            {
-                free( heapNameNbsp );
-            }
+            Bsysperf_Free( heapNameNbsp );
+
             /* output columns before this one ... could be no cols or 1 col */
             for (memc = 0; memc<heapInfo.memcIndex; memc++)
             {
@@ -1922,12 +1918,14 @@ static int getProductIdMemc(
 {
     unsigned int idx     = 0;
     int          numMemc = 1;
+    char         *lProductIdStr = getProductIdStr();
 
     /* loop through global array to find the specified boxmode */
     for (idx = 0; idx < ( sizeof( g_bmemconfig_box_info )/sizeof( g_bmemconfig_box_info[0] )); idx++)
     {
-        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~", __FUNCTION__, idx, g_bmemconfig_box_info[idx].strProductId, getProductIdStr() );
-        if ( strcmp ( g_bmemconfig_box_info[idx].strProductId, getProductIdStr() ) == 0 )
+        PRINTF( "~DEBUG~%s: g_bmemconfig_box_info[%d].strProductId is %s ... comparing with %s~", __FUNCTION__, idx, g_bmemconfig_box_info[idx].strProductId, lProductIdStr );
+        /* some 7439 IDs have 7252s (boxmode 24) and some have 7252S (boxmode 2, 3, 4, 9, 27) */
+        if ( lProductIdStr && strcasecmp ( g_bmemconfig_box_info[idx].strProductId, lProductIdStr ) == 0 )
         {
             numMemc = g_bmemconfig_box_info[idx].numMemc;
             break;
@@ -2059,7 +2057,7 @@ static int page_home(
     if (fileContents)
     {
         printf( "rts: %s<br>\n", fileContents );
-        free( fileContents );
+        Bsysperf_Free( fileContents );
     }
 
     fileContents = getFileContents( "/proc/device-tree/bolt/board" );
@@ -2067,21 +2065,21 @@ static int page_home(
     {
         printf( "board: %s<br>\n", fileContents );
         strncpy( platform, &fileContents[3], 5 ); /* skip the BCM part */
-        free( fileContents );
+        Bsysperf_Free( fileContents );
     }
 
     fileContents = getFileContents( "/proc/device-tree/bolt/tag" );
     if (fileContents)
     {
         printf( "bolt version: %s dated ", fileContents );
-        free( fileContents );
+        Bsysperf_Free( fileContents );
     }
 
     fileContents = getFileContents( "/proc/device-tree/bolt/date" );
     if (fileContents)
     {
         printf( "%s<br>\n", fileContents );
-        free( fileContents );
+        Bsysperf_Free( fileContents );
     }
 
     printf( "~" );
@@ -2608,11 +2606,7 @@ static int page_video_decoder(
 
                 /* video decoder x */
                 printf( "<tr id=vdec%drow1 ><td align=right>supportedCodecs:</td><td>%s</td></tr>\n", i, lHtmlVideoCodecs );
-                if (lHtmlVideoCodecs)
-                {
-                    free( lHtmlVideoCodecs );
-                    lHtmlVideoCodecs = NULL;
-                }
+                Bsysperf_Free( lHtmlVideoCodecs );
                 printf( "<tr id=vdec%drow2 ><td align=right>mosaic:</td><td><table cols=3><tr>\n", i );
                 printf( "<td style=\"width:150px\" nowrap >maxNumber (%u): <input type=text id=vdec%dmaxNumber size=2 onchange=\"MyClick(event);\" value=%d ></td>",
                     pSettings->videoDecoder[i].mosaic.maxNumber, i, pInput->videoDecoder[i].numMosaic );
@@ -2688,11 +2682,7 @@ static int page_video_decoder(
 
             /* video decoder x */
             printf( "<tr id=sdec%drow1 ><td align=right>supportedCodecs:</td><td>%s</td></tr>\n", i, lHtmlVideoCodecs );
-            if (lHtmlVideoCodecs)
-            {
-                free( lHtmlVideoCodecs );
-                lHtmlVideoCodecs = NULL;
-            }
+            Bsysperf_Free( lHtmlVideoCodecs );
             printf( "<tr id=sdec%drow3 ><td align=right>&nbsp;</td><td><table cols=2><tr>\n", i );
             printf( "<td style=\"width:150px\" >avc51Supported: <input type=checkbox id=sdec%davc51Supported onclick=\"MyClick(event);\" %s ></td>",
                 i, ( pSettings->stillDecoder[i].avc51Supported ) ? "checked" : "" );
@@ -2773,11 +2763,7 @@ static int outputAudioDecoderHtml(
         printf( "audio encodeCodecEnabled" );
     }
     printf( ":</td><td>%s</td></tr>\n", lHtmlAudioCodecs );
-    if (lHtmlAudioCodecs)
-    {
-        free( lHtmlAudioCodecs );
-        lHtmlAudioCodecs = NULL;
-    }
+    Bsysperf_Free( lHtmlAudioCodecs );
 
     /* do not include for transcodes */
     if (bDecodePage)
@@ -2787,11 +2773,7 @@ static int outputAudioDecoderHtml(
         {
             lHtmlAudioPostProcessing = HtmlAudioPostProcessing( i, pSettings );
             printf( "<tr id=adec%drow3 ><td align=right>postProcessingEnabled:</td><td>%s</td></tr>\n", i, lHtmlAudioPostProcessing );
-            if (lHtmlAudioPostProcessing)
-            {
-                free( lHtmlAudioPostProcessing );
-                lHtmlAudioPostProcessing = NULL;
-            }
+            Bsysperf_Free( lHtmlAudioPostProcessing );
         }
         printf( "<tr id=adec%drow4 ><td align=left>&nbsp;</td><td><table ><tr>", i );
         printf( "<td style=\"width:220px\" align=right >maxIndependentDelay&nbsp;<input type=text id=adec%dmaxIndependentDelay size=2 onchange=\"MyClick(event);\" value=%d "
@@ -2945,7 +2927,7 @@ static int page_audio_decoder(
         memset( whichDecoder, 0, sizeof( whichDecoder ));
         if (i==0)
         {
-            sprintf( whichDecoder, VideoDecoderPropertyStr[pBoxModeSettings->videoDecoder[i].property] );
+            sprintf( whichDecoder, "%s", VideoDecoderPropertyStr[pBoxModeSettings->videoDecoder[i].property] );
         }
         else
         {
@@ -3011,7 +2993,7 @@ static int page_display(
                     "<select id=disp%dmaxFormat onchange=\"MyClick(event);\" style=\"width:140px\" size=1 >%s</select>&nbsp;&nbsp;(%s)</td>",
                 ( maxDisplayFormatByDefault[displayIdx]/100 )%10000, displayIdx, lHtmlVideoFormats,
                 DisplayPropertyStr[pBoxModeSettings->display[displayIdx].property]   );
-            if (lHtmlVideoFormats) {free( lHtmlVideoFormats ); lHtmlVideoFormats = NULL; }
+            Bsysperf_Free( lHtmlVideoFormats );
             if (( pBoxModeSettings->display[displayIdx].property==Memconfig_DisplayProperty_ePrimary ) ||
                 ( pBoxModeSettings->display[displayIdx].property==Memconfig_DisplayProperty_eSecondary ))
             {
@@ -3249,7 +3231,7 @@ static int page_file_management(
         if (fileContents)
         {
             printf( "<tr><td><h3>Console Log</h3><textarea id=consolelog cols=120 rows=20 >%s</textarea></td></tr>\n", fileContents );
-            free( fileContents );
+            Bsysperf_Free( fileContents );
         }
 
         PrependTempDirectory( logFilename, sizeof( logFilename ), "boa_access.log" );
@@ -3258,7 +3240,7 @@ static int page_file_management(
         if (fileContents)
         {
             printf( "<tr><td><h3>Access Log</h3><textarea id=accesslog cols=120 rows=20 >%s</textarea></td></tr>\n", fileContents );
-            free( fileContents );
+            Bsysperf_Free( fileContents );
         }
     }
     else if (strstr( whichButton, "saveState" ))
@@ -3606,7 +3588,7 @@ static int page_help(
                 pos = strstr( pos, "<question" );
             }
 
-            free( fileContents );
+            Bsysperf_Free( fileContents );
         }
     }
 
@@ -5836,10 +5818,7 @@ static int readFileFromBrowser2(
             PRINTF( "<h3>Output file is (%s)</h3>\n", stateFilenameRestored );
         }
         /* free the malloc'ed space if it was malloc'ed successfully */
-        if (cgi_query)
-        {
-            free( cgi_query );
-        }
+        Bsysperf_Free( cgi_query );
     }
 
     return( 0 );
@@ -6033,7 +6012,7 @@ int main(
 
                 sscanf( fileContents, "boxmode %d", &boxmode );
                 printf( "%s: restoring ... sscanf boxmode %d; pagenum %d\n", argv[0], boxmode, pagenum );
-                free( fileContents );
+                Bsysperf_Free( fileContents );
 
                 rc = Memconfig_GetBoxModeDefaultSettings( boxmode, &boxModeSettings );
                 /* if the boxmode specified in the file is not known to this platform */
@@ -6235,10 +6214,7 @@ int main(
         unsigned int heapIdx;
         for (heapIdx = 0; heapIdx<NEXUS_MAX_HEAPS; heapIdx++)
         {
-            if (g_heap_info[heapIdx].memoryType != NULL)
-            {
-                free( g_heap_info[heapIdx].memoryType );
-            }
+            Bsysperf_Free( g_heap_info[heapIdx].memoryType );
         }
     }
 

@@ -38,6 +38,76 @@
 
 .PHONY: install_sage
 
+ifeq ($(SAGE_VERSION), 2x)
+# Supported SAGE secure mode:
+#     Secure mode 1 (default): Disable URR and HDCP enforcement
+#     Secure mode 5          : Enable URR (with URR toggling) and HDCP enforcement (standard mode). Available on Zeus 4.2 only.
+#     Secure mode 6          : Enable URR and HDCP enforcement (standard mode). Available on Zeus 4.2 only.
+#     Secure mode 9          : Enable URR and HDCP enforcement (strict mode). Available on Zeus 4.2 only.
+SAGE_SECURE_MODE_DEFAULT := 1
+
+ifeq ($(SAGE_SECURE_MODE),)
+# Use default mode when it is not specified.
+SAGE_SECURE_MODE := $(SAGE_SECURE_MODE_DEFAULT)
+endif
+
+SAGE_BL_BINARY_PATH := $(BSEAV)/lib/security/sage/bin/2x/$(BCHP_CHIP)$(BCHP_VER)
+SAGE_APP_BINARY_PATH := $(SAGE_BL_BINARY_PATH)/securemode$(SAGE_SECURE_MODE)
+
+# Search for supported modes for the specified platform
+ifneq (, $(wildcard $(SAGE_BL_BINARY_PATH)/securemode1))
+SAGE_SECURE_MODE_LIST += 1
+endif
+ifneq (, $(wildcard $(SAGE_BL_BINARY_PATH)/securemode5))
+SAGE_SECURE_MODE_LIST += 5
+endif
+ifneq (, $(wildcard $(SAGE_BL_BINARY_PATH)/securemode6))
+SAGE_SECURE_MODE_LIST += 6
+endif
+ifneq (, $(wildcard $(SAGE_BL_BINARY_PATH)/securemode9))
+SAGE_SECURE_MODE_LIST += 9
+endif
+
+ifneq ($(SAGE_BINARIES_AVAILABLE),y)
+ifeq ($(findstring $(SAGE_SECURE_MODE),$(SAGE_SECURE_MODE_LIST)),)
+    $(error SAGE secure mode $(SAGE_SECURE_MODE) is not supported. Update SAGE_SECURE_MODE with a supported mode: $(SAGE_SECURE_MODE_LIST))
+endif
+endif
+
+install_sage:
+
+ifeq ($(SAGE_BINARIES_AVAILABLE),y)
+	@echo [Please install your own SAGE binaries under $(NEXUS_BIN_DIR)]
+else
+
+	@echo [Install... SAGE binaries]
+ifeq (, $(wildcard $(SAGE_BL_BINARY_PATH)/sage_bl.bin))
+	@echo "[$(SAGE_BL_BINARY_PATH)/sage_bl.bin does not exist. Please advise!]"
+else
+	${Q_}$(CP) -f $(SAGE_BL_BINARY_PATH)/sage_bl.bin ${NEXUS_BIN_DIR}
+endif
+
+ifeq (, $(wildcard $(SAGE_APP_BINARY_PATH)/sage_os_app.bin))
+	@echo "[$(SAGE_APP_BINARY_PATH)/sage_os_app.bin does not exist. Please advise!]"
+else
+	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/sage_os_app.bin ${NEXUS_BIN_DIR}
+endif
+
+ifeq (, $(wildcard $(SAGE_BL_BINARY_PATH)/sage_bl_dev.bin))
+	@echo "[$(SAGE_BL_BINARY_PATH)/sage_bl_dev.bin does not exist. Please advise!]"
+else
+	${Q_}$(CP) -f $(SAGE_BL_BINARY_PATH)/sage_bl_dev.bin ${NEXUS_BIN_DIR}
+endif
+
+ifeq (, $(wildcard $(SAGE_APP_BINARY_PATH)/sage_os_app_dev.bin))
+	@echo "[$(SAGE_APP_BINARY_PATH)/sage_os_app_dev.bin does not exist. Please advise!]"
+else
+	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/sage_os_app_dev.bin ${NEXUS_BIN_DIR}
+endif
+
+endif
+
+else
 #
 # SAGE secure mode has been DEPRECATED
 #     Secure mode 1 (default): Disable URR and HDCP enforcement
@@ -81,6 +151,8 @@ ifeq (, $(wildcard $(SAGE_APP_BINARY_PATH)/dev/sage_framework_dev.bin))
 else
 	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/dev/sage_framework_dev.bin ${NEXUS_BIN_DIR}
 	${Q_}$(CP) -f $(SAGE_APP_BINARY_PATH)/dev/sage_ta*.bin ${NEXUS_BIN_DIR}
+endif
+
 endif
 
 endif

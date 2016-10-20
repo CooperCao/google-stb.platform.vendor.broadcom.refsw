@@ -83,7 +83,10 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
     void *pDeviceHandle
 );
 
+/*#define FWDWNLD_DBG 1*/
+#ifdef FWDWNLD_DBG
 void BDSP_Raaga_P_FwDwnldBuf_Dump( void *pDeviceHandle);
+#endif /*FWDWNLD_DBG*/
 
 #define IF_ERR_GOTO_error if ( errCode ){\
                             errCode = BERR_TRACE(errCode);\

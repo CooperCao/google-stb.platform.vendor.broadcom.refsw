@@ -100,6 +100,21 @@ void NEXUS_HdmiInput_SetFormatChangeCb_priv(
     void *pFuncParam
     );
 
+
+void NEXUS_HdmiInput_SetHdrEvent_priv(
+    NEXUS_HdmiInputHandle hdmiInput,
+    BKNI_EventHandle notifyHdrPacketEvent
+) ;
+
+/**
+Summary:
+**/
+NEXUS_Error NEXUS_HdmiInput_GetDrmInfoFrameData_priv(
+    NEXUS_HdmiInputHandle hdmiInput,
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame *pDrmInfoFrame /* [out] */
+    );
+
+
 /**
 Called by Hdmi_Output
 **/

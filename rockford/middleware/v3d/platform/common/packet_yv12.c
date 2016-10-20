@@ -60,13 +60,13 @@ static NEXUS_Graphics2DColorMatrix s_ai32_Matrix_YCbCrtoRGB =
 static const BM2MC_PACKET_Blend combColor = { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, false,
                                               BM2MC_PACKET_BlendFactor_eDestinationColor, BM2MC_PACKET_BlendFactor_eOne, false,
                                               BM2MC_PACKET_BlendFactor_eZero };
-static const BM2MC_PACKET_Blend copyAlpha = { BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eOne, false,
+static const BM2MC_PACKET_Blend copyAlpha = { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
                                               BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
                                               BM2MC_PACKET_BlendFactor_eZero };
 static const BM2MC_PACKET_Blend copyColor = { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, false,
                                               BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
                                               BM2MC_PACKET_BlendFactor_eZero };
-static const BM2MC_PACKET_Blend constAlpha = { BM2MC_PACKET_BlendFactor_eConstantAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
+static const BM2MC_PACKET_Blend constOne = { BM2MC_PACKET_BlendFactor_eOne, BM2MC_PACKET_BlendFactor_eOne, false,
                                                BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
                                                BM2MC_PACKET_BlendFactor_eZero };
 
@@ -77,18 +77,46 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
    NEXUS_Error rc;
    int y;
 
-   /* 420 -> RGBA */
+   /* 420 -> RGBA (spec from /system/core/include/system/graphics.h) */
    unsigned int stride = (params->width + (16 - 1)) & ~(16 - 1);
-   unsigned int cstride = (stride / 2 + (16 - 1)) & ~(16 - 1);
-   unsigned int cr_offset = stride * params->height;
-   unsigned int cb_offset = cr_offset + (cstride * (params->height / 2));
+   unsigned int y_size = stride * params->height;
+   unsigned int c_stride = ((stride / 2) + (16 - 1)) & ~(16 - 1);
+   unsigned int c_size = c_stride * params->height / 2;
+   unsigned int cr_offset = y_size;
+   unsigned int cb_offset = y_size + c_size;
+
+   /* YUV 420 -> 422 */
+
+   BM2MC_PACKET_ColorMatrix ai32_Matrix_YCbCrtoRGB;
+   NEXUS_Graphics2D_ConvertColorMatrix(&s_ai32_Matrix_YCbCrtoRGB, &ai32_Matrix_YCbCrtoRGB);
+
+   NEXUS_Graphics2DHandle gfx = params->secure ? data->gfxSecure : data->gfx;
+   NEXUS_Addr yuvScratchPhys = params->secure ? data->yuvScratchPhysSecure : data->yuvScratchPhys;
 
    while (1)
    {
-      /* Packet space is rather big as we setup an interleaved conversion for 16 lines at a time.
-         Its currently 328bytes per strip, and at a max of 2k image, this is about 42kb, round up for
-         future proofing */
-      rc = NEXUS_Graphics2D_GetPacketBuffer(data->gfx, &pkt_buffer, &pkt_size, 48 * 1024);
+      unsigned int packet_size =
+         sizeof(BM2MC_PACKET_PacketSourceFeeders) +
+         sizeof(BM2MC_PACKET_PacketDestinationFeeder) +
+         sizeof(BM2MC_PACKET_PacketOutputFeeder) +
+         sizeof(BM2MC_PACKET_PacketBlend) +
+         sizeof(BM2MC_PACKET_PacketScaleBlendBlit) +
+         sizeof(BM2MC_PACKET_PacketSourceColorMatrixEnable) +
+         sizeof(BM2MC_PACKET_PacketSourceColorMatrix) +
+         sizeof(BM2MC_PACKET_PacketSourceFeeder) +
+         sizeof(BM2MC_PACKET_PacketDestinationNone) +
+         sizeof(BM2MC_PACKET_PacketOutputFeeder) +
+         sizeof(BM2MC_PACKET_PacketBlend) +
+         sizeof(BM2MC_PACKET_PacketBlendBlit) +
+         sizeof(BM2MC_PACKET_PacketSourceColorMatrixEnable);
+      packet_size *= (params->height + (STRIP_HEIGHT - 1)) / STRIP_HEIGHT;
+      packet_size +=
+         sizeof(BM2MC_PACKET_PacketFilterEnable) +
+         sizeof(BM2MC_PACKET_PacketSourceColorkeyEnable) +
+         sizeof(BM2MC_PACKET_PacketDestinationColorkeyEnable) +
+         sizeof(BM2MC_PACKET_PacketBlendColor);
+
+      rc = NEXUS_Graphics2D_GetPacketBuffer(gfx, &pkt_buffer, &pkt_size, packet_size);
       BDBG_ASSERT(!rc);
       if (!pkt_size) {
          rc = BERR_OS_ERROR;
@@ -112,6 +140,27 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       next = ++pPacket;
    }
 
+   {
+      BM2MC_PACKET_PacketSourceColorkeyEnable *pPacket = next;
+      BM2MC_PACKET_INIT(pPacket, SourceColorkeyEnable, false);
+      pPacket->enable = 0;
+      next = ++pPacket;
+   }
+
+   {
+      BM2MC_PACKET_PacketDestinationColorkeyEnable *pPacket = next;
+      BM2MC_PACKET_INIT(pPacket, DestinationColorkeyEnable, false);
+      pPacket->enable = 0;
+      next = ++pPacket;
+   }
+
+   {
+      BM2MC_PACKET_PacketBlendColor *pPacket = next;
+      BM2MC_PACKET_INIT(pPacket, BlendColor, false);
+      pPacket->color = 0;
+      next = ++pPacket;
+   }
+
    for (y = 0; y < params->height; y += STRIP_HEIGHT)
    {
       int stripHeight;
@@ -122,25 +171,23 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
 
       /* YUV 420 -> 422 */
       {
-
-         int offset = (y / 2) * cstride;
+         int offset = (y / 2) * c_stride;
          BM2MC_PACKET_PacketSourceFeeders *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, SourceFeeders, false);
 
          pPacket->plane0.address = params->srcOffset + cb_offset + offset;
-         pPacket->plane0.pitch = cstride;
+         pPacket->plane0.pitch = c_stride;
          pPacket->plane0.format = BM2MC_PACKET_PixelFormat_eCb8;
          pPacket->plane0.width = params->width / 2;
          pPacket->plane0.height = stripHeight / 2;
 
          pPacket->plane1.address = params->srcOffset + cr_offset + offset;
-         pPacket->plane1.pitch = cstride;
+         pPacket->plane1.pitch = c_stride;
          pPacket->plane1.format = BM2MC_PACKET_PixelFormat_eCr8;
          pPacket->plane1.width = params->width / 2;
          pPacket->plane1.height = stripHeight / 2;
 
          pPacket->color = 0;
-
          next = ++pPacket;
       }
 
@@ -154,7 +201,6 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
          pPacket->plane.format = BM2MC_PACKET_PixelFormat_eY8;
          pPacket->plane.width = params->width;
          pPacket->plane.height = stripHeight;
-
          pPacket->color = 0;
          next = ++pPacket;
       }
@@ -162,7 +208,7 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       {
          BM2MC_PACKET_PacketOutputFeeder *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, OutputFeeder, false);
-         pPacket->plane.address = data->yuvScratchPhys;
+         pPacket->plane.address = yuvScratchPhys;
          pPacket->plane.pitch = params->width * 2;
          pPacket->plane.format = BM2MC_PACKET_PixelFormat_eCr8_Y18_Cb8_Y08;
          pPacket->plane.width = params->width;
@@ -171,7 +217,7 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       }
 
       {
-         BM2MC_PACKET_PacketBlend *pPacket = (BM2MC_PACKET_PacketBlend *)next;
+         BM2MC_PACKET_PacketBlend *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, Blend, false);
          pPacket->color_blend = combColor;
          pPacket->alpha_blend = copyAlpha;
@@ -206,21 +252,14 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       {
          BM2MC_PACKET_PacketSourceColorMatrix *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, SourceColorMatrix, false);
-         NEXUS_Graphics2D_ConvertColorMatrix(&s_ai32_Matrix_YCbCrtoRGB, &pPacket->matrix);
-         next = ++pPacket;
-      }
-
-      {
-         BM2MC_PACKET_PacketDestinationColor *pPacket = next;
-         BM2MC_PACKET_INIT(pPacket, DestinationColor, false);
-         pPacket->color = 0;
+         pPacket->matrix = ai32_Matrix_YCbCrtoRGB;
          next = ++pPacket;
       }
 
       {
          BM2MC_PACKET_PacketSourceFeeder *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, SourceFeeder, false);
-         pPacket->plane.address = data->yuvScratchPhys;
+         pPacket->plane.address = yuvScratchPhys;
          pPacket->plane.pitch = params->width * 2;
          pPacket->plane.format = BM2MC_PACKET_PixelFormat_eCr8_Y18_Cb8_Y08;
          pPacket->plane.width = params->width;
@@ -236,12 +275,11 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       }
 
       {
-         int pitch = params->width * 4;
-         int offset = y * pitch;
+         int offset = y * params->dstStride;
          BM2MC_PACKET_PacketOutputFeeder *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, OutputFeeder, false);
          pPacket->plane.address = params->dstOffset + offset;
-         pPacket->plane.pitch = pitch;
+         pPacket->plane.pitch = params->dstStride;
          pPacket->plane.format = BM2MC_PACKET_PixelFormat_eA8_B8_G8_R8;
          pPacket->plane.width = params->width;
          pPacket->plane.height = stripHeight;
@@ -249,11 +287,11 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       }
 
       {
-         BM2MC_PACKET_PacketBlend *pPacket = (BM2MC_PACKET_PacketBlend *)next;
+         BM2MC_PACKET_PacketBlend *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, Blend, false);
          pPacket->color_blend = copyColor;
-         pPacket->alpha_blend = constAlpha;
-         pPacket->color = 0xFF000000;
+         pPacket->alpha_blend = constOne;
+         pPacket->color = 0;
          next = ++pPacket;
       }
 
@@ -277,10 +315,10 @@ void memCopy2d_yv12(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       }
    }
 
-   rc = NEXUS_Graphics2D_PacketWriteComplete(data->gfx, (uint8_t*)next - (uint8_t*)pkt_buffer);
+   rc = NEXUS_Graphics2D_PacketWriteComplete(gfx, (uint8_t*)next - (uint8_t*)pkt_buffer);
    BDBG_ASSERT(!rc);
 
-   rc = NEXUS_Graphics2D_Checkpoint(data->gfx, NULL);
+   rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
    if (rc == NEXUS_GRAPHICS2D_QUEUED)
    {
       rc = BERR_OS_ERROR;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,9 +70,9 @@
 /***************************************************************************
  *SCPU_TOP_CTRL - SCPU Top Control Registers
  ***************************************************************************/
-#define BCHP_SCPU_TOP_CTRL_ALT_BOOT_VECTOR       0x20312000 /* [RW] SCPU MIPS RESET VECTOR Register */
-#define BCHP_SCPU_TOP_CTRL_SCPU_HOST_IRDY        0x20312004 /* [RW] SCPU to Host Irdy Register */
-#define BCHP_SCPU_TOP_CTRL_SCPU_BSP_DDONE        0x20312008 /* [WO] SCPU to BSP DDONE Register */
+#define BCHP_SCPU_TOP_CTRL_ALT_BOOT_VECTOR       0x20312000 /* [RW][32] SCPU MIPS RESET VECTOR Register */
+#define BCHP_SCPU_TOP_CTRL_SCPU_HOST_IRDY        0x20312004 /* [RW][32] SCPU to Host Irdy Register */
+#define BCHP_SCPU_TOP_CTRL_SCPU_BSP_DDONE        0x20312008 /* [WO][32] SCPU to BSP DDONE Register */
 
 /***************************************************************************
  *ALT_BOOT_VECTOR - SCPU MIPS RESET VECTOR Register

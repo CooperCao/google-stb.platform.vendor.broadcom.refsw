@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -37,6 +37,11 @@
  *****************************************************************************/
 #include "nexus_base.h"
 #include "nexus_display_module.h"
+#if NEXUS_HAS_HDMI_INPUT
+#include "nexus_hdmi_input_ext.h"
+#include "priv/nexus_hdmi_input_priv.h"
+#endif
+
 #if NEXUS_NUM_VIDEO_DECODERS
 #include "priv/nexus_video_decoder_priv.h"
 #endif
@@ -214,6 +219,7 @@ static void NEXUS_VideoInput_P_GetDefaultSettings(NEXUS_VideoInputSettings *pSet
 #if NEXUS_CRC_CAPTURE
     pSettings->crcQueueSize = 80;
 #endif
+    NEXUS_CallbackDesc_Init(&pSettings->sourceChanged);
     return;
 }
 
@@ -263,6 +269,12 @@ NEXUS_VideoInput_P_CreateLink_Init(NEXUS_VideoInput source, const NEXUS_VideoInp
     link->vbiSettings.wss.vline576i = 23;
     link->vbiSettings.cc.ccLineTop      = 21;
     link->vbiSettings.cc.ccLineBottom   = 284;
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.wssChanged);
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.cgmsChanged);
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.vpsChanged);
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.closedCaptionDataReady);
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.teletextDataReady);
+    NEXUS_CallbackDesc_Init(&link->vbiSettings.gemStarDataReady);
     /* no default buffer for teletext */
     link->vbi.wss.isrCallback = NEXUS_IsrCallback_Create(source, NULL);
     link->vbi.wss.data = 0xffff; /* no data */
@@ -638,26 +650,47 @@ done:
     return 0;
 }
 
+
 static void
 NEXUS_VideoInput_P_HdrInputInfoUpdated(void * context)
 {
 #if NEXUS_HAS_HDMI_OUTPUT && NEXUS_NUM_HDMI_OUTPUTS
     NEXUS_VideoInput_P_Link *link = context;
-    NEXUS_VideoWindowHandle windows[NEXUS_NUM_VIDEO_WINDOWS];
+    NEXUS_VideoWindowHandle windows[NEXUS_NUM_DISPLAYS];
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
     unsigned count;
     unsigned i;
 
-    NEXUS_Display_P_GetWindows_priv(link->input, windows, NEXUS_NUM_VIDEO_WINDOWS, &count);
+    BDBG_MSG(("Update HDR information using VideoInputType: %d",
+        link->input->type)) ;
+
+    if (link->input->type == NEXUS_VideoInputType_eDecoder)
+    {
+        BKNI_Memcpy(&drmInfoFrame, &link->drmInfoFrame,
+            sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+    }
+#if NEXUS_HAS_HDMI_INPUT
+    else if (link->input->type == NEXUS_VideoInputType_eHdmi)
+    {
+        NEXUS_Module_Lock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
+            NEXUS_HdmiInput_GetDrmInfoFrameData_priv(link->input->source, &drmInfoFrame) ;
+        NEXUS_Module_Unlock(g_NEXUS_DisplayModule_State.modules.hdmiOutput) ;
+    }
+#endif
+    else
+    {
+        BDBG_WRN(("Unsupported HDR Input Type: %d", link->input->type)) ;
+        return ;
+    }
+
+    NEXUS_Display_P_GetWindows_priv(link->input, windows, NEXUS_NUM_DISPLAYS, &count);
 
     for (i = 0; i < count; i++)
     {
-        if (windows[i]->display->hdmi.outputNotify)
+        if (windows[i]->display->hdmi.outputNotify)  /* HDMI Output is attached to this display */
         {
-
             NEXUS_VideoOutput_P_SetHdrSettings(windows[i]->display->hdmi.outputNotify,
-                link->hdrInputInfo.eotf,
-                &link->hdrInputInfo.mdcv,
-                &link->hdrInputInfo.cll);
+                &drmInfoFrame) ;
         }
     }
 #else
@@ -671,20 +704,41 @@ NEXUS_VideoInput_P_UpdateHdrInputInfo_isr(NEXUS_VideoInput_P_Link *link)
 {
     NEXUS_TransferCharacteristics transferChars;
     NEXUS_TransferCharacteristics preferredTransferChars;
+    NEXUS_HdmiDynamicRangeMasteringInfoFrame drmInfoFrame ;
+
+    BKNI_Memset(&drmInfoFrame, 0 , sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
 
     transferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.eTransferCharacteristics);
     preferredTransferChars = NEXUS_P_TransferCharacteristics_FromMagnum_isrsafe(link->info.mfd.ePreferredTransferCharacteristics);
-    link->hdrInputInfo.eotf = NEXUS_P_TransferCharacteristicsToEotf_isrsafe(transferChars, preferredTransferChars);
-    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(&link->hdrInputInfo.mdcv,
+
+    drmInfoFrame.eotf =
+        NEXUS_P_TransferCharacteristicsToEotf_isrsafe(transferChars, preferredTransferChars);
+
+    if (drmInfoFrame.eotf == NEXUS_VideoEotf_eHdr10)
+    {
+        /* set Metadata type; only one type is currently supported */
+        drmInfoFrame.metadata.type = NEXUS_HdmiDynamicRangeMasteringStaticMetadataType_e1 ;
+    }
+
+    NEXUS_P_MasteringDisplayColorVolume_FromMagnum_isrsafe(
+        &drmInfoFrame.metadata.typeSettings.type1.masteringDisplayColorVolume,
         link->info.mfd.stDisplayPrimaries,
         &link->info.mfd.stWhitePoint,
         link->info.mfd.ulMaxDispMasteringLuma,
         link->info.mfd.ulMinDispMasteringLuma);
-    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(&link->hdrInputInfo.cll,
+
+    NEXUS_P_ContentLightLevel_FromMagnum_isrsafe(
+        &drmInfoFrame.metadata.typeSettings.type1.contentLightLevel,
         link->info.mfd.ulMaxContentLight,
         link->info.mfd.ulAvgContentLight);
 
-    BKNI_SetEvent_isr(link->hdrInputInfo.inputInfoUpdatedEvent);
+    if (BKNI_Memcmp(&drmInfoFrame, &link->drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)))
+    {
+        BDBG_MSG(("Update DRM Packet to use EOTF: %d", drmInfoFrame.eotf)) ;
+        BKNI_Memcpy(&link->drmInfoFrame, &drmInfoFrame, sizeof(NEXUS_HdmiDynamicRangeMasteringInfoFrame)) ;
+        BKNI_SetEvent_isr(link->hdrInputInfo.inputInfoUpdatedEvent);
+    }
+
 }
 
 void
@@ -767,9 +821,6 @@ NEXUS_VideoInput_P_ConnectVideoDecoder(NEXUS_VideoInput_P_Link *link)
     NEXUS_Module_Unlock(pVideo->modules.videoDecoder);
     link->secureVideo = decoderConnect.secureVideo;
 
-    rc = BVDC_Source_SetPsfMode(link->sourceVdc, decoderConnect.psfMode);
-    if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_setpsf;}
-
     rc = BVDC_Source_GetInterruptName(link->sourceVdc, BAVC_Polarity_eTopField, &decoderConnect.top.intId);
     if (rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_intr_name;}
     rc = BVDC_Source_GetInterruptName(link->sourceVdc, BAVC_Polarity_eBotField, &decoderConnect.bottom.intId);
@@ -792,7 +843,6 @@ NEXUS_VideoInput_P_ConnectVideoDecoder(NEXUS_VideoInput_P_Link *link)
 
 err_connect:
 err_intr_name:
-err_setpsf:
     return rc;
 }
 

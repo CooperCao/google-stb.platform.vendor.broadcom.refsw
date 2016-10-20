@@ -252,6 +252,8 @@ int proxy_ioctl_fd = -1;
 void NEXUS_Platform_GetDefaultSettings_tagged_proxy(NEXUS_PlatformSettings *pSettings, size_t size);
 void NEXUS_GetDefaultMemoryConfigurationSettings_tagged_proxy( NEXUS_MemoryConfigurationSettings *pSettings, size_t size );
 void NEXUS_GetPlatformCapabilities_tagged_proxy( NEXUS_PlatformCapabilities *pCap, size_t size );
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged_proxy( const NEXUS_PlatformSettings *pSettings,
+    const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size );
 NEXUS_Error NEXUS_Platform_Init_tagged_proxy(const NEXUS_PlatformSettings *pSettings, const NEXUS_MemoryConfigurationSettings *pMemConfig, unsigned platformCheck, unsigned versionCheck, unsigned structSizeCheck);
 void NEXUS_Platform_Uninit_proxy(void);
 NEXUS_Error NEXUS_Platform_InitStandby_proxy(const NEXUS_PlatformStandbySettings *pSettings);
@@ -1077,6 +1079,16 @@ void NEXUS_GetPlatformCapabilities_tagged( NEXUS_PlatformCapabilities *pCap, siz
     NEXUS_GetPlatformCapabilities_tagged_proxy(pCap, size);
 }
 
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged(const NEXUS_PlatformSettings *pSettings,
+    const NEXUS_MemoryConfigurationSettings *pMemConfig, NEXUS_PlatformConfigCapabilities *pCap, unsigned size )
+{
+    if (!NEXUS_Platform_P_State.init) {
+        int rc = NEXUS_P_Init();
+        if (rc) return rc;
+    }
+    return NEXUS_GetPlatformConfigCapabilities_tagged_proxy(pSettings, pMemConfig, pCap, size);
+}
+
 static
 NEXUS_Error NEXUS_Platform_P_InitProxy(int fd)
 {
@@ -1477,6 +1489,35 @@ err_magnum:
     return NEXUS_NOT_SUPPORTED;
 }
 
+void *NEXUS_P_ProxyCall_OffsetToAddr(NEXUS_Addr addr)
+{
+    if(addr!=0) {
+        return NEXUS_OffsetToCachedAddr(addr);
+    }
+    return NULL;
+}
+
+NEXUS_Addr NEXUS_P_ProxyCall_AddrToOffset(const void *ptr)
+{
+    if(ptr!=NULL) {
+        NEXUS_Addr addr = NEXUS_AddrToOffset(ptr);
+        if(addr==0) {
+            (void)BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        return addr;
+    }
+    return 0;
+}
+
+NEXUS_Error NEXUS_P_ProxyCall_InVarArg_AddrField(NEXUS_Addr *dst, const void *src, unsigned struct_size, unsigned field_offset, unsigned count)
+{
+    unsigned i;
+    for(i=0;i<count;i++) {
+        const void *varArgData = src;
+        dst[i] = NEXUS_P_ProxyCall_AddrToOffset( *(void **)((uint8_t *)varArgData + i*struct_size + field_offset));
+    }
+    return NEXUS_SUCCESS;
+}
 
 #if NEXUS_CPU_ARM
 BERR_Code  NEXUS_Platform_P_CacheFlush( void* addr, size_t nbytes )

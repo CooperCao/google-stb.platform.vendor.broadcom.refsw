@@ -17,6 +17,8 @@ Stuff for 1.1 and 2.0 shader caches
 #include "../glsl/glsl_gadgettype.h"
 #include "../glsl/glsl_ir_program.h"
 #include "../glsl/glsl_binary_program.h"
+#include "libs/core/v3d/v3d_gen.h"
+#include "libs/core/v3d/v3d_vpm.h"
 
 /* Specifies uniform stream.  We have one type-value pair for every uniform. */
 typedef struct
@@ -35,7 +37,6 @@ typedef struct
 } GLXX_SHADER_DATA_T;
 
 #define GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA  (1<<0)
-#define GLXX_SHADER_FLAGS_ENABLE_CLIPPING                (1<<1)
 #define GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID             (1<<2)   // 2 bits (bin/render)
 #define GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID           (1<<4)   // 2 bits (bin/render)
 #define GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE         (1<<6)   // 2 bits (bin/render)
@@ -45,6 +46,8 @@ typedef struct
 #define GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW           (1<<12)
 #define GLXX_SHADER_FLAGS_PER_SAMPLE                     (1<<13)
 #define GLXX_SHADER_FLAGS_TCS_BARRIERS                   (1<<14)
+#define GLXX_SHADER_FLAGS_PRIM_ID_USED                   (1<<15)
+#define GLXX_SHADER_FLAGS_PRIM_ID_TO_FS                  (1<<16)
 
 struct attr_rec {
    int idx;
@@ -70,15 +73,17 @@ typedef struct glxx_link_result_data
    uint32_t num_varys;
    uint8_t vary_map[GLXX_CONFIG_MAX_VARYING_SCALARS];
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    bool bin_uses_control_flow;
    bool render_uses_control_flow;
+#endif
 
    uint32_t num_bin_qpu_instructions;
 
    uint32_t        attr_count;
    struct attr_rec attr[GLXX_CONFIG_MAX_VERTEX_ATTRIBS];
 
-   uint16_t flags;
+   uint32_t flags;
    uint8_t vs_input_words[MODE_COUNT];
    uint8_t vs_output_words[MODE_COUNT];
 #if GLXX_HAS_TNG
@@ -88,23 +93,62 @@ typedef struct glxx_link_result_data
    uint8_t tes_output_words[MODE_COUNT];
    uint16_t gs_output_words[MODE_COUNT];
 
-   uint8_t geom_prim_type    : 2; // v3d_cl_geom_prim_type_t
    uint8_t geom_invocations;
+   uint8_t geom_prim_type    : 2; // v3d_cl_geom_prim_type_t
 
    uint8_t tess_type         : 2; // v3d_cl_tess_type_t
    uint8_t tess_point_mode   : 1; // bool
    uint8_t tess_edge_spacing : 2; // v3d_cl_tess_edge_spacing_t
    uint8_t tess_clockwise    : 1; // bool
+
+   union
+   {
+      struct
+      {
+         uint8_t has_tess : 1;
+         uint8_t has_geom : 1;
+      };
+      uint8_t has_tng;
+   };
 #endif
 
 #define GLXX_NUM_SHADING_FLAG_WORDS ((GLXX_CONFIG_MAX_VARYING_SCALARS+23)/24)
    uint32_t varying_centroid[GLXX_NUM_SHADING_FLAG_WORDS];
    uint32_t varying_flat[GLXX_NUM_SHADING_FLAG_WORDS];
 
+   struct
+   {
+      struct
+      {
+         union
+         {
+#if GLXX_HAS_TNG
+            struct { uint8_t num_patch_vertices; } tg;
+#endif
+            struct { bool z_pre_pass; } v;
+         };
+         bool valid;
+      } key;
+
+      v3d_vpm_cfg_v vpm_cfg_v;
+#if GLXX_HAS_TNG
+      uint32_t shadrec_tg_packed[V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE/4];
+#endif
+   } cached_vpm_cfg;
+
 } GLXX_LINK_RESULT_DATA_T;
 
 /*
-----------------dz------ffpp-ccc   backend
+33222222222211111111110000000000
+10987654321098765432109876543210
+--------aaaadzwffwffwffwffpp-ccc   backend
+
+a = advanced blend type
+p = prim point
+f = framebuffer type
+w = fb alpha workaround
+z = z only write
+d = fez safe with discard
 */
 
 /* backend */
@@ -131,6 +175,24 @@ typedef struct glxx_link_result_data
 #define GLXX_Z_ONLY_WRITE          (1<<18)
 #define GLXX_FEZ_SAFE_WITH_DISCARD (1<<19)
 
+/* Advanced blend */
+#define GLXX_ADV_BLEND_S              20
+#define GLXX_ADV_BLEND_M              (0xf << GLXX_ADV_BLEND_S)
+#define GLXX_ADV_BLEND_MULTIPLY       1
+#define GLXX_ADV_BLEND_SCREEN         2
+#define GLXX_ADV_BLEND_OVERLAY        3
+#define GLXX_ADV_BLEND_DARKEN         4
+#define GLXX_ADV_BLEND_LIGHTEN        5
+#define GLXX_ADV_BLEND_COLORDODGE     6
+#define GLXX_ADV_BLEND_COLORBURN      7
+#define GLXX_ADV_BLEND_HARDLIGHT      8
+#define GLXX_ADV_BLEND_SOFTLIGHT      9
+#define GLXX_ADV_BLEND_DIFFERENCE     10
+#define GLXX_ADV_BLEND_EXCLUSION      11
+#define GLXX_ADV_BLEND_HSL_HUE        12
+#define GLXX_ADV_BLEND_HSL_SATURATION 13
+#define GLXX_ADV_BLEND_HSL_COLOR      14
+#define GLXX_ADV_BLEND_HSL_LUMINOSITY 15
 
 typedef struct glxx_link_result_key
 {

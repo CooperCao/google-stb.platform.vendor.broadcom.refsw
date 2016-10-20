@@ -36,6 +36,7 @@ static const struct intrinsic_info_s intrinsic_info[INTRINSIC_COUNT] = {
    { INTRINSIC_FDX,            "fdx"            },
    { INTRINSIC_FDY,            "fdy"            },
    { INTRINSIC_CLZ,            "clz"            },
+   { INTRINSIC_ROR,            "ror"            },
    { INTRINSIC_REINTERPF,      "reinterpf"      },
    { INTRINSIC_REINTERPI,      "reinterpi"      },
    { INTRINSIC_REINTERPU,      "reinterpu"      },
@@ -254,6 +255,13 @@ static void validate_intrinsic(glsl_intrinsic_index_t intrinsic, ExprChain *args
       /* genUtype <- intrinsic(genUType); */
       assert(args->count == 1);
       assert(glsl_prim_is_prim_with_base_type(args->first->expr->type, PRIM_UINT));
+      break;
+
+   case INTRINSIC_ROR:
+      /* genUtype <- intrinsic(genUType, uint); */
+      assert(args->count == 2);
+      assert(glsl_prim_is_prim_with_base_type(args->first->expr->type, PRIM_UINT));
+      assert(args->first->next->expr->type == &primitiveTypes[PRIM_UINT]);
       break;
 
    case INTRINSIC_ATOMIC_LOAD:

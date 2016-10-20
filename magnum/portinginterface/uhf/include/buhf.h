@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -100,58 +100,17 @@ The callback can be supplied with a call to: BUHF_RegisterCallback
 #ifndef _BUHF_H_
 #define _BUHF_H_
 
-
-/*=************************ Module Overview ********************************
-
-Overview
---------
-
-
-***************************************************************************/
-
 #include "bstd.h"
 #include "bchp.h"
 #include "breg_mem.h"
 #include "bint.h"
 #include "bkni.h"
 #include "berr_ids.h"
-#if BCHP_CHIP==7400
-#include "bchp_7400.h"
-#include "bchp_uhfr_2.h"
-#elif BCHP_CHIP==7401
-#include "bchp_7401.h"
-#elif BCHP_CHIP==7403
-#include "bchp_7403.h"
-#elif BCHP_CHIP==7405
-#include "bchp_7405.h"
-#elif BCHP_CHIP==7325
-#include "bchp_7325.h"
-#elif BCHP_CHIP==7340
-#include "bchp_7340.h"
-#elif BCHP_CHIP==7342
-#include "bchp_7342.h"
-#elif BCHP_CHIP==7335
-#include "bchp_7335.h"
-#elif BCHP_CHIP==7420
-#include "bchp_7420.h"
-#elif BCHP_CHIP==7413
-#include "bchp_7413.h"
-#elif BCHP_CHIP==7408
-#include "bchp_7408.h"
-#elif ((BCHP_CHIP == 7422) || (BCHP_CHIP == 7425) || (BCHP_CHIP == 7344) || (BCHP_CHIP == 7346) || (BCHP_CHIP == 7435) || (BCHP_CHIP == 73465))
-#define BUHF_7422_FAMILY 1
-#else
-#error "Not supported"
-#endif
 
-#if (BUHF_7422_FAMILY==1)
 #include "bchp_uhfr.h"
 #include "bchp_uhfr_intr2.h"
 #include "bchp_int_id_uhfr_intr2.h"
-#else
-#include "bchp_uhfr_1.h"
-#include "bchp_uhfr_glbl.h"
-#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -160,11 +119,7 @@ extern "C" {
 /*{{{ Defines */
 
 
-#if ((BCHP_CHIP == 7400) || (BCHP_CHIP == 7420))
-#define BUHF_MAX_DEVICES  2 /* Number of UHF devices on this chip. */
-#else
 #define BUHF_MAX_DEVICES  1 /* Number of UHF devices on this chip. */
-#endif
 
 #define BUHF_MAX_LOG_SIZE         10    /* Number of entries to be maintained for moving average */
 #define BUHF_NUM_FILTER_COEFF     41    /* The number of filter coefficients */

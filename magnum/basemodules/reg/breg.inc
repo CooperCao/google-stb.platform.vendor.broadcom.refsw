@@ -54,6 +54,13 @@ ifeq ($(BREG_CAPTURE),y)
 BREG_DEFINES += BREG_CAPTURE
 endif
 
+# default native 64-bit support OFF
+BREG_64_NATIVE_SUPPORT?=n
+
+ifeq ($(BREG_64_NATIVE_SUPPORT), y)
+CFLAGS += -DBREG_64_NATIVE_SUPPORT
+endif
+
 ifeq ($(SYSTEM),linuxemu)
 BREG_SOURCES += $(MAGNUM)/basemodules/reg/breg_client.c
 else

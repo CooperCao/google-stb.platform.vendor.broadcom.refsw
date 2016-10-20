@@ -199,29 +199,34 @@ void NEXUS_Platform_GetReleaseVersion( /* attr{local=true} */
 
 /***************************************************************************
 Summary:
-Each module's estimated maximum memory use
+Each module's estimated run-time allocations from multi-use heaps including:
+* NEXUS_MEMC0_MAIN_HEAP (heap[0], GLR)
+* NEXUS_VIDEO_SECURE_HEAP (CRR)
+* NEXUS_MEMCx_DRIVER_HEAP (driver-mapped heaps on MEMC0/1/2, GLR)
 
-All units are bytes allocated from the given MEMC, unless noted differently.
+These do not include picture buffer allocations.
+
+All units are bytes allocated from the given MEMC.
 ***************************************************************************/
 typedef struct NEXUS_PlatformEstimatedMemory
 {
     struct {
         struct {
-            unsigned general;
-            unsigned secure;
+            unsigned general;  /* HVD firmware, debug, from MAIN */
+            unsigned secure;   /* HVD CABAC, usually from CRR */
         } videoDecoder;
         struct {
-            unsigned general;
-            unsigned secure;
-            unsigned firmware;
-            unsigned index;
-            unsigned data;
+            unsigned general;  /* debug, userdata, descriptors, from MAIN */
+            unsigned secure;   /* VCE CABAC, from MAIN */
+            unsigned firmware; /* VCE firmware, from MAIN */
+            unsigned index;    /* VCE ITB output, from MAIN */
+            unsigned data;     /* VCE CDB output, from MAIN */
         } videoEncoder;
         struct {
-            unsigned general;
+            unsigned general;  /* PCM fifos, from MAIN */
         } audio;
         struct {
-            unsigned general;
+            unsigned general;  /* RDC RULs, from DRIVER heaps */
         } display;
     } memc[NEXUS_MAX_MEMC];
 } NEXUS_PlatformEstimatedMemory;

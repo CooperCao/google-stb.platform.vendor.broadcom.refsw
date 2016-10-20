@@ -16,21 +16,10 @@ Builds a control list for RSO to t-format conversion using tile buffer
 #include "interface/khronos/common/khrn_int_image.h"
 #include "middleware/khronos/common/2708/khrn_fmem_4.h"
 #include "middleware/khronos/ext/egl_khr_image.h"
+#include "middleware/khronos/glxx/glxx_server.h"
 
-extern bool khrn_rso_to_tf_convert(MEM_HANDLE_T heglImage, MEM_HANDLE_T srcImg, MEM_HANDLE_T dstImg);
-extern bool khrn_tfconvert_lock(BEGL_HWCallbackRecord *cbRecord);
+extern bool khrn_rso_to_tf_convert(GLXX_SERVER_STATE_T *state, MEM_HANDLE_T hsrc, MEM_HANDLE_T hdst);
 extern void khrn_tfconvert_done(BEGL_HWCallbackRecord *cbRecord);
-
-extern void khrn_tfconvert_logevents(BEGL_HWNotification *notification, BEGL_HWCallbackRecord *cbRec);
-
-typedef struct
-{
-   KHRN_FMEM_T *fmem;
-   MEM_HANDLE_T heglimage;
-   bool        conversionKilled;
-   bool        semaphoreTaken;
-   uint8_t     *controlList;
-   uint32_t    numCLBytes;
-} CONVERT_CALLBACK_DATA_T;
+extern void khrn_tfconvert_logevents(BEGL_HWNotification *notification);
 
 #endif /* __TFCONVERT_4_H__ */

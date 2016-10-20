@@ -35,7 +35,7 @@ extern void vg_path_bprint_from_stem(
    int32_t segments_capacity,
    int32_t coords_capacity);
 
-extern void vg_path_bprint_term(void *, uint32_t);
+extern void vg_path_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_path_bprint(MEM_HANDLE_T handle)
 {
@@ -67,7 +67,7 @@ typedef struct {
 
 extern bool vg_path_from_bprint(MEM_HANDLE_T handle);
 
-extern void vg_path_term(void *, uint32_t);
+extern void vg_path_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_path(MEM_HANDLE_T handle)
 {

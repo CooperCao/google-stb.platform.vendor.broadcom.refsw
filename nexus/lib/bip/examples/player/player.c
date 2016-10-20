@@ -186,6 +186,7 @@ int main(int argc, char *argv[])
     {
         /* Once probing is done open stc channel, video and audio decoders.*/
         /* Open StcChannel */
+        if (!pAppCtx->disableTsm)
         {
             NEXUS_StcChannelSettings stcChannelSettings;
 
@@ -412,8 +413,11 @@ int main(int argc, char *argv[])
                     BIP_CHECK_GOTO(( hSimpleAudioDecoder ), ( "NEXUS_SimpleAudioDecoder_Acquire Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
                 }
 
-                hSimpleStcChannel = NEXUS_SimpleStcChannel_Create(NULL);
-                BIP_CHECK_GOTO(( hSimpleStcChannel ), ( "NEXUS_SimpleStcChannel_Create Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+                if (!pAppCtx->disableTsm)
+                {
+                    hSimpleStcChannel = NEXUS_SimpleStcChannel_Create(NULL);
+                    BIP_CHECK_GOTO(( hSimpleStcChannel ), ( "NEXUS_SimpleStcChannel_Create Failed" ), error, BIP_INF_NEXUS_RESOURCE_NOT_AVAILABLE, bipStatus );
+                }
 
                 /* We have successfully acquired all needed resources. */
             }
@@ -422,6 +426,11 @@ int main(int argc, char *argv[])
             playerSettings.audioTrackSettings.pidTypeSettings.audio.simpleDecoder = hSimpleAudioDecoder;
             playerSettings.videoTrackSettings.pidTypeSettings.video.simpleDecoder = hSimpleVideoDecoder;
             playerSettings.playbackSettings.simpleStcChannel = hSimpleStcChannel;
+            if (pAppCtx->enableAudioPrimer)
+            {
+                playerSettings.audioConnectId = pAppCtx->connectId;
+                prepareSettings.enableAudioPrimer = true;
+            }
 
 #else /* NXCLIENT_SUPPORT */
             /* Now set the player setting */
@@ -488,7 +497,7 @@ int main(int argc, char *argv[])
             {
                 BDBG_LOG(("WARNING: Not able to enable/disable precisionLipsync in nxclient mode (check nxserver code)"));
             }
-            if (pAppCtx->stcSyncMode != -1 && pAppCtx->enableLowLatencyMode)
+            if (!pAppCtx->disableTsm && pAppCtx->stcSyncMode != -1 && pAppCtx->enableLowLatencyMode)
             {
                 NEXUS_SimpleStcChannelSettings stcSettings;
                 NEXUS_SimpleStcChannel_GetSettings(hSimpleStcChannel, &stcSettings);
@@ -526,6 +535,11 @@ int main(int argc, char *argv[])
                 NEXUS_SimpleAudioDecoder_GetDefaultStartSettings(&audioProgram);
                 audioProgram.primary.codec = audioCodec;
                 audioProgram.primary.pidChannel = audioPidChannel;
+                if (pAppCtx->enableAudioPrimer)
+                {
+                    audioProgram.primer.compressed = true;
+                    audioProgram.primer.pcm = true;
+                }
                 if (pAppCtx->enableLowLatencyMode)
                 {
                     audioProgram.primary.latencyMode = pAppCtx->audioDecoderLatencyMode;

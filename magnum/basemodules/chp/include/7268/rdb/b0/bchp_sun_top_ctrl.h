@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:04 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:26 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,140 +70,140 @@
 /***************************************************************************
  *SUN_TOP_CTRL - Top Control registers
  ***************************************************************************/
-#define BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID         0x20404000 /* [RO] Chip family ID */
-#define BCHP_SUN_TOP_CTRL_PRODUCT_ID             0x20404004 /* [RO] Product Revision ID */
-#define BCHP_SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR 0x20404008 /* [RO] BSP feature table address */
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0          0x2040401c /* [RO] Strapping values */
-#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1          0x20404020 /* [RO] Strapping values */
-#define BCHP_SUN_TOP_CTRL_BOND_STATUS            0x20404024 /* [RO] Bond option value register */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_0      0x20404028 /* [RW] OTP option test register */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_1      0x2040402c /* [RW] OTP option test register */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0    0x20404030 /* [RO] OTP option status register */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1    0x20404034 /* [RO] OTP option status register */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_0            0x20404038 /* [RW] Semaphore channel 0 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_1            0x2040403c /* [RW] Semaphore channel 1 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_2            0x20404040 /* [RW] Semaphore channel 2 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_3            0x20404044 /* [RW] Semaphore channel 3 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_4            0x20404048 /* [RW] Semaphore channel 4 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_5            0x2040404c /* [RW] Semaphore channel 5 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_6            0x20404050 /* [RW] Semaphore channel 6 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_7            0x20404054 /* [RW] Semaphore channel 7 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_8            0x20404058 /* [RW] Semaphore channel 8 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_9            0x2040405c /* [RW] Semaphore channel 9 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_10           0x20404060 /* [RW] Semaphore channel 10 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_11           0x20404064 /* [RW] Semaphore channel 11 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_12           0x20404068 /* [RW] Semaphore channel 12 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_13           0x2040406c /* [RW] Semaphore channel 13 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_14           0x20404070 /* [RW] Semaphore channel 14 */
-#define BCHP_SUN_TOP_CTRL_SEMAPHORE_15           0x20404074 /* [RW] Semaphore channel 15 */
-#define BCHP_SUN_TOP_CTRL_GEN_WATCHDOG_0         0x20404078 /* [RW] General watchdog timer 0 */
-#define BCHP_SUN_TOP_CTRL_GEN_WATCHDOG_1         0x2040407c /* [RW] General watchdog timer 1 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_0         0x20404080 /* [RW] General control register 0 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_1         0x20404084 /* [RW] General control register 1 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_2         0x20404088 /* [RW] General control register 2 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_3         0x2040408c /* [RW] General control register 3 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_4         0x20404090 /* [RW] General control register 4 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_5         0x20404094 /* [RW] General control register 5 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_0       0x20404098 /* [RO] General status register 0 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_1       0x2040409c /* [RO] General status register 1 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_2       0x204040a0 /* [RO] General status register 2 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_0 0x204040a4 /* [RW] General control register without scan 0 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1 0x204040a8 /* [RW] General control register without scan 1 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_2 0x204040ac /* [RW] General control register without scan 2 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_3 0x204040b0 /* [RW] General control register without scan 3 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_4 0x204040b4 /* [RW] General control register without scan 4 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_5 0x204040b8 /* [RW] General control register without scan 5 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_3       0x204040bc /* [RO] General status register 3 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_4       0x204040c0 /* [RO] General status register 4 */
-#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_5       0x204040c4 /* [RO] General status register 5 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_0         0x20404100 /* [RW] Pinmux control register 0 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1         0x20404104 /* [RW] Pinmux control register 1 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2         0x20404108 /* [RW] Pinmux control register 2 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3         0x2040410c /* [RW] Pinmux control register 3 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4         0x20404110 /* [RW] Pinmux control register 4 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5         0x20404114 /* [RW] Pinmux control register 5 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6         0x20404118 /* [RW] Pinmux control register 6 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7         0x2040411c /* [RW] Pinmux control register 7 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8         0x20404120 /* [RW] Pinmux control register 8 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9         0x20404124 /* [RW] Pinmux control register 9 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10        0x20404128 /* [RW] Pinmux control register 10 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11        0x2040412c /* [RW] Pinmux control register 11 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12        0x20404130 /* [RW] Pinmux control register 12 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13        0x20404134 /* [RW] Pinmux control register 13 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14        0x20404138 /* [RW] Pinmux control register 14 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_0     0x2040413c /* [RW] Pad pull-up/pull-down control register 0 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_1     0x20404140 /* [RW] Pad pull-up/pull-down control register 1 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_2     0x20404144 /* [RW] Pad pull-up/pull-down control register 2 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_3     0x20404148 /* [RW] Pad pull-up/pull-down control register 3 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_4     0x2040414c /* [RW] Pad pull-up/pull-down control register 4 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_5     0x20404150 /* [RW] Pad pull-up/pull-down control register 5 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_6     0x20404154 /* [RW] Pad pull-up/pull-down control register 6 */
-#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_7     0x20404158 /* [RW] Pad pull-up/pull-down control register 7 */
-#define BCHP_SUN_TOP_CTRL_BYP_CLK_UNSELECT_0     0x2040415c /* [RW] Bypass clock unselect register 0 */
-#define BCHP_SUN_TOP_CTRL_RESET_CTRL             0x20404300 /* [RW] Reset control */
-#define BCHP_SUN_TOP_CTRL_RESET_SOURCE_ENABLE    0x20404304 /* [RW] Reset source enable */
-#define BCHP_SUN_TOP_CTRL_SW_MASTER_RESET        0x20404308 /* [RW] Software master reset */
-#define BCHP_SUN_TOP_CTRL_HW_RESET_EXTENSION     0x2040430c /* [RW] Hardware reset extension */
-#define BCHP_SUN_TOP_CTRL_RESET_MONITOR          0x20404310 /* [RO] Reset Monitor */
-#define BCHP_SUN_TOP_CTRL_RESET_HISTORY          0x20404314 /* [RO] Reset history */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_0_SET          0x20404318 /* [WO] Software init 0 set */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR        0x2040431c /* [WO] Software init 0 clear */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_0_STATUS       0x20404320 /* [RO] Software init 0 status */
-#define BCHP_SUN_TOP_CTRL_SEC_SW_INIT_0_MONITOR  0x20404324 /* [RO] Security software init 0 monitor */
-#define BCHP_SUN_TOP_CTRL_TEST_CONFIG_SW_INIT_0_MONITOR 0x20404328 /* [RO] Test configuration software init 0 monitor */
-#define BCHP_SUN_TOP_CTRL_FINAL_SW_INIT_0_MONITOR 0x2040432c /* [RO] Final software init 0 monitor */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_1_SET          0x20404330 /* [WO] Software init 1 set */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR        0x20404334 /* [WO] Software init 1 clear */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_1_STATUS       0x20404338 /* [RO] Software init 1 status */
-#define BCHP_SUN_TOP_CTRL_SEC_SW_INIT_1_MONITOR  0x2040433c /* [RO] Security software init 1 monitor */
-#define BCHP_SUN_TOP_CTRL_TEST_CONFIG_SW_INIT_1_MONITOR 0x20404340 /* [RO] Test configuration software init 1 monitor */
-#define BCHP_SUN_TOP_CTRL_FINAL_SW_INIT_1_MONITOR 0x20404344 /* [RO] Final software init 1 monitor */
-#define BCHP_SUN_TOP_CTRL_SW_INIT_ONE_SHOT_TRIGGER 0x20404348 /* [RW] Software init one-shot trigger */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_WIDTH 0x2040434c /* [RW] One-shot 0 width */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_0_MASK 0x20404350 /* [RW] One-shot 0 mask for software init 0 */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_1_MASK 0x20404354 /* [RW] One-shot 0 mask for software init 1 */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_WIDTH 0x20404358 /* [RW] One-shot 1 width */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_0_MASK 0x2040435c /* [RW] One-shot 1 mask for software init 0 */
-#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_1_MASK 0x20404360 /* [RW] One-shot 1 mask for software init 1 */
-#define BCHP_SUN_TOP_CTRL_UNCLEARED_SCRATCH      0x20404364 /* [RW] Scratch register */
-#define BCHP_SUN_TOP_CTRL_SPARE_CTRL             0x20404368 /* [RW] Spare control bits reserved for future use */
-#define BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL         0x20404380 /* [RW] Test port control */
-#define BCHP_SUN_TOP_CTRL_TEST_PORT_OUT_PEEK     0x20404384 /* [RO] Testport peek register */
-#define BCHP_SUN_TOP_CTRL_TEST_PORT_OUT_POKE     0x20404388 /* [RW] Testport poke register */
-#define BCHP_SUN_TOP_CTRL_TEST_PORT_IN_PEEK      0x2040438c /* [RO] Testport peek register */
-#define BCHP_SUN_TOP_CTRL_TEST_PORT_IN_POKE      0x20404390 /* [RW] Testport poke register */
-#define BCHP_SUN_TOP_CTRL_EJTAG_INPUT_EN         0x20404394 /* [RW] EJTAG input bus enables */
-#define BCHP_SUN_TOP_CTRL_EJTAG_OUTPUT_SEL       0x20404398 /* [RW] EJTAG output select */
-#define BCHP_SUN_TOP_CTRL_VTRAP_CTRL             0x204043a0 /* [RW] VTRAP Control */
-#define BCHP_SUN_TOP_CTRL_VTRAP_STATUS           0x204043a4 /* [RO] VTRAP Status */
-#define BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0      0x204043a8 /* [RW] UART Router select 0 */
-#define BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1      0x204043ac /* [RW] UART Router select 1 */
-#define BCHP_SUN_TOP_CTRL_SSP_CONFIG             0x20404400 /* [RW] Serial Slave Port configuration register */
-#define BCHP_SUN_TOP_CTRL_SERS_REV               0x20404420 /* [RO] SERS Revision Register */
-#define BCHP_SUN_TOP_CTRL_SERS_CFG               0x20404424 /* [RW] SERS Configuration Register */
-#define BCHP_SUN_TOP_CTRL_RO_TEST_BLOCK_SEL      0x20404514 /* [RW] Block select for RO testmode */
-#define BCHP_SUN_TOP_CTRL_TEST_CONFIGURATION     0x20404518 /* [RW] Test configuration */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_2      0x2040451c /* [RW] OTP option test register */
-#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_2    0x20404520 /* [RO] OTP option status register */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_AIO    0x20404600 /* [RW] SRAM POWER GATE AIO */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_BVNE   0x20404604 /* [RW] SRAM POWER GATE BVNE */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_BVNM   0x20404608 /* [RW] SRAM POWER GATE BVNM */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_DVPHR  0x20404610 /* [RW] SRAM POWER GATE DVPHR */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_GENET0 0x20404614 /* [RW] SRAM POWER GATE GENET0 */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_GENET1 0x20404618 /* [RW] SRAM POWER GATE GENET1 */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVD    0x2040461c /* [RW] SRAM POWER GATE HVD */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_M2MC0  0x20404628 /* [RW] SRAM POWER GATE M2MC0 */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_RAAGA0 0x2040463c /* [RW] SRAM POWER GATE RAAGA0 */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_SID    0x20404648 /* [RW] SRAM POWER GATE SID */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D    0x20404658 /* [RW] SRAM POWER GATE V3D */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_VEC    0x2040465c /* [RW] SRAM POWER GATE VEC */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_VIP    0x20404664 /* [RW] SRAM POWER GATE VIP */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP   0x2040466c /* [RW] SRAM POWER GATE HVDP */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_AVDP   0x20404670 /* [RW] SRAM POWER GATE AVDP */
-#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS   0x20404674 /* [RW] SRAM POWER GATE HVDS */
-#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_HIF     0x20404700 /* [RW] MEMORY STANDBY HIF */
-#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_BSP     0x2040470c /* [RW] MEMORY STANDBY BSP */
-#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_AON     0x20404710 /* [RW] MEMORY STANDBY AON */
+#define BCHP_SUN_TOP_CTRL_CHIP_FAMILY_ID         0x20404000 /* [RO][32] Chip family ID */
+#define BCHP_SUN_TOP_CTRL_PRODUCT_ID             0x20404004 /* [RO][32] Product Revision ID */
+#define BCHP_SUN_TOP_CTRL_BSP_FEATURE_TABLE_ADDR 0x20404008 /* [RO][32] BSP feature table address */
+#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_0          0x2040401c /* [RO][32] Strapping values */
+#define BCHP_SUN_TOP_CTRL_STRAP_VALUE_1          0x20404020 /* [RO][32] Strapping values */
+#define BCHP_SUN_TOP_CTRL_BOND_STATUS            0x20404024 /* [RO][32] Bond option value register */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_0      0x20404028 /* [RW][32] OTP option test register */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_1      0x2040402c /* [RW][32] OTP option test register */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_0    0x20404030 /* [RO][32] OTP option status register */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_1    0x20404034 /* [RO][32] OTP option status register */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_0            0x20404038 /* [RW][32] Semaphore channel 0 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_1            0x2040403c /* [RW][32] Semaphore channel 1 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_2            0x20404040 /* [RW][32] Semaphore channel 2 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_3            0x20404044 /* [RW][32] Semaphore channel 3 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_4            0x20404048 /* [RW][32] Semaphore channel 4 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_5            0x2040404c /* [RW][32] Semaphore channel 5 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_6            0x20404050 /* [RW][32] Semaphore channel 6 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_7            0x20404054 /* [RW][32] Semaphore channel 7 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_8            0x20404058 /* [RW][32] Semaphore channel 8 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_9            0x2040405c /* [RW][32] Semaphore channel 9 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_10           0x20404060 /* [RW][32] Semaphore channel 10 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_11           0x20404064 /* [RW][32] Semaphore channel 11 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_12           0x20404068 /* [RW][32] Semaphore channel 12 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_13           0x2040406c /* [RW][32] Semaphore channel 13 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_14           0x20404070 /* [RW][32] Semaphore channel 14 */
+#define BCHP_SUN_TOP_CTRL_SEMAPHORE_15           0x20404074 /* [RW][32] Semaphore channel 15 */
+#define BCHP_SUN_TOP_CTRL_GEN_WATCHDOG_0         0x20404078 /* [RW][32] General watchdog timer 0 */
+#define BCHP_SUN_TOP_CTRL_GEN_WATCHDOG_1         0x2040407c /* [RW][32] General watchdog timer 1 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_0         0x20404080 /* [RW][32] General control register 0 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_1         0x20404084 /* [RW][32] General control register 1 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_2         0x20404088 /* [RW][32] General control register 2 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_3         0x2040408c /* [RW][32] General control register 3 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_4         0x20404090 /* [RW][32] General control register 4 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_5         0x20404094 /* [RW][32] General control register 5 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_0       0x20404098 /* [RO][32] General status register 0 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_1       0x2040409c /* [RO][32] General status register 1 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_2       0x204040a0 /* [RO][32] General status register 2 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_0 0x204040a4 /* [RW][32] General control register without scan 0 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1 0x204040a8 /* [RW][32] General control register without scan 1 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_2 0x204040ac /* [RW][32] General control register without scan 2 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_3 0x204040b0 /* [RW][32] General control register without scan 3 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_4 0x204040b4 /* [RW][32] General control register without scan 4 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_5 0x204040b8 /* [RW][32] General control register without scan 5 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_3       0x204040bc /* [RO][32] General status register 3 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_4       0x204040c0 /* [RO][32] General status register 4 */
+#define BCHP_SUN_TOP_CTRL_GENERAL_STATUS_5       0x204040c4 /* [RO][32] General status register 5 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_0         0x20404100 /* [RW][32] Pinmux control register 0 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_1         0x20404104 /* [RW][32] Pinmux control register 1 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_2         0x20404108 /* [RW][32] Pinmux control register 2 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_3         0x2040410c /* [RW][32] Pinmux control register 3 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_4         0x20404110 /* [RW][32] Pinmux control register 4 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_5         0x20404114 /* [RW][32] Pinmux control register 5 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_6         0x20404118 /* [RW][32] Pinmux control register 6 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_7         0x2040411c /* [RW][32] Pinmux control register 7 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8         0x20404120 /* [RW][32] Pinmux control register 8 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_9         0x20404124 /* [RW][32] Pinmux control register 9 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_10        0x20404128 /* [RW][32] Pinmux control register 10 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_11        0x2040412c /* [RW][32] Pinmux control register 11 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_12        0x20404130 /* [RW][32] Pinmux control register 12 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13        0x20404134 /* [RW][32] Pinmux control register 13 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_14        0x20404138 /* [RW][32] Pinmux control register 14 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_0     0x2040413c /* [RW][32] Pad pull-up/pull-down control register 0 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_1     0x20404140 /* [RW][32] Pad pull-up/pull-down control register 1 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_2     0x20404144 /* [RW][32] Pad pull-up/pull-down control register 2 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_3     0x20404148 /* [RW][32] Pad pull-up/pull-down control register 3 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_4     0x2040414c /* [RW][32] Pad pull-up/pull-down control register 4 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_5     0x20404150 /* [RW][32] Pad pull-up/pull-down control register 5 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_6     0x20404154 /* [RW][32] Pad pull-up/pull-down control register 6 */
+#define BCHP_SUN_TOP_CTRL_PIN_MUX_PAD_CTRL_7     0x20404158 /* [RW][32] Pad pull-up/pull-down control register 7 */
+#define BCHP_SUN_TOP_CTRL_BYP_CLK_UNSELECT_0     0x2040415c /* [RW][32] Bypass clock unselect register 0 */
+#define BCHP_SUN_TOP_CTRL_RESET_CTRL             0x20404300 /* [RW][32] Reset control */
+#define BCHP_SUN_TOP_CTRL_RESET_SOURCE_ENABLE    0x20404304 /* [RW][32] Reset source enable */
+#define BCHP_SUN_TOP_CTRL_SW_MASTER_RESET        0x20404308 /* [RW][32] Software master reset */
+#define BCHP_SUN_TOP_CTRL_HW_RESET_EXTENSION     0x2040430c /* [RW][32] Hardware reset extension */
+#define BCHP_SUN_TOP_CTRL_RESET_MONITOR          0x20404310 /* [RO][32] Reset Monitor */
+#define BCHP_SUN_TOP_CTRL_RESET_HISTORY          0x20404314 /* [RO][32] Reset history */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_0_SET          0x20404318 /* [WO][32] Software init 0 set */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR        0x2040431c /* [WO][32] Software init 0 clear */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_0_STATUS       0x20404320 /* [RO][32] Software init 0 status */
+#define BCHP_SUN_TOP_CTRL_SEC_SW_INIT_0_MONITOR  0x20404324 /* [RO][32] Security software init 0 monitor */
+#define BCHP_SUN_TOP_CTRL_TEST_CONFIG_SW_INIT_0_MONITOR 0x20404328 /* [RO][32] Test configuration software init 0 monitor */
+#define BCHP_SUN_TOP_CTRL_FINAL_SW_INIT_0_MONITOR 0x2040432c /* [RO][32] Final software init 0 monitor */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_1_SET          0x20404330 /* [WO][32] Software init 1 set */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR        0x20404334 /* [WO][32] Software init 1 clear */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_1_STATUS       0x20404338 /* [RO][32] Software init 1 status */
+#define BCHP_SUN_TOP_CTRL_SEC_SW_INIT_1_MONITOR  0x2040433c /* [RO][32] Security software init 1 monitor */
+#define BCHP_SUN_TOP_CTRL_TEST_CONFIG_SW_INIT_1_MONITOR 0x20404340 /* [RO][32] Test configuration software init 1 monitor */
+#define BCHP_SUN_TOP_CTRL_FINAL_SW_INIT_1_MONITOR 0x20404344 /* [RO][32] Final software init 1 monitor */
+#define BCHP_SUN_TOP_CTRL_SW_INIT_ONE_SHOT_TRIGGER 0x20404348 /* [RW][32] Software init one-shot trigger */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_WIDTH 0x2040434c /* [RW][32] One-shot 0 width */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_0_MASK 0x20404350 /* [RW][32] One-shot 0 mask for software init 0 */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_0_SW_INIT_1_MASK 0x20404354 /* [RW][32] One-shot 0 mask for software init 1 */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_WIDTH 0x20404358 /* [RW][32] One-shot 1 width */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_0_MASK 0x2040435c /* [RW][32] One-shot 1 mask for software init 0 */
+#define BCHP_SUN_TOP_CTRL_ONE_SHOT_1_SW_INIT_1_MASK 0x20404360 /* [RW][32] One-shot 1 mask for software init 1 */
+#define BCHP_SUN_TOP_CTRL_UNCLEARED_SCRATCH      0x20404364 /* [RW][32] Scratch register */
+#define BCHP_SUN_TOP_CTRL_SPARE_CTRL             0x20404368 /* [RW][32] Spare control bits reserved for future use */
+#define BCHP_SUN_TOP_CTRL_TEST_PORT_CTRL         0x20404380 /* [RW][32] Test port control */
+#define BCHP_SUN_TOP_CTRL_TEST_PORT_OUT_PEEK     0x20404384 /* [RO][32] Testport peek register */
+#define BCHP_SUN_TOP_CTRL_TEST_PORT_OUT_POKE     0x20404388 /* [RW][32] Testport poke register */
+#define BCHP_SUN_TOP_CTRL_TEST_PORT_IN_PEEK      0x2040438c /* [RO][32] Testport peek register */
+#define BCHP_SUN_TOP_CTRL_TEST_PORT_IN_POKE      0x20404390 /* [RW][32] Testport poke register */
+#define BCHP_SUN_TOP_CTRL_EJTAG_INPUT_EN         0x20404394 /* [RW][32] EJTAG input bus enables */
+#define BCHP_SUN_TOP_CTRL_EJTAG_OUTPUT_SEL       0x20404398 /* [RW][32] EJTAG output select */
+#define BCHP_SUN_TOP_CTRL_VTRAP_CTRL             0x204043a0 /* [RW][32] VTRAP Control */
+#define BCHP_SUN_TOP_CTRL_VTRAP_STATUS           0x204043a4 /* [RO][32] VTRAP Status */
+#define BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_0      0x204043a8 /* [RW][32] UART Router select 0 */
+#define BCHP_SUN_TOP_CTRL_UART_ROUTER_SEL_1      0x204043ac /* [RW][32] UART Router select 1 */
+#define BCHP_SUN_TOP_CTRL_SSP_CONFIG             0x20404400 /* [RW][32] Serial Slave Port configuration register */
+#define BCHP_SUN_TOP_CTRL_SERS_REV               0x20404420 /* [RO][32] SERS Revision Register */
+#define BCHP_SUN_TOP_CTRL_SERS_CFG               0x20404424 /* [RW][32] SERS Configuration Register */
+#define BCHP_SUN_TOP_CTRL_RO_TEST_BLOCK_SEL      0x20404514 /* [RW][32] Block select for RO testmode */
+#define BCHP_SUN_TOP_CTRL_TEST_CONFIGURATION     0x20404518 /* [RW][32] Test configuration */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_TEST_2      0x2040451c /* [RW][32] OTP option test register */
+#define BCHP_SUN_TOP_CTRL_OTP_OPTION_STATUS_2    0x20404520 /* [RO][32] OTP option status register */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_AIO    0x20404600 /* [RW][32] SRAM POWER GATE AIO */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_BVNE   0x20404604 /* [RW][32] SRAM POWER GATE BVNE */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_BVNM   0x20404608 /* [RW][32] SRAM POWER GATE BVNM */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_DVPHR  0x20404610 /* [RW][32] SRAM POWER GATE DVPHR */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_GENET0 0x20404614 /* [RW][32] SRAM POWER GATE GENET0 */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_GENET1 0x20404618 /* [RW][32] SRAM POWER GATE GENET1 */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVD    0x2040461c /* [RW][32] SRAM POWER GATE HVD */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_M2MC0  0x20404628 /* [RW][32] SRAM POWER GATE M2MC0 */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_RAAGA0 0x2040463c /* [RW][32] SRAM POWER GATE RAAGA0 */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_SID    0x20404648 /* [RW][32] SRAM POWER GATE SID */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_V3D    0x20404658 /* [RW][32] SRAM POWER GATE V3D */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_VEC    0x2040465c /* [RW][32] SRAM POWER GATE VEC */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_VIP    0x20404664 /* [RW][32] SRAM POWER GATE VIP */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDP   0x2040466c /* [RW][32] SRAM POWER GATE HVDP */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_AVDP   0x20404670 /* [RW][32] SRAM POWER GATE AVDP */
+#define BCHP_SUN_TOP_CTRL_SRAM_POWER_GATE_HVDS   0x20404674 /* [RW][32] SRAM POWER GATE HVDS */
+#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_HIF     0x20404700 /* [RW][32] MEMORY STANDBY HIF */
+#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_BSP     0x2040470c /* [RW][32] MEMORY STANDBY BSP */
+#define BCHP_SUN_TOP_CTRL_MEMORY_STANDBY_AON     0x20404710 /* [RW][32] MEMORY STANDBY AON */
 
 /***************************************************************************
  *CHIP_FAMILY_ID - Chip family ID

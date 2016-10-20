@@ -68,32 +68,6 @@ typedef void (*NXPL_SurfaceOffDisplay)(void *context, NEXUS_SurfaceHandle surfac
 
 typedef struct
 {
-   NEXUS_DISPLAYHANDLE        display;
-   NXPL_DisplayType           displayType;
-   struct
-   {
-      NXPL_SurfaceOffDisplay  callback;
-      void                   *context;
-   } bufferOffDisplay;
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-   int                       *bound;
-   struct {
-      NEXUS_SurfaceHandle    current;
-      NEXUS_SurfaceHandle    next;
-      BKNI_MutexHandle       mutex;
-   } surface;
-#else
-   unsigned int               numSurfaces;
-   unsigned int               pushedSurfaces;
-   uint32_t                   clientID;
-   NEXUS_SurfaceClientHandle  surfaceClient;
-#endif
-   void                      *vsyncEvent;
-   bool                       terminating;
-}  NXPL_Display;
-
-typedef struct
-{
    /* Thread data and mutex */
    pthread_t                  displayThread;
    pthread_barrier_t          barrier;
@@ -106,8 +80,6 @@ typedef struct
    NXPL_NativeWindowInfoEXT   windowInfo;
    BEGL_BufferFormat          format;
    unsigned int               numSurfaces;
-
-   NXPL_Display               display;
 
    /* opaque, do not access in the thread */
    void                      *nw;

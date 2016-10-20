@@ -128,17 +128,9 @@ NEXUS_Error NEXUS_Platform_P_GetHostMemory(NEXUS_PlatformMemory *pMemory)
         pMemory->osRegion[2].length = 0x40000000; /* 1024MB */
     #elif (BCHP_CHIP==7435)
         pMemory->osRegion[1].base = DRAM_0_768MB_PHYS_ADDR_START; // 0x20000000;
-        #ifdef BMIPS3300
-            pMemory->osRegion[1].length = 0x10000000; /* 256MB */
-        #else
-            pMemory->osRegion[1].length = 0x20000000; /* 512MB */
-        #endif
+        pMemory->osRegion[1].length = 0x20000000; /* 512MB */
         pMemory->osRegion[2].base = DRAM_1_1024MB_PHYS_ADDR_START; // 0x90000000;
-        #ifdef BMIPS3300
-            pMemory->osRegion[2].length = 0x10000000; /* 256MB */
-        #else
-            pMemory->osRegion[2].length = 0x20000000; /* 512MB */
-        #endif
+        pMemory->osRegion[2].length = 0x20000000; /* 512MB */
     #elif (BCHP_CHIP==7445)
         pMemory->osRegion[1].base = DRAM_0_768MB_PHYS_ADDR_START; // 0x20000000;
         pMemory->osRegion[1].length = 0x20000000; /* 512MB - limitation of MIPS3300 */

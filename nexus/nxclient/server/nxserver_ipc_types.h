@@ -68,6 +68,7 @@ enum nxclient_p_general_param_type
     nxclient_p_general_param_type_acknowledge_standby,
     nxclient_p_general_param_type_load_hdcp_keys,
     nxclient_p_general_param_type_set_slave_display_graphics,
+    nxclient_p_general_param_type_get_status,
     nxclient_p_general_param_type_max
 };
 typedef union nxclient_p_general_param {
@@ -159,6 +160,9 @@ typedef union nxclient_p_general_output {
     struct {
         unsigned id;
     } register_acknowledge_standby;
+    struct {
+        NxClient_Status status;
+    } get_status;
 } nxclient_p_general_output;
 
 #endif /* NXSERVER_IPC_TYPES_H__ */

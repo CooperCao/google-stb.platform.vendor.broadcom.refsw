@@ -401,7 +401,7 @@ static int ReadClockTreeFile(
     {
         freeCount++;
         FPRINTF( stderr, "(%p) free'ed ... %s; count %lu\n", (void *) contents, __FUNCTION__, freeCount );
-        free( contents );
+        Bsysperf_Free( contents );
     }
 
     return( 0 );
@@ -834,7 +834,11 @@ static int FreeNode(
 
     freeCount++;
     FPRINTF( stderr, "(%p) free'ed ... %s; count %lu\n", (void *) node, __FUNCTION__, freeCount );
-    free( node );
+    {
+        char *temp = (char*) node;
+        Bsysperf_Free( temp );
+        node = NULL;
+    }
     return( 0 );
 } /* FreeNode */
 

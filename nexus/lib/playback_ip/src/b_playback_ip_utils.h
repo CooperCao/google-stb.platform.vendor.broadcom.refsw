@@ -160,3 +160,6 @@ void B_PlaybackIp_UtilsTrkPcrJitter(B_PlaybackIpHandle playback_ip, TS_packet *p
 void B_PlaybackIp_UtilsTrkLatencyLog(B_PlaybackIpHandle playback_ip);
 void B_PlaybackIp_UtilsTrkLatencyInit(B_PlaybackIpHandle playback_ip);
 #endif
+
+bool B_PlaybackIp_UtilsDiscardBufferedData( B_PlaybackIpHandle playback_ip, int socketFd, int socketType);
+B_PlaybackIpError B_PlaybackIp_UtilsGetTcpWriteQueueSize(int socketFd, int *pWriteQueueDepth);

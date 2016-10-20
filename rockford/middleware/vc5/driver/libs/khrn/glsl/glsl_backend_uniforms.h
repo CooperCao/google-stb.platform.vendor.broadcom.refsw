@@ -11,6 +11,8 @@ FILE DESCRIPTION
 #ifndef GLSL_BACKEND_UNIFORMS_H_INCLUDED
 #define GLSL_BACKEND_UNIFORMS_H_INCLUDED
 
+#include "libs/core/v3d/v3d_ver.h"
+
 /* Different types of uniform */
 typedef enum {
    BACKEND_UNIFORM_UNASSIGNED = 0,

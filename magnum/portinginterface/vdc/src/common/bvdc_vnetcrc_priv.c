@@ -49,13 +49,11 @@
 #include "bvdc_hddvi_priv.h"
 #include "bvdc_feeder_priv.h"
 #include "bvdc_source_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_dnr_priv.h"
 #include "bvdc_vnetcrc_priv.h"
 #include "bvdc_vnet_priv.h"
 
-#if (0 != BVDC_P_SUPPORT_VNET_CRC)
 BDBG_MODULE(BVDC_VNETCRC);
 BDBG_OBJECT_ID(BVDC_VNETCRC);
 
@@ -341,21 +339,13 @@ bool BVDC_P_VnetCrc_DecideVnetMode_isr
             ulSrcMuxValue = BVDC_P_Dnr_PostMuxValue(hWindow->stCurResource.hDnr);
         }
 #endif
-
         break;
+
     case BVDC_VnetModule_eMad:
-#if (BVDC_P_SUPPORT_MAD)
-        if(BVDC_P_VNET_USED_MAD(*pVnetMode))
-        {
-            ulSrcMuxValue = BVDC_P_Mad_PostMuxValue(hWindow->stCurResource.hMad32);
-        }
-#endif
-#if (BVDC_P_SUPPORT_MCVP)
-        if(BVDC_P_VNET_USED_MCVP(*pVnetMode))
+        if(BVDC_P_VNET_USED_MVP(*pVnetMode))
         {
             ulSrcMuxValue = BVDC_P_Mcvp_PostMuxValue(hWindow->stCurResource.hMcvp);
         }
-#endif
         break;
 
     case BVDC_VnetModule_eScl:
@@ -410,85 +400,4 @@ void BVDC_P_VnetCrc_UnsetVnet_isr
         hVnetCrc->ulCrcLuma = 0;
     }
 }
-
-#else /* #if (0 != BVDC_P_SUPPORT_BOX_DETECT) */
-/***************************************************************************/
-/* No support for any hist block */
-
-#include "bvdc_errors.h"
-
-BDBG_MODULE(BVDC_VNETCRC);
-BDBG_OBJECT_ID(BVDC_VNETCRC);
-
-BERR_Code BVDC_P_VnetCrc_Create
-    ( BVDC_P_VnetCrc_Handle *           phVnetCrc,
-      BVDC_P_VnetCrcId                  eVnetCrcId,
-      BREG_Handle                       hRegister,
-      BVDC_P_Resource_Handle            hResource )
-{
-    BDBG_ASSERT(phVnetCrc);
-    *phVnetCrc = NULL;
-    BSTD_UNUSED(eVnetCrcId);
-    BSTD_UNUSED(hRegister);
-    BSTD_UNUSED(hResource);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_VnetCrc_Destroy
-    ( BVDC_P_VnetCrc_Handle             hVnetCrc )
-{
-    BSTD_UNUSED(hVnetCrc);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_VnetCrc_AcquireConnect_isr
-    ( BVDC_P_VnetCrc_Handle             hVnetCrc,
-      BVDC_Window_Handle                hWindow)
-{
-    BSTD_UNUSED(hVnetCrc);
-    BSTD_UNUSED(hWindow);
-    return BERR_SUCCESS;
-}
-
-BERR_Code BVDC_P_VnetCrc_ReleaseConnect_isr
-    ( BVDC_P_VnetCrc_Handle            *phVnetCrc )
-{
-    BSTD_UNUSED(phVnetCrc);
-    return BERR_SUCCESS;
-}
-
-void BVDC_P_VnetCrc_BuildRul_isr
-    ( BVDC_P_VnetCrc_Handle            *phVnetCrc,
-      BVDC_P_ListInfo                  *pList,
-      BVDC_P_State                      eVnetState,
-      BVDC_P_PicComRulInfo             *pPicComRulInfo,
-      bool                              bEnable)
-{
-    BSTD_UNUSED(phVnetCrc);
-    BSTD_UNUSED(pList);
-    BSTD_UNUSED(eVnetState);
-    BSTD_UNUSED(pPicComRulInfo);
-    BSTD_UNUSED(bEnable);
-    return;
-}
-
-bool BVDC_P_VnetCrc_DecideVnetMode_isr
-    ( BVDC_Window_Handle                   hWindow,
-      BVDC_P_VnetCrc_Handle                hVnetCrc,
-      BVDC_P_VnetMode                     *pVnetMode)
-{
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(hVnetCrc);
-    BSTD_UNUSED(pVnetMode);
-    return false;
-}
-
-void BVDC_P_VnetCrc_UnsetVnet_isr
-    ( BVDC_P_VnetCrc_Handle                hVnetCrc )
-{
-    BSTD_UNUSED(hVnetCrc);
-}
-
-#endif  /* #if (0 != BVDC_P_SUPPORT_BOX_DETECT) */
-
 /* End of file. */

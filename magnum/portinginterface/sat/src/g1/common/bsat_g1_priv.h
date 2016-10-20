@@ -198,6 +198,7 @@ typedef struct BSAT_g1_P_Handle
    uint32_t              cwcFreq[6];
 #endif
    uint32_t              xtalFreq;              /* crystal freq in Hz */
+   uint32_t              chipFamily;            /* FAMILY_ID */
    BSAT_NetworkSpec      networkSpec;           /* network spec */
    bool                  bResetDone;            /* true if BSAT PI was just completed reset */
    uint8_t               sdsRevId;              /* SDS core revision ID */
@@ -256,9 +257,9 @@ typedef struct BSAT_g1_P_ChannelHandle
    BSAT_g1_FUNCT        gen2TimerIsr;          /* function for handling general timer 2 interrupt */
    BSAT_g1_FUNCT        gen3TimerIsr;          /* function for handling general timer 3 interrupt */
    BSAT_g1_FUNCT        nextFunct;             /* general function pointer used in acquisition state machine */
+   BSAT_g1_FUNCT        next2Funct;
    BSAT_g1_FUNCT        passFunct;             /* general function pointer used in acquisition state machine */
    uint32_t             configParam[BSAT_g1_CONFIG_MAX]; /* configuration parameters */
-   uint32_t             irqCount[BSAT_g1_MaxIntID];  /* interrupt counter */
    uint32_t             trace[BSAT_TraceEvent_eMax]; /* trace buffer */
    uint32_t             dftBinPower[32];       /* used for symbol rate scan */
    uint32_t             fecFreq;               /* FEC (Turbo/LDPC) clock frequency in Hz */
@@ -310,6 +311,7 @@ typedef struct BSAT_g1_P_ChannelHandle
    int32_t              tunerIfStepMax;        /* used in freq scan */
    int32_t              freqTransferInt;       /* used in pli-to-fli leak */
    int32_t              initFreqOffset;        /* used in carrier freq drift threshold */
+   int32_t              sum;
    BSAT_AcqSettings     acqSettings;           /* acquisition settings from most recent call to BSAT_Acquire() */
    BSAT_BertSettings    bertSettings;          /* BERT settings */
    BSAT_OutputTransportSettings xportSettings; /* transport settings */
@@ -627,6 +629,7 @@ bool BSAT_g1_P_AfecIsMpegLocked_isr(BSAT_ChannelHandle h);
 #if defined(BSAT_HAS_DVBS2X) && defined(BSAT_HAS_ACM)
 BERR_Code BSAT_g1_P_GetStreamRegStat_isrsafe(BSAT_ChannelHandle h, int idx, uint32_t *pStat);
 BERR_Code BSAT_g1_P_AfecSetEqsftctl_isrsafe(BSAT_ChannelHandle h);
+void BSAT_g1_P_AfecUpdateStreamIdsForMpegCounters_isrsafe(BSAT_ChannelHandle h);
 #endif
 #ifndef BSAT_HAS_DVBS2X
 bool BSAT_g1_P_AfecIsOtherChannelBusy_isrsafe(BSAT_ChannelHandle h);
@@ -651,9 +654,6 @@ void BSAT_g1_P_OrRegister_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t o
 void BSAT_g1_P_AndRegister_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t and_mask);
 void BSAT_g1_P_ToggleBit_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t mask);
 void BSAT_g1_P_GetRegisterWriteWaitTime_isrsafe(BSAT_ChannelHandle h, uint32_t reg, uint32_t *wait_time);
-void BSAT_g1_P_IncrementInterruptCounter_isr(BSAT_ChannelHandle h, BSAT_g1_IntID idx);
-void BSAT_g1_ResetInterruptCounters(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_GetInterruptCount(BSAT_ChannelHandle h, BSAT_g1_IntID idx, uint32_t *pCount);
 BERR_Code BSAT_g1_P_ClearTraceBuffer(BSAT_ChannelHandle h);
 BERR_Code BSAT_g1_P_LogTraceBuffer_isr(BSAT_ChannelHandle h, BSAT_TraceEvent event);
 BERR_Code BSAT_g1_P_GetTraceInfo(BSAT_ChannelHandle h, BSAT_TraceInfo *pBuffer);

@@ -50,6 +50,7 @@
 
 #include "brdc.h"
 #include "brdc_dbg.h"
+#include "brdc_rul.h"
 #include "brdc_private.h"
 #include "brdc_blockout_priv.h"
 
@@ -79,7 +80,8 @@ BDBG_OBJECT_ID(BRDC_LST);
 /* HW7445-1476, use SW blockout before the fixes in */
 #if (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7366) || (BCHP_CHIP==74371) || \
     ((BCHP_CHIP==7439) && (BCHP_VER == BCHP_VER_A0))|| \
-    (BCHP_CHIP==7364)|| (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
+    ((BCHP_CHIP==7464) && (BCHP_VER < BCHP_VER_C0))|| \
+    (BCHP_CHIP==7250)|| (BCHP_CHIP==7563)|| (BCHP_CHIP==7543)
 #define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (1)
 #else
 #define BRDC_P_SUPPORT_HW_BLOCKOUT_WORKAROUND              (0)
@@ -2087,6 +2089,103 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass0, -1, UNKNOWN        ),
     BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Bypass1, -1, UNKNOWN        ),
 
+#elif (BCHP_CHIP==7278)
+
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig0,    0, cap_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap0Trig1,    1, cap_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig0,    2, cap_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap1Trig1,    3, cap_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig0,    4, cap_2_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap2Trig1,    5, cap_2_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig0,    6, cap_3_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCap3Trig1,    7, cap_3_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap4Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap5Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap6Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCap7Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec0Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec1Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig2,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVec2Trig3,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtgTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDtg1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec0Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eVdec1Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6560Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(e6561Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc0Trig,   72, m2mc_trig_0    ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eM2mc1Trig,   73, m2mc_trig_1    ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eHdDvi0Trig0, 44, hd_dvi_0_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eHdDvi0Trig1, 45, hd_dvi_0_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig0, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eHdDvi1Trig1, -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eStg0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eLboxTrig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig2,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDvoTrig3,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd0Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd1Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd2Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd3Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Eof,     -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg0,    52, mfd_0_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd0Mtg1,    53, mfd_0_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg0,    54, mfd_1_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd1Mtg1,    55, mfd_1_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd2Mtg0,    56, mfd_2_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd2Mtg1,    57, mfd_2_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd3Mtg0,    58, mfd_3_trig_0   ),
+    BRDC_P_MAKE_TRIG_WORD_1_INFO_NORM(eMfd3Mtg1,    59, mfd_3_trig_1   ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd4Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg0,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eMfd5Mtg1,    -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr0Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eAnr1Trig1,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eDgp0Trig0,   -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(ePx3d0Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig0,  24, vec_source_0_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_0Trig1,  25, vec_source_0_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig0,  26, vec_source_1_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_1Trig1,  27, vec_source_1_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_2Trig0,  28, vec_source_2_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_2Trig1,  29, vec_source_2_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_3Trig0,  30, vec_source_3_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_0_INFO_NORM(eCmp_3Trig1,  31, vec_source_3_trig_1),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_4Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_5Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig0,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_X_INFO_NULL(eCmp_6Trig1,  -1, UNKNOWN        ),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass0, 76, vec_hddvi_0_passthr_trig_0),
+    BRDC_P_MAKE_TRIG_WORD_2_INFO_NORM(eVec0Bypass1, 77, vec_hddvi_0_passthr_trig_0),
+
 #elif (BCHP_CHIP == 11360)
 /*
  * For all platforms which do not have BRDC, appropriate BCHP_CHIP must be added
@@ -2118,6 +2217,7 @@ static const BRDC_TrigInfo s_aRdcTrigInfo[] =
 extern int timeout_ns(uint32_t size);    /* in ikos_main.c */
 #endif
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2133,6 +2233,7 @@ BERR_Code BRDC_GetDefaultSettings
     BDBG_LEAVE(BRDC_GetDefaultSettings);
     return BERR_SUCCESS ;
 }
+#endif
 
 /***************************************************************************
  *
@@ -2425,7 +2526,7 @@ BERR_Code BRDC_FreeScratchReg
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    ulIndex = (ulReg - BRDC_P_SCRATCH_REG_ADDR(BRDC_P_SCRATCH_FIRST_AVAILABLE)) / sizeof(uint32_t);
+    ulIndex = (ulReg - BRDC_P_SCRATCH_REG_ADDR(BRDC_P_SCRATCH_FIRST_AVAILABLE)) / BRDC_P_SCRATCH_REG_SIZE;
     BKNI_EnterCriticalSection();
     if(hRdc->abScratchRegUsed[ulIndex])
     {
@@ -2441,37 +2542,6 @@ BERR_Code BRDC_FreeScratchReg
     BDBG_LEAVE(BRDC_FreeScratchReg);
     return err;
 }
-
-/***************************************************************************
- *
- */
-BERR_Code BRDC_EnableSameTrigger_isr
-    ( BRDC_Handle                      hRdc,
-      bool                             bEnable )
-{
-    uint32_t          ulRegVal;
-    BERR_Code         err = BERR_SUCCESS;
-
-    BDBG_ENTER(BRDC_EnableSameTrigger_isr);
-
-    BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
-
-#if (!BRDC_P_SUPPORT_SEGMENTED_RUL)
-    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_config);
-    ulRegVal &= ~BCHP_MASK(RDC_config, same_trigger);
-    ulRegVal |= BCHP_FIELD_DATA(RDC_config, same_trigger, bEnable);
-    BRDC_P_Write32(hRdc, BCHP_RDC_config, ulRegVal);
-#else
-    BSTD_UNUSED(err);
-    BSTD_UNUSED(bEnable);
-    BSTD_UNUSED(ulRegVal);
-#endif
-
-    BDBG_LEAVE(BRDC_EnableSameTrigger_isr);
-    return err;
-
-}
-
 
 /***************************************************************************
  * Build RUL for read/modify/write a register.
@@ -2593,6 +2663,7 @@ BERR_Code BRDC_SetComboTriggers_isr
 }
 
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
  *
  */
@@ -2641,25 +2712,54 @@ BERR_Code BRDC_SetRdcBlockOut
     BDBG_LEAVE(BRDC_SetRdcBlockOut);
     return err;
 }
+#endif
 
 /***************************************************************************
  *
  */
-BERR_Code BRDC_GetRdcBlockOut
+BERR_Code BRDC_SetSyncBlockSettings_isr
     ( BRDC_Handle                      hRdc,
-      BRDC_BlockOut                   *pstBlockOut,
-      uint32_t                         ulRegBlock )
+      BRDC_SyncBlockId                 eBlock,
+      const BRDC_SyncBlockSettings    *pSyncBlockSettings )
 {
     BERR_Code err = BERR_SUCCESS;
+#ifdef BCHP_RDC_hdmi_sync_sel
+    uint32_t ulReg;
+    uint32_t ulAddr;
 
-    BDBG_ENTER(BRDC_GetRdcBlockOut);
+    BDBG_ENTER(BRDC_SetSyncBlockSettings_isr);
 
-    BDBG_ASSERT(pstBlockOut);
     BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
+    if(eBlock >= BRDC_SyncBlockId_eMax || !pSyncBlockSettings) {
+        BDBG_ERR(("Invalid sync block ID: %d", eBlock));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+    }
 
-    BKNI_Memcpy((void *)pstBlockOut, (void *)&hRdc->astBlockOut[ulRegBlock], sizeof(BRDC_BlockOut));
+    BDBG_OBJECT_ASSERT(pSyncBlockSettings->hSlot, BRDC_SLT);
+    switch(eBlock) {
+    default:
+    case BRDC_SyncBlockId_eHdmi0:
+        ulAddr = BCHP_RDC_hdmi_sync_sel;
+        ulReg = BCHP_FIELD_DATA(RDC_hdmi_sync_sel, sync_sel, pSyncBlockSettings->hSlot->ulSyncId);
+        break;
+    case BRDC_SyncBlockId_eItm0:
+        ulAddr = BCHP_RDC_itm0_sync_sel;
+        ulReg = BCHP_FIELD_DATA(RDC_itm0_sync_sel, sync_sel0, pSyncBlockSettings->hSlot->ulSyncId);
+        break;
+    case BRDC_SyncBlockId_eItm1:
+        ulAddr = BCHP_RDC_itm1_sync_sel;
+        ulReg = BCHP_FIELD_DATA(RDC_itm1_sync_sel, sync_sel0, pSyncBlockSettings->hSlot->ulSyncId);
+        break;
+    }
+    BRDC_P_Write32(hRdc, ulAddr, ulReg);
+    BDBG_MSG(("BRDC_SyncBlockId %u selects synchronizer %d", eBlock, pSyncBlockSettings->hSlot->ulSyncId));
 
-    BDBG_LEAVE(BRDC_GetRdcBlockOut);
+    BDBG_LEAVE(BRDC_SetSyncBlockSettings_isr);
+#else
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(eBlock);
+    BSTD_UNUSED(pSyncBlockSettings);
+#endif
     return err;
 }
 
@@ -2783,36 +2883,6 @@ BERR_Code BRDC_EnableStcFlag_isr
     return BERR_SUCCESS;
 }
 
-/***************************************************************************
- *
- */
-BERR_Code BRDC_Trigger_Execute_isr
-    ( BRDC_Handle                      hRdc,
-      BRDC_Trigger                     eRDCTrigger )
-{
-    uint32_t          ulRegVal;
-    BERR_Code         err = BERR_SUCCESS;
-
-    BDBG_ENTER(BRDC_Trigger_Execute_isr);
-
-    BDBG_OBJECT_ASSERT(hRdc, BRDC_RDC);
-
-    if(eRDCTrigger == BRDC_Trigger_UNKNOWN)
-    {
-        BDBG_ERR(( "Invalid parameter" ));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_force_trigger);
-    ulRegVal &= ~BCHP_MASK(RDC_force_trigger, trigger_index);
-    ulRegVal |= BCHP_FIELD_DATA(RDC_force_trigger, trigger_index, hRdc->aTrigInfo[eRDCTrigger].ulTrigVal);
-    BRDC_P_Write32(hRdc, BCHP_RDC_force_trigger, ulRegVal);
-
-    BDBG_LEAVE(BRDC_Trigger_Execute_isr);
-    return err;
-
-}
-
 
 /***************************************************************************
  *
@@ -2893,7 +2963,7 @@ BERR_Code BRDC_List_Create
     hList->ulNumSlotAssigned = 0;
     hList->bLastExecuted     = false;
 
-    hList->ulAddrOffset = (uint32_t)BMMA_LockOffset(hList->hRULBlock);
+    hList->ulAddrOffset      = BMMA_LockOffset(hList->hRULBlock);
 
     hList->eNextEntry        = BRDC_DBG_ListEntry_eCommand;
     hList->pulCurListAddr    = NULL;
@@ -3032,29 +3102,6 @@ BERR_Code BRDC_List_GetNumEntries_isr
 /***************************************************************************
  *
  */
-BERR_Code BRDC_List_GetMaxEntries_isr
-    ( BRDC_List_Handle                 hList,
-      uint32_t                        *pulMaxEntries )
-{
-    BERR_Code err = BERR_SUCCESS;
-
-    BDBG_ENTER(BRDC_List_GetMaxEntries_isr);
-
-    BDBG_OBJECT_ASSERT(hList, BRDC_LST);
-
-    if( pulMaxEntries )
-    {
-        *pulMaxEntries = hList->ulMaxEntries;
-    }
-
-    BDBG_LEAVE(BRDC_List_GetMaxEntries_isr);
-    return err;
-}
-
-
-/***************************************************************************
- *
- */
 bool BRDC_List_GetLastExecStatus_isr
     ( BRDC_List_Handle                 hList )
 {
@@ -3087,7 +3134,7 @@ BERR_Code BRDC_Slots_Create
     err = BRDC_P_AcquireSync(hRdc, &ulSyncId);
     if(err != BERR_SUCCESS) {
         BDBG_ERR(("Failed to acquire synchronizer!"));
-        goto err_acquireSync;
+        goto done;
     }
 
 #ifdef BCHP_RDC_sync_0_arm
@@ -3104,6 +3151,7 @@ BERR_Code BRDC_Slots_Create
         if( !hSlot )
         {
             BDBG_ERR(( "Out of System Memory" ));
+            BRDC_P_ReleaseSync(hRdc, ulSyncId);
             return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         }
 
@@ -3118,6 +3166,7 @@ BERR_Code BRDC_Slots_Create
         if( err != BERR_SUCCESS )
         {
             BKNI_Free(hSlot);
+            BRDC_P_ReleaseSync(hRdc, ulSyncId);
             goto done;
         }
 
@@ -3125,6 +3174,7 @@ BERR_Code BRDC_Slots_Create
         {
             BKNI_Free(hSlot);
             err = BERR_TRACE(BRDC_SLOT_ERR_ALL_USED);
+            BRDC_P_ReleaseSync(hRdc, ulSyncId);
             goto done;
         }
 
@@ -3169,12 +3219,7 @@ BERR_Code BRDC_Slots_Create
         *(phSlot + i) = hSlot;
     }
 
-    /* arm the synchronizer by default */
-    BRDC_P_ArmSync_isr(hRdc, ulSyncId, true);
-
 done:
-    BRDC_P_ReleaseSync(hRdc, ulSyncId);
-err_acquireSync:
     BDBG_LEAVE(BRDC_Slots_Create);
     return err ;
 }
@@ -3300,7 +3345,7 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
     BKNI_Memcpy_isr((void *)&hSlot->stSlotSetting, (void *)pSettings, sizeof(BRDC_Slot_Settings));
 
     /* Acquire semaphore */
-    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId));
+    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->eSlotId));
     if (err != BERR_SUCCESS)
     {
         /* Cannot acquire semaphore */
@@ -3323,11 +3368,29 @@ BERR_Code BRDC_Slot_SetConfiguration_isr
     BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_config + hSlot->ulRegOffset, ulRegVal);
 
     /* Release semaphore */
-    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId);
+    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->eSlotId);
 
 done:
 
     BDBG_LEAVE(BRDC_Slot_SetConfiguration_isr);
+    return err;
+}
+
+/***************************************************************************
+ *
+ */
+BERR_Code BRDC_Slot_DisarmSync_isr
+    ( BRDC_Slot_Handle                 hSlot )
+{
+    BERR_Code  err = BERR_SUCCESS;
+    BDBG_ENTER(BRDC_Slot_DisarmSync_isr);
+#ifdef BCHP_RDC_sync_0_arm
+    /* disarm synchronizer linked by this slot */
+    BRDC_P_ArmSync_isr(hSlot->hRdc, hSlot->ulSyncId, false);
+#else
+    BSTD_UNUSED(hSlot);
+#endif
+    BDBG_LEAVE(BRDC_Slot_DisarmSync_isr);
     return err;
 }
 
@@ -3351,7 +3414,7 @@ BERR_Code BRDC_Slot_GetList_isr
  *      BRDC_P_ReleaseSemaphore_isr
  * This function set a list to ulNum of slots started with *phSlots
  */
-BERR_Code BRDC_P_Slots_SetList_isr
+BERR_Code BRDC_P_Slots_SetList_NoArmSync_isr
     ( BRDC_Slot_Handle                *phSlots,
       BRDC_List_Handle                 hList,
       uint32_t                         ulNum)
@@ -3360,7 +3423,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
     uint32_t i;
     BERR_Code  err = BERR_SUCCESS;
 
-    BDBG_ENTER(BRDC_P_Slots_SetList_isr);
+    BDBG_ENTER(BRDC_P_Slots_SetList_NoArmSync_isr);
 
     BDBG_ASSERT(phSlots);
     BDBG_OBJECT_ASSERT(hList, BRDC_LST);
@@ -3414,7 +3477,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
 
         /********************** slot i start *****************/
         /* Acquire dual semaphores */
-        err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(phSlots[i]->hRdc, phSlots[i]->hList, phSlots[i]->eSlotId));
+        err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(phSlots[i]->hRdc, phSlots[i]->eSlotId));
         if (err != BERR_SUCCESS)
         {
             /* Cannot acquire semaphore */
@@ -3424,7 +3487,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
 
         /* Get semaphore. Fill in hardware registers */
         /* Set RDC_desc_x_addr */
-        BRDC_Slot_P_Write32(phSlots[i], BCHP_RDC_desc_0_addr + phSlots[i]->ulRegOffset,
+        BREG_WriteAddr_isrsafe(hList->hRdc->hReg, BCHP_RDC_desc_0_addr + phSlots[i]->ulRegOffset,
             hList->ulAddrOffset);
 
         /* Read RDC_desc_x_config */
@@ -3443,7 +3506,7 @@ BERR_Code BRDC_P_Slots_SetList_isr
 #endif
 
         /* Release semaphore */
-        BRDC_P_ReleaseSemaphore_isr(phSlots[i]->hRdc, phSlots[i]->hList, phSlots[i]->eSlotId);
+        BRDC_P_ReleaseSemaphore_isr(phSlots[i]->hRdc, phSlots[i]->eSlotId);
         /********************** slot i end *****************/
 
         /* Keep track of software copy */
@@ -3464,6 +3527,26 @@ BERR_Code BRDC_P_Slots_SetList_isr
         BLST_D_INSERT_HEAD(hList->pSlotAssigned, phSlots[i], link);
         phSlots[i]->hList = hList;
     }
+
+done:
+    BDBG_LEAVE(BRDC_P_Slots_SetList_NoArmSync_isr);
+    return err;
+}
+
+BERR_Code BRDC_P_Slots_SetList_isr
+    ( BRDC_Slot_Handle                *phSlots,
+      BRDC_List_Handle                 hList,
+      uint32_t                         ulNum)
+{
+    BERR_Code  err = BERR_SUCCESS;
+
+    BDBG_ENTER(BRDC_P_Slots_SetList_isr);
+    BDBG_ASSERT(phSlots);
+    BDBG_OBJECT_ASSERT(hList, BRDC_LST);
+
+    err = BRDC_P_Slots_SetList_NoArmSync_isr(phSlots, hList, ulNum);
+    if (err != BERR_SUCCESS)
+        goto done;
 
 #ifdef BCHP_RDC_sync_0_arm
     /* arm synchronizer */
@@ -3550,7 +3633,7 @@ BERR_Code BRDC_Slot_ExecuteOnTrigger_isr
     }
 
     /* Acquire semaphore */
-    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId));
+    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->eSlotId));
     if (err != BERR_SUCCESS)
     {
         /* Cannot acquire semaphore */
@@ -3562,7 +3645,7 @@ BERR_Code BRDC_Slot_ExecuteOnTrigger_isr
         bRecurring, true));
 
     /* Release semaphore */
-    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId);
+    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->eSlotId);
 
 done:
     BDBG_LEAVE(BRDC_Slot_ExecuteOnTrigger_isr);
@@ -3601,7 +3684,7 @@ BERR_Code BRDC_Slot_Execute_isr
     }
 
     /* Acquire semaphore */
-    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId));
+    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->eSlotId));
     if (err != BERR_SUCCESS)
     {
         /* Cannot acquire semaphore */
@@ -3614,7 +3697,7 @@ BERR_Code BRDC_Slot_Execute_isr
         BRDC_Trigger_UNKNOWN, false, false));
 
     /* Release semaphore */
-    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId);
+    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->eSlotId);
 
 done:
     BDBG_LEAVE(BRDC_Slot_Execute_isr);
@@ -3639,7 +3722,7 @@ BERR_Code BRDC_Slot_Disable_isr
     BDBG_OBJECT_ASSERT(hSlot, BRDC_SLT);
 
     /* Acquire semaphore */
-    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId));
+    err = BERR_TRACE(BRDC_P_AcquireSemaphore_isr(hSlot->hRdc, hSlot->eSlotId));
     if (err != BERR_SUCCESS)
     {
         /* Cannot acquire semaphore */
@@ -3659,7 +3742,7 @@ BERR_Code BRDC_Slot_Disable_isr
     }
 
     /* Release semaphore */
-    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->hList, hSlot->eSlotId);
+    BRDC_P_ReleaseSemaphore_isr(hSlot->hRdc, hSlot->eSlotId);
 
 done:
     BDBG_LEAVE(BRDC_Slot_Disable_isr);
@@ -3774,9 +3857,6 @@ BERR_Code BRDC_Slot_RulConfigRulSize_isr
        1) next trigger fires before the next isr disarms/update the slot count; or
        2) next trigger fires right after the slot is disarmed AND before being updated/re-armed by next isr; */
     ulRegVal = BCHP_FIELD_DATA(RDC_desc_0_count, count, ulCount-1);
-    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_count + hSlot->ulRegOffset);
-    *pulCurrent++ = ulRegVal;
-    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_count_direct + hSlot->ulRegOffset);
 #endif
     *pulCurrent++ = ulRegVal;
@@ -3830,9 +3910,17 @@ BERR_Code BRDC_Slot_RulConfigSlaveTrigger_isr
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         1            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         bRecurring   ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
+#if BCHP_RDC_desc_0_config_sync_sel_MASK
+            /* keep the sync_sel setting correct! */
+            | BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,     hSlotSlave->ulSyncId)
+#endif
+#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
+            /* Set high_priority bit */
+            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority)
+#endif
 #if BCHP_RDC_desc_0_config_count_MASK
             /* place holder for the real slave RUL size; */
-            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          0 )
+            | BCHP_FIELD_DATA(RDC_desc_0_config, count,        0 )
 #endif
             ;
 #if BCHP_RDC_desc_0_count
@@ -3874,9 +3962,7 @@ BERR_Code BRDC_Slot_RulConfigCount_isr
         (~BCHP_MASK(RDC_desc_0_config, count))) |
         BCHP_FIELD_DATA(RDC_desc_0_config, count, ulCount - 1);
 #else
-    *(hSlot->pulRulConfigPrevVal) = (*(hSlot->pulRulConfigPrevVal) &
-        (~BCHP_MASK(RDC_desc_0_count, count))) |
-        BCHP_FIELD_DATA(RDC_desc_0_count, count, ulCount - 1);
+    *(hSlot->pulRulConfigPrevVal) = ulCount - 1;
 #endif
 
     BDBG_LEAVE(BRDC_Slot_RulConfigCount_isr);
@@ -3916,15 +4002,29 @@ uint32_t BRDC_Slot_RulSetNextAddr_isr
     pulStart   = hList->pulRULAddr;
     pulCurrent = pulStart + hList->ulEntries;
 
-    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pulCurrent++ = BRDC_P_OP_IMM_TO_ADDR();
     *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_addr + hSlot->ulRegOffset);
-    hList->ulEntries = (uint32_t)(pulCurrent + 1 - pulStart);
-    *pulCurrent = hList->ulAddrOffset +
+    hList->ulEntries = (uint32_t)(pulCurrent + sizeof(BRDC_P_ADDR_OFFSET(hList->ulAddrOffset))/sizeof(uint32_t)
+#ifdef BCHP_RDC_sync_0_arm
+        + 3 /* with synchronizer, to add the sync re-arm RUL size */
+#endif
+        - pulStart);
+    /* backward compatible with 32 vs 64-bit address register */
+    *BRDC_P_ADDR_PTR(pulCurrent) = BRDC_P_ADDR_OFFSET(hList->ulAddrOffset) +
         ((hList->ulEntries + ulBitMask) & (~ulBitMask)) * sizeof(uint32_t);
-
+    pulCurrent = (uint32_t*)(BRDC_P_ADDR_PTR(pulCurrent) + 1);
+#ifdef BCHP_RDC_sync_0_arm /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
+    *pulCurrent++ = BRDC_OP_IMM_TO_REG();
+    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlot->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
+    *pulCurrent   = 1;
+#endif
     /* return the scrap size in dwords */
     ulScrap = (hList->ulEntries & ulBitMask) ?
         (ulBitMask - (hList->ulEntries & ulBitMask) + 1) : 0;
+
+#ifdef BRDC_USE_CAPTURE_BUFFER
+    BKNI_Memset_isr(++pulCurrent, 0, ulScrap * sizeof(uint32_t)); /* clear it to NOP for printrul debug */
+#endif
 
     /* update list size */
     hList->ulEntries += ulScrap;
@@ -3951,9 +4051,14 @@ BERR_Code BRDC_List_RulSetSlaveListHead_isr
     pulCurrent = pulStart + hList->ulEntries;
 
     /* (1) point desc_addr to the next RUL; CAREFUL!! */
+    BRDC_AddrRul_ImmToReg_isr(&pulCurrent,
+        BCHP_RDC_desc_0_addr + hSlotSlave->ulRegOffset,
+        BRDC_P_ADDR_OFFSET(hListSlave->ulAddrOffset));
+#ifdef BCHP_RDC_sync_0_arm /* have to re-arm the slave slot as hw would disarm the slot once triggered itself; */
     *pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_desc_0_addr + hSlotSlave->ulRegOffset);
-    *pulCurrent++ = hListSlave->ulAddrOffset;
+    *pulCurrent++ = BRDC_REGISTER(BCHP_RDC_sync_0_arm + hSlotSlave->ulSyncId * (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm));
+    *pulCurrent++ = 1;
+#endif
     hList->ulEntries = (uint32_t)(pulCurrent - pulStart);
 
     /* from this upon, the desc_config/addr have to be programmed by chained
@@ -3989,11 +4094,16 @@ BERR_Code BRDC_Slot_RulConfigSlaveListTail_isr
             BCHP_FIELD_DATA(RDC_desc_0_config, enable,         0            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, repeat,         0            ) |
             BCHP_FIELD_DATA(RDC_desc_0_config, trigger_select, ulTrigSelect )
-#if BCHP_RDC_desc_0_config_count_MASK
-            /* place holder for the real slave RUL size; */
-            | BCHP_FIELD_DATA(RDC_desc_0_config, count,          0 )
+#if BCHP_RDC_desc_0_config_sync_sel_MASK
+            /* keep the sync_sel setting correct! */
+            | BCHP_FIELD_DATA(RDC_desc_0_config, sync_sel,     hSlot->ulSyncId)
+#endif
+#if (BRDC_P_SUPPORT_HIGH_PRIORITY_SLOT)
+            /* Set high_priority bit */
+            | BCHP_FIELD_DATA(RDC_desc_0_config, high_priority, hSlot->stSlotSetting.bHighPriority)
 #endif
             ;
+    /* Don't arm synchronizer after disabling the slot */
 
     hList->ulEntries = (uint32_t)(pulCurrent - pulStart);
 

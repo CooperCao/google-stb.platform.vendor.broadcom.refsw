@@ -62,10 +62,12 @@
    #include "bwfe_4554_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   /*#define BWFE_CALIBRATE_SLICE_DELAY*/
 #elif (BCHP_CHIP==45308)
    #include "bwfe_45308_priv.h"
    #define BWFE_EXCLUDE_LIC
    #define BWFE_EXCLUDE_LIC_TAP_COMPUTER
+   /*#define BWFE_CALIBRATE_SLICE_DELAY*/
 #else
    #error "unsupported BCHP_CHIP"
 #endif
@@ -108,6 +110,7 @@ typedef struct BWFE_g3_P_ChannelHandle
 {
    BWFE_SpecAnalyzerParams saParams;      /* spectrum analyzer parameters */
    BKNI_EventHandle     hWfeReady;        /* wfe ready event */
+   BKNI_EventHandle     hDelayCalDone;    /* delay calibration done event */
    BINT_CallbackHandle  hTimer0Cb;        /* callback handle for timer0 interrupt */
    BINT_CallbackHandle  hTimer1Cb;        /* callback handle for timer1 interrupt */
    BINT_CallbackHandle  hCorrDoneCb;      /* callback handle for correlator done interrupt */
@@ -132,9 +135,13 @@ typedef struct BWFE_g3_P_ChannelHandle
 #endif
 #ifndef BWFE_EXCLUDE_ANALOG_DELAY
    uint32_t             corrAgc[BWFE_LIC_L];          /* 1D array of correlator loop filter agcs */
+   uint32_t             adjRight;                     /* S1 delay compensation */
+   uint32_t             adjLeft;                      /* S0 delay compensation */
    int32_t              corrDelay[BWFE_LIC_L];        /* 1D array of correlator delays */
    int32_t              sliceDelay[BWFE_NUM_SLICES];  /* 1D array of slice delays */
    int32_t              analogDelay[BWFE_NUM_SLICES]; /* 1D array of delay compensation values */
+   int32_t              initDelay;                    /* initial delay for fine adjustment */
+   int32_t              prevDelay;                    /* previous measured delay */
 #endif
    int32_t              calDelay[BWFE_NUM_ADC_PHASES][BWFE_NUM_SLICES];
 #ifndef BWFE_EXCLUDE_LIC_TAP_COMPUTER
@@ -161,8 +168,8 @@ typedef struct BWFE_g3_P_ChannelHandle
    uint8_t              corrDelayBeta;    /* correlator delay tracking beta in 0.05 steps */
    uint8_t              corrDpmDebug;     /* correlator dpm debug controls */
    uint8_t              corrRefSlice;     /* reference slice for correlator delay calculations */
-   uint8_t              calState;         /* current state in phase calibration */
-   uint8_t              calCurrPhase;     /* current phase in phase calibration */
+   uint8_t              calState;         /* current state in delay calibration */
+   uint8_t              calCount;         /* current loop count in delay calibration */
    bool                 bLicTrackingOn;   /* toggle LIC tracking mode */
    bool                 bCorrInProgress;  /* true if correlator is busy */
    bool                 bLicReady;        /* lic datapath is ready */
@@ -202,6 +209,7 @@ BERR_Code BWFE_g3_P_CancelDCOffset(BWFE_ChannelHandle h);
 BERR_Code BWFE_g3_P_GetWfeReadyEventHandle(BWFE_ChannelHandle h, BKNI_EventHandle *hWfeReady);
 BERR_Code BWFE_g3_P_CalibrateAnalogDelay(BWFE_ChannelHandle h);
 BERR_Code BWFE_g3_P_GetAnalogDelay(BWFE_ChannelHandle h, uint32_t *pCorrDelay);
+BERR_Code BWFE_g3_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t *pSliceAdjust);
 BERR_Code BWFE_g3_P_GetSaDoneEventHandle(BWFE_Handle h, BKNI_EventHandle *hSaDoneEvent);
 BERR_Code BWFE_g3_P_ScanSpectrum(BWFE_ChannelHandle h, BWFE_SpecAnalyzerParams *pParams);
 BERR_Code BWFE_g3_P_GetSaSamples(BWFE_Handle h, uint32_t *pSaSamples);
@@ -233,8 +241,10 @@ void BWFE_g3_Corr_P_CorrDone_isr(void *p, int param);
 BERR_Code BWFE_g3_Corr_P_StartCorrelator(BWFE_ChannelHandle h, uint32_t freqHz, uint32_t binSizeHz, BWFE_FUNCT func);
 #ifndef BWFE_EXCLUDE_ANALOG_DELAY
 BERR_Code BWFE_g3_Corr_P_CalcDelay(BWFE_ChannelHandle h);
-BERR_Code BWFE_g3_Corr_P_AccumulateOffset(BWFE_ChannelHandle h);
-BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, int32_t *delay);
+BERR_Code BWFE_g3_Corr_P_CoarseAdjust(BWFE_ChannelHandle h);
+BERR_Code BWFE_g3_Corr_P_FineAdjust(BWFE_ChannelHandle h);
+BERR_Code BWFE_g3_Corr_P_FineAdjust1(BWFE_ChannelHandle h);
+BERR_Code BWFE_g3_Corr_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t adjRight, uint32_t adjLeft);
 #endif
 #ifndef BWFE_EXCLUDE_SPECTRUM_ANALYZER
 BERR_Code BWFE_g3_Corr_P_ScanSpectrum(BWFE_ChannelHandle h);

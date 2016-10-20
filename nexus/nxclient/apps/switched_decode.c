@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,12 +34,7 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
- * Module Description:
- *
 ******************************************************************************/
-/* Nexus example app: single live a/v decode from a streamer */
-
 #include "nexus_platform.h"
 #include "nexus_pid_channel.h"
 #include "nexus_parser_band.h"
@@ -63,6 +58,8 @@
 #include "nxserverlib.h"
 #include "nxclient.h"
 #include "bgui.h"
+
+BDBG_MODULE(switched_decode);
 
 /**
 Demostrate integration of NxClient with single-process application that has direct access to
@@ -132,6 +129,14 @@ static void stop_local_graphics(void)
     }
 }
 
+static void print_nxclient_status(void)
+{
+    static const char *str[NxClientExternalAppState_eMax] = {"none", "graphics only", "decode"};
+    NxClient_Status status;
+    NxClient_GetStatus(&status);
+    BDBG_WRN(("%s", str[status.externalAppState]));
+}
+
 int main(void)
 {
     NEXUS_PlatformSettings platformSettings;
@@ -184,6 +189,7 @@ int main(void)
     /* allow graphics-only nxclient apps right away. they are never interrupted. */
     rc = start_nxserver(&platformSettings);
     BDBG_ASSERT(!rc);
+    print_nxclient_status();
 
     start_local_graphics();
 
@@ -195,6 +201,7 @@ int main(void)
         close_decode();
         /* allow decode nxclient apps now */
         nxserverlib_allow_decode(g_app.server, true);
+        print_nxclient_status();
 
         printf("Press ENTER to disallow NxClient decode\n");
         getchar();
@@ -202,6 +209,8 @@ int main(void)
         /* TODO: notify client apps to gracefully shutdown */
         /* whether they shut down or not, yank all decode resources back from nxclient. */
         nxserverlib_allow_decode(g_app.server, false);
+        print_nxclient_status();
+
         /* single-process app can use decode resources again */
         rc = open_decode();
         BDBG_ASSERT(!rc);

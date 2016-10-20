@@ -95,6 +95,12 @@ public:
       eETC1       ,
 #ifdef BSG_USE_ES3
       eETC2       ,
+      eR16F       ,
+      eR16I       ,
+      eR16UI      ,
+      eRG16F      ,
+      eRG16I      ,
+      eRG16UI     ,
       eRGBA16F    ,
       eRGBA16I    ,
       eRGBA16UI   ,

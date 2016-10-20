@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,196 +70,196 @@
 /***************************************************************************
  *HDMI_TX_AUTO_I2C - HDMI Tx Auto I2C Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_CFG            0x206fa400 /* [RW] I2C CH0 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG0_CFG       0x206fa404 /* [RW] I2C CH0 REG0 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG0_WD        0x206fa408 /* [RW] I2C CH0 REG0 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG1_CFG       0x206fa40c /* [RW] I2C CH0 REG1 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG1_WD        0x206fa410 /* [RW] I2C CH0 REG1 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG2_CFG       0x206fa414 /* [RW] I2C CH0 REG2 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG2_WD        0x206fa418 /* [RW] I2C CH0 REG2 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG3_CFG       0x206fa41c /* [RW] I2C CH0 REG3 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG3_WD        0x206fa420 /* [RW] I2C CH0 REG3 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG4_CFG       0x206fa424 /* [RW] I2C CH0 REG4 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG4_WD        0x206fa428 /* [RW] I2C CH0 REG4 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG5_CFG       0x206fa42c /* [RW] I2C CH0 REG5 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG5_WD        0x206fa430 /* [RW] I2C CH0 REG5 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG6_CFG       0x206fa434 /* [RW] I2C CH0 REG6 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG6_WD        0x206fa438 /* [RW] I2C CH0 REG6 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG7_CFG       0x206fa43c /* [RW] I2C CH0 REG7 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG7_WD        0x206fa440 /* [RW] I2C CH0 REG7 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG8_CFG       0x206fa444 /* [RW] I2C CH0 REG8 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG8_WD        0x206fa448 /* [RW] I2C CH0 REG8 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG9_CFG       0x206fa44c /* [RW] I2C CH0 REG9 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG9_WD        0x206fa450 /* [RW] I2C CH0 REG9 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG10_CFG      0x206fa454 /* [RW] I2C CH0 REG10 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG10_WD       0x206fa458 /* [RW] I2C CH0 REG10 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG11_CFG      0x206fa45c /* [RW] I2C CH0 REG11 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG11_WD       0x206fa460 /* [RW] I2C CH0 REG11 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG12_CFG      0x206fa464 /* [RW] I2C CH0 REG12 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG12_WD       0x206fa468 /* [RW] I2C CH0 REG12 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG13_CFG      0x206fa46c /* [RW] I2C CH0 REG13 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG13_WD       0x206fa470 /* [RW] I2C CH0 REG13 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_0           0x206fa474 /* [RO] I2C CH0 Read Data 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_1           0x206fa478 /* [RO] I2C CH0 Read Data 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_2           0x206fa47c /* [RO] I2C CH0 Read Data 2 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_3           0x206fa480 /* [RO] I2C CH0 Read Data 3 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_4           0x206fa484 /* [RO] I2C CH0 Read Data 4 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_5           0x206fa488 /* [RO] I2C CH0 Read Data 5 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_6           0x206fa48c /* [RO] I2C CH0 Read Data 6 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_7           0x206fa490 /* [RO] I2C CH0 Read Data 7 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH0_STAT           0x206fa494 /* [RO] I2C CH0 Stat */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_CFG            0x206fa498 /* [RW] I2C CH1 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG0_CFG       0x206fa49c /* [RW] I2C CH1 REG0 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG0_WD        0x206fa4a0 /* [RW] I2C CH1 REG0 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG1_CFG       0x206fa4a4 /* [RW] I2C CH1 REG1 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG1_WD        0x206fa4a8 /* [RW] I2C CH1 REG1 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG2_CFG       0x206fa4ac /* [RW] I2C CH1 REG2 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG2_WD        0x206fa4b0 /* [RW] I2C CH1 REG2 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG3_CFG       0x206fa4b4 /* [RW] I2C CH1 REG3 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG3_WD        0x206fa4b8 /* [RW] I2C CH1 REG3 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG4_CFG       0x206fa4bc /* [RW] I2C CH1 REG4 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG4_WD        0x206fa4c0 /* [RW] I2C CH1 REG4 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG5_CFG       0x206fa4c4 /* [RW] I2C CH1 REG5 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG5_WD        0x206fa4c8 /* [RW] I2C CH1 REG5 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG6_CFG       0x206fa4cc /* [RW] I2C CH1 REG6 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG6_WD        0x206fa4d0 /* [RW] I2C CH1 REG6 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG7_CFG       0x206fa4d4 /* [RW] I2C CH1 REG7 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG7_WD        0x206fa4d8 /* [RW] I2C CH1 REG7 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG8_CFG       0x206fa4dc /* [RW] I2C CH1 REG8 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG8_WD        0x206fa4e0 /* [RW] I2C CH1 REG8 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG9_CFG       0x206fa4e4 /* [RW] I2C CH1 REG9 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG9_WD        0x206fa4e8 /* [RW] I2C CH1 REG9 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG10_CFG      0x206fa4ec /* [RW] I2C CH1 REG10 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG10_WD       0x206fa4f0 /* [RW] I2C CH1 REG10 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG11_CFG      0x206fa4f4 /* [RW] I2C CH1 REG11 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG11_WD       0x206fa4f8 /* [RW] I2C CH1 REG11 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG12_CFG      0x206fa4fc /* [RW] I2C CH1 REG12 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG12_WD       0x206fa500 /* [RW] I2C CH1 REG12 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG13_CFG      0x206fa504 /* [RW] I2C CH1 REG13 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG13_WD       0x206fa508 /* [RW] I2C CH1 REG13 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_0           0x206fa50c /* [RO] I2C CH1 Read Data 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_1           0x206fa510 /* [RO] I2C CH1 Read Data 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_2           0x206fa514 /* [RO] I2C CH1 Read Data 2 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_3           0x206fa518 /* [RO] I2C CH1 Read Data 3 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_4           0x206fa51c /* [RO] I2C CH1 Read Data 4 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_5           0x206fa520 /* [RO] I2C CH1 Read Data 5 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_6           0x206fa524 /* [RO] I2C CH1 Read Data 6 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_7           0x206fa528 /* [RO] I2C CH1 Read Data 7 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH1_STAT           0x206fa52c /* [RO] I2C CH1 Stat */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_CFG            0x206fa530 /* [RW] I2C CH2 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG0_CFG       0x206fa534 /* [RW] I2C CH2 REG0 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG0_WD        0x206fa538 /* [RW] I2C CH2 REG0 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG1_CFG       0x206fa53c /* [RW] I2C CH2 REG1 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG1_WD        0x206fa540 /* [RW] I2C CH2 REG1 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG2_CFG       0x206fa544 /* [RW] I2C CH2 REG2 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG2_WD        0x206fa548 /* [RW] I2C CH2 REG2 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG3_CFG       0x206fa54c /* [RW] I2C CH2 REG3 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG3_WD        0x206fa550 /* [RW] I2C CH2 REG3 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG4_CFG       0x206fa554 /* [RW] I2C CH2 REG4 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG4_WD        0x206fa558 /* [RW] I2C CH2 REG4 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG5_CFG       0x206fa55c /* [RW] I2C CH2 REG5 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG5_WD        0x206fa560 /* [RW] I2C CH2 REG5 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG6_CFG       0x206fa564 /* [RW] I2C CH2 REG6 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG6_WD        0x206fa568 /* [RW] I2C CH2 REG6 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG7_CFG       0x206fa56c /* [RW] I2C CH2 REG7 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG7_WD        0x206fa570 /* [RW] I2C CH2 REG7 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG8_CFG       0x206fa574 /* [RW] I2C CH2 REG8 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG8_WD        0x206fa578 /* [RW] I2C CH2 REG8 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG9_CFG       0x206fa57c /* [RW] I2C CH2 REG9 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG9_WD        0x206fa580 /* [RW] I2C CH2 REG9 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG10_CFG      0x206fa584 /* [RW] I2C CH2 REG10 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG10_WD       0x206fa588 /* [RW] I2C CH2 REG10 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG11_CFG      0x206fa58c /* [RW] I2C CH2 REG11 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG11_WD       0x206fa590 /* [RW] I2C CH2 REG11 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG12_CFG      0x206fa594 /* [RW] I2C CH2 REG12 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG12_WD       0x206fa598 /* [RW] I2C CH2 REG12 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG13_CFG      0x206fa59c /* [RW] I2C CH2 REG13 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG13_WD       0x206fa5a0 /* [RW] I2C CH2 REG13 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_0           0x206fa5a4 /* [RO] I2C CH2 Read Data 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_1           0x206fa5a8 /* [RO] I2C CH2 Read Data 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_2           0x206fa5ac /* [RO] I2C CH2 Read Data 2 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_3           0x206fa5b0 /* [RO] I2C CH2 Read Data 3 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_4           0x206fa5b4 /* [RO] I2C CH2 Read Data 4 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_5           0x206fa5b8 /* [RO] I2C CH2 Read Data 5 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_6           0x206fa5bc /* [RO] I2C CH2 Read Data 6 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_7           0x206fa5c0 /* [RO] I2C CH2 Read Data 7 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH2_STAT           0x206fa5c4 /* [RO] I2C CH2 Stat */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_CFG            0x206fa5c8 /* [RW] I2C CH3 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG0_CFG       0x206fa5cc /* [RW] I2C CH3 REG0 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG0_WD        0x206fa5d0 /* [RW] I2C CH3 REG0 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG1_CFG       0x206fa5d4 /* [RW] I2C CH3 REG1 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG1_WD        0x206fa5d8 /* [RW] I2C CH3 REG1 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG2_CFG       0x206fa5dc /* [RW] I2C CH3 REG2 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG2_WD        0x206fa5e0 /* [RW] I2C CH3 REG2 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_CFG       0x206fa5e4 /* [RW] I2C CH3 REG3 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_WD        0x206fa5e8 /* [RW] I2C CH3 REG3 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG4_CFG       0x206fa5ec /* [RW] I2C CH3 REG4 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG4_WD        0x206fa5f0 /* [RW] I2C CH3 REG4 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG5_CFG       0x206fa5f4 /* [RW] I2C CH3 REG5 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG5_WD        0x206fa5f8 /* [RW] I2C CH3 REG5 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG6_CFG       0x206fa5fc /* [RW] I2C CH3 REG6 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG6_WD        0x206fa600 /* [RW] I2C CH3 REG6 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG7_CFG       0x206fa604 /* [RW] I2C CH3 REG7 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG7_WD        0x206fa608 /* [RW] I2C CH3 REG7 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG8_CFG       0x206fa60c /* [RW] I2C CH3 REG8 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG8_WD        0x206fa610 /* [RW] I2C CH3 REG8 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG9_CFG       0x206fa614 /* [RW] I2C CH3 REG9 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG9_WD        0x206fa618 /* [RW] I2C CH3 REG9 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG10_CFG      0x206fa61c /* [RW] I2C CH3 REG10 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG10_WD       0x206fa620 /* [RW] I2C CH3 REG10 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG11_CFG      0x206fa624 /* [RW] I2C CH3 REG11 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG11_WD       0x206fa628 /* [RW] I2C CH3 REG11 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG12_CFG      0x206fa62c /* [RW] I2C CH3 REG12 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG12_WD       0x206fa630 /* [RW] I2C CH3 REG12 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG13_CFG      0x206fa634 /* [RW] I2C CH3 REG13 Configuration */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG13_WD       0x206fa638 /* [RW] I2C CH3 REG13 Write Data */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_0           0x206fa63c /* [RO] I2C CH3 Read Data 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_1           0x206fa640 /* [RO] I2C CH3 Read Data 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_2           0x206fa644 /* [RO] I2C CH3 Read Data 2 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_3           0x206fa648 /* [RO] I2C CH3 Read Data 3 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_4           0x206fa64c /* [RO] I2C CH3 Read Data 4 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_5           0x206fa650 /* [RO] I2C CH3 Read Data 5 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_6           0x206fa654 /* [RO] I2C CH3 Read Data 6 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_7           0x206fa658 /* [RO] I2C CH3 Read Data 7 */
-#define BCHP_HDMI_TX_AUTO_I2C_CH3_STAT           0x206fa65c /* [RO] I2C CH3 Stat */
-#define BCHP_HDMI_TX_AUTO_I2C_START              0x206fa660 /* [RW] I2C Start */
-#define BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT_CLEAR 0x206fa664 /* [RW] Channel Done Status Clear */
-#define BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT 0x206fa668 /* [RO] Channel Done Status */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_AUTO_I2C_CTRL0 0x206fa66c /* [RW] HDCP2 Auto I2C Control Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXSTATUS   0x206fa670 /* [RO] HDCP2 RxStatus Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0    0x206fa674 /* [RO] HDCP2 Status 0 Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 0x206fa678 /* [RW] HDCP2 Write FIFO I2C Control Register 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CFG0 0x206fa67c /* [RW] HDCP2 Write FIFO I2C Configuration Register 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_STATUS0 0x206fa680 /* [RO] HDCP2 Write FIFO Status Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_WRITE_CMD 0x206fa684 /* [RW] HDCP2 CMD Write register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_WRITE_DATA 0x206fa688 /* [RW] HDCP2 CMD Write register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG0 0x206fa68c /* [RW] HDCP2 Timeout Configuration 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG1 0x206fa690 /* [RW] HDCP2 Timeout Configuration 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG2 0x206fa694 /* [RW] HDCP2 Timeout Configuration 2 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_ENC_EN_DELAY_CFG0 0x206fa698 /* [RW] HDCP2 ENC_EN_DELAY Configuration 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_ENC_EN_DELAY_CFG1 0x206fa69c /* [RW] HDCP2 ENC_EN_DELAY Configuration 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_CURRENT_TIMER_0 0x206fa6a0 /* [RO] HDCP2 Timer_0 and Timer_1 Current Value */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_CURRENT_TIMER_1 0x206fa6a4 /* [RO] HDCP2 Timer_2 and ENC_EN Timer Current Value */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXINFO     0x206fa6a8 /* [RW] HDCP2TX_RXINFO */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXCAPS     0x206fa6ac /* [RW] HDCP2TX_RXCAPS */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TXCAPS     0x206fa6b0 /* [RW] HDCP2TX_TXCAPS */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_I2C_CTRL0 0x206fa6b4 /* [RW] HDCP2 Read FIFO I2C Control Register 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_I2C_CFG0 0x206fa6b8 /* [RW] HDCP2 Read FIFO I2C Configuration Register 0 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_STATUS0 0x206fa6bc /* [RO] HDCP2 Read FIFO Status Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_STATUS1 0x206fa6c0 /* [RO] HDCP2 Read FIFO Read Register 1 */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_READ_CMD 0x206fa6c4 /* [RO] HDCP2 Read FIFO Read Command Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_READ_DATA 0x206fa6c8 /* [RO] HDCP2 Read FIFO Read Data Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_MSG_MANUAL_CFG 0x206fa6cc /* [RW] HDCP2 Read Message Manual Control */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_OVERRIDE_CTL 0x206fa6d0 /* [RW] HDCP2 FSM Over-ride Control Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M0      0x206fa6d4 /* [RW] HDCP2 Write Message M0 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M1      0x206fa6d8 /* [RW] HDCP2 Write Message M1 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M2      0x206fa6dc /* [RW] HDCP2 Write Message M2 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M0      0x206fa6e0 /* [RW] HDCP2 Read Message M0 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M1      0x206fa6e4 /* [RW] HDCP2 Read Message M1 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M2      0x206fa6e8 /* [RW] HDCP2 Read Message M2 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M3      0x206fa6ec /* [RW] HDCP2 Read Message M3 Over-ride Register */
-#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG  0x206fa6f0 /* [RO] HDCP2 FSM Debug Register */
-#define BCHP_HDMI_TX_AUTO_I2C_SPARE_REG2         0x206fa6fc /* [RW] SPARE_REG2   Register */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_CFG            0x206fa400 /* [RW][32] I2C CH0 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG0_CFG       0x206fa404 /* [RW][32] I2C CH0 REG0 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG0_WD        0x206fa408 /* [RW][32] I2C CH0 REG0 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG1_CFG       0x206fa40c /* [RW][32] I2C CH0 REG1 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG1_WD        0x206fa410 /* [RW][32] I2C CH0 REG1 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG2_CFG       0x206fa414 /* [RW][32] I2C CH0 REG2 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG2_WD        0x206fa418 /* [RW][32] I2C CH0 REG2 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG3_CFG       0x206fa41c /* [RW][32] I2C CH0 REG3 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG3_WD        0x206fa420 /* [RW][32] I2C CH0 REG3 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG4_CFG       0x206fa424 /* [RW][32] I2C CH0 REG4 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG4_WD        0x206fa428 /* [RW][32] I2C CH0 REG4 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG5_CFG       0x206fa42c /* [RW][32] I2C CH0 REG5 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG5_WD        0x206fa430 /* [RW][32] I2C CH0 REG5 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG6_CFG       0x206fa434 /* [RW][32] I2C CH0 REG6 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG6_WD        0x206fa438 /* [RW][32] I2C CH0 REG6 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG7_CFG       0x206fa43c /* [RW][32] I2C CH0 REG7 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG7_WD        0x206fa440 /* [RW][32] I2C CH0 REG7 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG8_CFG       0x206fa444 /* [RW][32] I2C CH0 REG8 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG8_WD        0x206fa448 /* [RW][32] I2C CH0 REG8 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG9_CFG       0x206fa44c /* [RW][32] I2C CH0 REG9 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG9_WD        0x206fa450 /* [RW][32] I2C CH0 REG9 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG10_CFG      0x206fa454 /* [RW][32] I2C CH0 REG10 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG10_WD       0x206fa458 /* [RW][32] I2C CH0 REG10 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG11_CFG      0x206fa45c /* [RW][32] I2C CH0 REG11 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG11_WD       0x206fa460 /* [RW][32] I2C CH0 REG11 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG12_CFG      0x206fa464 /* [RW][32] I2C CH0 REG12 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG12_WD       0x206fa468 /* [RW][32] I2C CH0 REG12 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG13_CFG      0x206fa46c /* [RW][32] I2C CH0 REG13 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_REG13_WD       0x206fa470 /* [RW][32] I2C CH0 REG13 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_0           0x206fa474 /* [RO][32] I2C CH0 Read Data 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_1           0x206fa478 /* [RO][32] I2C CH0 Read Data 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_2           0x206fa47c /* [RO][32] I2C CH0 Read Data 2 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_3           0x206fa480 /* [RO][32] I2C CH0 Read Data 3 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_4           0x206fa484 /* [RO][32] I2C CH0 Read Data 4 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_5           0x206fa488 /* [RO][32] I2C CH0 Read Data 5 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_6           0x206fa48c /* [RO][32] I2C CH0 Read Data 6 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_RD_7           0x206fa490 /* [RO][32] I2C CH0 Read Data 7 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH0_STAT           0x206fa494 /* [RO][32] I2C CH0 Stat */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_CFG            0x206fa498 /* [RW][32] I2C CH1 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG0_CFG       0x206fa49c /* [RW][32] I2C CH1 REG0 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG0_WD        0x206fa4a0 /* [RW][32] I2C CH1 REG0 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG1_CFG       0x206fa4a4 /* [RW][32] I2C CH1 REG1 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG1_WD        0x206fa4a8 /* [RW][32] I2C CH1 REG1 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG2_CFG       0x206fa4ac /* [RW][32] I2C CH1 REG2 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG2_WD        0x206fa4b0 /* [RW][32] I2C CH1 REG2 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG3_CFG       0x206fa4b4 /* [RW][32] I2C CH1 REG3 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG3_WD        0x206fa4b8 /* [RW][32] I2C CH1 REG3 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG4_CFG       0x206fa4bc /* [RW][32] I2C CH1 REG4 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG4_WD        0x206fa4c0 /* [RW][32] I2C CH1 REG4 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG5_CFG       0x206fa4c4 /* [RW][32] I2C CH1 REG5 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG5_WD        0x206fa4c8 /* [RW][32] I2C CH1 REG5 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG6_CFG       0x206fa4cc /* [RW][32] I2C CH1 REG6 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG6_WD        0x206fa4d0 /* [RW][32] I2C CH1 REG6 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG7_CFG       0x206fa4d4 /* [RW][32] I2C CH1 REG7 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG7_WD        0x206fa4d8 /* [RW][32] I2C CH1 REG7 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG8_CFG       0x206fa4dc /* [RW][32] I2C CH1 REG8 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG8_WD        0x206fa4e0 /* [RW][32] I2C CH1 REG8 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG9_CFG       0x206fa4e4 /* [RW][32] I2C CH1 REG9 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG9_WD        0x206fa4e8 /* [RW][32] I2C CH1 REG9 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG10_CFG      0x206fa4ec /* [RW][32] I2C CH1 REG10 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG10_WD       0x206fa4f0 /* [RW][32] I2C CH1 REG10 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG11_CFG      0x206fa4f4 /* [RW][32] I2C CH1 REG11 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG11_WD       0x206fa4f8 /* [RW][32] I2C CH1 REG11 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG12_CFG      0x206fa4fc /* [RW][32] I2C CH1 REG12 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG12_WD       0x206fa500 /* [RW][32] I2C CH1 REG12 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG13_CFG      0x206fa504 /* [RW][32] I2C CH1 REG13 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_REG13_WD       0x206fa508 /* [RW][32] I2C CH1 REG13 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_0           0x206fa50c /* [RO][32] I2C CH1 Read Data 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_1           0x206fa510 /* [RO][32] I2C CH1 Read Data 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_2           0x206fa514 /* [RO][32] I2C CH1 Read Data 2 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_3           0x206fa518 /* [RO][32] I2C CH1 Read Data 3 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_4           0x206fa51c /* [RO][32] I2C CH1 Read Data 4 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_5           0x206fa520 /* [RO][32] I2C CH1 Read Data 5 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_6           0x206fa524 /* [RO][32] I2C CH1 Read Data 6 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_RD_7           0x206fa528 /* [RO][32] I2C CH1 Read Data 7 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH1_STAT           0x206fa52c /* [RO][32] I2C CH1 Stat */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_CFG            0x206fa530 /* [RW][32] I2C CH2 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG0_CFG       0x206fa534 /* [RW][32] I2C CH2 REG0 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG0_WD        0x206fa538 /* [RW][32] I2C CH2 REG0 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG1_CFG       0x206fa53c /* [RW][32] I2C CH2 REG1 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG1_WD        0x206fa540 /* [RW][32] I2C CH2 REG1 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG2_CFG       0x206fa544 /* [RW][32] I2C CH2 REG2 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG2_WD        0x206fa548 /* [RW][32] I2C CH2 REG2 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG3_CFG       0x206fa54c /* [RW][32] I2C CH2 REG3 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG3_WD        0x206fa550 /* [RW][32] I2C CH2 REG3 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG4_CFG       0x206fa554 /* [RW][32] I2C CH2 REG4 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG4_WD        0x206fa558 /* [RW][32] I2C CH2 REG4 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG5_CFG       0x206fa55c /* [RW][32] I2C CH2 REG5 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG5_WD        0x206fa560 /* [RW][32] I2C CH2 REG5 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG6_CFG       0x206fa564 /* [RW][32] I2C CH2 REG6 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG6_WD        0x206fa568 /* [RW][32] I2C CH2 REG6 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG7_CFG       0x206fa56c /* [RW][32] I2C CH2 REG7 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG7_WD        0x206fa570 /* [RW][32] I2C CH2 REG7 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG8_CFG       0x206fa574 /* [RW][32] I2C CH2 REG8 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG8_WD        0x206fa578 /* [RW][32] I2C CH2 REG8 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG9_CFG       0x206fa57c /* [RW][32] I2C CH2 REG9 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG9_WD        0x206fa580 /* [RW][32] I2C CH2 REG9 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG10_CFG      0x206fa584 /* [RW][32] I2C CH2 REG10 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG10_WD       0x206fa588 /* [RW][32] I2C CH2 REG10 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG11_CFG      0x206fa58c /* [RW][32] I2C CH2 REG11 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG11_WD       0x206fa590 /* [RW][32] I2C CH2 REG11 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG12_CFG      0x206fa594 /* [RW][32] I2C CH2 REG12 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG12_WD       0x206fa598 /* [RW][32] I2C CH2 REG12 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG13_CFG      0x206fa59c /* [RW][32] I2C CH2 REG13 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_REG13_WD       0x206fa5a0 /* [RW][32] I2C CH2 REG13 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_0           0x206fa5a4 /* [RO][32] I2C CH2 Read Data 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_1           0x206fa5a8 /* [RO][32] I2C CH2 Read Data 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_2           0x206fa5ac /* [RO][32] I2C CH2 Read Data 2 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_3           0x206fa5b0 /* [RO][32] I2C CH2 Read Data 3 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_4           0x206fa5b4 /* [RO][32] I2C CH2 Read Data 4 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_5           0x206fa5b8 /* [RO][32] I2C CH2 Read Data 5 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_6           0x206fa5bc /* [RO][32] I2C CH2 Read Data 6 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_RD_7           0x206fa5c0 /* [RO][32] I2C CH2 Read Data 7 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH2_STAT           0x206fa5c4 /* [RO][32] I2C CH2 Stat */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_CFG            0x206fa5c8 /* [RW][32] I2C CH3 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG0_CFG       0x206fa5cc /* [RW][32] I2C CH3 REG0 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG0_WD        0x206fa5d0 /* [RW][32] I2C CH3 REG0 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG1_CFG       0x206fa5d4 /* [RW][32] I2C CH3 REG1 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG1_WD        0x206fa5d8 /* [RW][32] I2C CH3 REG1 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG2_CFG       0x206fa5dc /* [RW][32] I2C CH3 REG2 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG2_WD        0x206fa5e0 /* [RW][32] I2C CH3 REG2 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_CFG       0x206fa5e4 /* [RW][32] I2C CH3 REG3 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG3_WD        0x206fa5e8 /* [RW][32] I2C CH3 REG3 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG4_CFG       0x206fa5ec /* [RW][32] I2C CH3 REG4 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG4_WD        0x206fa5f0 /* [RW][32] I2C CH3 REG4 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG5_CFG       0x206fa5f4 /* [RW][32] I2C CH3 REG5 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG5_WD        0x206fa5f8 /* [RW][32] I2C CH3 REG5 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG6_CFG       0x206fa5fc /* [RW][32] I2C CH3 REG6 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG6_WD        0x206fa600 /* [RW][32] I2C CH3 REG6 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG7_CFG       0x206fa604 /* [RW][32] I2C CH3 REG7 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG7_WD        0x206fa608 /* [RW][32] I2C CH3 REG7 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG8_CFG       0x206fa60c /* [RW][32] I2C CH3 REG8 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG8_WD        0x206fa610 /* [RW][32] I2C CH3 REG8 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG9_CFG       0x206fa614 /* [RW][32] I2C CH3 REG9 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG9_WD        0x206fa618 /* [RW][32] I2C CH3 REG9 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG10_CFG      0x206fa61c /* [RW][32] I2C CH3 REG10 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG10_WD       0x206fa620 /* [RW][32] I2C CH3 REG10 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG11_CFG      0x206fa624 /* [RW][32] I2C CH3 REG11 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG11_WD       0x206fa628 /* [RW][32] I2C CH3 REG11 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG12_CFG      0x206fa62c /* [RW][32] I2C CH3 REG12 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG12_WD       0x206fa630 /* [RW][32] I2C CH3 REG12 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG13_CFG      0x206fa634 /* [RW][32] I2C CH3 REG13 Configuration */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_REG13_WD       0x206fa638 /* [RW][32] I2C CH3 REG13 Write Data */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_0           0x206fa63c /* [RO][32] I2C CH3 Read Data 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_1           0x206fa640 /* [RO][32] I2C CH3 Read Data 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_2           0x206fa644 /* [RO][32] I2C CH3 Read Data 2 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_3           0x206fa648 /* [RO][32] I2C CH3 Read Data 3 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_4           0x206fa64c /* [RO][32] I2C CH3 Read Data 4 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_5           0x206fa650 /* [RO][32] I2C CH3 Read Data 5 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_6           0x206fa654 /* [RO][32] I2C CH3 Read Data 6 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_RD_7           0x206fa658 /* [RO][32] I2C CH3 Read Data 7 */
+#define BCHP_HDMI_TX_AUTO_I2C_CH3_STAT           0x206fa65c /* [RO][32] I2C CH3 Stat */
+#define BCHP_HDMI_TX_AUTO_I2C_START              0x206fa660 /* [RW][32] I2C Start */
+#define BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT_CLEAR 0x206fa664 /* [RW][32] Channel Done Status Clear */
+#define BCHP_HDMI_TX_AUTO_I2C_TRANSACTION_DONE_STAT 0x206fa668 /* [RO][32] Channel Done Status */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_AUTO_I2C_CTRL0 0x206fa66c /* [RW][32] HDCP2 Auto I2C Control Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXSTATUS   0x206fa670 /* [RO][32] HDCP2 RxStatus Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_STATUS0    0x206fa674 /* [RO][32] HDCP2 Status 0 Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CTRL0 0x206fa678 /* [RW][32] HDCP2 Write FIFO I2C Control Register 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_I2C_CFG0 0x206fa67c /* [RW][32] HDCP2 Write FIFO I2C Configuration Register 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_STATUS0 0x206fa680 /* [RO][32] HDCP2 Write FIFO Status Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_WRITE_CMD 0x206fa684 /* [RW][32] HDCP2 CMD Write register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WR_FIFO_WRITE_DATA 0x206fa688 /* [RW][32] HDCP2 CMD Write register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG0 0x206fa68c /* [RW][32] HDCP2 Timeout Configuration 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG1 0x206fa690 /* [RW][32] HDCP2 Timeout Configuration 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TIMEOUT_CFG2 0x206fa694 /* [RW][32] HDCP2 Timeout Configuration 2 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_ENC_EN_DELAY_CFG0 0x206fa698 /* [RW][32] HDCP2 ENC_EN_DELAY Configuration 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_ENC_EN_DELAY_CFG1 0x206fa69c /* [RW][32] HDCP2 ENC_EN_DELAY Configuration 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_CURRENT_TIMER_0 0x206fa6a0 /* [RO][32] HDCP2 Timer_0 and Timer_1 Current Value */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_CURRENT_TIMER_1 0x206fa6a4 /* [RO][32] HDCP2 Timer_2 and ENC_EN Timer Current Value */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXINFO     0x206fa6a8 /* [RW][32] HDCP2TX_RXINFO */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RXCAPS     0x206fa6ac /* [RW][32] HDCP2TX_RXCAPS */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_TXCAPS     0x206fa6b0 /* [RW][32] HDCP2TX_TXCAPS */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_I2C_CTRL0 0x206fa6b4 /* [RW][32] HDCP2 Read FIFO I2C Control Register 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_I2C_CFG0 0x206fa6b8 /* [RW][32] HDCP2 Read FIFO I2C Configuration Register 0 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_STATUS0 0x206fa6bc /* [RO][32] HDCP2 Read FIFO Status Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_STATUS1 0x206fa6c0 /* [RO][32] HDCP2 Read FIFO Read Register 1 */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_READ_CMD 0x206fa6c4 /* [RO][32] HDCP2 Read FIFO Read Command Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_FIFO_READ_DATA 0x206fa6c8 /* [RO][32] HDCP2 Read FIFO Read Data Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RD_MSG_MANUAL_CFG 0x206fa6cc /* [RW][32] HDCP2 Read Message Manual Control */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_OVERRIDE_CTL 0x206fa6d0 /* [RW][32] HDCP2 FSM Over-ride Control Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M0      0x206fa6d4 /* [RW][32] HDCP2 Write Message M0 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M1      0x206fa6d8 /* [RW][32] HDCP2 Write Message M1 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_WM_M2      0x206fa6dc /* [RW][32] HDCP2 Write Message M2 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M0      0x206fa6e0 /* [RW][32] HDCP2 Read Message M0 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M1      0x206fa6e4 /* [RW][32] HDCP2 Read Message M1 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M2      0x206fa6e8 /* [RW][32] HDCP2 Read Message M2 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_RM_M3      0x206fa6ec /* [RW][32] HDCP2 Read Message M3 Over-ride Register */
+#define BCHP_HDMI_TX_AUTO_I2C_HDCP2TX_FSM_DEBUG  0x206fa6f0 /* [RO][32] HDCP2 FSM Debug Register */
+#define BCHP_HDMI_TX_AUTO_I2C_SPARE_REG2         0x206fa6fc /* [RW][32] SPARE_REG2   Register */
 
 /***************************************************************************
  *CH0_CFG - I2C CH0 Configuration

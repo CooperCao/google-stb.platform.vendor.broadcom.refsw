@@ -106,11 +106,13 @@ uvec4 bitfieldInsert(uvec4 base, uvec4 insert, int offset, int bits)
 
 highp uint bitfieldReverse(highp uint value)
 {
-   value = ((value >> 1) & 0x55555555u) + ((value & 0x55555555u) << 1); // swap 1 bit groups
-   value = ((value >> 2) & 0x33333333u) + ((value & 0x33333333u) << 2); // swap 2 bit groups
-   value = ((value >> 4) & 0x0F0F0F0Fu) + ((value & 0x0F0F0F0Fu) << 4); // swap 4 bit groups
-   value = ((value >> 8) & 0x00FF00FFu) + ((value & 0x00FF00FFu) << 8); // swap 8 bit groups
-   return (value >> 16) + (value << 16); // swap 16 bit groups
+   highp uint masks[4] = uint[4](0x55555555u, 0x33333333u, 0x0F0F0F0Fu, 0x00FF00FFu);
+   int shifts[4] = int[4](1,2,4,8);
+   value = ((value >> shifts[0]) & masks[0]) + ((value & masks[0]) << shifts[0]); // swap 1 bit groups
+   value = ((value >> shifts[1]) & masks[1]) + ((value & masks[1]) << shifts[1]); // swap 2 bit groups
+   value = ((value >> shifts[2]) & masks[2]) + ((value & masks[2]) << shifts[2]); // swap 4 bit groups
+   value = ((value >> shifts[3]) & masks[3]) + ((value & masks[3]) << shifts[3]); // swap 8 bit groups
+   return $$ror(value, 16u);
 }
 
 highp uvec2 bitfieldReverse(highp uvec2 value)
@@ -159,12 +161,7 @@ lowp int bitCount(uint value)
    value = value - ((value >> 1) & 0x55555555u);                 // 2 bit counters
    value = (value & 0x33333333u) + ((value >> 2) & 0x33333333u); // 4 bit counters
    value = (value + (value >> 4)) & 0x0F0F0F0Fu;                 // 8 bit counters
-   // return int((value * 0x01010101u) >> 24);
-
-   // Do this instead until 32-bit multiplication works
-   value = (value + (value >> 8)); // 16 bit counters (8 LSB valid)
-   value = (value + (value >> 16)); // 32 bit counter (8 LSB valid)
-   return int(value & 0xFFu); // mask out invalid bits
+   return int((value * 0x01010101u) >> 24);
 }
 
 lowp ivec2 bitCount(uvec2 value)

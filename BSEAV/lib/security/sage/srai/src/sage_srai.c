@@ -176,6 +176,8 @@ static struct srai_context {
     NEXUS_MemoryAllocationSettings allocSettings;
     NEXUS_MemoryAllocationSettings secureAllocSettings;
     NEXUS_MemoryAllocationSettings exportAllocSettings;
+    NEXUS_Addr secure_offset[2];
+    unsigned secure_size[2];
 
     /* Nexus SAGE handle. One per SRAI instance. i.e. One per application. */
     NEXUS_SageHandle sage;
@@ -241,6 +243,10 @@ static SRAI_Settings _srai_settings =
 #else
     {NEXUS_MEMC0_MAIN_HEAP, NEXUS_VIDEO_SECURE_HEAP, NEXUS_EXPORT_HEAP};
 #endif
+
+/* use .secure_* parameters to determine if a given memory block belongs to secure heap */
+#define _SRAI_IsMemoryInSecureHeap(MEM) ( (((MEM) >= _srai.secure_offset[0]) && ((MEM) < (_srai.secure_offset[0] + _srai.secure_size[0]))) \
+									|| (((MEM) >= _srai.secure_offset[1]) && ((MEM) < (_srai.secure_offset[1] + _srai.secure_size[1]))) )
 
 #ifdef SRAI_GLOBAL_LOCK_BKNI
 static BKNI_MutexHandle _srai_mutex = NULL;
@@ -351,8 +357,8 @@ static NEXUS_Error _srai_nexus_sage_command(srai_sync_call * sync,
                                             NEXUS_SageCommand * command,
                                             BSAGElib_InOutContainer *container);
 static int _srai_valid_heap(NEXUS_HeapHandle heap, NEXUS_MemoryType memoryType,
-                            NEXUS_MemoryStatus *status);
-static int _srai_get_heap(NEXUS_MemoryType memoryType, NEXUS_HeapHandle heap,
+                            unsigned heapType, NEXUS_MemoryStatus *status);
+static int _srai_get_heap(NEXUS_MemoryType memoryType, unsigned heapType, NEXUS_HeapHandle heap,
                           NEXUS_MemoryAllocationSettings *pSecureAllocSettings,
                           NEXUS_MemoryStatus *pHeapStatus, NEXUS_ClientConfiguration *pClientConfig);
 static int _srai_nexus_sage_init(void);
@@ -400,9 +406,9 @@ static void _srai_management_cleanup(void);
 static void _srai_flush_cache(const void *addr, size_t size);
 static void * _srai_offset_to_addr(uint64_t offset);
 static uint64_t _srai_addr_to_offset(const void *addr);
-
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 static bool _srai_is_sdl_valid(uint8_t *sdlBuff, uint32_t sdlBuffSize);
-
+#endif
 /*
  * Functions implementation
  */
@@ -1015,6 +1021,7 @@ end:
 /* Check if heap is accessible from both Host-side and SAGE-side. */
 static int _srai_valid_heap(NEXUS_HeapHandle heap,
                             NEXUS_MemoryType memoryType,
+                            unsigned heapType,
                             NEXUS_MemoryStatus *status)
 {
     NEXUS_Error nexus_rc;
@@ -1028,7 +1035,8 @@ static int _srai_valid_heap(NEXUS_HeapHandle heap,
         BDBG_ERR(("NEXUS_Heap_GetStatus(%p) failure (%d) ", (void *)heap, nexus_rc));
         return 0;
     }
-    if (status->memoryType == memoryType   /* memory type requested */
+    if (status->memoryType == memoryType &&  /* memory type requested */
+        (status->heapType & heapType)
 #if ((BCHP_VER >= BCHP_VER_A0) && (BCHP_CHIP == 7584)) || ((BCHP_VER >= BCHP_VER_B0) && (BCHP_CHIP == 7435))
         && status->memcIndex == 0          /* only MEMC0 is accessible by SAGE-side on Zeus30 */
 #endif
@@ -1040,14 +1048,14 @@ static int _srai_valid_heap(NEXUS_HeapHandle heap,
 }
 /* get a valid heap with a specific memory type mapping
  * this function will try a heap search if given heap is not compatible */
-static int _srai_get_heap(NEXUS_MemoryType memoryType, NEXUS_HeapHandle heap,
+static int _srai_get_heap(NEXUS_MemoryType memoryType, unsigned heapType, NEXUS_HeapHandle heap,
                           NEXUS_MemoryAllocationSettings *pSecureAllocSettings,
                           NEXUS_MemoryStatus *pHeapStatus, NEXUS_ClientConfiguration *pClientConfig)
 {
     int rc = -1;
     NEXUS_HeapHandle validHeap = NULL;
 
-    if (_srai_valid_heap(heap, memoryType, pHeapStatus)) {
+    if (_srai_valid_heap(heap, memoryType, heapType, pHeapStatus)) {
         validHeap = heap;
     }
     else {
@@ -1055,7 +1063,7 @@ static int _srai_get_heap(NEXUS_MemoryType memoryType, NEXUS_HeapHandle heap,
         BDBG_WRN(("%s: given heap %p is not valid. Consider using SRAI_SetSettings() with proper heap indexes.",
                   __FUNCTION__, (void *)heap));
         for (i = 0; i < NEXUS_MAX_HEAPS; i++) {
-            if (_srai_valid_heap(pClientConfig->heap[i], memoryType, pHeapStatus)) {
+            if (_srai_valid_heap(pClientConfig->heap[i], memoryType, heapType, pHeapStatus)) {
                 validHeap = pClientConfig->heap[i];
                 BDBG_WRN(("%s: heap search found matching heap #%d", __FUNCTION__, i));
                 break;
@@ -1119,25 +1127,44 @@ static int _srai_init_settings(void)
 
     NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
-    if (_srai_get_heap(NEXUS_MemoryType_eFull, clientConfig.heap[_srai_settings.generalHeapIndex],
+    if (_srai_get_heap(NEXUS_MemoryType_eFull, NEXUS_HEAP_TYPE_MAIN,
+                       clientConfig.heap[_srai_settings.generalHeapIndex],
                        &_srai.allocSettings, &heapStatus, &clientConfig)) {
         BDBG_ERR(("%s: Cannot retrieve general heap from index %d",
                   __FUNCTION__, _srai_settings.generalHeapIndex));
         rc -= 0x1;
     }
-    if (_srai_get_heap(NEXUS_MemoryType_eSecure, clientConfig.heap[_srai_settings.videoSecureHeapIndex],
+
+    if (_srai_get_heap(NEXUS_MemoryType_eSecure,
+                       NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION,
+                       clientConfig.heap[_srai_settings.videoSecureHeapIndex],
                        &_srai.secureAllocSettings, &heapStatus, &clientConfig)) {
         BDBG_ERR(("%s: Cannot retrieve secure heap from index %d.",
                   __FUNCTION__, _srai_settings.videoSecureHeapIndex));
         BDBG_ERR(("%s: --> check for secure_heap=y environment variable", __FUNCTION__));
         rc -= 0x2;
     }
-    if (_srai_get_heap(NEXUS_MemoryType_eSecure, clientConfig.heap[_srai_settings.exportHeapIndex],
+	else
+	{
+        _srai.secure_offset[0] = heapStatus.offset;
+        _srai.secure_size[0] = heapStatus.size;
+        BDBG_MSG(("Found CRR: offset: " BDBG_UINT64_FMT " size: 0x%x", BDBG_UINT64_ARG(_srai.secure_offset[0]), _srai.secure_size[0]));
+	}
+
+    if (_srai_get_heap(NEXUS_MemoryType_eSecure,
+                       NEXUS_HEAP_TYPE_EXPORT_REGION,
+                       clientConfig.heap[_srai_settings.exportHeapIndex],
                        &_srai.exportAllocSettings, &heapStatus, &clientConfig)) {
         BDBG_ERR(("%s: Cannot retrieve export secure heap from index %d.",
                   __FUNCTION__, _srai_settings.exportHeapIndex));
         BDBG_ERR(("%s: --> check your NEXUS platform settings", __FUNCTION__));
         rc -= 0x3;
+    }
+    else {
+        /* get secure heap boundaries for _SRAI_IsMemoryInSecureHeap() */
+        _srai.secure_offset[1] = heapStatus.offset;
+        _srai.secure_size[1] = heapStatus.size;
+        BDBG_MSG(("Found XRR: offset: " BDBG_UINT64_FMT " size: 0x%x", BDBG_UINT64_ARG(_srai.secure_offset[1]), _srai.secure_size[1]));
     }
 
     return rc;
@@ -1153,8 +1180,7 @@ static void * _srai_offset_to_addr(uint64_t offset)
 }
 static void _srai_flush_cache(const void *addr, size_t size)
 {
-    if (NEXUS_GetAddrType(addr) == NEXUS_AddrType_eCached)
-    {
+    if (!_SRAI_IsMemoryInSecureHeap(_srai_addr_to_offset(addr))) {
         NEXUS_FlushCache(addr, size);
     }
 }
@@ -1605,6 +1631,48 @@ static void _srai_platform_cleanup(SRAI_PlatformHandle platform)
     BKNI_Free((uint8_t *)platform);
 }
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+/* Install a platform.
+ * SAGE side Platform/TA can by dynamically loaded from the Host.
+ * Host application can use this API to install any Platform/TA on the SAGE side.
+ * Once the Platform/TA has been installed on the SAGE side successfully, Host can then call:
+ * SRAI_Platform_XXX APIs to Open and Init the Platform and Modules in the Platform. */
+BERR_Code SRAI_Platform_Install(uint32_t platformId,
+                             uint8_t *binBuff,
+                             uint32_t binSize)
+{
+	BSTD_UNUSED(platformId);
+	BSTD_UNUSED(binBuff);
+	BSTD_UNUSED(binSize);
+
+	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+
+	return BERR_SUCCESS;
+
+}
+
+/* Un-install a platform.
+* This API is used to Un-install the Platform/TA that has been installed by SRAI_Platform_Install API */
+BERR_Code SRAI_Platform_UnInstall(uint32_t platformId )
+{
+	BSTD_UNUSED(platformId);
+
+	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+
+	return BERR_SUCCESS;
+}
+
+BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
+                                        SRAI_RequestRecvCallback callback)
+{
+	BSTD_UNUSED(platform);
+	BSTD_UNUSED(callback);
+
+	BDBG_MSG(("This API is valid only for SAGE 3X and later binary"));
+
+	return BERR_SUCCESS;
+}
+#else
 /* Install a platform.
  * SAGE side Platform/TA can by dynamically loaded from the Host.
  * Host application can use this API to install any Platform/TA on the SAGE side.
@@ -1809,6 +1877,100 @@ leave:
     return rc;
 }
 
+BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
+                                        SRAI_RequestRecvCallback callback)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_InOutContainer *container = NULL;
+    BSAGElib_InOutContainer *callbackReqContainer = NULL;
+    BSAGElib_RpcMessage *message = NULL;
+    NEXUS_SageCommand command;
+
+    BDBG_ENTER(SRAI_Platform_EnableCallbacks);
+
+    /* Run defer/lazy init  */
+    if (_srai_enter()) {
+        rc = BERR_NOT_INITIALIZED;
+        goto end;
+    }
+
+    if (callback == NULL) {
+        BDBG_ERR(("%s: missing callback pointer", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    callbackReqContainer = SRAI_Container_Allocate();
+    if (callbackReqContainer == NULL) {
+        BDBG_ERR(("%s: cannot allocate container for callback requests", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+
+    container = SRAI_Container_Allocate();
+    if (container == NULL) {
+        BDBG_ERR(("%s: cannot allocate container", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+
+    message = (BSAGElib_RpcMessage *)SRAI_Memory_Allocate(sizeof(*message), SRAI_MemoryType_Shared);
+    if (message == NULL) {
+        BDBG_ERR(("%s: cannot allocate Rpc message", __FUNCTION__));
+        rc = BERR_OUT_OF_DEVICE_MEMORY;
+        goto end;
+    }
+    BKNI_Memset(message, 0, sizeof(*message));
+
+    container->blocks[0].data.ptr = (uint8_t *)message;
+    container->blocks[0].len = sizeof(*message);
+    container->blocks[1].data.ptr = (uint8_t *)callbackReqContainer;
+    container->blocks[1].len = sizeof(*callbackReqContainer);
+
+    if (!_srai_platform_acquire(platform, 0)) {
+        BDBG_ERR(("%s: cannot acquire the platform", __FUNCTION__));
+        rc = BERR_NOT_INITIALIZED;
+        goto end;
+    }
+
+    /* setup ModuleProcessCommand command */
+    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
+    command.platformId = platform->id;
+    command.moduleId = 0;
+    command.moduleCommandId = 0;
+
+    SRAI_DUMP_COMMAND("PlatformEnableCallbacks", &command);
+
+    rc = _srai_nexus_sage_command(&platform->sync, &command, container);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: nexus_sage_command failure %x '%s'",
+                  __FUNCTION__, rc, BSAGElib_Tools_ReturnCodeToString(rc)));
+        goto end_locked;
+    }
+
+    /* Success */
+    platform->callbacks.requestRecvCallback = callback;
+    platform->callbacks.container = callbackReqContainer;
+    container = NULL;
+    platform->callbacks.message = message;
+    message = NULL;
+
+end_locked:
+    BKNI_ReleaseMutex(platform->sync.mutex);
+end:
+    if (container) {
+        SRAI_Container_Free(container);
+    }
+    if (message) {
+        SRAI_Memory_Free((uint8_t *)message);
+    }
+
+    _srai_leave();
+    BDBG_LEAVE(SRAI_Platform_EnableCallbacks);
+    return rc;
+}
+#endif
+
 /* Open a platform.
  * A platform can be opened from multiple applications at a time,
  * thus initialization might already have been done.
@@ -1995,99 +2157,6 @@ end:
     BDBG_LEAVE(SRAI_Platform_Init);
     return rc;
 }
-
-BERR_Code SRAI_Platform_EnableCallbacks(SRAI_PlatformHandle platform,
-                                        SRAI_RequestRecvCallback callback)
-{
-    BERR_Code rc = BERR_SUCCESS;
-    BSAGElib_InOutContainer *container = NULL;
-    BSAGElib_InOutContainer *callbackReqContainer = NULL;
-    BSAGElib_RpcMessage *message = NULL;
-    NEXUS_SageCommand command;
-
-    BDBG_ENTER(SRAI_Platform_EnableCallbacks);
-
-    /* Run defer/lazy init  */
-    if (_srai_enter()) {
-        rc = BERR_NOT_INITIALIZED;
-        goto end;
-    }
-
-    if (callback == NULL) {
-        BDBG_ERR(("%s: missing callback pointer", __FUNCTION__));
-        rc = BERR_INVALID_PARAMETER;
-        goto end;
-    }
-
-    callbackReqContainer = SRAI_Container_Allocate();
-    if (callbackReqContainer == NULL) {
-        BDBG_ERR(("%s: cannot allocate container for callback requests", __FUNCTION__));
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        goto end;
-    }
-
-    container = SRAI_Container_Allocate();
-    if (container == NULL) {
-        BDBG_ERR(("%s: cannot allocate container", __FUNCTION__));
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        goto end;
-    }
-
-    message = (BSAGElib_RpcMessage *)SRAI_Memory_Allocate(sizeof(*message), SRAI_MemoryType_Shared);
-    if (message == NULL) {
-        BDBG_ERR(("%s: cannot allocate Rpc message", __FUNCTION__));
-        rc = BERR_OUT_OF_DEVICE_MEMORY;
-        goto end;
-    }
-    BKNI_Memset(message, 0, sizeof(*message));
-
-    container->blocks[0].data.ptr = (uint8_t *)message;
-    container->blocks[0].len = sizeof(*message);
-    container->blocks[1].data.ptr = (uint8_t *)callbackReqContainer;
-    container->blocks[1].len = sizeof(*callbackReqContainer);
-
-    if (!_srai_platform_acquire(platform, 0)) {
-        BDBG_ERR(("%s: cannot acquire the platform", __FUNCTION__));
-        rc = BERR_NOT_INITIALIZED;
-        goto end;
-    }
-
-    /* setup ModuleProcessCommand command */
-    command.systemCommandId = BSAGElib_SystemCommandId_ePlatformEnableCallbacks;
-    command.platformId = platform->id;
-    command.moduleId = 0;
-    command.moduleCommandId = 0;
-
-    SRAI_DUMP_COMMAND("PlatformEnableCallbacks", &command);
-
-    rc = _srai_nexus_sage_command(&platform->sync, &command, container);
-    if (rc != BERR_SUCCESS) {
-        BDBG_ERR(("%s: nexus_sage_command failure %x '%s'",
-                  __FUNCTION__, rc, BSAGElib_Tools_ReturnCodeToString(rc)));
-        goto end_locked;
-    }
-
-    /* Success */
-    platform->callbacks.requestRecvCallback = callback;
-    platform->callbacks.container = callbackReqContainer;
-    container = NULL;
-    platform->callbacks.message = message;
-    message = NULL;
-
-end_locked:
-    BKNI_ReleaseMutex(platform->sync.mutex);
-end:
-    if (container) {
-        SRAI_Container_Free(container);
-    }
-    if (message) {
-        SRAI_Memory_Free((uint8_t *)message);
-    }
-
-    BDBG_LEAVE(SRAI_Platform_EnableCallbacks);
-    return rc;
-}
-
 
 /* Initialize a module instance. This module identified by moduleId has to be
  * available within the platform associated with given PlatformHandle.
@@ -2586,4 +2655,13 @@ BERR_Code SRAI_Management_Unregister(SRAI_ManagementInterface *interface)
     _srai_leave();
     BDBG_LEAVE(SRAI_Management_Unregister);
     return rc;
+}
+
+/* cleanup: run enter/leave logic to clean SRAI if nothing else is running */
+void SRAI_Cleanup(void)
+{
+    BDBG_ENTER(SRAI_Cleanup);
+    _srai_enter();
+    _srai_leave();
+    BDBG_LEAVE(SRAI_Cleanup);
 }

@@ -107,7 +107,7 @@ static void BVC5_P_DumpInternalJob(BVC5_P_InternalJob *psJob)
          case BVC5_JobType_eBin:
          {
             BVC5_JobBin *pJobBin = (BVC5_JobBin *)pJobBase;
-            BKNI_Printf("Num Sub Jobs\t=\t%d, Offset = %#x\n", pJobBin->uiNumSubJobs, pJobBin->uiOffset);
+            BKNI_Printf("Num Sub Jobs\t=\t%d\n", pJobBin->uiNumSubJobs);
             for (uiIndex=0; uiIndex < pJobBin->uiNumSubJobs; ++uiIndex)
                BKNI_Printf("\tStart = %#x, End = %#x\n", pJobBin->uiStart[uiIndex], pJobBin->uiEnd[uiIndex]);
          }

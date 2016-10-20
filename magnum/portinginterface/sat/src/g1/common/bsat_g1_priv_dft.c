@@ -102,6 +102,33 @@ void BSAT_g1_P_DftSetState_isr(BSAT_ChannelHandle h, uint8_t state)
 
 
 /******************************************************************************
+ BSAT_g1_P_DftSearchCarrierAve_isr()
+******************************************************************************/
+BERR_Code BSAT_g1_P_DftSearchCarrierAve_isr(BSAT_ChannelHandle h)
+{
+   BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
+
+   hChn->count1++;
+   hChn->sum += (int32_t)(hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE]);
+   /* BKNI_Printf("BSAT_g1_P_DftSearchCarrierAve_isr: freq estimate #%d = %d\n", hChn->count1, hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE]); */
+   if (hChn->count1 >= 4)
+   {
+      hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = (uint32_t)((int32_t)(hChn->sum / (int32_t)hChn->count1));
+      /* BKNI_Printf("BSAT_g1_P_DftSearchCarrierAve_isr: final freq estimate = %d, count1=%d, sum=%d\n", hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE], hChn->count1, hChn->sum); */
+      hChn->nextFunct = hChn->next2Funct;
+      BSAT_g1_P_DftSetState_isr(h, 5); /* do final tune */
+   }
+   else
+   {
+      hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = 0;
+      hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] = BSAT_g1_CONFIG_DFT_STATUS_START;
+      BSAT_g1_P_DftSetState_isr(h, 0);
+   }
+   return BSAT_g1_P_DftSearchCarrierStateMachine_isr(h);
+}
+
+
+/******************************************************************************
  BSAT_g1_P_DftSearchCarrier_isr()
 ******************************************************************************/
 BERR_Code BSAT_g1_P_DftSearchCarrier_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT funct)
@@ -114,12 +141,21 @@ BERR_Code BSAT_g1_P_DftSearchCarrier_isr(BSAT_ChannelHandle h, BSAT_g1_FUNCT fun
    hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] = BSAT_g1_CONFIG_DFT_STATUS_START;
 
    if (hChn->miscSettings.bBypassDft)
-      BSAT_g1_P_DftSetState_isr(h, 7);
+      BSAT_g1_P_DftSetState_isr(h, 5);
+   else if (BSAT_MODE_IS_DCII(hChn->acqSettings.mode))
+   {
+      if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
+         return BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(h);
+      else
+      {
+         hChn->next2Funct = funct;
+         hChn->nextFunct = BSAT_g1_P_DftSearchCarrierAve_isr;
+         hChn->count1 = 0;
+         hChn->sum = 0;
+      }
+   }
 
-   if ((hChn->acqSettings.options & BSAT_ACQ_OQPSK) && (BSAT_MODE_IS_DCII(hChn->acqSettings.mode)))
-      return BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(h);
-   else
-      return BSAT_g1_P_DftSearchCarrierStateMachine_isr(h);
+   return BSAT_g1_P_DftSearchCarrierStateMachine_isr(h);
 }
 
 
@@ -161,7 +197,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             {
                BSAT_g1_P_DftSetState_isr(h, 1);
 #if BSAT_DEBUG_DFT
-               BDBG_ERR(("\nDFT(coarse): StepSize=%d", hChn->tunerIfStepSize));
+               BKNI_Printf("\nDFT(coarse): StepSize=%d\n", hChn->tunerIfStepSize);
 #endif
             }
             break;
@@ -214,7 +250,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             }
 
 #if BSAT_DEBUG_DFT
-            BDBG_ERR(("%d Hz: [%x,%x] %08X %08X %08X %08X %08X", hChn->tunerIfStep, start, stop, peak_pow, total_pow, peak_bin, chan_lf_int));
+            BKNI_Printf("%d Hz: [%x,%x] %08X %08X %08X %08X\n", hChn->tunerIfStep, start, stop, peak_pow, total_pow, peak_bin, chan_lf_int);
 #endif
 
             if (peak_pow > (total_pow>>2))
@@ -226,7 +262,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             else
                val = 0;
 #if BSAT_DEBUG_DFT
-            BDBG_MSG(("%d Hz: max_peak=0x%08X, sum_total=0x%08X, pow=%u", hChn->tunerIfStep, hChn->maxCount1, hChn->count2, val));
+            BKNI_Printf("%d Hz: max_peak=0x%08X, sum_total=0x%08X, pow=%u\n", hChn->tunerIfStep, hChn->maxCount1, hChn->count2, val);
 #endif
             if (val > hChn->maxCount2)
             {
@@ -238,7 +274,12 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 
          case 4:
             if (hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] & BSAT_g1_CONFIG_DFT_STATUS_FINE)
-               BSAT_g1_P_DftSetState_isr(h, 5);
+            {
+               if (BSAT_MODE_IS_DCII(hChn->acqSettings.mode))
+                  BSAT_g1_P_DftSetState_isr(h, 0xFF); /* dont do final tune yet in DCII since we are going to do averaging */
+               else
+                  BSAT_g1_P_DftSetState_isr(h, 5);
+            }
             else
             {
                BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_BL_BRI, 0); /* reset baud loop integrator */
@@ -258,7 +299,7 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
                hChn->maxCount2 = 0;
                BSAT_g1_P_DftSetState_isr(h, 1);
 #if BSAT_DEBUG_DFT
-               BDBG_ERR(("DFT(fine): coarse_est=%d, StepSize=%d", hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE], hChn->tunerIfStepSize));
+               BKNI_Printf("DFT(fine): coarse_est=%d, StepSize=%d\n", hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE], hChn->tunerIfStepSize);
 #endif
             }
             break;
@@ -266,13 +307,12 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
          case 5:
             hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] |= BSAT_g1_CONFIG_DFT_STATUS_DONE;
             BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eFreqEstDone));
-            BDBG_MSG(("DFT freq estimate (chan %d) = %d", h->channel, hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE]));
-            hChn->tunerIfStep = 0;
             if (hChn->miscSettings.bBypassDft)
-            {
-               BDBG_WRN(("DFT: did not transfer freq offset to the LO"));
-            }
-            else if (hChn->miscSettings.bPreserveCommandedTunerFreq)
+               hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = 0;
+
+            BDBG_MSG(("DFT freq estimate (chan %d) = %d", h->channel, (int32_t)hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE]));
+            hChn->tunerIfStep = 0;
+            if (hChn->miscSettings.bPreserveCommandedTunerFreq)
             {
                BDBG_MSG(("DFT: transferring freq offset to FLIF"));
                BSAT_CHK_RETCODE(BSAT_g1_P_SetFlifOffset_isr(h, (int32_t)(hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE])));
@@ -286,15 +326,13 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
          case 6:
             BSAT_g1_P_DftSetState_isr(h, 7);
             /* tuner settling delay */
-            return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 1000 /*20000*/, BSAT_g1_P_DftSearchCarrierStateMachine_isr);
+            return BSAT_g1_P_EnableTimer_isr(h, BSAT_TimerSelect_eBaudUsec, 1000, BSAT_g1_P_DftSearchCarrierStateMachine_isr);
 
          case 7:
             BSAT_CHK_RETCODE(BSAT_g1_P_LogTraceBuffer_isr(h, BSAT_TraceEvent_eRetuneDone));
-
 #ifdef BSAT_HAS_WFE
             BSAT_g1_P_SetNotch_isr(h);
 #endif
-
             if (hChn->miscSettings.bPreserveCommandedTunerFreq == false)
                BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLIF, 0);
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_CL_FLI, 0);
@@ -322,96 +360,97 @@ BERR_Code BSAT_g1_P_DftSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
 {
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
-   BERR_Code retCode;
-   uint32_t peak_pow, total_pow, peak_bin, P_hi, P_lo, Q_hi, Q_lo;
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t peak_pow, peak_bin, P_hi, P_lo, Q_hi, Q_lo;
+#if BSAT_DEBUG_DFT
+   uint32_t total_pow;
+#endif
+   int32_t sval;
    uint8_t state;
 
    while (1)
    {
       state = (uint8_t)(hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] & BSAT_g1_CONFIG_DFT_STATUS_STATE);
-      if (state > 3)
-         break;
-
       switch (state)
       {
          case 0:
             hChn->configParam[BSAT_g1_CONFIG_DFT_STATUS] |= BSAT_g1_CONFIG_DFT_STATUS_OQPSK;
 
-            if (hChn->acqSettings.symbolRate > 11000000)
-               hChn->tunerIfStepSize = 3000000; /* 1.5MHz filter * 2 */
-            else if (hChn->acqSettings.symbolRate > 4800000)
-               hChn->tunerIfStepSize = 2600000; /* 1.3MHz filter * 2 */
-            else
-               hChn->tunerIfStepSize = 2000000; /* 1.0MHz filter * 2 */
-
-            hChn->count3 = 0; /* count3 = if step num */
-            hChn->count2 = 0; /* count2 = max snr */
+            /* TBD: do not enable any front end decimation filters */
+            hChn->count1 = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_FE_FILTCTL); /* count1 = previous FILTCTL */
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_FILTCTL, (hChn->count1 & 0xFFFFFF00) | 0xDF);
+            hChn->maxCount1 = 0; /* maxCount1 = peakBin_Across_Freq */
+            hChn->maxCount2 = 0; /* maxCount2 = peakPwr_Across_Freq */
+            hChn->tunerIfStepSize = 1000000;
+            hChn->tunerIfStep = -(hChn->searchRange) - 2*(hChn->tunerIfStepSize);
             BSAT_g1_P_DftSetState_isr(h, 1);
             break;
 
          case 1:
-            if (hChn->count3)
-               hChn->tunerIfStep = (hChn->tunerIfStepSize >> 1) + (((hChn->count3 - 1) >> 1) * hChn->tunerIfStepSize);
-            else
-               hChn->tunerIfStep = 0;
-
+            hChn->tunerIfStep += hChn->tunerIfStepSize;
             /* check for done */
             if (hChn->tunerIfStep > (int32_t)(hChn->searchRange))
-               BSAT_g1_P_DftSetState_isr(h, 7);
+               BSAT_g1_P_DftSetState_isr(h, 4);
             else
             {
-               if ((hChn->count3 & 1) == 0)
-                  hChn->tunerIfStep = -(hChn->tunerIfStep);
-
-               BSAT_CHK_RETCODE(BSAT_g1_P_SetFlifOffset_isr(h, hChn->tunerIfStep));
                BSAT_g1_P_DftSetState_isr(h, 2);
+#if 1
+               BSAT_CHK_RETCODE(BSAT_g1_P_SetFlifOffset_isr(h, hChn->tunerIfStep));
+#else
+               return BSAT_g1_P_TunerQuickTune_isr(h, BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr);
+#endif
             }
             break;
 
          case 2:
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_START, 0);
-            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_END, 0x7FF);
-            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL0, 0x02);
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_RANGE_END, 511);
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL0, 0x02); /* dft soft reset */
             BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL0, 0);
-            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL1, 0xD37); /* input to DFT is ADC, offset QPSK */
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_DFT_CTRL1, 0xEF7);
             BSAT_CHK_RETCODE(BSAT_g1_P_DftSetDdfsFcw_isr(h));
             BSAT_g1_P_DftSetState_isr(h, 3);
             return BSAT_g1_P_DftStartAndWaitForDone_isr(h, BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr);
 
          case 3:
             peak_pow = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_PEAK_POW);
+            peak_bin = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_PEAK_BIN);
+#if BSAT_DEBUG_DFT
             total_pow = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_TOTAL_POW);
-#if BSAT_DEBUG_DFT
-            BDBG_MSG(("DFT OQPSK: %d Hz: peak_pow=%u, total_pow=%u", hChn->tunerIfStep, peak_pow, total_pow));
 #endif
-            BMTH_HILO_32TO64_Mul(peak_pow, 2048, &P_hi, &P_lo);
-            BMTH_HILO_64TO64_Div32(P_hi, P_lo, total_pow, &Q_hi, &Q_lo);
 
-            if (Q_lo > hChn->count2)
+            if (peak_pow > hChn->maxCount2)
             {
-               hChn->count2 = Q_lo;
-               peak_bin = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_PEAK_BIN);
-               peak_bin &= 0x00000FFF;
-               if (peak_bin < 0x400)
-               {
-                  BMTH_HILO_32TO64_Mul(hChn->sampleFreq, peak_bin, &P_hi, &P_lo);
-                  BMTH_HILO_64TO64_Div32(P_hi, P_lo, 65536, &Q_hi, &Q_lo);
-                  hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = Q_lo;
-               }
-               else
-               {
-                  BMTH_HILO_32TO64_Mul(hChn->sampleFreq, 2048 - peak_bin, &P_hi, &P_lo);
-                  BMTH_HILO_64TO64_Div32(P_hi, P_lo, 65536, &Q_hi, &Q_lo);
-                  hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = (int32_t)-Q_lo;
-               }
-#if BSAT_DEBUG_DFT
-               BDBG_MSG(("   -> count2=%u, bin=%u, Q_lo=%u, delta=%d", hChn->count2, peak_bin, Q_lo, hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE]));
-#endif
-               hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] += hChn->tunerIfStep;
+               hChn->maxCount2 = peak_pow;
+               hChn->maxCount1 = peak_bin;
+               hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = (uint32_t)((int32_t)hChn->tunerIfStep);
             }
-            hChn->count3++;
+
+#if BSAT_DEBUG_DFT
+            BKNI_Printf("DFT OQPSK: %d Hz: peak_pow=%u, total_pow=%u, peak_bin=%u\n", hChn->tunerIfStep, peak_pow, total_pow, peak_bin);
+#endif
             BSAT_g1_P_DftSetState_isr(h, 1);
             break;
+
+         case 4:
+            /* BKNI_Printf("peak_offset=%d, peakBin_Across_Freq=%d, peakPwr_Across_Freq=%u\n", (int32_t)hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE], hChn->maxCount1, hChn->maxCount2); */
+            if (hChn->maxCount1 >= 1024)
+            {
+               BMTH_HILO_32TO64_Mul(2048 - hChn->maxCount1, hChn->sampleFreq, &P_hi, &P_lo);
+               BMTH_HILO_64TO64_Div32(P_hi, P_lo, 2*16*2048, &Q_hi, &Q_lo);
+               sval = -((int32_t)Q_lo);
+            }
+            else
+            {
+               BMTH_HILO_32TO64_Mul(hChn->maxCount1, hChn->sampleFreq, &P_hi, &P_lo);
+               BMTH_HILO_64TO64_Div32(P_hi, P_lo, 2*16*2048, &Q_hi, &Q_lo);
+               sval = (int32_t)Q_lo;
+            }
+
+            hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] = (uint32_t)((int32_t)hChn->configParam[BSAT_g1_CONFIG_DFT_FREQ_ESTIMATE] + sval);
+            BSAT_g1_P_DftSetState_isr(h, 5);
+            BSAT_g1_P_WriteRegister_isrsafe(h, BCHP_SDS_FE_FILTCTL, hChn->count1); /* restore FILTCTL */
+            return BSAT_g1_P_DftSearchCarrierStateMachine_isr(h);
 
          default:
             /* should never get here */
@@ -419,10 +458,6 @@ BERR_Code BSAT_g1_P_DftOqpskSearchCarrierStateMachine_isr(BSAT_ChannelHandle h)
             BDBG_ASSERT(0);
       }
    }
-
-   /* state should be 7 at this point */
-   BDBG_ASSERT(state == 7);
-   retCode = BSAT_g1_P_DftSearchCarrierStateMachine_isr(h);
 
    done:
    return retCode;
@@ -455,7 +490,7 @@ void BSAT_g1_P_DftDone_isr(void *p, int int_id)
    BSAT_g1_P_ChannelHandle *hChn = (BSAT_g1_P_ChannelHandle *)h->pImpl;
    uint32_t val;
 
-   BSAT_g1_P_IncrementInterruptCounter_isr(h, int_id);
+   BSTD_UNUSED(int_id);
 
    val = BSAT_g1_P_ReadRegister_isrsafe(h, BCHP_SDS_DFT_STATUS);
    if ((val & 0x06) == 0x06)
@@ -518,6 +553,9 @@ BERR_Code BSAT_g1_P_DftStartAndWaitForDone_isr(BSAT_ChannelHandle h, BSAT_g1_FUN
    if (i)
       timeout = 5000 << i;
 #endif
+   if (hChn->acqSettings.options & BSAT_ACQ_OQPSK)
+      timeout = 50000;
+
 
    /* start the DFT engine */
    retry:

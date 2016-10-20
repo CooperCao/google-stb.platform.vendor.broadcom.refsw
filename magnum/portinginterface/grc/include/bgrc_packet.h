@@ -59,12 +59,12 @@ typedef struct BGRC_P_PacketContext *BGRC_PacketContext_Handle;
 /***************************************************************************/
 typedef struct
 {
-    BMEM_Handle packet_buffer_heap;      /* heap for packet buffer allocations */
+    BMMA_Heap_Handle packet_buffer_heap; /* heap for packet buffer allocations */
     size_t packet_buffer_size;           /* size of packet ring buffer to allocate */
     size_t packet_buffer_store;          /* size of packet buffer to store before submitting */
     void *private_data;                  /* ptr passed back to the user when getting status */
     struct {
-        uint32_t offset;                 /* bounded memory offset (0=no bounds check) */
+        BSTD_DeviceOffset offset;        /* bounded memory offset (0=no bounds check) */
         size_t size;                     /* bounded memory size  (0=no bounds check)*/
     } memory_bounds;                     /* verify blits do not violate memory bounds */
     bool secure;

@@ -57,6 +57,8 @@ enum v3d_fence_status v3d_platform_fence_wait_timeout(int fence,
 
 void v3d_platform_fence_close(int fence);
 
+extern bool v3d_platform_explicit_sync(void);
+
 /* Debug functions. These may be implemented as no-ops! */
 extern void v3d_platform_set_debug_callback(v3d_debug_callback_t callback, void *p);
 extern void v3d_platform_set_fragment_shader_debug(bool enabled);

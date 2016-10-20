@@ -2181,6 +2181,9 @@ static void NEXUS_Astm_P_DecoderLifecycleEventHandler(void * context)
                     BDBG_MSG(("%p: Auto-starting", (void *)astmContext->astm));
                     NEXUS_Astm_P_Start(astmContext->astm);
                 }
+                else {
+                    NEXUS_Astm_P_SetDependencyAstmBehavior(astmContext->astm, astmContext->astm->settings.enabled);
+                }
             }
             else /* this presenter was just stopped, check others */
             {

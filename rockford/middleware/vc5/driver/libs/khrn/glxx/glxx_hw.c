@@ -39,10 +39,9 @@ Functions common to OpenGL ES 1.1 and OpenGL ES 2.0
 #include "libs/core/v3d/v3d_cl.h"
 #include "libs/core/v3d/v3d_vpm.h"
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 LOG_DEFAULT_CAT("glxx_hw")
-
-#define IU_MAX 64
 
 /*************************************************************
  Static function forwards
@@ -50,8 +49,8 @@ LOG_DEFAULT_CAT("glxx_hw")
 
 static bool write_gl_shader_record(
    GLXX_HW_RENDER_STATE_T              *rs,
+   GLXX_LINK_RESULT_DATA_T             *link_data,
    const GLXX_SERVER_STATE_T           *state,
-   const GLXX_LINK_RESULT_DATA_T       *data,
    const GLXX_ATTRIB_CONFIG_T          *attr_cfgs,
    const GLXX_VERTEX_BUFFER_CONFIG_T   *vb_cfgs,
    const GLXX_VERTEX_POINTERS_T        *vb_pointers);
@@ -827,22 +826,10 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
    uint32_t backend_mask = fb->ms ? ~0u : ~(uint32_t)GLXX_SAMPLE_OPS_M;
    uint32_t backend = state->statebits.backend & backend_mask;
 
-   if (!IS_GL_11(state)) {
+   if (!IS_GL_11(state))
+   {
       const GLSL_PROGRAM_T *p = gl20_program_common_get(state)->linked_glsl_program;
-      if (glsl_program_has_stage(p, SHADER_GEOMETRY)) {
-         if      (p->ir->gs_out == GS_OUT_POINTS)     draw_mode = GL_POINTS;
-         else if (p->ir->gs_out == GS_OUT_LINE_STRIP) draw_mode = GL_LINES;
-         else {
-            assert(p->ir->gs_out == GS_OUT_TRI_STRIP);
-            draw_mode = GL_TRIANGLES;
-         }
-      } else if (glsl_program_has_stage(p, SHADER_TESS_EVALUATION)) {
-         assert(draw_mode == GL_PATCHES);
-
-         if      (p->ir->tess_point_mode)            draw_mode = GL_POINTS;
-         else if (p->ir->tess_mode == TESS_ISOLINES) draw_mode = GL_LINES;
-         else                                        draw_mode = GL_TRIANGLES;
-      }
+      draw_mode = glxx_get_used_draw_mode(p, draw_mode);
    }
 
    /* Set the primitive type */
@@ -906,6 +893,8 @@ static uint32_t compute_backend_shader_key(const GLXX_SERVER_STATE_T *state,
       backend |= (fb_gadget << shift);
    }
 
+   backend |= glxx_advanced_blend_eqn(state) << GLXX_ADV_BLEND_S;
+
    return backend;
 }
 
@@ -940,6 +929,12 @@ static bool blend_cfgs_equal(const glxx_blend_cfg *a, const glxx_blend_cfg *b)
 }
 #endif
 
+static v3d_blend_eqn_t convert_blend_eqn(glxx_blend_eqn_t eq)
+{
+   assert(eq < GLXX_BLEND_EQN_INVALID);
+   return (v3d_blend_eqn_t)eq;
+}
+
 static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
 #if V3D_HAS_PER_RT_BLEND
    , uint32_t rt_mask
@@ -947,10 +942,10 @@ static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
    )
 {
    v3d_cl_blend_cfg(instr,
-      cfg->alpha_eqn,
+      convert_blend_eqn(cfg->alpha_eqn),
       cfg->src_alpha,
       cfg->dst_alpha,
-      cfg->color_eqn,
+      convert_blend_eqn(cfg->color_eqn),
       cfg->src_rgb,
       cfg->dst_rgb,
 #if V3D_HAS_PER_RT_BLEND
@@ -962,6 +957,8 @@ static void write_blend_cfg_instr(uint8_t **instr, const glxx_blend_cfg *cfg
 static void write_blend_cfg(uint8_t **instr,
    const GLXX_HW_RENDER_STATE_T *rs, const GLXX_SERVER_STATE_T *state)
 {
+   static glxx_blend_cfg   dummy = { 0, };
+
 #if V3D_HAS_PER_RT_BLEND
    uint32_t done_mask = 0;
    for (unsigned i = 0; i != rs->installed_fb.rt_count; ++i)
@@ -977,13 +974,18 @@ static void write_blend_cfg(uint8_t **instr,
              * ensuring they always match the config for the first RT can
              * reduce the number of binned instructions */
             rt_mask |= gfx_mask(V3D_MAX_RENDER_TARGETS - rs->installed_fb.rt_count) << rs->installed_fb.rt_count;
-         write_blend_cfg_instr(instr, &state->blend.rt_cfgs[i], rt_mask);
+
+         bool not_advanced = state->blend.rt_cfgs[i].color_eqn < GLXX_ADV_BLEND_EQN_BIT;
+
+         write_blend_cfg_instr(instr,  not_advanced ? &state->blend.rt_cfgs[i] : &dummy, rt_mask);
          done_mask |= rt_mask;
       }
    }
    assert(done_mask == gfx_mask(V3D_MAX_RENDER_TARGETS));
 #else
-   write_blend_cfg_instr(instr, &state->blend.cfg);
+   bool not_advanced = state->blend.cfg.color_eqn < GLXX_ADV_BLEND_EQN_BIT;
+
+   write_blend_cfg_instr(instr, not_advanced ? &state->blend.cfg : &dummy);
 #endif
 }
 
@@ -1252,9 +1254,12 @@ static bool do_changed_cfg(
 
       /* Switch blending off if logic_op is enabled */
       cfg_bits.blend = !(state->gl11.statebits.f_enable & GL11_LOGIC_M);
+      /* Switch blending off if advanced blending is enabled */
+      cfg_bits.blend = cfg_bits.blend && !glxx_advanced_blend_eqn_set(state);
 #if !V3D_HAS_PER_RT_BLEND
       cfg_bits.blend = cfg_bits.blend && state->blend.enable;
 #endif
+
       cfg_bits.stencil = stencil_test;
 
       cfg_bits.front_prims = !state->caps.cull_face || enable_front(state->cull_mode);
@@ -1405,63 +1410,6 @@ bool glxx_is_stencil_updated(GLXX_SERVER_STATE_T *state) {
    return update_front || update_back;
 }
 
-
-///////////
-
-static bool begin_tf_specs(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
-                           const GLXX_LINK_RESULT_DATA_T *link_data)
-{
-   const GLXX_PROGRAM_TFF_POST_LINK_T *ptf = &gl20_program_common_get(state)->transform_feedback;
-
-#if V3D_HAS_NEW_TF
-   // Enable TF buffers & send specs
-   int size = V3D_CL_TRANSFORM_FEEDBACK_BUFFER_SIZE * ptf->addr_count +
-              V3D_CL_TRANSFORM_FEEDBACK_SPECS_SIZE +
-              V3D_TF_SPEC_PACKED_SIZE * ptf->spec_count;
-#else
-   // Enable tf streams
-   int size = V3D_CL_TRANSFORM_FEEDBACK_ENABLE_SIZE +
-              V3D_TF_SPEC_PACKED_SIZE * ptf->spec_count +
-              sizeof(v3d_addr_t) * ptf->addr_count;
-#endif
-
-   uint8_t *instr = khrn_fmem_cle(&rs->fmem, size);
-   if (!instr) return false;
-
-   bool point_size_used = (link_data->flags & 1) == 1;
-   glxx_tf_emit_spec(state, rs, &instr, point_size_used);
-
-   return true;
-}
-
-static bool finish_tf_specs(GLXX_SERVER_STATE_T *state, KHRN_FMEM_T *fmem)
-{
-#if V3D_HAS_NEW_TF
-   const GLXX_PROGRAM_TFF_POST_LINK_T *ptf = &gl20_program_common_get(state)->transform_feedback;
-   int size = V3D_CL_TRANSFORM_FEEDBACK_BUFFER_SIZE * ptf->addr_count +
-              V3D_CL_TRANSFORM_FEEDBACK_SPECS_SIZE;
-
-   uint8_t *instr = khrn_fmem_cle(fmem, size);
-   if (!instr) return false;
-
-   for(unsigned i = 0; i < ptf->addr_count; i += 1)
-   {
-      v3d_cl_transform_feedback_buffer(&instr, i, 0, 0);
-   }
-   v3d_cl_transform_feedback_specs(&instr, 0, false);
-   return true;
-#else
-   int size = V3D_CL_TRANSFORM_FEEDBACK_ENABLE_SIZE + 2;
-
-   uint8_t *instr = khrn_fmem_cle(fmem, size);
-   if (!instr) return false;
-
-   v3d_cl_transform_feedback_enable(&instr, 0, 0, 1);
-   v3d_cl_add_16(&instr, 0);
-   return true;
-#endif
-}
-
 static bool glxx_hw_draw_arrays_record(GLXX_SERVER_STATE_T *state,
       GLXX_HW_RENDER_STATE_T *rs,
       const GLXX_DRAW_T *draw,
@@ -1501,7 +1449,6 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
    const GLXX_ATTRIBS_MAX *attribs_max,
    const GLXX_STORAGE_T *indices)
 {
-   unsigned int max_index;
    v3d_addr_t indices_addr;
    v3d_prim_mode_t mode = convert_primitive_type(state, draw->mode);
    v3d_index_type_t index_type = convert_index_type(draw->index_type);
@@ -1517,12 +1464,10 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
    if (!instr)
       return false;
 
-   max_index = gfx_umin(draw->max_index, attribs_max->index);
-
    if (draw->basevertex || draw->baseinstance)
       v3d_cl_base_vertex_base_instance(&instr, draw->basevertex, draw->baseinstance);
 
-   indices_addr = khrn_fmem_lock_and_sync(&rs->fmem, indices->handle, GMEM_SYNC_CORE_READ, GMEM_SYNC_CORE_READ);
+   indices_addr = khrn_fmem_lock_and_sync(&rs->fmem, indices->handle, GMEM_SYNC_CLE_PRIMIND_READ, GMEM_SYNC_NONE);
    indices_addr += indices->offset;
 
    if (draw->instance_count > 1)
@@ -1534,7 +1479,7 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
          .prim_restart = state->caps.primitive_restart,
          .num_instances = draw->instance_count,
          .indices_addr = indices_addr,
-         .max_index = max_index};
+         .max_index = attribs_max->index};
       v3d_cl_indexed_instanced_prim_list_indirect(&instr, &indexed_instanced_prim_list);
    }
    else
@@ -1545,22 +1490,13 @@ static bool glxx_hw_draw_elements_record(GLXX_SERVER_STATE_T *state,
          .num_indices = draw->count,
          .prim_restart = state->caps.primitive_restart,
          .indices_addr = indices_addr,
-         .max_index = max_index,
-         .min_index = draw->min_index};
+         .max_index = attribs_max->index};
       v3d_cl_indexed_prim_list_indirect(&instr, &indexed_prim_list);
    }
 
    khrn_fmem_end_cle_exact(&rs->fmem, instr);
 
    return true;
-}
-
-static v3d_addr_t core_read_storage(GLXX_HW_RENDER_STATE_T *rs, const GLXX_STORAGE_T *storage)
-{
-   v3d_addr_t addr = khrn_fmem_lock_and_sync(
-      &rs->fmem, storage->handle, GMEM_SYNC_CORE_READ, GMEM_SYNC_CORE_READ);
-   addr += storage->offset;
-   return addr;
 }
 
 static bool glxx_hw_draw_indirect_record(
@@ -1575,7 +1511,9 @@ static bool glxx_hw_draw_indirect_record(
 
    v3d_prim_mode_t mode = convert_primitive_type(state, draw->mode);
    unsigned size = V3D_CL_INDIRECT_PRIMITIVE_LIMITS_SIZE;
-   v3d_addr_t indirect_addr = core_read_storage(rs, indirect);
+   v3d_addr_t indirect_addr = khrn_fmem_lock_and_sync(
+      &rs->fmem, indirect->handle, GMEM_SYNC_CLE_DRAWREC_READ, GMEM_SYNC_NONE);
+   indirect_addr += indirect->offset;
 
    // TODO v3d_cl_indirect_primitive_limits() can be omitted if buffers have not changed
    if (draw->is_draw_arrays)
@@ -1590,21 +1528,19 @@ static bool glxx_hw_draw_indirect_record(
    if (!draw->is_draw_arrays)
    {
       v3d_index_type_t index_type = convert_index_type(draw->index_type);
-      unsigned max_index = gfx_umin(draw->max_index, attribs_max->index);
       unsigned type_size = glxx_get_index_type_size(draw->index_type);
       unsigned num_indices = (indices->size - indices->offset) / type_size;
-      v3d_addr_t indices_addr = core_read_storage(rs, indices);
+      v3d_addr_t indices_addr = khrn_fmem_lock_and_sync(
+         &rs->fmem, indices->handle, GMEM_SYNC_CLE_PRIMIND_READ, GMEM_SYNC_NONE);
+      indices_addr += indices->offset;
 
-      // draw->max_index is based on index type (0xff, 0xfff, 0x00ffffff)
-      // attribs_max->index is maximum index allowed across all enabled attribs
-      v3d_cl_indirect_primitive_limits(&instr, max_index, attribs_max->instance, num_indices);
+      v3d_cl_indirect_primitive_limits(&instr, attribs_max->index, attribs_max->instance, num_indices);
       v3d_cl_indirect_indexed_prim_list(
          &instr, mode, index_type, draw->num_indirect, state->caps.primitive_restart,
          indirect_addr, indices_addr, draw->indirect_stride);
    }
    else
    {
-      // draw->max_index is vertex buffer size - 1 and we cannot index past it
       v3d_cl_indirect_primitive_limits(&instr, attribs_max->index, attribs_max->instance, 0);
       v3d_cl_indirect_vertex_array_prims(&instr, mode, draw->num_indirect, indirect_addr, draw->indirect_stride);
    }
@@ -1632,22 +1568,30 @@ bool glxx_hw_draw_triangles(
       const GLXX_VERTEX_POINTERS_T *vertex_pointers)
 {
    /* create or retrieve shaders from cache and setup attribs_live */
-   GLXX_LINK_RESULT_DATA_T const* link_data = glxx_get_shaders(state);
+   GLXX_LINK_RESULT_DATA_T* link_data = glxx_get_shaders(state);
    if (!link_data)
    {
       log_warn("[%s] shader compilation failed for %p", VCOS_FUNCTION, state);
       goto fail;
    }
 
+#if V3D_VER_AT_LEAST(3,3,0,0)
+   rs->fmem.br_info.bin_workaround_gfxh_1181    = false;
+   rs->fmem.br_info.render_workaround_gfxh_1181 = false;
+#else
    /* If using flow control, then driver needs to work around GFXH-1181. */
    rs->fmem.br_info.bin_workaround_gfxh_1181 |= link_data->bin_uses_control_flow;
    rs->fmem.br_info.render_workaround_gfxh_1181 |= link_data->render_uses_control_flow;
 
+   /* For z-prepass the bin-mode shaders are also used during rendering */
+   if (rs->z_prepass_allowed) rs->fmem.br_info.render_workaround_gfxh_1181 |= link_data->bin_uses_control_flow;
+#endif
+
    /* Write the shader record */
    bool ok = write_gl_shader_record(
       rs,
-      state,
       link_data,
+      state,
       attrib_config,
       vb_config,
       vertex_pointers);
@@ -1680,7 +1624,27 @@ bool glxx_hw_draw_triangles(
       }
    }
 
-   glxx_server_active_queries_install(state, rs);
+   if (!glxx_server_queries_install(state, rs))
+      goto fail;
+
+   bool point_size_used = (link_data->flags & GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA) ==
+      GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
+   if (!glxx_server_tf_install(state, rs, point_size_used))
+      goto fail;
+
+#if !V3D_HAS_NEW_TF
+   if (state->transform_feedback.in_use)
+   {
+      GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.bound;
+      const GLXX_PROGRAM_TFF_POST_LINK_T *ptf = &gl20_program_common_get(state)->transform_feedback;
+      unsigned prim_count = glxx_tf_update_stream_pos(tf, ptf,
+            draw->count, draw->instance_count);
+
+      GLXX_QUERY_T *query = state->queries.queries[GLXX_Q_PRIM_WRITTEN].active;
+      if (query)
+         query->result += prim_count;
+   }
+#endif
 
 #if !V3D_VER_AT_LEAST(3,3,0,0)
    // Instanced renders on 3.2 might encounter GFXH-1313.
@@ -1688,12 +1652,6 @@ bool glxx_hw_draw_triangles(
       rs->workaround_gfxh_1313 = true;
 #endif
 
-   bool use_tf = state->transform_feedback.in_use &&
-                 gl20_program_common_get(state)->transform_feedback.varying_count > 0;
-
-   if (use_tf)
-      if (!begin_tf_specs(state, rs, link_data))
-         goto fail;
 
    bool record;
    if (!draw->is_indirect)
@@ -1727,13 +1685,7 @@ bool glxx_hw_draw_triangles(
       goto fail;
    }
 
-   if (use_tf) {
-      v3d_prim_mode_t mode = convert_primitive_type(state, draw->mode);
-      glxx_tf_write_primitives(state, mode, draw->count, draw->instance_count);
-
-      if (!finish_tf_specs(state, &rs->fmem))
-         goto fail;
-   }
+   glxx_server_tf_install_post_draw(state, rs);
 
 #ifdef SIMPENROSE_WRITE_LOG
    // Increment batch count
@@ -1750,7 +1702,11 @@ bool glxx_hw_draw_triangles(
    }
 
    // save current GPU state following this draw
-   if (GLXX_MULTICORE_BIN_ENABLED && rs->do_multicore_bin && rs->tf_waited_count == 0)
+   if (GLXX_MULTICORE_BIN_ENABLED && rs->do_multicore_bin && rs->tf.waited_count == 0
+#if V3D_HAS_NEW_TF
+         && (khrn_fmem_get_common_persist(&rs->fmem)->prim_counts_query_list == NULL)
+#endif
+       )
    {
       if (!post_draw_journal(rs, attrib_config, vb_config, vertex_pointers, link_data, draw))
          goto fail;
@@ -2080,13 +2036,14 @@ v3d_addr_t glxx_hw_install_uniforms(
          /* Not having a buffer bound gives undefined behaviour - we crash */
          const GLXX_INDEXED_BINDING_POINT_T *binding;
          uint32_t binding_point = gl20_program_common_get(state)->ssbo_binding_point[u_value];
-         binding                = &state->ssbo.binding_points[binding_point];
-         if (binding->size > 0)
-            /* BindBufferRange specifies a size starting from offset, so ignore offset */
-            *ptr = binding->size;
-         else {
-            /* BindBufferBase doesn't allow an offset, so no need to worry here */
-            *ptr = binding->buffer.obj->size;
+         binding = &state->ssbo.binding_points[binding_point];
+         size_t size = glxx_indexed_binding_point_get_size(binding);
+         if (binding->offset < size)
+            *ptr = size - binding->offset;
+         else
+         {
+            /* if offset is beyond binding or buffer size, use 0 as size */
+            *ptr = 0;
          }
          break;
       }
@@ -2256,19 +2213,6 @@ static bool backend_uniform_address(
 
 static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, GLenum mode)
 {
-   #if GLXX_HAS_TNG
-   {
-      if (mode == GL_PATCHES)
-      {
-         assert(!state->transform_feedback.in_use); // TODO: HW doesn't support TF with patches.
-         assert((state->num_patch_vertices - 1u) < 32);
-         return V3D_PRIM_MODE_PATCH1-1u + state->num_patch_vertices;
-      }
-   }
-   #endif
-
-   assert(mode <= GL_TRIANGLE_FAN);
-
    static_assrt(GL_POINTS         == V3D_PRIM_MODE_POINTS    );
    static_assrt(GL_LINES          == V3D_PRIM_MODE_LINES     );
    static_assrt(GL_LINE_LOOP      == V3D_PRIM_MODE_LINE_LOOP );
@@ -2276,9 +2220,26 @@ static v3d_prim_mode_t convert_primitive_type(GLXX_SERVER_STATE_T const* state, 
    static_assrt(GL_TRIANGLES      == V3D_PRIM_MODE_TRIS      );
    static_assrt(GL_TRIANGLE_STRIP == V3D_PRIM_MODE_TRI_STRIP );
    static_assrt(GL_TRIANGLE_FAN   == V3D_PRIM_MODE_TRI_FAN   );
+
 #if V3D_HAS_NEW_TF
-   return mode;
+   switch (mode) {
+      case GL_LINES_ADJACENCY:          return V3D_PRIM_MODE_LINES_ADJ;
+      case GL_LINE_STRIP_ADJACENCY:     return V3D_PRIM_MODE_LINE_STRIP_ADJ;
+      case GL_TRIANGLES_ADJACENCY:      return V3D_PRIM_MODE_TRIS_ADJ;
+      case GL_TRIANGLE_STRIP_ADJACENCY: return V3D_PRIM_MODE_TRI_STRIP_ADJ;
+#if GLXX_HAS_TNG
+      case GL_PATCHES:
+         assert((state->num_patch_vertices - 1u) < 32);
+         return V3D_PRIM_MODE_PATCH1-1u + state->num_patch_vertices;
+#endif
+
+      default:
+          assert(mode <= GL_TRIANGLE_FAN);
+          return mode;
+   }
 #else
+   assert(mode <= GL_TRIANGLE_FAN);
+
    static_assrt((V3D_PRIM_MODE_LINES_TF - V3D_PRIM_MODE_POINTS_TF) == (GL_LINES - GL_POINTS));
    static_assrt((V3D_PRIM_MODE_TRIS_TF - V3D_PRIM_MODE_POINTS_TF) == (GL_TRIANGLES - GL_POINTS));
    return state->transform_feedback.in_use ? V3D_PRIM_MODE_POINTS_TF + mode : mode;
@@ -2306,52 +2267,26 @@ static v3d_index_type_t convert_index_type(GLenum type)
    }
 }
 
-// Packs a float attribute with given size and number of cs/vs reads into
-// ith attribute in shader record. Packed base points to first attribute.
-static void make_simple_float_shader_attr(V3D_SHADREC_GL_ATTR_T *attr,
-   int size, int cs_reads, int vs_reads, v3d_addr_t addr, int stride)
-{
-   attr->addr            = addr;
-   attr->size            = size;
-   attr->type            = V3D_ATTR_TYPE_FLOAT;
-   attr->signed_int      = false;
-   attr->normalised_int  = false;
-   attr->read_as_int     = false;
-   attr->cs_num_reads    = cs_reads;
-   attr->vs_num_reads    = vs_reads;
-   attr->divisor         = 0;
-   attr->stride          = stride;
-}
-
-/* Work around GFXH-1276. 0 varyings causes memory corruption. */
-#if !V3D_VER_AT_LEAST(3,3,0,0)
-static inline void workaround_gfxh_1276(V3D_SHADREC_GL_MAIN_T *record) {
-   /* This is more complicated for points, so for now skip the workaround */
-   if (record->num_varys == 0 && !record->point_size_included)
-      record->num_varys = 1;
-}
-#endif
-
 static bool write_gl_shader_record_defaults(
    v3d_addr_t*                      defaults_addr,
    KHRN_FMEM_T*                     fmem,
-   const GLXX_LINK_RESULT_DATA_T*   data,
+   const GLXX_LINK_RESULT_DATA_T*   link_data,
    const GLXX_ATTRIB_CONFIG_T*      attr_cfgs)
 {
    uint32_t *defaults = NULL;
    *defaults_addr = 0;
 
-   assert(data->attr_count <= GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
+   assert(link_data->attr_count <= GLXX_CONFIG_MAX_VERTEX_ATTRIBS);
 
    // Iterate backwards, we'll allocate space for all defaults
    // from the last default down when required.
-   for (unsigned n = data->attr_count; n-- != 0; )
+   for (unsigned n = link_data->attr_count; n-- != 0; )
    {
-      const GLXX_ATTRIB_CONFIG_T *attr_cfg = &attr_cfgs[data->attr[n].idx];
+      const GLXX_ATTRIB_CONFIG_T *attr_cfg = &attr_cfgs[link_data->attr[n].idx];
       if (attr_cfg->enabled)
       {
-         if (  data->attr[n].c_scalars_used > attr_cfg->size
-            || data->attr[n].v_scalars_used > attr_cfg->size )
+         if (  link_data->attr[n].c_scalars_used > attr_cfg->size
+            || link_data->attr[n].v_scalars_used > attr_cfg->size )
          {
             if (!defaults)
             {
@@ -2375,14 +2310,14 @@ static bool write_gl_shader_record_attribs(
    uint32_t*                           packed_attrs,
    v3d_addr_t                          defaults_addr,
    KHRN_FMEM_T*                        fmem,
-   const GLXX_LINK_RESULT_DATA_T*      data,
+   const GLXX_LINK_RESULT_DATA_T*      link_data,
    const GLXX_ATTRIB_CONFIG_T*         attr_cfgs,
    const GLXX_VERTEX_BUFFER_CONFIG_T*  vb_cfgs,
    const GLXX_VERTEX_POINTERS_T*       vb_pointers,
    const GLXX_GENERIC_ATTRIBUTE_T*     generic_attrs)
 {
    // Workaround GFXH-930, must have at least 1 attribute:
-   if (data->attr_count == 0)
+   if (link_data->attr_count == 0)
    {
       uint32_t *dummy_data = khrn_fmem_data(fmem, sizeof(uint32_t), V3D_ATTR_ALIGN);
       if (!dummy_data)
@@ -2407,16 +2342,16 @@ static bool write_gl_shader_record_attribs(
 
    unsigned cs_total_reads = 0;
    unsigned vs_total_reads = 0;
-   for (unsigned n = 0; n < data->attr_count; n++)
+   for (unsigned n = 0; n < link_data->attr_count; n++)
    {
-      unsigned cs_num_reads = data->attr[n].c_scalars_used;
-      unsigned vs_num_reads = data->attr[n].v_scalars_used;
+      unsigned cs_num_reads = link_data->attr[n].c_scalars_used;
+      unsigned vs_num_reads = link_data->attr[n].v_scalars_used;
       assert(cs_num_reads > 0 || vs_num_reads > 0); // attribute entry shouldn't exist if there are no reads.
       cs_total_reads += cs_num_reads;
       vs_total_reads += vs_num_reads;
 
       // Workaround GFXH-930:
-      if (n == (data->attr_count-1) && (cs_total_reads == 0 || vs_total_reads == 0))
+      if (n == (link_data->attr_count-1) && (cs_total_reads == 0 || vs_total_reads == 0))
       {
          // We read all attributes either in CS or VS, bodge the last attribute
          // to be read by both.
@@ -2425,7 +2360,7 @@ static bool write_gl_shader_record_attribs(
          vs_num_reads = cs_num_reads;
       }
 
-      const unsigned vb_idx = data->attr[n].idx;
+      const unsigned vb_idx = link_data->attr[n].idx;
       const GLXX_ATTRIB_CONFIG_T *attr_cfg = &attr_cfgs[vb_idx];
       if (attr_cfg->enabled)
       {
@@ -2488,42 +2423,118 @@ static bool write_gl_shader_record_attribs(
    return true;
 }
 
+#if GLXX_HAS_TNG
+static bool compute_tng_vpm_cfg(
+   v3d_vpm_cfg_v* cfg_v,
+   uint32_t shadrec_tg_packed[],
+   GLXX_LINK_RESULT_DATA_T const* link_data,
+   unsigned num_patch_vertices)
+{
+   v3d_vpm_cfg_t vpm_t;
+   v3d_vpm_cfg_g vpm_g;
+   if (!link_data->has_tess) v3d_vpm_default_cfg_t(&vpm_t);
+   if (!link_data->has_geom) v3d_vpm_default_cfg_g(&vpm_g);
+
+   bool ok = v3d_vpm_compute_cfg_tg(
+      cfg_v,
+      link_data->has_tess ? &vpm_t : NULL,
+      link_data->has_geom ? &vpm_g : NULL,
+      khrn_get_vpm_size() / 512,
+      link_data->vs_input_words,
+      link_data->vs_output_words,
+      num_patch_vertices,
+      link_data->tcs_output_words_per_patch,
+      link_data->tcs_output_words,
+      !!(link_data->flags & GLXX_SHADER_FLAGS_TCS_BARRIERS),
+      link_data->tcs_output_vertices_per_patch,
+      link_data->tes_output_words,
+      link_data->tess_type,
+      6u, // maximum number of vertices per GS primitive
+      link_data->gs_output_words);
+   if (!ok)
+      return false;
+
+   V3D_SHADREC_GL_TESS_OR_GEOM_T shadrec_tog =
+   {
+      .tess_type                                = link_data->tess_type,
+      .tess_point_mode                          = link_data->tess_point_mode,
+      .tess_edge_spacing                        = link_data->tess_edge_spacing,
+      .tess_clockwise                           = link_data->tess_clockwise,
+      //.tcs_bypass                             = todo_not_implemented,
+      //.tcs_bypass_render                      = todo_not_implemented,
+      .tcs_batch_flush                          = vpm_t.tcs_batch_flush,
+      .num_tcs_invocations                      = gfx_umax(link_data->tcs_output_vertices_per_patch, 1u),
+      .geom_output                              = link_data->geom_prim_type,
+      .geom_num_instances                       = gfx_umax(link_data->geom_invocations, 1u),
+      .per_patch_depth_bin                      = vpm_t.per_patch_depth[0],
+      .per_patch_depth_render                   = vpm_t.per_patch_depth[1],
+      .tcs_output_bin                           = vpm_t.tcs_output[0],
+      .tcs_output_render                        = vpm_t.tcs_output[1],
+      .tes_output_bin                           = vpm_t.tes_output[0],
+      .tes_output_render                        = vpm_t.tes_output[1],
+      .geom_output_bin                          = vpm_g.geom_output[0],
+      .geom_output_render                       = vpm_g.geom_output[1],
+      .max_patches_per_tcs_batch                = vpm_t.max_patches_per_tcs_batch,
+      .max_extra_vert_segs_per_tcs_batch_bin    = vpm_t.max_extra_vert_segs_per_tcs_batch[0],
+      .max_extra_vert_segs_per_tcs_batch_render = vpm_t.max_extra_vert_segs_per_tcs_batch[1],
+      .min_tcs_segs_bin                         = vpm_t.min_tcs_segs[0],
+      .min_tcs_segs_render                      = vpm_t.min_tcs_segs[1],
+      .min_per_patch_segs_bin                   = vpm_t.min_per_patch_segs[0],
+      .min_per_patch_segs_render                = vpm_t.min_per_patch_segs[1],
+      .max_patches_per_tes_batch                = vpm_t.max_patches_per_tes_batch,
+      .max_extra_vert_segs_per_tes_batch_bin    = vpm_t.max_extra_vert_segs_per_tes_batch[0],
+      .max_extra_vert_segs_per_tes_batch_render = vpm_t.max_extra_vert_segs_per_tes_batch[1],
+      .max_tcs_segs_per_tes_batch_bin           = vpm_t.max_tcs_segs_per_tes_batch[0],
+      .max_tcs_segs_per_tes_batch_render        = vpm_t.max_tcs_segs_per_tes_batch[1],
+      .min_tes_segs_bin                         = vpm_t.min_tes_segs[0],
+      .min_tes_segs_render                      = vpm_t.min_tes_segs[1],
+      .max_extra_vert_segs_per_gs_batch_bin     = vpm_g.max_extra_vert_segs_per_gs_batch[0],
+      .max_extra_vert_segs_per_gs_batch_render  = vpm_g.max_extra_vert_segs_per_gs_batch[1],
+      .min_gs_segs_bin                          = vpm_g.min_gs_segs[0],
+      .min_gs_segs_render                       = vpm_g.min_gs_segs[1],
+   };
+
+   v3d_pack_shadrec_gl_tess_or_geom(shadrec_tg_packed, &shadrec_tog);
+   return true;
+}
+#endif
+
 static bool write_gl_shader_record(
    GLXX_HW_RENDER_STATE_T              *rs,
+   GLXX_LINK_RESULT_DATA_T             *link_data,
    const GLXX_SERVER_STATE_T           *state,
-   const GLXX_LINK_RESULT_DATA_T       *data,
    const GLXX_ATTRIB_CONFIG_T          *attr_cfgs,
    const GLXX_VERTEX_BUFFER_CONFIG_T   *vb_cfgs,
    const GLXX_VERTEX_POINTERS_T        *vb_pointers)
 {
    v3d_addr_t defaults_addr;
-   if (!write_gl_shader_record_defaults(&defaults_addr, &rs->fmem, data, attr_cfgs))
+   if (!write_gl_shader_record_defaults(&defaults_addr, &rs->fmem, link_data, attr_cfgs))
       return false;
 
+   rs->has_tcs_barriers |= !!(link_data->flags & GLXX_SHADER_FLAGS_TCS_BARRIERS);
+
    // Bin/Render vertex pipeline shaders.
-   unsigned vp_stage_mask = 0u;
    v3d_addr_t vp_shader_addrs[GLXX_SHADER_VPS_COUNT][MODE_COUNT];
    for (unsigned m = 0; m != MODE_COUNT; ++m)
    {
-      gmem_sync_flags_t rdr_flags = GMEM_SYNC_QPU_IU_READ;
-      gmem_sync_flags_t bin_flags = (m == MODE_BIN) ? GMEM_SYNC_QPU_IU_READ : 0u;
+      gmem_sync_flags_t rdr_flags = GMEM_SYNC_QPU_INSTR_READ;
+      gmem_sync_flags_t bin_flags = (m == MODE_BIN) ? GMEM_SYNC_QPU_INSTR_READ : 0u;
       khrn_interlock_action_t action = (m == MODE_BIN) ? ACTION_BOTH : ACTION_RENDER;
 
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
       {
-         if (data->vps[s][m].res_i != NULL)
+         if (link_data->vps[s][m].res_i != NULL)
          {
-            vp_stage_mask |= 1 << s;
-            vp_shader_addrs[s][m] = khrn_fmem_lock_and_sync(&rs->fmem, data->vps[s][m].res_i->handle, bin_flags, rdr_flags);
-            if (!khrn_fmem_record_res_interlock(&rs->fmem, data->vps[s][m].res_i, false, action))
+            vp_shader_addrs[s][m] = khrn_fmem_lock_and_sync(&rs->fmem, link_data->vps[s][m].res_i->handle, bin_flags, rdr_flags);
+            if (!khrn_fmem_record_res_interlock(&rs->fmem, link_data->vps[s][m].res_i, false, action))
                return false;
          }
       }
    }
 
    // Fragment shader.
-   v3d_addr_t frag_shader_addr = khrn_fmem_lock_and_sync(&rs->fmem, data->fs.res_i->handle, 0, GMEM_SYNC_QPU_IU_READ);
-   if (!khrn_fmem_record_res_interlock(&rs->fmem, data->fs.res_i, false, ACTION_RENDER))
+   v3d_addr_t frag_shader_addr = khrn_fmem_lock_and_sync(&rs->fmem, link_data->fs.res_i->handle, 0, GMEM_SYNC_QPU_INSTR_READ);
+   if (!khrn_fmem_record_res_interlock(&rs->fmem, link_data->fs.res_i, false, ACTION_RENDER))
       return false;
 
    GL20_HW_INDEXED_UNIFORM_T iu;
@@ -2535,9 +2546,9 @@ static bool write_gl_shader_record(
    {
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
       {
-         if (data->vps[s][m].res_i != NULL)
+         if (link_data->vps[s][m].res_i != NULL)
          {
-            vp_unifs_addrs[s][m] = glxx_hw_install_uniforms(&rs->base, state, data->vps[s][m].uniform_map, &iu, NULL);
+            vp_unifs_addrs[s][m] = glxx_hw_install_uniforms(&rs->base, state, link_data->vps[s][m].uniform_map, &iu, NULL);
             if (!vp_unifs_addrs[s][m])
                return false;
          }
@@ -2545,14 +2556,14 @@ static bool write_gl_shader_record(
    }
 
    // Fragment shader uniforms.
-   v3d_addr_t frag_unifs_addr = glxx_hw_install_uniforms(&rs->base, state, data->fs.uniform_map, &iu, NULL);
+   v3d_addr_t frag_unifs_addr = glxx_hw_install_uniforms(&rs->base, state, link_data->fs.uniform_map, &iu, NULL);
    if (!frag_unifs_addr)
       return false;
 
    // Treat tessellation part of record as two geometry shaders.
    static_assrt(V3D_SHADREC_GL_GEOM_PACKED_SIZE*2 == V3D_SHADREC_GL_TESS_PACKED_SIZE);
 
-   unsigned num_attrs = gfx_umax(1u, data->attr_count);
+   unsigned num_attrs = gfx_umax(1u, link_data->attr_count);
    unsigned shadrec_size =
 #if GLXX_HAS_TNG
       +  V3D_SHADREC_GL_GEOM_PACKED_SIZE
@@ -2582,23 +2593,19 @@ static bool write_gl_shader_record(
    static_assrt(GLXX_SHADER_VPS_TES  == (GLXX_SHADER_VPS_VS + 3));
 #endif
 
-   bool z_pre_pass = rs->z_prepass_started && !rs->z_prepass_stopped;
-   unsigned vpm_size_in_sectors = khrn_get_vpm_size() / 512;
-   v3d_vpm_cfg_v vpm_cfg;
-
 #if GLXX_HAS_TNG
    // Write out shader record parts for each T+G stage.
    for (unsigned s = GLXX_SHADER_VPS_VS+1; s <= GLXX_SHADER_VPS_TES; ++s)
    {
-      if (vp_stage_mask & (1 << s))
+      if (link_data->vps[s][MODE_RENDER].res_i != NULL)
       {
          V3D_SHADREC_GL_GEOM_T stage_shadrec =
          {
-            .gs_bin.threading          = data->vps[s][MODE_BIN].threading,
+            .gs_bin.threading          = link_data->vps[s][MODE_BIN].threading,
             .gs_bin.propagate_nans     = true,
             .gs_bin.addr               = vp_shader_addrs[s][MODE_BIN],
             .gs_bin.unifs_addr         = vp_unifs_addrs[s][MODE_BIN],
-            .gs_render.threading       = data->vps[s][MODE_RENDER].threading,
+            .gs_render.threading       = link_data->vps[s][MODE_RENDER].threading,
             .gs_render.propagate_nans  = true,
             .gs_render.addr            = vp_shader_addrs[s][MODE_RENDER],
             .gs_render.unifs_addr      = vp_unifs_addrs[s][MODE_RENDER],
@@ -2609,130 +2616,109 @@ static bool write_gl_shader_record(
    }
 
    // Write out tess or geom part.
-   if (vp_stage_mask & ((1 << GLXX_SHADER_VPS_TCS) | (1 << GLXX_SHADER_VPS_TES) | (1 << GLXX_SHADER_VPS_GS)))
+   if (link_data->has_tng)
    {
-      // todo GS
-      assert(!(vp_stage_mask & (1 << GLXX_SHADER_VPS_GS)));
+      unsigned num_patch_vertices = link_data->has_tess ? state->num_patch_vertices : 0u;
 
-      v3d_vpm_cfg_t vpm_t;
-      v3d_vpm_compute_cfg_t(
-         &vpm_cfg,
-         &vpm_t,
-         vpm_size_in_sectors,
-         data->vs_input_words,
-         data->vs_output_words,
-         state->num_patch_vertices,
-         data->tcs_output_words_per_patch,
-         data->tcs_output_words,
-         !!(data->flags & GLXX_SHADER_FLAGS_TCS_BARRIERS),
-         data->tcs_output_vertices_per_patch,
-         data->tes_output_words);
-
-      v3d_vpm_cfg_g vpm_g;
-      v3d_vpm_default_cfg_g(&vpm_g);
-
-      V3D_SHADREC_GL_TESS_OR_GEOM_T shadrec_tog =
+      if (!link_data->cached_vpm_cfg.key.valid || link_data->cached_vpm_cfg.key.tg.num_patch_vertices != num_patch_vertices)
       {
-         .tess_type                                = data->tess_type,
-         .tess_point_mode                          = data->tess_point_mode,
-         .tess_edge_spacing                        = data->tess_edge_spacing,
-         .tess_clockwise                           = data->tess_clockwise,
-       //.tcs_bypass                               = todo_not_implemented,
-       //.tcs_bypass_render                        = todo_not_implemented,
-         .tcs_batch_flush                          = vpm_t.tcs_batch_flush,
-         .num_tcs_invocations                      = gfx_umax(data->tcs_output_vertices_per_patch, 1u),
-         .geom_output                              = data->geom_prim_type,
-         .geom_num_instances                       = gfx_umax(data->geom_invocations, 1u),
-         .per_patch_depth_bin                      = vpm_t.per_patch_depth[0],
-         .per_patch_depth_render                   = vpm_t.per_patch_depth[1],
-         .tcs_output_bin                           = vpm_t.tcs_output[0],
-         .tcs_output_render                        = vpm_t.tcs_output[1],
-         .tes_output_bin                           = vpm_t.tes_output[0],
-         .tes_output_render                        = vpm_t.tes_output[1],
-         .geom_output_bin                          = vpm_g.geom_output[0],
-         .geom_output_render                       = vpm_g.geom_output[1],
-         .max_patches_per_tcs_batch                = vpm_t.max_patches_per_tcs_batch,
-         .max_extra_vert_segs_per_tcs_batch_bin    = vpm_t.max_extra_vert_segs_per_tcs_batch[0],
-         .max_extra_vert_segs_per_tcs_batch_render = vpm_t.max_extra_vert_segs_per_tcs_batch[1],
-         .min_tcs_segs_bin                         = vpm_t.min_tcs_segs[0],
-         .min_tcs_segs_render                      = vpm_t.min_tcs_segs[1],
-         .min_per_patch_segs_bin                   = vpm_t.min_per_patch_segs[0],
-         .min_per_patch_segs_render                = vpm_t.min_per_patch_segs[1],
-         .max_patches_per_tes_batch                = vpm_t.max_patches_per_tes_batch,
-         .max_extra_vert_segs_per_tes_batch_bin    = vpm_t.max_extra_vert_segs_per_tes_batch[0],
-         .max_extra_vert_segs_per_tes_batch_render = vpm_t.max_extra_vert_segs_per_tes_batch[1],
-         .max_tcs_segs_per_tes_batch_bin           = vpm_t.max_tcs_segs_per_tes_batch[0],
-         .max_tcs_segs_per_tes_batch_render        = vpm_t.max_tcs_segs_per_tes_batch[1],
-         .min_tes_segs_bin                         = vpm_t.min_tes_segs[0],
-         .min_tes_segs_render                      = vpm_t.min_tes_segs[1],
-         .max_extra_vert_segs_per_gs_batch_bin     = vpm_g.max_extra_vert_segs_per_gs_batch[0],
-         .max_extra_vert_segs_per_gs_batch_render  = vpm_g.max_extra_vert_segs_per_gs_batch[1],
-         .min_gs_segs_bin                          = vpm_g.min_gs_segs[0],
-         .min_gs_segs_render                       = vpm_g.min_gs_segs[1],
-      };
-      v3d_pack_shadrec_gl_tess_or_geom(shadrec_data, &shadrec_tog);
-      shadrec_data += V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE/sizeof(*shadrec_data);
+         link_data->cached_vpm_cfg.key.valid = true;
+         link_data->cached_vpm_cfg.key.tg.num_patch_vertices = num_patch_vertices;
+
+         bool ok = compute_tng_vpm_cfg(
+            &link_data->cached_vpm_cfg.vpm_cfg_v,
+            link_data->cached_vpm_cfg.shadrec_tg_packed,
+            link_data,
+            state->num_patch_vertices);
+         assert(ok); // GL requirements mean this should always succeed.
+      }
+
+
+      unsigned num_words = V3D_SHADREC_GL_TESS_OR_GEOM_PACKED_SIZE/sizeof(*shadrec_data);
+      for (unsigned w = 0; w != num_words; ++w)
+      {
+         shadrec_data[w] = link_data->cached_vpm_cfg.shadrec_tg_packed[w];
+      }
+      shadrec_data += num_words;
+
+      /* When T+G is enabled, not writing a point size should have it default to 1.0 */
+      uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_POINT_SIZE_SIZE);
+      v3d_cl_point_size(&instr, 1.0f);
+      khrn_fmem_end_cle_exact(&rs->fmem, instr);
    }
    else
 #endif
    {
-      v3d_vpm_compute_cfg(
-         &vpm_cfg,
-         vpm_size_in_sectors,
-         data->vs_input_words,
-         data->vs_output_words,
-         z_pre_pass);
+      bool z_pre_pass = rs->z_prepass_started && !rs->z_prepass_stopped;
+      if (!link_data->cached_vpm_cfg.key.valid || link_data->cached_vpm_cfg.key.v.z_pre_pass != z_pre_pass)
+      {
+         link_data->cached_vpm_cfg.key.valid = true;
+         link_data->cached_vpm_cfg.key.v.z_pre_pass = z_pre_pass;
+
+         v3d_vpm_compute_cfg(
+            &link_data->cached_vpm_cfg.vpm_cfg_v,
+            khrn_get_vpm_size() / 512,
+            link_data->vs_input_words,
+            link_data->vs_output_words,
+            z_pre_pass);
+      }
    }
+
+   v3d_vpm_cfg_v const* vpm_cfg_v = &link_data->cached_vpm_cfg.vpm_cfg_v;
 
    V3D_SHADREC_GL_MAIN_T main_shadrec =
    {
-      .point_size_included       = !!(data->flags & GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA),
-      .clipping                  = !!(data->flags & GLXX_SHADER_FLAGS_ENABLE_CLIPPING),
-      .cs_vertex_id              = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_BIN)),
-      .cs_instance_id            = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_BIN)),
-      .vs_vertex_id              = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_RENDER)),
-      .vs_instance_id            = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_RENDER)),
-      .z_write                   = !!(data->flags & GLXX_SHADER_FLAGS_FS_WRITES_Z),
-      .no_ez                     = !!(data->flags & GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE),
-      .cs_separate_blocks        = !!(data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_BIN)),
-      .vs_separate_blocks        = !!(data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_RENDER)),
-      .scb_wait_on_first_thrsw   = !!(data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW),
+      .point_size_included       = !!(link_data->flags & GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA),
+      .clipping                  = !state->caps.rasterizer_discard,     /* No need to clip if everything is thrown away */
+      .cs_vertex_id              = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_BIN)),
+      .cs_instance_id            = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_BIN)),
+      .vs_vertex_id              = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_VERTEX_ID << MODE_RENDER)),
+      .vs_instance_id            = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_INSTANCE_ID << MODE_RENDER)),
+      .z_write                   = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_WRITES_Z),
+      .no_ez                     = !!(link_data->flags & GLXX_SHADER_FLAGS_FS_EARLY_Z_DISABLE),
+      .cs_separate_blocks        = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_BIN)),
+      .vs_separate_blocks        = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_SEPARATE_I_O_VPM_BLOCKS << MODE_RENDER)),
+      .scb_wait_on_first_thrsw   = !!(link_data->flags & GLXX_SHADER_FLAGS_TLB_WAIT_FIRST_THRSW),
       .disable_scb               = false,
+#if V3D_HAS_VARY_DISABLE
+      .disable_implicit_varys    = false,
+#endif
 #if V3D_HAS_TNG      /* TNG and BASEINSTANCE are the same hw revision */
-      .cs_baseinstance = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_BIN)),
-      .vs_baseinstance = !!(data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_RENDER)),
+      .cs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_BIN)),
+      .vs_baseinstance = !!(link_data->flags & (GLXX_SHADER_FLAGS_VS_READS_BASE_INSTANCE << MODE_RENDER)),
 #endif
 #if V3D_HAS_INLINE_CLIP
-      .prim_id_used = false,
-      .prim_id_to_fs = false,
+      .prim_id_used  = !!(link_data->flags & GLXX_SHADER_FLAGS_PRIM_ID_USED),
+      .prim_id_to_fs = !!(link_data->flags & GLXX_SHADER_FLAGS_PRIM_ID_TO_FS),
 #endif
    // TODO centroid flag
 #if V3D_HAS_SRS
-      .sample_rate_shading = (data->flags & GLXX_SHADER_FLAGS_PER_SAMPLE) ||
+      .sample_rate_shading = (link_data->flags & GLXX_SHADER_FLAGS_PER_SAMPLE) ||
+                             (state->caps.sample_shading && state->sample_shading_fraction >= 0.25f) ||
          ((khrn_options.force_multisample || rs->installed_fb.ms) && khrn_options_make_sample_rate_shaded()),
 #endif
-      .num_varys = data->num_varys,
-      .cs_output_size = vpm_cfg.output_size[MODE_BIN],
-      .cs_input_size = vpm_cfg.input_size[MODE_BIN],
-      .vs_output_size = vpm_cfg.output_size[MODE_RENDER],
-      .vs_input_size = vpm_cfg.input_size[MODE_RENDER],
+      .num_varys = link_data->num_varys,
+      .cs_output_size = vpm_cfg_v->output_size[MODE_BIN],
+      .cs_input_size = vpm_cfg_v->input_size[MODE_BIN],
+      .vs_output_size = vpm_cfg_v->output_size[MODE_RENDER],
+      .vs_input_size = vpm_cfg_v->input_size[MODE_RENDER],
       .defaults = defaults_addr,
-      .fs.threading = data->fs.threading,
+      .fs.threading = link_data->fs.threading,
       .fs.propagate_nans = true,
       .fs.addr = frag_shader_addr,
       .fs.unifs_addr = frag_unifs_addr,
-      .vs.threading = data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].threading,
+      .vs.threading = link_data->vps[GLXX_SHADER_VPS_VS][MODE_RENDER].threading,
       .vs.propagate_nans = true,
       .vs.addr = vp_shader_addrs[GLXX_SHADER_VPS_VS][MODE_RENDER],
       .vs.unifs_addr = vp_unifs_addrs[GLXX_SHADER_VPS_VS][MODE_RENDER],
-      .cs.threading = data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].threading,
+      .cs.threading = link_data->vps[GLXX_SHADER_VPS_VS][MODE_BIN].threading,
       .cs.propagate_nans = true,
       .cs.addr = vp_shader_addrs[GLXX_SHADER_VPS_VS][MODE_BIN],
       .cs.unifs_addr = vp_unifs_addrs[GLXX_SHADER_VPS_VS][MODE_BIN],
    };
    // Modify the shader record to avoid specifying 0 varyings.
    #if !V3D_VER_AT_LEAST(3,3,0,0)
-      workaround_gfxh_1276(&main_shadrec);
+      v3d_workaround_gfxh_1276(&main_shadrec);
    #endif
    v3d_pack_shadrec_gl_main(shadrec_data, &main_shadrec);
    shadrec_data += V3D_SHADREC_GL_MAIN_PACKED_SIZE / sizeof(*shadrec_data);
@@ -2747,7 +2733,7 @@ static bool write_gl_shader_record(
       shadrec_attr_data,
       defaults_addr,
       &rs->fmem,
-      data,
+      link_data,
       attr_cfgs,
       vb_cfgs,
       vb_pointers,
@@ -2758,8 +2744,8 @@ static bool write_gl_shader_record(
    // Convert bits from active stage mask to CL opcode.
    unsigned tng_stage_mask = 0;
 #if GLXX_HAS_TNG
-   tng_stage_mask |= (vp_stage_mask >> GLXX_SHADER_VPS_TCS) & 1;
-   tng_stage_mask |= ((vp_stage_mask >> GLXX_SHADER_VPS_GS) & 1) << 1;
+   tng_stage_mask |= link_data->has_tess;
+   tng_stage_mask |= link_data->has_geom << 1;
 #endif
    static_assrt(V3D_CL_GL_T_SHADER == V3D_CL_GL_SHADER+1);
    static_assrt(V3D_CL_GL_G_SHADER == V3D_CL_GL_SHADER+2);
@@ -2770,7 +2756,7 @@ static bool write_gl_shader_record(
    uint8_t* cl = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_VCM_CACHE_SIZE_SIZE + V3D_CL_GL_SHADER_SIZE);
    if (!cl)
       return false;
-   v3d_cl_vcm_cache_size(&cl, vpm_cfg.vcm_cache_size[0], vpm_cfg.vcm_cache_size[1]);
+   v3d_cl_vcm_cache_size(&cl, vpm_cfg_v->vcm_cache_size[0], vpm_cfg_v->vcm_cache_size[1]);
    // todo, replace with generalised v3d_cl_gl_shader
    v3d_cl_add_8(&cl, shader_cl_opcode);
    cl[0] = (uint8_t)gfx_pack_uint_0_is_max(num_attrs, 5) | (uint8_t)(gfx_exact_lsr(shadrec_addr, 5) << 5);
@@ -2790,106 +2776,36 @@ static v3d_addr_t create_nv_shader_record(
    bool              does_z_writes,
    v3d_threading_t   threading)
 {
-   V3D_SHADREC_GL_MAIN_T shader_record;
-   V3D_SHADREC_GL_ATTR_T attr[3];
-   v3d_addr_t vdata = khrn_fmem_hw_address(fmem, vdata_ptr);
-   uint32_t *defaults;
-   unsigned num_attr = 2;       // Standard shaded vertex format
-   unsigned vdata_stride = 12;  // Xs, Ys, Zs (clip header and 1/Wc from defaults)
+   // Find what sized allocations we need
+   V3D_NV_SHADER_RECORD_ALLOC_SIZES_T  sizes;
+   v3d_get_nv_shader_record_alloc_sizes(&sizes);
 
-   defaults = khrn_fmem_data(fmem, 2 * 16, V3D_ATTR_DEFAULTS_ALIGN);
-   if (!defaults)
+   // Allocate the defaults fmem
+   uint32_t *defaults_ptr = khrn_fmem_data(fmem, sizes.defaults_size, sizes.defaults_align);
+   if (!defaults_ptr)
       return 0;
 
-   // First attribute contains clip header (dummy values).
-   // Last value is is 1/Wc for second attribute.
-   for (int i = 0; i < 8; ++i)
-      defaults[i] = gfx_float_to_bits((i == 7) ? 1.0f : 0.0f);
-
-   shader_record.point_size_included  = false;
-   shader_record.clipping             = false;
-   shader_record.cs_vertex_id         = false; // N/A in NV shader record
-   shader_record.cs_instance_id       = false; // N/A in NV shader record
-   shader_record.vs_vertex_id         = false; // N/A in NV shader record
-   shader_record.vs_instance_id       = false; // N/A in NV shader record
-   shader_record.z_write              = does_z_writes;
-   shader_record.no_ez                = false; // TODO Set this if needed
-   shader_record.cs_separate_blocks   = false; // N/A in NV shader record
-   shader_record.vs_separate_blocks   = false; // N/A in NV shader record
-   shader_record.scb_wait_on_first_thrsw = false;
-   shader_record.disable_scb          = false;
-#if V3D_HAS_TNG
-   shader_record.cs_baseinstance = false;
-   shader_record.vs_baseinstance = false;
-#endif
-#if V3D_HAS_INLINE_CLIP
-   shader_record.prim_id_used         = false;
-   shader_record.prim_id_to_fs        = false;
-#endif
-   // TODO centroid flag
-#if V3D_HAS_SRS
-   shader_record.sample_rate_shading = false;
-#endif
-
-   shader_record.num_varys            = 0;
-
-#if V3D_HAS_TNG
-   // Coord and IO VPM segment, measured in units of 8 words (we only need 3 words)
-   shader_record.cs_output_size       = (V3D_OUT_SEG_ARGS_T){ .sectors = 1, .pack = V3D_CL_VPM_PACK_X16 };
-   shader_record.cs_input_size       = (V3D_IN_SEG_ARGS_T){ .sectors = 0, .min_req = 1 };
-   // Vertex IO VPM segment, measured in units of 8 words (we only need 3 words)
-   shader_record.vs_output_size       = (V3D_OUT_SEG_ARGS_T){ .sectors = 1, .pack = V3D_CL_VPM_PACK_X16 };
-   shader_record.vs_input_size       = (V3D_IN_SEG_ARGS_T){ .sectors = 0, .min_req = 1 };
-#else
-   // Coord and IO VPM segment, measured in units of 8 words (we only need 3 words)
-   shader_record.cs_output_size       = 1;
-   // Ignored in NV shader
-   shader_record.cs_input_size      = 0;
-   // Vertex IO VPM segment, measured in units of 8 words (we only need 3 words)
-   shader_record.vs_output_size       = 1;
-   // Ignored in NV shader
-   shader_record.vs_input_size      = 0;
-#endif
-   shader_record.defaults             = khrn_fmem_hw_address(fmem, defaults);
-   shader_record.fs.threading         = threading;
-   shader_record.vs.threading         = V3D_THREADING_T1; // Ignored in NV shader
-   shader_record.cs.threading         = V3D_THREADING_T1; // Ignored in NV shader
-   shader_record.fs.propagate_nans    = false;
-   shader_record.vs.propagate_nans    = false; // Ignored in NV shader
-   shader_record.cs.propagate_nans    = false; // Ignored in NV shader
-   shader_record.fs.addr              = khrn_fmem_hw_address(fmem, fshader_ptr);
-   shader_record.vs.addr              = 0;
-   shader_record.cs.addr              = 0;
-   shader_record.cs.unifs_addr        = 0;
-   shader_record.vs.unifs_addr        = 0;
-   shader_record.fs.unifs_addr        = khrn_fmem_hw_address(fmem, funif_ptr);
-
-   /* Modify the shader record to avoid specifying 0 varyings */
-   #if !V3D_VER_AT_LEAST(3,3,0,0)
-      workaround_gfxh_1276(&shader_record);
-   #endif
-
-   /* Xc, Yc, Zc, Wc - clipping is disabled so we just use dummy default values */
-   make_simple_float_shader_attr(&attr[0], 4, 4, 0, shader_record.defaults, 0);
-
-   /* Xs, Ys, Zs from attribute data - 1/Wc from default values (1.0) */
-   make_simple_float_shader_attr(&attr[1], 3, 4, 4, vdata, vdata_stride);
-
-   // This allocation contains both main GL shader record,
-   // followed by variable number of attribute records.
-   unsigned shadrec_size = V3D_SHADREC_GL_MAIN_PACKED_SIZE + num_attr * V3D_SHADREC_GL_ATTR_PACKED_SIZE;
-   uint32_t* shader_record_packed = khrn_fmem_data(fmem, shadrec_size, V3D_SHADREC_ALIGN);
-   if (!shader_record_packed)
+   // Allocate the shader record fmem
+   uint32_t *shader_record_packed_ptr = khrn_fmem_data(fmem, sizes.packed_shader_rec_size,
+                                                       sizes.packed_shader_rec_align);
+   if (!shader_record_packed_ptr)
       return 0;
 
-   char* attrs_packed = (char*)shader_record_packed + V3D_SHADREC_GL_MAIN_PACKED_SIZE;
-   for (unsigned i = 0; i < num_attr; ++i)
-   {
-      v3d_pack_shadrec_gl_attr((uint32_t*)(attrs_packed + i*V3D_SHADREC_GL_ATTR_PACKED_SIZE), &attr[i]);
-   }
-   v3d_pack_shadrec_gl_main(shader_record_packed, &shader_record);
+   v3d_addr_t shader_record_packed_addr = khrn_fmem_hw_address(fmem, shader_record_packed_ptr);
 
-   return khrn_fmem_hw_address(fmem, shader_record_packed);
+   // Call the common creation function
+   v3d_create_nv_shader_record(
+      shader_record_packed_ptr,
+      shader_record_packed_addr,
+      defaults_ptr,
+      khrn_fmem_hw_address(fmem, defaults_ptr),
+      khrn_fmem_hw_address(fmem, fshader_ptr),
+      khrn_fmem_hw_address(fmem, funif_ptr),
+      khrn_fmem_hw_address(fmem, vdata_ptr),
+      does_z_writes,
+      threading);
+
+   return shader_record_packed_addr;
 }
 
 static void nv_vertex(uint32_t *addr, uint32_t x, uint32_t y, uint32_t z)
@@ -3009,13 +2925,30 @@ static uint32_t *copy_shader_to_fmem(KHRN_FMEM_T* fmem, uint32_t shaderSize, uin
 
 /* Pack the colours into a shader uniform block, skipping uniform 1, which is used for configuration. */
 static void pack_colors_in_uniforms(const uint32_t color_value[4],
-   uint32_t *uniform, unsigned uniform_count)
+   uint32_t *uniform, unsigned uniform_count, v3d_rt_type_t rt_type)
 {
    switch (uniform_count)
    {
    case 3:
-      uniform[2] = gfx_pack_1616(gfx_bits_to_float16(color_value[2]), gfx_bits_to_float16(color_value[3]));
-      uniform[0] = gfx_pack_1616(gfx_bits_to_float16(color_value[0]), gfx_bits_to_float16(color_value[1]));
+      {
+         uint32_t color_f16[4];
+         if (rt_type == V3D_RT_TYPE_8)
+         {
+            for (unsigned i = 0; i < 4; i++)
+            {
+               float f = gfx_float_from_bits(color_value[i]);
+               uint32_t u = gfx_float_to_unorm8(f);
+               color_f16[i] = gfx_unorm_to_float16(u, 8);
+            }
+         }
+         else
+         {
+            for (unsigned i = 0; i < 4; i++)
+               color_f16[i] = gfx_floatbits_to_float16(color_value[i]);
+         }
+         uniform[2] = gfx_pack_1616(color_f16[2], color_f16[3]);
+         uniform[0] = gfx_pack_1616(color_f16[0], color_f16[1]);
+      }
       break;
    case 5:
       uniform[4] = color_value[3];
@@ -3067,16 +3000,6 @@ static uint32_t clear_shader_no_color[] =
 {
    0xbb800000, 0x3c003186, // nop
    0x00000000, 0x03003206, // mov tlbu, 0
-   0xb7800000, 0x3c203187, // xor tlb, r0, r0 ; thrsw
-   0x00000000, 0x030031c6, // mov tlb, 0
-   0x00000000, 0x030031c6, // mov tlb, 0
-};
-
-static uint32_t clear_shader_no_color_point[] =
-{
-   0xbb800000, 0x3d003186, // nop; ldvary
-   0xbb800000, 0x3d003186, // nop; ldvary
-   0xb683f000, 0x3dc03188, // mov tlbu, 0     ; ldvary
    0xb7800000, 0x3c203187, // xor tlb, r0, r0 ; thrsw
    0x00000000, 0x030031c6, // mov tlb, 0
    0x00000000, 0x030031c6, // mov tlb, 0
@@ -3160,7 +3083,8 @@ bool glxx_draw_rect(
 
    if (clear->color_buffer_mask)
       /* fill in uniforms, skipping uniform 1 which is used as a configuration byte */
-      pack_colors_in_uniforms(clear->color_value, funif_ptr, uniformCount);
+      pack_colors_in_uniforms(clear->color_value, funif_ptr, uniformCount,
+            hw_fb->color_internal_type[rt]);
 
    /* set up the config uniform; unused config entries must be all 1s */
    funif_ptr[cfg_unif_pos] = 0xffffff00 | cfg;
@@ -3182,6 +3106,12 @@ bool glxx_draw_rect(
    if (!glxx_draw_rect_write_state_changes(state, rs, clear, x, y, xmax, ymax))
       return false;
 
+#if V3D_HAS_NEW_TF
+   glxx_prim_drawn_by_us_record(rs, 2);
+   if (!glxx_tf_record_disable(rs))
+      return false;
+#endif
+
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem, V3D_CL_GL_SHADER_SIZE + V3D_CL_VERTEX_ARRAY_PRIMS_SIZE);
    if (!instr) return false;
 
@@ -3198,6 +3128,8 @@ bool glxx_draw_rect(
    return true;
 }
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+
 static uint32_t setup_render_dummy_point_no_shader_no_query_addr_size(void)
 {
    return V3D_CL_VIEWPORT_OFFSET_SIZE
@@ -3209,6 +3141,16 @@ static uint32_t setup_render_dummy_point_no_shader_no_query_addr_size(void)
       + V3D_CL_CFG_BITS_SIZE
       + V3D_CL_COLOR_WMASKS_SIZE;
 }
+
+static uint32_t clear_shader_no_color_point[] =
+{
+   0xbb800000, 0x3d003186, // nop; ldvary
+   0xbb800000, 0x3d003186, // nop; ldvary
+   0xb683f000, 0x3dc03188, // mov tlbu, 0     ; ldvary
+   0xb7800000, 0x3c203187, // xor tlb, r0, r0 ; thrsw
+   0x00000000, 0x030031c6, // mov tlb, 0
+   0x00000000, 0x030031c6, // mov tlb, 0
+};
 
 /* The center of the dummy point will be at (0,0).
  * The pixels (if there are any) will pass the Z tests but nothing will be
@@ -3349,7 +3291,7 @@ bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, KHRN_FMEM_T* fmem)
 
    // Get address of scratch buffer for TLB to spray writes to.
    gmem_handle_t scratch_mem = khrn_get_gfxh_1320_buffer();
-   v3d_addr_t scratch_addr = khrn_fmem_lock_and_sync(fmem, scratch_mem, 0, GMEM_SYNC_CORE_READ | GMEM_SYNC_CORE_WRITE);
+   v3d_addr_t scratch_addr = khrn_fmem_lock_and_sync(fmem, scratch_mem, 0, GMEM_SYNC_TLB_OQ_READ | GMEM_SYNC_TLB_OQ_WRITE);
    if (!scratch_addr)
       return false;
 
@@ -3371,6 +3313,8 @@ bool glxx_workaround_gfxh_1320(uint8_t** instr_ptr, KHRN_FMEM_T* fmem)
    *instr_ptr = instr;
    return true;
 }
+
+#endif
 
 static bool glxx_hw_update_z_prepass_state(
    GLXX_SERVER_STATE_T *state,
@@ -3397,6 +3341,12 @@ static bool glxx_hw_update_z_prepass_state(
    {
       goto disallowed;
    }
+
+#if GLXX_HAS_TNG
+   // disable z-only for TnG
+   if (link_data->has_tng)
+      goto disallowed;
+#endif
 
    // if depth writes are enabled, then we must test the following conditions to
    // ensure that performing a z-prepass is valid

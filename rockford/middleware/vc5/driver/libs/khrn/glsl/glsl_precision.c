@@ -124,8 +124,9 @@ void glsl_prec_set_defaults( PrecisionTable *tbl, ShaderFlavour flavour )
    tbl->prec[PRIM_BVEC3] = PREC_NONE;
    tbl->prec[PRIM_BVEC4] = PREC_NONE;
 
-   tbl->prec[PRIM_SAMPLER2D]   = PREC_LOWP;
-   tbl->prec[PRIM_SAMPLERCUBE] = PREC_LOWP;
+   tbl->prec[PRIM_SAMPLER2D]          = PREC_LOWP;
+   tbl->prec[PRIM_SAMPLERCUBE]        = PREC_LOWP;
+   tbl->prec[PRIM_SAMPLEREXTERNALOES] = PREC_LOWP;
 
    tbl->prec[PRIM_ATOMIC_UINT] = PREC_HIGHP;
 }
@@ -141,7 +142,7 @@ void glsl_prec_set_defaults( PrecisionTable *tbl, ShaderFlavour flavour )
 void glsl_prec_modify_prec( PrecisionTable *tbl, const SymbolType *type, PrecisionQualifier newprec )
 {
    if ( type->flavour != SYMBOL_PRIMITIVE_TYPE )
-      glsl_compile_error( ERROR_SEMANTIC, 28, g_LineNumber, NULL );
+      glsl_compile_error( ERROR_SEMANTIC, 16, g_LineNumber, NULL );
 
    /* Update all similar types (matrices, vectors) */
    if (type->u.primitive_type.index == PRIM_INT)
@@ -153,9 +154,9 @@ void glsl_prec_modify_prec( PrecisionTable *tbl, const SymbolType *type, Precisi
       tbl->prec[type->u.primitive_type.index] = newprec;
    } else if (glsl_prim_is_prim_atomic_type(type)) {
       if (newprec != PREC_HIGHP)
-         glsl_compile_error(ERROR_SEMANTIC, 28, g_LineNumber, "precision for atomic type must be highp");
+         glsl_compile_error(ERROR_SEMANTIC, 16, g_LineNumber, "precision for atomic type must be highp");
    } else
-      glsl_compile_error( ERROR_SEMANTIC, 28, g_LineNumber, "%s", type->name );
+      glsl_compile_error( ERROR_SEMANTIC, 16, g_LineNumber, "%s", type->name );
 }
 
 /****************************************************************************/

@@ -250,6 +250,9 @@ BERR_Code BWFE_g3_P_OpenChannel(
    chG3->dgsClipCtlPong = 0;
    chG3->dgsClipCountPing = 0;
    chG3->dgsClipCountPong = 0;
+   chG3->adjRight = 7;
+   chG3->adjLeft = 7;
+   chG3->prevDelay = 0;
 #ifdef BWFE_HYBRID_ADC
    chG3->equRuntimeMs = 20;
    chG3->equTapMask = 0x6;
@@ -276,7 +279,7 @@ BERR_Code BWFE_g3_P_OpenChannel(
    chG3->corrMaxBit = 23;
    chG3->corrInputSelect = 0;    /* 0:mdac, 1:dco, 2:agc, 3:lic */
    chG3->corrDelayBeta = 40;     /* beta in 0.05 steps */
-   chG3->corrDpmDebug = 0x2;     /* corrDpmDebug[0]: 0=normal corr update, 1=disable corr update corr; corrDpmDebug[2:1]: 0=dpm pulse, 1=on, 2=off */
+   chG3->corrDpmDebug = 0x0;     /* corrDpmDebug[0]: 0=normal corr update, 1=disable corr update corr; corrDpmDebug[2:1]: 0=dpm pulse, 1=on, 2=off */
    chG3->corrRefSlice = 0;       /* use slice0 as default reference slice */
    chG3->bLicTrackingOn = false; /*TBD LIC tracking off for now */
    chG3->bLicReady = false;      /* LIC NR is initially not converged */
@@ -337,6 +340,8 @@ BERR_Code BWFE_g3_P_OpenChannel(
    /* create events */
    retCode = BKNI_CreateEvent(&(chG3->hWfeReady));
    BDBG_ASSERT(retCode == BERR_SUCCESS);
+   retCode = BKNI_CreateEvent(&(chG3->hDelayCalDone));
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
    
    if (chnSettings.bReference)
       h->pRefChannels[chanNum] = chnHandle;
@@ -365,6 +370,7 @@ BERR_Code BWFE_g3_P_CloseChannel(BWFE_ChannelHandle h)
    /* clean up events */
    chG3 = (BWFE_g3_P_ChannelHandle *)(h->pImpl);
    BKNI_DestroyEvent(chG3->hWfeReady);
+   BKNI_DestroyEvent(chG3->hDelayCalDone);
    
    /* clean up callbacks */
    BINT_DestroyCallback(chG3->hTimer0Cb);
@@ -387,6 +393,9 @@ BERR_Code BWFE_g3_P_CloseChannel(BWFE_ChannelHandle h)
 ******************************************************************************/
 BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
 {
+#ifdef BWFE_CALIBRATE_SLICE_DELAY
+   BWFE_g3_P_ChannelHandle *hChn = (BWFE_g3_P_ChannelHandle *)h->pImpl;
+#endif
    BERR_Code retCode = BERR_SUCCESS;
 
    BWFE_g3_Adc_P_PowerUp(h);        /* power up ADC */
@@ -408,7 +417,35 @@ BERR_Code BWFE_g3_P_ResetChannel(BWFE_ChannelHandle h)
 
    /* apply config parameters */
    BWFE_g3_P_UpdateChannelConfig(h);
-   
+
+#ifdef BWFE_CALIBRATE_SLICE_DELAY
+   /* run delay calibration on first power up */
+   if (hChn->prevDelay == 0)
+   {
+      /* configure rffe, boost dpm gain, disable lpf */
+      BWFE_P_WriteRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x70004888);
+      BWFE_P_OrRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, 0x00100000);  /* disable lna */
+
+      /* calibrate slice delays for each adc */
+      retCode = BWFE_g3_P_CalibrateAnalogDelay(h);
+      if (retCode)
+      {
+         BDBG_WRN(("ADC%d Calibration err 0x%08X", h->channel, retCode));
+      }
+
+      /* wait for calibration done */
+      if (BKNI_WaitForEvent(hChn->hDelayCalDone, 1000) != BERR_SUCCESS)
+      {
+         BDBG_ERR(("ADC%d Calibration timeout\n", h->channel));
+         BERR_TRACE(retCode = BWFE_ERR_CORR_TIMEOUT);
+      }
+
+      /* restore rffe settings */
+      BWFE_P_WriteRegister(h, BCHP_WFE_ANA_RFFE_WRITER02, 0x105AC888);
+      BWFE_P_AndRegister(h, BCHP_WFE_ANA_RFFE_WRITER03, ~0x00100000);   /* enable lna */
+   }
+#endif
+
    return retCode;
 }
 
@@ -434,7 +471,7 @@ BERR_Code BWFE_g3_P_Reset(BWFE_Handle h)
          BWFE_P_InitAdc(h->pChannels[i]);
       #endif
 
-      #if 0
+      #ifdef BWFE_CALIBRATE_SLICE_DELAY
          /* configure dpm pilot frequency */
          BWFE_P_SetDpmPilotFreq(h->pChannels[i], BWFE_DEF_FC_DPM_KHZ);
          BWFE_P_GetDpmPilotFreq(h->pChannels[i], &freqKhz);
@@ -1199,8 +1236,6 @@ BERR_Code BWFE_g3_P_CalibrateAnalogDelay(BWFE_ChannelHandle h)
    BERR_Code retCode = BERR_SUCCESS;
    bool bBusy;
 
-   BKNI_Printf("BWFE_g3_P_CalibrateAnalogDelay(ch%d)\n", h->channel);
-
    if (h->bReference)
       return BERR_NOT_SUPPORTED;
 
@@ -1224,17 +1259,14 @@ BERR_Code BWFE_g3_P_CalibrateAnalogDelay(BWFE_ChannelHandle h)
    BWFE_P_WriteRegister(h, BCHP_WFE_CORE_CORRINSEL, hChn->corrInputSelect & 0x3);
 
    /* enable DPM tone, disable DPM after delay calculations */
-   if ((hChn->corrDpmDebug & 0x6) == 0)
-      BWFE_P_EnableDpmPilot(h);
+   BWFE_P_EnableDpmPilot(h);
 
-#if 0
    /* enable software loop, deassert reset, enable fine delays */
    BWFE_P_ReadModifyWriteRegister(h, BCHP_WFE_ANA_ADC_CNTL8, ~0xF0000000, 0x70000000);
-#endif
 
    /* use slice0 as reference */
    hChn->corrRefSlice = 0;
-   hChn->postCalcDelayFunct = BWFE_g3_Corr_P_AccumulateOffset;
+   hChn->postCalcDelayFunct = BWFE_g3_Corr_P_CoarseAdjust;  /* coarse adjustment after delay measurement */
    BWFE_g3_Corr_P_StartCorrelator(h, hChn->dpmPilotFreqKhz * 1000, 0, BWFE_g3_Corr_P_CalcDelay);
 
    return retCode;
@@ -1255,9 +1287,43 @@ BERR_Code BWFE_g3_P_GetAnalogDelay(BWFE_ChannelHandle h, uint32_t *pCorrDelay)
    
    if (h->bReference)
       return BERR_NOT_SUPPORTED;
-   
+
    /* copy correlator delays to 1D array */
+   #if (BCHP_CHIP==4554)
+   BKNI_Memcpy(pCorrDelay, hChn->sliceDelay, sizeof(hChn->sliceDelay));
+   #else
    BKNI_Memcpy(pCorrDelay, hChn->corrDelay, sizeof(hChn->corrDelay));
+   #endif
+   return retCode;
+#else
+   return BERR_NOT_SUPPORTED;
+#endif
+}
+
+
+/******************************************************************************
+ BWFE_g3_P_CompensateDelay()
+******************************************************************************/
+BERR_Code BWFE_g3_P_CompensateDelay(BWFE_ChannelHandle h, uint32_t *pSliceAdjust)
+{
+#ifndef BWFE_EXCLUDE_ANALOG_DELAY
+   BERR_Code retCode = BERR_SUCCESS;
+   uint32_t i, val;
+
+   if (h->bReference)
+      return BERR_NOT_SUPPORTED;
+
+   for (i = 0; i < BWFE_NUM_SLICES; i++)
+   {
+      /* cap adjustments */
+      if (pSliceAdjust[i] > 15)
+         pSliceAdjust[i] = 15;
+   }
+
+   /* override coarse-fine timing */
+   val = (pSliceAdjust[0] << 12) | (pSliceAdjust[0] << 8) | (pSliceAdjust[0] << 4) | pSliceAdjust[0]; /* left adjust */
+   val |= (pSliceAdjust[1] << 28) | (pSliceAdjust[1] << 24) | (pSliceAdjust[1] << 20) | (pSliceAdjust[1] << 16);  /* right adjust */
+   BWFE_P_WriteRegister(h, BCHP_WFE_ANA_ADC_CNTL10, val);
    return retCode;
 #else
    return BERR_NOT_SUPPORTED;

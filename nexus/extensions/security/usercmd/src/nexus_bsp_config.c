@@ -531,13 +531,12 @@ EXIT:
 NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t size, unsigned index )
 {
     BHSM_Handle  hHsm;
-    BCHP_MemoryInfo memInfo;
+    const BCHP_MemoryLayout *memoryLayout;
     BHSM_SetArchIO_t arch;
     bool foundMemc = false;
     unsigned memcIndex = 0;
     unsigned i = 0;
     unsigned numMemc = 0;
-    NEXUS_Error rc;
     size_t addressUpdate = size < 1 ? 0 : size - 1;
 
     NEXUS_Security_GetHsm_priv( &hHsm );
@@ -546,23 +545,19 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
     }
 
-    BKNI_Memset( &memInfo, 0, sizeof( memInfo ) );
-    if( ( rc = BCHP_GetMemoryInfo( g_pCoreHandles->reg, &memInfo ) ) !=  BERR_SUCCESS )
-    {
-        return BERR_TRACE( rc );
-    }
+    memoryLayout = &g_pCoreHandles->memoryLayout;
 
     /* need to understand if there is an inconsistancy between Nexus and Magnum on number of MEM controllers. */
-    BDBG_CASSERT( NEXUS_MAX_MEMC == sizeof(memInfo.memc)/sizeof(memInfo.memc[0]) );
+    BDBG_CASSERT( NEXUS_MAX_MEMC == sizeof(memoryLayout->memc)/sizeof(memoryLayout->memc[0]) );
 
-    numMemc = sizeof(memInfo.memc)/sizeof(memInfo.memc[0]);
+    numMemc = sizeof(memoryLayout->memc)/sizeof(memoryLayout->memc[0]);
 
     /* Testing if the PCIE ARCH can be on MEMC1. */
-    /* baseOffset = memInfo.memc[1].offset + 16; */
+    /* baseOffset = memoryLayout->memc[1].region[0].addr + 16; */
 
     for( i = 0; i < numMemc; i++ )
     {
-        if( ( baseOffset >= memInfo.memc[i].offset ) && ( baseOffset < ( memInfo.memc[i].offset + memInfo.memc[i].size ) ) )
+        if( ( baseOffset >= memoryLayout->memc[i].region[0].addr ) && ( baseOffset < ( memoryLayout->memc[i].region[0].addr + memoryLayout->memc[i].region[0].size ) ) )
         {
             memcIndex = i;
             foundMemc = true;
@@ -598,6 +593,7 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     #if BHSM_ZEUS_VERSION == BHSM_ZEUS_VERSION_CALC(4,2) /*only 4.2*/
     {
         BHSM_Capabilities_t hsmCaps;
+        NEXUS_Error rc;
 
         rc = BHSM_GetCapabilities( hHsm, &hsmCaps );
         if( rc != NEXUS_SUCCESS ) { return BERR_TRACE(NEXUS_INVALID_PARAMETER); }
@@ -634,15 +630,15 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     /* For exclusive supporting Zeus platforms. */
     for( i = 0; i < numMemc; i++ )
     {
-        if( ( i != memcIndex ) && ( memInfo.memc[i].size > 0 ) )
+        if( ( i != memcIndex ) && ( memoryLayout->memc[i].region[0].size > 0 ) )
         {
             arch.DRAMSel = i;
             /* the start address needs to be greater than the end address by 8 bytes to close the MEMC for PCIe access.*/
-            arch.unLowerRangeAddress    = ( ( memInfo.memc[i].offset & 0xFFFFFFFF ) + 8) >> 3;
-            arch.unUpperRangeAddress    =   ( memInfo.memc[i].offset & 0xFFFFFFFF )      >> 3;
+            arch.unLowerRangeAddress    = ( ( memoryLayout->memc[i].region[0].addr & 0xFFFFFFFF ) + 8) >> 3;
+            arch.unUpperRangeAddress    =   ( memoryLayout->memc[i].region[0].addr & 0xFFFFFFFF )      >> 3;
             #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
-            arch.unLowerRangeAddressMsb = (( memInfo.memc[i].offset >> 32 ) & 0xFFFFFFFF );
-            arch.unUpperRangeAddressMsb = (( memInfo.memc[i].offset >> 32 ) & 0xFFFFFFFF );
+            arch.unLowerRangeAddressMsb = (( memoryLayout->memc[i].region[0].addr >> 32 ) & 0xFFFFFFFF );
+            arch.unUpperRangeAddressMsb = (( memoryLayout->memc[i].region[0].addr >> 32 ) & 0xFFFFFFFF );
             #endif
 
            if( ( BHSM_SetArch( hHsm, &arch ) ) != BERR_SUCCESS )
@@ -656,9 +652,9 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
 
     /* Non-exclusive mode only. Following range will be blocked. */
     /* Use the first ARCH to block the first section. */
-    if (baseOffset > memInfo.memc[memcIndex].offset)
+    if (baseOffset > memoryLayout->memc[memcIndex].region[0].addr)
     {
-        arch.unLowerRangeAddress        = (memInfo.memc[memcIndex].offset & 0xFFFFFFFF)>>3/*o-word shift*/;
+        arch.unLowerRangeAddress        = (memoryLayout->memc[memcIndex].region[0].addr & 0xFFFFFFFF)>>3/*o-word shift*/;
         arch.unUpperRangeAddress        = ((baseOffset - 1) & 0xFFFFFFFF)>>3/*o-word shift*/;
         arch.ArchSel                    = BHSM_ArchSelect_ePciE0;
 
@@ -671,7 +667,7 @@ NEXUS_Error NEXUS_Security_SetPciERestrictedRange( NEXUS_Addr baseOffset, size_t
     /* Followings are for closing the other MEMCs, and blocking other memory. */
     /* Using the second PCIE arch to block the remained section. */
     arch.unLowerRangeAddress = ((baseOffset + addressUpdate + 1 ) & 0xFFFFFFFF) >> 3;
-    arch.unUpperRangeAddress = ((memInfo.memc[memcIndex].offset + memInfo.memc[memcIndex].size - 1) & 0xFFFFFFFF) >> 3;
+    arch.unUpperRangeAddress = ((memoryLayout->memc[memcIndex].region[0].addr + memoryLayout->memc[memcIndex].region[0].size - 1) & 0xFFFFFFFF) >> 3;
     arch.ArchSel             = BHSM_ArchSelect_ePciE1;
 
     if( ( BHSM_SetArch( hHsm, &arch ) ) != BERR_SUCCESS )

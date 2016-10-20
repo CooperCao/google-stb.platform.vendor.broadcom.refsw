@@ -686,7 +686,6 @@ typedef enum BRPC_ADS_ModulationType{
 	BRPC_ADS_ModulationType_eAnnexBQam1024,
 	BRPC_ADS_ModulationType_eAnnexBQam2048,
 	BRPC_ADS_ModulationType_eAnnexBQam4096
-#if BCHP_CHIP != 7405
 	,BRPC_ADS_ModulationType_eAnnexCQam16,
 	BRPC_ADS_ModulationType_eAnnexCQam32,
 	BRPC_ADS_ModulationType_eAnnexCQam64,
@@ -696,7 +695,6 @@ typedef enum BRPC_ADS_ModulationType{
 	BRPC_ADS_ModulationType_eAnnexCQam1024,
 	BRPC_ADS_ModulationType_eAnnexCQam2048,
 	BRPC_ADS_ModulationType_eAnnexCQam4096
-#endif
 } BRPC_ADS_ModulationType;
 
 typedef struct BRPC_Param_ADS_Acquire

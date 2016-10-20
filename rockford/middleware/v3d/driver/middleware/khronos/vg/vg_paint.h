@@ -19,7 +19,7 @@ VG paint object handling interface.
 
 extern void vg_paint_bprint_from_stem(MEM_HANDLE_T handle);
 
-extern void vg_paint_bprint_term(void *, uint32_t);
+extern void vg_paint_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_paint_bprint(MEM_HANDLE_T handle)
 {
@@ -58,7 +58,7 @@ typedef struct {
 extern MEM_HANDLE_T vg_paint_alloc(void);
 extern bool vg_paint_from_bprint(MEM_HANDLE_T handle);
 
-extern void vg_paint_term(void *, uint32_t);
+extern void vg_paint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_paint(MEM_HANDLE_T handle)
 {

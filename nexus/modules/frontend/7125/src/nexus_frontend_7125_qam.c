@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend 7125 QAM
 *    APIs to open, close, and setup initial settings for QAM demodulators on a
 *    BCM7125 Device.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -227,6 +219,7 @@ NEXUS_FrontendHandle NEXUS_Frontend_Open7125(  /* attr{destructor=NEXUS_Frontend
         BKNI_Memset(pDevice, 0, sizeof(NEXUS_7125Qam));
         BDBG_OBJECT_SET(pDevice, NEXUS_7125Qam);
         pDevice->pGenericDeviceHandle = pFrontendDevice;
+        NEXUS_CallbackDesc_Init(&pDevice->updateGainCallbackDesc);
 
         adsSettings.hTmr = g_pCoreHandles->tmr;
         adsSettings.hHeap = g_pCoreHandles->heap[0].mem; /* select default heap. extend NEXUS_7125FrontendSettings if other heap index needed. */

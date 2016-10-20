@@ -536,7 +536,7 @@ BERR_Code BAPE_MaiInput_P_ResumeFromStandby(BAPE_Handle hApe)
 }
 
 /* work around to reset FCI splitter and HDMI IN - works around FCI splitter locking up HDMI IN when grouping is used */
-static void BAPE_MaiInput_P_FciSpReset(BAPE_MaiInputHandle handle)
+static void BAPE_MaiInput_P_FciSpReset_isrsafe(BAPE_MaiInputHandle handle)
 {
     #if defined BCHP_AUD_MISC_INIT_SPLTR0_LOGIC_INIT_MASK
     unsigned mode = BAPE_Reg_P_ReadField(handle->deviceHandle, BCHP_AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, AUD_FMM_IOP_IN_HDMI_0_OUT_RATE_CTRL, MODE);
@@ -655,7 +655,7 @@ static void BAPE_MaiInput_P_SetMclk_isr(BAPE_MaiInputHandle handle, BAPE_MclkSou
         (void)BERR_TRACE(BERR_NOT_SUPPORTED);
         break;
     }
-    BAPE_Reg_P_ApplyFieldList(&regFieldList, BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0);
+    BAPE_Reg_P_ApplyFieldList_isr(&regFieldList, BCHP_AUD_FMM_IOP_IN_HDMI_0_MCLK_CFG_0);
 }
 
 #define BAPE_NUM_OUTPUTS    10
@@ -677,7 +677,7 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     {
         BAPE_OutputPort outputs[BAPE_NUM_OUTPUTS];
         unsigned numFound;
-        BAPE_PathNode_P_GetConnectedOutputs(pConsumer, BAPE_NUM_OUTPUTS, &numFound, outputs);
+        BAPE_PathNode_P_GetConnectedOutputs_isrsafe(pConsumer, BAPE_NUM_OUTPUTS, &numFound, outputs);
         /* try to use Mai output as our reference, if present */
         for ( i=0; i<numFound; i++ )
         {
@@ -751,7 +751,7 @@ void BAPE_MaiInput_P_ConfigureClockSource_isr(BAPE_MaiInputHandle handle)
     {
         BAPE_NcoConfiguration ncoConfig;
         unsigned mclkFreqToFsRatio = 1;
-        BAPE_P_GetNcoConfiguration(handle->deviceHandle, mclkSource - BAPE_MclkSource_eNco0, &ncoConfig);
+        BAPE_P_GetNcoConfiguration_isrsafe(handle->deviceHandle, mclkSource - BAPE_MclkSource_eNco0, &ncoConfig);
         mclkFreqToFsRatio = ncoConfig.frequency / (handle->inputPort.format.sampleRate == 0 ? 48000: handle->inputPort.format.sampleRate);
         BDBG_MSG(("Success. Setting mai input to use clock source %lu, ch %lu, mclkFreqToFsRatio %lu", (unsigned long)mclkSource, (unsigned long)0, (unsigned long)mclkFreqToFsRatio));
         BAPE_MaiInput_P_SetMclk_isr(handle, mclkSource, 0, mclkFreqToFsRatio);
@@ -787,7 +787,7 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
         {
             BDBG_ERR(("Unable to start MAI Input FCI Splitter"));
         }
-        BAPE_MaiInput_P_FciSpReset(handle);
+        BAPE_MaiInput_P_FciSpReset_isrsafe(handle);
         return;
     }
     else
@@ -838,7 +838,7 @@ static void BAPE_MaiInput_P_Enable(BAPE_InputPort inputPort)
             {
                 BDBG_ERR(("Unable to start MAI Input FCI Splitter"));
             }
-            BAPE_MaiInput_P_FciSpReset(handle);
+            BAPE_MaiInput_P_FciSpReset_isrsafe(handle);
         }
 
         /* Enable capture */
@@ -994,7 +994,7 @@ static BERR_Code BAPE_MaiInput_P_ConsumerAttached_isr(BAPE_InputPort inputPort, 
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    BDBG_ASSERT(BAPE_InputPort_P_ConsumerIsAttached(inputPort, pConsumer));
+    BDBG_ASSERT(BAPE_InputPort_P_ConsumerIsAttached_isrsafe(inputPort, pConsumer));
 
     /* Enable format detection interupts.  After this, the current input format
      * will be maintained in the handle's lastFormatDetectionStatus struct.  */
@@ -1027,7 +1027,7 @@ static void BAPE_MaiInput_P_ConsumerDetached_isr(BAPE_InputPort inputPort, BAPE_
     handle = inputPort->pHandle;
     BDBG_OBJECT_ASSERT(handle, BAPE_MaiInput);
 
-    if ( BAPE_InputPort_P_GetNumConsumersAttached(inputPort) <= 1 )
+    if ( BAPE_InputPort_P_GetNumConsumersAttached_isrsafe(inputPort) <= 1 )
     {
         /* Disable local format detection. */
         handle->localFormatDetectionEnabled = false;
@@ -1036,7 +1036,7 @@ static void BAPE_MaiInput_P_ConsumerDetached_isr(BAPE_InputPort inputPort, BAPE_
     else
     {
         BDBG_MSG(("Detached one consumer %s (restart FCI Splitter only)", pConsumer->pName));
-        BAPE_MaiInput_P_FciSpReset(handle);
+        BAPE_MaiInput_P_FciSpReset_isrsafe(handle);
     }
 
     return;

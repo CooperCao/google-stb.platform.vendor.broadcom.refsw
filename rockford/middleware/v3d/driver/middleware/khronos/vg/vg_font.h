@@ -23,7 +23,7 @@ extern void vg_font_bprint_from_stem(
    MEM_HANDLE_T handle,
    int32_t glyphs_capacity);
 
-extern void vg_font_bprint_term(void *, uint32_t);
+extern void vg_font_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_font_bprint(MEM_HANDLE_T handle)
 {
@@ -51,7 +51,7 @@ typedef struct {
 
 extern bool vg_font_from_bprint(MEM_HANDLE_T handle);
 
-extern void vg_font_term(void *, uint32_t);
+extern void vg_font_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_font(MEM_HANDLE_T handle)
 {

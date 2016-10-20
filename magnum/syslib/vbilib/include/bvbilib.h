@@ -380,7 +380,7 @@ Sample Code
 // Begin initialization code: runs in non-interrupt context. //
 ///////////////////////////////////////////////////////////////
 
-BMEM_Handle memHandle;
+BMMA_Heap_Handle memHandle;
 BVBI_Handle vbiHandle;
 BVBI_Decode_Handle decHdl;
 BVBI_Encode_Handle encHdl;
@@ -389,9 +389,9 @@ BVBIlib_list_Handle listHandle;
 BVBIlib_Decode_Handle declHdl;
 BVBIlib_Encode_Handle EnclHdl;
 
-// Initialize BMEM module.
+// Initialize BMMA module.
 // This results in a valid memHandle.
-// See programmers guide to BMEM base module for info.
+// See programmers guide to BMMA base module for info.
 
 // Initialize BVBI porting interface module.
 // This results in valid vbiHandle, decHdl, and encHdl.

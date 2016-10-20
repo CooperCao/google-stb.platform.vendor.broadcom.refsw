@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -230,13 +230,13 @@ public:
     void getSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
     eRet setSettings(NEXUS_SimpleAudioDecoderServerSettings * pSettings);
 
-    void        connectEncodeAc3(bool bConnect);
-    void        connectEncodeDts(bool bConnect);
-    void        verifyEncode(NEXUS_AudioCodec codec);
-    eRet        setStc(CStc * pStc);
-    CStc *      getStc(void)              { return(_pStc); }
-    void        setModel(CModel * pModel) { _pModel = pModel; }
-    CModel *    getModel(void)            { return(_pModel); }
+    void     connectEncodeAc3(bool bConnect);
+    void     connectEncodeDts(bool bConnect);
+    void     verifyEncode(NEXUS_AudioCodec codec);
+    eRet     setStc(CStc * pStc);
+    CStc *   getStc(void)              { return(_pStc); }
+    void     setModel(CModel * pModel) { _pModel = pModel; }
+    CModel * getModel(void)            { return(_pModel); }
 
     COutputHdmi *  getOutputHdmi(void)                   { return(_pHdmi); }
     COutputSpdif * getOutputSpdif(void)                  { return(_pSpdif); }

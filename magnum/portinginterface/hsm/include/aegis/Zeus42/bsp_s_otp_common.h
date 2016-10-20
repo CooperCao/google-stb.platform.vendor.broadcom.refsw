@@ -129,8 +129,8 @@ typedef enum BCMD_Otp_CmdMsp_e
 #else
   BCMD_Otp_CmdMsp_eReserved75 = 75,
 #endif
-  BCMD_Otp_CmdMsp_eReserved76 = 76,
-  BCMD_Otp_CmdMsp_eReserved77 = 77,
+  BCMD_Otp_CmdMsp_eRaagaAVerifyEnable = 76,
+  BCMD_Otp_CmdMsp_eVideoVerifyEnable = 77,
   BCMD_Otp_CmdMsp_eReserved78 = 78,
   BCMD_Otp_CmdMsp_eHostBootCodeHideEnable = 79,
   BCMD_Otp_CmdMsp_eHostBootCodeDecryptionSelect = 80,
@@ -154,6 +154,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved92 = 92,
   BCMD_Otp_CmdMsp_eReserved93 = 93,
   BCMD_Otp_CmdMsp_eMarketId = 94,
+  BCMD_Otp_CmdMsp_eMarketId0 = 94,
   BCMD_Otp_CmdMsp_eReserved95 = 95,
   BCMD_Otp_CmdMsp_eReserved96 = 96,
   BCMD_Otp_CmdMsp_eReserved97 = 97,
@@ -193,7 +194,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved128 = 128,
   BCMD_Otp_CmdMsp_eReserved129 = 129,
   BCMD_Otp_CmdMsp_eReserved130 = 130,
-  BCMD_Otp_CmdMsp_eReserved131 = 131,
+  BCMD_Otp_CmdMsp_eViceVerifyEnable = 131,
   BCMD_Otp_CmdMsp_eReserved132 = 132,
   BCMD_Otp_CmdMsp_eReserved133 = 133,
   BCMD_Otp_CmdMsp_ePCIe0MwinDisable = 134,
@@ -204,7 +205,7 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved139 = 139,
   BCMD_Otp_CmdMsp_eReserved140 = 140,
   BCMD_Otp_CmdMsp_eReserved141 = 141,
-  BCMD_Otp_CmdMsp_eReserved142 = 142,
+  BCMD_Otp_CmdMsp_eSidVerifyEnable = 142,
   BCMD_Otp_CmdMsp_eReserved143 = 143,
   BCMD_Otp_CmdMsp_eReserved144 = 144,
   BCMD_Otp_CmdMsp_eReserved145 = 145,
@@ -255,7 +256,8 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eReserved190 = 190,
   BCMD_Otp_CmdMsp_eReserved191 = 191,
   BCMD_Otp_CmdMsp_eReserved192 = 192,
-  BCMD_Otp_CmdMsp_eReserved193 = 193,
+
+  BCMD_Otp_CmdMsp_eRaagaBVerifyEnable = 193,
   BCMD_Otp_CmdMsp_eReserved194 = 194,
   BCMD_Otp_CmdMsp_eReserved195 = 195,
   BCMD_Otp_CmdMsp_eReserved196 = 196,
@@ -458,12 +460,18 @@ typedef enum BCMD_Otp_CmdMsp_e
   BCMD_Otp_CmdMsp_eViceFwEpoch = 631,
   BCMD_Otp_CmdMsp_eRaveFwEpoch = 632,
   BCMD_Otp_CmdMsp_eAltMarketId = 633,
+  BCMD_Otp_CmdMsp_eMarketId1 = 633,
   BCMD_Otp_CmdMsp_eArcType = 634,
   BCMD_Otp_CmdMsp_eReserved635 = 635,
   BCMD_Otp_CmdMsp_eReserved636 = 636,
-  BCMD_Otp_CmdMsp_eSageGpBits_0 = 637,
-  BCMD_Otp_CmdMsp_eSageGpBits_1 = 638,
+  BCMD_Otp_CmdMsp_eReserved637 = 637,
+  BCMD_Otp_CmdMsp_eReserved638 = 638,
+  BCMD_Otp_CmdMsp_eReserved639 = 639,
 
+  BCMD_Otp_CmdMsp_eReserved640 = 640,
+  BCMD_Otp_CmdMsp_eReserved641 = 641,
+  BCMD_Otp_CmdMsp_eReserved642 = 642,
+  BCMD_Otp_CmdMsp_eReserved643 = 643,
   BCMD_Otp_CmdMsp_eSize
 } BCMD_Otp_CmdMsp_e ;
 

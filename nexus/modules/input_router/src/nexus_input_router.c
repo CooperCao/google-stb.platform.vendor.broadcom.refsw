@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2011-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- *
  **************************************************************************/
 #include "nexus_base.h"
 #include "nexus_input_router_module.h"
@@ -97,6 +96,7 @@ NEXUS_InputClientHandle NEXUS_InputRouter_CreateClient( NEXUS_InputRouterHandle 
     client->serverSettings.fifoSize = 100;
     client->serverSettings.filterMask = 0xFFFFFFFF; /* everything */
     client->settings.filterMask = 0xFFFFFFFF; /* everything */
+    NEXUS_CallbackDesc_Init(&client->settings.codeAvailable);
 
     client->codeAvailableCallback = NEXUS_TaskCallback_Create(client, NULL);
     if (!client->codeAvailableCallback) {

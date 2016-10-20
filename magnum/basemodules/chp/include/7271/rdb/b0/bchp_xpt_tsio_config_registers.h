@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,27 +70,27 @@
 /***************************************************************************
  *XPT_TSIO_CONFIG_REGISTERS
  ***************************************************************************/
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_CTRL 0x20a0d000 /* [RW] TSIO Control Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_CLK_SELECT 0x20a0d004 /* [RW] TSIO Serial Clock Select */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_STUFF_PKT_SERVICE_ID 0x20a0d008 /* [RW] TSIO Stuffing Packet ServiceID */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_CNC_PING_BUF_CTRL 0x20a0d010 /* [RW] Transmit C&C Ping Buffer Ctrl */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_CNC_PONG_BUF_CTRL 0x20a0d014 /* [RW] Transmit C&C Pong Buffer Ctrl */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_PING_BUF_STATUS 0x20a0d018 /* [RW] Received C&C Ping Buffer Status */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_PONG_BUF_STATUS 0x20a0d01c /* [RW] Received C&C Pong Buffer Status */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_ERROR_STATUS 0x20a0d02c /* [RW] Received C&C Error Status */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_CTS_CHECK_EN 0x20a0d030 /* [RW] Enable usage of the received CTS values during pipe arbitration */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CTS_STATUS 0x20a0d034 /* [RO] Received CTS status from the smartcard */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_PKT_DROP_STATUS 0x20a0d048 /* [RW] Tx Packet drop status per pipe */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_CLK_SEL_VALUE 0x20a0d04c /* [RO] TSIO Clk select final value as realised by h/w */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TV_STATUS 0x20a0d050 /* [RO] TV status register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_0 0x20a0d054 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_1 0x20a0d058 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_2 0x20a0d05c /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_3 0x20a0d060 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_4 0x20a0d064 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_5 0x20a0d068 /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_6 0x20a0d06c /* [RO] TSIO Debug Register */
-#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_7 0x20a0d070 /* [RO] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_CTRL 0x20a0d000 /* [RW][32] TSIO Control Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_CLK_SELECT 0x20a0d004 /* [RW][32] TSIO Serial Clock Select */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_STUFF_PKT_SERVICE_ID 0x20a0d008 /* [RW][32] TSIO Stuffing Packet ServiceID */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_CNC_PING_BUF_CTRL 0x20a0d010 /* [RW][32] Transmit C&C Ping Buffer Ctrl */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_CNC_PONG_BUF_CTRL 0x20a0d014 /* [RW][32] Transmit C&C Pong Buffer Ctrl */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_PING_BUF_STATUS 0x20a0d018 /* [RW][32] Received C&C Ping Buffer Status */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_PONG_BUF_STATUS 0x20a0d01c /* [RW][32] Received C&C Pong Buffer Status */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CNC_ERROR_STATUS 0x20a0d02c /* [RW][32] Received C&C Error Status */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_CTS_CHECK_EN 0x20a0d030 /* [RW][32] Enable usage of the received CTS values during pipe arbitration */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_RX_CTS_STATUS 0x20a0d034 /* [RO][32] Received CTS status from the smartcard */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TX_PKT_DROP_STATUS 0x20a0d048 /* [RW][32] Tx Packet drop status per pipe */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_CLK_SEL_VALUE 0x20a0d04c /* [RO][32] TSIO Clk select final value as realised by h/w */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TV_STATUS 0x20a0d050 /* [RO][32] TV status register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_0 0x20a0d054 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_1 0x20a0d058 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_2 0x20a0d05c /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_3 0x20a0d060 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_4 0x20a0d064 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_5 0x20a0d068 /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_6 0x20a0d06c /* [RO][32] TSIO Debug Register */
+#define BCHP_XPT_TSIO_CONFIG_REGISTERS_TSIO_DEBUG_7 0x20a0d070 /* [RO][32] TSIO Debug Register */
 
 /***************************************************************************
  *SERVICE_ID_TABLE%i - Service ID Table

@@ -836,7 +836,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eAvlPostProc */
 		{
 			0x00000519,
-			0x0000051d,
+			0x0000051e,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_ePl2PostProc */

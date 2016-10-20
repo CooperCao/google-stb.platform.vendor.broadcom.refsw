@@ -51,6 +51,19 @@ static long astra_mdev_ioctl(
     unsigned int cmd,
     unsigned long arg);
 
+static int astra_coredev_open(
+    struct inode *inode,
+    struct file *file);
+
+static int astra_coredev_release(
+    struct inode *ignored,
+    struct file *file);
+
+static int astra_coredev_mmap(
+    struct file *file,
+    struct vm_area_struct *vma);
+
+
 int __init astra_module_init(void);
 void __exit astra_module_exit(void);
 int astra_module_deinit(void);
@@ -80,6 +93,29 @@ static struct miscdevice astra_mdev = {
 
 static struct astra_device astra_adev;
 struct astra_device *adev = &astra_adev;
+
+/* Core Dump Device */
+static char astra_coredev_name[16]="astra_coredump";
+module_param_string(coredevname, astra_coredev_name, sizeof(astra_coredev_name), 0);
+
+static const struct file_operations astra_coredev_fops = {
+    .owner          = THIS_MODULE,
+    .read           = NULL,
+    .write          = NULL,
+    .open           = astra_coredev_open,
+    .release        = astra_coredev_release,
+    .unlocked_ioctl = NULL,
+    .mmap           = astra_coredev_mmap,
+};
+
+static struct miscdevice astra_coredev = {
+    .minor = MISC_DYNAMIC_MINOR,
+    .name = astra_coredev_name,
+    .fops = &astra_coredev_fops,
+};
+
+static struct coredump_device coredump_dev;
+struct coredump_device *cdev = &coredump_dev;
 
 /*
  * Misc Device Functions
@@ -186,6 +222,15 @@ int __init astra_module_init(void)
 
     adev->mdev = &astra_mdev;
 
+    /* register Core Dump device */
+    err = misc_register(&astra_coredev);
+    if (err) {
+        LOGE("Failed to register coredump device");
+        goto ERR_EXIT;
+    }
+
+    cdev->mdev = &astra_coredev;
+
     /* init ioctl module */
     err = _astra_ioctl_module_init();
     if (err) {
@@ -219,6 +264,10 @@ int astra_module_deinit(void)
     /* deinit ioctl module */
     if (adev->pIoctlMod)
         _astra_ioctl_module_deinit();
+
+    /* deregister coredump device */
+    if (cdev->mdev)
+        misc_deregister(cdev->mdev);
 
     /* deregister misc device */
     if (adev->mdev)
@@ -645,6 +694,43 @@ static int astra_file_read_rpy_proc(
     return 0;
 }
 
+static int astra_uapp_coredump_rpy_proc(
+    struct astra_client *pClient,
+    tzioc_msg_hdr *pHdr)
+{
+    struct uappd_msg_uapp_coredump_rpy *pRpy =
+        (struct uappd_msg_uapp_coredump_rpy *)TZIOC_MSG_PAYLOAD(pHdr);
+    struct astra_uapp *pUapp;
+
+    if (pHdr->ulLen  != sizeof(*pRpy)) {
+        LOGE("Invalid file read rpy received");
+        return -EBADMSG;
+    }
+
+    LOGI("CoreDump rpy: retVal %d", pRpy->retVal);
+
+    /* find astra userapp */
+    pUapp = astra_find_uapp_by_name(pClient, pRpy->name);
+
+    if (!pUapp) {
+        LOGE("Failed to find astra userapp %s", pRpy->name);
+        return -ENOENT;
+    }
+
+    if (!pUapp->tzStopWait) {
+        LOGE("Invalid state of astra userapp %s", pRpy->name);
+        return -EINVAL;
+    }
+
+    /* wake up userapp close func with return value */
+    pUapp->tzStopWait = false;
+    pUapp->tzRetVal = pRpy->retVal;
+    wake_up_interruptible(&pUapp->wq);
+
+    return 0;
+}
+
+
 static uint32_t astra_msg_ring_offset2addr(uint32_t ulOffset) {
     return ulOffset;
 }
@@ -824,6 +910,11 @@ static int astra_msg_proc(
         /* file read rpy */
         case UAPPD_MSG_FILE_READ:
             astra_file_read_rpy_proc(pClient, pTzHdr);
+            break;
+
+        /* Coredump rpy */
+        case UAPPD_MSG_UAPP_COREDUMP:
+            astra_uapp_coredump_rpy_proc(pClient, pTzHdr);
             break;
 
         default:
@@ -1874,5 +1965,108 @@ int _astra_event_exit(
 
     /* wake up event poll */
     wake_up_interruptible(&pClient->wq);
+    return 0;
+}
+
+void _astra_uapp_coredump(
+    struct astra_uapp *pUapp)
+{
+    struct astra_client *pClient = pUapp->pClient;
+    int err;
+    unsigned int * vaddr_1;
+
+    if (!ASTRA_UAPP_VALID(pUapp)) {
+        LOGE("Invalid astra userapp handle");
+        return;
+    }
+
+    if (pUapp->tzStarted ||
+        pUapp->tzStartWait /* only in force kill case */) {
+        err = _tzioc_peer_coredump(
+            pClient->pTzClient,
+            pUapp->name,
+            cdev->buf_addr,
+            cdev->buf_size);
+
+        if (err) {
+            LOGE("Failed to coredump userapp");
+            goto ERR_CONT;
+        }
+    }
+
+    /* wait for tzioc reply */
+    pUapp->tzStopWait = true;
+    err = wait_event_interruptible_timeout(
+        pUapp->wq,
+        !pUapp->tzStopWait,
+        msecs_to_jiffies(ASTRA_TIMEOUT_MSEC));
+
+    if (!ASTRA_UAPP_VALID(pUapp)) {
+        LOGE("Astra userapp has been destoyed");
+        return;
+    }
+
+    if (err == 0 || err == -ERESTARTSYS) {
+        LOGE("Failed to wait for tzioc userapp stop reply");
+        goto ERR_CONT;
+    }
+
+    if (pUapp->tzRetVal) {
+        LOGE("Failed to stop tzioc userapp in secure world");
+        goto ERR_CONT;
+    }
+    pUapp->tzStarted = false;
+
+    vaddr_1 = (unsigned int *)__va(cdev->buf_addr);
+
+ERR_CONT:
+    _astra_uapp_close(pUapp);
+}
+
+/* Core Dump Device Functions */
+static int astra_coredev_open(
+    struct inode *inode,
+    struct file *file)
+{
+    int err = 0;
+
+    printk("Core device OPen\n");
+    err = generic_file_open(inode, file);
+    if (unlikely(err)) {
+        LOGE("Failed to open inode!");
+        return err;
+    }
+    return 0;
+}
+
+static int astra_coredev_release(
+    struct inode *ignored,
+    struct file *file)
+{
+    return 0;
+}
+
+#define COREDUMP_FILE_SIZE		4*1024*1024
+
+static int astra_coredev_mmap(
+    struct file *file,
+    struct vm_area_struct *vma)
+{
+    uint8_t *vaddr;
+    unsigned offset = vma->vm_pgoff << PAGE_SHIFT;
+    unsigned size = vma->vm_end - vma->vm_start;
+
+    vaddr = kmalloc(COREDUMP_FILE_SIZE, GFP_USER);
+    cdev->buf_addr= (astra_paddr_t)__pa(vaddr);
+    cdev->buf_size = COREDUMP_FILE_SIZE;
+
+    printk("Core device MMAP size=0x%x\n",size);
+
+    return remap_pfn_range(
+        vma,
+        vma->vm_start,
+        (cdev->buf_addr+offset)>> PAGE_SHIFT,
+        size,
+        vma->vm_page_prot);
     return 0;
 }

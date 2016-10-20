@@ -14,6 +14,7 @@ All rights reserved.
 #include <string.h>
 #include <time.h>
 #ifdef ANDROID
+#include <limits.h>
 #include <android/log.h>
 #endif
 #ifdef _WIN32
@@ -81,9 +82,34 @@ static bool is_prefix_of(const char *a, const char *b)
 
 static void parse_log_level(void)
 {
+#ifdef ANDROID
+   /* get the current process name */
+   char process_name[PATH_MAX];
+   snprintf(process_name, PATH_MAX, "/proc/%d/cmdline", getpid());
+   FILE *fp = fopen(process_name, "r");
+   if (!fp)
+      return;
+   process_name[0] = '\0';
+   fgets(process_name, PATH_MAX, fp);
+   fclose(fp);
+
+   /* look for a property value which matches the name */
+   char key[PROPERTY_KEY_MAX];
+   /* some early system services have unix path.  Get the basename, otherwise com.android.something is
+      still OK */
+   snprintf(key, PROPERTY_KEY_MAX, "%s.%s", "ro.v3d.ll", basename(process_name));
+
+   __android_log_print(ANDROID_LOG_ERROR, "VC5", "process name to enable log %s", key);
+
+   char log_level[PROPERTY_VALUE_MAX];
+   vcos_property_get(key, log_level, PROPERTY_VALUE_MAX, "");
+   if (log_level[0] == '\0')
+      return;
+#else
    const char *log_level = getenv("LOG_LEVEL");
    if (!log_level)
       return;
+#endif
 
    /* malloc a copy so we can safely fiddle with it */
    char *malloced = malloc(strlen(log_level) + 1);

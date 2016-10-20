@@ -993,8 +993,8 @@ static void BINT_P_7366_SetMask( BREG_Handle regHandle, uint32_t baseAddr, int s
         break;
 
     default:
-       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandel %p,  shift %d",
-                         baseAddr, regHandle, shift));
+       BDBG_ERR(("NOT SUPPORTED baseAddr 0x%08x ,regHandle %p,  shift %d",
+                         baseAddr, (void *) regHandle, shift));
 
         /* Unhandled interrupt base address */
         BDBG_ASSERT( false );

@@ -18,7 +18,7 @@ static void destroy_surface(void *context, void *surface)
    DestroySurface((NXPL_Surface *) surface);
 }
 
-void SurfaceInterface_InitNexus(struct SurfaceInterface *si)
+void SurfaceInterface_InitNexus(SurfaceInterface *si)
 {
    si->base.context = NULL; /* unused */
    si->base.destroy = NULL; /* unused */

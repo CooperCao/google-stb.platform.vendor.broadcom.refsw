@@ -10,7 +10,6 @@ SOURCES =	default_nexus.c \
 			../common/sched_nexus.c \
 			../common/display_framework.c \
 			../common/display_interface.c \
-			../common/display_interface_nexus.c \
 			../common/event.c \
 			../common/fence.c \
 			../common/fence_interface.c \

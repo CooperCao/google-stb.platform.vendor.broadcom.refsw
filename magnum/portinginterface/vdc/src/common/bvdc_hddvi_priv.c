@@ -961,19 +961,11 @@ static void BVDC_P_HdDvi_BuildResetSwCore_isr
     BDBG_OBJECT_ASSERT(hHdDvi, BVDC_DVI);
     ulOffset = hHdDvi->ulOffset;
 
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     /* HD_DVI_0_SW_INIT (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_SW_INIT + ulOffset);
     *pList->pulCurrent++ =
         BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, CORE, bEnable );
-#else
-    /* HD_DVI_0_SW_RESET_CNTRL (RW) */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_SW_RESET_CNTRL + ulOffset);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(HD_DVI_0_SW_RESET_CNTRL, SW_RESET_HD_DVI, bEnable);
-#endif
 
     return;
 }
@@ -992,7 +984,6 @@ static void BVDC_P_HdDvi_BuildReset_isr
     BDBG_OBJECT_ASSERT(hHdDvi, BVDC_DVI);
     ulOffset = hHdDvi->ulOffset;
 
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     /* HD_DVI_0_SW_INIT (RW) */
     *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
     *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_SW_INIT + ulOffset);
@@ -1002,17 +993,6 @@ static void BVDC_P_HdDvi_BuildReset_isr
         BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, FORMAT_DETECT,
             hHdDvi->bResetFormatDetect                    ) |
         BCHP_FIELD_DATA(HD_DVI_0_SW_INIT, CORE,         0 );
-#else
-    /* HD_DVI_0_SW_RESET_CNTRL (RW) */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_HD_DVI_0_SW_RESET_CNTRL + ulOffset);
-    *pList->pulCurrent++ =
-        BCHP_FIELD_DATA(HD_DVI_0_SW_RESET_CNTRL, SW_RESET_BVB_BRIDGE,
-            bResetBvb                                                    ) |
-        BCHP_FIELD_DATA(HD_DVI_0_SW_RESET_CNTRL, SW_RESET_FORMAT_DETECT,
-            hHdDvi->bResetFormatDetect                                   ) |
-        BCHP_FIELD_DATA(HD_DVI_0_SW_RESET_CNTRL, SW_RESET_HD_DVI,      0 );
-#endif
 
     /* Only reset format detect once */
     hHdDvi->bResetFormatDetect = false;
@@ -3899,7 +3879,7 @@ void BVDC_P_Source_HdDviDataReady_isr
                 if(hSource->bStartFeed)
                 {
                     BDBG_MSG(("Source[%d] Reconfigs vnet!", hSource->eId));
-                    BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true);
+                    BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true, false);
                 }
             }
         }
@@ -3938,7 +3918,7 @@ void BVDC_P_Source_HdDviDataReady_isr
 
         if(hSource->hHdDvi->bFifoErr)
         {
-            BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true);
+            BVDC_P_Window_SetReconfiguring_isr(hSource->ahWindow[i], false, true, false);
         }
 
         BVDC_P_Window_Writer_isr(hSource->ahWindow[i], NULL,

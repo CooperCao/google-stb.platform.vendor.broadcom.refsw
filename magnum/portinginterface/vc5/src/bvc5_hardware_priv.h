@@ -410,7 +410,8 @@ void BVC5_P_InterruptHandlerHub_isr(
 
 void BVC5_P_RestorePerfCounters(
    BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex
+   uint32_t    uiCoreIndex,
+   bool        bWriteSelectorsAndEnables
    );
 
 void BVC5_P_UpdateShadowCounters(
@@ -447,7 +448,7 @@ void BVC5_P_HardwareClearEventFifos(
 /* Hardware must be powered on */
 bool BVC5_P_SwitchSecurityMode(
    BVC5_Handle          hVC5,
-   BVC5_P_InternalJob   *pJob
+   bool                 bSecure
 );
 
 void BVC5_P_HardwareSetupCoreMmu(

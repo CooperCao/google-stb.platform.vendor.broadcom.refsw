@@ -1,5 +1,5 @@
-#############################################################################
-#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
 #  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,8 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#############################################################################
+#
+############################################################
 
 # Determine core size and ZEUS version
 MAGNUM := ${NEXUS_TOP}/../magnum
@@ -53,18 +54,16 @@ endif
 ifeq ($(filter ${B_REFSW_ARCH}, arm-linux aarch64-linux), ${B_REFSW_ARCH})
 ARCH_DIR_PRDY=arm
 else
-# Distinguish between 65nm-askm and 40nm MIPS products
-ifeq ($(NEXUS_SECURITY_ZEUS_VERSION_MAJOR),0)
-ARCH_DIR_PRDY=65nm-askm
-else
 ARCH_DIR_PRDY=mips
 GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
 endif
-endif
 
 # Set final path
-ifeq "$(GCC_GTEQ_485)" "1"
-CMNDRM_PRDY_LIBDIR = lib/playready/2.5/$(ARCH_DIR_PRDY)/${BUILD_MODE}/eglibc
+ifeq ("$(GCC_GTEQ_485)", "1")
+CMNDRM_PRDY_LIBDIR = lib/playready/2.5/bin/$(ARCH_DIR_PRDY)/lib/eglibc
 else
-CMNDRM_PRDY_LIBDIR = lib/playready/2.5/$(ARCH_DIR_PRDY)/${BUILD_MODE}
+CMNDRM_PRDY_LIBDIR = lib/playready/2.5/bin/$(ARCH_DIR_PRDY)/lib
+endif
+ifeq ($(SAGE_VERSION), 2x)
+CMNDRM_PRDY_LIBDIR = lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
 endif

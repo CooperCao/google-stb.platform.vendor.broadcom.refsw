@@ -35,7 +35,9 @@ Contains per-process state and per-thread state
 
 static struct statics {
    gmem_handle_t dummy_texture_handle;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    gmem_handle_t gfxh_1320_buffer;
+#endif
    bool initialized;
 #if !V3D_HAS_NEW_TMU_CFG
    V3D_MISCCFG_T misccfg;
@@ -48,42 +50,6 @@ static struct statics {
    GLXX_TEXTURE_SAMPLER_STATE_T image_unit_default_sampler;
 } statics;
 
-static bool init_v3d_client(void)
-{
-   bool mem = false, plat = false, ok = false;
-
-   mem = khrn_mem_init();
-   if (!mem) goto end;
-
-   plat = v3d_platform_init();
-   demand_msg(plat, "Failed to initialise platform");
-
-#ifdef KHRN_GEOMD
-   if (khrn_options.geomd)
-      v3d_platform_set_debug_callback(khrn_debug_callback, NULL);
-#endif
-
-   if (!v3d_parallel_init(khrn_options.max_worker_threads))
-      goto end;
-
-   v3d_check_ident(v3d_scheduler_get_identity(), 0);
-
-#if !V3D_HAS_NEW_TMU_CFG
-   statics.misccfg.ovrtmuout = V3D_VER_AT_LEAST(3,3,0,0);
-#endif
-
-   ok = true;
-end:
-   if (!ok)
-   {
-      /* SCHED_FIXME: completion_term, v3d_term, etc? */
-      if (mem)
-         khrn_mem_term();
-      return false;
-   }
-   return true;
-}
-
 gmem_handle_t get_dummy_texture(void)
 {
    return statics.dummy_texture_handle;
@@ -94,10 +60,12 @@ const GLXX_TEXTURE_SAMPLER_STATE_T *khrn_get_image_unit_default_sampler(void)
    return &statics.image_unit_default_sampler;
 }
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
 gmem_handle_t khrn_get_gfxh_1320_buffer(void)
 {
    return statics.gfxh_1320_buffer;
 }
+#endif
 
 const char *khrn_get_gl11_exts_str(void)
 {
@@ -135,9 +103,11 @@ const V3D_MISCCFG_T *khrn_get_hw_misccfg(void)
 static void khrn_statics_shutdown(struct statics *s)
 {
    gmem_free(s->dummy_texture_handle);
-   gmem_free(s->gfxh_1320_buffer);
    s->dummy_texture_handle = 0;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   gmem_free(s->gfxh_1320_buffer);
    s->gfxh_1320_buffer = 0;
+#endif
 }
 
 static void init_image_unit_default_sampler(GLXX_TEXTURE_SAMPLER_STATE_T *sampler)
@@ -200,6 +170,11 @@ static bool khrn_statics_init(struct statics *s)
       (khrn_get_has_astc() ? GFX_LFMT_TRANSLATE_GL_EXT_ASTC : 0);
 
    init_image_unit_default_sampler(&s->image_unit_default_sampler);
+
+#if !V3D_HAS_NEW_TMU_CFG
+   statics.misccfg.ovrtmuout = V3D_VER_AT_LEAST(3,3,0,0);
+#endif
+
    return true;
 
 error:
@@ -223,6 +198,7 @@ void khrn_process_shutdown(void)
       khrn_statics_shutdown(&statics);
       khrn_mem_term();
       khrn_fmem_client_pool_deinit();
+      khrn_tile_state_deinit();
       v3d_parallel_term();
       v3d_platform_shutdown();
       profile_shutdown();
@@ -233,31 +209,53 @@ bool khrn_process_init(void)
 {
    verif(VCOS_SUCCESS==vcos_init());
 
+#ifdef KHRN_GEOMD
+   verif(fmem_debug_info_init_process());
+#endif
+
    khrn_init_options();
    profile_init();
 
+   demand_msg(v3d_platform_init(), "Failed to initialise platform");
+   v3d_check_ident(v3d_scheduler_get_identity(), 0);
+
 #ifdef KHRN_GEOMD
-   if (!fmem_debug_info_init_process())
-      return false;
+   if (khrn_options.geomd)
+      v3d_platform_set_debug_callback(khrn_debug_callback, NULL);
 #endif
 
-   if (!init_v3d_client())
-      return false;
+   if (v3d_parallel_init(khrn_options.max_worker_threads))
+   {
+      // Default to using all cores, or number specified by environment.
+      // Need to do this after the scheduler session has been brought up.
+      uint32_t num_cores = khrn_get_num_cores();
+      if (!khrn_options.render_subjobs)
+         khrn_options.render_subjobs = num_cores;
+      if (!khrn_options.bin_subjobs)
+         khrn_options.bin_subjobs = num_cores;
 
-   // Default to using all cores, or number specified by environment.
-   // Need to do this after the scheduler session has been brought up.
-   uint32_t num_cores = khrn_get_num_cores();
-   if (!khrn_options.render_subjobs)
-      khrn_options.render_subjobs = num_cores;
-   if (!khrn_options.bin_subjobs)
-      khrn_options.bin_subjobs = num_cores;
+      // Further clamp to max subjobs of type...
+      khrn_options.render_subjobs = gfx_umin(khrn_options.render_subjobs,  V3D_MAX_RENDER_SUBJOBS);
+      khrn_options.bin_subjobs = gfx_umin(khrn_options.bin_subjobs, V3D_MAX_BIN_SUBJOBS);
 
-   // Further clamp to max subjobs of type...
-   khrn_options.render_subjobs = gfx_umin(khrn_options.render_subjobs,  V3D_MAX_RENDER_SUBJOBS);
-   khrn_options.bin_subjobs = gfx_umin(khrn_options.bin_subjobs, V3D_MAX_BIN_SUBJOBS);
+      if (khrn_mem_init())
+      {
+         if (khrn_fmem_client_pool_init())
+         {
+            if (khrn_statics_init(&statics))
+            {
+               khrn_tile_state_init();
+               return true;
+            }
+            khrn_fmem_client_pool_deinit();
+         }
+         khrn_mem_term();
+      }
+      v3d_parallel_term();
+   }
 
-   if (!khrn_fmem_client_pool_init())
-      return false;
+   v3d_platform_shutdown();
+   profile_shutdown();
 
-   return khrn_statics_init(&statics);
+   return false;
 }

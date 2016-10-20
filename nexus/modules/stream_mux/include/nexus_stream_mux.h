@@ -211,6 +211,8 @@ typedef struct NEXUS_StreamMuxStartSettings
                                  * 4-byte timestamp in output TS */
     NEXUS_StreamMuxInterleaveMode interleaveMode; /* Specifies A/V interleave timing mode */
     bool insertPtsOnlyOnFirstKeyFrameOfSegment; /* When true, a PTS is inserted only on the first key frame of each segment */
+    bool useInitialPts;    /* (only used if nonRealTime=true) Enables seeding of initial PTS */
+    uint32_t initialPts;   /* (only used if nonRealTime=true) Indicates the desired PTS for the first *video* frame. All other A/V timing parameters are adjusted accordingly (32-bits of 45Khz clock ticks) */
 } NEXUS_StreamMuxStartSettings;
 
 typedef struct NEXUS_StreamMuxOutput

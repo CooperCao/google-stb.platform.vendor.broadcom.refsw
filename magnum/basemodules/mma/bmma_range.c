@@ -639,7 +639,7 @@ BERR_Code BMMA_RangeAllocator_Alloc(BMMA_RangeAllocator_Handle a, BMMA_RangeAllo
     b = BMMA_RangeAllocator_P_AllocBestFit(a, size, settings, &allocation);
     if(b==NULL) {
         if(!a->settings.silent) {
-            BDBG_ERR(("%p: Can't allocate block %u alignment %u (HEAP " BDBG_UINT64_FMT ":%u allocated:%u,%u free:%u,%u)", (void *)a, (unsigned)size, alignment, BDBG_UINT64_ARG(a->settings.base), (unsigned)a->settings.size, a->status.allocatedBlocks, (unsigned)a->status.allocatedSpace, a->status.freeBlocks, (unsigned)a->status.freeSpace));
+            BDBG_ERR(("%p: Can't allocate block %u alignment %u (RANGE " BDBG_UINT64_FMT ":%u allocated:%u,%u free:%u,%u)", (void *)a, (unsigned)size, alignment, BDBG_UINT64_ARG(a->settings.base), (unsigned)a->settings.size, a->status.allocatedBlocks, (unsigned)a->status.allocatedSpace, a->status.freeBlocks, (unsigned)a->status.freeSpace));
             rc = BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         } else {
             rc = BERR_OUT_OF_DEVICE_MEMORY;
@@ -793,6 +793,7 @@ BERR_Code BMMA_P_RangeAllocator_Relocate(BMMA_RangeAllocator_Handle a,  BMMA_Ran
             break;
         }
         BMMA_P_STATUS(a);
+        BSTD_UNUSED (allocated);
     }
     /* merge two free blocks */
     BDBG_OBJECT_ASSERT(b, BMMA_RangeAllocator_Block);

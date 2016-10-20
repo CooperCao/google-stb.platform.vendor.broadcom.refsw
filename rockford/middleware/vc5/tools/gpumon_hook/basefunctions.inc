@@ -1060,8 +1060,14 @@ static EGLBoolean base_eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image)
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 #endif /* EGL_KHR_platform_x11*/
@@ -1073,6 +1079,14 @@ static EGLBoolean base_eglDestroyImageKHR(EGLDisplay dpy, EGLImageKHR image)
 static EGLint base_eglWaitSyncKHR(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags)
    FuncRet(EGL, EGLint , eglWaitSyncKHR, (dpy, sync, flags))
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+static void base_glBlendBarrierKHR(void)
+   Func(GL, glBlendBarrierKHR, ())
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 static void base_glDebugMessageControlKHR(GLenum source, GLenum type, GLenum severity, GLsizei count, const GLuint *ids, GLboolean enabled)
@@ -1142,6 +1156,17 @@ static void base_glColorMaskiOES(GLuint index, GLboolean r, GLboolean g, GLboole
 static GLboolean base_glIsEnablediOES(GLenum target, GLuint index)
    FuncRet(GL, GLboolean , glIsEnablediOES, (target, index))
 #endif /* GL_OES_draw_buffers_indexed*/
+
+#if GL_OES_draw_elements_base_vertex
+static void base_glDrawElementsBaseVertexOES(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+   Func(GL, glDrawElementsBaseVertexOES, (mode, count, type, indices, basevertex))
+static void base_glDrawRangeElementsBaseVertexOES(GLenum mode, GLuint start, GLuint end, GLsizei count, GLenum type, const void *indices, GLint basevertex)
+   Func(GL, glDrawRangeElementsBaseVertexOES, (mode, start, end, count, type, indices, basevertex))
+static void base_glDrawElementsInstancedBaseVertexOES(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex)
+   Func(GL, glDrawElementsInstancedBaseVertexOES, (mode, count, type, indices, instancecount, basevertex))
+static void base_glMultiDrawElementsBaseVertexOES(GLenum mode, const GLsizei *count, GLenum type, const void *const*indices, GLsizei primcount, const GLint *basevertex)
+   Func(GL, glMultiDrawElementsBaseVertexOES, (mode, count, type, indices, primcount, basevertex))
+#endif /* GL_OES_draw_elements_base_vertex*/
 
 #if GL_OES_draw_texture
 static void base_glDrawTexsOES(GLshort x, GLshort y, GLshort z, GLshort width, GLshort height)
@@ -1223,6 +1248,11 @@ static void base_glPointSizePointerOES(GLenum type, GLsizei stride, const void *
    Func(GL, glPointSizePointerOES, (type, stride, pointer))
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+static void base_glPrimitiveBoundingBoxOES(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW, GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+   Func(GL, glPrimitiveBoundingBoxOES, (minX, minY, minZ, minW, maxX, maxY, maxZ, maxW))
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 static GLbitfield base_glQueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
    FuncRet(GL, GLbitfield , glQueryMatrixxOES, (mantissa, exponent))
@@ -1230,6 +1260,11 @@ static GLbitfield base_glQueryMatrixxOES(GLfixed *mantissa, GLint *exponent)
 
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+static void base_glMinSampleShadingOES(GLfloat value)
+   Func(GL, glMinSampleShadingOES, (value))
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -1385,6 +1420,9 @@ static EGLSurface base_eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConf
    FuncRet(EGL, EGLSurface , eglCreatePlatformPixmapSurfaceEXT, (dpy, config, native_pixmap, attrib_list))
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
@@ -1393,6 +1431,15 @@ static EGLSurface base_eglCreatePlatformPixmapSurfaceEXT(EGLDisplay dpy, EGLConf
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+static EGLBoolean base_eglBindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display)
+   FuncRet(EGL, EGLBoolean , eglBindWaylandDisplayWL, (dpy, display))
+static EGLBoolean base_eglUnbindWaylandDisplayWL(EGLDisplay dpy, struct wl_display *display)
+   FuncRet(EGL, EGLBoolean , eglUnbindWaylandDisplayWL, (dpy, display))
+static EGLBoolean base_eglQueryWaylandBufferWL(EGLDisplay dpy, struct wl_resource *buffer, EGLint name, EGLint *value)
+   FuncRet(EGL, EGLBoolean , eglQueryWaylandBufferWL, (dpy, buffer, name, value))
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
@@ -1411,9 +1458,6 @@ static void base_glProvokingVertexBRCM(GLenum mode)
 static void base_glTexImage1DBRCM(GLenum target, GLint level, GLint internalformat, GLsizei width, GLint border, GLenum format, GLenum type, const GLvoid *pixels)
    Func(GL, glTexImage1DBRCM, (target, level, internalformat, width, border, format, type, pixels))
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

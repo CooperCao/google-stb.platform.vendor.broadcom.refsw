@@ -237,7 +237,11 @@ typedef struct BGRC_P_Handle
     BDBG_OBJECT(BGRC)
     BCHP_Handle hChip;                          /* handle to chip module */
     BREG_Handle hRegister;                      /* handle to register module */
+#ifdef BGRC_PACKET_MODE
+    BMMA_Heap_Handle hMemory;                   /* handle to memory module */
+#else
     BMEM_Handle hMemory;                        /* handle to memory module */
+#endif
     BINT_Handle hInterrupt;                     /* handle to interrupt module */
 
     uint32_t ulDeviceNum;                       /* number of M2MC device being used */
@@ -300,9 +304,13 @@ typedef struct BGRC_P_Handle
     uint32_t  ulNumCreates;
     bool waitForSync;
 
+#ifdef BGRC_PACKET_MODE
+    BMMA_Block_Handle pHwPktFifoBaseAlloc;
+#else
     void     *pHwPktFifoBaseAlloc;
+#endif
     uint8_t  *pHwPktFifoBase;
-    uint32_t  ulHwPktFifoBaseOffset;
+    BSTD_DeviceOffset ulHwPktFifoBaseOffset;
     uint32_t  ulHwPktFifoSize;
 
     uint8_t  *pHwPktWritePtr;
@@ -310,10 +318,14 @@ typedef struct BGRC_P_Handle
     uint8_t  *pHwPktSubmitLinkPtr;
 
     uint8_t  *pLastHwPktPtr;      /* NULL means no blit in hw pkt fifo */
-    uint32_t  ulHwPktOffsetExecuted;
+    BSTD_DeviceOffset ulHwPktOffsetExecuted;
 
+#ifdef BGRC_PACKET_MODE
+    BMMA_Block_Handle pDummySurAlloc;
+#else
     void     *pDummySurAlloc;
-    uint32_t  ulDummySurOffset;
+#endif
+    BSTD_DeviceOffset ulDummySurOffset;
     uint8_t  *pDummySurBase;
     uint32_t  ulSyncCntr;
     uint32_t  ulExtraFlushCntr;
@@ -322,6 +334,7 @@ typedef struct BGRC_P_Handle
     int       iGrcLock;  /* to check module re-entry */
 #endif
 #endif
+    BCHP_MemoryInfo stMemInfo;
 }
 
 BGRC_P_Handle;

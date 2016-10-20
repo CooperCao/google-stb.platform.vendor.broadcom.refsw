@@ -215,6 +215,7 @@ static NEXUS_Error nexus_p_open_blitter(NEXUS_SurfaceCompositorHandle server, bo
     BDBG_ASSERT(!server->gfx);
     NEXUS_Graphics2D_GetDefaultOpenSettings(&settings);
     settings.secure = secure;
+    settings.compatibleWithSurfaceCompaction = true;
     server->gfx = NEXUS_Graphics2D_Open(0, &settings);
     if (!server->gfx) return BERR_TRACE(NEXUS_UNKNOWN);
     NEXUS_Graphics2D_GetSettings(server->gfx, &gfxSettings);
@@ -281,6 +282,8 @@ NEXUS_SurfaceCompositorHandle NEXUS_SurfaceCompositor_Create( unsigned server_id
     }
     server->settings.bounceBuffer.width = 256;
     server->settings.bounceBuffer.height = 256;
+    NEXUS_CallbackDesc_Init(&server->settings.frameBufferCallback);
+    NEXUS_CallbackDesc_Init(&server->settings.inactiveCallback);
     server->display[0] = nexus_surface_compositor_p_create_display(server);
     if(server->display[0]==NULL) {
         goto error;
@@ -428,15 +431,15 @@ static void nexus_surface_compositor_p_dealloc_displays(NEXUS_SurfaceCompositorH
             /* disable graphics and stop callbacks */
             if (i == 0) {
                 (void)NEXUS_Display_SetVsyncCallback(cmpDisplay->display, NULL);
-                NEXUS_CallbackHandler_Shutdown(cmpDisplay->vsyncCallback);
             }
             NEXUS_Display_GetGraphicsSettings(cmpDisplay->display, &graphicsSettings);
-            NEXUS_CALLBACKDESC_INIT(&graphicsSettings.frameBufferCallback);
+            NEXUS_CallbackDesc_Init(&graphicsSettings.frameBufferCallback);
             graphicsSettings.enabled = false;
             rc = NEXUS_Display_SetGraphicsSettings(cmpDisplay->display, &graphicsSettings);
             if (rc) rc = BERR_TRACE(rc);
             NEXUS_StopCallbacks(cmpDisplay->display); /* clear callbacks that are 'in-flight' */
             NEXUS_CallbackHandler_Shutdown(cmpDisplay->frameBufferCallback);
+            NEXUS_CallbackHandler_Shutdown(cmpDisplay->vsyncCallback);
             NEXUS_StartCallbacks(cmpDisplay->display); /* enable further use of callbacks from the display */
         }
 

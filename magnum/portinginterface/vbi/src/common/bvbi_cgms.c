@@ -207,16 +207,8 @@ uint32_t BVPI_P_CGMS_format_data_isr (uint32_t userdata)
 {
     /* Do CRC calculation if hardware is broken */
     /* Otherwise, just transform from decoder format to encoder format. */
-#ifdef P_CGMS_SOFTWARE_CRC
-    userdata &= 0x00003fff;
-    userdata = P_CalculateCRC (userdata);
-    userdata <<= 2;
-    userdata &= 0x003ffffc;
-    userdata |= 0x00000001;
-#else
     userdata <<= 2;
     userdata &= 0x0000fffc;
-#endif
 
     return userdata;
 }

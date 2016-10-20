@@ -49,9 +49,9 @@ typedef struct {
    MEM_HANDLE_T mh_name;
 } GL20_BINDING_T;
 
-extern void gl20_bindings_term(void *v, uint32_t size);
+extern void gl20_bindings_term(MEM_HANDLE_T handle);
 
-extern void gl20_uniform_info_term(void *v, uint32_t size);
+extern void gl20_uniform_info_term(MEM_HANDLE_T handle);
 
 typedef struct {
 //   GLint location;
@@ -61,7 +61,7 @@ typedef struct {
    MEM_HANDLE_T mh_name;
 } GL20_ATTRIB_INFO_T;
 
-extern void gl20_attrib_info_term(void *v, uint32_t size);
+extern void gl20_attrib_info_term(MEM_HANDLE_T handle);
 
 #define SIG_PROGRAM 0x097067a8
 
@@ -106,7 +106,7 @@ typedef struct {
 } GL20_PROGRAM_T;
 
 extern void gl20_program_init(GL20_PROGRAM_T *program, int32_t name);
-extern void gl20_program_term(void *v, uint32_t size);
+extern void gl20_program_term(MEM_HANDLE_T handle);
 
 extern bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, uint32_t index, const char *name);
 

@@ -178,49 +178,6 @@ NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
     ${BSEAV}/lib/asf/basf.inc
 endif
 
-
-ifeq ($(MSDRM_PD_SUPPORT), y)
-NEXUS_TRANSPORT_DEFINES+=B_HAS_MSDRM_PD=1
-
-MSDRM_PD_BIN_DIR := $(BSEAV)/lib/drm/wmdrmpd10/bin
-
-# These are really mis-named and are actually .lo files
-MAGNUM_PRECOMPILED_OBJECTS += \
-        $(MSDRM_PD_BIN_DIR)/oem_ansi.a   \
-        $(MSDRM_PD_BIN_DIR)/drmmanager.a  \
-        $(MSDRM_PD_BIN_DIR)/drmcore.a    \
-        $(MSDRM_PD_BIN_DIR)/drmpkcrypto.a \
-        $(MSDRM_PD_BIN_DIR)/drmbignum.a  \
-        $(MSDRM_PD_BIN_DIR)/drmdevcert.a  \
-        $(MSDRM_PD_BIN_DIR)/drmblackbox.a \
-        $(MSDRM_PD_BIN_DIR)/drmcrypto.a  \
-        $(MSDRM_PD_BIN_DIR)/drmdevicedevcert.a
-
-NEXUS_TRANSPORT_DEFINES += DRM_SUPPORT_DLA=1 D_DEBUG DEBUG B_HAS_DRM=1 NEXUS_DRM_BUILD=1
-NEXUS_TRANSPORT_PRIVATE_INCLUDES += $(BSEAV)/lib/drm $(BSEAV)/lib/drm/wmdrmpd10/inc $(BSEAV)/lib/utils
-
-ifeq ($(MEDIA_ASF_SUPPORT), y)
-NEXUS_TRANSPORT_PRIVATE_INCLUDES +=  \
-    $(BSEAV)/lib/asf
-endif
-
-NEXUS_TRANSPORT_SOURCES += \
-        $(BSEAV)/lib/drm/drmcore.c \
-        $(BSEAV)/lib/drm/drmhttp.c \
-        $(BSEAV)/lib/drm/drmplay.c \
-        $(BSEAV)/lib/drm/drmchallenge.c \
-        $(BSEAV)/lib/drm/drmresponse.c \
-        $(BSEAV)/lib/drm/drmenv.c \
-        $(BSEAV)/lib/drm/drmdecryptor.c
-
-
-ifeq ($(MEDIA_ASF_SUPPORT), y)
-NEXUS_TRANSPORT_SOURCES += $(BSEAV)/lib/drm/asfpars.c
-endif
-
-endif
-
-
 ifeq ($(MSDRM_PRDY_SUPPORT), y)
 NEXUS_TRANSPORT_PRIVATE_INCLUDES += $(BSEAV)/lib/playready/$(NEXUS_PLAYREADY_SDK_VERSION) $(BSEAV)/lib/playready/$(NEXUS_PLAYREADY_SDK_VERSION)/inc $(BSEAV)/lib/utils
 
@@ -230,28 +187,11 @@ endif
 
 endif
 
-ifeq ($(MSDRM_ND_SUPPORT), y)
-NEXUS_TRANSPORT_DEFINES+=B_HAS_MSDRM_ND=1
-NEXUS_TRANSPORT_PRIVATE_INCLUDES += $(BSEAV)/lib/drmnd/ $(BSEAV)/lib/drmnd/wmdrmnd10/port $(BSEAV)/lib/drmnd/wmdrmnd10/inc $(BSEAV)/lib/drmnd/wmdrmnd10/oem
-MAGNUM_PRECOMPILED_OBJECTS += $(BSEAV)/lib/drmnd/wmdrmnd10/bin/drmndport.a $(BSEAV)/lib/drmnd/wmdrmnd10/oem/ansi/oem_ansi.a
-NEXUS_TRANSPORT_SOURCES += $(BSEAV)/lib/drmnd/bdrmnd_decryptor.c
-endif
-
-
 ifeq ($(MEDIA_AVI_SUPPORT), y)
-ifeq ($(DIVX_DRM_SUPPORT), y)
-include $(BSEAV)/lib/divxdrm/Makefile.drm
-NEXUS_TRANSPORT_SOURCES += $(DIVX_DRM_SRCS)
-NEXUS_CFLAGS += $(DIVX_DRM_CFLAGS)
-MAGNUM_PRECOMPILED_OBJECTS += $(DIVX_DRM_OBJS)
-# the divxdrm library requires c99
-NEXUS_C_STD=c99
-endif
 NEXUS_TRANSPORT_MAGNUM_MODULES +=  \
     ${BSEAV}/lib/avi/bavi.inc
 endif
 
-# end of MEDIA_AVI_SUPPORT
 endif
 
 ifeq ($(MEDIA_FLV_SUPPORT), y)

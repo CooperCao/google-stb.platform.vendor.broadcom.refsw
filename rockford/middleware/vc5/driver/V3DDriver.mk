@@ -92,7 +92,7 @@ CFLAGS += -Wall -Wpointer-arith
 # Add any customer specific cflags from the command line
 CFLAGS += $(V3D_EXTRA_CFLAGS)
 
-LDFLAGS = -lpthread -ldl
+LDFLAGS = -lpthread -ldl -lm
 
 # Bind references to global functions to the definitions within the khronos
 # library. This in particular means eglGetProcAddress will always return the
@@ -174,12 +174,15 @@ $(Q)cd libs/khrn/glsl && \
 		scripts/image_types.table;
 endef
 
-$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table :
+$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table : \
+	$(glsl_primitive_types_deps)
+		$(glsl_primitive_types_gen)
+
 $(GLSL_INTERMEDIATE)/glsl_primitive_type_index.auto.h \
 $(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.h \
 $(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.c : \
-	$(glsl_primitive_types_deps)
-		$(glsl_primitive_types_gen)
+	$(GLSL_INTERMEDIATE)/glsl_primitive_types.auto.table
+		@
 
 $(GLSL_INTERMEDIATE)/glsl_intrinsic_lookup.auto.c : \
 	libs/khrn/glsl/glsl_intrinsic_lookup.gperf \
@@ -191,14 +194,17 @@ $(GLSL_INTERMEDIATE)/glsl_layout.auto.c : libs/khrn/glsl/glsl_layout.gperf
 	$(generated_src_dir_exists)
 	$(Q)gperf libs/khrn/glsl/glsl_layout.gperf > $(GLSL_INTERMEDIATE)/glsl_layout.auto.c
 
-$(GLSL_INTERMEDIATE)/textures.auto.props \
-$(GLSL_INTERMEDIATE)/textures.auto.glsl : \
+$(GLSL_INTERMEDIATE)/textures.auto.props : \
 	libs/khrn/glsl/scripts/build_texture_functions.py
 		$(generated_src_dir_exists)
 		$(Q)cd libs/khrn/glsl && \
 		python2 \
 			scripts/build_texture_functions.py \
 			-O $(GLSL_INTERMEDIATE);
+
+$(GLSL_INTERMEDIATE)/textures.auto.glsl : \
+	$(GLSL_INTERMEDIATE)/textures.auto.props
+		@
 
 # sources for stdlib from source tree.
 STDLIB_SOURCES := \
@@ -254,18 +260,25 @@ $(Q)cd libs/khrn/glsl && \
 		$(STDLIB_AUTO_SOURCES)
 endef
 
-$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c \
-$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.h : \
+$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c : \
 	libs/khrn/glsl/scripts/build_stdlib.py \
 	$(addprefix libs/khrn/glsl/,$(STDLIB_SOURCES)) $(STDLIB_AUTO_SOURCES)
 		$(glsl_stdlib_auto_gen)
 
-$(GLSL_INTERMEDIATE)/glsl_parser.c \
-$(GLSL_INTERMEDIATE)/glsl_parser.output \
-$(GLSL_INTERMEDIATE)/glsl_parser.h : \
+$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.h : \
+$(GLSL_INTERMEDIATE)/glsl_stdlib.auto.c
+	@
+
+
+$(GLSL_INTERMEDIATE)/glsl_parser.output : \
 	libs/khrn/glsl/glsl_parser.y
 		$(generated_src_dir_exists)
 		$(Q)bison -d -o $(GLSL_INTERMEDIATE)/glsl_parser.c libs/khrn/glsl/glsl_parser.y
+
+$(GLSL_INTERMEDIATE)/glsl_parser.c \
+$(GLSL_INTERMEDIATE)/glsl_parser.h : \
+$(GLSL_INTERMEDIATE)/glsl_parser.output
+	@
 
 $(GLSL_INTERMEDIATE)/glsl_lexer.c : libs/khrn/glsl/glsl_lexer.l
 	$(generated_src_dir_exists)

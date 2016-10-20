@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -235,8 +235,8 @@ eRet CSimpleAudioDecodeNx::setHdmiInput(
         NEXUS_SimpleAudioDecoderServerSettings * pSettings
         )
 {
-    eRet ret = eRet_Ok;
-    NEXUS_Error nerror = NEXUS_SUCCESS;
+    eRet                   ret    = eRet_Ok;
+    NEXUS_Error            nerror = NEXUS_SUCCESS;
     NxClient_AudioSettings settings;
 
     BSTD_UNUSED(pSettings);
@@ -251,7 +251,7 @@ eRet CSimpleAudioDecodeNx::setHdmiInput(
         break;
 
     case eHdmiAudioInput_EncodeDts:
-        settings.hdmi.outputMode = NxClient_AudioOutputMode_eTranscode;
+        settings.hdmi.outputMode     = NxClient_AudioOutputMode_eTranscode;
         settings.hdmi.transcodeCodec = NEXUS_AudioCodec_eDts;
         break;
 
@@ -273,13 +273,13 @@ eRet CSimpleAudioDecodeNx::setHdmiInput(
     CHECK_NEXUS_ERROR_GOTO("unable to set hdmi output type", nerror, ret, error);
 error:
     return(ret);
-}
+} /* setHdmiInput */
 
 eSpdifInput CSimpleAudioDecodeNx::getSpdifInput(NEXUS_AudioCodec codec)
 {
-    eRet                 ret          = eRet_Ok;
-    NEXUS_Error          nerror       = NEXUS_SUCCESS;
-    eSpdifInput          spdifType    = eSpdifInput_None;
+    eRet                 ret       = eRet_Ok;
+    NEXUS_Error          nerror    = NEXUS_SUCCESS;
+    eSpdifInput          spdifType = eSpdifInput_None;
     NxClient_AudioStatus statusAudio;
 
     BDBG_ASSERT(NEXUS_AudioCodec_eMax > codec);
@@ -324,14 +324,13 @@ error:
     return(spdifType);
 } /* getSpdifInput */
 
-
 eRet CSimpleAudioDecodeNx::setSpdifInput(
         eSpdifInput                              spdifInput,
         NEXUS_SimpleAudioDecoderServerSettings * pSettings
         )
 {
-    eRet ret = eRet_Ok;
-    NEXUS_Error nerror = NEXUS_SUCCESS;
+    eRet                   ret    = eRet_Ok;
+    NEXUS_Error            nerror = NEXUS_SUCCESS;
     NxClient_AudioSettings settings;
 
     BSTD_UNUSED(pSettings);
@@ -342,7 +341,7 @@ eRet CSimpleAudioDecodeNx::setSpdifInput(
     switch (spdifInput)
     {
     case eSpdifInput_EncodeDts:
-        settings.spdif.outputMode = NxClient_AudioOutputMode_eTranscode;
+        settings.spdif.outputMode     = NxClient_AudioOutputMode_eTranscode;
         settings.spdif.transcodeCodec = NEXUS_AudioCodec_eDts;
         break;
 
@@ -365,7 +364,7 @@ eRet CSimpleAudioDecodeNx::setSpdifInput(
 
 error:
     return(ret);
-}
+} /* setSpdifInput */
 
 CStc * CSimpleAudioDecodeNx::close()
 {

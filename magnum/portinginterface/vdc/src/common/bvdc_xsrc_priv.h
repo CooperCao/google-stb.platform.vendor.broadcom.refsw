@@ -316,6 +316,7 @@ typedef struct BVDC_P_XsrcContext
     uint32_t                       ulHorzTaps;
 
     bool                           bDeringing;
+    bool                           bDithering;
     bool                           bHscl;
     bool                           bCca;
 

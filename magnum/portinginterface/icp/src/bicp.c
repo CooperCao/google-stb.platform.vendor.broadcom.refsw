@@ -46,7 +46,7 @@
     (BCHP_CHIP == 7405) || (BCHP_CHIP == 7408) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7550)
     #include "bchp_irq0.h"
     #include "bchp_int_id_irq0.h"
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
     #include "bchp_int_id_upg_main_aon_irq.h"
 #else
     #include "bchp_int_id_irq0_aon.h"
@@ -190,7 +190,7 @@ BERR_Code BICP_Open(
     {
         *pIcp = NULL;
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BICP_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BICP_Open: BKNI_malloc() failed"));
         goto done;
     }
 
@@ -333,7 +333,7 @@ BERR_Code BICP_OpenChannel(
             {
                 *phChn = NULL;
                 retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-                BDBG_ERR(("BICP_OpenChannel: BKNI_malloc() failed\n"));
+                BDBG_ERR(("BICP_OpenChannel: BKNI_malloc() failed"));
                 goto done;
             }
 
@@ -903,7 +903,7 @@ void BICP_P_RC6Handle(BICP_ChannelHandle hIcpChan, uint8_t reg)
                         }
                     }
                     else{
-                        BDBG_ERR(("RC6 key something wrong, redo\n"));
+                        BDBG_ERR(("RC6 key something wrong, redo"));
                         hIcpChan->rc6.lead = hIcpChan->rc6.start = hIcpChan->rc6.mode = hIcpChan->rc6.trailer = hIcpChan->rc6.ctrl = hIcpChan->rc6.info = 0;
                         hIcpChan->rc6.keycnt = hIcpChan->rc6.ctrlbits = hIcpChan->rc6.modebits = 0;
                         hIcpChan->rc6.edge = 0;

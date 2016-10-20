@@ -85,12 +85,6 @@ void BDSP_P_MemWrite32_isr(
     uint32_t    data
     );
 
-
-uint32_t BDSP_P_MemRead32(
-        BMEM_Handle hHeap,
-        void    *memAddress
-    );
-
 uint32_t BDSP_P_MemRead32_isr(
         BMEM_Handle hHeap,
         void    *memAddress

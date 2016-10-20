@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,126 +70,126 @@
 /***************************************************************************
  *RAAGA_DSP_DMA - Raaga DMA registers
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_DMA_QUEUE_PRIORITY        0x20c21400 /* [RW] Priority of DMA Queues */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q0 0x20c21440 /* [RW] DMA maximum SCB command burst size for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q0   0x20c21444 /* [RW] DMA SCB command type for Video Block Access and Video Raster access commands. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q0           0x20c21448 /* [RW] DMA Source Address Register for DMA Command Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q0          0x20c2144c /* [RW] DMA destination address register for DMA Command Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q0           0x20c21450 /* [RW] DMA transfer enable register for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q0           0x20c21454 /* [RO] DMA transfer progress register for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q0    0x20c21458 /* [RO] DMA-Token-ID completion status register for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q0       0x20c2145c /* [RW] DMA-Token-ID clear for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q0       0x20c21460 /* [RW] DMA-Token-ID Set for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q0             0x20c21464 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q1 0x20c21480 /* [RW] DMA maximum SCB command burst size for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q1   0x20c21484 /* [RW] DMA SCB command type for Video Block Access and Video Raster access commands. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q1           0x20c21488 /* [RW] DMA Source Address Register for DMA command Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q1          0x20c2148c /* [RW] DMA destination address register for DMA Command Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q1           0x20c21490 /* [RW] DMA transfer enable register for DMA-Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q1           0x20c21494 /* [RO] DMA transfer progress register for DMA-Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q1    0x20c21498 /* [RO] DMA-Token-ID completion status register for DMA-Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q1       0x20c2149c /* [RW] DMA-Token-ID clear for DMA-Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q1       0x20c214a0 /* [RW] DMA-Token-ID Set for DMA-Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q1             0x20c214a4 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-1 */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q2 0x20c214c0 /* [RW] DMA maximum SCB command burst size for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q2   0x20c214c4 /* [RW] DMA SCB command type for Video Block Access and Video Raster access commands. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q2           0x20c214c8 /* [RW] DMA Source Address Register for DMA Command Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q2          0x20c214cc /* [RW] DMA destination address register for DMA Command Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q2           0x20c214d0 /* [RW] DMA transfer enable register for DMA-Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q2           0x20c214d4 /* [RO] DMA transfer progress register for DMA-Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q2    0x20c214d8 /* [RO] DMA-Token-ID completion status register for DMA-Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q2       0x20c214dc /* [RW] DMA-Token-ID clear for DMA-Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q2       0x20c214e0 /* [RW] DMA-Token-ID Set for DMA-Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q2             0x20c214e4 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-2 */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q3 0x20c21500 /* [RW] DMA maximum SCB command burst size for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q3   0x20c21504 /* [RW] DMA SCB command type for Video Block Access and Video Raster access commands. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q3           0x20c21508 /* [RW] DMA Source Address Register for DMA Command Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q3          0x20c2150c /* [RW] DMA destination address register for DMA Command Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q3           0x20c21510 /* [RW] DMA transfer enable register for DMA-Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q3           0x20c21514 /* [RO] DMA transfer progress register for DMA-Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q3    0x20c21518 /* [RO] DMA-Token-ID completion status register for DMA-Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q3       0x20c2151c /* [RW] DMA-Token-ID clear for DMA-Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q3       0x20c21520 /* [RW] DMA-Token-ID Set for DMA-Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q3             0x20c21524 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-3 */
-#define BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG         0x20c21540 /* [RW] Configuration register SCB0/1 MS bits programming and stripe width selection */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR0 0x20c21544 /* [RW] DRAM Video Base Address 0 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR1 0x20c21548 /* [RW] DRAM Video Base Address 1 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR2 0x20c2154c /* [RW] DRAM Video Base Address 2 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR3 0x20c21550 /* [RW] DRAM Video Base Address 3 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR4 0x20c21554 /* [RW] DRAM Video Base Address 4 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR5 0x20c21558 /* [RW] DRAM Video Base Address 5 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR6 0x20c2155c /* [RW] DRAM Video Base Address 6 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR7 0x20c21560 /* [RW] DRAM Video Base Address 7 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY0      0x20c21564 /* [RW] NMBY for DRAM Video Base Address 0 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY1      0x20c21568 /* [RW] NMBY for DRAM Video Base Address 1 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY2      0x20c2156c /* [RW] NMBY for DRAM Video Base Address 2 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY3      0x20c21570 /* [RW] NMBY for DRAM Video Base Address 3 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY4      0x20c21574 /* [RW] NMBY for DRAM Video Base Address 4 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY5      0x20c21578 /* [RW] NMBY for DRAM Video Base Address 5 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY6      0x20c2157c /* [RW] NMBY for DRAM Video Base Address 6 */
-#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY7      0x20c21580 /* [RW] NMBY for DRAM Video Base Address 7 */
-#define BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP_ADDR_CFG 0x20c21584 /* [RW] DMA DRAM_MAP address configuration for SCB0 */
-#define BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP_ADDR_CFG 0x20c21588 /* [RW] DMA DRAM_MAP address configuration for SCB1 */
-#define BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP_ADDR_CFG 0x20c2158c /* [RW] DMA DRAM_MAP address configuration for SCB2 */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_VQ4 0x20c215a0 /* [RW] DMA maximum SCB command burst size for DMA-Video Queue-4 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_VQ4  0x20c215a4 /* [RW] DMA SCB command type for SCB_VIDEO_ACCESS command for Video Queue # 4. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_VQ4          0x20c215a8 /* [RW] DMA Source Address Register for Video Queue-4 for non-Pixel patch operations */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_VQ4         0x20c215ac /* [RW] DMA destination address register for Queue-4 for non-Pixel patch operations */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_VQ4          0x20c215b0 /* [RW] DMA transfer enable register for DMA-Video Queue-4 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_VQ4          0x20c215b4 /* [RO] DMA transfer progress register for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_VQ4   0x20c215b8 /* [RO] DMA-Token-ID completion status register for DMA-VQ4 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_VQ4      0x20c215bc /* [RW] DMA-Token-ID clear for DMA-VQ4 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_VQ4      0x20c215c0 /* [RW] DMA-Token-ID Set for DMA-VQ4 */
-#define BCHP_RAAGA_DSP_DMA_DMA_ADDR1_VQ4         0x20c215c4 /* [RW] DMA Address1 Register for Video Queue-4 */
-#define BCHP_RAAGA_DSP_DMA_DMA_ADDR2_VQ4         0x20c215c8 /* [RW] DMA Address2 Register for Video Queue-4 */
-#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM1_VQ4 0x20c215cc /* [RW] Video Patch offset register for Video Queue 4 */
-#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM2_VQ4 0x20c215d0 /* [RW] Video Patch operation parameters */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_VQ4            0x20c215d4 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-4 */
-#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_VQ5 0x20c215f0 /* [RW] DMA maximum SCB command burst size for DMA-Video Queue-5 */
-#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_VQ5  0x20c215f4 /* [RW] DMA SCB command type for SCB_VIDEO_ACCESS command for Video Queue # 5. */
-#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_VQ5          0x20c215f8 /* [RW] DMA Source Address Register for Video Queue-5 for non-Pixel Patch operations */
-#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_VQ5         0x20c215fc /* [RW] DMA destination address register for Queue-5 for non-Pixel Patch operations */
-#define BCHP_RAAGA_DSP_DMA_TRANSFER_VQ5          0x20c21600 /* [RW] DMA transfer enable register for DMA-Video Queue-5 */
-#define BCHP_RAAGA_DSP_DMA_PROGRESS_VQ5          0x20c21604 /* [RO] DMA transfer progress register for DMA-Queue-0 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_VQ5   0x20c21608 /* [RO] DMA-Token-ID completion status register for DMA-VQ5 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_VQ5      0x20c2160c /* [RW] DMA-Token-ID clear for DMA-VQ5 */
-#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_VQ5      0x20c21610 /* [RW] DMA-Token-ID Set for DMA-VQ5 */
-#define BCHP_RAAGA_DSP_DMA_DMA_ADDR1_VQ5         0x20c21614 /* [RW] DMA Address1 Register for Video Queue-5 */
-#define BCHP_RAAGA_DSP_DMA_DMA_ADDR2_VQ5         0x20c21618 /* [RW] DMA Address2 Register for Video Queue-5 */
-#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM1_VQ5 0x20c2161c /* [RW] Video Patch offset register for Video Queue 5 */
-#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM2_VQ5 0x20c21620 /* [RW] Video Patch operation parameters */
-#define BCHP_RAAGA_DSP_DMA_SEQTAG_VQ5            0x20c21624 /* [RW] DMA SeqTag register for DMA PRQ Command Queue-5 */
-#define BCHP_RAAGA_DSP_DMA_DMEM_RD_STALL_CNTR    0x20c21640 /* [RW] DMA DMEM Read Request Stall Counter Register */
-#define BCHP_RAAGA_DSP_DMA_DMEM_WR_STALL_CNTR    0x20c21644 /* [RW] DMA DMEM Write Request Stall Counter Register */
-#define BCHP_RAAGA_DSP_DMA_DMEM_PRIORITY_INVERSION_EN 0x20c21648 /* [RW] DMA DMEM RD/WR Request Priority Inversion Counters Enable/Disable Register */
-#define BCHP_RAAGA_DSP_DMA_ABORT                 0x20c2164c /* [RW] DMA Queues Abort Enable Register */
-#define BCHP_RAAGA_DSP_DMA_STATUS                0x20c21650 /* [RO] Status of all DMA Queues */
-#define BCHP_RAAGA_DSP_DMA_ERROR_STATUS          0x20c21654 /* [RO] DMA Error status register for DMA-Queues */
-#define BCHP_RAAGA_DSP_DMA_ERROR_CLR             0x20c21658 /* [RW] DMA Error status register for DMA-Queues */
-#define BCHP_RAAGA_DSP_DMA_TEST_STATUS0          0x20c2165c /* [RO] DMA Debug Register for DMA Command Queues. */
-#define BCHP_RAAGA_DSP_DMA_TEST_STATUS1          0x20c21660 /* [RO] DMA Debug Register for DMA SCB Bridge and Read Data-path Modules Queues. */
-#define BCHP_RAAGA_DSP_DMA_TEST_STATUS2          0x20c21664 /* [RO] DMA Debug Register for DMA Write Data-path module. */
-#define BCHP_RAAGA_DSP_DMA_PRQ_CONTROL           0x20c21668 /* [RW] DMA PRQ Control register */
-#define BCHP_RAAGA_DSP_DMA_PRQ_AUDIO_RESERVATION 0x20c2166c /* [RW] DMA PRQ Reservation  Register for Audio Queues */
-#define BCHP_RAAGA_DSP_DMA_PRQ_VIDEO_RESERVATION 0x20c21670 /* [RW] DMA PRQ Reservation  Register for Video Queues */
-#define BCHP_RAAGA_DSP_DMA_PRQ_STATUS_1          0x20c21674 /* [RO] Status of all Audio Pooled Request Queues */
-#define BCHP_RAAGA_DSP_DMA_PRQ_STATUS_2          0x20c21678 /* [RO] Status of all Video Pooled Request Queues, and PRB Full status */
-#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_CTRL 0x20c2167c /* [RW] DMA performance counter control register */
-#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_RST 0x20c21680 /* [RW] DMA performance counter reset register */
-#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_SNAP_CTRL 0x20c21684 /* [RW] DMA performance counter snapshot register */
-#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_CLOCK_DIVIDER 0x20c21688 /* [RW] DMA performance counter clock divider */
-#define BCHP_RAAGA_DSP_DMA_Q0_ACTIVE_PERFORMANCE_COUNTER 0x20c2168c /* [RO] DMA Queue0 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q0_IDLE_PERFORMANCE_COUNTER 0x20c21690 /* [RO] DMA Queue0 Idle performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q1_ACTIVE_PERFORMANCE_COUNTER 0x20c21694 /* [RO] DMA Queue1 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q1_IDLE_PERFORMANCE_COUNTER 0x20c21698 /* [RO] DMA Queue1 Idle performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q2_ACTIVE_PERFORMANCE_COUNTER 0x20c2169c /* [RO] DMA Queue2 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q2_IDLE_PERFORMANCE_COUNTER 0x20c216a0 /* [RO] DMA Queue2 Idle performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q3_ACTIVE_PERFORMANCE_COUNTER 0x20c216a4 /* [RO] DMA Queue3 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_Q3_IDLE_PERFORMANCE_COUNTER 0x20c216a8 /* [RO] DMA Queue3 Idle performance counter */
-#define BCHP_RAAGA_DSP_DMA_VQ4_ACTIVE_PERFORMANCE_COUNTER 0x20c216ac /* [RO] DMA Queue4 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_VQ4_IDLE_PERFORMANCE_COUNTER 0x20c216b0 /* [RO] DMA Queue4 Idle performance counter */
-#define BCHP_RAAGA_DSP_DMA_VQ5_ACTIVE_PERFORMANCE_COUNTER 0x20c216b4 /* [RO] DMA Queue5 Active performance counter */
-#define BCHP_RAAGA_DSP_DMA_VQ5_IDLE_PERFORMANCE_COUNTER 0x20c216b8 /* [RO] DMA Queue5 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_QUEUE_PRIORITY        0x20c21400 /* [RW][32] Priority of DMA Queues */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q0 0x20c21440 /* [RW][32] DMA maximum SCB command burst size for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q0   0x20c21444 /* [RW][32] DMA SCB command type for Video Block Access and Video Raster access commands. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q0           0x20c21448 /* [RW][32] DMA Source Address Register for DMA Command Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q0          0x20c2144c /* [RW][32] DMA destination address register for DMA Command Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q0           0x20c21450 /* [RW][32] DMA transfer enable register for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q0           0x20c21454 /* [RO][32] DMA transfer progress register for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q0    0x20c21458 /* [RO][32] DMA-Token-ID completion status register for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q0       0x20c2145c /* [RW][32] DMA-Token-ID clear for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q0       0x20c21460 /* [RW][32] DMA-Token-ID Set for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q0             0x20c21464 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q1 0x20c21480 /* [RW][32] DMA maximum SCB command burst size for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q1   0x20c21484 /* [RW][32] DMA SCB command type for Video Block Access and Video Raster access commands. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q1           0x20c21488 /* [RW][32] DMA Source Address Register for DMA command Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q1          0x20c2148c /* [RW][32] DMA destination address register for DMA Command Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q1           0x20c21490 /* [RW][32] DMA transfer enable register for DMA-Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q1           0x20c21494 /* [RO][32] DMA transfer progress register for DMA-Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q1    0x20c21498 /* [RO][32] DMA-Token-ID completion status register for DMA-Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q1       0x20c2149c /* [RW][32] DMA-Token-ID clear for DMA-Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q1       0x20c214a0 /* [RW][32] DMA-Token-ID Set for DMA-Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q1             0x20c214a4 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-1 */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q2 0x20c214c0 /* [RW][32] DMA maximum SCB command burst size for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q2   0x20c214c4 /* [RW][32] DMA SCB command type for Video Block Access and Video Raster access commands. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q2           0x20c214c8 /* [RW][32] DMA Source Address Register for DMA Command Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q2          0x20c214cc /* [RW][32] DMA destination address register for DMA Command Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q2           0x20c214d0 /* [RW][32] DMA transfer enable register for DMA-Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q2           0x20c214d4 /* [RO][32] DMA transfer progress register for DMA-Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q2    0x20c214d8 /* [RO][32] DMA-Token-ID completion status register for DMA-Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q2       0x20c214dc /* [RW][32] DMA-Token-ID clear for DMA-Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q2       0x20c214e0 /* [RW][32] DMA-Token-ID Set for DMA-Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q2             0x20c214e4 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-2 */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_Q3 0x20c21500 /* [RW][32] DMA maximum SCB command burst size for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_Q3   0x20c21504 /* [RW][32] DMA SCB command type for Video Block Access and Video Raster access commands. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_Q3           0x20c21508 /* [RW][32] DMA Source Address Register for DMA Command Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_Q3          0x20c2150c /* [RW][32] DMA destination address register for DMA Command Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_Q3           0x20c21510 /* [RW][32] DMA transfer enable register for DMA-Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_Q3           0x20c21514 /* [RO][32] DMA transfer progress register for DMA-Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_Q3    0x20c21518 /* [RO][32] DMA-Token-ID completion status register for DMA-Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_Q3       0x20c2151c /* [RW][32] DMA-Token-ID clear for DMA-Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_Q3       0x20c21520 /* [RW][32] DMA-Token-ID Set for DMA-Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_Q3             0x20c21524 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-3 */
+#define BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG         0x20c21540 /* [RW][32] Configuration register SCB0/1 MS bits programming and stripe width selection */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR0 0x20c21544 /* [RW][32] DRAM Video Base Address 0 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR1 0x20c21548 /* [RW][32] DRAM Video Base Address 1 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR2 0x20c2154c /* [RW][32] DRAM Video Base Address 2 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR3 0x20c21550 /* [RW][32] DRAM Video Base Address 3 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR4 0x20c21554 /* [RW][32] DRAM Video Base Address 4 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR5 0x20c21558 /* [RW][32] DRAM Video Base Address 5 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR6 0x20c2155c /* [RW][32] DRAM Video Base Address 6 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_BASE_ADDR7 0x20c21560 /* [RW][32] DRAM Video Base Address 7 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY0      0x20c21564 /* [RW][32] NMBY for DRAM Video Base Address 0 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY1      0x20c21568 /* [RW][32] NMBY for DRAM Video Base Address 1 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY2      0x20c2156c /* [RW][32] NMBY for DRAM Video Base Address 2 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY3      0x20c21570 /* [RW][32] NMBY for DRAM Video Base Address 3 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY4      0x20c21574 /* [RW][32] NMBY for DRAM Video Base Address 4 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY5      0x20c21578 /* [RW][32] NMBY for DRAM Video Base Address 5 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY6      0x20c2157c /* [RW][32] NMBY for DRAM Video Base Address 6 */
+#define BCHP_RAAGA_DSP_DMA_DRAM_VIDEO_NMBY7      0x20c21580 /* [RW][32] NMBY for DRAM Video Base Address 7 */
+#define BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP_ADDR_CFG 0x20c21584 /* [RW][32] DMA DRAM_MAP address configuration for SCB0 */
+#define BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP_ADDR_CFG 0x20c21588 /* [RW][32] DMA DRAM_MAP address configuration for SCB1 */
+#define BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP_ADDR_CFG 0x20c2158c /* [RW][32] DMA DRAM_MAP address configuration for SCB2 */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_VQ4 0x20c215a0 /* [RW][32] DMA maximum SCB command burst size for DMA-Video Queue-4 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_VQ4  0x20c215a4 /* [RW][32] DMA SCB command type for SCB_VIDEO_ACCESS command for Video Queue # 4. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_VQ4          0x20c215a8 /* [RW][32] DMA Source Address Register for Video Queue-4 for non-Pixel patch operations */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_VQ4         0x20c215ac /* [RW][32] DMA destination address register for Queue-4 for non-Pixel patch operations */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_VQ4          0x20c215b0 /* [RW][32] DMA transfer enable register for DMA-Video Queue-4 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_VQ4          0x20c215b4 /* [RO][32] DMA transfer progress register for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_VQ4   0x20c215b8 /* [RO][32] DMA-Token-ID completion status register for DMA-VQ4 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_VQ4      0x20c215bc /* [RW][32] DMA-Token-ID clear for DMA-VQ4 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_VQ4      0x20c215c0 /* [RW][32] DMA-Token-ID Set for DMA-VQ4 */
+#define BCHP_RAAGA_DSP_DMA_DMA_ADDR1_VQ4         0x20c215c4 /* [RW][32] DMA Address1 Register for Video Queue-4 */
+#define BCHP_RAAGA_DSP_DMA_DMA_ADDR2_VQ4         0x20c215c8 /* [RW][32] DMA Address2 Register for Video Queue-4 */
+#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM1_VQ4 0x20c215cc /* [RW][32] Video Patch offset register for Video Queue 4 */
+#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM2_VQ4 0x20c215d0 /* [RW][32] Video Patch operation parameters */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_VQ4            0x20c215d4 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-4 */
+#define BCHP_RAAGA_DSP_DMA_MAX_SCB_BURST_SIZE_VQ5 0x20c215f0 /* [RW][32] DMA maximum SCB command burst size for DMA-Video Queue-5 */
+#define BCHP_RAAGA_DSP_DMA_SCB_GEN_CMD_TYPE_VQ5  0x20c215f4 /* [RW][32] DMA SCB command type for SCB_VIDEO_ACCESS command for Video Queue # 5. */
+#define BCHP_RAAGA_DSP_DMA_SRC_ADDR_VQ5          0x20c215f8 /* [RW][32] DMA Source Address Register for Video Queue-5 for non-Pixel Patch operations */
+#define BCHP_RAAGA_DSP_DMA_DEST_ADDR_VQ5         0x20c215fc /* [RW][32] DMA destination address register for Queue-5 for non-Pixel Patch operations */
+#define BCHP_RAAGA_DSP_DMA_TRANSFER_VQ5          0x20c21600 /* [RW][32] DMA transfer enable register for DMA-Video Queue-5 */
+#define BCHP_RAAGA_DSP_DMA_PROGRESS_VQ5          0x20c21604 /* [RO][32] DMA transfer progress register for DMA-Queue-0 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_STATUS_VQ5   0x20c21608 /* [RO][32] DMA-Token-ID completion status register for DMA-VQ5 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_CLR_VQ5      0x20c2160c /* [RW][32] DMA-Token-ID clear for DMA-VQ5 */
+#define BCHP_RAAGA_DSP_DMA_TOKEN_ID_SET_VQ5      0x20c21610 /* [RW][32] DMA-Token-ID Set for DMA-VQ5 */
+#define BCHP_RAAGA_DSP_DMA_DMA_ADDR1_VQ5         0x20c21614 /* [RW][32] DMA Address1 Register for Video Queue-5 */
+#define BCHP_RAAGA_DSP_DMA_DMA_ADDR2_VQ5         0x20c21618 /* [RW][32] DMA Address2 Register for Video Queue-5 */
+#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM1_VQ5 0x20c2161c /* [RW][32] Video Patch offset register for Video Queue 5 */
+#define BCHP_RAAGA_DSP_DMA_VIDEO_PATCH_PARAM2_VQ5 0x20c21620 /* [RW][32] Video Patch operation parameters */
+#define BCHP_RAAGA_DSP_DMA_SEQTAG_VQ5            0x20c21624 /* [RW][32] DMA SeqTag register for DMA PRQ Command Queue-5 */
+#define BCHP_RAAGA_DSP_DMA_DMEM_RD_STALL_CNTR    0x20c21640 /* [RW][32] DMA DMEM Read Request Stall Counter Register */
+#define BCHP_RAAGA_DSP_DMA_DMEM_WR_STALL_CNTR    0x20c21644 /* [RW][32] DMA DMEM Write Request Stall Counter Register */
+#define BCHP_RAAGA_DSP_DMA_DMEM_PRIORITY_INVERSION_EN 0x20c21648 /* [RW][32] DMA DMEM RD/WR Request Priority Inversion Counters Enable/Disable Register */
+#define BCHP_RAAGA_DSP_DMA_ABORT                 0x20c2164c /* [RW][32] DMA Queues Abort Enable Register */
+#define BCHP_RAAGA_DSP_DMA_STATUS                0x20c21650 /* [RO][32] Status of all DMA Queues */
+#define BCHP_RAAGA_DSP_DMA_ERROR_STATUS          0x20c21654 /* [RO][32] DMA Error status register for DMA-Queues */
+#define BCHP_RAAGA_DSP_DMA_ERROR_CLR             0x20c21658 /* [RW][32] DMA Error status register for DMA-Queues */
+#define BCHP_RAAGA_DSP_DMA_TEST_STATUS0          0x20c2165c /* [RO][32] DMA Debug Register for DMA Command Queues. */
+#define BCHP_RAAGA_DSP_DMA_TEST_STATUS1          0x20c21660 /* [RO][32] DMA Debug Register for DMA SCB Bridge and Read Data-path Modules Queues. */
+#define BCHP_RAAGA_DSP_DMA_TEST_STATUS2          0x20c21664 /* [RO][32] DMA Debug Register for DMA Write Data-path module. */
+#define BCHP_RAAGA_DSP_DMA_PRQ_CONTROL           0x20c21668 /* [RW][32] DMA PRQ Control register */
+#define BCHP_RAAGA_DSP_DMA_PRQ_AUDIO_RESERVATION 0x20c2166c /* [RW][32] DMA PRQ Reservation  Register for Audio Queues */
+#define BCHP_RAAGA_DSP_DMA_PRQ_VIDEO_RESERVATION 0x20c21670 /* [RW][32] DMA PRQ Reservation  Register for Video Queues */
+#define BCHP_RAAGA_DSP_DMA_PRQ_STATUS_1          0x20c21674 /* [RO][32] Status of all Audio Pooled Request Queues */
+#define BCHP_RAAGA_DSP_DMA_PRQ_STATUS_2          0x20c21678 /* [RO][32] Status of all Video Pooled Request Queues, and PRB Full status */
+#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_CTRL 0x20c2167c /* [RW][32] DMA performance counter control register */
+#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_RST 0x20c21680 /* [RW][32] DMA performance counter reset register */
+#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_COUNTER_SNAP_CTRL 0x20c21684 /* [RW][32] DMA performance counter snapshot register */
+#define BCHP_RAAGA_DSP_DMA_PERFORMANCE_CLOCK_DIVIDER 0x20c21688 /* [RW][32] DMA performance counter clock divider */
+#define BCHP_RAAGA_DSP_DMA_Q0_ACTIVE_PERFORMANCE_COUNTER 0x20c2168c /* [RO][32] DMA Queue0 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q0_IDLE_PERFORMANCE_COUNTER 0x20c21690 /* [RO][32] DMA Queue0 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q1_ACTIVE_PERFORMANCE_COUNTER 0x20c21694 /* [RO][32] DMA Queue1 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q1_IDLE_PERFORMANCE_COUNTER 0x20c21698 /* [RO][32] DMA Queue1 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q2_ACTIVE_PERFORMANCE_COUNTER 0x20c2169c /* [RO][32] DMA Queue2 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q2_IDLE_PERFORMANCE_COUNTER 0x20c216a0 /* [RO][32] DMA Queue2 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q3_ACTIVE_PERFORMANCE_COUNTER 0x20c216a4 /* [RO][32] DMA Queue3 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_Q3_IDLE_PERFORMANCE_COUNTER 0x20c216a8 /* [RO][32] DMA Queue3 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_VQ4_ACTIVE_PERFORMANCE_COUNTER 0x20c216ac /* [RO][32] DMA Queue4 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_VQ4_IDLE_PERFORMANCE_COUNTER 0x20c216b0 /* [RO][32] DMA Queue4 Idle performance counter */
+#define BCHP_RAAGA_DSP_DMA_VQ5_ACTIVE_PERFORMANCE_COUNTER 0x20c216b4 /* [RO][32] DMA Queue5 Active performance counter */
+#define BCHP_RAAGA_DSP_DMA_VQ5_IDLE_PERFORMANCE_COUNTER 0x20c216b8 /* [RO][32] DMA Queue5 Idle performance counter */
 
 /***************************************************************************
  *QUEUE_PRIORITY - Priority of DMA Queues

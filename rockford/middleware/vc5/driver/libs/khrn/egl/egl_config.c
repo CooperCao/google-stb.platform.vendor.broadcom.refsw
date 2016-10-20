@@ -583,8 +583,13 @@ static bool config_matches(const EGL_CONFIG_T *config,
       EGLint name = *attrib_list++;
       EGLint value = *attrib_list++;
       EGLint actual_value;
+      bool valid;
 
-      actual_value = egl_config_get_attrib(config, name, NULL);
+      actual_value = egl_config_get_attrib(config, name, &valid);
+
+      if (!valid)
+         return false;
+
       if (egl_platform_config_check_attrib(name, actual_value))
       {
          if (egl_platform_config_match_attrib(name, value, actual_value)) {
@@ -696,7 +701,7 @@ static bool config_matches(const EGL_CONFIG_T *config,
 EGLint egl_config_get_attrib(const EGL_CONFIG_T *config,
       EGLint attrib, bool *valid)
 {
-   EGLint ret;
+   EGLint ret = 0;
    bool is_valid;
 
    ret = egl_platform_config_get_attrib(config, attrib, &is_valid);

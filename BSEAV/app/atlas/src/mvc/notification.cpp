@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #include "notification.h"
@@ -52,49 +49,49 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyUp).s(), "eNotify_KeyUp")              
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_KeyDown).s(), "eNotify_KeyDown")               /* keypress - key pressed down */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_VirtualKeyDown).s(), "eNotify_VirtualKeyDown") /* keypress - virtual key pressed down */
 
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_Tune).s(), "eNotify_Tune")                               /* command  - tune */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChUp).s(), "eNotify_ChUp")                               /* command  - change channel up */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChDown).s(), "eNotify_ChDown")                           /* command  - change channel down */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStart).s(), "eNotify_ScanStart")                     /* command  - start channel scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStop).s(), "eNotify_ScanStop")                       /* command  - stop channel scan */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackListDump).s(), "eNotify_PlaybackListDump")       /* command  - dump playback list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStart).s(), "eNotify_PlaybackStart")             /* command  - start a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStop).s(), "eNotify_PlaybackStop")               /* command  - stop a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackTrickMode).s(), "eNotify_PlaybackTrickMode")     /* command  - do trickmode playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVolume).s(), "eNotify_SetVolume")                     /* command  - change volume level */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMute).s(), "eNotify_SetMute")                         /* command  - change mute state */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStart).s(), "eNotify_RecordStart")                 /* command  - start a record */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStop).s(), "eNotify_RecordStop")                   /* command  - stop a record */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStart).s(), "eNotify_EncodeStart")                 /* command  - start an encode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStop).s(), "eNotify_EncodeStop")                   /* command  - stop an encode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_RefreshPlaybackList).s(), "eNotify_RefreshPlaybackList") /* command  - stop a playback */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListLoad).s(), "eNotify_ChannelListLoad")         /* command  - load channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListSave).s(), "eNotify_ChannelListSave")         /* command  - save channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListDump).s(), "eNotify_ChannelListDump")         /* command  - dump channel list */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")         /* command  - change current audio pid */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")   /* command  - change audio processing type*/
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetSpdifInput).s(), "eNotify_SetSpdifInput")             /* command  - change spdif input type */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetHdmiAudioInput).s(), "eNotify_SetHdmiAudioInput")     /* command  - change hdmi audio input type */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioDownmix).s(), "eNotify_SetAudioDownmix")         /* command  - change audio downmix */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioDualMono).s(), "eNotify_SetAudioDualMono")       /* command  - change audio dual mono */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDolbyDRC).s(), "eNotify_SetDolbyDRC")                 /* command  - change dolby dynamic range control */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDolbyDialogNorm).s(), "eNotify_SetDolbyDialogNorm")   /* command  - change dolby dialog normalization */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVideoFormat).s(), "eNotify_SetVideoFormat")           /* command  - change video format and graphics */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetContentMode).s(), "eNotify_SetContentMode")           /* command  - change video content mode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetColorSpace).s(), "eNotify_SetColorSpace")             /* command  - change video colorspace */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMpaaDecimation).s(), "eNotify_SetMpaaDecimation")     /* command  - change mpaa decimation state */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDeinterlacer).s(), "eNotify_SetDeinterlacer")         /* command  - change MAD deinterlacer state */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetBoxDetect).s(), "eNotify_SetBoxDetect")               /* command  - change box detect state */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAspectRatio).s(), "eNotify_SetAspectRatio")           /* command  - change aspect ratio */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAutoVideoFormat).s(), "eNotify_SetAutoVideoFormat")   /* command  - change auto video format setting */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVbiSettings).s(), "eNotify_SetVbiSettings")           /* command  - change VBI settings */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPowerMode).s(), "eNotify_SetPowerMode")               /* command  - change power mode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowPip).s(), "eNotify_ShowPip")                         /* command  - show/hide pip window */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_SwapPip).s(), "eNotify_SwapPip")                         /* command  - swap pip/main windows */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionEnable).s(), "eNotify_ClosedCaptionEnable") /* command  - closed caption has been enabled/disabled */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionMode).s(), "eNotify_ClosedCaptionMode")     /* command  - set 608/708 closed caption mode */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeEnable).s(), "eNotify_ipClientTranscodeEnable")     /* command  - BIP transcoding has been enabled/disabled for a given client */
-ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeProfile).s(), "eNotify_ipClientTranscodeProfile")    /* command - BIP transcode profile setting for a given client */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_Tune).s(), "eNotify_Tune")                                         /* command  - tune */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChUp).s(), "eNotify_ChUp")                                         /* command  - change channel up */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChDown).s(), "eNotify_ChDown")                                     /* command  - change channel down */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStart).s(), "eNotify_ScanStart")                               /* command  - start channel scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ScanStop).s(), "eNotify_ScanStop")                                 /* command  - stop channel scan */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackListDump).s(), "eNotify_PlaybackListDump")                 /* command  - dump playback list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStart).s(), "eNotify_PlaybackStart")                       /* command  - start a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackStop).s(), "eNotify_PlaybackStop")                         /* command  - stop a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_PlaybackTrickMode).s(), "eNotify_PlaybackTrickMode")               /* command  - do trickmode playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVolume).s(), "eNotify_SetVolume")                               /* command  - change volume level */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMute).s(), "eNotify_SetMute")                                   /* command  - change mute state */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStart).s(), "eNotify_RecordStart")                           /* command  - start a record */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RecordStop).s(), "eNotify_RecordStop")                             /* command  - stop a record */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStart).s(), "eNotify_EncodeStart")                           /* command  - start an encode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_EncodeStop).s(), "eNotify_EncodeStop")                             /* command  - stop an encode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_RefreshPlaybackList).s(), "eNotify_RefreshPlaybackList")           /* command  - stop a playback */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListLoad).s(), "eNotify_ChannelListLoad")                   /* command  - load channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListSave).s(), "eNotify_ChannelListSave")                   /* command  - save channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ChannelListDump).s(), "eNotify_ChannelListDump")                   /* command  - dump channel list */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProgram).s(), "eNotify_SetAudioProgram")                   /* command  - change current audio pid */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioProcessing).s(), "eNotify_SetAudioProcessing")             /* command  - change audio processing type*/
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetSpdifInput).s(), "eNotify_SetSpdifInput")                       /* command  - change spdif input type */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetHdmiAudioInput).s(), "eNotify_SetHdmiAudioInput")               /* command  - change hdmi audio input type */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioDownmix).s(), "eNotify_SetAudioDownmix")                   /* command  - change audio downmix */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAudioDualMono).s(), "eNotify_SetAudioDualMono")                 /* command  - change audio dual mono */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDolbyDRC).s(), "eNotify_SetDolbyDRC")                           /* command  - change dolby dynamic range control */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDolbyDialogNorm).s(), "eNotify_SetDolbyDialogNorm")             /* command  - change dolby dialog normalization */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVideoFormat).s(), "eNotify_SetVideoFormat")                     /* command  - change video format and graphics */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetContentMode).s(), "eNotify_SetContentMode")                     /* command  - change video content mode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetColorSpace).s(), "eNotify_SetColorSpace")                       /* command  - change video colorspace */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetMpaaDecimation).s(), "eNotify_SetMpaaDecimation")               /* command  - change mpaa decimation state */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetDeinterlacer).s(), "eNotify_SetDeinterlacer")                   /* command  - change MAD deinterlacer state */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetBoxDetect).s(), "eNotify_SetBoxDetect")                         /* command  - change box detect state */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAspectRatio).s(), "eNotify_SetAspectRatio")                     /* command  - change aspect ratio */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetAutoVideoFormat).s(), "eNotify_SetAutoVideoFormat")             /* command  - change auto video format setting */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetVbiSettings).s(), "eNotify_SetVbiSettings")                     /* command  - change VBI settings */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SetPowerMode).s(), "eNotify_SetPowerMode")                         /* command  - change power mode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ShowPip).s(), "eNotify_ShowPip")                                   /* command  - show/hide pip window */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_SwapPip).s(), "eNotify_SwapPip")                                   /* command  - swap pip/main windows */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionEnable).s(), "eNotify_ClosedCaptionEnable")           /* command  - closed caption has been enabled/disabled */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ClosedCaptionMode).s(), "eNotify_ClosedCaptionMode")               /* command  - set 608/708 closed caption mode */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeEnable).s(), "eNotify_ipClientTranscodeEnable")   /* command  - BIP transcoding has been enabled/disabled for a given client */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_ipClientTranscodeProfile).s(), "eNotify_ipClientTranscodeProfile") /* command - BIP transcode profile setting for a given client */
 #ifdef NETAPP_SUPPORT
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStart).s(), "eNotify_NetworkWifiScanStart")   /* command  - start wifi network scan */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStop).s(), "eNotify_NetworkWifiScanStop")     /* command  - stop wifi network scan */
@@ -175,6 +172,8 @@ ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStarted).s(), "eNotify_Netw
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanStopped).s(), "eNotify_NetworkWifiScanStopped")           /* status   - wifi network scan stopped */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiScanResult).s(), "eNotify_NetworkWifiScanResult")             /* status   - results of wifi network scan are available */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnectionStatus).s(), "eNotify_NetworkWifiConnectionStatus") /* status   - wifi network connection status is available */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiConnected).s(), "eNotify_NetworkWifiConnected")               /* status   - wifi network connected */
+ENUM_TO_MSTRING_ENTRY(MString(eNotify_NetworkWifiDisconnected).s(), "eNotify_NetworkWifiDisconnected")         /* status   - wifi network disconnected */
 
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryStarted).s(), "eNotify_BluetoothDiscoveryStarted") /* status  - started bluetooth disovery */
 ENUM_TO_MSTRING_ENTRY(MString(eNotify_BluetoothDiscoveryResult).s(), "eNotify_BluetoothDiscoveryStarted")  /* status   - discovery done and results of bluetooth discovery are available */

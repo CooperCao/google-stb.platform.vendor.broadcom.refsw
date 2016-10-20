@@ -84,6 +84,7 @@ struct common_opts_t {
     NEXUS_VideoFrameRate videoFrameRate;
     NEXUS_AspectRatio aspectRatio;
     NEXUS_VideoOrientation  displayOrientation;
+    NEXUS_VideoDecoderScanMode scanMode;
     struct {
         unsigned x, y;
     } sampleAspectRatio;

@@ -93,17 +93,17 @@ void RamFS::init() {
     spinlock_init("RamFS::MountLock", &mountLock);
 }
 
-IDirectory *RamFS::load(TzMem::VirtAddr memAddr) {
+IDirectory *RamFS::load(TzMem::VirtAddr vaStart, TzMem::VirtAddr vaEnd, bool initRamFS) {
     SpinLocker locker(&mountLock);
 
     for (int i=0; i<activeMounts.numElements(); i++) {
-        if (activeMounts[i].va == memAddr)
+        if (activeMounts[i].va == vaStart)
             return activeMounts[i].mount;
     }
 
     IDirectory *root = RamFS::Directory::create(System::UID, System::GID, nullptr);
 
-    uint8_t *currFile = (uint8_t *)memAddr;
+    uint8_t *currFile = (uint8_t *)vaStart;
 
     while (true) {
         CpioBinHdr *hdr = (CpioBinHdr *)currFile;
@@ -112,7 +112,8 @@ IDirectory *RamFS::load(TzMem::VirtAddr memAddr) {
             printCpioHdr(hdr);
 
             RamFS::Directory::destroy(root);
-            return nullptr;
+            root = nullptr;
+            break;
         }
 
         uint8_t *filePath = currFile + sizeof(CpioBinHdr);
@@ -163,15 +164,25 @@ IDirectory *RamFS::load(TzMem::VirtAddr memAddr) {
         currDir->addFile((char *)currPos, file);
         file->write(fileStart, fileSize, 0);
 
+        uint8_t *lastFile = currFile;
+
         currFile += sizeof(CpioBinHdr) + nameLength + namePadding + fileSize + 1;
         if ((uint32_t)currFile & 0x1)
             currFile++;
+
+        if (initRamFS)
+            TzMem::freeInitRamFS(lastFile, currFile);
     }
 
-    MountPoint mp;
-    mp.va = memAddr;
-    mp.mount = root;
-    activeMounts.pushBack(mp);
+    if (initRamFS)
+        TzMem::freeInitRamFS(currFile, vaEnd);
+
+    if (root) {
+        MountPoint mp;
+        mp.va = vaStart;
+        mp.mount = root;
+        activeMounts.pushBack(mp);
+    }
 
     return root;
 }

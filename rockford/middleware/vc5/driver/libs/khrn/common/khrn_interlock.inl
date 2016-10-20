@@ -33,7 +33,11 @@ static inline bool khrn_interlock_read_now_would_stall(KHRN_INTERLOCK_T* interlo
 
 static inline bool khrn_interlock_write_now_would_stall(KHRN_INTERLOCK_T* interlock)
 {
+   /* Workaround to avoid needless renames due to stack side of scheduler
+    * not knowing that deps have completed until they are finalised. */
+   bool const call_kernel = true;
+
    return khrn_interlock_write_now_would_flush(interlock)
       || !v3d_scheduler_jobs_reached_state(&interlock->pre_write,
-            V3D_SCHED_DEPS_COMPLETED, false);
+            V3D_SCHED_DEPS_COMPLETED, call_kernel);
 }

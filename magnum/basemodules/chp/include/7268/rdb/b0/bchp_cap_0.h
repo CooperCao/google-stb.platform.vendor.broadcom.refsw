@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,40 +70,40 @@
 /***************************************************************************
  *CAP_0 - Capture 0 (DCXM) Registers
  ***************************************************************************/
-#define BCHP_CAP_0_REVISION                      0x20640000 /* [RO] Capture Engine Revision ID */
-#define BCHP_CAP_0_HW_CONFIGURATION              0x20640004 /* [RO] CAP Hardware Configuration Status */
-#define BCHP_CAP_0_PIC_SIZE                      0x20640008 /* [RW] Capture Vertical and Horizontal Size */
-#define BCHP_CAP_0_PIC_OFFSET                    0x2064000c /* [RW] Capture 2D or 3D Left View Vertical and Horizontal Start Offset */
-#define BCHP_CAP_0_PIC_OFFSET_R                  0x20640010 /* [RW] Capture 3D Right View Horizontal Start Offset */
-#define BCHP_CAP_0_BVB_IN_SIZE                   0x20640014 /* [RW] Capture BVB Source Vertical and Horizontal Size */
-#define BCHP_CAP_0_MSTART                        0x20640018 /* [RW] Capture Memory Buffer Starting Address */
-#define BCHP_CAP_0_MSTART_R                      0x2064001c /* [RW] Capture Memory Buffer Right Window Starting Address */
-#define BCHP_CAP_0_PITCH                         0x20640020 /* [RW] Capture Memory Buffer Pitch */
-#define BCHP_CAP_0_CTRL                          0x20640024 /* [RW] Capture Control */
-#define BCHP_CAP_0_MODE                          0x20640028 /* [RW] Capture Mode Control */
-#define BCHP_CAP_0_COMP_ORDER                    0x2064002c /* [RW] Capture Component Order Control */
-#define BCHP_CAP_0_RX_CTRL                       0x20640030 /* [RW] Capture BVB Receiver Control */
-#define BCHP_CAP_0_TRIG_CTRL                     0x20640034 /* [RW] Capture RDMA Trigger Control */
-#define BCHP_CAP_0_BVB_TRIG_0_CFG                0x20640038 /* [RW] Capture BVB Trigger 0 Configuration */
-#define BCHP_CAP_0_BVB_TRIG_1_CFG                0x2064003c /* [RW] Capture BVB Trigger 1 Configuration */
-#define BCHP_CAP_0_DITHER_LFSR_INIT              0x20640044 /* [RW] Capture Dither LFSR Init */
-#define BCHP_CAP_0_DITHER_LFSR_CTRL              0x20640048 /* [RW] Capture Dither LFSR Control Mux Select */
-#define BCHP_CAP_0_DITHER_CTRL                   0x2064004c /* [RW] Capture Dither Control */
-#define BCHP_CAP_0_DCEM_CFG                      0x20640050 /* [RW] DCEM Configuration */
-#define BCHP_CAP_0_DCEM_RCTRL_FIRST              0x20640054 /* [RW] DCEM Rate Control for First Line Only */
-#define BCHP_CAP_0_DCEM_RCTRL                    0x20640058 /* [RW] DCEM Rate Control for All Lines Except First Line */
-#define BCHP_CAP_0_DCEM_RECT_BIT_RATE            0x2064005c /* [RW] DCEM Compression Bit Rate Control */
-#define BCHP_CAP_0_DCEM_RECT_CTRL                0x20640060 /* [RW] Mosaic Rectangle Control */
-#define BCHP_CAP_0_DCEM_RECT_ENABLE_MASK         0x20640064 /* [RW] Mosaic Rectangle Function Enable Mask */
-#define BCHP_CAP_0_DCEM_RECT_ID                  0x20640068 /* [RW] Mosaic Current Rectangle ID */
-#define BCHP_CAP_0_STATUS                        0x206400ec /* [RO] Capture Engine Status */
-#define BCHP_CAP_0_BVB_STATUS                    0x206400f0 /* [RO] Capture BVB Status */
-#define BCHP_CAP_0_BVB_STATUS_CLEAR              0x206400f4 /* [WO] Capture BVB Status Clear */
-#define BCHP_CAP_0_FIFO_STATUS                   0x206400f8 /* [RO] Capture FIFO Status */
-#define BCHP_CAP_0_FIFO_STATUS_CLEAR             0x206400fc /* [WO] Capture FIFO Status Clear */
-#define BCHP_CAP_0_DEBUG_STATUS                  0x20640100 /* [RO] Capture Debug Status Register */
-#define BCHP_CAP_0_DCEM_DIAG                     0x20640104 /* [RO] Capture DCE Diagnostic Status */
-#define BCHP_CAP_0_SCRATCH                       0x2064010c /* [RW] Scratch Register */
+#define BCHP_CAP_0_REVISION                      0x20640000 /* [RO][32] Capture Engine Revision ID */
+#define BCHP_CAP_0_HW_CONFIGURATION              0x20640004 /* [RO][32] CAP Hardware Configuration Status */
+#define BCHP_CAP_0_PIC_SIZE                      0x20640008 /* [RW][32] Capture Vertical and Horizontal Size */
+#define BCHP_CAP_0_PIC_OFFSET                    0x2064000c /* [RW][32] Capture 2D or 3D Left View Vertical and Horizontal Start Offset */
+#define BCHP_CAP_0_PIC_OFFSET_R                  0x20640010 /* [RW][32] Capture 3D Right View Horizontal Start Offset */
+#define BCHP_CAP_0_BVB_IN_SIZE                   0x20640014 /* [RW][32] Capture BVB Source Vertical and Horizontal Size */
+#define BCHP_CAP_0_MSTART                        0x20640018 /* [RW][32] Capture Memory Buffer Starting Address */
+#define BCHP_CAP_0_MSTART_R                      0x2064001c /* [RW][32] Capture Memory Buffer Right Window Starting Address */
+#define BCHP_CAP_0_PITCH                         0x20640020 /* [RW][32] Capture Memory Buffer Pitch */
+#define BCHP_CAP_0_CTRL                          0x20640024 /* [RW][32] Capture Control */
+#define BCHP_CAP_0_MODE                          0x20640028 /* [RW][32] Capture Mode Control */
+#define BCHP_CAP_0_COMP_ORDER                    0x2064002c /* [RW][32] Capture Component Order Control */
+#define BCHP_CAP_0_RX_CTRL                       0x20640030 /* [RW][32] Capture BVB Receiver Control */
+#define BCHP_CAP_0_TRIG_CTRL                     0x20640034 /* [RW][32] Capture RDMA Trigger Control */
+#define BCHP_CAP_0_BVB_TRIG_0_CFG                0x20640038 /* [RW][32] Capture BVB Trigger 0 Configuration */
+#define BCHP_CAP_0_BVB_TRIG_1_CFG                0x2064003c /* [RW][32] Capture BVB Trigger 1 Configuration */
+#define BCHP_CAP_0_DITHER_LFSR_INIT              0x20640044 /* [RW][32] Capture Dither LFSR Init */
+#define BCHP_CAP_0_DITHER_LFSR_CTRL              0x20640048 /* [RW][32] Capture Dither LFSR Control Mux Select */
+#define BCHP_CAP_0_DITHER_CTRL                   0x2064004c /* [RW][32] Capture Dither Control */
+#define BCHP_CAP_0_DCEM_CFG                      0x20640050 /* [RW][32] DCEM Configuration */
+#define BCHP_CAP_0_DCEM_RCTRL_FIRST              0x20640054 /* [RW][32] DCEM Rate Control for First Line Only */
+#define BCHP_CAP_0_DCEM_RCTRL                    0x20640058 /* [RW][32] DCEM Rate Control for All Lines Except First Line */
+#define BCHP_CAP_0_DCEM_RECT_BIT_RATE            0x2064005c /* [RW][32] DCEM Compression Bit Rate Control */
+#define BCHP_CAP_0_DCEM_RECT_CTRL                0x20640060 /* [RW][32] Mosaic Rectangle Control */
+#define BCHP_CAP_0_DCEM_RECT_ENABLE_MASK         0x20640064 /* [RW][32] Mosaic Rectangle Function Enable Mask */
+#define BCHP_CAP_0_DCEM_RECT_ID                  0x20640068 /* [RW][32] Mosaic Current Rectangle ID */
+#define BCHP_CAP_0_STATUS                        0x206400ec /* [RO][32] Capture Engine Status */
+#define BCHP_CAP_0_BVB_STATUS                    0x206400f0 /* [RO][32] Capture BVB Status */
+#define BCHP_CAP_0_BVB_STATUS_CLEAR              0x206400f4 /* [WO][32] Capture BVB Status Clear */
+#define BCHP_CAP_0_FIFO_STATUS                   0x206400f8 /* [RO][32] Capture FIFO Status */
+#define BCHP_CAP_0_FIFO_STATUS_CLEAR             0x206400fc /* [WO][32] Capture FIFO Status Clear */
+#define BCHP_CAP_0_DEBUG_STATUS                  0x20640100 /* [RO][32] Capture Debug Status Register */
+#define BCHP_CAP_0_DCEM_DIAG                     0x20640104 /* [RO][32] Capture DCE Diagnostic Status */
+#define BCHP_CAP_0_SCRATCH                       0x2064010c /* [RW][32] Scratch Register */
 
 /***************************************************************************
  *REVISION - Capture Engine Revision ID

@@ -585,7 +585,7 @@ static BERR_Code BAPE_SpdifInput_P_ConsumerAttached_isr(BAPE_InputPort inputPort
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 
-    BDBG_ASSERT(BAPE_InputPort_P_ConsumerIsAttached(inputPort, pConsumer));
+    BDBG_ASSERT(BAPE_InputPort_P_ConsumerIsAttached_isrsafe(inputPort, pConsumer));
 
     /* Enable format detection interupts.  After this, the current input format
      * will be maintained in the handle's lastFormatDetectionStatus struct.  */

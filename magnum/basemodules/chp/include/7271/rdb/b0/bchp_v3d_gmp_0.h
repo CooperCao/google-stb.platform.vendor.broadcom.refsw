@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,14 +70,14 @@
 /***************************************************************************
  *V3D_GMP_0 - V3D Graphics Memory Protection Registers
  ***************************************************************************/
-#define BCHP_V3D_GMP_0_STATUS                    0x21208800 /* [RW] GMP Status */
-#define BCHP_V3D_GMP_0_CFG                       0x21208804 /* [RW] GMP Configuration */
-#define BCHP_V3D_GMP_0_VIO_ADDR                  0x21208808 /* [RO] GMP violation address */
-#define BCHP_V3D_GMP_0_VIO_TYPE                  0x2120880c /* [RO] GMP violation type */
-#define BCHP_V3D_GMP_0_TABLE_ADDR                0x21208810 /* [RW] GMP protection table address */
-#define BCHP_V3D_GMP_0_CLEAR_LOAD                0x21208814 /* [WO] GMP clear or load protection bits */
-#define BCHP_V3D_GMP_0_PRESERVE_LOAD             0x21208818 /* [WO] GMP preserve or load protection bits */
-#define BCHP_V3D_GMP_0_VALID_LINES               0x21208820 /* [RO] GMP Valid line status */
+#define BCHP_V3D_GMP_0_STATUS                    0x21208800 /* [RW][32] GMP Status */
+#define BCHP_V3D_GMP_0_CFG                       0x21208804 /* [RW][32] GMP Configuration */
+#define BCHP_V3D_GMP_0_VIO_ADDR                  0x21208808 /* [RO][32] GMP violation address */
+#define BCHP_V3D_GMP_0_VIO_TYPE                  0x2120880c /* [RO][32] GMP violation type */
+#define BCHP_V3D_GMP_0_TABLE_ADDR                0x21208810 /* [RW][32] GMP protection table address */
+#define BCHP_V3D_GMP_0_CLEAR_LOAD                0x21208814 /* [WO][32] GMP clear or load protection bits */
+#define BCHP_V3D_GMP_0_PRESERVE_LOAD             0x21208818 /* [WO][32] GMP preserve or load protection bits */
+#define BCHP_V3D_GMP_0_VALID_LINES               0x21208820 /* [RO][32] GMP Valid line status */
 
 /***************************************************************************
  *STATUS - GMP Status

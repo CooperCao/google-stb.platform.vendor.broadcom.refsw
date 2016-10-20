@@ -3773,7 +3773,7 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
     {
         if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eVideo)
         {
-            BDBG_WRN(("TrackType=Video TrackId=0x%x Codec=%s NumberOfCaptionServicesAsPerPsiEntry=%u", pMediaInfoTrack->trackId, BIP_ToStr_NEXUS_VideoCodec(pMediaInfoTrack->info.video.codec), pMediaInfoTrack->info.video.captionService.numberOfServices));
+            BDBG_LOG(("TrackType=Video TrackId=0x%x Codec=%s NumberOfCaptionServicesAsPerPsiEntry=%u", pMediaInfoTrack->trackId, BIP_ToStr_NEXUS_VideoCodec(pMediaInfoTrack->info.video.codec), pMediaInfoTrack->info.video.captionService.numberOfServices));
             /* It can happen that caption data is available but there is no information for that in Psi headers.*/
             if(pMediaInfoTrack->info.video.captionService.numberOfServices != 0)
             {
@@ -3782,16 +3782,14 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
                 pDescriptor = pMediaInfoTrack->info.video.captionService.pFirstServiceDescriptor;
                 for (i=0; i<pMediaInfoTrack->info.video.captionService.numberOfServices; i++)
                 {
-                    if(pDescriptor != NULL)
+                    if (pDescriptor == NULL) { break; }
+
+                    if (pDescriptor->captionType == BIP_MediaInfoCaptionType_e608)
                     {
-                        if(pDescriptor->captionType == BIP_MediaInfoCaptionType_e608)
-                        {
-                            BDBG_WRN(("CaptionType=608 and line21Field = %d", pDescriptor->descriptor.descriptor608.line21Field));
-                        }
-                        else
-                        {
-                            BDBG_WRN(("CaptionType=708 CaptionServiceNumber=%d Language=%s", pDescriptor->descriptor.descriptor708.captionServiceNumber, pDescriptor->descriptor.descriptor708.pLanguage));
-                        }
+                        BDBG_LOG(("CaptionType=608 and line21Field = %d", pDescriptor->descriptor.descriptor608.line21Field));
+                    } else
+                    {
+                        BDBG_LOG(("CaptionType=708 CaptionServiceNumber=%d Language=%s", pDescriptor->descriptor.descriptor708.captionServiceNumber, pDescriptor->descriptor.descriptor708.pLanguage));
                     }
                     pDescriptor = pDescriptor->pNextServiceDescriptor;
                 }
@@ -3800,7 +3798,7 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_eAudio)
         {
             if(pMediaInfoTrack->info.audio.pLanguage) {
-                BDBG_WRN(("TrackType=Audio TrackId=0x%x Codec=%s Language=%s BsmodValid=%s Bsmod=%d",
+                BDBG_LOG(("TrackType=Audio TrackId=0x%x Codec=%s Language=%s BsmodValid=%s Bsmod=%d",
                           pMediaInfoTrack->trackId,
                           BIP_ToStr_NEXUS_AudioCodec( pMediaInfoTrack->info.audio.codec),
                           pMediaInfoTrack->info.audio.pLanguage,
@@ -3811,7 +3809,7 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
             }
             else
             {
-                BDBG_WRN(("TrackType=Audio TrackId=%d Codec=%s BsmodValid=%s Bsmod=%d",
+                BDBG_LOG(("TrackType=Audio TrackId=%d Codec=%s BsmodValid=%s Bsmod=%d",
                           pMediaInfoTrack->trackId,
                           BIP_ToStr_NEXUS_AudioCodec( pMediaInfoTrack->info.audio.codec),
                           pMediaInfoTrack->info.audio.descriptor.ac3.bsmodValid==true? "true": "false",
@@ -3821,15 +3819,15 @@ static void mediaInfoPrintFortack(BIP_MediaInfoTrack *pMediaInfoTrack)
         }
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePcr)
         {
-            BDBG_WRN(("TrackType=Pcr TrackId=0x%x", pMediaInfoTrack->trackId));
+            BDBG_LOG(("TrackType=Pcr TrackId=0x%x", pMediaInfoTrack->trackId));
         }
         else if(pMediaInfoTrack->trackType == BIP_MediaInfoTrackType_ePmt)
         {
-            BDBG_WRN(("TrackType=Pmt TrackId=0x%x", pMediaInfoTrack->trackId));
+            BDBG_LOG(("TrackType=Pmt TrackId=0x%x", pMediaInfoTrack->trackId));
         }
         else /* Other */
         {
-            BDBG_WRN(("TrackType=Other TrackId=0x%x", pMediaInfoTrack->trackId));
+            BDBG_LOG(("TrackType=Other TrackId=0x%x", pMediaInfoTrack->trackId));
         }
     }
 }
@@ -3840,7 +3838,7 @@ void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo)
     BIP_MediaInfoTrack      *pMediaInfoTrack =  NULL;
     BDBG_ASSERT( NULL != hMediaInfo );
 
-    BDBG_WRN((BIP_MSG_PRE_FMT "Printing BIP_MediaInfo ---------------------------------------- " BIP_MSG_PRE_ARG));
+    BDBG_LOG((BIP_MSG_PRE_FMT "Printing BIP_MediaInfo ---------------------------------------- " BIP_MSG_PRE_ARG));
     if( hMediaInfo )
     {
         bool trkGrpPresent =false;
@@ -3866,7 +3864,7 @@ void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo)
             avgBitRate = (double)(hMediaInfo->mediaInfoStream.avgBitRate/1024);
             maxBitRate = (double)(hMediaInfo->mediaInfoStream.maxBitRate/1024);
             /* stream level information */
-            BDBG_WRN(("InfoType=%s TransportType=%s NumTrackGroups=%d NumberOfTracks=%d Avg=%fKbps Max=%fKbps TtsEnabled=%s",
+            BDBG_LOG(("InfoType=%s TransportType=%s NumTrackGroups=%d NumberOfTracks=%d Avg=%fKbps Max=%fKbps TtsEnabled=%s",
                           BIP_ToStr_BIP_MediaInfoType(hMediaInfo->mediaInfoType),
                           BIP_ToStr_NEXUS_TransportType(hMediaInfo->mediaInfoStream.transportType),
                           hMediaInfo->mediaInfoStream.numberOfTrackGroups,
@@ -3882,7 +3880,7 @@ void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo)
                 unsigned i;
                 for (i = 0; i< hMediaInfo->mediaInfoStream.numberOfTrackGroups && pCurrTrack; i++)
                 {
-                    BDBG_WRN(("TrackGroupId=%d ",hMediaInfo->mediaInfoStream.pFirstTrackGroupInfo->trackGroupId));
+                    BDBG_LOG(("TrackGroupId=%d ",hMediaInfo->mediaInfoStream.pFirstTrackGroupInfo->trackGroupId));
                     /* Now print Track specific info */
                     mediaInfoPrintFortack(pCurrTrack);
                     pCurrTrack = pCurrTrack->pNextTrackForTrackGroup;
@@ -3899,5 +3897,5 @@ void BIP_MediaInfo_Print(BIP_MediaInfoHandle hMediaInfo)
             }
         }
     }
-    BDBG_WRN((BIP_MSG_PRE_FMT "Done with printing ------------------------------------------" BIP_MSG_PRE_ARG));
+    BDBG_LOG((BIP_MSG_PRE_FMT "Done with printing ------------------------------------------" BIP_MSG_PRE_ARG));
 }

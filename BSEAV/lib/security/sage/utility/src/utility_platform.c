@@ -94,8 +94,9 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
     uint32_t write_size = 0;
     BERR_Code sage_rc = BERR_SUCCESS;
     SRAI_ModuleHandle tmpModuleHandle = NULL;
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     char * ta_bin_filename;
-
+#endif
     BDBG_ENTER(Utility_ModuleInit);
 
     if(utilityMutex == NULL)
@@ -120,6 +121,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
 
     if(platformHandle == NULL)
     {
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 
         if(Utility_P_GetChipType() == ChipType_eZS)
             ta_bin_filename = UTILITY_TA_NAME_DEVELOPMENT;
@@ -133,7 +135,7 @@ Utility_ModuleInit(Utility_ModuleId_e module_id,
             BDBG_WRN(("%s - Could not Install TA %s: Make sure you have the TA binary", __FUNCTION__, ta_bin_filename));
             rc = sage_rc;
         }
-
+#endif
         BSAGElib_State platform_status;
         sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_UTILITY, &platform_status, &platformHandle);
         if (sage_rc != BERR_SUCCESS)

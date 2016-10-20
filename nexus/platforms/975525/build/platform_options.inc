@@ -54,6 +54,12 @@ NEXUS_PICTURE_DECODER_SUPPORT := n
 # No 3D hardware
 V3D_SUPPORT := n
 
+
+ifeq ($(NEXUS_USE_75525_C),y)
+NEXUS_PLATFORM_DEFINES += NEXUS_USE_75525_C=1
+NEXUS_RFM_SUPPORT := n
+endif
+
 #
 # by default, we include the following
 #

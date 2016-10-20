@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -59,8 +59,8 @@
 #endif
 
 #if NEXUS_HAS_SECURITY
-#define LOCK_SECURITY() NEXUS_Module_Lock( g_NEXUS_audioModuleData.settings.modules.security )
-#define UNLOCK_SECURITY() NEXUS_Module_Unlock( g_NEXUS_audioModuleData.settings.modules.security )
+#define LOCK_SECURITY() NEXUS_Module_Lock( g_NEXUS_audioModuleData.internalSettings.modules.security )
+#define UNLOCK_SECURITY() NEXUS_Module_Unlock( g_NEXUS_audioModuleData.internalSettings.modules.security )
 #endif
 
 
@@ -160,7 +160,7 @@ static void NEXUS_AudioModule_Print(void)
             }
             BAPE_Decoder_GetTsmSettings(handle->channel, &tsmSettings);
             BDBG_LOG((" channel%d: (%p) %s", i, (void *)handle->channel, status.locked ? "locked " : ""));
-            BDBG_LOG(("  dsp index=%d started=%c, codec=%d, pid=%u, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex, status.started ? 'y' : 'n',
+            BDBG_LOG(("  dsp index=%d started=%c, codec=%d, pid=0x%x, pidCh=%p, stcCh=%p",handle->openSettings.dspIndex, status.started ? 'y' : 'n',
                 status.started ? status.codec : 0, pidChannelStatus.pid, (void *)handle->programSettings.pidChannel, (void *)handle->programSettings.stcChannel));
             BDBG_LOG(("  fifo: %d/%d (%d%%), queued: %d", status.fifoDepth, status.fifoSize, status.fifoSize ? status.fifoDepth*100/status.fifoSize : 0, status.queuedFrames));
             BDBG_LOG(("  TSM: %s pts=%#x pts_stc_diff=%d pts_offset=%#x errors=%d", status.tsm ? "enabled" : "disabled", status.pts, status.ptsStcDifference,
@@ -288,6 +288,13 @@ void NEXUS_AudioModule_GetDefaultSettings(const struct NEXUS_Core_PreInitState *
     }
 }
 
+void NEXUS_AudioModule_GetDefaultInternalSettings(
+    NEXUS_AudioModuleInternalSettings *pSettings    /* [out] */
+    )
+{
+    BKNI_Memset(pSettings, 0, sizeof(NEXUS_AudioModuleInternalSettings));
+}
+
 static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
     const BBOX_Config *boxConfig,
     const NEXUS_AudioModuleSettings *pSettings,
@@ -339,7 +346,8 @@ static void NEXUS_AudioModule_P_PopulateRaagaOpenSettings(
 }
 
 NEXUS_ModuleHandle NEXUS_AudioModule_Init(
-    const NEXUS_AudioModuleSettings *pSettings
+    const NEXUS_AudioModuleSettings *pSettings,
+    const NEXUS_AudioModuleInternalSettings *pInternalSettings
     )
 {
     BERR_Code errCode;
@@ -350,6 +358,8 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     BDSP_ArmSettings armSettings;
     #endif
     unsigned heapIndex, fwHeapIndex;
+    BCHP_MemoryInfo memoryInfo;
+    unsigned i;
 
     NEXUS_Module_GetDefaultSettings(&moduleSettings);
     moduleSettings.priority = NEXUS_ModulePriority_eLow; /* decoder interface is slow */
@@ -369,7 +379,13 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
         return NULL;
     }
 
+    if ( NULL == pInternalSettings ) {
+        BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        return NULL;
+    }
+
     g_NEXUS_audioModuleData.settings = *pSettings;
+    g_NEXUS_audioModuleData.internalSettings = *pInternalSettings;
 
     heapIndex = pSettings->heapIndex;
     if ( heapIndex >= NEXUS_MAX_HEAPS )
@@ -413,6 +429,13 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
    #endif
 
     raagaSettings.authenticationEnabled = g_NEXUS_audioModuleData.verifyFirmware;
+
+    BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memoryInfo);
+    for (i=0;i<NEXUS_MAX_MEMC;i++) {
+        /* DSP is unable to access above region[0] on each MEMC */
+        raagaSettings.memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
+        raagaSettings.memc[i].stripeWidth = memoryInfo.memc[i].ulStripeWidth;
+    }
 
     BDBG_MSG(("Calling BDSP_Raaga_Open"));
     errCode = BDSP_Raaga_Open(&g_NEXUS_audioModuleData.dspHandle,
@@ -482,6 +505,10 @@ NEXUS_ModuleHandle NEXUS_AudioModule_Init(
     apeSettings.numCompressed16xBuffers = pSettings->numCompressed16xBuffers;
     apeSettings.numRfEncodedPcmBuffers = pSettings->numRfEncodedPcmBuffers;
     apeSettings.loudnessMode = (BAPE_LoudnessEquivalenceMode)pSettings->loudnessMode;
+    for (i=0;i<NEXUS_MAX_MEMC;i++) {
+        /* APE is unable to access above region[0] on each MEMC */
+        apeSettings.memc[i].baseAddress = g_pCoreHandles->memoryLayout.memc[i].region[0].addr;
+    }
 
     if ( NEXUS_GetEnv("audio_ramp_disabled") )
     {
@@ -1049,7 +1076,8 @@ const char * NEXUS_AudioCodecToString(
         case NEXUS_AudioCodec_eIlbc: return "ILBC";
         case NEXUS_AudioCodec_eIsac: return "ISAC";
         case NEXUS_AudioCodec_eOpus: return "Opus";
-        case NEXUS_AudioCodec_eAls: return "MPEG-4 ALS";
+        case NEXUS_AudioCodec_eAls: return "MPEG-4 ALS ES";
+        case NEXUS_AudioCodec_eAlsLoas: return "MPEG-4 ALS LOAS";
         case NEXUS_AudioCodec_eAc4: return "AC4";
         case NEXUS_AudioCodec_eMax: return "Invalid";
         default: return "Invalid";

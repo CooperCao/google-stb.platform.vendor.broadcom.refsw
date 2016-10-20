@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include "bdsp_raaga_priv.h"
@@ -51,7 +48,7 @@
 
  /* CIT-Gen  header File Inclusion */
 
-BDBG_MODULE(bdsp_cit);
+BDBG_MODULE(bdsp_cit_priv);
 
 /*#undef ANALYZE_IO_CFG */
 /*--------------------------------------------------*/
@@ -588,12 +585,11 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoDecodeCit (
 #if 0
     psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = psVDecodeBuffCfgIp->MaxFrameWidth;
     psGlobalTaskConfigFromPI->ui32MaxFrameHeight = psVDecodeBuffCfgIp->MaxFrameHeight;
-    psGlobalTaskConfigFromPI->ui32StripeWidth    = psVDecodeBuffCfgIp->StripeWidth;
 #else
     psGlobalTaskConfigFromPI->ui32MaxFrameWidth  = 720;
     psGlobalTaskConfigFromPI->ui32MaxFrameHeight = 576;
-    psGlobalTaskConfigFromPI->ui32StripeWidth    = 128;
 #endif  /* 0 */
+    psGlobalTaskConfigFromPI->ui32StripeWidth    = pRaagaTask->pContext->pDevice->settings.memc[0].stripeWidth;
 
     /* DISPLAY FRAME BUFFER CONFIGURATION */
     psGlobalTaskConfigFromPI->sDisplayFrameBuffParams.ui32NumBuffAvl =
@@ -703,28 +699,22 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
 
     void                            *pvRrqAddr=NULL;
     unsigned int                    i=0;
-    unsigned int                    StripeWidthIndex;
 
+#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
     unsigned int                    uiDspIndex;
     unsigned int                    uiOffset;
-#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
     uint32_t                        ui32DramMap5AddrCfg;
 #endif
-    uint32_t                        uiMs4Bits;
-    uint32_t                        ui32RegVal;
 
     BDBG_ENTER(BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit);
+    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
 
     ui32Error = BERR_SUCCESS;
+#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
     uiDspIndex = 0;
     uiOffset = 0;
-#if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
     ui32DramMap5AddrCfg = 0;
 #endif
-    uiMs4Bits = 0;
-    ui32RegVal = 0;
-    StripeWidthIndex = 0;
-    BDBG_OBJECT_ASSERT(pRaagaTask, BDSP_RaagaTask);
     pRaagaPrimaryStage = (BDSP_RaagaStage *)pRaagaTask->startSettings.primaryStage->pStageHandle;
     pRaagaContext      = (BDSP_RaagaContext *)pRaagaPrimaryStage->pContext;
     pRaagaDevice       = (BDSP_Raaga *)pRaagaContext->pDevice;
@@ -753,28 +743,15 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
     /* Common Parameters */
     psGlobalEncodeTaskConfig->ui32MaxFrameHeight = psVEncoderCfgIp->MaxFrameHeight;
     psGlobalEncodeTaskConfig->ui32MaxFrameWidth  = psVEncoderCfgIp->MaxFrameWidth;
-    psGlobalEncodeTaskConfig->ui32StripeWidth    = psVEncoderCfgIp->StripeWidth;
+    psGlobalEncodeTaskConfig->ui32StripeWidth    = pRaagaDevice->settings.memc[0].stripeWidth;
 #if (defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)
-    if ( psVEncoderCfgIp->StripeWidth == 128 )
+    if ( pRaagaDevice->settings.memc[0].stripeWidth == 128 )
     {
         ui32DramMap5AddrCfg =0x00080005;
     }
-    else if ( psVEncoderCfgIp->StripeWidth == 256 )
+    else if ( pRaagaDevice->settings.memc[0].stripeWidth == 256 )
     {
         ui32DramMap5AddrCfg =0x00090005;
-    }
-#endif
-    if ( psVEncoderCfgIp->StripeWidth == 64 )
-    {
-        StripeWidthIndex = 0;
-    }
-    else if ( psVEncoderCfgIp->StripeWidth == 128 )
-    {
-        StripeWidthIndex = 1;
-    }
-    else if ( psVEncoderCfgIp->StripeWidth == 256 )
-    {
-        StripeWidthIndex = 2;
     }
 
     for (uiDspIndex =0 ; uiDspIndex < pRaagaDevice->numDsp; uiDspIndex++)
@@ -784,57 +761,16 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
             BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG + uiOffset,
                             ui32DramMap5AddrCfg);
 #endif
-
 #ifdef BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG
             BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG + uiOffset,
                                 ui32DramMap5AddrCfg);
 #endif
-
 #ifdef BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG
             BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG + uiOffset,
                                 ui32DramMap5AddrCfg);
 #endif
 
-
-#ifdef BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL0_MASK
-            ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset);
-
-            ui32RegVal = ui32RegVal & ( ~(BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL0_MASK) );
-            ui32RegVal = ui32RegVal | (StripeWidthIndex << BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL0_SHIFT);
-
-            ui32RegVal = ui32RegVal & ( ~(BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_SCB0_MS4BITS_MASK) );
-            uiMs4Bits =  ( (psVEncoderCfgIp->sScbAddrRange[0].ui32StartPhysicalOffset + psVEncoderCfgIp->sScbAddrRange[0].ui32Size) & BDSP_CIT_MS4BITS_MASK );
-            uiMs4Bits >>= BDSP_CIT_MS4BITS_TO_LS4BITS_SHIFT;
-            ui32RegVal = ui32RegVal | (uiMs4Bits << BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_SCB0_MS4BITS_SHIFT);
-            BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset, ui32RegVal);
-#endif
-
-#ifdef BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL1_MASK
-            if ( psVEncoderCfgIp->ui32NumOfScbs > 1 )
-            {
-                ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset);
-                ui32RegVal = ui32RegVal & ( ~(BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL1_MASK) );
-                ui32RegVal = ui32RegVal | (StripeWidthIndex << BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL1_SHIFT);
-
-                ui32RegVal = ui32RegVal & ( ~(BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_SCB1_MS4BITS_MASK) );
-                uiMs4Bits =  ( (psVEncoderCfgIp->sScbAddrRange[0].ui32StartPhysicalOffset + psVEncoderCfgIp->sScbAddrRange[0].ui32Size) & BDSP_CIT_MS4BITS_MASK );
-                uiMs4Bits >>= BDSP_CIT_MS4BITS_TO_LS4BITS_SHIFT;
-                ui32RegVal = ui32RegVal | (uiMs4Bits << BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_SCB1_MS4BITS_SHIFT);
-                BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset, ui32RegVal);
-            }
-#endif
-
-#ifdef BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL2_MASK
-            if ( psVEncoderCfgIp->ui32NumOfScbs > 2 )
-            {
-                ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset);
-                ui32RegVal = ui32RegVal & ( ~(BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL2_MASK) );
-                ui32RegVal = ui32RegVal | (StripeWidthIndex << BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG_STRIPE_WIDTH_SEL2_SHIFT);
-                BDSP_Write32(pRaagaDevice->regHandle, BCHP_RAAGA_DSP_DMA_SCB_IF_CONFIG + uiOffset, ui32RegVal);
-            }
-#endif
 #if 0
-
 #ifdef BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK
             ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0 + uiOffset);\
             ui32RegVal = ui32RegVal & ( ~(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0_MDIV_CH0_MASK) );
@@ -843,8 +779,6 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
 
 
 #endif
-
-
 #ifdef BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_MASK
             ui32RegVal = BDSP_Read32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_55 + uiOffset);
             ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_55_RR_EN_SHIFT);
@@ -857,14 +791,9 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewVideoEncodeCit (
                 ui32RegVal |= (BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_ENABLED << BCHP_MEMC_ARB_0_CLIENT_INFO_127_RR_EN_SHIFT);
                 BDSP_Write32(pRaagaDevice->regHandle, BCHP_MEMC_ARB_0_CLIENT_INFO_127 + uiOffset, ui32RegVal);
 #endif
-
 #endif
-
-
-
     }
-
-
+#endif /*(defined BCHP_RAAGA_DSP_DMA_SCB0_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB1_DRAM_MAP5_ADDR_CFG || defined BCHP_RAAGA_DSP_DMA_SCB2_DRAM_MAP5_ADDR_CFG)*/
 
     /* REFERENCE FRAME BUFFER SETTINGS */
     psGlobalEncodeTaskConfig->sReferenceBuffParams.ui32NumBuffAvl = psVEncoderCfgIp->sReferenceBuffParams.ui32NumBuffAvl;
@@ -2005,655 +1934,6 @@ static uint32_t BDSP_CITGEN_P_FillGblTaskCfgIntoNewScmCit (
 }
 /*******************************************************************************/
 
-
-/*  This function analysis the CIT. The intention of this function is to
-    analyse and print out all the parameters within the CIT structure
-    Going forward it is expected to verify all the addresses and sizes also
-    generated in the CIT strucuture*/
-void BDSP_P_AnalyseCit( BMEM_Handle             hHeap,
-                       BDSP_AF_P_sTASK_CONFIG   *psCit
-                      )
-{
-    uint32_t    ui32NumNodes;
-    uint32_t    ui32Node;
-    uint32_t    ui32NumSrc, ui32NumDest;
-    BDSP_AF_P_sGLOBAL_TASK_CONFIG   *psGblTaskCfg;
-    BDSP_AF_P_sNODE_CONFIG          *psNodeCfg;
-
-#ifdef ANALYZE_IO_CFG
-    BDSP_AF_P_sIO_BUFFER            sIoBuffer;
-    BDSP_AF_P_sIO_GENERIC_BUFFER    sIoGenericBuffer;
-#endif
-
-    BDBG_ENTER(BDSP_P_AnalyseCit);
-
-    /*  First Step: Print all the informations within the CIT structure */
-    BDBG_MSG(("Global Task Configuration parameters"));
-    BDBG_MSG(("===================================="));
-
-    psGblTaskCfg = &psCit->sGlobalTaskConfig;
-    ui32NumNodes = psGblTaskCfg->ui32NumberOfNodesInTask;
-
-
-    BDBG_MSG(("Time base for the Task:%s",GlobalTimeBase[psGblTaskCfg->eTimeBaseType]));
-    BDBG_MSG(("--"));
-
-    BDBG_MSG(("Number of Nodes in Task: %d ",ui32NumNodes));
-    BDBG_MSG(("Number of Zero Fill Frames: 0x%x ",
-        psGblTaskCfg->ui32NumberOfZeroFillSamples));
-    BDBG_MSG(("Start Node index of Core Algo: %d ",
-        psGblTaskCfg->ui32StartNodeIndexOfCoreAudioAlgorithm));
-
-    /*
-        Removing:
-    ui32NumPorts = psGblTaskCfg->ui32NumOpPorts;
-    BDBG_MSG(("Number of Output Ports in Task: %d ",
-        psGblTaskCfg->ui32NumOpPorts));
-
-    for(ui32Port=0; ui32Port<ui32NumPorts; ui32Port++)
-    {
-        BDBG_MSG(("Output Port Configuration for Port: %d ",ui32Port));
-        BDBG_MSG(("TBD "));
-    }
-    */
-
-    /*  Dram Scratch buffer Address and Size */
-    BDBG_MSG(("--"));
-    BDBG_MSG(("DRAM Scratch Buffer Address: 0x%x ",
-        psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress));
-    BDBG_MSG(("DRAM Scratch Buffer Size Allocated: %d Bytes ",
-        psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
-    BDBG_MSG(("--"));
-
-    /* DRAM port Configuration */
-    BDBG_MSG(("Port Configuration address 0x%x  ",psGblTaskCfg->ui32FmmDestCfgAddr));
-
-    /* DRAM Gate Open Configuration */
-    BDBG_MSG(("Gate Open Configuration address 0x%x  ",psGblTaskCfg->ui32FmmGateOpenConfigAddr));
-    BDBG_MSG(("--"));
-
-
-
-    BDBG_MSG(("Node Configuration parameters "));
-    BDBG_MSG(("============================= "));
-    for(ui32Node=0; ui32Node<ui32NumNodes; ui32Node++)
-    {
-        psNodeCfg = &psCit->sNodeConfig[ui32Node];
-        BDBG_MSG(("Node index: %d ",psNodeCfg->uiNodeId));
-        BDBG_MSG(("Algo Id: %s ",AlgoIdEnum2Char[psNodeCfg->eAlgoId]));
-
-        BDBG_MSG(("\neCollectResidual : %s ",DisableEnable[psNodeCfg->eCollectResidual]));
-        /*BDBG_ERR(("Algo Id: %x ",psNodeCfg->eAlgoId));*/
-
-        /*  Code Address and Size */
-        BDBG_MSG(("DRAM Code Buffer Address: 0x%x ",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Code Buffer Size: %d Bytes",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes));
-
-        /*  Lookup Table Address and Size */
-        BDBG_MSG(("DRAM Lookup Table Buffer Address: 0x%x ",
-            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Lookup Table Buffer Size: %d Bytes",
-            psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes));
-
-        /*  Inter-frame buffer Address check */
-        if( psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Address: 0x%x ",
-                psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: %d Bytes",
-                psNodeCfg->sDramInterFrameBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Node Status buffer Address check */
-        if( psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Node Status buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Node Status buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Node Status buffer Address: 0x%x ",
-                psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Node Status buffer Size: %d Bytes",
-                psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  User config buffer Address check */
-        if( psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM User Config Buffer not present for this Node"));
-            BDBG_MSG(("DRAM User Config Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM User Config Buffer Address: 0x%x ",
-                psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM User Config Buffer Size: %d Bytes",
-                psNodeCfg->sDramUserConfigBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Input buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Input Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Source feeding data to this node: %d", psNodeCfg->ui32NumSrc));
-        for( ui32NumSrc=0; ui32NumSrc<psNodeCfg->ui32NumSrc; ui32NumSrc++)
-        {
-            BDBG_MSG(("--"));
-
-            BDBG_MSG(("Source %d Input Buffer is [%s]",ui32NumSrc, PortValidType[psNodeCfg->eNodeIpValidFlag[ui32NumSrc]]));
-
-            BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",
-                ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-            /*BDBG_MSG(("Input buffer Configuration:"));*/
-            if(psNodeCfg->eNodeIpValidFlag[ui32NumSrc] == BDSP_AF_P_eValid)
-            {
-                /* Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoBuffer,
-                    (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-                /*Printing Buffer Type*/
-                if((sIoBuffer.ui32NumBuffers >0) && (BDSP_AF_P_eValid == psNodeCfg->eNodeIpValidFlag[ui32NumSrc]) )
-                {
-                    BDBG_MSG(("Source %d Input Buffer Type: %s",
-                    ui32NumSrc, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-#endif
-                BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",
-                    ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-
-                /* BDBG_MSG(("Input Generic buffer Configuration:")); */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoGenericBuffer,
-                    (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoGenericBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Source %d Input Generic Buffer Type: %s",
-                    ui32NumSrc,BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Genric Buff Struct */
-                 /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-            }
-#endif
-        }
-
-        /*  Output buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Output Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Destination getting data from this node: %d",
-            psNodeCfg->ui32NumDst));
-        for( ui32NumDest=0; ui32NumDest<psNodeCfg->ui32NumDst; ui32NumDest++)
-        {
-
-            /* IO BUFFER CONFIGURATION */
-            /*-------------------------*/
-
-            /*Printing Output Buffer Cfg Structure Address */
-            BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));
-
-#ifdef ANALYZE_IO_CFG
-            /* BDBG_MSG(("Output buffer Configuration:"));*/
-
-            if(0 != psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])
-            {
-
-                /* Getting contents of the Destination IO buffer */
-                /* Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                        psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest],
-                        (void *)&sIoBuffer,
-                        (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-                }
-
-
-                /*  Print Io Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-            }
-#endif
-
-
-            /* IOGENERIC BUFFER CONFIGURATION */
-            /*--------------------------------*/
-
-            BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));
-
-
-#ifdef ANALYZE_IO_CFG
-
-            /*  Getting contents of the IO Generic buffer */
-            if(0 != psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])
-            {
-
-                /*Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest],
-                (void *)&sIoGenericBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoGenericBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Generic Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Genric Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-            }
-#endif
-
-#ifdef BDSP_CIT_P_ENABLE_FORK_MATRIXING
-
-            BDBG_MSG(("Destination %d Datatype : %s",
-                ui32NumDest, PortDatatType[psNodeCfg->eNodeOpBuffDataType[ui32NumDest]]));
-
-            BDBG_MSG(("--"));
-#endif
-        }
-
-        BDBG_MSG(("============================= "));
-    }
-
-    BDBG_LEAVE(BDSP_P_AnalyseCit);
-}
-
-
-/*******************************************************************************/
-
-
-/*  This function analysis the CIT. The intention of this function is to
-    analyse and print out all the parameters within the CIT structure
-    Going forward it is expected to verify all the addresses and sizes also
-    generated in the CIT strucuture*/
-void BDSP_P_AnalyseScmCit(  BMEM_Handle             hHeap,
-                       BDSP_SCM_P_sTASK_CONFIG  *psScmCit
-                      )
-{
-    uint32_t    ui32NumNodes;
-    uint32_t    ui32Node;
-    uint32_t    ui32NumSrc, ui32NumDest;
-    BDSP_SCM_P_sGLOBAL_TASK_CONFIG  *psGblTaskCfg;
-    BDSP_AF_P_sNODE_CONFIG          *psNodeCfg;
-
-#ifdef ANALYZE_IO_CFG
-    BDSP_AF_P_sIO_BUFFER            sIoBuffer;
-    BDSP_AF_P_sIO_GENERIC_BUFFER    sIoGenericBuffer;
-#endif
-
-    /*  First Step: Print all the informations within the CIT structure */
-    BDBG_MSG(("===================================="));
-    BDBG_MSG(("=========== SCM CIT LOG============="));
-
-    BDBG_MSG(("Global Task Configuration parameters"));
-    BDBG_MSG(("===================================="));
-
-    psGblTaskCfg = &psScmCit->sGlobalTaskConfig;
-    ui32NumNodes = psGblTaskCfg->ui32NumberOfNodesInTask;
-
-
-    BDBG_MSG(("Number of Nodes in Task: %d ",ui32NumNodes));
-    BDBG_MSG(("Start Node index of Core Algo: %d ",
-        psGblTaskCfg->ui32StartNodeIndexOfCoreScmAlgo));
-
-    /*  Dram Scratch buffer Address and Size */
-    BDBG_MSG(("--"));
-    BDBG_MSG(("DRAM Scratch Buffer Address: 0x%x ",
-        psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress));
-    BDBG_MSG(("DRAM Scratch Buffer Size Allocated: %d Bytes ",
-        psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
-    BDBG_MSG(("--"));
-
-
-    BDBG_MSG(("Node Configuration parameters "));
-    BDBG_MSG(("============================= "));
-    for(ui32Node=0; ui32Node<ui32NumNodes; ui32Node++)
-    {
-        psNodeCfg = &psScmCit->sNodeConfig[ui32Node];
-        BDBG_MSG(("Node index: %d ",psNodeCfg->uiNodeId));
-        BDBG_MSG(("Algo Id: %s ",AlgoIdEnum2Char[psNodeCfg->eAlgoId]));
-
-        BDBG_MSG(("\neCollectResidual : %s ",DisableEnable[psNodeCfg->eCollectResidual]));
-        /*BDBG_ERR(("Algo Id: %x ",psNodeCfg->eAlgoId));*/
-
-        /*  Code Address and Size */
-        BDBG_MSG(("DRAM Code Buffer Address: 0x%x ",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Code Buffer Size: %d Bytes",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes));
-
-        /*  Lookup Table Address and Size */
-        BDBG_MSG(("DRAM Lookup Table Buffer Address: 0x%x ",
-            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Lookup Table Buffer Size: %d Bytes",
-            psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes));
-
-        /*  Inter-frame buffer Address check */
-        if( psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Address: 0x%x ",
-                psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: %d Bytes",
-                psNodeCfg->sDramInterFrameBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Node Status buffer Address check */
-        if( psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Node Status buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Node Status buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Node Status buffer Address: 0x%x ",
-                psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Node Status buffer Size: %d Bytes",
-                psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  User config buffer Address check */
-        if( psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM User Config Buffer not present for this Node"));
-            BDBG_MSG(("DRAM User Config Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM User Config Buffer Address: 0x%x ",
-                psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM User Config Buffer Size: %d Bytes",
-                psNodeCfg->sDramUserConfigBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Input buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Input Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Source feeding data to this node: %d", psNodeCfg->ui32NumSrc));
-        for( ui32NumSrc=0; ui32NumSrc<psNodeCfg->ui32NumSrc; ui32NumSrc++)
-        {
-            BDBG_MSG(("--"));
-
-            BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",
-                ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-            /*BDBG_MSG(("Input buffer Configuration:"));*/
-
-            /* Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc],
-                (void *)&sIoBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-            /*Printing Buffer Type*/
-            if((sIoBuffer.ui32NumBuffers >0) && (BDSP_AF_P_eValid == psNodeCfg->eNodeIpValidFlag[ui32NumSrc]) )
-            {
-                BDBG_MSG(("Source %d Input Buffer Type: %s",
-                ui32NumSrc, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-            }
-
-            /*  Analyze Io Buff Struct */
-            /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-#endif
-            BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",
-                ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-
-            /* BDBG_MSG(("Input Generic buffer Configuration:")); */
-
-            /* Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc],
-                (void * )&sIoGenericBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-            /*Printing Buffer Type*/
-            if(sIoGenericBuffer.ui32NumBuffers >0)
-            {
-                BDBG_MSG(("Source %d Input Generic Buffer Type: %s",
-                ui32NumSrc,BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-            }
-
-            /*  Analyze Io Genric Buff Struct */
-             /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-#endif
-
-        }
-
-        /*  Output buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Output Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Destination getting data from this node: %d",
-            psNodeCfg->ui32NumDst));
-        for( ui32NumDest=0; ui32NumDest<psNodeCfg->ui32NumDst; ui32NumDest++)
-        {
-
-            /* IO BUFFER CONFIGURATION */
-            /*-------------------------*/
-
-            /*Printing Output Buffer Cfg Structure Address */
-            BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));
-
-#ifdef ANALYZE_IO_CFG
-            /* BDBG_MSG(("Output buffer Configuration:"));*/
-
-
-            /* Getting contents of the Destination IO buffer */
-            /* Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest],
-                (void *)&sIoBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-            /*Printing Buffer Type*/
-            if(sIoBuffer.ui32NumBuffers >0)
-            {
-                BDBG_MSG(("Destination %d Output Buffer Type: %s",
-                ui32NumDest, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-            }
-
-
-            /*  Print Io Buff Struct */
-            /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-#endif
-
-
-            /* IOGENERIC BUFFER CONFIGURATION */
-            /*--------------------------------*/
-
-            BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));
-
-
-#ifdef ANALYZE_IO_CFG
-
-            /* Getting contents of the IO Generic buffer */
-            /* Getting the Virtual Address */
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest],
-                (void *)&sIoGenericBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-            /*Printing Buffer Type*/
-            if(sIoGenericBuffer.ui32NumBuffers >0)
-            {
-                BDBG_MSG(("Destination %d Output Generic Buffer Type: %s",
-                ui32NumDest, BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-            }
-
-            /*  Analyze Io Genric Buff Struct */
-            /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-#endif
-
-#ifdef BDSP_CIT_P_ENABLE_FORK_MATRIXING
-
-            BDBG_MSG(("Destination %d Datatype : %s",
-                ui32NumDest, PortDatatType[psNodeCfg->eNodeOpBuffDataType[ui32NumDest]]));
-
-            BDBG_MSG(("--"));
-#endif
-        }
-
-        BDBG_MSG(("============================= "));
-    }
-}
-
-
-
-#ifdef ANALYZE_IO_CFG
-#ifdef ANALYSIS_IO_GEN_ENABLE
-/*  This function Analyzes the I/O buff structure */
-static void BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(BDSP_AF_P_sIO_BUFFER *psIoBuffStruct)
-{
-    uint32_t    ui32Buff;
-    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircBuff;
-
-    /*  Need to put characters instead of directly printing value */
-    BDBG_ERR(("Number of buffers: %d", psIoBuffStruct->ui32NumBuffers));
-    BDBG_ERR(("Buffer Type: %s", BuffTypeEnum2Char[psIoBuffStruct->eBufferType]));
-
-    for( ui32Buff=0; ui32Buff<psIoBuffStruct->ui32NumBuffers; ui32Buff++)
-    {
-        psCircBuff = &psIoBuffStruct->sCircBuffer[ui32Buff];
-
-        if( ( psIoBuffStruct->eBufferType == BDSP_AF_P_BufferType_eRDB ) ||
-            ( psIoBuffStruct->eBufferType == BDSP_AF_P_BufferType_eFMM ) ||
-            ( psIoBuffStruct->eBufferType == BDSP_AF_P_BufferType_eRAVE ) )
-        {
-            /*  The circular buffer will contain address of RDB registers
-                and not the actual DRAM addresses */
-            BDBG_ERR(("Buffer %d Address of the Fifo Base Register in RDB: 0x%x ",
-                ui32Buff,psCircBuff->ui32BaseAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo End Register in RDB: 0x%x ",
-                ui32Buff,psCircBuff->ui32EndAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Write Pointer Register in RDB: 0x%x ",
-                ui32Buff,psCircBuff->ui32WriteAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Read Pointer Register in RDB: 0x%x ",
-                ui32Buff,psCircBuff->ui32ReadAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Wrap Pointer Register in RDB: 0x%x ",
-                ui32Buff,psCircBuff->ui32WrapAddr));
-        }
-        else if ( psIoBuffStruct->eBufferType == BDSP_AF_P_BufferType_eDRAM_IS )
-        {
-            /*  The circular buffer the actual DRAM addresses as the buffer is Inter-stage */
-            BDBG_ERR(("Buffer %d Fifo DRAM Base Address: 0x%x ",
-                ui32Buff, psCircBuff->ui32BaseAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM End Address: 0x%x ",
-                ui32Buff,psCircBuff->ui32EndAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Write Pointer Address: 0x%x ",
-                ui32Buff,psCircBuff->ui32WriteAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Read Pointer Address: 0x%x ",
-                ui32Buff,psCircBuff->ui32ReadAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Wrap Pointer Address: 0x%x ",
-                ui32Buff,psCircBuff->ui32WrapAddr));
-        }
-        else
-        {
-            /*  This is a DRAM buffer */
-            /*  WARNING!!! TBD */
-        }
-    }
-}
-
-/*  This function Analyzes the I/O Generic buffer structure */
-static void BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(BDSP_AF_P_sIO_GENERIC_BUFFER *psIoGenericBuffStruct)
-{
-    BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircBuff;
-
-    BDBG_ERR(("Number of buffers: %d", psIoGenericBuffStruct->ui32NumBuffers));
-    /*  Need to put characters instead of directly printing value */
-    if( psIoGenericBuffStruct->ui32NumBuffers != 0 )
-    {
-        BDBG_ERR(("Buffer Type: %s", BuffTypeEnum2Char[psIoGenericBuffStruct->eBufferType]));
-
-        psCircBuff = &psIoGenericBuffStruct->sCircBuffer;
-
-        if( ( psIoGenericBuffStruct->eBufferType == BDSP_AF_P_BufferType_eRDB ) ||
-            ( psIoGenericBuffStruct->eBufferType == BDSP_AF_P_BufferType_eFMM ) ||
-            ( psIoGenericBuffStruct->eBufferType == BDSP_AF_P_BufferType_eRAVE ) )
-        {
-            /*  The circular buffer will contain address of RDB registers
-                and not the actual DRAM addresses */
-            BDBG_ERR(("Buffer %d Address of the Fifo Base Register in RDB: 0x%x ",
-                0,psCircBuff->ui32BaseAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo End Register in RDB: 0x%x ",
-                0,psCircBuff->ui32EndAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Write Pointer Register in RDB: 0x%x ",
-                0,psCircBuff->ui32WriteAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Read Pointer Register in RDB: 0x%x ",
-                0,psCircBuff->ui32ReadAddr));
-            BDBG_ERR(("Buffer %d Address of the Fifo Wrap Pointer Register in RDB: 0x%x ",
-                0,psCircBuff->ui32WrapAddr));
-        }
-        else if ( psIoGenericBuffStruct->eBufferType == BDSP_AF_P_BufferType_eDRAM_IS )
-        {
-            /*  The circular buffer the actual DRAM addresses as the buffer is Inter-stage */
-            BDBG_ERR(("Buffer %d Fifo DRAM Base Address: 0x%x ",
-                0, psCircBuff->ui32BaseAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM End Address: 0x%x ",
-                0,psCircBuff->ui32EndAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Write Pointer Address: 0x%x ",
-                0,psCircBuff->ui32WriteAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Read Pointer Address: 0x%x ",
-                0,psCircBuff->ui32ReadAddr));
-            BDBG_ERR(("Buffer %d Fifo DRAM Wrap Pointer Address: 0x%x ",
-                0,psCircBuff->ui32WrapAddr));
-        }
-        else
-        {
-            /*  This is a DRAM buffer */
-            /*  WARNING!!! TBD */
-        }
-    }
-}
-#endif /* #endif#ifdef ANALYSIS_IO_GEN_ENABLE */
-
-#endif
-
 /******************************************************************************
 Summary:
 
@@ -2873,393 +2153,4 @@ static uint32_t BDSP_PopulateAlgoMode(
     BDSP_STAGE_TRAVERSE_LOOP_END(pRaagaConnectStage)
 
     return errCode;
-}
-
-
-/****************************************************************************/
-/****************************************************************************/
-/************************* VIDEO TASK  **************************************/
-/****************************************************************************/
-/****************************************************************************/
-
-/*---------------------------------------------------------------------
-                Top level Video CIT Generation Function
----------------------------------------------------------------------*/
-
-/******************************************************************************
-Summary:
-    This function analysis the Video CIT. The intention of this function is to
-    analyse and print out all the parameters within the Video CIT structure
-
-Description:
-
-    Debug prints
-
-Input:
-    hHeap
-    psCit
-
-Output:
-Returns:
-        None
-
-******************************************************************************/
-void BDSP_P_AnalyseVideoCit(
-                            BMEM_Handle                  hHeap,
-                            BDSP_VF_P_uTASK_CONFIG      *puCit,
-                            BDSP_AlgorithmType           eAlgorithm
-                      )
-{
-    uint32_t    ui32NumNodes;
-    uint32_t    ui32Node,ui32Count;
-    uint32_t    ui32NumSrc, ui32NumDest;
-    BDSP_AlgorithmType  algoType;
-
-    BDSP_VF_P_sVDecodeBuffCfg       *psVDecodeBuffCfg;
-    BDSP_VF_P_sGLOBAL_TASK_CONFIG   *psGblTaskCfg;
-    BDSP_AF_P_sNODE_CONFIG          *psNodeCfg;
-    BDSP_VF_P_sVEncodeConfig                *psVEncoderCfg;
-    BDSP_VF_P_sENC_GLOBAL_TASK_CONFIG       *psEncGblTaskCfg;
-
-#ifdef ANALYZE_IO_CFG
-    BDSP_AF_P_sIO_BUFFER            sIoBuffer;
-    BDSP_AF_P_sIO_GENERIC_BUFFER    sIoGenericBuffer;
-#endif
-
-    /*  First Step: Print all the informations within the CIT structure */
-    BDBG_MSG(("Global Task Configuration parameters"));
-    BDBG_MSG(("===================================="));
-
-    algoType = eAlgorithm;
-
-    if(algoType == BDSP_AlgorithmType_eVideoDecode)
-    {
-        psGblTaskCfg = &puCit->sVideoDecTaskConfig.sGlobalTaskConfig;
-
-    ui32NumNodes = psGblTaskCfg->ui32NumberOfNodesInTask;
-
-    BDBG_MSG(("--"));
-    BDBG_MSG(("Displaying the Global Task Cfg from PI"));
-    BDBG_MSG(("--------------------------------------"));
-    BDBG_MSG(("--"));
-
-    psVDecodeBuffCfg = &psGblTaskCfg->sGlobalTaskConfigFromPI;
-
-    BDBG_MSG((" PRQ Circ Buffer Addresses:\n\tBase Addr  = 0x%x\n\tRead Addr  = 0x%x\n\tWrite Addr = 0x%x\n\tEnd   Addr = 0x%x\n\tWrap  Addr = 0x%x",
-                        psVDecodeBuffCfg->sPRQ.ui32BaseAddr,
-                        psVDecodeBuffCfg->sPRQ.ui32ReadAddr,
-                        psVDecodeBuffCfg->sPRQ.ui32WriteAddr,
-                        psVDecodeBuffCfg->sPRQ.ui32EndAddr,
-                        psVDecodeBuffCfg->sPRQ.ui32WrapAddr));
-    BDBG_MSG((" PDQ Circ Buffer Addresses:\n\tBase Addr  = 0x%x\n\tRead Addr  = 0x%x\n\tWrite Addr = 0x%x\n\tEnd   Addr = 0x%x\n\tWrap  Addr = 0x%x",
-                        psVDecodeBuffCfg->sPDQ.ui32BaseAddr,
-                        psVDecodeBuffCfg->sPDQ.ui32ReadAddr,
-                        psVDecodeBuffCfg->sPDQ.ui32WriteAddr,
-                        psVDecodeBuffCfg->sPDQ.ui32EndAddr,
-                        psVDecodeBuffCfg->sPDQ.ui32WrapAddr));
-
-    BDBG_MSG(("--"));
-
-    BDBG_MSG(("\tMax Frame Height = 0x%x\n\tMax Frame Width = 0x%x\n\tStripe Width = 0x%x\n", \
-                        psVDecodeBuffCfg->ui32MaxFrameHeight, \
-                        psVDecodeBuffCfg->ui32MaxFrameWidth, \
-                        psVDecodeBuffCfg->ui32StripeWidth));
-
-    BDBG_MSG((" Display Frame Buffer Details "));
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-    {
-        BDBG_MSG(("\t  Frame Buffer [%d] Params:\n\tLuma Buffer - Addr = 0x%x : Size = 0x%x \n\tChroma Buffer - Addr = 0x%x : Size = 0x%x\n\tNum Buffers = 0x%x\n\tLuma Stripe Height = 0x%x\tChroma Stripe Height = 0x%x" ,ui32Count, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.ui32NumBuffAvl, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.ui32LumaStripeHeight, \
-                            psVDecodeBuffCfg->sDisplayFrameBuffParams.ui32ChromaStripeHeight));
-        BDBG_MSG(("--"));
-    }
-
-    BDBG_MSG(("--"));
-    BDBG_MSG((" Reference Buffer Details "));
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
-    {
-        BDBG_MSG(("\t  Reference Buffer [%d] Params:\n\tLuma Buffer - Addr = 0x%x : Size = 0x%x \n\tChroma Buffer - Addr = 0x%x : Size = 0x%x\n\tNum Buffers = 0x%x\n\tLuma Stripe Height = 0x%x\tChroma Stripe Height = 0x%x" ,ui32Count, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.ui32NumBuffAvl, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.ui32LumaStripeHeight, \
-                            psVDecodeBuffCfg->sReferenceBuffParams.ui32ChromaStripeHeight));
-        BDBG_MSG(("--"));
-    }
-
-    BDBG_MSG(("--"));
-    BDBG_MSG((" UPB Buffer Details "));
-    for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-    {
-
-        BDBG_MSG(("\t UPB  [%d] Buffer Addr 0x%x Buffer Size  0x%x" ,ui32Count, \
-                            psVDecodeBuffCfg->sUPBs[ui32Count].ui32DramBufferAddress,\
-                            psVDecodeBuffCfg->sUPBs[ui32Count].ui32BufferSizeInBytes));
-    }
-
-    }
-    else if (algoType == BDSP_AlgorithmType_eVideoEncode)
-    {
-        psEncGblTaskCfg = &puCit->sVideoEncTaskConfig.sEncGlobalTaskConfig;
-
-        ui32NumNodes = psEncGblTaskCfg->ui32NumberOfNodesInTask;
-
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Displaying the Global Task Cfg from PI"));
-        BDBG_MSG(("--------------------------------------"));
-        BDBG_MSG(("--"));
-
-        psVEncoderCfg = &psEncGblTaskCfg->sGlobalVideoEncoderConfig;
-
-        BDBG_MSG(("--"));
-
-        BDBG_MSG(("\tMax Frame Height = 0x%x\n\tMax Frame Width = 0x%x\n\tStripe Width = 0x%x\n", \
-                            psVEncoderCfg->ui32MaxFrameHeight, \
-                            psVEncoderCfg->ui32MaxFrameWidth, \
-                            psVEncoderCfg->ui32StripeWidth));
-
-        BDBG_MSG(("\tInterrupt bit given are %d and %d", \
-                        psVEncoderCfg->sEncoderParams.ui32InterruptBit[0], \
-                        psVEncoderCfg->sEncoderParams.ui32InterruptBit[1]));
-        BDBG_MSG(("\t STC address is 0x%08x", psVEncoderCfg->sEncoderParams.ui32StcAddr));
-
-        BDBG_MSG(("--"));
-        BDBG_MSG((" Reference Buffer Details "));
-        for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_REF_BUFF_AVAIL;ui32Count++)
-        {
-            BDBG_MSG(("\t  Reference Buffer [%d] Params:\n\tLuma Buffer - Addr = 0x%x : Size = 0x%x \n\tChroma Buffer - Addr = 0x%x : Size = 0x%x\n\tNum Buffers = 0x%x\n\tLuma Stripe Height = 0x%x\tChroma Stripe Height = 0x%x" ,ui32Count, \
-                                psVEncoderCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32DramBufferAddress, \
-                                psVEncoderCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffLuma.ui32BufferSizeInBytes, \
-                                psVEncoderCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32DramBufferAddress, \
-                                psVEncoderCfg->sReferenceBuffParams.sBuffParams[ui32Count].sFrameBuffChroma.ui32BufferSizeInBytes, \
-                                psVEncoderCfg->sReferenceBuffParams.ui32NumBuffAvl, \
-                                psVEncoderCfg->sReferenceBuffParams.ui32LumaStripeHeight, \
-                                psVEncoderCfg->sReferenceBuffParams.ui32ChromaStripeHeight));
-            BDBG_MSG(("--"));
-        }
-
-        BDBG_MSG(("--"));
-        BDBG_MSG((" UPB Buffer Details "));
-        for(ui32Count =0;ui32Count<BDSP_FWMAX_VIDEO_BUFF_AVAIL;ui32Count++)
-        {
-
-            BDBG_MSG(("\t UPB  [%d] Buffer Addr 0x%x Buffer Size  0x%x" ,ui32Count, \
-                                psVEncoderCfg->sPPBs[ui32Count].ui32DramBufferAddress,\
-                                psVEncoderCfg->sPPBs[ui32Count].ui32BufferSizeInBytes));
-        }
-
-    }
-    else
-    {
-        /* Error! should not come here */
-        ui32NumNodes = 0;
-    }
-
-    BDBG_MSG(("Number of Nodes in Task: %d ",ui32NumNodes));
-
-    BDBG_MSG(("Node Configuration parameters "));
-    BDBG_MSG(("============================= "));
-    for(ui32Node=0; ui32Node<ui32NumNodes; ui32Node++)
-    {
-        if(algoType == BDSP_AlgorithmType_eVideoDecode)
-        {
-            psNodeCfg = &puCit->sVideoDecTaskConfig.sNodeConfig[ui32Node];
-        }
-        else if(algoType == BDSP_AlgorithmType_eVideoEncode)
-        {
-            psNodeCfg = &puCit->sVideoEncTaskConfig.sNodeConfig[ui32Node];
-        }
-        else
-        {
-            psNodeCfg = NULL;
-            BDBG_ERR(("Only video decoder and encoder is supported. Please debug."));
-        }
-
-        BDBG_MSG(("Node index: %d ",psNodeCfg->uiNodeId));
-        BDBG_MSG(("Algo Id: %s ",AlgoIdEnum2Char[psNodeCfg->eAlgoId]));
-
-        BDBG_MSG(("\neCollectResidual : %s ",DisableEnable[psNodeCfg->eCollectResidual]));
-        /*BDBG_ERR(("Algo Id: %x ",psNodeCfg->eAlgoId));*/
-
-        /*  Code Address and Size */
-        BDBG_MSG(("DRAM Code Buffer Address: 0x%x ",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Code Buffer Size: %d Bytes",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes));
-
-        /*  Lookup Table Address and Size */
-        BDBG_MSG(("DRAM Lookup Table Buffer Address: 0x%x ",
-            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Lookup Table Buffer Size: %d Bytes",
-            psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes));
-
-        /*  Inter-frame buffer Address check */
-        if( psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Address: 0x%x ",
-                psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: %d Bytes",
-                psNodeCfg->sDramInterFrameBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Node Status buffer Address check */
-        if( psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Node Status buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Node Status buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Node Status buffer Address: 0x%x ",
-                psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Node Status buffer Size: %d Bytes",
-                psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  User config buffer Address check */
-        if( psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM User Config Buffer not present for this Node"));
-            BDBG_MSG(("DRAM User Config Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM User Config Buffer Address: 0x%x ",
-                psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM User Config Buffer Size: %d Bytes",
-                psNodeCfg->sDramUserConfigBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Input buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Input Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Source feeding data to this node: %d", psNodeCfg->ui32NumSrc));
-        for( ui32NumSrc=0; ui32NumSrc<psNodeCfg->ui32NumSrc; ui32NumSrc++)
-        {
-            BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",
-                ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-            /*BDBG_MSG(("Input buffer Configuration:"));*/
-            if(psNodeCfg->eNodeIpValidFlag[ui32NumSrc] == BDSP_AF_P_eValid)
-            {
-                /* Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoBuffer,
-                    (uint32_t) SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-#endif
-                BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",
-                    ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-
-                /* BDBG_MSG(("Input Generic buffer Configuration:")); */
-                /* Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoGenericBuffer,
-                    (uint32_t) SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-            }
-#endif
-        }
-
-        /*  Output buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Output Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Destination getting data from this node: %d",
-            psNodeCfg->ui32NumDst));
-        for( ui32NumDest=0; ui32NumDest<psNodeCfg->ui32NumDst; ui32NumDest++)
-        {
-
-            /* IO BUFFER CONFIGURATION */
-            /*-------------------------*/
-
-            /*Printing Output Buffer Cfg Structure Address */
-            BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));
-
-#ifdef ANALYZE_IO_CFG
-            /* BDBG_MSG(("Output buffer Configuration:"));*/
-
-            if(0 != psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])
-            {
-                /* Getting contents of the Destination IO buffer */
-                /* Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest],
-                    (void *)&sIoBuffer,
-                    (uint32_t) SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-                }
-
-
-                /*  Print Io Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-            }
-#endif
-
-
-            /* IOGENERIC BUFFER CONFIGURATION */
-            /*--------------------------------*/
-
-            BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));
-
-
-#ifdef ANALYZE_IO_CFG
-
-            /*  Getting contents of the IO Generic buffer */
-            if(0 != psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])
-            {
-                /*Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest],
-                    (void *)&sIoGenericBuffer,
-                    (uint32_t) SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoGenericBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Generic Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Genric Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-            }
-#endif
-
-#ifdef BDSP_CIT_P_ENABLE_FORK_MATRIXING
-
-            BDBG_MSG(("Destination %d Datatype : %s",
-                ui32NumDest, PortDatatType[psNodeCfg->eNodeOpBuffDataType[ui32NumDest]]));
-
-            BDBG_MSG(("--"));
-#endif
-        }
-        BDBG_MSG(("============================= "));
-    }
 }

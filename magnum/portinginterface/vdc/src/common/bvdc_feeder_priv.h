@@ -68,7 +68,6 @@ extern "C" {
 /* 7401C and above, 7403, 7118:
  * AVC feeder + MFD_0_RANGE_EXP_REMAP_CNTL support */
 #define BVDC_P_MFD_VER_2                            (2)
-#endif
 
 /* 7400:
  * AVC feeder + MFD_0_RANGE_EXP_REMAP_CNTL + MFD_0_CSC_CNTL +
@@ -123,6 +122,7 @@ extern "C" {
  * MFD_0_FEEDER_CNTL.PIXEL_SATURATION_ENABLE
  */
 #define BVDC_P_MFD_VER_9                            (9)
+#endif
 
 /* 7422, 7425Ax, 7231Ax, 7346Ax, 7344Ax:
  * 3D support + Replace MFD_0_PICTURE0_DISP_VERT_WINDOW
@@ -176,11 +176,8 @@ extern "C" {
 
 /* MFD_0_FEEDER_CNTL */
 #define BVDC_P_MFD_SUPPORT_IMAGE_FORMAT_PACKED_NEW   \
-    ((BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_6) && \
+    ((BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10) && \
      (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_11))
-
-#define BVDC_P_MFD_SUPPORT_PIXEL_SATURATION_ENABLE   \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_9)
 
 #define BVDC_P_MFD_SUPPORT_PACKING_TYPE   \
     (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_11)
@@ -189,55 +186,18 @@ extern "C" {
     ((BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_10) || \
      (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_11))
 
-#define BVDC_P_MFD_SUPPORT_SCB_CLIENT_SEL   \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10)
-
 #define BVDC_P_MFD_SUPPORT_INIT_PHASE   \
     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_12)
 
 #define BVDC_P_MFD_SUPPORT_SKIP_FIRST_LINE   \
     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_12)
 
-
-#define BVDC_P_MFD_SUPPORT_3D_VIDEO   \
-     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10)
-
-/* VFD_0_FEEDER_CNTL */
-#define BVDC_P_VFD_SUPPORT_IMAGE_FORMAT   \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_6)
-
 /* MFD_0_LAC_CNTL */
 #define BVDC_P_MFD_SUPPORT_INTERLACED_HEVC  \
      (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_16)
 
-#define BVDC_P_MFD_SUPPORT_STRIPE_WIDTH_SEL  \
-     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_4)
-
 #define BVDC_P_MFD_SUPPORT_CHROMA_VERT_POSITION   \
     (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_11)
-
-
-#define BVDC_P_MFD_SUPPORT_CSC   \
-    ((BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_3) || \
-     (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_4) || \
-     (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_5))
-
-#define BVDC_P_MFD_SUPPORT_NEW_CSC   \
-     (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_5)
-
-#define BVDC_P_MFD_SUPPORT_10BIT_444   \
-    ((BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_6) && \
-     (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_7))
-
-#define BVDC_P_MFD_SUPPORT_BYTE_ORDER   \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_6)
-
-#define BVDC_P_MFD_SUPPORT_DERINGING    \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_6)
-
-#define BVDC_P_MFD_SUPPORT_DATA_MODE    \
-    ((BVDC_P_MFD_SUPPORT_10BIT_444)      || \
-    (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10))
 
 #define BVDC_P_MFD_SUPPORT_10BIT_DITHER    \
     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_16)
@@ -251,14 +211,16 @@ extern "C" {
 #define BVDC_P_MFD_SUPPORT_MAP_SELECT   \
     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_17)
 
-/* The CRC Status register had some problems when it swapped on end of picture.
- * The issue is that if an interrupt fires but isn't handled until after the
- * picture is finished (very small feed) then the CRC might be wrong.
- * The workaround is to use a scratch register to read the value in RUL.
- * This is fixed in BVDC_P_MFD_VER_7, the update now is to flip based on
- * the "Go" bit for the feeder. */
-#define BVDC_P_MFD_NEED_CRC_WORKAROUND               \
-     (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_6)
+/* New pitch setting for mosaic */
+#define BVDC_P_MFD_SUPPORT_NEW_MEMORY_PITCH   \
+     (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_17)
+
+/* New crc chroma widthhw  for crc */
+#ifdef BCHP_MFD_0_CRC_CTRL_CHROMA_DATA_WIDTH_DEFAULT
+#define BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH      (1)
+#else
+#define BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH      (0)
+#endif
 
 #define BVDC_P_MFD_SUPPORT_CRC_R      \
      (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_11)
@@ -268,46 +230,12 @@ extern "C" {
 /***************************************************************************
  * Private macros
  ***************************************************************************/
-
-#define BVDC_P_MFD_GET_REG_IDX(reg) \
-    ((BCHP##_##reg - BCHP_MFD_0_REG_START) / sizeof(uint32_t))
-
-/* Get register data */
-#define BVDC_P_MFD_GET_REG_DATA(reg) \
-    (hFeeder->aulRegs[BVDC_P_MFD_GET_REG_IDX(reg)])
-#define BVDC_P_MFD_SET_REG_DATA(reg, data) \
-    (BVDC_P_MFD_GET_REG_DATA(reg) = (uint32_t)(data))
-
-/* Get field */
-#define BVDC_P_MFD_GET_FIELD_NAME(reg, field) \
-    ((BVDC_P_MFD_GET_REG_DATA(reg) & BCHP##_##reg##_##field##_MASK) >> \
-    BCHP##_##reg##_##field##_SHIFT)
-
-/* Compare field */
-#define BVDC_P_MFD_COMPARE_FIELD_DATA(reg, field, data) \
-    (BVDC_P_MFD_GET_FIELD_NAME(reg, field)==(data))
-
-#define BVDC_P_MFD_COMPARE_FIELD_NAME(reg, field, name) \
-    (BVDC_P_MFD_GET_FIELD_NAME(reg, field)==BCHP##_##reg##_##field##_##name)
-
-#define BVDC_P_MFD_WRITE_TO_RUL(reg, addr_ptr) \
+#define BVDC_P_MFD_WRITE_TO_RUL(reg, offset, addr_ptr, data) \
 { \
     *addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
-    *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hFeeder->ulRegOffset); \
-    *addr_ptr++ = BVDC_P_MFD_GET_REG_DATA(reg); \
+    *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + offset); \
+    *addr_ptr++ = data; \
 }
-
-/* This macro does a block write into RUL */
-#define BVDC_P_MFD_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) do { \
-    uint32_t ulBlockSize = \
-        BVDC_P_REGS_ENTRIES(from, to);\
-    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hFeeder->ulRegOffset); \
-    BKNI_Memcpy((void*)pulCurrent, \
-        (void*)&(hFeeder->aulRegs[BVDC_P_MFD_GET_REG_IDX(from)]), \
-        ulBlockSize * sizeof(uint32_t)); \
-    pulCurrent += ulBlockSize; \
-} while (0)
 
 /* check parameters */
 #define BVDC_P_MFD_REGS_COUNT    \
@@ -422,31 +350,66 @@ typedef struct
 /* Device address settings. */
 typedef struct
 {
-    uint32_t        ulLumaDeviceAddr;
-    uint32_t        ulChromaDeviceAddr;
+    BMMA_DeviceOffset        ullLumaDeviceAddr;
+    BMMA_DeviceOffset        ullChromaDeviceAddr;
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
-    uint32_t        ulLumaBotDeviceAddr;
-    uint32_t        ulChromaBotDeviceAddr;
+    BMMA_DeviceOffset        ullLumaBotDeviceAddr;
+    BMMA_DeviceOffset        ullChromaBotDeviceAddr;
 #endif
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-    uint32_t        ulLumaDeviceAddr_R;
-    uint32_t        ulChromaDeviceAddr_R;
+    BMMA_DeviceOffset        ullLumaDeviceAddr_R;
+    BMMA_DeviceOffset        ullChromaDeviceAddr_R;
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
-    uint32_t        ulLumaBotDeviceAddr_R;
-    uint32_t        ulChromaBotDeviceAddr_R;
+    BMMA_DeviceOffset        ullLumaBotDeviceAddr_R;
+    BMMA_DeviceOffset        ullChromaBotDeviceAddr_R;
 #endif
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO_MRE)
-    uint32_t        ulLumaDeviceAddr_hp;
-    uint32_t        ulChromaDeviceAddr_hp;
-    uint32_t        ulLumaDeviceAddr_R_hp;
-    uint32_t        ulChromaDeviceAddr_R_hp;
-#endif
-
-#endif
+    BMMA_DeviceOffset        ullLumaDeviceAddr_hp;
+    BMMA_DeviceOffset        ullChromaDeviceAddr_hp;
+    BMMA_DeviceOffset        ulLumaDeviceAddr_R_hp;
+    BMMA_DeviceOffset        ullChromaDeviceAddr_R_hp;
 
 } BVDC_P_Feeder_MpegDeviceAddrConfig;
+
+
+typedef struct BVDC_P_FeederRegisterSetting
+{
+    /* -------  MFD registers ----------  */
+    bool                     bChromaRepEnable;      /* MFD_0_CHROMA_REPOSITION_DERING_ENABLE */
+                                                    /* MFD_0_CHROMA_SAMPLING_CNTL*/
+    uint32_t                 ulLumaNMBY;            /* MFD_0_LUMA_NMBY */
+    uint32_t                 ulChromaNMBY;          /* MFD_0_CHROMA_NMBY */
+    uint32_t                 ulRangeExpRemap;       /* MFD_0_RANGE_EXP_REMAP_CNTL */
+    uint32_t                 ulCrcCtrl;             /* MFD_0_CRC_CTRL */
+
+    BMMA_DeviceOffset        ullPic0Addr0;          /* MFD_0_PICTURE0_LINE_ADDR_0 */
+    BMMA_DeviceOffset        ullPic0Addr1;          /* MFD_0_PICTURE0_LINE_ADDR_1 */
+    BMMA_DeviceOffset        ullPic0Addr0_R;        /* MFD_0_PICTURE0_LINE_ADDR_0_R */
+    BMMA_DeviceOffset        ullPic0Addr1_R;        /* MFD_0_PICTURE0_LINE_ADDR_1_R */
+#if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC)  /* for fields pair buffer */
+    BMMA_DeviceOffset        ullPic1Addr0;          /* MFD_0_PICTURE1_LINE_ADDR_0 */
+    BMMA_DeviceOffset        ullPic1Addr1;          /* MFD_0_PICTURE1_LINE_ADDR_1 */
+    BMMA_DeviceOffset        ullPic1Addr0_R;        /* MFD_0_PICTURE1_LINE_ADDR_0_R */
+    BMMA_DeviceOffset        ullPic1Addr1_R;        /* MFD_0_PICTURE1_LINE_ADDR_1_R */
+#endif
+
+    /* -------  MFD/VFD registers ----------  */
+    uint32_t                 ulFeederCntl;          /* MFD_0_FEEDER_CNTL */
+    uint32_t                 ulFixedColor;          /* MFD_0_FIXED_COLOUR */
+    uint32_t                 ulLacCntl;             /* MFD_0_LAC_CNTL */
+    uint32_t                 ulStride;              /* MFD_0_STRIDE */
+    uint32_t                 ulHSize;               /* MFD_0_DISP_HSIZE */
+    uint32_t                 ulVSize;               /* MFD_0_DISP_VSIZE */
+    uint32_t                 ulDataMode;            /* MFD_0_DATA_MODE */
+    uint32_t                 ulPicOffset;           /* MFD_0_PIC_OFFSET */
+    uint32_t                 ulCompOrder;           /* MFD_0_BYTE_ORDER or MFD_0_COMP_ORDER */
+    uint32_t                 ulDitherCtrl;          /* MFD_0_DITHER_CTRL */
+    uint32_t                 ulDitherLfsrInit;      /* MFD_0_DITHER_LFSR_INIT */
+    uint32_t                 ulDitherLfsrCtrl;      /* MFD_0_DITHER_CTRL */
+    uint32_t                 ulTestModeCntl;        /* MFD_0_TEST_MODE_CNTL */
+    uint32_t                 ulPicCmd;              /* MFD_0_PIC_FEED_CMD */
+
+} BVDC_P_FeederRegisterSetting;
 
 typedef struct BVDC_P_FeederContext
 {
@@ -468,9 +431,11 @@ typedef struct BVDC_P_FeederContext
      * offset in MFD and VFD
      */
     uint32_t                       ulVfd0RegOffset;
-    uint32_t                       aulRegs[BVDC_P_MFD_REGS_COUNT];
+    BVDC_P_FeederRegisterSetting   stRegs;
 
     bool                           bSupportDcxm;
+
+    BCHP_DramType                  eDramType;
 
     BPXL_Format                    ePxlFormat;
     BVDC_P_Feeder_ImageFormat      eImageFormat;
@@ -489,11 +454,6 @@ typedef struct BVDC_P_FeederContext
     BTMR_TimerHandle               hTimer;
     BTMR_TimerRegisters            stTimerReg;
     uint32_t                       ulTimestampRegAddr;
-#endif
-
-#if (BVDC_P_MFD_NEED_CRC_WORKAROUND)
-    uint32_t                       ulLumaCrcRegAddr;
-    uint32_t                       ulChromaCrcRegAddr;
 #endif
 
     /* sub-struct to manage vnet and rul build opreations */
@@ -540,6 +500,8 @@ typedef struct BVDC_P_FeederContext
     uint32_t                       ulPicOffset;
     uint32_t                       ulPicOffset_R;
     BVDC_Source_CrcType            eCrcType;
+    BAVC_VideoBitDepth             eBitDepth;
+    BAVC_VideoBitDepth             eChromaBitDepth;
     BAVC_MFD_Picture               stMfdPicture;
 
 } BVDC_P_FeederContext;

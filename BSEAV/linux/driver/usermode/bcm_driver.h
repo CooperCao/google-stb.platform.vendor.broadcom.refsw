@@ -284,7 +284,7 @@ typedef struct bcmdriver_irq_control {
         } clear;
         struct {
             b_virtual_irq_line line;
-            int disable; /* bool */
+            bool disable;
         } mask;
     } data;
 } bcmdriver_irq_control;
@@ -322,11 +322,11 @@ typedef struct bcmdriver_shared_gpio_control {
         } clear_int;
         struct {
             b_shared_gpio_pin_desc pin;
-            int disable; /* bool */
+            bool disable;
         } set_int_mask;
         struct {
             b_shared_gpio_pin_desc pin;
-            int enable; /* bool */
+            bool enable;
         } set_standby;
     } data;
 } bcmdriver_shared_gpio_control;
@@ -338,6 +338,11 @@ typedef struct bcmdriver_os_config {
     bool os_64bit;
 } bcmdriver_os_config;
 #define BRCM_IOCTL_GET_OS_CONFIG _IOW(101, 44, struct bcmdriver_os_config)
+
+typedef struct bcmdriver_chip_info {
+    uint32_t bchp_physical_offset;
+} bcmdriver_chip_info;
+#define BRCM_IOCTL_SET_CHIP_INFO _IOW(101, 45, struct bcmdriver_chip_info)
 
 #endif /* BCMDRIVER_H */
 

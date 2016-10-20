@@ -110,7 +110,7 @@ SyncChannel provides two types of lipsync improvements to TSM. They are:
 **/
 typedef struct NEXUS_SyncChannelSettings
 {
-    NEXUS_VideoInput videoInput; /* SyncChannel supports one video input */
+    NEXUS_VideoInputHandle videoInput; /* SyncChannel supports one video input */
     NEXUS_AudioInputHandle audioInput[NEXUS_SYNC_CHANNEL_NUM_AUDIO_INPUTS]; /* Both
         audio inputs must be for the same program. Two audio inputs are used
         for PCM and compressed-pass through configurations */

@@ -134,7 +134,6 @@ extern "C" {
 /* This is to ensure that we don't have a big scale up. */
 #define BVDC_P_SRC_INPUT_H_MIN             (64)
 #define BVDC_P_SRC_INPUT_V_MIN             (64)
-#define BVDC_P_VDEC_CHANNELS               (5)  /* R,G,B, CALIBRATION, SIF */
 
 #define BVDC_P_HdDvi_PostMuxValue(hHdDvi)  (BCHP_VNET_F_SCL_0_SRC_SOURCE_HD_DVI_0 + (hHdDvi)->eId)
 
@@ -223,19 +222,12 @@ typedef union
         uint32_t                         bMosaicIntra      : 1; /* Bit[10]: from user */
 
         /* VDEC's dirty bits obselete */
-        uint32_t                         bAdcSetting       : 1; /* Bit[11]: from user */
-        uint32_t                         b3DComb           : 1; /* Bit[12]: from user */
         uint32_t                         bAutoDetectFmt    : 1; /* Bit[13]: from user */
-        uint32_t                         bManualSync       : 1; /* Bit[14]: from user */
-        uint32_t                         bManualClk        : 1; /* Bit[15]: from user */
         uint32_t                         bManualPos        : 1; /* Bit[16]: from user */
         uint32_t                         bVideoDetected    : 1; /* Bit[18]: from detection */
-        uint32_t                         bMvDetected       : 1; /* Bit[19]: from detection */
-        uint32_t                         bHPllLocked       : 1; /* Bit[20]: from detection */
         uint32_t                         bFrameRateCode    : 1; /* Bit[21]: from detection */
         uint32_t                         bNoisy            : 1; /* Bit[22]: from detection */
         uint32_t                         bFvFhShift        : 1; /* Bit[23]: from detection */
-        uint32_t                         bManualAcgc       : 1; /* Bit[24]: from detection */
 
         /* user CSC for VDEC or HD_DVI or xvd/mvd for MPEG */
         uint32_t                         bColorspace       : 1; /* Bit[25]: from xvd/mvd or user */
@@ -251,9 +243,6 @@ typedef union
 
         /* MPEG, HDDVI, VDEC: Indicate to resume */
         uint32_t                         bResume           : 1; /* Bit[29]: from user */
-
-        /* vdec, internal fine tuning video quality */
-        uint32_t                         bVdecTuning        : 1; /* Bit[30]: from detection */
 
         /* MPEG, HDDVI */
         uint32_t                         bOrientation       : 1; /* Bit[31]: from user */
@@ -305,11 +294,6 @@ typedef struct BVDC_P_Source_Info
     BFMT_AspectRatio                 eAspectRatio;
     uint32_t                         ulWindows;      /* Number of window created with this source. */
 
-    /* PR36137: */
-    bool                             bReMapFormats;
-    uint32_t                         ulReMapFormats;
-    BVDC_VideoFmtPair                aReMapFormats[BFMT_VideoFmt_eMaxCount];
-
     /* HVStart config for PC In and HD_DVI source */
     bool                             bHVStartOverride;
     uint32_t                         ulHstart;
@@ -344,10 +328,6 @@ typedef struct BVDC_P_Source_Info
 
     /* PR29659: C0: Support 1080p @ 60 through component input. */
     bool                             bUsePllClk;    /* Use PLL, or running at 216Mhz for non-pc */
-
-    /* Format detection table & count */
-    uint32_t                         ulFdtCount;
-    uint32_t                         ulFdtMemOffset;
 
     /*+-----------------------------+
       | HD_DVI, VFD, and GFX Source |
@@ -428,9 +408,6 @@ typedef struct BVDC_P_SourceContext
 
     /* Event to nofify that changes has been applied to hardware. */
     BKNI_EventHandle          hAppliedDoneEvent;
-
-    /* To support interlaced pc input. */
-    BAVC_Polarity             ePcFieldId;
 
     /* RUL use for this source */
     BAVC_Polarity             eNextFieldId;

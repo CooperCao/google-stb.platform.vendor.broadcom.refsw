@@ -201,15 +201,20 @@ static inline const_value op_bitwise_or(const_value lhs, const_value rhs) {
 }
 
 static inline const_value op_bitwise_shl(const_value left, const_value right) {
-   return const_value_from_signed(const_signed_from_value(left) << right);
+   return const_value_from_signed(const_signed_from_value(left) << (right & 31));
 }
 
 static inline const_value op_i_bitwise_shr(const_value left, const_value right) {
-   return const_value_from_signed(const_signed_from_value(left) >> right);
+   return const_value_from_signed(const_signed_from_value(left) >> (right & 31));
 }
 
 static inline const_value op_u_bitwise_shr(const_value left, const_value right) {
-   return left >> right;
+   return left >> (right & 31);
+}
+
+static inline const_value op_bitwise_ror(const_value left, const_value right) {
+   right &= 31;
+   return right == 0 ? left : (left >> right) | (left << (32 - right));
 }
 
 static inline const_value op_i_min(const_value left, const_value right) {

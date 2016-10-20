@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  ******************************************************************************/
 
 #include <stdio.h>
@@ -151,14 +148,13 @@ BERR_Code  splash_vdc_setup(
 	uint32_t  componentDspIdx;
 	uint32_t  hdmDspIdx;
 	uint32_t  winHeight;
-	unsigned ulSplashOffset;
 	BVDC_Settings  stDefSettings;
 	int  ii;
 
 	/* setup surfaces */
 	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
 	{
-		if ( pState->surf[ii].hMem != NULL)
+		if ( pState->surf[ii].hMma != NULL)
 		{
 			pState->iNumSurf++;
 			if ((bmpFileName == NULL) || strcmp(bmpFileName, &pState->surf[ii].bmpFile[0]))
@@ -199,7 +195,7 @@ BERR_Code  splash_vdc_setup(
 				continue;
 
 			BPXL_Plane_Init(&surface, surfWidth, surfHeight, surfPxlFmt);
-			eErr = BPXL_Plane_AllocateBuffers(&surface, pState->surf[ii].hMem);
+			eErr = BPXL_Plane_AllocateBuffers(&surface, pState->surf[ii].hMma);
 			if (eErr != BERR_SUCCESS)
 			{
 				BDBG_ERR(("Out of memory"));
@@ -208,7 +204,6 @@ BERR_Code  splash_vdc_setup(
 			pState->surf[ii].surface = surface;
 
 			splashAddress = BMMA_Lock(surface.hPixels);
-			ulSplashOffset = BMMA_LockOffset(surface.hPixels);
 			splashPitch = surface.ulPitch;
 
 			splash_set_surf_params(surfPxlFmt, splashPitch, surfWidth, surfHeight) ;
@@ -243,7 +238,6 @@ BERR_Code  splash_vdc_setup(
 
 			/* flush cached addr */
 			BMMA_FlushCache(surface.hPixels, splashAddress, splashPitch * surfHeight);
-			BMMA_UnlockOffset(surface.hPixels, ulSplashOffset);
 			BMMA_Unlock(surface.hPixels, splashAddress);
 		}
 	}
@@ -310,7 +304,7 @@ BERR_Code  splash_vdc_setup(
 		int32_t iTop, iLeft;
 		uint32_t ulWidth, ulHeight;
 
-		if (pState->disp[ii].pSurf->hMem != NULL)
+		if (pState->disp[ii].pSurf->hMma != NULL)
 		{
 			pState->iNumDisp++;
 			BDBG_MSG(("***********display[%d]*************", ii));
@@ -525,7 +519,7 @@ BERR_Code  close_mode(
 
 	for(ii=0; ii<SPLASH_NUM_DISPLAY; ii++)
 	{
-		if (pState->disp[ii].pSurf->hMem != NULL)
+		if (pState->disp[ii].pSurf->hMma != NULL)
 		{
 
 #ifdef SPLASH_SUPPORT_HDM
@@ -566,7 +560,7 @@ BERR_Code  close_mode(
 
 	for (ii=0; ii<SPLASH_NUM_SURFACE; ii++)
 	{
-		if (pState->surf[ii].hMem && pState->surf[ii].surface.hPixels)
+		if (pState->surf[ii].hMma && pState->surf[ii].surface.hPixels)
 		{
 			BMMA_Free(pState->surf[ii].surface.hPixels);
 			pState->surf[ii].surface.hPixels = NULL;
@@ -590,6 +584,7 @@ static BERR_Code ActivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_H
 	BHDM_EDID_ColorimetryParams edidParameters ;
 	const BFMT_VideoInfo*   vidinfo;
 	bool                    hasHdmiSupport;
+	BVDC_Display_HdmiSettings stVdcHdmiSettings;
 
 	BHDM_EDID_RxVendorSpecificDB    vsdb;
 
@@ -633,8 +628,12 @@ static BERR_Code ActivateHdmi(BVDC_Handle hVDC, BHDM_Handle hHDM, BVDC_Display_H
 	TestError(BHDM_EDID_GetPreferredColorimetry(hHDM, &edidParameters, &hdmiSettings.eColorimetry),
 		"BHDM_EDID_GetPreferredColorimetry");
 
-	TestError(BVDC_Display_SetHdmiConfiguration(hDisplay, BVDC_Hdmi_0, hdmiSettings.eColorimetry),
-		"BVDC_Display_SetHdmiConfiguration");
+	TestError(BVDC_Display_GetHdmiSettings(hDisplay, &stVdcHdmiSettings),
+		"BVDC_Display_GetHdmiSettings");
+	stVdcHdmiSettings.ulPortId      = BVDC_Hdmi_0;
+	stVdcHdmiSettings.eMatrixCoeffs = hdmiSettings.eColorimetry;
+	TestError(BVDC_Display_SetHdmiSettings(hDisplay, &stVdcHdmiSettings),
+		"BVDC_Display_SetHdmiSettings");
 
 	TestError(BVDC_ApplyChanges(hVDC),
 		"BVDC_ApplyChanges");

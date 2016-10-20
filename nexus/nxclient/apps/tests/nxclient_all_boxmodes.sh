@@ -1,9 +1,10 @@
 #!/bin/bash
 
-FULL_LOG=${FULL_LOG:=nxclient_all_boxmodes.log}
-SERVER_ERROR_LOG=${SERVER_ERROR_LOG:=server_error.log}
+CURR_DIR=$(pwd)
+FULL_LOG=${FULL_LOG:=${CURR_DIR}/nxclient_all_boxmodes.log}
+SERVER_ERROR_LOG=${SERVER_ERROR_LOG:=${CURR_DIR}/server_error.log}
 TMP_ERROR_LOG=tmp_error.txt
-SUMMARY_LOG=${SUMMARY_LOG:=summary.log}
+SUMMARY_LOG=${SUMMARY_LOG:=${CURR_DIR}/summary.log}
 
 declare -a PLAYFILE
 PLAYFILE[1]=${PLAYFILE1:=videos/cnnticker.mpg}
@@ -249,10 +250,16 @@ function run_cap_test()
 		report_server_errors
 		return 1
 	fi
+	num_of_localdisplays=$(nexus.client cap -local_displays)
+	if [ $? -ne 0 ] ; then
+		report_server_errors
+		return 1
+	fi
 	echo "CAP results: windows=${num_of_video_windows} \
 		encoders=${num_of_video_encoders} \
 		decoders=${num_of_video_decoders} \
-		recpumps=${num_of_rec_pumps}"
+		recpumps=${num_of_rec_pumps} \
+		localdisp=${num_of_localdisplays}"
 	report_server_errors
 	if [ $? -ne 0 ] ; then
 		return 1
@@ -275,16 +282,22 @@ function run_transcode_test()
 		return 1
 	fi
 
-	transcode_pid=()
 	if [[ $num_of_video_encoders -gt $num_of_video_decoders ]] ; then
 		num_of_transcode_tests=$num_of_video_decoders
 	else
 		num_of_transcode_tests=$num_of_video_encoders
 	fi
+
+	if [ $num_of_transcode_tests -eq 0 ] ; then
+		echo ">>> NOTICE.  No decoder/encoder pairs, test not applicable"
+		return 2
+	fi
+
+	transcode_pid=()
 	for (( i=1 ; i<=$num_of_transcode_tests ; i++ )) ; do
 		test_string="${PLAYFILE[$i]}"
 		echo ">>> transcode ${test_string}"
-		nexus.client transcode -gui off ${test_string}
+		nexus.client transcode -gui off ${test_string} &
 		transcode_pid[$i]=$!
 	done
 
@@ -319,13 +332,13 @@ function run_play_test()
 		return 1
 	fi
 
-	if [ $num_of_video_windows -eq 0 ] ; then
+	if [ $num_of_localdisplays -eq 0 ] ; then
 		echo ">>> NOTICE.  No video windows, test not applicable"
-		return 0
+		return 2
 	fi
 	play_pid=()
 	let vrect_pos=0
-	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+	for (( i=1 ; i<=$num_of_localdisplays ; i++ )) ; do
 		if [[ $num_of_video_windows -gt 1 && $i -eq 2 ]] ; then
 			pip="-pip"
 		else
@@ -340,7 +353,7 @@ function run_play_test()
 
 	sleep 20
 
-	for (( i=1 ; i<=$num_of_video_decoders ; i++ )) ; do
+	for (( i=1 ; i<=$num_of_localdisplays ; i++ )) ; do
 		kill ${play_pid[$i]}
 	done
 	wait ${play_pid[*]} 2> /dev/null
@@ -558,6 +571,7 @@ done
 rm -f $FULL_LOG
 rm -f $SERVER_ERROR_LOG
 rm -f $SUMMARY_LOG
+touch $SUMMARY_LOG
 
 stop_server
 
@@ -571,22 +585,17 @@ for box_mode in ${box_select} ; do
 	case $ret_code in
 	0 )
 		echo ">>> PASS boxmode $box_mode case $test_select <<<"
-		if [ "$never_fail" == "1" ] ; then
-			echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	PASS" >> $SUMMARY_LOG
-		fi
+		echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	PASS" >> $SUMMARY_LOG
 		;;
 	2 )
 		echo ">>> N/A  boxmode $box_mode case $test_select <<<"
-		if [ "$never_fail" == "1" ] ; then
-			echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	 N/A($(get_ret_code_string $ret_code))" >> $SUMMARY_LOG
-		fi
+		echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	 N/A($(get_ret_code_string $ret_code))" >> $SUMMARY_LOG
 		;;
 	* )
 		echo ">>> FAIL boxmode $box_mode case $test_select ($(get_ret_code_string $ret_code))<<<"
+		echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	FAIL($(get_ret_code_string $ret_code))" >> $SUMMARY_LOG
 		if [ "$never_fail" == 0 ] ; then
 			exit 1
-		else
-			echo "Boxmode $(add_spaces 5 $box_mode)$box_mode	Case $test_select	FAIL($(get_ret_code_string $ret_code))" >> $SUMMARY_LOG
 		fi
 		;;
 	esac

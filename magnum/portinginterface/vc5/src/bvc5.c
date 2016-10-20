@@ -363,10 +363,6 @@ BERR_Code BVC5_Close(
       }
    }
 
-   /* Make sure that we leave SAGE with secure mode off */
-   if (hVC5->bSecure && hVC5->sCallbacks.fpSecureToggleHandler)
-      hVC5->sCallbacks.fpSecureToggleHandler(false);
-
 #if defined(BVC5_HARDWARE_SIMPENROSE)
    BVC5_P_SimpenroseTerm(hVC5, hVC5->hSimpenrose);
 #endif
@@ -561,6 +557,10 @@ BERR_Code BVC5_P_UnregisterClient(
    /* Remove any acquire locks current held be event or perf counters */
    BVC5_P_PerfCountersRemoveClient(hVC5, uiClientId);
    BVC5_P_EventsRemoveClient(hVC5, uiClientId);
+
+   /* Make sure that we leave SAGE with secure mode off */
+   if (BVC5_P_ClientMapSize(hVC5->hClientMap) == 0)
+      BVC5_P_SwitchSecurityMode(hVC5, false);
 
 exit:
    return err;
@@ -1190,7 +1190,7 @@ BERR_Code BVC5_GetUsermode(
    BVC5_P_UsermodeState *usermodeState = &hVC5->sUsermodeState;
 
    if (psUsermode == NULL)
-      return false;
+      return BERR_INVALID_PARAMETER;
 
    BKNI_AcquireMutex(hVC5->hModuleMutex);
 
@@ -1218,8 +1218,8 @@ BERR_Code BVC5_GetUsermode(
       BVC5_JobUsermode     *usermodeJob = (BVC5_JobUsermode *)psJob->pBase;
 
       psUsermode->uiJobId     = psJob->uiJobId;
-      psUsermode->pfnCallback = usermodeJob->pfnUsermode;
-      psUsermode->pData       = usermodeJob->pData;
+      psUsermode->uiCallback  = usermodeJob->uiUsermode;
+      psUsermode->uiData      = usermodeJob->uiData;
 
       usermodeState->psPendingJob = NULL;
       usermodeState->psRunningJob = psJob;
@@ -1282,8 +1282,8 @@ BERR_Code BVC5_GetCompletions(
       BVC5_JobBase        *pBaseJob = pJob->pBase;
 
       psCompletions[u].uiJobId      = pJob->uiJobId;
-      psCompletions[u].pfnCallback  = pBaseJob->pfnCompletion;
-      psCompletions[u].pData        = pBaseJob->pData;
+      psCompletions[u].uiCallback   = pBaseJob->uiCompletion;
+      psCompletions[u].uiData       = pBaseJob->uiData;
       psCompletions[u].eStatus      = pJob->eStatus;
       psCompletions[u].eType        = pBaseJob->eType;
 
@@ -1333,6 +1333,9 @@ BERR_Code BVC5_Standby(
          if (!bIsIdle)
             BKNI_Sleep(500);
       }
+
+      /* Make sure that we leave SAGE with secure mode off */
+      BVC5_P_SwitchSecurityMode(hVC5, false);
 
       /* power off if the cores are really powered up but dont change the bPoweredDown states */
       BVC5_P_HardwareStandby(hVC5);

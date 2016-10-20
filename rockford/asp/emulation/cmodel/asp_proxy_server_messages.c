@@ -36,12 +36,14 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 
+#include "asp_utils.h"
 #include "asp_proxy_server_message_api.h"
+#include <errno.h>
 
 /*
  * Returns true only if full msgHeader is read. Otherwise, doesn't read the partial message from the socket.
  */
-bool
+unsigned
 ASP_ProxyServerMsg_RecvHeader(
     int sockFd,
     ASP_ProxyServerMsgHeader *pAspProxyServerSocketMsgHeader
@@ -60,6 +62,7 @@ ASP_ProxyServerMsg_RecvHeader(
     bytesAvailable = recvmsg(sockFd, &msg, MSG_PEEK);
     if (bytesAvailable < (int)sizeof(*pAspProxyServerSocketMsgHeader))
     {
+        fprintf(stdout, "%s: bytesAvailable=%d < (int)sizeof(*pAspProxyServerSocketMsgHeader)=%d sockFd= %u\n", __FUNCTION__, bytesAvailable, sizeof(*pAspProxyServerSocketMsgHeader), sockFd);
         return false;
     }
 
@@ -73,7 +76,7 @@ ASP_ProxyServerMsg_RecvHeader(
 /*
  * Returns true only if full payload is read. Otherwise, doesn't read the partial payload from the socket.
  */
-bool
+unsigned
 ASP_ProxyServerMsg_RecvPayload(
     int sockFd,
     size_t msgPayloadLength,
@@ -95,7 +98,7 @@ ASP_ProxyServerMsg_RecvPayload(
 
     /* Full msgPayload is available, so read it. */
     bytesAvailable = recvmsg(sockFd, &msg, 0);
-    fprintf(stdout, "%s: rcvd=%zd bytes of msg on sockFd=%d  \n", __FUNCTION__, bytesAvailable, sockFd );
+    fprintf(stdout, "%s: rcvd=%zd bytes of msg on sockFd=%d \n", __FUNCTION__, bytesAvailable, sockFd );
 
     return (true);
 }
@@ -103,7 +106,7 @@ ASP_ProxyServerMsg_RecvPayload(
 /*
  * Builds message header using type & length and sends it along w/ the msg payload.
  */
-bool
+unsigned
 ASP_ProxyServerMsg_Send(
     int sockFd,
     ASP_ProxyServerMsg msgType,
@@ -115,6 +118,7 @@ ASP_ProxyServerMsg_Send(
     struct iovec iov[2];
     ASP_ProxyServerMsgHeader aspProxyServerMsgHeader;
     size_t bytesToSend;
+    ssize_t returnSize=0;
 
     memset(&aspProxyServerMsgHeader, 0, sizeof(aspProxyServerMsgHeader));
     aspProxyServerMsgHeader.length = msgPayloadLength;
@@ -127,10 +131,25 @@ ASP_ProxyServerMsg_Send(
     iov[1].iov_base = pMsgPayload;
 
     bytesToSend = iov[0].iov_len + iov[1].iov_len;
+
+#if 0
+    printf("\n%s; ===================> aspProxyServerMsgHeader.type=%d, aspProxyServerMsgHeader.length = %d, bytesToSend=%d sock=%u \n",__FUNCTION__, aspProxyServerMsgHeader.type , aspProxyServerMsgHeader.length, bytesToSend, sockFd);
+#endif
+
     memset(&msg, 0, sizeof(msg));
     msg.msg_iov = iov;
     msg.msg_iovlen = 2;
+    #if 0
     assert( sendmsg(sockFd, &msg, 0) == (ssize_t)bytesToSend );
+    #endif
+
+    returnSize = sendmsg(sockFd, &msg, 0);
+    if( returnSize != bytesToSend)
+    {
+        fprintf(stdout, "%s: sentmsg failed returnSize=%d and errno %d\n", __FUNCTION__, returnSize, errno);
+        assert(returnSize == (ssize_t)bytesToSend);
+    }
+
     fprintf(stdout, "%s: sent msgType=%d msgPayloadLength=%zu to sockFd=%d\n", __FUNCTION__, msgType, msgPayloadLength, sockFd);
     return (true);
 }

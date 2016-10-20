@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *UARTC - UART C
  ***************************************************************************/
-#define BCHP_UARTC_RBR                           0x2040e000 /* [RO] Receive Buffer Register */
-#define BCHP_UARTC_THR                           0x2040e000 /* [WO] Transmit Holding Register */
-#define BCHP_UARTC_DLL                           0x2040e000 /* [RW] Divisor Latch Low */
-#define BCHP_UARTC_DLH                           0x2040e004 /* [RW] Divisor Latch High */
-#define BCHP_UARTC_IER                           0x2040e004 /* [RW] Interrupt Enable Register */
-#define BCHP_UARTC_IIR                           0x2040e008 /* [RO] Interrupt Identity Register */
-#define BCHP_UARTC_FCR                           0x2040e008 /* [WO] FIFO Control Register */
-#define BCHP_UARTC_LCR                           0x2040e00c /* [RW] Line Control Register */
-#define BCHP_UARTC_MCR                           0x2040e010 /* [RW] Modem Control Register */
-#define BCHP_UARTC_LSR                           0x2040e014 /* [RO] Line Status Register */
-#define BCHP_UARTC_MSR                           0x2040e018 /* [RO] Modem Status Register */
-#define BCHP_UARTC_SCR                           0x2040e01c /* [RW] Scratchpad Register */
+#define BCHP_UARTC_RBR                           0x2040e000 /* [RO][32] Receive Buffer Register */
+#define BCHP_UARTC_THR                           0x2040e000 /* [WO][32] Transmit Holding Register */
+#define BCHP_UARTC_DLL                           0x2040e000 /* [RW][32] Divisor Latch Low */
+#define BCHP_UARTC_DLH                           0x2040e004 /* [RW][32] Divisor Latch High */
+#define BCHP_UARTC_IER                           0x2040e004 /* [RW][32] Interrupt Enable Register */
+#define BCHP_UARTC_IIR                           0x2040e008 /* [RO][32] Interrupt Identity Register */
+#define BCHP_UARTC_FCR                           0x2040e008 /* [WO][32] FIFO Control Register */
+#define BCHP_UARTC_LCR                           0x2040e00c /* [RW][32] Line Control Register */
+#define BCHP_UARTC_MCR                           0x2040e010 /* [RW][32] Modem Control Register */
+#define BCHP_UARTC_LSR                           0x2040e014 /* [RO][32] Line Status Register */
+#define BCHP_UARTC_MSR                           0x2040e018 /* [RO][32] Modem Status Register */
+#define BCHP_UARTC_SCR                           0x2040e01c /* [RW][32] Scratchpad Register */
 
 #endif /* #ifndef BCHP_UARTC_H__ */
 

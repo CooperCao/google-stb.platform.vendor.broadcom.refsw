@@ -41,7 +41,6 @@
 
 
 
-
 #include "bdcm_device.h"
 
 BDBG_MODULE(bdcm_ads);
@@ -102,8 +101,8 @@ BDCM_AdsChannelHandle BDCM_Ads_OpenChannel(
     {
          retCode = BERR_TRACE(BERR_INVALID_PARAMETER);
          BDBG_ERR(("%s either exceeded max channels or channel is already opened",__FUNCTION__));
-         BDBG_ERR(("%s channelNum:maxChannels - %d:%d hDevice->hAds[%d]:%ul ",__FUNCTION__,
-                   channelNum,hDevice->maxChannels,channelNum,(unsigned int)hDevice->hAds[channelNum]));
+         BDBG_ERR(("%s channelNum:maxChannels - %d:%d hDevice->hAds[%d]:%p ",__FUNCTION__,
+                   channelNum,hDevice->maxChannels,channelNum,(void*)hDevice->hAds[channelNum]));
          goto done;
     }
     /* Alloc memory from the system heap */
@@ -131,24 +130,23 @@ BDCM_AdsChannelHandle BDCM_Ads_OpenChannel(
     hChannel->channelNum = channelNum;
     hDevice->hAds[channelNum] = hChannel;
 done:
-	if( retCode != BERR_SUCCESS )
-	{
-        if( hChannel != NULL )
-	    {
-	        BKNI_Free( hChannel );
+    if( retCode != BERR_SUCCESS )
+    {
+        if( hChannel != NULL ){
             if(hChannel->mutex)
             {
                 BKNI_DestroyMutex(hChannel->mutex);
             }
+	    BKNI_Free( hChannel );
             hChannel = NULL;
-	    }
-	}
+        }
+    }
     else
     {
         BDBG_MSG(("%s: AdsChannel %u devID %u",__FUNCTION__,hChannel->channelNum,hChannel->devId));
     }
     BDBG_LEAVE(BDCM_Ads_OpenChannel);
-	return hChannel;
+    return hChannel;
 }
 
 BERR_Code BDCM_Ads_CloseChannel(BDCM_AdsChannelHandle hChannel)

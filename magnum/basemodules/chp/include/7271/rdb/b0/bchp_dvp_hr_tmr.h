@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *DVP_HR_TMR - Watchdog & Programmable Timers
  ***************************************************************************/
-#define BCHP_DVP_HR_TMR_TIMER_IS                 0x206f4cc0 /* [RW] TIMER INTERRUPT STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER_IE0                0x206f4cc4 /* [RW] TIMER CPU INTERRUPT ENABLE REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER0_CTRL              0x206f4cc8 /* [RW] TIMER0 CONTROL REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER1_CTRL              0x206f4ccc /* [RW] TIMER1 CONTROL REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER2_CTRL              0x206f4cd0 /* [RW] TIMER2 CONTROL REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER3_CTRL              0x206f4cd4 /* [RW] TIMER3 CONTROL REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER0_STAT              0x206f4cd8 /* [RO] TIMER0 STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER1_STAT              0x206f4cdc /* [RO] TIMER1 STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER2_STAT              0x206f4ce0 /* [RO] TIMER2 STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER3_STAT              0x206f4ce4 /* [RO] TIMER3 STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_WDTIMEOUT                0x206f4ce8 /* [RW] WATCHDOG TIMEOUT REGISTER */
-#define BCHP_DVP_HR_TMR_WDCMD                    0x206f4cec /* [WO] WATCHDOG COMMAND REGISTER */
-#define BCHP_DVP_HR_TMR_WDCHIPRST_CNT            0x206f4cf0 /* [RW] WATCHDOG CHIP RESET COUNT REGISTER */
-#define BCHP_DVP_HR_TMR_WDCRS                    0x206f4cf4 /* [RW] WATCHDOG CHIP RESET STATUS REGISTER */
-#define BCHP_DVP_HR_TMR_TIMER_IE1                0x206f4cf8 /* [RW] TIMER PCI INTERRUPT ENABLE REGISTER */
-#define BCHP_DVP_HR_TMR_WDCTRL                   0x206f4cfc /* [RW] WATCHDOG CONTROL REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER_IS                 0x206f4cc0 /* [RW][32] TIMER INTERRUPT STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER_IE0                0x206f4cc4 /* [RW][32] TIMER CPU INTERRUPT ENABLE REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER0_CTRL              0x206f4cc8 /* [RW][32] TIMER0 CONTROL REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER1_CTRL              0x206f4ccc /* [RW][32] TIMER1 CONTROL REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER2_CTRL              0x206f4cd0 /* [RW][32] TIMER2 CONTROL REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER3_CTRL              0x206f4cd4 /* [RW][32] TIMER3 CONTROL REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER0_STAT              0x206f4cd8 /* [RO][32] TIMER0 STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER1_STAT              0x206f4cdc /* [RO][32] TIMER1 STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER2_STAT              0x206f4ce0 /* [RO][32] TIMER2 STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER3_STAT              0x206f4ce4 /* [RO][32] TIMER3 STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_WDTIMEOUT                0x206f4ce8 /* [RW][32] WATCHDOG TIMEOUT REGISTER */
+#define BCHP_DVP_HR_TMR_WDCMD                    0x206f4cec /* [WO][32] WATCHDOG COMMAND REGISTER */
+#define BCHP_DVP_HR_TMR_WDCHIPRST_CNT            0x206f4cf0 /* [RW][32] WATCHDOG CHIP RESET COUNT REGISTER */
+#define BCHP_DVP_HR_TMR_WDCRS                    0x206f4cf4 /* [RW][32] WATCHDOG CHIP RESET STATUS REGISTER */
+#define BCHP_DVP_HR_TMR_TIMER_IE1                0x206f4cf8 /* [RW][32] TIMER PCI INTERRUPT ENABLE REGISTER */
+#define BCHP_DVP_HR_TMR_WDCTRL                   0x206f4cfc /* [RW][32] WATCHDOG CONTROL REGISTER */
 
 /***************************************************************************
  *TIMER_IS - TIMER INTERRUPT STATUS REGISTER

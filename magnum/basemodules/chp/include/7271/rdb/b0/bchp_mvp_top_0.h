@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,17 +70,17 @@
 /***************************************************************************
  *MVP_TOP_0 - BVN_MADR_TOP Top Control Registers
  ***************************************************************************/
-#define BCHP_MVP_TOP_0_REVISION                  0x20688000 /* [RO] BVN_MADR_TOP Revision ID */
-#define BCHP_MVP_TOP_0_HW_CONFIGURATION          0x20688004 /* [RO] BVN_MADR_TOP Hardware Configuration */
-#define BCHP_MVP_TOP_0_CTRL                      0x20688008 /* [RW] BVN_MADR_TOP Control */
-#define BCHP_MVP_TOP_0_ENABLE                    0x2068800c /* [RW] BVN_MADR_TOP Start Control */
-#define BCHP_MVP_TOP_0_STATUS_CLEAR              0x20688020 /* [RW] BVN_MADR_TOP Status Clear Register */
-#define BCHP_MVP_TOP_0_STATUS                    0x20688024 /* [RO] BVN_MADR_TOP Status Register */
-#define BCHP_MVP_TOP_0_DEBUG_CTRL                0x20688028 /* [RW] BVN_MADR_TOP Debug Control */
-#define BCHP_MVP_TOP_0_DEBUG_SIGNAL              0x2068802c /* [RO] BVN_MADR_TOP Debug Signal */
-#define BCHP_MVP_TOP_0_DITHER_CTRL               0x20688030 /* [RW] BVN_MADR_TOP Dither Control */
-#define BCHP_MVP_TOP_0_DITHER_LFSR_INIT          0x20688034 /* [RW] BVN_MADR_TOP Dither LFSR Initialization */
-#define BCHP_MVP_TOP_0_DITHER_LFSR_CTRL          0x20688038 /* [RW] BVN_MADR_TOP Dither LFSR Control */
+#define BCHP_MVP_TOP_0_REVISION                  0x20688000 /* [RO][32] BVN_MADR_TOP Revision ID */
+#define BCHP_MVP_TOP_0_HW_CONFIGURATION          0x20688004 /* [RO][32] BVN_MADR_TOP Hardware Configuration */
+#define BCHP_MVP_TOP_0_CTRL                      0x20688008 /* [RW][32] BVN_MADR_TOP Control */
+#define BCHP_MVP_TOP_0_ENABLE                    0x2068800c /* [RW][32] BVN_MADR_TOP Start Control */
+#define BCHP_MVP_TOP_0_STATUS_CLEAR              0x20688020 /* [RW][32] BVN_MADR_TOP Status Clear Register */
+#define BCHP_MVP_TOP_0_STATUS                    0x20688024 /* [RO][32] BVN_MADR_TOP Status Register */
+#define BCHP_MVP_TOP_0_DEBUG_CTRL                0x20688028 /* [RW][32] BVN_MADR_TOP Debug Control */
+#define BCHP_MVP_TOP_0_DEBUG_SIGNAL              0x2068802c /* [RO][32] BVN_MADR_TOP Debug Signal */
+#define BCHP_MVP_TOP_0_DITHER_CTRL               0x20688030 /* [RW][32] BVN_MADR_TOP Dither Control */
+#define BCHP_MVP_TOP_0_DITHER_LFSR_INIT          0x20688034 /* [RW][32] BVN_MADR_TOP Dither LFSR Initialization */
+#define BCHP_MVP_TOP_0_DITHER_LFSR_CTRL          0x20688038 /* [RW][32] BVN_MADR_TOP Dither LFSR Control */
 
 /***************************************************************************
  *REVISION - BVN_MADR_TOP Revision ID

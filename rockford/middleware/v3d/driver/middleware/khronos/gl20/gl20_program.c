@@ -56,9 +56,10 @@ void gl20_program_init(GL20_PROGRAM_T *program, int32_t name)
    MEM_ASSIGN(program->mh_info, MEM_EMPTY_STRING_HANDLE);
 }
 
-void gl20_bindings_term(void *v, uint32_t size)
+void gl20_bindings_term(MEM_HANDLE_T handle)
 {
-   GL20_BINDING_T *base = (GL20_BINDING_T *)v;
+   GL20_BINDING_T *base = (GL20_BINDING_T *)mem_lock(handle, NULL);
+   uint32_t size = mem_get_size(handle);
 
    int i, count = size / sizeof(GL20_BINDING_T);
 
@@ -66,11 +67,14 @@ void gl20_bindings_term(void *v, uint32_t size)
 
    for (i = 0; i < count; i++)
       MEM_ASSIGN(base[i].mh_name, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
-void gl20_uniform_info_term(void *v, uint32_t size)
+void gl20_uniform_info_term(MEM_HANDLE_T handle)
 {
-   GL20_UNIFORM_INFO_T *base = (GL20_UNIFORM_INFO_T *)v;
+   GL20_UNIFORM_INFO_T *base = (GL20_UNIFORM_INFO_T *)mem_lock(handle, NULL);
+   uint32_t size = mem_get_size(handle);
 
    int i, count = size / sizeof(GL20_UNIFORM_INFO_T);
 
@@ -78,11 +82,14 @@ void gl20_uniform_info_term(void *v, uint32_t size)
 
    for (i = 0; i < count; i++)
       MEM_ASSIGN(base[i].mh_name, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
-void gl20_attrib_info_term(void *v, uint32_t size)
+void gl20_attrib_info_term(MEM_HANDLE_T handle)
 {
-   GL20_ATTRIB_INFO_T *base = (GL20_ATTRIB_INFO_T *)v;
+   GL20_ATTRIB_INFO_T *base = (GL20_ATTRIB_INFO_T *)mem_lock(handle, NULL);
+   uint32_t size = mem_get_size(handle);
 
    int i, count = size / sizeof(GL20_ATTRIB_INFO_T);
 
@@ -90,13 +97,13 @@ void gl20_attrib_info_term(void *v, uint32_t size)
 
    for (i = 0; i < count; i++)
       MEM_ASSIGN(base[i].mh_name, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
-void gl20_program_term(void *v, uint32_t size)
+void gl20_program_term(MEM_HANDLE_T handle)
 {
-   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)v;
-
-   UNUSED(size);
+   GL20_PROGRAM_T *program = (GL20_PROGRAM_T *)mem_lock(handle, NULL);
 
    MEM_ASSIGN(program->mh_vertex, MEM_INVALID_HANDLE);
    MEM_ASSIGN(program->mh_fragment, MEM_INVALID_HANDLE);
@@ -109,6 +116,8 @@ void gl20_program_term(void *v, uint32_t size)
    MEM_ASSIGN(program->mh_uniform_data, MEM_INVALID_HANDLE);
    MEM_ASSIGN(program->mh_attrib_info, MEM_INVALID_HANDLE);
    MEM_ASSIGN(program->mh_info, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
 bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, uint32_t index, const char *name)
@@ -151,7 +160,7 @@ bool gl20_program_bind_attrib(GL20_PROGRAM_T *program, uint32_t index, const cha
       return false;
    }
 
-   mem_set_term(new_handle, gl20_bindings_term);
+   mem_set_term(new_handle, gl20_bindings_term, NULL);
 
    new_bindings = (GL20_BINDING_T *)mem_lock(new_handle, NULL);
 
@@ -340,7 +349,7 @@ void gl20_program_link(GL20_PROGRAM_T *program)
                            copy the uniforms
                         */
 
-                        mem_set_term(huniform_info, gl20_uniform_info_term);
+                        mem_set_term(huniform_info, gl20_uniform_info_term, NULL);
                         MEM_ASSIGN(program->mh_uniform_info, huniform_info);
 
                         uniforms = (GL20_UNIFORM_INFO_T *)mem_lock(program->mh_uniform_info, NULL);
@@ -367,7 +376,7 @@ void gl20_program_link(GL20_PROGRAM_T *program)
                            copy the attributes
                         */
 
-                        mem_set_term(hattrib_info, gl20_attrib_info_term);
+                        mem_set_term(hattrib_info, gl20_attrib_info_term, NULL);
                         MEM_ASSIGN(program->mh_attrib_info, hattrib_info);
 
                         attribs = (GL20_ATTRIB_INFO_T *)mem_lock(program->mh_attrib_info, NULL);

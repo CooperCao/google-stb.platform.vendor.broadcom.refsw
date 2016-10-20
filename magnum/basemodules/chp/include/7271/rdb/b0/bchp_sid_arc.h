@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,23 +70,23 @@
 /***************************************************************************
  *SID_ARC - ARC
  ***************************************************************************/
-#define BCHP_SID_ARC_HST2CPU_MBX                 0x20980f00 /* [RW] Host to CPU Mailbox */
-#define BCHP_SID_ARC_CPU2HST_MBX                 0x20980f04 /* [RW] CPU to Host Mailbox */
-#define BCHP_SID_ARC_MBX_STAT                    0x20980f08 /* [RW] Mailbox Status */
-#define BCHP_SID_ARC_CPU_INST_BASE               0x20980f0c /* [RW] CPU Instruction Base */
-#define BCHP_SID_ARC_CPU_INT_ENA                 0x20980f10 /* [RW] CPU Interrupt Enable */
-#define BCHP_SID_ARC_CPU_INT_STAT                0x20980f14 /* [RO] CPU Interrupt Status */
-#define BCHP_SID_ARC_HST2CPU_STAT                0x20980f18 /* [RW] Host to CPU Status */
-#define BCHP_SID_ARC_CPU2HST_STAT                0x20980f1c /* [RW] CPU to Host Status */
-#define BCHP_SID_ARC_CPU_INTGEN_SET              0x20980f20 /* [WO] CPU Interrupt Set */
-#define BCHP_SID_ARC_CPU_INTGEN_CLR              0x20980f24 /* [WO] CPU Interrupt Clear */
-#define BCHP_SID_ARC_CPU_ICACHE_MISS             0x20980f28 /* [RW] CPU Instruction Cache Miss */
-#define BCHP_SID_ARC_CPU_INTGEN_ENABLE           0x20980f2c /* [RW] CPU Interrupt Enable */
-#define BCHP_SID_ARC_CPU_END_OF_CODE             0x20980f34 /* [RW] CPU Instruction End Addx */
-#define BCHP_SID_ARC_REG_GLOBAL_IO_BASE          0x20980f38 /* [RW] CPU Global Base Addx */
-#define BCHP_SID_ARC_REG_MEM_WINDOW_OFFSET       0x20980f3c /* [RW] CPU Memory Window Offset */
-#define BCHP_SID_ARC_WATCHDOG_TMR                0x20980f4c /* [RW] Watchdog timer register */
-#define BCHP_SID_ARC_SDRAM_STATUS                0x20980f50 /* [RO] SDRAM Status register */
+#define BCHP_SID_ARC_HST2CPU_MBX                 0x20980f00 /* [RW][32] Host to CPU Mailbox */
+#define BCHP_SID_ARC_CPU2HST_MBX                 0x20980f04 /* [RW][32] CPU to Host Mailbox */
+#define BCHP_SID_ARC_MBX_STAT                    0x20980f08 /* [RW][32] Mailbox Status */
+#define BCHP_SID_ARC_CPU_INST_BASE               0x20980f0c /* [RW][32] CPU Instruction Base */
+#define BCHP_SID_ARC_CPU_INT_ENA                 0x20980f10 /* [RW][32] CPU Interrupt Enable */
+#define BCHP_SID_ARC_CPU_INT_STAT                0x20980f14 /* [RO][32] CPU Interrupt Status */
+#define BCHP_SID_ARC_HST2CPU_STAT                0x20980f18 /* [RW][32] Host to CPU Status */
+#define BCHP_SID_ARC_CPU2HST_STAT                0x20980f1c /* [RW][32] CPU to Host Status */
+#define BCHP_SID_ARC_CPU_INTGEN_SET              0x20980f20 /* [WO][32] CPU Interrupt Set */
+#define BCHP_SID_ARC_CPU_INTGEN_CLR              0x20980f24 /* [WO][32] CPU Interrupt Clear */
+#define BCHP_SID_ARC_CPU_ICACHE_MISS             0x20980f28 /* [RW][32] CPU Instruction Cache Miss */
+#define BCHP_SID_ARC_CPU_INTGEN_ENABLE           0x20980f2c /* [RW][32] CPU Interrupt Enable */
+#define BCHP_SID_ARC_CPU_END_OF_CODE             0x20980f34 /* [RW][32] CPU Instruction End Addx */
+#define BCHP_SID_ARC_REG_GLOBAL_IO_BASE          0x20980f38 /* [RW][32] CPU Global Base Addx */
+#define BCHP_SID_ARC_REG_MEM_WINDOW_OFFSET       0x20980f3c /* [RW][32] CPU Memory Window Offset */
+#define BCHP_SID_ARC_WATCHDOG_TMR                0x20980f4c /* [RW][32] Watchdog timer register */
+#define BCHP_SID_ARC_SDRAM_STATUS                0x20980f50 /* [RO][32] SDRAM Status register */
 
 /***************************************************************************
  *HST2CPU_MBX - Host to CPU Mailbox

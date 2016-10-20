@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "bhdm.h"
@@ -521,9 +520,8 @@ static uint8_t BHDM_EDID_P_EdidCheckSum(uint8_t *pEDID)
 	*/
 	if (checksum % 256)
 	{
-		BDBG_WRN(("Checksum:      %#X", checksum)) ;
-		BDBG_WRN(("Invalid Checksum Byte: %#02X ; byte should be %#02X",
-			(unsigned char) pEDID[BHDM_EDID_CHECKSUM],
+		BDBG_WRN(("Checksum = %#X; Invalid Checksum Byte: %#02X ; byte should be %#02X",
+			checksum, (unsigned char) pEDID[BHDM_EDID_CHECKSUM],
 			(uint8_t) (256 - (checksum - (unsigned int) pEDID[BHDM_EDID_CHECKSUM])))) ;
 	}
 #endif
@@ -664,12 +662,12 @@ BERR_Code BHDM_EDID_GetNthBlock(
 					/* EDID with correct checksum found or debug EDID: exit loop */
 					break ;
 				}
-
-				BDBG_WRN(("Checksum Error for EDID Block #%d", BlockNumber)) ;
 			}
-
-			BDBG_WRN(("Error (%x) reading EDID Block; Attempt retry %d of %d...",
-				rc, EdidErrorRetryCount, BHDM_EDID_P_MAX_EDID_ERROR_RETRY )) ;
+			else /* print error from reading EDID Block */
+			{
+				BDBG_ERR(("Error (%x) reading EDID Block; Attempt retry %d of %d...",
+					rc, EdidErrorRetryCount, BHDM_EDID_P_MAX_EDID_ERROR_RETRY )) ;
+			}
 			BKNI_Sleep(10) ;
 		} while ( ++EdidErrorRetryCount <=  BHDM_EDID_P_MAX_EDID_ERROR_RETRY)  ;
 
@@ -691,6 +689,10 @@ BERR_Code BHDM_EDID_GetNthBlock(
 	{
 		BDBG_WRN(("Checksum Error for EDID Block #%d Ignored", BlockNumber)) ;
 		rc = BERR_TRACE(BHDM_EDID_CHECKSUM_ERROR) ;
+
+		/* only issue appears to be a checksum error, which has a BERR_TRACE */
+		/* return BERR_SUCCESS */
+		rc = BERR_SUCCESS ;
 	}
 
 	hHDMI->AttachedEDID.CachedBlock = BlockNumber ;
@@ -1550,6 +1552,7 @@ done:
 --- BHDM_EDID: 2 VICn: 6; BCM_Fmt: 26; Monitor Native Format: 0
 */
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_EDID_GetDescriptor
 Summary: Retrieve a specified EDID descriptor
@@ -1729,6 +1732,7 @@ done:
 	BDBG_LEAVE(BHDM_EDID_GetDescriptor) ;
 	return rc ;
 } /* end BHDM_EDID_GetDescriptor */
+#endif
 
 
 
@@ -1933,6 +1937,7 @@ done:
 
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_EDID_CheckRxHdmiAudioSupport
 Summary: Check if the input Audio Format is supported by the attached HDMI
@@ -2251,6 +2256,7 @@ done:
 	BDBG_LEAVE(BHDM_EDID_CheckRxHdmiVideoSupport) ;
 	return 	rc ;
 } /* BHDM_EDID_CheckRxHdmiVideoSupport */
+#endif
 
 
 
@@ -2765,6 +2771,7 @@ static BERR_Code BHDM_EDID_P_ParseFormatPreferenceDB(
 		{
 			BDBG_ERR(("Unknown SVR ID: %d", SVR)) ;
 		}
+                BSTD_UNUSED(KDtd);
 	}
 
 	BDBG_WRN(("TODO: Video Format Preferences Not Stored")) ;
@@ -3020,6 +3027,7 @@ static BERR_Code BHDM_EDID_P_ParseYCbCr420CapabilityMapDB(
 
 	hHDMI->AttachedEDID.BcmSupported420VideoFormatsChecked = 1 ;
 
+        BSTD_UNUSED(pVideoFormatInfo);
 	return rc ;
 }
 
@@ -3169,6 +3177,7 @@ static BERR_Code BHDM_EDID_P_ParseAudioDB(
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 2],
 				hHDMI->AttachedEDID.Block[DataBlockIndex+ j*3 + 3])) ;
 
+                        BSTD_UNUSED(uiAudioSampleSize);
 #if BDBG_DEBUG_BUILD
 			/* show the supported sample rates */
 			for (i = 0; i < sizeof(EdidAudioSampleRateTable) / sizeof(*EdidAudioSampleRateTable); i++)
@@ -3794,6 +3803,7 @@ done:
 				if (hHDMI->AttachedEDID.BcmSupported3DFormats[i] & BHDM_EDID_VSDB_3D_STRUCTURE_ALL_SBS_HALF_QUINC) {
 					BDBG_MSG(("   %s SideBySide_Half_QuincunxMatrix ", pVideoFormatInfo->pchFormatStr)) ;
 				}
+                                BSTD_UNUSED(pVideoFormatInfo);
 			}
 		}
 	}
@@ -3849,7 +3859,7 @@ static void BHDM_EDID_P_ParseHdmi_HF_VSDB(const BHDM_Handle hHDMI, uint8_t DataB
 	{
 		BERR_Code rc ;
 		rc = BHDM_SCDC_Initialize(hHDMI) ;
-		if (rc) { BERR_TRACE(rc) ; }
+		if (rc) { (void)BERR_TRACE(rc) ; }
 	}
 #endif
 
@@ -4389,7 +4399,7 @@ BERR_Code BHDM_EDID_P_ProcessTimingExtension (const BHDM_Handle hHDMI)
 		break ;
 
 	default :
-		BDBG_WRN(("Uknown/Unsupported Timing Extension Version %d",
+		BDBG_WRN(("Unknown/Unsupported Timing Extension Version %d",
 			hHDMI->AttachedEDID.Block[BHDM_EDID_EXT_VERSION])) ;
 	}
 
@@ -4979,6 +4989,7 @@ done:
 }
 
 
+#if !B_REFSW_MINIMAL
 BERR_Code BHDM_EDID_GetSupportedColorimetry(
 	const BHDM_Handle hHDMI, BHDM_OutputFormat eOutputFormat,
 	BFMT_VideoFmt eVideoFmt, BAVC_MatrixCoefficients *eColorimetry)
@@ -5110,6 +5121,7 @@ done:
 		BAVC_GetDefaultMatrixCoefficients_isrsafe(eVideoFmt, false);
 	return rc  ;
 }
+#endif
 
 
 /******************************************************************************
@@ -5162,6 +5174,7 @@ done:
 	return rc  ;
 }
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_EDID_GetSupportedColorDepth
 Summary: Retrieve a copy of the Monitor Name stored in the EDID
@@ -5227,6 +5240,7 @@ BERR_Code BHDM_EDID_GetMyCecPhysicalAddr(
 done:
 	return rc  ;
 }
+#endif
 
 /******************************************************************************
 BERR_Code BHDM_EDID_GetHdrStaticMetadatadb

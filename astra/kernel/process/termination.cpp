@@ -59,7 +59,7 @@
 #include "futex.h"
 
 #include "lib_printf.h"
-
+#include "svcutils.h"
 
 TzTask::~TzTask() {
     if (state != Defunct) {
@@ -314,4 +314,97 @@ int TzTask::waitAnyChild(int *status, int options) {
     }
 
     return -EINTR;
+}
+
+typedef struct coredump_memregion {
+    unsigned int startAddr,endAddr, offset,flags;
+} coredump_memregion;
+
+void TzTask::doCoreDump() {
+    IFile *uappdFile;
+    IDirectory *dir=nullptr;
+    IDirectory *parentDir = nullptr;
+    IDirectory *root = System::root();
+    /* Resolving uappd to get root folder */
+    int rc = root->resolvePath("uappd.elf", &dir, &uappdFile,&parentDir);
+    if(rc!=0) {
+        err_msg("Could Not resolve UAPPD Path\n");
+        System::halt();
+    }
+    if(parentDir == nullptr) {
+        err_msg("Could Not resolve UAPPD Parent Dir NULL\n");
+        System::halt();
+    }
+    /* Create Core Data File */
+    IFile *core = RamFS::File::create(parentDir->owner(), parentDir->group());
+
+    /* Add Core Data File to filesystem */
+    char fname[80];
+    strcpy(fname, "Core.core");
+    rc = parentDir->addFile(fname, core);
+    if(rc!=0) {
+        err_msg("Could Not Add file to diretory\n");
+        System::halt();
+    }
+
+    /* Copy CPU Registers */
+    unsigned long *regBase = savedRegBase - NUM_SAVED_CPU_REGS;
+    uint64_t file_offset=0;
+    unsigned long reg[20];
+    memcpy(reg,regBase,NUM_SAVED_CPU_REGS*sizeof(unsigned long));
+
+    /* Overwrite Kernel space pointers with respective User space values*/
+    reg[SAVED_REG_SP]=reg[SAVED_REG_SP_USR];
+    reg[SAVED_REG_PC]=reg[SAVED_REG_LR];
+    reg[SAVED_REG_LR]=reg[SAVED_REG_LR_USR];
+
+    core->write(reg,NUM_SAVED_CPU_REGS*sizeof(unsigned long),file_offset);
+    file_offset += NUM_SAVED_CPU_REGS*sizeof(unsigned long);
+
+    /* Copy Memory Sections */
+    int numMemSections=0;
+    coredump_memregion memregion[32];
+    memset(memregion,0xffffffff,sizeof(coredump_memregion)*32);
+    //pageTable->dump();
+    pageTable->dumpInMem((void *)memregion);
+    int i=0;
+    while(memregion[i].startAddr != 0xFFFFFFFF) {
+        if(memregion[i].flags != 0)
+        {
+            numMemSections++;
+        }
+        i++;
+    }
+
+    //printf("numMemSections=%d\n",numMemSections);
+    core->write(&numMemSections,sizeof(int),file_offset);
+    file_offset += sizeof(int);
+
+    /* Writing Page Table Entries in file */
+    //read_offset = file_offset;
+    i=0;
+    while(memregion[i].startAddr != 0xFFFFFFFF) {
+        if(memregion[i].flags != 0)
+        {
+            core->write(&memregion[i],sizeof(coredump_memregion),file_offset);
+            file_offset += sizeof(coredump_memregion);
+        }
+        i++;
+    }
+
+    /* Copy Actual Pages in File */
+    i=0;
+    while(memregion[i].startAddr != 0xFFFFFFFF ) {
+        int numPages=0;
+        TzMem::VirtAddr kernelVa=nullptr;
+        if(memregion[i].flags != 0)
+        {
+            /* Map userspace pointers to Kernel and copy in the file */
+            kernelVa = SysCalls::mapToKernel((void *)memregion[i].startAddr,(size_t)(memregion[i].endAddr - memregion[i].startAddr + 1),&numPages);
+            core->write((void *)kernelVa,(memregion[i].endAddr - memregion[i].startAddr +1),file_offset);
+            file_offset += (memregion[i].endAddr - memregion[i].startAddr + 1);
+            SysCalls::unmap( kernelVa , numPages);
+        }
+        i++;
+    }
 }

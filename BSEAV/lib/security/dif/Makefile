@@ -74,11 +74,16 @@ WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
 include $(COMMON_DRM_TOP)/common_drm.inc
+include $(BSEAV_TOP)/lib/playready/3.0/prdy30_libdir.inc
 
 WIDEVINE_SUPPORT ?= y
 ifneq ($(shell ls "$(WIDEVINE_CENC_DIR)" 2>/dev/null|grep -m1 -o Makefile), Makefile)
     WIDEVINE_SUPPORT = n
     $(warning !!!!! Widevine is disabled !!!!!)
+endif
+
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+PREBLT_LIB_SUFFIX := 64
 endif
 
 ############################################################################
@@ -95,12 +100,16 @@ dif_only:
 	$(MAKE) -C ./src install
 
 .PHONY : clean
-clean:
+clean: localclean
 ifeq ($(WIDEVINE_SUPPORT),y)
 	$(Q_)echo [DIF..... cleaning Widevine];
 	$(Q_)$(MAKE) -C $(WIDEVINE_CENC_DIR) clean
 endif
-	$(Q_)$(MAKE) -C ./src clean
+
+localclean:
+	$(Q_)echo [DIF..... cleaning DIF];
+	$(Q_)export WIDEVINE_SUPPORT=$(WIDEVINE_SUPPORT); \
+	$(MAKE) -C ./src clean
 	$(Q_)$(MAKE) -C ./examples clean
 
 ############################################################################
@@ -150,12 +159,8 @@ prep_security: prep_nexus
 	$(Q_)install -c -m 0755 $(B_REFSW_OBJ_ROOT)/BSEAV/lib/security/common_drm/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT),y)
 	$(Q_)echo [DIF..... copying playreadypk 2.5 and 3.0 lib...];
-	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/2.5/bin/$(ARCH_DIR_PRDY)/lib/libplayreadypk_host.so $(NEXUS_BIN_DIR)
-	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/3.0/bin/$(ARCH_DIR_PRDY)/lib/libplayready30pk.so $(NEXUS_BIN_DIR)
+	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk$(PREBLT_LIB_SUFFIX)_host.so $(NEXUS_BIN_DIR)
+	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(PRDY30_LIBDIR)/libplayready30pk.so $(NEXUS_BIN_DIR)
 else
-ifeq "$(GCC_GTEQ_485)" "1"
-	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/2.5/bin/$(ARCH_DIR_PRDY)/lib/eglibc/libplayreadypk.so $(NEXUS_BIN_DIR)
-else
-	$(Q_)install -c -m 0755 ${BSEAV_TOP}/lib/playready/2.5/bin/$(ARCH_DIR_PRDY)/lib/libplayreadypk.so $(NEXUS_BIN_DIR)
-endif
+	$(Q_)install -c -m 0755 ${BSEAV_TOP}/$(CMNDRM_PRDY_LIBDIR)/libplayreadypk.so $(NEXUS_BIN_DIR)
 endif

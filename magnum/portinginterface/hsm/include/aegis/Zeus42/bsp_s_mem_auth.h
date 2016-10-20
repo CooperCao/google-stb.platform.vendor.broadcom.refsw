@@ -239,6 +239,8 @@ typedef enum BCMD_MemAuth_ResetOnVerifyFailure_e
 
 #if (FLASHMAP_VERSION >= FLASHMAP_VERSION_V5)
 #define BCMD_GLOBAL_SIG_VERSION                         0x01
+#define BCMD_SECOND_TIER_KEY_SIG_VERSION                0x02
+#define BCMD_REGION_VERIFY_CODE_SIG_VERSION             0x02
 
 typedef enum BCMD_SignatureType_e
 {

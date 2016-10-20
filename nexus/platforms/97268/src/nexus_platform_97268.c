@@ -96,29 +96,17 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     }
 
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].heapType = NEXUS_HEAP_TYPE_GRAPHICS;
-#if 0
-    /* Increase graphics heap size if we have more than 1GB of RAM */
-    {
-        BCHP_MemoryInfo memInfo;
-
-        BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
-        if (memInfo.memc[0].size > (1024 * MB)) {
-            pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size *= 2;
-        }
-    }
-#endif
 }
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     char *board;
-    BCHP_MemoryInfo memInfo;
     NEXUS_PlatformStatus platformStatus;
 
 #if NEXUS_CPU_ARM64
     const char *mode = "64 bit";
 #elif NEXUS_CPU_ARM
-    const char *mode = "32 bit compatability";
+    const char *mode = "32 bit compatibility";
 #endif
 
     NEXUS_Platform_GetStatus(&platformStatus);
@@ -145,9 +133,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
             break;
     }
 
-    BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
-
-    BDBG_WRN(("Initialising %s platform in %s mode with %uMB RAM", board, mode, (unsigned)(memInfo.memc[0].size >> 20)));
+    BDBG_WRN(("Initialising %s platform in %s mode", board, mode));
 
     return NEXUS_SUCCESS;
 }

@@ -29,6 +29,7 @@ fabs,          INTRINSIC_ABS
 fdx,           INTRINSIC_FDX
 fdy,           INTRINSIC_FDY
 clz,           INTRINSIC_CLZ
+ror,           INTRINSIC_ROR
 reinterpf,     INTRINSIC_REINTERPF
 reinterpi,     INTRINSIC_REINTERPI
 reinterpu,     INTRINSIC_REINTERPU

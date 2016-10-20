@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,41 +70,41 @@
 /***************************************************************************
  *AMOLE_0 - AMOLE_0 registers
  ***************************************************************************/
-#define BCHP_AMOLE_0_REVID                       0x206ea900 /* [RO] AMOL Encoder Revision ID Register */
-#define BCHP_AMOLE_0_CONTROL                     0x206ea908 /* [RW] Control Register */
-#define BCHP_AMOLE_0_ACT_LINE_BASE_TOP           0x206ea90c /* [RW] Top Field Active Line and Base Register */
-#define BCHP_AMOLE_0_ACT_LINE_BASE_BOT           0x206ea910 /* [RW] Bottom Field Active Line and Base Register */
-#define BCHP_AMOLE_0_GAIN_PED_TOP                0x206ea914 /* [RW] Top Field Gain and Pedestal Enable Register */
-#define BCHP_AMOLE_0_GAIN_PED_BOT                0x206ea918 /* [RW] Bottom Field Gain and Pedestal Enable Register */
-#define BCHP_AMOLE_0_DATA_WORD0_BANK0            0x206ea91c /* [RW] Bank 0 Word 0 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD1_BANK0            0x206ea920 /* [RW] Bank 0 Word 1 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD2_BANK0            0x206ea924 /* [RW] Bank 0 Word 2 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD3_BANK0            0x206ea928 /* [RW] Bank 0 Word 3 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD4_BANK0            0x206ea92c /* [RW] Bank 0 Word 4 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD5_BANK0            0x206ea930 /* [RW] Bank 0 Word 5 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD0_BANK1            0x206ea934 /* [RW] Bank 1 Word 0 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD1_BANK1            0x206ea938 /* [RW] Bank 1 Word 1 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD2_BANK1            0x206ea93c /* [RW] Bank 1 Word 2 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD3_BANK1            0x206ea940 /* [RW] Bank 1 Word 3 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD4_BANK1            0x206ea944 /* [RW] Bank 1 Word 4 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD5_BANK1            0x206ea948 /* [RW] Bank 1 Word 5 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD0_BANK2            0x206ea94c /* [RW] Bank 2 Word 0 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD1_BANK2            0x206ea950 /* [RW] Bank 2 Word 1 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD2_BANK2            0x206ea954 /* [RW] Bank 2 Word 2 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD3_BANK2            0x206ea958 /* [RW] Bank 2 Word 3 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD4_BANK2            0x206ea95c /* [RW] Bank 2 Word 4 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD5_BANK2            0x206ea960 /* [RW] Bank 2 Word 5 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD0_BANK3            0x206ea964 /* [RW] Bank 3 Word 0 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD1_BANK3            0x206ea968 /* [RW] Bank 3 Word 1 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD2_BANK3            0x206ea96c /* [RW] Bank 3 Word 2 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD3_BANK3            0x206ea970 /* [RW] Bank 3 Word 3 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD4_BANK3            0x206ea974 /* [RW] Bank 3 Word 4 Data Register */
-#define BCHP_AMOLE_0_DATA_WORD5_BANK3            0x206ea978 /* [RW] Bank 3 Word 5 Data Register */
-#define BCHP_AMOLE_0_BYTES_PER_LINE              0x206ea97c /* [RW] Bytes Per Line */
-#define BCHP_AMOLE_0_NULL                        0x206ea980 /* [RW] NULL Register */
-#define BCHP_AMOLE_0_WRPTR                       0x206ea984 /* [RW] Write Pointer Register */
-#define BCHP_AMOLE_0_RDPTR                       0x206ea988 /* [RW] Read Pointer Register */
-#define BCHP_AMOLE_0_STATUS                      0x206ea98c /* [RW] Status Register */
+#define BCHP_AMOLE_0_REVID                       0x206ea900 /* [RO][32] AMOL Encoder Revision ID Register */
+#define BCHP_AMOLE_0_CONTROL                     0x206ea908 /* [RW][32] Control Register */
+#define BCHP_AMOLE_0_ACT_LINE_BASE_TOP           0x206ea90c /* [RW][32] Top Field Active Line and Base Register */
+#define BCHP_AMOLE_0_ACT_LINE_BASE_BOT           0x206ea910 /* [RW][32] Bottom Field Active Line and Base Register */
+#define BCHP_AMOLE_0_GAIN_PED_TOP                0x206ea914 /* [RW][32] Top Field Gain and Pedestal Enable Register */
+#define BCHP_AMOLE_0_GAIN_PED_BOT                0x206ea918 /* [RW][32] Bottom Field Gain and Pedestal Enable Register */
+#define BCHP_AMOLE_0_DATA_WORD0_BANK0            0x206ea91c /* [RW][32] Bank 0 Word 0 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD1_BANK0            0x206ea920 /* [RW][32] Bank 0 Word 1 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD2_BANK0            0x206ea924 /* [RW][32] Bank 0 Word 2 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD3_BANK0            0x206ea928 /* [RW][32] Bank 0 Word 3 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD4_BANK0            0x206ea92c /* [RW][32] Bank 0 Word 4 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD5_BANK0            0x206ea930 /* [RW][32] Bank 0 Word 5 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD0_BANK1            0x206ea934 /* [RW][32] Bank 1 Word 0 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD1_BANK1            0x206ea938 /* [RW][32] Bank 1 Word 1 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD2_BANK1            0x206ea93c /* [RW][32] Bank 1 Word 2 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD3_BANK1            0x206ea940 /* [RW][32] Bank 1 Word 3 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD4_BANK1            0x206ea944 /* [RW][32] Bank 1 Word 4 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD5_BANK1            0x206ea948 /* [RW][32] Bank 1 Word 5 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD0_BANK2            0x206ea94c /* [RW][32] Bank 2 Word 0 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD1_BANK2            0x206ea950 /* [RW][32] Bank 2 Word 1 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD2_BANK2            0x206ea954 /* [RW][32] Bank 2 Word 2 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD3_BANK2            0x206ea958 /* [RW][32] Bank 2 Word 3 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD4_BANK2            0x206ea95c /* [RW][32] Bank 2 Word 4 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD5_BANK2            0x206ea960 /* [RW][32] Bank 2 Word 5 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD0_BANK3            0x206ea964 /* [RW][32] Bank 3 Word 0 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD1_BANK3            0x206ea968 /* [RW][32] Bank 3 Word 1 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD2_BANK3            0x206ea96c /* [RW][32] Bank 3 Word 2 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD3_BANK3            0x206ea970 /* [RW][32] Bank 3 Word 3 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD4_BANK3            0x206ea974 /* [RW][32] Bank 3 Word 4 Data Register */
+#define BCHP_AMOLE_0_DATA_WORD5_BANK3            0x206ea978 /* [RW][32] Bank 3 Word 5 Data Register */
+#define BCHP_AMOLE_0_BYTES_PER_LINE              0x206ea97c /* [RW][32] Bytes Per Line */
+#define BCHP_AMOLE_0_NULL                        0x206ea980 /* [RW][32] NULL Register */
+#define BCHP_AMOLE_0_WRPTR                       0x206ea984 /* [RW][32] Write Pointer Register */
+#define BCHP_AMOLE_0_RDPTR                       0x206ea988 /* [RW][32] Read Pointer Register */
+#define BCHP_AMOLE_0_STATUS                      0x206ea98c /* [RW][32] Status Register */
 
 /***************************************************************************
  *REVID - AMOL Encoder Revision ID Register

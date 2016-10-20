@@ -382,6 +382,8 @@ void NEXUS_StillDecoder_P_Close_Avd( NEXUS_StillDecoderHandle stillDecoder )
 void NEXUS_StillDecoder_GetDefaultStartSettings( NEXUS_StillDecoderStartSettings *pSettings )
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->endCodeFound);
+    NEXUS_CallbackDesc_Init(&pSettings->stillPictureReady);
 }
 
 #if NEXUS_NUM_STILL_DECODES

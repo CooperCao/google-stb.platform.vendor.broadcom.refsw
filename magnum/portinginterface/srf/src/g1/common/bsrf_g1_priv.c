@@ -147,10 +147,13 @@ BERR_Code BSRF_g1_P_OpenChannel(
    const BSRF_ChannelSettings *pSettings       /* [in] channel settings */
 )
 {
+   extern const uint32_t BSRF_g1_ChannelIntrID[BSRF_g1_MaxIntID];
+
    BERR_Code retCode = BERR_SUCCESS;
    BSRF_ChannelSettings chnSettings;
    BSRF_ChannelHandle chnHandle;
    BSRF_g1_P_ChannelHandle *chG1;
+   BSRF_g1_P_Handle *hDev = h->pImpl;
 
 #ifdef BSRF_SXM_OVERRIDE
    uint8_t i;
@@ -228,21 +231,52 @@ BERR_Code BSRF_g1_P_OpenChannel(
    chG1->fastDecayGainThr = -32;
    chG1->bEnableFastDecay = true;
 
-   chG1->rfagcSettings.attackSettings.timeNs = 45000;
-   chG1->rfagcSettings.attackSettings.threshold = -1203241;    /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.attackSettings.timeNs = 40000;
+   chG1->rfagcSettings.attackSettings.threshold = -1268777;    /* -15.5dBFS scaled 2^16 */
    chG1->rfagcSettings.attackSettings.step = -2048;            /* -1dB scaled 2^11 */
-   chG1->rfagcSettings.decaySettings.timeNs = 45000;
-   chG1->rfagcSettings.decaySettings.threshold = -1203241;     /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.decaySettings.timeNs = 40000;
+   chG1->rfagcSettings.decaySettings.threshold = -1268777;     /* -15.5dBFS scaled 2^16 */
    chG1->rfagcSettings.decaySettings.step = 2048;              /* 1dB scaled 2^11 */
-   chG1->rfagcSettings.fastDecaySettings.timeNs = 45000;
-   chG1->rfagcSettings.fastDecaySettings.threshold = -1203241; /* -15.5dBFS scaled 2^16 */
+   chG1->rfagcSettings.fastDecaySettings.timeNs = 40000;
+   chG1->rfagcSettings.fastDecaySettings.threshold = -1268777; /* -15.5dBFS scaled 2^16 */
    chG1->rfagcSettings.fastDecaySettings.step = 2048;          /* 1dB scaled 2^11 */
    chG1->rfagcSettings.clipWindowSettings.timeNs = 2000;
-   chG1->rfagcSettings.clipWindowSettings.threshold = 20;      /* percentage of clip window 0 to 100 */
-   chG1->rfagcSettings.clipWindowSettings.step = -30720;       /* -15dB scaled 2^11 */
+   chG1->rfagcSettings.clipWindowSettings.threshold = 25;      /* percentage of clip window 0 to 100 */
+   chG1->rfagcSettings.clipWindowSettings.step = -20480;       /* -10dB scaled 2^11 */
    chG1->rfagcSettings.powerMeasureBw = 5;
    chG1->rfagcSettings.agcSlewRate = 0xB9;
 #endif
+
+   /* setup interrupts */
+   retCode = BINT_CreateCallback(&(chG1->hAttackCountOvfCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eAttackCountOvf],
+                  BSRF_g1_P_AttackCountOvf_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   retCode = BINT_CreateCallback(&(chG1->hDecayCountOvfCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eDecayCountOvf],
+                  BSRF_g1_P_DecayCountOvf_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   retCode = BINT_CreateCallback(&(chG1->hFsCountOvfCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eFsCountOvf],
+                  BSRF_g1_P_FsCountOvf_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   retCode = BINT_CreateCallback(&(chG1->hWinDetectCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eWinDetect],
+                  BSRF_g1_P_WinDetect_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   retCode = BINT_CreateCallback(&(chG1->hRampActiveCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eRampActive],
+                  BSRF_g1_P_RampActive_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
+
+   retCode = BINT_CreateCallback(&(chG1->hRampInactiveCb), hDev->hInterrupt,
+                  BSRF_g1_ChannelIntrID[BSRF_g1_IntID_eRampInactive],
+                  BSRF_g1_P_RampInactive_isr, (void*)chnHandle, 0);
+   BDBG_ASSERT(retCode == BERR_SUCCESS);
 
    h->pChannels[chanNum] = chnHandle;
 
@@ -345,9 +379,7 @@ BERR_Code BSRF_g1_P_PowerUp(BSRF_ChannelHandle h)
 
    /* power up analog */
    BSRF_g1_Ana_P_PowerUp(h);
-#ifndef BSRF_SXM_OVERRIDE
    BSRF_g1_Ana_P_CalibrateCaps(h);
-#endif
 
    /* enable clocks */
    BSRF_P_OrRegister(h, BCHP_SRFE_RFAGC_LOOP_CLK_CTRL, 0x00000001);
@@ -369,6 +401,9 @@ BERR_Code BSRF_g1_P_PowerUp(BSRF_ChannelHandle h)
    /* restore antenna sense thresholds */
    BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x000000C0, (hChn->modeAoc & 0x3) << 6);
    BSRF_P_ReadModifyWriteRegister(h, BCHP_SRFE_ANA_ANT_CTRLR00, ~0x00000030, (hChn->modeAd & 0x3) << 4);
+
+   /* enable clip interrupt */
+   BINT_EnableCallback(hChn->hWinDetectCb);
 
    h->bEnabled = true;
 
@@ -1257,4 +1292,107 @@ BERR_Code BSRF_g1_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings sett
 
    BDBG_LEAVE(BSRF_g1_P_SetIqEqSettings);
    return BERR_SUCCESS;
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_AttackCountOvf_isr() - ISR context
+******************************************************************************/
+void BSRF_g1_P_AttackCountOvf_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BSTD_UNUSED(param);
+   BINT_DisableCallback(hChn->hAttackCountOvfCb);
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_DecayCountOvf_isr() - ISR context
+******************************************************************************/
+void BSRF_g1_P_DecayCountOvf_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BSTD_UNUSED(param);
+   BINT_DisableCallback(hChn->hDecayCountOvfCb);
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_FsCountOvf_isr() - ISR context
+******************************************************************************/
+void BSRF_g1_P_FsCountOvf_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BSTD_UNUSED(param);
+   BINT_DisableCallback(hChn->hFsCountOvfCb);
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_WinDetect_isr() - ISR context
+******************************************************************************/
+#define BSRF_AGC_TRK_M -27820    /* -8.291e-4 scaled -9.25 */
+#define BSRF_AGC_TRK_B -65206496 /* -1.9433 scaled -9.25 */
+void BSRF_g1_P_WinDetect_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+#ifdef BSRF_TEST_RFAGC_CLIP_CONVERGE
+   uint32_t val, x;  /* TBD is log2 always positive? */
+   int32_t y;
+   uint8_t gain;
+#endif
+
+   BSTD_UNUSED(param);
+
+#ifdef BSRF_TEST_RFAGC_CLIP_CONVERGE
+   BKNI_Printf("!BSRF_g1_P_WinDetect_isr: ");
+
+   BSRF_P_ReadRegister(h, BCHP_SRFE_RFAGC_LOOP_AGC_STATUS, &val); /* log2 in 16.16 format */
+   gain = val & 0x7F;   /* gain is 7 bits */
+   x = val >> 16;       /* drop non-existent frac bits for 16.0 format */
+
+   BKNI_Printf("status=%08X\n", val);
+   y = BSRF_AGC_TRK_M * x + BSRF_AGC_TRK_B;  /* 7.25 format */
+   BKNI_Printf("%08X*(%08X)+%08X=%08X | ", BSRF_AGC_TRK_M, x, BSRF_AGC_TRK_B, y);
+   BKNI_Printf("%08X>>25=%08X+%02X=", y, y >> 25, gain, y);
+   y = (y >> 25) + gain;
+   BKNI_Printf("%02X\n", y);
+
+   BSRF_P_ReadRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_AGC_LF_INT_WDATA, &val);   /* tc8.24 format */
+   BKNI_Printf("LF_INT:%08X->", val);
+   val = (val + (y << 24)) | 0xC0000000;
+   BKNI_Printf("%08X\n", val);
+   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_AGC_LF_INT_WDATA, val);   /* tc8.24 format */
+#else
+   /* clear leaky averager */
+   BSRF_P_WriteRegister(h, BCHP_SRFE_RFAGC_LOOP_REG_AGC_LA_INT_WDATA, 0);
+#endif
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_RampActive_isr() - ISR context
+******************************************************************************/
+void BSRF_g1_P_RampActive_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BSTD_UNUSED(param);
+   BINT_DisableCallback(hChn->hRampActiveCb);
+}
+
+
+/******************************************************************************
+ BSRF_g1_P_RampInactive_isr() - ISR context
+******************************************************************************/
+void BSRF_g1_P_RampInactive_isr(void *p, int param)
+{
+   BSRF_ChannelHandle h = (BSRF_ChannelHandle)p;
+   BSRF_g1_P_ChannelHandle *hChn = (BSRF_g1_P_ChannelHandle *)h->pImpl;
+   BSTD_UNUSED(param);
+   BINT_DisableCallback(hChn->hRampInactiveCb);
 }

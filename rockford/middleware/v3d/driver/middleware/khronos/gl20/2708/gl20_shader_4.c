@@ -402,37 +402,40 @@ bool gl20_link_result_get_shaders(
       vattribs_order_out[j] = link_result->cache[i].data.vattribs_order[j];
    }
 
-   shader_out->flags =
-      (!link_result->cache[i].data.threaded) |
-      link_result->cache[i].data.has_point_size<<1 |
-      1<<2;
-   shader_out->num_varyings = link_result->cache[i].data.num_varyings;
+   if (shader_out)
+   {
+      shader_out->flags =
+         (!link_result->cache[i].data.threaded) |
+         link_result->cache[i].data.has_point_size << 1 |
+         1 << 2;
+      shader_out->num_varyings = link_result->cache[i].data.num_varyings;
 
-   /* SW-5891 hardware can only do 65536 vertices at a time */
-   /* store copy of handles in here, so can properly copy shader record */
-   shader_out->fshader = (uint32_t)link_result->cache[i].data.mh_fcode;
-   shader_out->vshader = (uint32_t)link_result->cache[i].data.mh_vcode;
-   /* */
+      /* SW-5891 hardware can only do 65536 vertices at a time */
+      /* store copy of handles in here, so can properly copy shader record */
+      shader_out->fshader = (uint32_t)link_result->cache[i].data.mh_fcode;
+      shader_out->vshader = (uint32_t)link_result->cache[i].data.mh_vcode;
+      /* */
 
-   glxx_big_mem_insert(&shader_out->fshader, link_result->cache[i].data.mh_fcode, 0);
-   glxx_big_mem_insert(&shader_out->vshader, link_result->cache[i].data.mh_vcode, 0);
+      glxx_big_mem_insert(&shader_out->fshader, link_result->cache[i].data.mh_fcode, 0);
+      glxx_big_mem_insert(&shader_out->vshader, link_result->cache[i].data.mh_vcode, 0);
 
-   /* check big_mem_insert didn't change our handle copies */
-   vcos_assert(shader_out->fshader == (uint32_t)link_result->cache[i].data.mh_fcode);
-   vcos_assert(shader_out->vshader == (uint32_t)link_result->cache[i].data.mh_vcode);
+      /* check big_mem_insert didn't change our handle copies */
+      vcos_assert(shader_out->fshader == (uint32_t)link_result->cache[i].data.mh_fcode);
+      vcos_assert(shader_out->vshader == (uint32_t)link_result->cache[i].data.mh_vcode);
 
-   *vunifmap_out = link_result->cache[i].data.mh_vuniform_map;
-   *funifmap_out = link_result->cache[i].data.mh_funiform_map;
+      *vunifmap_out = link_result->cache[i].data.mh_vuniform_map;
+      *funifmap_out = link_result->cache[i].data.mh_funiform_map;
 
-   /* store copy of handle in here, so can properly copy shader record */
-   shader_out->cshader = (uint32_t)link_result->cache[i].data.mh_ccode;
+      /* store copy of handle in here, so can properly copy shader record */
+      shader_out->cshader = (uint32_t)link_result->cache[i].data.mh_ccode;
 
-   glxx_big_mem_insert(&shader_out->cshader, link_result->cache[i].data.mh_ccode, 0);
+      glxx_big_mem_insert(&shader_out->cshader, link_result->cache[i].data.mh_ccode, 0);
 
-   /* check big_mem_insert didn't change our handle copies */
-   vcos_assert(shader_out->cshader == (uint32_t) link_result->cache[i].data.mh_ccode);
+      /* check big_mem_insert didn't change our handle copies */
+      vcos_assert(shader_out->cshader == (uint32_t)link_result->cache[i].data.mh_ccode);
 
-   *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
+      *cunifmap_out = link_result->cache[i].data.mh_cuniform_map;
+   }
 
    return true;
 }

@@ -45,6 +45,7 @@
 #include "bhsm_usercmd_common.h"
 #include "bhsm_user_rsa.h"
 #include "bhsm_bsp_msg.h"
+#include "bsp_s_pke.h"
 
 BDBG_MODULE(BHSM);
 
@@ -141,7 +142,7 @@ BERR_Code BHSM_UserRSA(
 
         /* Poll for command completion. */
         BHSM_BspMsg_Header( hMsg, BCMD_cmdType_ePKE_Cmd_Poll_Status, &header ); /* reuse message instance */
-        BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BHSM_PollingTarget_eUserRSA );
+        BHSM_BspMsg_Pack8( hMsg, BCMD_User_RSA_InCmdField_esubCmdId, BCMD_PollingCommand_PollingTarget_eUserRSA );
 
         rc = BHSM_BspMsg_SubmitCommand( hMsg );
         if( rc != BERR_SUCCESS )

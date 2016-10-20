@@ -50,6 +50,7 @@
 #include "bchp_common.h"
 #include "nexus_map.h"
 #include "b_objdb.h"
+#include "nexus_platform_shared_gpio.h"
 
 #if defined(BCHP_MEMC_L2_0_REG_START)
 #include "bchp_int_id_memc_l2_0.h"
@@ -238,7 +239,7 @@ static void NEXUS_Platform_P_MemcBspInterrupt_Uninit(struct NEXUS_Platform_P_Mem
 
 #define NEXUS_P_MATCH_REG(reg) case reg: return true
 #define NEXUS_P_MATCH_REG_GROUP(reg,block) do { if (reg>=block##_REG_START && reg<=block##_REG_END) {return true;} } while(0)
-static bool NEXUS_Platform_P_IsGio(uint32_t reg)
+static bool NEXUS_Platform_P_IsGio_isrsafe(uint32_t reg)
 {
 #if defined(BCHP_GIO_REG_START)
     NEXUS_P_MATCH_REG_GROUP(reg,BCHP_GIO);
@@ -249,16 +250,16 @@ static bool NEXUS_Platform_P_IsGio(uint32_t reg)
     return false;
 }
 
-static bool NEXUS_Platform_P_IsSystemSharedRegister(uint32_t reg)
+static bool NEXUS_Platform_P_IsSystemSharedRegister_isrsafe(uint32_t reg)
 {
-    return NEXUS_Platform_P_IsGio(reg);
+    /* this call must occur after shared gpio submodule is initialized */
+    return NEXUS_Platform_P_SharedGpioSupported() && NEXUS_Platform_P_IsGio_isrsafe(reg);
 }
-
 
 static bool NEXUS_Platform_P_IsRegisterAtomic_isrsafe(void *context, uint32_t reg)
 {
     const NEXUS_Core_PreInitState *preInitState = context;
-    if(NEXUS_Platform_P_IsSystemSharedRegister(reg)) {
+    if(NEXUS_Platform_P_IsSystemSharedRegister_isrsafe(reg)) {
         return true;
     }
     return preInitState->privateState.regSettings.isRegisterAtomic_isrsafe(preInitState->hReg, reg);
@@ -267,7 +268,7 @@ static bool NEXUS_Platform_P_IsRegisterAtomic_isrsafe(void *context, uint32_t re
 static void NEXUS_Platform_P_SystemUpdate32_isrsafe(void *context, uint32_t reg, uint32_t mask, uint32_t value, bool atomic)
 {
     const NEXUS_Core_PreInitState *preInitState = context;
-    bool systemRegister = NEXUS_Platform_P_IsSystemSharedRegister(reg);
+    bool systemRegister = NEXUS_Platform_P_IsSystemSharedRegister_isrsafe(reg);
 
     if(atomic || systemRegister || preInitState->privateState.regSettings.isRegisterAtomic_isrsafe(preInitState->hReg, reg)) {
         NEXUS_Platform_P_Os_SystemUpdate32_isrsafe(preInitState, reg, mask, value, systemRegister);
@@ -460,10 +461,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
         }
     }
 
-    for (i = 0; i < NEXUS_MAX_MEMC; i++) {
-        g_coreSettings.memcRegion[i].offset = pMemory->memc[i].region[0].base;
-        g_coreSettings.memcRegion[i].length = (((uint64_t)1)<<40) - g_coreSettings.memcRegion[i].offset; /* fixed 40-bit range to cover all addressable memory */
-    }
+    g_coreSettings.memoryLayout = pMemory->memoryLayout;
     g_coreSettings.regHandle = preInitState->hReg;
     g_coreSettings.interruptInterface.pDisconnectInterrupt = NEXUS_Platform_P_DisconnectInterrupt;
     g_coreSettings.interruptInterface.pConnectInterrupt = NEXUS_Platform_P_ConnectInterrupt;
@@ -512,7 +510,7 @@ NEXUS_Error NEXUS_Platform_P_InitCore( const NEXUS_Core_PreInitState *preInitSta
             g_pCoreHandles->heap[0],
             g_pCoreHandles->heap[1],
             g_pCoreHandles->heap[2],
-            g_coreSettings.memcRegion[0].length,
+            g_coreSettings.memoryLayout[0].region[0].size,
             NULL,
             NULL);
 #endif
@@ -640,112 +638,41 @@ static void NEXUS_Platform_P_UnmapRegion(NEXUS_Core_MemoryRegion *region)
 }
 
 #if !NEXUS_USE_CMA
-/* TODO: Support Nexus heaps in upper memory (40 bit access).
-Until then, extend this BCHP_CHIP list for systems that are populated with upper memory.
-By limiting memory to 32 bit access, we avoid overlaps when calculating MEMC layout. */
-#if BCHP_CHIP == 7445
-#define NEXUS_MAX_MEMC0_SIZE (1024*1024*1024)
-#define NEXUS_MAX_MEMC1_SIZE (1024*1024*1024)
-#define NEXUS_MAX_MEMC2_SIZE (1024*1024*1024)
-#elif ((BCHP_CHIP == 7439) && (BCHP_VER >= BCHP_VER_B0))
-/* Only define Memc1, Memc0 can address up to 2Gb in the lower memory (32 bit access) */
-#define NEXUS_MAX_MEMC1_SIZE (1024*1024*1024)
-#endif
-#endif /* !NEXUS_USE_CMA */
-
-NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, NEXUS_PlatformMemory *pMemory)
+/* macros found in magnum/basemodules/chp */
+#include "../../src/common/bchp_memc_offsets_priv.h"
+NEXUS_Error NEXUS_Platform_P_CalcSubMemc(const NEXUS_Core_PreInitState *preInitState, BCHP_MemoryLayout *pMemory)
 {
     BCHP_MemoryInfo info;
     unsigned memcIndex;
     int rc;
 
-    rc = BCHP_GetMemoryInfo(preInitState->hReg, &info);
+    rc = BCHP_GetMemoryInfo_PreInit(preInitState->hReg, &info);
     if (rc) return BERR_TRACE(rc);
 
-#if NEXUS_MAX_MEMC0_SIZE
-    if (info.memc[0].size > NEXUS_MAX_MEMC0_SIZE) {
-       info.memc[0].size = NEXUS_MAX_MEMC0_SIZE;
-    }
-#endif
-#if NEXUS_MAX_MEMC1_SIZE
-    if (info.memc[1].size > NEXUS_MAX_MEMC1_SIZE) {
-        info.memc[1].size = NEXUS_MAX_MEMC1_SIZE;
-    }
-#endif
-#if NEXUS_MAX_MEMC2_SIZE
-    if (info.memc[2].size > NEXUS_MAX_MEMC2_SIZE) {
-        info.memc[2].size = NEXUS_MAX_MEMC2_SIZE;
-    }
-#endif
-
-#if BCHP_CHIP == 7403 || BCHP_CHIP == 7405
-    /* BCHP_GetMemoryInfo only populates offsets for 65nm, so get sizes from pMemory */
     for (memcIndex=0;memcIndex<NEXUS_NUM_MEMC;memcIndex++) {
-        info.memc[memcIndex].size = pMemory->memc[memcIndex].length;
-    }
+        switch (memcIndex) {
+        case 0: pMemory->memc[memcIndex].region[0].addr = BCHP_P_MEMC_0_OFFSET; break;
+#ifdef BCHP_P_MEMC_1_OFFSET
+        case 1: pMemory->memc[memcIndex].region[0].addr = BCHP_P_MEMC_1_OFFSET; break;
 #endif
-
-
-    for (memcIndex=0;memcIndex<NEXUS_NUM_MEMC;memcIndex++) {
-#if NEXUS_USE_CMA
-        unsigned i;
-        bool cma = pMemory->osRegion[0].cma;
-        uint64_t size = info.memc[memcIndex].size;
-        for(i=0;i<NEXUS_MAX_HEAPS;i++) {
-            if(!cma && pMemory->osRegion[i].cma) {
-                continue;
-            }
-            if(pMemory->osRegion[i].length==0 || pMemory->osRegion[i].memcIndex!=memcIndex) {
-                continue;
-            }
-            if(pMemory->osRegion[i].subIndex >= NEXUS_NUM_MEMC_REGIONS) {
-                BDBG_ERR(("MEMC%u/%u (%u MBytes) is not supported", memcIndex, pMemory->osRegion[i].subIndex, (unsigned)(pMemory->osRegion[i].length/(1024*1024))));
-                continue;
-            }
-            if(pMemory->osRegion[i].length > size) {
-                BDBG_ERR(("MEMC%u/%u (%u MBytes) is out of range", memcIndex, pMemory->osRegion[i].subIndex, (unsigned)(pMemory->osRegion[i].length/(1024*1024))));
-                continue;
-            }
-            if(pMemory->memc[memcIndex].region[pMemory->osRegion[i].subIndex].length) {
-                BDBG_ERR(("MEMC%u/%u (%u MBytes) duplicated", memcIndex, pMemory->osRegion[i].subIndex, (unsigned)(pMemory->osRegion[i].length/(1024*1024))));
-                continue;
-            }
-            size -= pMemory->osRegion[i].length;
-            pMemory->memc[memcIndex].region[pMemory->osRegion[i].subIndex].base = pMemory->osRegion[i].base;
-            pMemory->memc[memcIndex].region[pMemory->osRegion[i].subIndex].length = pMemory->osRegion[i].length;
-            if(pMemory->osRegion[i].subIndex==0) { /* make first region start at proper address */
-                if(pMemory->osRegion[i].base >= info.memc[memcIndex].offset) {
-                    pMemory->memc[memcIndex].region[pMemory->osRegion[i].subIndex].base = info.memc[memcIndex].offset;
-                    pMemory->memc[memcIndex].region[pMemory->osRegion[i].subIndex].length += pMemory->osRegion[i].base - info.memc[memcIndex].offset;
-                } else {
-                    BDBG_ERR(("MEMC%u/%u unexpected offset " BDBG_UINT64_FMT "(" BDBG_UINT64_FMT ")", memcIndex, pMemory->osRegion[i].subIndex, BDBG_UINT64_ARG(pMemory->osRegion[i].base), BDBG_UINT64_ARG(info.memc[memcIndex].offset)));
-                }
-            }
+#ifdef BCHP_P_MEMC_2_OFFSET
+        case 2: pMemory->memc[memcIndex].region[0].addr = BCHP_P_MEMC_2_OFFSET; break;
+#endif
+        /* coverity[dead_error_begin: FALSE] */
+        default: return BERR_TRACE(NEXUS_INVALID_PARAMETER);
         }
-        BDBG_MSG(("MEMC%u reserved for OS %u/%u MBytes", memcIndex, (unsigned)(size/(1024*1024)), (unsigned)(info.memc[memcIndex].size/(1024*1024))));
-#else /* NEXUS_USE_CMA */
-        pMemory->memc[memcIndex].region[0].base = info.memc[memcIndex].offset;
-        pMemory->memc[memcIndex].region[0].length = info.memc[memcIndex].size;
-#if NEXUS_CPU_ARM
-        /* ARM CMA barrier, which corresponds to pMemory->osRegion[1].base. we may need a more sophisticated
-        use of NEXUS_Platform_P_GetCmaPlatformMemory later. */
-        if (memcIndex == 0 && pMemory->osRegion[1].base && pMemory->memc[0].region[0].length > pMemory->osRegion[1].base) {
-            pMemory->memc[0].region[1].base = pMemory->osRegion[1].base;
-            pMemory->memc[0].region[1].length = pMemory->memc[0].region[0].length - pMemory->osRegion[1].base;
-            pMemory->memc[0].region[0].length = pMemory->osRegion[1].base;
-        }
-#else
+        pMemory->memc[memcIndex].size = info.memc[memcIndex].size;
+        pMemory->memc[memcIndex].region[0].size = info.memc[memcIndex].size;
         /* MIPS register hole */
-        if (memcIndex == 0 && pMemory->memc[0].region[0].length > 0x10000000) {
-            pMemory->memc[0].region[1].base = 0x20000000;
-            pMemory->memc[0].region[1].length = pMemory->memc[0].region[0].length - 0x10000000;
-            pMemory->memc[0].region[0].length = 0x10000000;
+        if (memcIndex == 0 && pMemory->memc[0].region[0].size > 0x10000000) {
+            pMemory->memc[0].region[1].addr = 0x20000000;
+            pMemory->memc[0].region[1].size = pMemory->memc[0].region[0].size - 0x10000000;
+            pMemory->memc[0].region[0].size = 0x10000000;
         }
-#endif
-#endif /* NEXUS_USE_CMA */
     }
     return NEXUS_SUCCESS;
 }
+#endif /* NEXUS_USE_CMA */
 
 void NEXUS_Platform_GetDefaultCreateHeapSettings( NEXUS_PlatformCreateHeapSettings *pSettings )
 {

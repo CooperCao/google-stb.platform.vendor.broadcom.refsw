@@ -20,8 +20,6 @@ static bool is_alu_type(SchedNodeType type) {
       case ALU_A:
       case ALU_M:
          return true;
-      case ALU_MOV:
-      case ALU_FMOV:
       case SPECIAL_THRSW:
       case SPECIAL_IMUL32:
       case SPECIAL_VARYING:
@@ -53,13 +51,13 @@ static bool unpack_abs_invalid(BackflowFlavour f) {
 }
 
 void dpostv_node_combine(Backflow *node, void *data) {
-   if (node->type == ALU_MOV && node->magic_write != REG_UNDECIDED && node->cond_setf == SETF_NONE) {
+   if (node->type == ALU_M && (node->u.alu.op == BACKFLOW_MOV || node->u.alu.op == BACKFLOW_FMOV) && node->magic_write != REG_UNDECIDED && node->cond_setf == SETF_NONE) {
       /* Try to combine the move target with the previous node */
       Backflow *operand = node->dependencies[1];
 
       if (!is_alu_type(operand->type)) return;
 
-      if (operand->magic_write != REG_UNDECIDED) return;
+      if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) return;
       if (operand->any_io_dependents) return;
       /* XXX: We don't need to bail in this case, if we remember to transfer the iodependency */
       if (operand->io_dependencies.count != 0) return;
@@ -97,6 +95,7 @@ void dpostv_node_combine(Backflow *node, void *data) {
             Backflow *operand = node->dependencies[i];
             if (!operand) continue;
 
+            if (operand->magic_write != REG_UNDECIDED || operand->dependencies[0] != NULL) continue;
             if (operand->any_io_dependents) continue;
             /* XXX: We don't need to bail in this case, if we remember to transfer the iodendency */
             if (operand->io_dependencies.count != 0) continue;
@@ -104,14 +103,14 @@ void dpostv_node_combine(Backflow *node, void *data) {
             /* Bail if the unpack slot is already in use */
             if (node->u.alu.unpack[i-1] != UNPACK_NONE) continue;
 
-            if (operand->type == ALU_FMOV) {
+            if (operand->type == ALU_M && operand->u.alu.op == BACKFLOW_FMOV) {
                /* Merge up with node */
-               SchedNodeUnpack pack_code = operand->u.alu.unpack[0];
+               SchedNodeUnpack unpack_code = operand->u.alu.unpack[0];
 
                /* Some instructions don't support the '.abs' unpack */
-               if (pack_code == UNPACK_ABS && unpack_abs_invalid(node->u.alu.op)) continue;
+               if (unpack_code == UNPACK_ABS && unpack_abs_invalid(node->u.alu.op)) continue;
 
-               node->u.alu.unpack[i-1] = pack_code;
+               node->u.alu.unpack[i-1] = unpack_code;
                node->dependencies[i] = operand->dependencies[1];
 
                glsl_backflow_chain_remove(&operand->data_dependents, node);

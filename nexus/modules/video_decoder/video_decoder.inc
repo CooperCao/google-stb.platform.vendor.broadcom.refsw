@@ -160,15 +160,8 @@ NEXUS_VIDEO_DECODER_MAGNUM_MODULES :=  \
 
 NEXUS_FW_SIGN_MODULES += BXVD
 
-ifeq ($(filter $(BCHP_CHIP), 7125 7340 7420 7468 7405 7400 7325 7335 7408 7550), $(BCHP_CHIP))
-NEXUS_VIDEO_FW_CHECKING_FAMILY := 65nm
-else
-# Used to load the new ARC600 based decoder
 NEXUS_VIDEO_DECODER_MAGNUM_MODULES +=  \
     $(MAGNUM)/commonutils/afl/bafl.inc
-NEXUS_VIDEO_FW_CHECKING_FAMILY := 40nm
-endif
-
 
 ifeq ($(OTFPVR_SUPPORT),y)
 NEXUS_VIDEO_DECODER_MAGNUM_MODULES += ${BSEAV}/lib/otfpvr/botfpvr.inc
@@ -181,7 +174,7 @@ NEXUS_VIDEO_DECODER_DEFINES += NEXUS_OTFPVR=1
 NEXUS_VIDEO_DECODER_SOURCES += $(NEXUS_TOP)/modules/video_decoder/src/nexus_video_decoder_otf_trick.c
 endif
 
-include ${NEXUS_TOP}/extensions/video_decoder/security/$(NEXUS_VIDEO_FW_CHECKING_FAMILY)/secure_ext.inc
+include ${NEXUS_TOP}/extensions/video_decoder/security/40nm/secure_ext.inc
 
 ifeq ($(B_REFSW_DSS_SUPPORT),)
 B_REFSW_DSS_SUPPORT=y

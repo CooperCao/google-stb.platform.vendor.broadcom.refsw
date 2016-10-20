@@ -11,7 +11,6 @@ All rights reserved.
 
 VCOS_EXTERN_C_BEGIN
 
-#if V3D_HAS_TMU_WRAP_I
 static inline v3d_tmu_wrap_t v3d_tmu_wrap_from_wrap_i(v3d_tmu_wrap_i_t wrap_i)
 {
    switch (wrap_i)
@@ -21,7 +20,6 @@ static inline v3d_tmu_wrap_t v3d_tmu_wrap_from_wrap_i(v3d_tmu_wrap_i_t wrap_i)
    default:                      unreachable(); return V3D_TMU_WRAP_INVALID;
    }
 }
-#endif
 
 static inline v3d_tmu_min_filt_t v3d_tmu_mag_filt_to_min_filt(v3d_tmu_mag_filt_t mag_filt)
 {
@@ -92,14 +90,6 @@ static inline v3d_tmu_blend_type_t v3d_get_tmu_blend_type(
       type, srgb, shadow, output_32);
    assert(blend_type != V3D_TMU_BLEND_TYPE_INVALID);
    return blend_type;
-}
-
-static inline bool v3d_tmu_can_blend(
-   v3d_tmu_type_t type, bool shadow, bool output_32)
-{
-   /* sRGBness does not affect blendability */
-   return v3d_maybe_get_tmu_blend_type(type, /*srgb=*/false, shadow, output_32)
-      != V3D_TMU_BLEND_TYPE_INVALID;
 }
 
 extern GFX_LFMT_T v3d_tmu_blend_fmt_from_type(v3d_tmu_blend_type_t blend_type);
@@ -189,23 +179,22 @@ struct v3d_tmu_cfg
    bool coefficient;
    uint32_t coeff_sample;
    bool gather;
-   int32_t logical_tex_off_s;
-   int32_t logical_tex_off_t;
+   int32_t tex_off_s;
+   int32_t tex_off_t;
    int32_t tex_off_r;
    v3d_tmu_op_t op; /* General too */
 
    /* From texture state */
-   bool logical_flipx;
-   bool logical_flipy;
-   bool swapst;
+   bool flipx;
+   bool flipy;
    bool srgb; /* Will be false if sampler->srgb_override set */
    bool ahdr;
    v3d_addr_t l0_addr;
    uint32_t arr_str;
-   uint32_t logical_width;
-   uint32_t logical_height;
-   uint32_t logical_depth;
-   uint32_t num_array_elems;
+   uint32_t width;
+   uint32_t height; /* Always 1 if 1D */
+   uint32_t depth; /* Always 1 if 1D or 2D */
+   uint32_t num_array_elems; /* Always 1 if not array. Multiple of 6 if cubemap. */
    v3d_tmu_type_t type;
    v3d_tmu_swizzle_t swizzles[4];
    uint32_t base_level;
@@ -219,19 +208,17 @@ struct v3d_tmu_cfg
    uint32_t min_lod;
    uint32_t max_lod;
    int32_t fixed_bias;
-   v3d_tmu_wrap_t logical_wrap_s;
-   v3d_tmu_wrap_t logical_wrap_t;
+   v3d_tmu_wrap_t wrap_s;
+   v3d_tmu_wrap_t wrap_t;
    v3d_tmu_wrap_t wrap_r;
-#if V3D_HAS_TMU_WRAP_I
    v3d_tmu_wrap_i_t wrap_i;
-#endif
    GFX_LFMT_BLOCK_T bcolour; /* Border colour. For non-depth types will be in blend format. */
 
 #if !V3D_HAS_NEW_TMU_CFG
-   /* Child image. If not enabled, cx/yoff will be 0 and logical_cwidth/height
-    * will match logical_width/height. */
-   uint32_t logical_cwidth;
-   uint32_t logical_cheight;
+   /* Child image. If not enabled, cx/yoff will be 0 and cwidth/height will
+    * match width/height. */
+   uint32_t cwidth;
+   uint32_t cheight;
    uint32_t cxoff;
    uint32_t cyoff;
 

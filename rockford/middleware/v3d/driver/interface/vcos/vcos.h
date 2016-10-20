@@ -117,12 +117,8 @@ VideoCore OS Abstraction Layer - public header file
 #include "interface/vcos/vcos_mem.h"
 #endif
 
-#if !defined(V3D_LEAN)
-
-#ifndef VCOS_LOGGING_H
-#include "interface/vcos/vcos_logging.h"
-#endif
-
+#ifndef VCOS_LOG_H
+#include "interface/vcos/vcos_log.h"
 #endif
 
 #ifndef VCOS_STRING_H

@@ -95,7 +95,7 @@ Some secure systems may have specialized secure heaps.
 
 Call NEXUS_Memory_Free to free whatever memory was allocated.
 ***************************************************************************/
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define NEXUS_MemoryBlock_Allocate(HEAP,NUMBYTES,ALIGNMENT,PSETTINGS) NEXUS_MemoryBlock_Allocate_tagged(HEAP,NUMBYTES,ALIGNMENT,PSETTINGS, BSTD_FILE, BSTD_LINE)
 #else
 #define NEXUS_MemoryBlock_Allocate(HEAP,NUMBYTES,ALIGNMENT,PSETTINGS) NEXUS_MemoryBlock_Allocate_tagged(HEAP,NUMBYTES,ALIGNMENT,PSETTINGS, NULL, 0)
@@ -171,7 +171,7 @@ Some secure systems may have specialized secure heaps.
 
 Call NEXUS_Memory_Free to free whatever memory was allocated.
 ***************************************************************************/
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define NEXUS_Memory_Allocate(NUMBYTES,PSETTINGS,PPMEMORY) NEXUS_Memory_Allocate_tagged(NUMBYTES,PSETTINGS,PPMEMORY, BSTD_FILE, BSTD_LINE)
 #else
 #define NEXUS_Memory_Allocate(NUMBYTES,PSETTINGS,PPMEMORY) NEXUS_Memory_Allocate_tagged(NUMBYTES,PSETTINGS,PPMEMORY, NULL, 0)

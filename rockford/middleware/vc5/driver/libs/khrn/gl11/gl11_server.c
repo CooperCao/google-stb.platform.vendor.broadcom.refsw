@@ -22,6 +22,8 @@ Implementation of OpenGL ES 1.1 state machine.
 #include "../common/khrn_int_util.h"
 #include "../glxx/glxx_translate.h"
 
+#include "libs/util/gfx_util/gfx_util_conv.h"
+
 #include <string.h>
 #include <math.h>
 #include <limits.h>

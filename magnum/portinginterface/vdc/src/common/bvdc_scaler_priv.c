@@ -55,27 +55,13 @@ BDBG_FILE_MODULE(BVDC_SCL_VSTEP);
 BDBG_OBJECT_ID(BVDC_SCL);
 
 /* SW7420-560, SW7420-721: use smoothen vertical coefficient to improve weaving */
-#if (BVDC_P_SUPPORT_MCVP_VER == 1)
-static const uint32_t s_fir_04taps_08_v[] =
-{
-    0x0BC8021C, 0x0BA40128, 0x0AD40080, 0x09980018,
-    0x081C3FE4, 0x067C3FD4, 0x04DC3FD0, 0x03643FD0,
-    BVDC_P_SCL_LAST
-};
 
-static const uint32_t s_fir_04taps_10_v[] =
-{
-    0x0CE00190, 0x0CAC00A4, 0x0BA40010, 0x0A243FC4,
-    0x08503FB0, 0x06643FB4, 0x048C3FC0, 0x02E83FC8,
-    BVDC_P_SCL_LAST
-};
-
-static const BVDC_P_FirCoeffTbl s_aSmoothVertCoeffTbl[] =
-{
-    BVDC_P_CT_USER_SELECTABLE(1, BVDC_P_CT_4_TAP, s_fir_04taps_08_v), /* SD */
-    BVDC_P_CT_USER_SELECTABLE(2, BVDC_P_CT_4_TAP, s_fir_04taps_10_v), /* HD */
-};
-#endif
+#define BVDC_P_MAKE_SCALER(pScaler, id)                                                  \
+{                                                                                        \
+    (pScaler)->ulRegOffset      = BCHP_SCL_##id##_REG_START - BCHP_SCL_0_REG_START;      \
+    (pScaler)->ulResetMask      = BCHP_MMISC_SW_INIT_SCL_##id##_MASK;                    \
+    (pScaler)->ulVnetResetMask  = BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_SCL_##id##_MASK;     \
+}
 
 
 /***************************************************************************
@@ -113,11 +99,6 @@ BERR_Code BVDC_P_Scaler_Create
     BDBG_OBJECT_SET(pScaler, BVDC_SCL);
 
     pScaler->eId          = eScalerId;
-#if (BVDC_P_SUPPORT_SCL >= 2)
-    pScaler->ulRegOffset  = BVDC_P_SCL_GET_REG_OFFSET(eScalerId);
-#else
-    pScaler->ulRegOffset  = 0;
-#endif
 
     pScaler->hReg = hReg;
 
@@ -126,31 +107,53 @@ BERR_Code BVDC_P_Scaler_Create
     BVDC_P_GetChromaFirCoeffs_isr(&pScaler->pChromaHorzFirCoeffTbl, &pScaler->pChromaVertFirCoeffTbl);
 
     /* Scaler reset address */
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     pScaler->ulResetRegAddr = BCHP_MMISC_SW_INIT;
-    pScaler->ulResetMask    = BCHP_MMISC_SW_INIT_SCL_0_MASK << (pScaler->eId);
     pScaler->ulVnetResetAddr  = BCHP_MMISC_VNET_B_CHANNEL_SW_INIT;
-    pScaler->ulVnetResetMask  = BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_SCL_0_MASK <<
-        (pScaler->eId - BVDC_P_ScalerId_eScl0);
-#else
-    pScaler->ulResetRegAddr = BCHP_MMISC_SOFT_RESET;
-    pScaler->ulResetMask    = BCHP_MMISC_SOFT_RESET_SCL_0_MASK << (pScaler->eId);
-#if BCHP_MMISC_VNET_B_CHANNEL_RESET
-    pScaler->ulVnetResetAddr = BCHP_MMISC_VNET_B_CHANNEL_RESET;
-    pScaler->ulVnetResetMask = BCHP_MMISC_VNET_B_CHANNEL_RESET_SCL_0_RESET_MASK <<
-        (pScaler->eId - BVDC_P_ScalerId_eScl0);
-#endif
-#endif
-#if (BVDC_P_SUPPORT_TAB)
-    if(BVDC_P_ScalerId_eScl0 == pScaler->eId)
+    switch(pScaler->eId)
     {
-#ifdef BCHP_MMISC_SOFT_RESET_TAB_MASK
-        pScaler->ulResetMask |= BCHP_MMISC_SOFT_RESET_TAB_MASK;
-#else
-        pScaler->ulResetMask |= BCHP_MMISC_SOFT_RESET_TAB_0_MASK;
+        case BVDC_P_ScalerId_eScl0:
+            BVDC_P_MAKE_SCALER(pScaler, 0);
+            break;
+#ifdef BCHP_SCL_1_REG_START
+        case BVDC_P_ScalerId_eScl1:
+            BVDC_P_MAKE_SCALER(pScaler, 1);
+            break;
 #endif
+#ifdef BCHP_SCL_2_REG_START
+        case BVDC_P_ScalerId_eScl2:
+            BVDC_P_MAKE_SCALER(pScaler, 2);
+            break;
+#endif
+#ifdef BCHP_SCL_3_REG_START
+        case BVDC_P_ScalerId_eScl3:
+            BVDC_P_MAKE_SCALER(pScaler, 3);
+            break;
+#endif
+#ifdef BCHP_SCL_4_REG_START
+        case BVDC_P_ScalerId_eScl4:
+            BVDC_P_MAKE_SCALER(pScaler, 4);
+            break;
+#endif
+#ifdef BCHP_SCL_5_REG_START
+        case BVDC_P_ScalerId_eScl5:
+            BVDC_P_MAKE_SCALER(pScaler, 5);
+            break;
+#endif
+#ifdef BCHP_SCL_6_REG_START
+        case BVDC_P_ScalerId_eScl6:
+            BVDC_P_MAKE_SCALER(pScaler, 6);
+            break;
+#endif
+#ifdef BCHP_SCL_7_REG_START
+        case BVDC_P_ScalerId_eScl7:
+            BVDC_P_MAKE_SCALER(pScaler, 7);
+            break;
+#endif
+        default:
+            BDBG_ERR(("Need to handle BVDC_P_ScalerId_eScl%d", pScaler->eId));
+            BDBG_ASSERT(0);
+            break;
     }
-#endif
 
     /* init the SubRul sub-module */
     BVDC_P_SubRul_Init(&(pScaler->SubRul), BVDC_P_Scaler_MuxAddr(pScaler),
@@ -348,13 +351,11 @@ void BVDC_P_Scaler_BuildRul_isr
       BVDC_P_State                     eVnetState,
       BVDC_P_PicComRulInfo            *pPicComRulInfo )
 {
-    BVDC_P_Window_DirtyBits *pCurDirty;
     uint32_t  ulRulOpsFlags;
 
     BDBG_ENTER(BVDC_P_Scaler_BuildRul_isr);
     BDBG_OBJECT_ASSERT(hScaler, BVDC_SCL);
     BDBG_OBJECT_ASSERT(hScaler->hWindow, BVDC_WIN);
-    pCurDirty = &hScaler->hWindow->stCurInfo.stDirty;
 
     /* currently this is only for vnet building / tearing-off*/
 
@@ -380,16 +381,6 @@ void BVDC_P_Scaler_BuildRul_isr
         hScaler->ulUpdateAll = BVDC_P_RUL_UPDATE_THRESHOLD;
     }
 
-    /* Kludge: Currently bvdc_hddvi_priv.c will reset the scaler when it
-     * bring up which will put the scaler and the tab in a reset state.  Hence
-     * anytime when we detect scaler reset (by setting hScaler->ulUpdateAll)
-     * will make the bTabAdjust dirty as well to bring it out of the reset. */
-    if((hScaler->ulUpdateAll) &&
-       (BVDC_P_ScalerId_eScl0 == hScaler->eId))
-    {
-        pCurDirty->stBits.bTabAdjust = BVDC_P_DIRTY;
-    }
-
 #ifdef BCHP_RDC_EOP_ID_256_eop_id_scl_0
     /* NRT mode source cropping at SCL should wait for EOP */
     if(hScaler->hWindow->hCompositor->hDisplay->stCurInfo.bStgNonRealTime) {
@@ -397,19 +388,6 @@ void BVDC_P_Scaler_BuildRul_isr
         /*BDBG_MSG(("SCL%u wait for eop!", hScaler->eId));*/
     }
 #endif
-
-    /* TAB is part of SCL0 & V0 */
-    if(pCurDirty->stBits.bTabAdjust)
-    {
-        if(BVDC_P_ScalerId_eScl0 == hScaler->eId)
-        {
-            BVDC_P_Tab_BuildRul_isr(hScaler->hWindow, pList);
-        }
-        else
-        {
-            pCurDirty->stBits.bTabAdjust = BVDC_P_CLEAN;
-        }
-    }
 
     /* reset */
     if(hScaler->bInitial)
@@ -973,11 +951,9 @@ void BVDC_P_Scaler_SetInfo_isr
        (hScaler->hWindow->stCurInfo.hSource->stCurInfo.eCtInputType  != hScaler->ePrevCtInputType)   ||
        (pPicture->ulNonlinearSrcWidth    != hScaler->ulPrevNonlinearSrcWidth)    ||
        (pPicture->ulNonlinearSclOutWidth != hScaler->ulPrevNonlinearSclOutWidth) ||
-#if (BVDC_P_SUPPORT_3D_VIDEO)
-        (pPicture->eSrcOrientation        != hScaler->ePrevSrcOrientation)    ||
-        (pPicture->eOrigSrcOrientation    != hScaler->ePrevOrigSrcOrientation)    ||
-        (pPicture->eDispOrientation       != hScaler->ePrevDispOrientation)   ||
-#endif
+       (pPicture->eSrcOrientation        != hScaler->ePrevSrcOrientation)    ||
+       (pPicture->eOrigSrcOrientation    != hScaler->ePrevOrigSrcOrientation)    ||
+       (pPicture->eDispOrientation       != hScaler->ePrevDispOrientation)   ||
        ((pPicture->eSrcPolarity == BAVC_Polarity_eFrame) !=
         (hScaler->ePrevSrcPolarity == BAVC_Polarity_eFrame)) ||
        ((pPicture->eDstPolarity == BAVC_Polarity_eFrame) !=
@@ -1105,22 +1081,22 @@ void BVDC_P_Scaler_SetInfo_isr
         ulPanScanLeft = pSclCut->lLeft;
 
         /* separate the amount cut by SCL_0_PIC_OFFSET and FIR_LUMA_SRC_PIC_OFFSET */
-        ulPicOffsetLeft = (ulPanScanLeft >> 6) & ~(hScaler->ulSrcHrzAlign - 1);
-        ulPicOffsetTop  = (ulPanScanTop  >> 14);
+        ulPicOffsetLeft = (ulPanScanLeft >> BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS) & ~(hScaler->ulSrcHrzAlign - 1);
+        ulPicOffsetTop  = (ulPanScanTop  >> BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS);
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_8)
-        ulPicOffsetLeft_R = (pSclCut->lLeft_R >> 6) & ~(hScaler->ulSrcHrzAlign - 1);
+        ulPicOffsetLeft_R = (pSclCut->lLeft_R >> BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS) & ~(hScaler->ulSrcHrzAlign - 1);
 #endif
 
-        ulPanScanLeft -= (ulPicOffsetLeft << 6);
-        ulPanScanTop  -= (ulPicOffsetTop  << 14);
+        ulPanScanLeft -= (ulPicOffsetLeft << BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS);
+        ulPanScanTop  -= (ulPicOffsetTop  << BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS);
 
         /* the src size that get into the first scaler sub-modules (e.g. HW half-band
          * filter if it is scaled down a lot): it includes the FIR_LUMA_SRC_PIC_OFFSET,
          * but not the SCL_0_PIC_OFFSET, it has to be rounded-up for alignment */
-        ulMaxX = ulPanScanLeft + (ulSrcHSize << 6);
-        ulMaxY = ulPanScanTop  + (ulSrcVSize << 14);
-        ulAlgnSrcHSize = ((ulMaxX + ((1<< 6) - 1)) >>  6);
-        ulAlgnSrcVSize = ((ulMaxY + ((1<<14) - 1)) >> 14);
+        ulMaxX = ulPanScanLeft + (ulSrcHSize << BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS);
+        ulMaxY = ulPanScanTop  + (ulSrcVSize << BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS);
+        ulAlgnSrcHSize = ((ulMaxX + ((1<< BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS) - 1)) >>  BVDC_P_SCL_LEFT_PIC_OFFSET_F_BITS);
+        ulAlgnSrcVSize = ((ulMaxY + ((1<<BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS) - 1)) >> BVDC_P_SCL_TOP_PIC_OFFSET_F_BITS);
         ulAlgnSrcHSize = BVDC_P_ALIGN_DN(ulAlgnSrcHSize, hScaler->ulSrcHrzAlign);
 
         /* Init the input/output horizontal/vertical size of FIRs */
@@ -1242,14 +1218,12 @@ void BVDC_P_Scaler_SetInfo_isr
             BCHP_FIELD_DATA(SCL_0_PIC_OFFSET_R, HSIZE, ulPicOffsetLeft_R));
 #endif
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(pPicture->eSrcOrientation != pPicture->eOrigSrcOrientation)
         {
             ulBvbInHSize <<=
                 ((pPicture->eOrigSrcOrientation == BFMT_Orientation_e3D_LeftRight) &&
                  (pPicture->eSrcOrientation == BFMT_Orientation_e2D));
         }
-#endif
         BVDC_P_SCL_GET_REG_DATA(SCL_0_BVB_IN_SIZE) &= ~(
             BCHP_MASK(SCL_0_BVB_IN_SIZE, HSIZE) |
             BCHP_MASK(SCL_0_BVB_IN_SIZE, VSIZE));
@@ -1536,25 +1510,6 @@ void BVDC_P_Scaler_SetInfo_isr
         }
 
         /* SW7420-560, SW7420-721: use smoothen vertical coefficient to improve weaving */
-#if (BVDC_P_SUPPORT_MCVP_VER == 1)
-        if((BVDC_P_VNET_USED_MAD(pPicture->stVnetMode)) && /* mcdi used -> interlaced src */
-           (ulFirVrtStepWithKellFactor <= BVDC_P_SCL_V_RATIO_ONE)) /* scl up/unity */
-        {
-            BDBG_MSG(("use smoothen vert coeff to improve mcdi weaving"));
-            if (0 == hScaler->hWindow->stCurInfo.stCtIndex.ulSclVertLuma)
-            {
-                hScaler->pVertFirCoeff = hScaler->pFracInitPhaseVertFirCoeff =
-                    (pSclIn->ulHeight <= BFMT_PAL_HEIGHT)
-                    ? &s_aSmoothVertCoeffTbl[0] : &s_aSmoothVertCoeffTbl[1];
-            }
-            if (0 == hScaler->hWindow->stCurInfo.stCtIndex.ulSclVertChroma)
-            {
-                hScaler->pChromaVertFirCoeff = hScaler->pChromaFracInitPhaseVertFirCoeff =
-                    (pSclIn->ulHeight <= BFMT_PAL_HEIGHT)
-                    ? &s_aSmoothVertCoeffTbl[0] : &s_aSmoothVertCoeffTbl[1];
-            }
-        }
-#endif
 
         /* DEJAGGING/DERINGING settigns */
 #if (BVDC_P_SUPPORT_SCL_VER >= BVDC_P_SUPPORT_SCL_VER_4)
@@ -1784,8 +1739,7 @@ void BVDC_P_Scaler_SetInfo_isr
         else
         {
             /* SRC -> ANR (?) -> MAD (?) -> SCL -> CAP */
-            if(BVDC_P_VNET_USED_ANR(hScaler->hWindow->stVnetMode) ||
-               BVDC_P_VNET_USED_MAD(hScaler->hWindow->stVnetMode))
+            if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
             {
                 hScaler->stDnSampler.eFilterType = BVDC_444To422Filter_eDecimate;
             }
@@ -2096,7 +2050,6 @@ bool BVDC_P_Scaler_Validate_VertDepth_isr
     (BVDC_Window_Handle                 hWindow,
      const BVDC_P_Scaler_Handle         hScaler)
 {
-#if BVDC_P_SUPPORT_3D_VIDEO
     BFMT_Orientation                   eSrcOrientation;
     BFMT_Orientation                   eDstOrientation;
     BFMT_Orientation                   eOrientation;
@@ -2128,10 +2081,6 @@ bool BVDC_P_Scaler_Validate_VertDepth_isr
             hScaler->eId, hScaler->ulVertLineDepth));
         return (false);
     }
-#else
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(hScaler);
-#endif
     return (true);
 }
 

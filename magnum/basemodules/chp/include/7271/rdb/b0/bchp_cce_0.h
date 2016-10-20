@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,28 +70,28 @@
 /***************************************************************************
  *CCE_0 - CCE_0 registers
  ***************************************************************************/
-#define BCHP_CCE_0_RevID                         0x206ea400 /* [RO] CC Encoder Revision ID Register */
-#define BCHP_CCE_0_Active_Lines                  0x206ea408 /* [RW] Active Lines Register */
-#define BCHP_CCE_0_Control                       0x206ea40c /* [RW] Control Register */
-#define BCHP_CCE_0_Active_Lines_1                0x206ea410 /* [RW] Active Lines 1(SCTE) Register */
-#define BCHP_CCE_0_Gain_Delay                    0x206ea414 /* [RW] Gain and Delay Register */
-#define BCHP_CCE_0_SCTE_Base_Lines               0x206ea418 /* [RW] SCTE Base Lines Register */
-#define BCHP_CCE_0_Data0                         0x206ea41c /* [RW] Data Register 0 */
-#define BCHP_CCE_0_Data1                         0x206ea420 /* [RW] Data Register 1 */
-#define BCHP_CCE_0_Data2                         0x206ea424 /* [RW] Data Register 2 */
-#define BCHP_CCE_0_Data3                         0x206ea428 /* [RW] Data Register 3 */
-#define BCHP_CCE_0_Data4                         0x206ea42c /* [RW] Data Register 4 */
-#define BCHP_CCE_0_Data5                         0x206ea430 /* [RW] Data Register 5 */
-#define BCHP_CCE_0_Data6                         0x206ea434 /* [RW] Data Register 6 */
-#define BCHP_CCE_0_Data7                         0x206ea438 /* [RW] Data Register 7 */
-#define BCHP_CCE_0_Data8                         0x206ea43c /* [RW] Data Register 8 */
-#define BCHP_CCE_0_Data9                         0x206ea440 /* [RW] Data Register 9 */
-#define BCHP_CCE_0_Data10                        0x206ea444 /* [RW] Data Register 10 */
-#define BCHP_CCE_0_Data11                        0x206ea448 /* [RW] Data Register 11 */
-#define BCHP_CCE_0_Data12                        0x206ea44c /* [RW] Data Register 12 */
-#define BCHP_CCE_0_Data13                        0x206ea450 /* [RW] Data Register 13 */
-#define BCHP_CCE_0_Data14                        0x206ea454 /* [RW] Data Register 14 */
-#define BCHP_CCE_0_Data15                        0x206ea458 /* [RW] Data Register 15 */
+#define BCHP_CCE_0_RevID                         0x206ea400 /* [RO][32] CC Encoder Revision ID Register */
+#define BCHP_CCE_0_Active_Lines                  0x206ea408 /* [RW][32] Active Lines Register */
+#define BCHP_CCE_0_Control                       0x206ea40c /* [RW][32] Control Register */
+#define BCHP_CCE_0_Active_Lines_1                0x206ea410 /* [RW][32] Active Lines 1(SCTE) Register */
+#define BCHP_CCE_0_Gain_Delay                    0x206ea414 /* [RW][32] Gain and Delay Register */
+#define BCHP_CCE_0_SCTE_Base_Lines               0x206ea418 /* [RW][32] SCTE Base Lines Register */
+#define BCHP_CCE_0_Data0                         0x206ea41c /* [RW][32] Data Register 0 */
+#define BCHP_CCE_0_Data1                         0x206ea420 /* [RW][32] Data Register 1 */
+#define BCHP_CCE_0_Data2                         0x206ea424 /* [RW][32] Data Register 2 */
+#define BCHP_CCE_0_Data3                         0x206ea428 /* [RW][32] Data Register 3 */
+#define BCHP_CCE_0_Data4                         0x206ea42c /* [RW][32] Data Register 4 */
+#define BCHP_CCE_0_Data5                         0x206ea430 /* [RW][32] Data Register 5 */
+#define BCHP_CCE_0_Data6                         0x206ea434 /* [RW][32] Data Register 6 */
+#define BCHP_CCE_0_Data7                         0x206ea438 /* [RW][32] Data Register 7 */
+#define BCHP_CCE_0_Data8                         0x206ea43c /* [RW][32] Data Register 8 */
+#define BCHP_CCE_0_Data9                         0x206ea440 /* [RW][32] Data Register 9 */
+#define BCHP_CCE_0_Data10                        0x206ea444 /* [RW][32] Data Register 10 */
+#define BCHP_CCE_0_Data11                        0x206ea448 /* [RW][32] Data Register 11 */
+#define BCHP_CCE_0_Data12                        0x206ea44c /* [RW][32] Data Register 12 */
+#define BCHP_CCE_0_Data13                        0x206ea450 /* [RW][32] Data Register 13 */
+#define BCHP_CCE_0_Data14                        0x206ea454 /* [RW][32] Data Register 14 */
+#define BCHP_CCE_0_Data15                        0x206ea458 /* [RW][32] Data Register 15 */
 
 /***************************************************************************
  *RevID - CC Encoder Revision ID Register

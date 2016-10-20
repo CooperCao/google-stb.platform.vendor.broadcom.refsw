@@ -103,7 +103,7 @@ BERR_Code BVBI_Open
     ( BVBI_Handle       *pVbiHandle,
       BCHP_Handle        hChip,
       BREG_Handle        hRegister,
-      BMEM_Handle        hMemory,
+      BMMA_Heap_Handle   hMmaHeap,
       const BVBI_Settings       *pDefSettings )
 {
     int type;
@@ -117,7 +117,7 @@ BERR_Code BVBI_Open
     if((!pVbiHandle) ||
        (!hChip) ||
        (!hRegister) ||
-       (!hMemory))
+       (!hMmaHeap))
     {
         BDBG_ERR(("Invalid parameter"));
         eErr = BERR_TRACE(BERR_INVALID_PARAMETER);
@@ -135,9 +135,9 @@ BERR_Code BVBI_Open
     BDBG_OBJECT_INIT (pVbi, BVBI);
 
     /* Store the hChip, hRegister, hMemory, and hRdc for later use. */
-    pVbi->hChip = hChip;
-    pVbi->hReg  = hRegister;
-    pVbi->hMem  = hMemory;
+    pVbi->hChip     = hChip;
+    pVbi->hReg      = hRegister;
+    pVbi->hMmaHeap  = hMmaHeap;
 
     /* Store other settings from user */
     pVbi->in656bufferSize = settings->in656bufferSize;

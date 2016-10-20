@@ -19,6 +19,7 @@ Submission of jobs to the scheduler
 #include "libs/core/v3d/v3d_ident.h"
 #include "gmem.h"
 #include "v3d_driver_api.h"
+#include "v3d_scheduler_graph.h"
 
 LOG_DEFAULT_CAT("v3d_scheduler")
 
@@ -30,6 +31,8 @@ typedef struct v3d_scheduler
    V3D_HUB_IDENT_T hub_identity;
    V3D_IDENT_T identity;
    bool wait_after_submit;
+   bool dump_node_graph;
+   char dump_node_graph_filename[VCOS_PROPERTY_VALUE_MAX];
 
    volatile uint64_t min_non_finalised_job_id;  // any job-id smaller than this is finalised
 
@@ -65,11 +68,22 @@ void v3d_scheduler_init(void)
 
    scheduler.wait_after_submit = gfx_options_bool("V3D_WAIT_AFTER_SUBMIT", false);
 
+   scheduler.dump_node_graph = gfx_options_bool("V3D_DUMP_NODE_GRAPH", false);
+   gfx_options_str("V3D_DUMP_NODE_GRAPH_FILENAME", "SchedulerGraph.dot",
+      scheduler.dump_node_graph_filename,
+      sizeof(scheduler.dump_node_graph_filename));
+
+   if (scheduler.dump_node_graph)
+      v3d_sched_graph_init(scheduler.dump_node_graph_filename);
+
    bcm_sched_register_update_oldest_nfid(update_min_finalised_job);
 }
 
 void v3d_scheduler_shutdown(void)
 {
+   if (scheduler.dump_node_graph)
+      v3d_sched_graph_term();
+
    v3d_scheduler_wait_all();
    bcm_sched_register_update_oldest_nfid(NULL);
    vcos_mutex_delete(&scheduler.lock);
@@ -140,6 +154,9 @@ static uint64_t submit_job(struct bcm_sched_job *job, bool flush)
    assert(scheduler.num_batched_jobs < MAX_BATCHED_JOBS);
    scheduler.batched_jobs[scheduler.num_batched_jobs] = *job;
    scheduler.num_batched_jobs += 1;
+
+   if (scheduler.dump_node_graph)
+      v3d_sched_graph_add_node(job);
 
    if (flush || scheduler.num_batched_jobs == MAX_BATCHED_JOBS)
       flush_locked();
@@ -350,7 +367,6 @@ void v3d_scheduler_submit_bin_render_job(
    fill_sched_job_deps(&jobs[0], bin_deps, V3D_SCHED_DEPS_COMPLETED);
    jobs[0].sync_list = *bin_sync_list;
    jobs[0].driver.bin.n = br_info->num_bins;
-   jobs[0].driver.bin.offset = br_info->bin_offset;
    jobs[0].driver.bin.workaround_gfxh_1181 = br_info->bin_workaround_gfxh_1181;
    jobs[0].driver.bin.minInitialBinBlockSize = br_info->min_initial_bin_block_size;
    jobs[0].secure = br_info->secure;
@@ -381,10 +397,6 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[1].completion_fn = render_completion;
    jobs[1].completion_data = render_compl_data;
 
-   // bcm_sched falls over if the render dependencies are full...
-   if (V3D_PLATFORM_SIM)
-      ensure_space_for_dep(&jobs[1].completed_dependencies);
-
    vcos_mutex_lock(&scheduler.lock);
 
    flush_locked();
@@ -393,6 +405,13 @@ void v3d_scheduler_submit_bin_render_job(
    jobs[0].job_id = ++scheduler.max_submitted_job_id;
    jobs[1].job_id = ++scheduler.max_submitted_job_id;
    bcm_sched_queue_bin_render(&jobs[0], &jobs[1]);
+
+   if (scheduler.dump_node_graph)
+   {
+      v3d_sched_graph_add_node(&jobs[0]);
+      v3d_sched_graph_add_node(&jobs[1]);
+      v3d_sched_graph_add_bin_render_dep(jobs[0].job_id, jobs[1].job_id);
+   }
 
    vcos_mutex_unlock(&scheduler.lock);
 
@@ -443,7 +462,12 @@ int v3d_scheduler_create_fence(const v3d_scheduler_deps *deps,
    }
 
    v3d_scheduler_flush();
-   return bcm_sched_create_fence(&completed_deps, &finalised_deps, force_create);
+   int fence = bcm_sched_create_fence(&completed_deps, &finalised_deps, force_create);
+
+   if (scheduler.dump_node_graph)
+      v3d_sched_graph_add_fence(fence, &completed_deps, &finalised_deps);
+
+   return fence;
 }
 
 uint64_t v3d_scheduler_submit_wait_fence(int fence)
@@ -483,6 +507,8 @@ bool v3d_scheduler_jobs_reached_state(v3d_scheduler_deps *deps,
          break;
       case V3D_SCHED_DEPS_FINALISED:
          bcm_sched_query(NULL, deps, &response);
+         if (response.state_achieved == 1)
+            deps->n = 0;
          break;
       default:
          assert(0);
@@ -499,7 +525,8 @@ void v3d_scheduler_wait_jobs(v3d_scheduler_deps *deps, v3d_sched_deps_state deps
    v3d_platform_fence_wait(fence);
    v3d_platform_fence_close(fence);
 
-   memset(deps,  0, sizeof(v3d_scheduler_deps));
+   if (deps_state == V3D_SCHED_DEPS_FINALISED)
+      deps->n = 0;
 }
 
 void v3d_scheduler_wait_all(void)

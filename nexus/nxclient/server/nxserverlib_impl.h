@@ -102,6 +102,9 @@ typedef void *NEXUS_PidChannelHandle;
 #else
 typedef unsigned NEXUS_InputRouterCode;
 #endif
+#if NEXUS_HAS_VIDEO_ENCODER
+#include "nexus_video_encoder.h"
+#endif
 #include "nexus_memory.h"
 #include "nexus_types.h"
 #include "blst_list.h"
@@ -113,7 +116,7 @@ typedef unsigned NEXUS_InputRouterCode;
 #include <string.h>
 
 /* make nxserver more resilient to compiled-out modules */
-#ifndef NEXUS_HAS_STREAM_MUX
+#if !defined NEXUS_HAS_STREAM_MUX || !defined NEXUS_HAS_SIMPLE_DECODER
 #undef NEXUS_NUM_VIDEO_ENCODERS
 #endif
 #ifndef NEXUS_HAS_RFM

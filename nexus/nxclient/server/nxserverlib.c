@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,6 +79,9 @@ static void nxserver_check_hdcp(struct b_session *session);
 
 static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, struct b_session *session, const NxClient_DisplaySettings *pSettings);
 static NEXUS_Error bserver_set_standby_settings(nxserver_t server, const NxClient_StandbySettings *pSettings);
+
+#undef MIN
+#define MIN(A,B) ((A)<(B)?(A):(B))
 
 BDBG_OBJECT_ID(b_req);
 BDBG_OBJECT_ID(b_connect);
@@ -1125,6 +1128,7 @@ static void nxserver_p_polling_checkpoint(NEXUS_Graphics2DHandle gfx)
     }
 }
 
+#if NEXUS_HAS_VIDEO_DECODER
 static void nxserver_p_scale_rect(unsigned old_w, unsigned old_h, const NEXUS_Rect *pOldRect,
     unsigned new_w, unsigned new_h, NEXUS_Rect *pNewRect)
 {
@@ -1138,6 +1142,7 @@ static void nxserver_p_scale_rect(unsigned old_w, unsigned old_h, const NEXUS_Re
         pNewRect->y = pOldRect->y * new_h / old_h;
     }
 }
+#endif
 
 static int nxserverlib_p_screenshot(nxclient_t client, const NxClient_ScreenshotSettings *pSettings, NEXUS_SurfaceHandle surface)
 {
@@ -1200,6 +1205,8 @@ static int nxserverlib_p_screenshot(nxclient_t client, const NxClient_Screenshot
 
         }
     }
+#else
+    BSTD_UNUSED(i);
 #endif
     NEXUS_Graphics2D_GetDefaultBlitSettings(&blitSettings);
     rc = NEXUS_SurfaceCompositor_GetCurrentFramebuffer(client->session->surfaceCompositor, &blitSettings.source.surface);
@@ -1208,6 +1215,11 @@ static int nxserverlib_p_screenshot(nxclient_t client, const NxClient_Screenshot
         rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
         goto done;
     }
+    blitSettings.source.rect.x = 0;
+    blitSettings.source.rect.y = 0;
+    NEXUS_Surface_GetCreateSettings(blitSettings.source.surface, &surfaceCreateSettings);
+    blitSettings.source.rect.width = MIN(surfaceCreateSettings.width, client->session->display[0].formatInfo.width);
+    blitSettings.source.rect.height = MIN(surfaceCreateSettings.height, client->session->display[0].formatInfo.height);
     blitSettings.dest.surface = surface;
     blitSettings.output.surface = surface;
     blitSettings.constantColor = 0xFF << 24;
@@ -1250,6 +1262,19 @@ static NEXUS_ClientHandle nxserverlib_p_lookup_client(nxserver_t server, unsigne
 static bool is_trusted_client(nxclient_t client)
 {
     return !client || client->clientSettings.configuration.mode != NEXUS_ClientMode_eUntrusted;
+}
+
+static NEXUS_Error nxserver_get_status(nxclient_t client, NxClient_Status *pStatus)
+{
+    nxserver_t server = client->session->server;
+    BKNI_Memset(pStatus, 0, sizeof(*pStatus));
+    if (!server->settings.externalApp.enabled) {
+        pStatus->externalAppState = NxClientExternalAppState_eNone;
+    }
+    else {
+        pStatus->externalAppState = server->externalApp.allow_decode?NxClientExternalAppState_eDecode:NxClientExternalAppState_eGraphicsOnly;
+    }
+    return NEXUS_SUCCESS;
 }
 
 static int nxserver_set_slave_display_graphics(nxclient_t client, unsigned slaveDisplay, NEXUS_SurfaceHandle surface)
@@ -1541,14 +1566,13 @@ NEXUS_Error NxClient_P_General(nxclient_t client, enum nxclient_p_general_param_
 #endif
     case nxclient_p_general_param_type_set_slave_display_graphics:
         return nxserver_set_slave_display_graphics(client, param->set_slave_display_graphics.slaveDisplay, param->set_slave_display_graphics.surface);
+    case nxclient_p_general_param_type_get_status:
+        return nxserver_get_status(client, &output->get_status.status);
     default:
         break;
     }
     return BERR_TRACE(NEXUS_NOT_SUPPORTED);
 }
-
-#undef MIN
-#define MIN(A,B) ((A)<(B)?(A):(B))
 
 static NEXUS_VideoFormat get_4k_matching_format(NEXUS_VideoFormat format)
 {
@@ -1978,6 +2002,9 @@ static void nxserver_check_hdcp(struct b_session *session)
         break;
 
     case nxserver_hdcp_pending_status_start:
+        if (!is_hdcp_start_complete(hdmiOutput))
+            break;
+
         session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_eAuto;
         if (is_hdcp_downstream_1x(hdmiOutput)) {
             session->hdcp.downstream_version = NEXUS_HdmiOutputHdcpVersion_e1_x;
@@ -2100,7 +2127,7 @@ static void hotplug_callback_locked(void *pParam, int iParam)
         if (session->nxclient.displaySettings.hdmiPreferences.followPreferredFormat && status.connected &&
             !session->server->settings.hdmi.ignoreVideoEdid &&
             !session->server->settings.display_init.hd.initialFormat) {
-            if (status.preferredVideoFormat != session->nxclient.displaySettings.format) {
+            if (status.preferredVideoFormat != session->nxclient.displaySettings.format && session->server->display.cap.displayFormatSupported[status.preferredVideoFormat]) {
                 NxClient_DisplaySettings settings = session->nxclient.displaySettings;
                 settings.format = status.preferredVideoFormat;
                 NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
@@ -2479,7 +2506,6 @@ void nxserver_get_default_settings(struct nxserver_settings *settings)
     settings->fbsize.height = 1080;
 #endif
     for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
-        settings->session[i].graphics = true; /* no option for no graphics session, but could be added */
         if (i == 0) {
 /* For generic platforms which do not have BCG-like displays */
 #if (BCHP_CHIP != 11360)
@@ -2526,6 +2552,7 @@ static bool nxserver_p_has_spdif_output(struct b_session *session)
 #if NEXUS_NUM_SPDIF_OUTPUTS
     return nxserverlib_p_session_has_sd_audio(session) && session->server->platformConfig.outputs.spdif[0];
 #else
+    BSTD_UNUSED(session);
     return false;
 #endif
 }
@@ -2538,6 +2565,17 @@ static bool is_local_display(nxserver_t server, unsigned displayIndex)
     return server->display.cap.display[displayIndex].numVideoWindows &&
            server->display.cap.display[displayIndex].graphics.width &&
            !server->platformCap.display[displayIndex].encoder;
+}
+
+/* if HD is 50Hz, default for SD should also be 50Hz */
+static NEXUS_VideoFormat nxserver_p_default_sd_format(struct b_session *session)
+{
+    if (session->display[0].formatInfo.verticalFreq%2500 == 0) {
+        return NEXUS_VideoFormat_ePal;
+    }
+    else {
+        return NEXUS_VideoFormat_eNtsc;
+    }
 }
 
 static int init_session(nxserver_t server, unsigned index)
@@ -2598,8 +2636,13 @@ static int init_session(nxserver_t server, unsigned index)
 
     if (IS_SESSION_DISPLAY_ENABLED(server->settings.session[index]) && is_local_display(server, server->global_display_index)) {
         NEXUS_Display_GetDefaultSettings(&displaySettings);
-        if (session->index == 0 && server->display.cap.displayFormatSupported[session->server->settings.display.format]) {
-            displaySettings.format = session->server->settings.display.format;
+        if (session->index == 0) {
+            if (server->display.cap.displayFormatSupported[session->server->settings.display.format]) {
+                displaySettings.format = session->server->settings.display.format;
+            }
+            else {
+                BDBG_WRN(("display[0] format %s not supported", lookup_name(g_videoFormatStrs, session->server->settings.display.format)));
+            }
         }
         displaySettings.aspectRatio = session->server->settings.display.aspectRatio;
         displaySettings.dropFrame = session->server->settings.display_init.hd.dropFrame;
@@ -2674,9 +2717,8 @@ static int init_session(nxserver_t server, unsigned index)
         server->settings.session[index].output.sd = false;
     }
     if (server->settings.session[index].output.hd && server->settings.session[index].output.sd && is_local_display(server, server->global_display_index)) {
-        bool pal_system = session->display[0].formatInfo.verticalFreq%2500 == 0;
-        if (pal_system && session->server->settings.display.slaveDisplay[session_display_index-1].format == NEXUS_VideoFormat_eNtsc) {
-            session->server->settings.display.slaveDisplay[session_display_index-1].format = NEXUS_VideoFormat_ePal;
+        if (session->server->settings.display.slaveDisplay[session_display_index-1].format == NEXUS_VideoFormat_eNtsc) {
+            session->server->settings.display.slaveDisplay[session_display_index-1].format = nxserver_p_default_sd_format(session);
         }
         NEXUS_Display_GetDefaultSettings(&displaySettings);
         displaySettings.format = session->server->settings.display.slaveDisplay[session_display_index-1].format;
@@ -2736,10 +2778,12 @@ static int init_session(nxserver_t server, unsigned index)
 
 after_display_open:
 
+#if NEXUS_HAS_VIDEO_DECODER
     /* enable video-as-graphics with main display */
     if (index == 0 && session->display[0].display) {
         NEXUS_Display_DriveVideoDecoder(session->display[0].display);
     }
+#endif
 
     BKNI_CreateEvent(&session->inactiveEvent);
 
@@ -2748,15 +2792,16 @@ after_display_open:
     session->audio.server = NEXUS_SimpleAudioDecoderServer_Create();
     session->encoder.server = NEXUS_SimpleEncoderServer_Create();
 #endif
-
+#if NEXUS_HAS_AUDIO
     if (!server->settings.externalApp.enabled) {
         /* must create audio after session->hdmiOutput is set */
         /* and don't create main_audio for headless systems */
         if (session->display[0].display) {
             session->main_audio = audio_decoder_create(session, b_audio_decoder_type_regular);
+            if (!session->main_audio) {rc = BERR_TRACE(-1); goto error;}
         }
     }
-
+#endif
     if (nxserver_p_has_spdif_output(session)) {
 #if NEXUS_NUM_SPDIF_OUTPUTS
         NEXUS_SpdifOutputSettings settings;
@@ -2770,9 +2815,9 @@ after_display_open:
 /* Ignore check for display if session_display_index is 0 for non-BCG displays -
  * this check was introduced first in URSR 15.1.
  */
-    if (server->settings.session[session->index].graphics && (session->display[0].display || !session_display_index)) {
+    if (session->display[0].display || !session_display_index) {
 #else
-    if (server->settings.session[session->index].graphics && session->display[0].display) {
+    if (session->display[0].display) {
 #endif
         unsigned i;
         session->surfaceCompositor = NEXUS_SurfaceCompositor_Create(0);
@@ -2850,8 +2895,8 @@ after_display_open:
     {
         /* copy settings already set, then allow NxClient_P_SetDisplaySettings to make changes */
         NxClient_DisplaySettings settings = session->server->settings.display;
-        if (index != 0) {
-            settings.format = NEXUS_VideoFormat_eNtsc;
+        if (index != 0 || !session->server->display.cap.displayFormatSupported[settings.format]) {
+            settings.format = nxserver_p_default_sd_format(session);
         }
         settings.hdmiPreferences.version = session->hdcp.currSelect;
         rc = NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
@@ -2861,11 +2906,13 @@ after_display_open:
                 NEXUS_HdmiOutputStatus status;
                 /* if specified format is supported by chip but not TV, revert to preferred and try one more time.
                 better to start with a different format than not to start. */
-                if (!NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &status) &&
-                    status.connected &&
-                    status.preferredVideoFormat != settings.format)
-                {
-                    settings.format = status.preferredVideoFormat;
+                if (!NEXUS_HdmiOutput_GetStatus(session->hdmiOutput, &status) && status.connected) {
+                    if (!session->server->display.cap.displayFormatSupported[status.preferredVideoFormat]) {
+                        settings.format = nxserver_p_default_sd_format(session);
+                    }
+                    else {
+                        settings.format = status.preferredVideoFormat;
+                    }
                     (void)NxClient_P_SetDisplaySettingsNoRollback(NULL, session, &settings);
                 }
             }
@@ -2968,7 +3015,6 @@ nxserver_t nxserverlib_init(const struct nxserver_settings *settings)
     NEXUS_Error rc;
     nxserver_t server;
     unsigned i;
-    unsigned hd_count = 0;
     unsigned sd_count = 0;
 
     server = BKNI_Malloc(sizeof(*server));
@@ -3000,23 +3046,23 @@ nxserver_t nxserverlib_init(const struct nxserver_settings *settings)
         if (rc) {goto error;}
     }
 
+    if (server->display.cap.display[0].numVideoWindows == 0 || server->platformCap.display[0].encoder) {
+        BDBG_WRN(("******************************************************************************************"));
+        BDBG_WRN(("* This is a headless system, so only encoder-based apps are supported.                   *"));
+        BDBG_WRN(("******************************************************************************************"));
+        for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
+            server->settings.session[i].output.hd = false;
+            server->settings.session[i].output.sd = false;
+        }
+    }
     for (i=0;i<NXCLIENT_MAX_SESSIONS;i++) {
-        if (IS_SESSION_DISPLAY_ENABLED(settings->session[i])) {
-            if (server->display.cap.display[i].numVideoWindows == 0) {
-                BDBG_WRN(("******************************************************************************************"));
-                BDBG_WRN(("* WARNING! Appears to be a headless system, but settings do not explicitly specify this! *"));
-                BDBG_WRN(("*   (nxserver_session_settings.output.(sd|hd|encode) should be set to false)             *"));
-                BDBG_WRN(("******************************************************************************************"));
-                continue;
-            }
+        if (IS_SESSION_DISPLAY_ENABLED(server->settings.session[i])) {
             if (server->settings.session[i].output.hd) {
                 if (sd_count > 0) {
                     BDBG_ERR(("hd session [%d] must be specified before sd sessions", i));
                     BERR_TRACE(NEXUS_INVALID_PARAMETER);
                     goto error;
                 }
-
-                hd_count++;
             }
             if (server->settings.session[i].output.sd) {
                 sd_count++;
@@ -3641,6 +3687,8 @@ static NEXUS_Error NxClient_P_SetDisplaySettingsNoRollback(nxclient_t client, st
                 if (status.connected) {
                     NEXUS_HdmiOutputEdidVideoFormatSupport support;
 
+                    /* NTSC/PAL is our baseline, so don't allow EDID to deny */
+                    status.videoFormatSupported[nxserver_p_default_sd_format(session)] = true;
                     if (!status.videoFormatSupported[pSettings->format]) {
                         BDBG_WRN(("HDMI Rx does not support %s", lookup_name(g_videoFormatStrs, pSettings->format)));
                         return BERR_TRACE(NEXUS_NOT_SUPPORTED);
@@ -4574,6 +4622,7 @@ int nxserverlib_allow_decode(nxserver_t server, bool allow)
         }
         uninit_session_video(session);
         audio_decoder_destroy(session->main_audio);
+        session->main_audio = NULL;
         video_uninit();
         audio_uninit();
 #if NEXUS_HAS_HDMI_OUTPUT

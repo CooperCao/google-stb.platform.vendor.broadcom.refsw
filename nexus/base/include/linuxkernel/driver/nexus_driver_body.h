@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -55,6 +55,9 @@
 static struct nexus_driver_module_state {
     struct nexus_driver_module_header header;
     union nexus_driver_module_args args;
+#ifdef nexus_driver_module_data
+    nexus_driver_module_data
+#endif
 } nexus_driver_module_state;
 
 #define NEXUS_IOCTL_FAULT(call, arg)
@@ -109,7 +112,19 @@ nexus_driver_module_ioctl(void *context, unsigned int cmd, unsigned long arg, un
     int rc = 0;
     struct nexus_driver_module_state *module = &nexus_driver_module_state;
     struct nexus_driver_client_state *client = nexus_driver_client_id(context);
+#if NEXUS_ABICOMPAT_MODE
+    struct NEXUS_P_IpcProcessArgs __ipc_args; NEXUS_P_DriverInVararg __in_vararg;
+#endif
+
     NEXUS_P_API_STATS_STATE();
+
+#if NEXUS_ABICOMPAT_MODE
+    __ipc_args.module_header = &module->header;
+    __ipc_args.slave_scheduler = (((struct nexus_driver_module_driver_state *)context)->slave_scheduler);
+    NEXUS_P_DriverInVararg_Init(&__in_vararg, &client->client, &nexus_driver_module_state.data.in, sizeof(nexus_driver_module_state.data.in));
+    NEXUS_P_ServerCall_OutVarArg_Init(&__ipc_args.vout_data, &client->client, &nexus_driver_module_state.data.out, sizeof(nexus_driver_module_state.data.out));
+#endif
+
 
     /*
      * The following is to address Coverity false positive. The Coverity stack-size checker adds 4 bytes for every function call made.

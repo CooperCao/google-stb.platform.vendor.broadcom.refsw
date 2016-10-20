@@ -279,12 +279,6 @@ void gfx_buffer_xform_yuv_to_srgb(
    const GFX_BUFFER_XFORM_OPTIONS_T *opts_in,
    uint32_t x, uint32_t y_unused, uint32_t z)
 {
-   const GFX_BUFFER_XFORM_OPTIONS_YUV_TO_SRGB_T *opts = &opts_in->yuv_to_srgb;
-
-   uint8_t y, u, v;
-   int32_t r, g, b;
-   int32_t ay, arr, arc, agb, agr, agc, abb, abc;
-
    assert(num_src_planes == 1);
    assert(src->fmt == GFX_LFMT_Y8_U8_V8_UNORM);
    assert(num_dst_planes == 1);
@@ -293,22 +287,23 @@ void gfx_buffer_xform_yuv_to_srgb(
    /* TFUCOEF* fields are unsigned 2.10 fixed-point, except the *C fields which
     * are 10.2 fixed point. yuv inputs are just unorm/uints (i.e. 8.0 fixed point) */
 
-   ay  = opts->ay;
-   arr = opts->arr;
-   arc = opts->arc << 8; /* now 10.10 fixed point */
-   agb = opts->agb;
-   agr = opts->agr;
-   agc = opts->agc << 8;
-   abb = opts->abb;
-   abc = opts->abc << 8;
+   const GFX_BUFFER_XFORM_OPTIONS_YUV_TO_SRGB_T *opts = &opts_in->yuv_to_srgb;
+   int32_t ay  = opts->ay;
+   int32_t arr = opts->arr;
+   int32_t arc = opts->arc << 8; /* now 10.10 fixed point */
+   int32_t agb = opts->agb;
+   int32_t agr = opts->agr;
+   int32_t agc = opts->agc << 8;
+   int32_t abb = opts->abb;
+   int32_t abc = opts->abc << 8;
 
-   y = src->u->ui8[0];
-   u = src->u->ui8[1];
-   v = src->u->ui8[2];
+   uint8_t y = src->u->ui8[0];
+   uint8_t u = src->u->ui8[1];
+   uint8_t v = src->u->ui8[2];
 
-   r = ay * y           + arr * v - arc;
-   g = ay * y - agb * u - agr * v + agc;
-   b = ay * y + abb * u           - abc;
+   int32_t r = ay * y           + arr * v - arc;
+   int32_t g = ay * y - agb * u - agr * v + agc;
+   int32_t b = ay * y + abb * u           - abc;
 
    /* r,g,b in _signed_ .10 fixed point */
 
@@ -556,13 +551,16 @@ static uint32_t transmute_slot_func(
 
          if (dst_slot_width > src_slot_width)
          {
+            /* Replicating conversion. Note this is imperfect when
+             * (dst_slot_width % src_slot_width) != 0. This happens in the TLB
+             * when loading eg 565. */
             switch (src_slot_type)
             {
             case GFX_LFMT_TYPE_UNORM:
             case GFX_LFMT_TYPE_SRGB:
-               return gfx_unorm_replicate(src_slot_bits, src_slot_width, dst_slot_width);
+               return gfx_unorm_to_unorm_rep(src_slot_bits, src_slot_width, dst_slot_width);
             case GFX_LFMT_TYPE_SNORM:
-               return gfx_snorm_replicate(src_slot_bits, src_slot_width, dst_slot_width);
+               return gfx_snorm_to_snorm_rep(src_slot_bits, src_slot_width, dst_slot_width);
             default:
                unreachable();
                return 0;
@@ -572,27 +570,16 @@ static uint32_t transmute_slot_func(
          if (transmute_dither_channel(channel, opts))
          {
             assert((src_slot_width == 8) && (src_slot_type == GFX_LFMT_TYPE_UNORM));
-            return ord_dither_8(
-               src_slot_bits, dst_slot_width,
-               x, y);
+            return ord_dither_8(src_slot_bits, dst_slot_width, x, y);
          }
 
-         /* TLB rgba8->rgba4 (and other 16-bit unorm formats)
-          * use perfect rounding.
-          *
-          * This won't be so perfect for unorms which can't
-          * be represented exactly in floating point. */
          switch (src_slot_type)
          {
          case GFX_LFMT_TYPE_UNORM:
          case GFX_LFMT_TYPE_SRGB:
-            return gfx_float_to_unorm(
-               gfx_unorm_to_float(src_slot_bits, src_slot_width),
-               dst_slot_width);
+            return gfx_unorm_to_unorm(src_slot_bits, src_slot_width, dst_slot_width);
          case GFX_LFMT_TYPE_SNORM:
-            return gfx_float_to_snorm(
-               gfx_snorm_to_float(src_slot_bits, src_slot_width),
-               dst_slot_width);
+            return gfx_snorm_to_snorm(src_slot_bits, src_slot_width, dst_slot_width);
          default:
             unreachable();
             return 0;
@@ -607,7 +594,7 @@ static uint32_t transmute_slot_func(
             case GFX_LFMT_TYPE_UNORM:
                if (src_slot_width < 8)
                   /* Both TMU & TLB convert via unorm8 */
-                  return gfx_unorm_to_float16_via8(src_slot_bits, src_slot_width);
+                  return gfx_unorm_to_float16(gfx_unorm_to_unorm_rep(src_slot_bits, src_slot_width, 8), 8);
                return gfx_unorm_to_float16(src_slot_bits, src_slot_width);
             case GFX_LFMT_TYPE_SNORM:
                return gfx_snorm_to_float16(src_slot_bits, src_slot_width);
@@ -628,7 +615,7 @@ static uint32_t transmute_slot_func(
                   f32 = gfx_unorm_to_float_depth(src_slot_bits, src_slot_width);
                else if (src_slot_width < 8)
                   /* Both TMU & TLB convert via unorm8 */
-                  f32 = gfx_unorm_to_float_via8(src_slot_bits, src_slot_width);
+                  f32 = gfx_unorm8_to_float(gfx_unorm_to_unorm_rep(src_slot_bits, src_slot_width, 8));
                else
                   f32 = gfx_unorm_to_float(src_slot_bits, src_slot_width);
                break;
@@ -678,8 +665,8 @@ static uint32_t transmute_slot_func(
 
          switch (dst_slot_width)
          {
-         case 10: return gfx_float16_to_ufloat10(src_f16);
-         case 11: return gfx_float16_to_ufloat11(src_f16);
+         case 10: return gfx_float16_to_ufloat10_rtz(src_f16);
+         case 11: return gfx_float16_to_ufloat11_rtz(src_f16);
          default: unreachable(); return 0;
          }
       }
@@ -822,45 +809,12 @@ void gfx_buffer_xform_float32_to_rgb9e5(
    const GFX_BUFFER_XFORM_OPTIONS_T *opts,
    uint32_t x, uint32_t y, uint32_t z)
 {
-   /* ref: GLES 3 spec: "Encoding of Special Internal Formats" */
-
    assert(num_dst_planes == 1);
    assert(dst->fmt == GFX_LFMT_R9G9B9SHAREDEXP5_UFLOAT);
    assert(num_src_planes == 1);
    assert(src->fmt == GFX_LFMT_R32_G32_B32_FLOAT);
 
-   const uint32_t N = 9, B = 15, E_max = 31;
-
-   /* Avoid need for divide:
-
-      (2**N - 1) / 2**N * 2**(E_max - B)  =  (2**N - 1) * 2**(E_max - B - N)
-   */
-   const uint32_t shared_exp_max = ((1<<N) - 1) * (1 << (E_max - B - N));
-
-   float clampeds[3]; // these are red_c, green_c, blue_c in the ES3 spec
-   float max_c;
-   uint32_t exp_p;
-   uint32_t max_s;
-   uint32_t exp_s;
-   uint32_t final_components[3];
-
-   for (int c=0; c!=3; ++c)
-      clampeds[c] = gfx_fclamp(src->u->f[c], 0.0f, (float)shared_exp_max);
-
-   max_c = fmaxf(fmaxf(clampeds[0], clampeds[1]), clampeds[2]);
-   exp_p = gfx_smax(-(int32_t)B - 1, gfx_flog2(max_c)) + 1 + B;
-   max_s = (uint32_t)((1u<<(B+N))*max_c/(1u<<(exp_p)) + 0.5f);
-   assert(max_s <= (1u<<N));
-   exp_s = max_s < (1u<<N) ? exp_p : exp_p + 1;
-
-   for (int c=0; c!=3; ++c)
-      final_components[c] = (uint32_t)((1u<<(B+N))*clampeds[c]/(1u<<(exp_s))+0.5f);
-
-   dst->u->ui32[0] =
-      final_components[0] |
-      (final_components[1] << 9) |
-      (final_components[2] << 18) |
-      exp_s << 27;
+   dst->u->ui32[0] = gfx_floats_to_rgb9e5(src->u->f);
 }
 
 void gfx_buffer_xform_rgb9e5_to_float32(
@@ -869,33 +823,12 @@ void gfx_buffer_xform_rgb9e5_to_float32(
    const GFX_BUFFER_XFORM_OPTIONS_T *opts,
    uint32_t x, uint32_t y, uint32_t z)
 {
-   /* convert RGB9_E5 to f32.
-
-      ref GLES 3 spec: "3.7.2 Transfer of Pixel * Rectangles" - "Special
-      Interpretations"
-   */
-
    assert(num_dst_planes == 1);
    assert(dst->fmt == GFX_LFMT_R32_G32_B32_FLOAT);
    assert(num_src_planes == 1);
    assert(src->fmt == GFX_LFMT_R9G9B9SHAREDEXP5_UFLOAT);
 
-   const uint32_t N = 9, B = 15;
-
-   uint32_t p_exp = src->u->ui32[0] >> 27;
-   for (int c=0; c!=3; ++c)
-   {
-      /* component is called p_red/p_green/p_blue in GLES 3 spec */
-      uint32_t component = (src->u->ui32[0] >> (c*9)) & 0x1ff;
-
-      /*  Avoid pow():
-
-          component * 2**(p_exp - B - N)  =  component * 2**p_exp / 2**(B + N)
-
-          TODO TMU might not do it this way though. Lots of cancellation error.
-      */
-      dst->u->f[c] = (component * (float)(1u<<p_exp)) / (1u<<(B+N));
-   }
+   gfx_rgb9e5_to_floats(dst->u->f, src->u->ui32[0]);
 }
 
 static uint32_t xform_srgb_to_tfu13_slot_func(

@@ -1200,10 +1200,11 @@ enunumeration of Electro-Optical Transfer Function
 typedef enum BAVC_HDMI_DRM_EOTF
 {
     BAVC_HDMI_DRM_EOTF_eSDR,
-    BAVC_HDMI_DRM_EOTF_eHDR,
-    BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084,
-    BAVC_HDMI_DRM_EOTF_eFuture,
-    BAVC_HDMI_DRM_EOTF_eMax
+    BAVC_HDMI_DRM_EOTF_eHDR,             /* obsolete */
+    BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084,   /* HDR10, i.e. PQ */
+    BAVC_HDMI_DRM_EOTF_eHLG,          /* HLG */
+    BAVC_HDMI_DRM_EOTF_eMax,
+    BAVC_HDMI_DRM_EOTF_eFuture = BAVC_HDMI_DRM_EOTF_eHLG /* backwards compat */
 } BAVC_HDMI_DRM_EOTF ;
 
 
@@ -1249,6 +1250,10 @@ typedef struct BAVC_HDMI_DRMInfoFrame
         uint16_t MaxFrameAverageLightLevel ;
     } Type1 ;
 
+#if BAVC_HDMI_RECEIVER
+        BAVC_HDMI_PacketStatus ePacketStatus ;
+        BAVC_HDMI_Packet stPacket ;
+#endif
 } BAVC_HDMI_DRMInfoFrame ;
 
 

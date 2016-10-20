@@ -566,8 +566,14 @@ map_eglDestroyImageKHR = base_eglDestroyImageKHR;
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 #endif /* EGL_KHR_platform_x11*/
@@ -578,6 +584,13 @@ map_eglDestroyImageKHR = base_eglDestroyImageKHR;
 #if EGL_KHR_wait_sync
 map_eglWaitSyncKHR = base_eglWaitSyncKHR;
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+map_glBlendBarrierKHR = base_glBlendBarrierKHR;
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 map_glDebugMessageControlKHR = base_glDebugMessageControlKHR;
@@ -626,6 +639,13 @@ map_glBlendFuncSeparateiOES = base_glBlendFuncSeparateiOES;
 map_glColorMaskiOES = base_glColorMaskiOES;
 map_glIsEnablediOES = base_glIsEnablediOES;
 #endif /* GL_OES_draw_buffers_indexed*/
+
+#if GL_OES_draw_elements_base_vertex
+map_glDrawElementsBaseVertexOES = base_glDrawElementsBaseVertexOES;
+map_glDrawRangeElementsBaseVertexOES = base_glDrawRangeElementsBaseVertexOES;
+map_glDrawElementsInstancedBaseVertexOES = base_glDrawElementsInstancedBaseVertexOES;
+map_glMultiDrawElementsBaseVertexOES = base_glMultiDrawElementsBaseVertexOES;
+#endif /* GL_OES_draw_elements_base_vertex*/
 
 #if GL_OES_draw_texture
 map_glDrawTexsOES = base_glDrawTexsOES;
@@ -679,12 +699,20 @@ map_glGetBufferPointervOES = base_glGetBufferPointervOES;
 map_glPointSizePointerOES = base_glPointSizePointerOES;
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+map_glPrimitiveBoundingBoxOES = base_glPrimitiveBoundingBoxOES;
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 map_glQueryMatrixxOES = base_glQueryMatrixxOES;
 #endif /* GL_OES_query_matrix*/
 
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+map_glMinSampleShadingOES = base_glMinSampleShadingOES;
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -808,6 +836,9 @@ map_eglCreatePlatformWindowSurfaceEXT = base_eglCreatePlatformWindowSurfaceEXT;
 map_eglCreatePlatformPixmapSurfaceEXT = base_eglCreatePlatformPixmapSurfaceEXT;
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
@@ -816,6 +847,12 @@ map_eglCreatePlatformPixmapSurfaceEXT = base_eglCreatePlatformPixmapSurfaceEXT;
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+map_eglBindWaylandDisplayWL = base_eglBindWaylandDisplayWL;
+map_eglUnbindWaylandDisplayWL = base_eglUnbindWaylandDisplayWL;
+map_eglQueryWaylandBufferWL = base_eglQueryWaylandBufferWL;
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
@@ -831,9 +868,6 @@ map_glProvokingVertexBRCM = base_glProvokingVertexBRCM;
 #if GL_BRCM_texture_1D
 map_glTexImage1DBRCM = base_glTexImage1DBRCM;
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

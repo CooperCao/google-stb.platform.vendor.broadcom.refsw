@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2010-2016 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,9 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
-#
-#
 #############################################################################
 
 PWD := ${shell pwd}
@@ -51,35 +48,14 @@ NEXUS_TOP := $(B_REFSW_TOP)/nexus
 include ${NEXUS_TOP}/platforms/common/build/platform_app.inc
 include ${NEXUS_TOP}/platforms/common/build/nexus_platforms.inc
 include $(BSEAV_TOP)/lib/openssl/openssl.inc
+include curl.inc
 
 $(if $(NEXUS_PLATFORM),,  $(error ERROR: NEXUS_PLATFORM is not defined))
 $(if $(B_REFSW_ARCH),,    $(error ERROR: B_REFSW_ARCH is not defined))
 
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-    DEBUG_SUFFIX=debug
-else
-    DEBUG_SUFFIX=release
-endif
-
 B_CURL_TOOLCHAIN_ARCH ?= $(B_REFSW_ARCH)
-CURL_VER?=7.41.0
-CURL_NAME=curl-$(CURL_VER)
-
-CURL_SOURCE_TARBALL:=$(CURL_NAME).tar.gz
-CURL_SOURCE_DIRECTORY:=$(abspath $(B_REFSW_OBJ_ROOT)/BSEAV/lib/curl/$(B_REFSW_ARCH).$(DEBUG_SUFFIX))
-CURL_SOURCE_PATH:=${CURL_SOURCE_DIRECTORY}/${CURL_NAME}
-CURL_TAR_PATH:=${CURL_SOURCE_DIRECTORY}
-CURL_BUILD_DIR:=$(abspath $(NEXUS_TOP)/../BSEAV/lib/curl)
-
-CURL_CFLAGS?= -O2 -fPIC
-CURL_LDFLAGS?=
-CURL_DIR:=$(CURL_NAME)
-CURL_LIB_FOLDER:=${CURL_TAR_PATH}/${CURL_DIR}/lib/.libs
-
-CURL_INC_CFLAGS:= -D_REENTRANT -I${CURL_TAR_PATH}/${CURL_DIR}/include
-CURL_INC_LDFLAGS:= -L$(CURL_LIB_FOLDER) -lcurl
-
+CURL_CONFIG_CFLAGS  := -O2 -fPIC -DCURL_MAX_WRITE_SIZE=65536
+CURL_CONFIG_LDFLAGS := -L${B_OPENSSL_SOURCE_PATH}
 
 .PHONY: source all clean
 
@@ -117,14 +93,6 @@ ifneq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 	fi
 endif   #  ifeq ($(B_REFSW_CURL_IS_EXTERNAL),y)
 
-#install: all
-#	@echo "================ Installing CURL"
-#	@echo "APPLIBS_TARGET_LIB_DIR is ${APPLIBS_TARGET_LIB_DIR}"
-#	@echo "APPLIBS_TARGET_INC_DIR is ${APPLIBS_TARGET_INC_DIR}"
-#	@mkdir -p ${APPLIBS_TARGET_LIB_DIR}
-#	@mkdir -p ${APPLIBS_TARGET_INC_DIR}
-#	@cp -af $(CURL_TAR_PATH)/$(CURL_NAME)/src/.libs/*.so* ${APPLIBS_TARGET_LIB_DIR}
-
 all : source
 	@if [ ! -d "${CURL_SOURCE_PATH}" ]; then \
 		echo "Curl source directory: $(abspath ${CURL_SOURCE_PATH}) not found, extracting from tarball..."  ${B_CURL_EXTRACT_REDIR}; \
@@ -137,14 +105,14 @@ all : source
 	@echo "================ Configuring CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"
 
 	@if [ ! -e "${CURL_TAR_PATH}/${CURL_NAME}/Makefile" -o -z "${shell grep 'CC \= ' ${CURL_TAR_PATH}/${CURL_NAME}/Makefile |grep ${B_CURL_TOOLCHAIN_ARCH}}" ]; then \
-		echo "================ Configure CURL"; \
+		echo "================ Configure CURL B_CURL_TOOLCHAIN_ARCH is $(B_CURL_TOOLCHAIN_ARCH)"; \
 		cd ${CURL_TAR_PATH}/${CURL_NAME}; \
-		CFLAGS="${CURL_CFLAGS} -DCURL_MAX_WRITE_SIZE=65536" \
-		LDFLAGS="-L${B_OPENSSL_SOURCE_PATH}" \
+		CFLAGS="${CURL_CONFIG_CFLAGS}" \
+		LDFLAGS="${CURL_CONFIG_LDFLAGS}" \
 		LIBS="-lssl -lcrypto" \
 		./configure \
 		--host=${B_CURL_TOOLCHAIN_ARCH} \
-		--prefix=${CURL_TAR_PATH}/${CURL_NAME}/${NEXUS_PLATFORM}${LOWER_BCHP_VER} \
+		--prefix=${CURL_TAR_PATH}/${CURL_NAME} \
 		--enable-nonblocking \
 		--enable-cookies \
 		--enable-crypto-auth \
@@ -170,20 +138,18 @@ all : source
 		echo "${CURL_NAME} is not configured!"; exit 1;\
 	fi
 
-
 	@echo "================ Compiling CURL==============================="
 	${MAKE} ${MAKE_OPTIONS} -C ${CURL_TAR_PATH}/${CURL_NAME} -j10 ${MAKE_SUFFIX}
 	@if [ "$(B_REFSW_DEBUG)" != 'y' ]; then \
 		${STRIP} ${CURL_LIB_FOLDER}/*.so; \
 	fi
-	@rm -rf curl_ver.inc
-	@echo "CURL_VER:="$(CURL_VER) >> curl_ver.inc
-	@echo "CURL_NAME:="$(CURL_NAME) >> curl_ver.inc
-	@echo "CURL_CFLAGS:="$(CURL_INC_CFLAGS) >> curl_ver.inc
-	@echo "CURL_LDFLAGS:="$(CURL_INC_LDFLAGS) >> curl_ver.inc
-	@echo "CURL_SOURCE_PATH:="$(CURL_SOURCE_PATH) >> curl_ver.inc
 	@echo "================ CURL Compiled!"
 	@touch $@
+
+install_to_nexus_bin: all
+	@echo "================ Installing CURL to ${NEXUS_BIN_DIR}"
+	@mkdir -p ${NEXUS_BIN_DIR}
+	@install -c -m 0755 $(CURL_LIB_FOLDER)/*.so* ${NEXUS_BIN_DIR}
 
 clean :
 	@echo "================ MAKE CLEAN"

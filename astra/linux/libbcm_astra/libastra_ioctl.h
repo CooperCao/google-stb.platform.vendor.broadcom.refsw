@@ -129,4 +129,8 @@ int _astra_ioctl_file_read(
     astra_paddr_t paddr,
     size_t *pBytes);
 
+int _astra_ioctl_uapp_coredump(
+    astra_kuapp_handle hKUapp);
+
+
 #endif /* LIBASTRA_H */

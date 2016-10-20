@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -345,7 +345,9 @@ void BVDC_P_CompositorDisplay_isr
         {
             if(hCompositor->ahWindow[i])
             {
+#ifndef BVDC_FOR_BOOTUPDATER
                 BVDC_Source_Handle hSource;
+#endif
 
                 /* Window detect window destroy done and set event. */
                 BVDC_P_Window_UpdateState_isr(hCompositor->ahWindow[i]);
@@ -653,12 +655,8 @@ void BVDC_P_CalcuPixelAspectRatio_isr(
     BDBG_ASSERT((NULL != pulPxlAspRatio) && (NULL != pulPxlAspRatio_x_y));
     BDBG_ASSERT(NULL != pAspRatCnvsClip);
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     ulFullWidth  <<= (eOrientation == BFMT_Orientation_e3D_LeftRight);
     ulFullHeight <<= (eOrientation == BFMT_Orientation_e3D_OverUnder);
-#else
-    BSTD_UNUSED(eOrientation);
-#endif
     ulAspRatCnvsWidth  = ulFullWidth  - (pAspRatCnvsClip->ulLeft + pAspRatCnvsClip->ulRight);
     ulAspRatCnvsHeight = ulFullHeight - (pAspRatCnvsClip->ulTop  + pAspRatCnvsClip->ulBottom);
 
@@ -778,10 +776,10 @@ BERR_Code BVDC_GetCapabilities
 
         pCapabilities->ulNumBox = BVDC_P_SUPPORT_BOX_DETECT;
         pCapabilities->ulNumCmp = BVDC_P_GetNumCmp(hVdc->pFeatures);
-        pCapabilities->ulNumMad = BVDC_P_SUPPORT_MAD + BVDC_P_SUPPORT_MCVP;
+        pCapabilities->ulNumMad = BVDC_P_SUPPORT_MCVP;
         pCapabilities->ulNumDnr = BVDC_P_SUPPORT_DNR;
         pCapabilities->ulNumPep = BVDC_P_SUPPORT_PEP;
-        pCapabilities->ulNumTab = BVDC_P_SUPPORT_TAB + BVDC_P_SUPPORT_TNT;
+        pCapabilities->ulNumTab = BVDC_P_SUPPORT_TNT;
         pCapabilities->ulNumDac = BVDC_P_MAX_DACS;
         pCapabilities->ulNumRfm = BVDC_P_SUPPORT_RFM_OUTPUT;
         pCapabilities->ulNumStg = BVDC_P_SUPPORT_STG;
@@ -800,7 +798,7 @@ BERR_Code BVDC_GetCapabilities
         pCapabilities->ulNumHdmiOutput = BVDC_P_SUPPORT_DVI_OUT;
 
 
-        pCapabilities->b3DSupport        = BVDC_P_SUPPORT_3D_VIDEO;
+        pCapabilities->b3DSupport      = true;
     }
 
     BDBG_LEAVE(BVDC_GetCapabilities);
@@ -816,36 +814,8 @@ bool  BVDC_P_IsPxlfmtSupported
     (BPXL_Format                       ePxlFmt)
 {
 
-    if(!BVDC_P_VALID_PIXEL_FORMAT(ePxlFmt))
-    {
-        return false;
-    }
-
-#if (BVDC_P_MFD_SUPPORT_BYTE_ORDER)
     /* Can support all formats with MFD_SUPPORT_BYTE_ORDER */
-    return true;
-
-#else
-    /* Old chips: only limited formats are supported */
-#if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE)
-    if ((ePxlFmt == BPXL_eY08_Cr8_Y18_Cb8) ||
-        (ePxlFmt == BPXL_eCr8_Y08_Cb8_Y18) ||
-        (ePxlFmt == BPXL_eY08_Cb8_Y18_Cr8) ||
-        (ePxlFmt == BPXL_eCb8_Y08_Cr8_Y18))
-#else
-    if ((ePxlFmt == BPXL_eCb8_Y18_Cr8_Y08) ||
-        (ePxlFmt == BPXL_eY18_Cb8_Y08_Cr8) ||
-        (ePxlFmt == BPXL_eCr8_Y18_Cb8_Y08) ||
-        (ePxlFmt == BPXL_eY18_Cr8_Y08_Cb8))
-#endif
-    {
-        return false;
-    }
-    else
-    {
-        return true;
-    }
-#endif
+    return BVDC_P_VALID_PIXEL_FORMAT(ePxlFmt);
 }
 
 

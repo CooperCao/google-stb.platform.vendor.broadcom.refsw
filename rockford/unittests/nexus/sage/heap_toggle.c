@@ -59,11 +59,19 @@ BDBG_MODULE(heap_toggle);
 
 enum testOp_t {
     eTestOpQueryOnly,
-    eTestOpSetSecure,
-    eTestOpSetClear,
+    eTestOpSetUrr,
+    eTestOpSetGfx,
+    eTestOpSetExt,
+    eTestOpSetAll,
     eTestOpLoop,
-    eTestOpLoopFinite,
+    eTestOpDebug,
     eTestOpVerify
+};
+
+enum toggleOp_t {
+    eToggleIgnore,
+    eToggleEnable,
+    eToggleDisable
 };
 
 struct Heap_Info_t
@@ -72,9 +80,12 @@ struct Heap_Info_t
     NEXUS_MemoryStatus status[NEXUS_MAX_HEAPS];
     uint8_t index[NEXUS_MAX_HEAPS];
     uint8_t number;
+    bool secureGfx;
+    bool secureExt;
 };
 
 static struct Heap_Info_t heapInfo;
+static int iterations = -1;
 
 static const char *memory_type_to_string(unsigned memoryType, char *buf, size_t buf_size)
 {
@@ -217,8 +228,14 @@ static void print_secure_status(void)
 void show_usage(char *app)
 {
     printf("%s usage:\n", app);
-    printf("\t -s \t Set URR to secure\n");
-    printf("\t -u \t Set URR to unsecure\n");
+    printf("\t -P \t Set picture buffer(s) to secure\n");
+    printf("\t -p \t Set picture buffer(s) to unsecure\n");
+    printf("\t -G \t Set secure GFX to secure\n");
+    printf("\t -g \t Set secure GFX to unsecure\n");
+    printf("\t -E \t Set secure extension to secure\n");
+    printf("\t -e \t Set secure extension to unsecure\n");
+    printf("\t -A \t set all to secure\n");
+    printf("\t -a \t set all to unsecure\n");
     printf("\t -l \t Infinite loop (Press enter key to quit)\n");
     printf("\t -t \t Test/Verify scrubbing operation\n");
 }
@@ -247,6 +264,16 @@ static unsigned cacheHeap(void)
             if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE) && !(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS))
                 continue;
 
+            if(status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
+            {
+                heapInfo.secureGfx=true;
+            }
+
+            if(status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
+            {
+                heapInfo.secureExt=true;
+            }
+
             heapInfo.heaps[heapInfo.number]=platformConfig.heap[i];
             heapInfo.status[heapInfo.number]=status;
             heapInfo.index[heapInfo.number]=i;
@@ -260,24 +287,44 @@ static unsigned cacheHeap(void)
     return 0;
 }
 
-static void setHeapsSecure(bool markSecure)
+static NEXUS_Error setHeapsSecure(enum toggleOp_t urrSecure, enum toggleOp_t gfxSecure, enum toggleOp_t extSecure)
 {
     int i;
     NEXUS_HeapRuntimeSettings heapSettings;
     NEXUS_Error rc;
+    NEXUS_Error ret=NEXUS_SUCCESS;
+    enum toggleOp_t action;
+    char buf[128];
+    bool markSecure;
 
     for (i=0;i<heapInfo.number;i++)
     {
         /* Only for secure buffers */
         if(!(heapInfo.status[i].memoryType & NEXUS_MEMORY_TYPE_SECURE))
+        {
             continue;
+        }
 
-        /* Only for picture buffers and/or adjacent buffers */
-        /* Adjacent TODO */
-        if(!(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) ||
-           (heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) ||
-           (heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT))
+        action=eToggleIgnore;
+        if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS)
+        {
+            action=urrSecure;
+        }
+        else if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
+        {
+            action=gfxSecure;
+        }
+        else if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
+        {
+            action=extSecure;
+        }
+
+        if(action==eToggleIgnore)
+        {
             continue;
+        }
+
+        markSecure=(action==eToggleEnable) ? true : false;
 
         /* This heap is a secure picture buffer heap, update it's status */
         NEXUS_Platform_GetHeapRuntimeSettings(heapInfo.heaps[i], &heapSettings);
@@ -285,7 +332,8 @@ static void setHeapsSecure(bool markSecure)
         if(heapSettings.secure==markSecure)
             continue;
 
-        BDBG_WRN(("Updating HEAP[%d] from %s to %s", heapInfo.index[i],
+        BDBG_WRN(("Updating HEAP[%d] (%s) from %s to %s", heapInfo.index[i],
+                  heap_type_to_string(heapInfo.status[i].heapType, buf, sizeof(buf)),
                   heapSettings.secure ? "SECURE" : "CLEAR",
                   markSecure ? "SECURE" : "CLEAR"));
 
@@ -293,9 +341,14 @@ static void setHeapsSecure(bool markSecure)
         rc=NEXUS_Platform_SetHeapRuntimeSettings(heapInfo.heaps[i], &heapSettings);
         if(rc)
         {
+            ret=BERR_TRACE(rc);
             BDBG_ERR(("Failed NEXUS_Platform_SetHeapRuntimeSettings (0x%x)", rc));
+            goto EXIT;
         }
     }
+
+EXIT:
+    return ret;
 }
 
 static inline struct timeval timeDelta(struct timeval start, struct timeval stop)
@@ -328,6 +381,7 @@ void *toggle_thread(void *context)
     unsigned delay;
     struct timeval start, stop, delta, worst;
     uint32_t count=0;
+    NEXUS_Error rc=NEXUS_SUCCESS;
 
     memset(&worst, 0, sizeof(worst));
 
@@ -338,7 +392,34 @@ void *toggle_thread(void *context)
         delay=rand() % 2000;
         gettimeofday(&start, NULL);
 
-        setHeapsSecure(secure);
+        if(!secure)
+        {
+            /* If disabling, must disable gfx/ext first */
+            rc=setHeapsSecure(eToggleIgnore, eToggleDisable, eToggleDisable);
+            if(rc!=NEXUS_SUCCESS)
+            {
+                goto EXIT;
+            }
+            rc=setHeapsSecure(eToggleDisable, eToggleIgnore, eToggleIgnore);
+            if(rc!=NEXUS_SUCCESS)
+            {
+                goto EXIT;
+            }
+        }
+        else
+        {
+            /* If enabling, must enable urr first */
+            rc=setHeapsSecure(eToggleEnable, eToggleIgnore, eToggleIgnore);
+            if(rc!=NEXUS_SUCCESS)
+            {
+                goto EXIT;
+            }
+            rc=setHeapsSecure(eToggleIgnore, eToggleEnable, eToggleEnable);
+            if(rc!=NEXUS_SUCCESS)
+            {
+                goto EXIT;
+            }
+        }
 
         gettimeofday(&stop, NULL);
         delta=timeDelta(start, stop);
@@ -355,21 +436,33 @@ void *toggle_thread(void *context)
 
         secure=!secure;
         count++;
-        printf("Toggle[%d] took %u.%07u seconds (Worst: %u.%07u)\n", count, delta.tv_sec,
-               delta.tv_usec, worst.tv_sec, worst.tv_usec);
+        printf("Toggle[%d] (to %s) took %u.%07u seconds (Worst: %u.%07u)\n", count, !secure ? "secure" : "UNsecure",
+               delta.tv_sec, delta.tv_usec, worst.tv_sec, worst.tv_usec);
         BKNI_Sleep(delay);
+
+        if(iterations>=0)
+        {
+            iterations--;
+            if(iterations==0)
+            {
+                *done=true;
+            }
+        }
     }
 
-    printf("Exiting infinite toggle (%u toggle commands)\n", count);
+EXIT:
+    printf("Exiting toggle loop (%u toggle commands)\n", count);
     printf("Worst toggle time was %u.%07u seconds\n", worst.tv_sec, worst.tv_usec);
+
+    return (void *)rc;
 }
 
 static int scrub_verify(void)
 {
     int memfd;
     int i, j;
-    int ret = 0;
     unsigned char *addr;
+    NEXUS_Error rc;
     unsigned char pattern[] = {
         0x00, 0x01, 0x02, 0x03,
         0x04, 0x05, 0x06, 0x07,
@@ -390,22 +483,37 @@ static int scrub_verify(void)
     }
 
     /* Make sure in URR off mode */
-    setHeapsSecure(false);
+    /* When disabling, must disable gfx/ext first */
+    rc=setHeapsSecure(eToggleIgnore, eToggleDisable, eToggleDisable);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
+    rc=setHeapsSecure(eToggleDisable, eToggleIgnore, eToggleIgnore);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
 
     /* Write pattern to URR */
     for (i=0;i<heapInfo.number;i++)
     {
-        /* Only for secure picture buffers buffers */
+        /* Only for secure buffers  */
         if(!(heapInfo.status[i].memoryType & NEXUS_MEMORY_TYPE_SECURE))
             continue;
 
-        if(!(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS))
+        /* Only for picture buffers, secure gfx, or secure extension */
+        if(!(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
+           !(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) &&
+           !(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT))
+        {
             continue;
+        }
 
         if(heapInfo.status[i].size % patternSize)
         {
             printf("Please adjust alignment of pattern..\n");
-            printf("patternSize is %d, urr size is %d\n", patternSize, heapInfo.status[i].size);
+            printf("patternSize is %d, secure heap size is %d\n", patternSize, heapInfo.status[i].size);
             goto EXIT;
         }
 
@@ -421,27 +529,59 @@ static int scrub_verify(void)
         {
             memcpy(&addr[j], pattern, patternSize);
         }
-        memset(addr, 0, 16);
         NEXUS_FlushCache(addr, heapInfo.status[i].size);
+
+        /* Verify write access */
+        if(memcmp(&addr[0], pattern, patternSize)!=0)
+        {
+            munmap((void *)addr, heapInfo.status[i].size);
+            printf("Writing test pattern FAILED. Cannot continue\n");
+            goto EXIT;
+        }
 
         munmap((void *)addr, heapInfo.status[i].size);
     }
 
     /* Toggle URR to on mode */
-    setHeapsSecure(true);
+    /* When enable, must enable URR first */
+    rc=setHeapsSecure(eToggleEnable, eToggleIgnore, eToggleIgnore);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
+    rc=setHeapsSecure(eToggleIgnore, eToggleEnable, eToggleEnable);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
 
     /* Toggle back to off (will scrub) */
-    setHeapsSecure(false);
+    /* When disabling, must disable gfx/ext first */
+    rc=setHeapsSecure(eToggleIgnore, eToggleDisable, eToggleDisable);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
+    rc=setHeapsSecure(eToggleDisable, eToggleIgnore, eToggleIgnore);
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
 
     /* Verify pattern is gone */
     for (i=0;i<heapInfo.number;i++)
     {
-        /* Only for secure picture buffers buffers */
+        /* Only for secure buffers */
         if(!(heapInfo.status[i].memoryType & NEXUS_MEMORY_TYPE_SECURE))
             continue;
 
-        if(!(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS))
+        /* Only for picture buffers, secure gfx, or secure extension */
+        if(!(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) &&
+           !(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS) &&
+           !(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT))
+        {
             continue;
+        }
 
         addr = (unsigned char *)mmap(NULL, heapInfo.status[i].size, PROT_READ|PROT_WRITE, MAP_SHARED, memfd, heapInfo.status[i].offset);
         if(addr == MAP_FAILED)
@@ -452,7 +592,7 @@ static int scrub_verify(void)
 
         NEXUS_FlushCache(addr, heapInfo.status[i].size);
 
-        printf("Checking for test pattern to URR (0x%x @ 0x%016llx)\n", heapInfo.status[i].size, heapInfo.status[i].offset);
+        printf("Checking for test pattern in secure buffer (0x%x @ 0x%016llx)\n", heapInfo.status[i].size, heapInfo.status[i].offset);
         for(j=0;j<heapInfo.status[i].size;j+=patternSize)
         {
             int k;
@@ -468,7 +608,7 @@ static int scrub_verify(void)
                     printf("%02x", pattern[k]);
                 printf("\n");
 
-                ret = -1;
+                rc=BERR_TRACE(NEXUS_UNKNOWN);
                 break;
             }
         }
@@ -479,14 +619,44 @@ static int scrub_verify(void)
 EXIT:
     close(memfd);
 
-    if(!ret)
-    {
-        printf("SUCCESS\n");
-    }
-    return ret;
+    printf("Scrub verify operation %s\n", (rc==NEXUS_SUCCESS) ? "PASSES" : "FAILS");
+
+    return rc;
 }
 
-int iterations = -1;
+void debugOutput(void)
+{
+    int i;
+
+    for (i=0;i<heapInfo.number;i++) {
+        if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_COMPRESSED_RESTRICTED_REGION)
+        {
+            printf("CRR 0x%016llx 0x%016llx\n", heapInfo.status[i].offset, heapInfo.status[i].size);
+            continue;
+        }
+        if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
+        {
+            printf("XRR 0x%016llx 0x%016llx\n", heapInfo.status[i].offset, heapInfo.status[i].size);
+            continue;
+        }
+        if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS)
+        {
+            printf("GFX%d 0x%016llx 0x%016llx\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            continue;
+        }
+        if(heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT)
+        {
+            printf("EXT%d 0x%016llx 0x%016llx\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            continue;
+        }
+        if((heapInfo.status[i].heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) && (heapInfo.status[i].memoryType & NEXUS_MEMORY_TYPE_SECURE))
+        {
+            printf("URR%d 0x%016llx 0x%016llx\n", heapInfo.status[i].memcIndex, heapInfo.status[i].offset, heapInfo.status[i].size);
+            continue;
+        }
+    }
+}
+
 int main(int argc, char **argv)
 {
     int i;
@@ -495,6 +665,7 @@ int main(int argc, char **argv)
     enum testOp_t op = eTestOpQueryOnly;
     pthread_t thread;
     bool done=false;
+    enum toggleOp_t toggle=eToggleIgnore;
 
     for(i=1;i<argc;i++)
     {
@@ -506,26 +677,57 @@ int main(int argc, char **argv)
                     show_usage(argv[0]);
                     return 0;
                     break;
-                case 's':
-                    op = eTestOpSetSecure;
+                case 'A':
+                    op = eTestOpSetAll;
+                    toggle = eToggleEnable;
                     break;
-                case 'u':
-                    op = eTestOpSetClear;
+                case 'a':
+                    op = eTestOpSetAll;
+                    toggle = eToggleDisable;
+                    break;
+                case 'P':
+                    op = eTestOpSetUrr;
+                    toggle = eToggleEnable;
+                    break;
+                case 'p':
+                    op = eTestOpSetUrr;
+                    toggle = eToggleDisable;
+                    break;
+                case 'G':
+                    op = eTestOpSetGfx;
+                    toggle = eToggleEnable;
+                    break;
+                case 'g':
+                    op = eTestOpSetGfx;
+                    toggle = eToggleDisable;
+                    break;
+                case 'E':
+                    op = eTestOpSetExt;
+                    toggle = eToggleEnable;
+                    break;
+                case 'e':
+                    op = eTestOpSetExt;
+                    toggle = eToggleDisable;
                     break;
                 case 'l': /* Infinite loop */
                     op = eTestOpLoop;
                     break;
+                case 'd': /* internal test output. Non-described option */
+                    op = eTestOpDebug;
+                    break;
                 case 'c': /* finite loop */
-                    op = eTestOpLoopFinite;
+                    op = eTestOpLoop;
 
                     iterations = strtoul(argv[++i], NULL, 0);
                     if(iterations <= 0)
                     {
-                        BDBG_ERR(("Supply an iteration count greater than 0"));
-                        return 0;
+                        printf("Supply an iteration count greater than 0");
+                        return -1;
                     }
                     else
-                    BDBG_WRN(("Will run for %d iterations", iterations ));
+                    {
+                        printf("Will run for %d iterations", iterations );
+                    }
                     break;
                 case 't': /* Test scrubbing */
                     op = eTestOpVerify;
@@ -549,42 +751,102 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    if(op==eTestOpDebug)
+    {
+        debugOutput();
+        goto EXIT;
+    }
+
     print_heaps();
     print_secure_status();
 
     switch(op)
     {
-        case eTestOpSetSecure:
-            setHeapsSecure(true);
+        case eTestOpSetAll:
+            if(toggle==eToggleEnable)
+            {
+                /* If enabling, must enable urr first */
+                rc=setHeapsSecure(toggle, eToggleIgnore, eToggleIgnore);
+                if(rc!=NEXUS_SUCCESS)
+                {
+                    goto EXIT;
+                }
+                rc=setHeapsSecure(eToggleIgnore, toggle, toggle);
+                if(rc!=NEXUS_SUCCESS)
+                {
+                    goto EXIT;
+                }
+            }
+            else
+            {
+                /* If disabling, must disable gfx/ext first */
+                rc=setHeapsSecure(eToggleIgnore, toggle, toggle);
+                if(rc!=NEXUS_SUCCESS)
+                {
+                    goto EXIT;
+                }
+                rc=setHeapsSecure(toggle, eToggleIgnore, eToggleIgnore);
+                if(rc!=NEXUS_SUCCESS)
+                {
+                    goto EXIT;
+                }
+            }
             break;
-        case eTestOpSetClear:
-            setHeapsSecure(false);
+        case eTestOpSetUrr:
+            rc=setHeapsSecure(toggle, eToggleIgnore, eToggleIgnore);
+            if(rc!=NEXUS_SUCCESS)
+            {
+                goto EXIT;
+            }
+            break;
+        case eTestOpSetGfx:
+            if(!heapInfo.secureGfx)
+            {
+                printf("No secure gfx buffers exist\n");
+                rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto EXIT;
+            }
+            rc=setHeapsSecure(eToggleIgnore, toggle, eToggleIgnore);
+            if(rc!=NEXUS_SUCCESS)
+            {
+               goto EXIT;
+            }
+            break;
+        case eTestOpSetExt:
+            if(!heapInfo.secureExt)
+            {
+                printf("No secure extension buffers exist\n");
+                rc=BERR_TRACE(NEXUS_INVALID_PARAMETER);
+                goto EXIT;
+            }
+            rc=setHeapsSecure(eToggleIgnore, eToggleIgnore, toggle);
+            if(rc!=NEXUS_SUCCESS)
+            {
+               goto EXIT;
+            }
             break;
         case eTestOpLoop:
-            printf("Launching infinite loop... press enter to quit\n");
-            BKNI_Sleep(1000);
+            printf("Launching toggle loop... \n");
             pthread_create(&thread, NULL, toggle_thread, &done);
-            getchar();
-            done=true;
+            if(iterations<=0)
+            {
+                printf("\n\nInfinite loop started.... press enter to quit\n\n");
+                getchar();
+                done=true;
+            }
             printf("Waiting for thread to exit\n");
-            pthread_join(thread, NULL);
+            pthread_join(thread, (void **)&rc);
             break;
         case eTestOpVerify:
             rc = scrub_verify();
             break;
-        case eTestOpLoopFinite:
-            for(i = 0; i < iterations; i++)
-            {
-                printf("iteration: %d\n", i);
-                rc = scrub_verify();
-                if(rc)
-                    return rc;
-            }
-            break;
         case eTestOpQueryOnly:
         default:
+            goto EXIT;
             break;
     }
+
+    print_secure_status();
 
 EXIT:
     NxClient_Uninit();

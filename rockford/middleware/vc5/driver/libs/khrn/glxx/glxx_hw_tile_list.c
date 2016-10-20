@@ -23,8 +23,8 @@ static bool prep_tlb_ldst(struct v3d_tlb_ldst_params *ls,
       return false;
 
    uint32_t render_rw_flags =
-      (load ? GMEM_SYNC_CORE_READ : 0) |
-      (store ? GMEM_SYNC_CORE_WRITE : 0);
+      (load ? GMEM_SYNC_TLB_IMAGE_READ : 0) |
+      (store ? GMEM_SYNC_TLB_IMAGE_WRITE : 0);
    v3d_addr_t base_addr = khrn_fmem_lock_and_sync(&rs->fmem, blob->res_i->handle,
       /*bin_rw_flags=*/0, render_rw_flags);
    if (base_addr == 0)
@@ -705,13 +705,20 @@ static v3d_empty_tile_mode calc_et_mode(const GLXX_HW_RENDER_STATE_T *rs,
     * Cannot skip empty tiles if doing any blitting. */
    if (V3D_VER_AT_LEAST(3,3,0,0) && (rs->num_blits == 0))
    {
+      unsigned num_load_instructions =
+         ((fb_ops->rt_nonms_load_mask || fb_ops->depth_load || fb_ops->stencil_load) ? 1 : 0) +
+         gfx_num_set_bits(fb_ops->rt_ms_load_mask);
+      /* We stick dummy STORE_GENERAL instructions between load instructions... */
+      bool any_store_generals = fb_ops->rt_ms_store_mask || (num_load_instructions > 1);
+
       /* If storing either undefined data or what's already there, we can skip
        * empty tiles */
       if (!khrn_options.no_empty_tile_skip &&
+         /* STORE_GENERAL instructions not skipped properly; see GFXH-1515.
+          * Note all MS stores are done with STORE_GENERALs so there is no
+          * separate check for MS stores here. */
+         !any_store_generals &&
          ((fb_ops->rt_nonms_store_mask & fb_ops->rt_clear_mask) == 0) &&
-         /* If loading from non-MS buffer that implies MS buffer was invalid
-          * before this frame. Need MS stores in that case... */
-         ((fb_ops->rt_ms_store_mask & (fb_ops->rt_clear_mask | fb_ops->rt_nonms_load_mask)) == 0) &&
          (!fb_ops->depth_store || !fb_ops->depth_clear) &&
          (!fb_ops->stencil_store || !fb_ops->stencil_clear))
          return V3D_EMPTY_TILE_MODE_SKIP;
@@ -734,16 +741,31 @@ static v3d_empty_tile_mode calc_et_mode(const GLXX_HW_RENDER_STATE_T *rs,
 static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
 {
    uint8_t *instr = khrn_fmem_begin_cle(&rs->fmem,
+#if V3D_HAS_BASEINSTANCE
+      V3D_CL_SET_INSTANCE_ID_SIZE +
+#endif
+#if !V3D_VER_AT_LEAST(3,3,0,0)
       (rs->workaround_gfxh_1313 ? glxx_workaround_gfxh_1313_size() : 0) +
+#endif
       V3D_CL_ENABLE_Z_ONLY_SIZE +
       (rs->num_z_prepass_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE) +
       V3D_CL_DISABLE_Z_ONLY_SIZE +
+#if !V3D_HAS_TL_START_UNC
+      (rs->fmem.br_info.num_bins * V3D_CL_PRIM_LIST_FORMAT_SIZE) +
+#endif
       (rs->fmem.br_info.num_bins * V3D_CL_BRANCH_IMPLICIT_TILE_SIZE));
    if (!instr)
       return false;
 
+#if V3D_HAS_BASEINSTANCE
+   /* Must set base instance to 0 at start of tile; PTB assumes this! */
+   v3d_cl_set_instance_id(&instr, 0);
+#endif
+
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    if (rs->workaround_gfxh_1313 && !glxx_workaround_gfxh_1313(&instr, &rs->fmem))
       return false;
+#endif
 
    if (rs->num_z_prepass_bins)
    {
@@ -754,7 +776,12 @@ static bool write_tile_list_branches(GLXX_HW_RENDER_STATE_T *rs)
    }
 
    for (unsigned i = 0; i != rs->fmem.br_info.num_bins; ++i)
+   {
+#if !V3D_HAS_TL_START_UNC
+      v3d_cl_prim_list_format(&instr, 3, false, false);
+#endif
       v3d_cl_branch_implicit_tile(&instr, i);
+   }
 
    khrn_fmem_end_cle(&rs->fmem, instr);
 

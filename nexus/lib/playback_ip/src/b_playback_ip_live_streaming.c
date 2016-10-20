@@ -725,7 +725,7 @@ liveStreamingThreadFromRaveBuffer(
     B_PlaybackIpLiveStreamingOpenSettings *liveStreamingSettings;
     void *readBuf = NULL;
     size_t clearBufferSize;
-    unsigned * indexBuf = NULL;
+    size_t * indexBuf = NULL;
 #if (NEXUS_HAS_DMA || NEXUS_HAS_XPT_DMA) && NEXUS_HAS_SECURITY
     unsigned char *clearBuf;
 #endif
@@ -886,7 +886,7 @@ liveStreamingThreadFromRaveBuffer(
                         /* got atleast 1st 2 GOPs, so get the bytesRecordedTill last gop */
                         BDBG_ASSERT(indexBytesRead%BRCM_TPIT_ENTRY_SIZE==0);
                         BDBG_MSG(("%s: received 1st GOP (indexBytesRead %zu), last RAP entry %p", __FUNCTION__, indexBytesRead, (void *)(indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE))));
-                        indexBuf = (unsigned *) ((unsigned)indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE));
+                        indexBuf = (size_t *) ((size_t)indexBuf + (indexBytesRead - BRCM_TPIT_ENTRY_SIZE));
                     }
                 }
                 /* accumulated upto 2nd Random Access Indicator, i.e. one full GOP */
@@ -1291,7 +1291,7 @@ hlsStreamingThreadFromRaveBuffer(
     B_PlaybackIpLiveStreamingHandle liveStreamingHandle = (B_PlaybackIpLiveStreamingHandle)data;
     B_PlaybackIpLiveStreamingOpenSettings *liveStreamingSettings;
     const void *readBuf = NULL;
-    const unsigned * indexBuf = NULL;
+    const size_t * indexBuf = NULL;
     size_t bytesRead = 0, indexBytesRead, bytesSentInCurrentGop = 0, bytesToWrite = 0, totalBytesWritten = 0;
     int streamingFd;
     int bytesWritten = 0;
@@ -1424,7 +1424,7 @@ hlsStreamingThreadFromRaveBuffer(
                 /* we will use the 2nd entry for calculating the size of the 1st GOP */
                 BDBG_MSG(("%s: GOT 1st full GOP", __FUNCTION__));
                 BDBG_ASSERT((indexBytesRead >= (2*BRCM_TPIT_ENTRY_SIZE)));
-                indexBuf = (unsigned *) ((unsigned)indexBuf + BRCM_TPIT_ENTRY_SIZE); /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
+                indexBuf = (size_t *) ((size_t)indexBuf + BRCM_TPIT_ENTRY_SIZE); /* index needs to point to the 2nd RAI entry, then we can get the size of the very 1st GOP in belows logic */
 #ifdef DEBUG
                 BDBG_MSG(("%s: 2nd index bytesRead %zu, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", __FUNCTION__, indexBytesRead, *indexBuf, *(indexBuf+2), *(indexBuf+3)));
 #endif

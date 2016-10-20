@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,23 +70,24 @@
 /***************************************************************************
  *USB_EHCI - USB EHCI Control Registers
  ***************************************************************************/
-#define BCHP_USB_EHCI_HCCAPBASE                  0x20b00300 /* [RO] EHCI Capability Register */
-#define BCHP_USB_EHCI_HCSPARAMS                  0x20b00304 /* [RO] EHCI Structural Parameter */
-#define BCHP_USB_EHCI_HCCPARAMS                  0x20b00308 /* [RO] EHCI Capability Parameter */
-#define BCHP_USB_EHCI_USBCMD                     0x20b00310 /* [RW] USB Command Register */
-#define BCHP_USB_EHCI_USBSTS                     0x20b00314 /* [RW] USB Status  Register */
-#define BCHP_USB_EHCI_USBINTR                    0x20b00318 /* [RW] USB Interrupt Enable Register */
-#define BCHP_USB_EHCI_FRINDEX                    0x20b0031c /* [RW] USB Frame Index Register */
-#define BCHP_USB_EHCI_PERIODICLISTBASE           0x20b00324 /* [RW] Periodic Frame List Base Address Register */
-#define BCHP_USB_EHCI_ASYNCLISTADDR              0x20b00328 /* [RW] Asynchronous List Address */
-#define BCHP_USB_EHCI_CONFIGFLAG                 0x20b00350 /* [RW] Configured Flag Register */
-#define BCHP_USB_EHCI_PORTSC_0                   0x20b00354 /* [RW] Port Status/Control Register for Port 0 */
-#define BCHP_USB_EHCI_INSNREG00                  0x20b00390 /* [RW] Microframe Base Value Register */
-#define BCHP_USB_EHCI_INSNREG01                  0x20b00394 /* [RW] Packet Buffer OUT/IN Threshold Register */
-#define BCHP_USB_EHCI_INSNREG02                  0x20b00398 /* [RW] Packet Buffer Depth Register */
-#define BCHP_USB_EHCI_INSNREG03                  0x20b0039c /* [RW] Break Memory Transfer Register */
-#define BCHP_USB_EHCI_INSNREG04                  0x20b003a0 /* [RW] Debug Register */
-#define BCHP_USB_EHCI_INSNREG05                  0x20b003a4 /* [RW] UTMI Control and Status Register */
+#define BCHP_USB_EHCI_HCCAPBASE                  0x20b00300 /* [RO][32] EHCI Capability Register */
+#define BCHP_USB_EHCI_HCSPARAMS                  0x20b00304 /* [RO][32] EHCI Structural Parameter */
+#define BCHP_USB_EHCI_HCCPARAMS                  0x20b00308 /* [RO][32] EHCI Capability Parameter */
+#define BCHP_USB_EHCI_USBCMD                     0x20b00310 /* [RW][32] USB Command Register */
+#define BCHP_USB_EHCI_USBSTS                     0x20b00314 /* [RW][32] USB Status  Register */
+#define BCHP_USB_EHCI_USBINTR                    0x20b00318 /* [RW][32] USB Interrupt Enable Register */
+#define BCHP_USB_EHCI_FRINDEX                    0x20b0031c /* [RW][32] USB Frame Index Register */
+#define BCHP_USB_EHCI_CTRLDSSEGMENT              0x20b00320 /* [RW][32] Control Data Structure Segment Register */
+#define BCHP_USB_EHCI_PERIODICLISTBASE           0x20b00324 /* [RW][32] Periodic Frame List Base Address Register */
+#define BCHP_USB_EHCI_ASYNCLISTADDR              0x20b00328 /* [RW][32] Asynchronous List Address */
+#define BCHP_USB_EHCI_CONFIGFLAG                 0x20b00350 /* [RW][32] Configured Flag Register */
+#define BCHP_USB_EHCI_PORTSC_0                   0x20b00354 /* [RW][32] Port Status/Control Register for Port 0 */
+#define BCHP_USB_EHCI_INSNREG00                  0x20b00390 /* [RW][32] Microframe Base Value Register */
+#define BCHP_USB_EHCI_INSNREG01                  0x20b00394 /* [RW][32] Packet Buffer OUT/IN Threshold Register */
+#define BCHP_USB_EHCI_INSNREG02                  0x20b00398 /* [RW][32] Packet Buffer Depth Register */
+#define BCHP_USB_EHCI_INSNREG03                  0x20b0039c /* [RW][32] Break Memory Transfer Register */
+#define BCHP_USB_EHCI_INSNREG04                  0x20b003a0 /* [RW][32] Debug Register */
+#define BCHP_USB_EHCI_INSNREG05                  0x20b003a4 /* [RW][32] UTMI Control and Status Register */
 
 /***************************************************************************
  *HCCAPBASE - EHCI Capability Register
@@ -365,6 +366,14 @@
 #define BCHP_USB_EHCI_FRINDEX_FRAME_INDEX_MASK                     0x00003fff
 #define BCHP_USB_EHCI_FRINDEX_FRAME_INDEX_SHIFT                    0
 #define BCHP_USB_EHCI_FRINDEX_FRAME_INDEX_DEFAULT                  0x00000000
+
+/***************************************************************************
+ *CTRLDSSEGMENT - Control Data Structure Segment Register
+ ***************************************************************************/
+/* USB_EHCI :: CTRLDSSEGMENT :: CTRLDSSEGMENT [31:00] */
+#define BCHP_USB_EHCI_CTRLDSSEGMENT_CTRLDSSEGMENT_MASK             0xffffffff
+#define BCHP_USB_EHCI_CTRLDSSEGMENT_CTRLDSSEGMENT_SHIFT            0
+#define BCHP_USB_EHCI_CTRLDSSEGMENT_CTRLDSSEGMENT_DEFAULT          0x00000000
 
 /***************************************************************************
  *PERIODICLISTBASE - Periodic Frame List Base Address Register

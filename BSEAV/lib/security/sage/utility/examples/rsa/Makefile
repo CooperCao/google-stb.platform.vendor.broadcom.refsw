@@ -1,7 +1,7 @@
 #############################################################################
-#    (c)2014 Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom Corporation and/or its licensors,
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,18 +34,6 @@
 # ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 # LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 # ANY LIMITED REMEDY.
-#
-# $brcm_Workfile: Makefile $
-# $brcm_Revision: 1 $
-# $brcm_Date: 1/14/14 12:41p $
-#
-# Module Description:
-#
-# Revision History:
-#
-# $brcm_Log:
-#
-#
 #############################################################################
 
 
@@ -73,6 +61,10 @@ SRAI_TOP  ?= ${SAGE_PUBLIC_TOP}/srai
 include ${MAGNUM_TOP}/syslib/sagelib/bsagelib_public.inc
 include ${BSEAV_TOP}/lib/security/sage/utility/utility.inc
 
+ifeq ($(NXCLIENT_SUPPORT),y)
+include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
+endif
+
 APP = brcm_utility_rsa_tool
 
 # Add example sources
@@ -88,12 +80,20 @@ APP_INCLUDES  = ${BSAGELIB_INCLUDES} \
                 ${SAGE_PUBLIC_TOP}/include \
                 ${UTILITY_INCLUDES} \
                 ${SAGE_PUBLIC_TOP}/platforms/include
+
+ifeq ($(NXCLIENT_SUPPORT),y)
+APP_INCLUDE += ${NXCLIENT_INCLUDES}
+endif
+
 # include cross-compiler definitions
 include ${NEXUS_TOP}/platforms/${NEXUS_PLATFORM}/build/platform_app.inc
 
 #srai lib path first to get latest SRAI lib
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/srai -lsrai
 LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lutility
+ifeq ($(NXCLIENT_SUPPORT),y)
+LDFLAGS += ${NXCLIENT_LDFLAGS}
+endif
 LDFLAGS +=  -lpthread -lm
 
 #debug symbols
@@ -101,6 +101,10 @@ CFLAGS += -g
 
 CFLAGS += $(addprefix -I,${APP_INCLUDES})
 CFLAGS += $(addprefix -I,${BSAGELIB_INCLUDES})
+CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
+ifeq ($(NXCLIENT_SUPPORT),y)
+CFLAGS += $(NXCLIENT_CFLAGS)
+endif
 CFLAGS += -DPIC -fpic
 
 # This is the minimum needed to compile and link with Nexus
@@ -109,19 +113,29 @@ CFLAGS += ${NEXUS_CFLAGS} $(addprefix -I,${NEXUS_APP_INCLUDE_PATHS})  $(addprefi
 #allow c++ style comments
 CFLAGS += -std=c99
 
+ifeq ($(B_REFSW_OBJ_ROOT),)
+RSA_OBJDIR:= obj
+else
+RSA_OBJDIR:=${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/sage/utility
+endif
+export RSA_OBJDIR
+
 .PHONY: all clean uninstall install re
 
 
-all: srai prep_utility ${APP}
+all: srai prep_utility prep_nexus ${APP}
 
 # Implicit rule for building local apps
 ${APP}: ${OBJS}
 	@echo [Link... $@]
-	${Q_} ${CC} ${OBJS} -o ${APP} ${LDFLAGS}
+	${Q_} ${CC} ${RSA_OBJDIR}/${OBJS} -o ${APP} ${LDFLAGS}
 
 %.o: %.c
 	@echo [Compile... $<]
-	${Q_} ${CC} -c -o $@ $< ${CFLAGS}
+	@if ! [ -e "${RSA_OBJDIR}" ]; then \
+		mkdir -p ${RSA_OBJDIR}; \
+	fi;
+	${Q_} ${CC} ${CFLAGS} -c $< -o ${RSA_OBJDIR}/$@
 
 clean:
 	@echo [Clean... ${APP}]
@@ -134,6 +148,19 @@ srai:
 prep_utility:
 	@echo [Building Utility lib ...]
 	make -C ${SAGE_PUBLIC_TOP}/utility re
+
+prep_nexus:
+ifeq ($(NXCLIENT_SUPPORT),y)
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/nxserver ]; then \
+		echo [ building nxclient .... ] && \
+		$(MAKE) -C $(NEXUS_TOP)/nxclient >/dev/null; \
+	fi
+else
+	@if [ ! -e $(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/nexus/bin/libnexus.so ]; then \
+		echo [ building nexus .... ] && \
+		$(MAKE) -C $(NEXUS_TOP)/build >/dev/null; \
+	fi
+endif
 
 uninstall:
 	@echo [Uninstall... ${APP}]

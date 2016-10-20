@@ -94,7 +94,6 @@ static const BVDC_P_Feeder_StripeWidthConfig s_aStripeWidthCfgTbl[] =
 #define BVDC_P_FEEDER_STRIPE_WIDTH_CONFIG_TABLE_CNT       \
     (sizeof(s_aStripeWidthCfgTbl) / sizeof(BVDC_P_Feeder_StripeWidthConfig))
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
 #if (BVDC_P_SUPPORT_MFD_VER < BVDC_P_MFD_VER_16)
 static const BVDC_P_Feeder_VideoFormatMode s_hwOrientation[] =
 {
@@ -106,8 +105,24 @@ static const BVDC_P_Feeder_VideoFormatMode s_hwOrientation[] =
     BVDC_P_Feeder_VideoFormatMode_e3DMR  /* BFMT_Orientation_eLeftRight_Enhanced */
 };
 #endif
-#endif
 
+#define BVDC_P_MAKE_MFEEDER(pFeeder, id)                                               \
+{                                                                                      \
+    (pFeeder)->ulRegOffset = BCHP_MFD_##id##_REG_START - BCHP_MFD_0_REG_START;         \
+    (pFeeder)->ulVfd0RegOffset = 0;                                                    \
+    (pFeeder)->ulResetMask = BCHP_FMISC_SW_INIT_MFD_##id##_MASK;                       \
+    (pFeeder)->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;                     \
+	(pFeeder)->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_MFD_##id##_MASK;    \
+}
+
+#define BVDC_P_MAKE_VFEEDER(pFeeder, id)                                               \
+{                                                                                      \
+    (pFeeder)->ulRegOffset = BCHP_VFD_##id##_REG_START - BCHP_MFD_0_REG_START;         \
+    (pFeeder)->ulVfd0RegOffset = BCHP_VFD_##id##_REG_START - BCHP_VFD_0_REG_START;     \
+    (pFeeder)->ulResetMask = BCHP_FMISC_SW_INIT_VFD_##id##_MASK;                       \
+    (pFeeder)->eImageFormat = BVDC_P_Feeder_ImageFormat_ePacked;                       \
+    (pFeeder)->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_VFD_##id##_MASK;    \
+}
 /***************************************************************************
  * Static functions
  ***************************************************************************/
@@ -121,12 +136,6 @@ static BERR_Code BVDC_P_Feeder_SetVertWindow_isr
       const BAVC_Polarity              eSourcePolarity,
       const uint32_t                   ulTop,
       const uint32_t                   ulHeight );
-
-#if (BVDC_P_MFD_SUPPORT_CSC)
-static void BVDC_P_Feeder_SetCsc_isr
-    ( BVDC_P_Feeder_Handle             hFeeder,
-      const BAVC_MVD_Field            *pFieldData );
-#endif
 
 #if BVDC_P_SUPPORT_MTG
 static void BVDC_P_Feeder_BuildMtgRul_isr
@@ -193,246 +202,94 @@ BERR_Code BVDC_P_Feeder_Create
 #endif
 
     /* Feeder reset address */
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     pFeeder->ulResetRegAddr = BCHP_FMISC_SW_INIT;
-#else
-    pFeeder->ulResetRegAddr = BCHP_FMISC_SOFT_RESET;
-#endif
+    pFeeder->ulVnetResetAddr = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT;
 
     switch( eFeederId )
     {
-    case BVDC_P_FeederId_eMfd0:
-        pFeeder->ulRegOffset = 0;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_0_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_0_MASK;
-#endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
+        case BVDC_P_FeederId_eMfd0:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 0);
         break;
-
-    case BVDC_P_FeederId_eVfd0:
-        pFeeder->ulRegOffset = BCHP_VFD_0_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_0_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_0_MASK;
-#endif
-        break;
-
-#if BCHP_VFD_1_REG_START
-    case BVDC_P_FeederId_eVfd1:
-        pFeeder->ulRegOffset = BCHP_VFD_1_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_1_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_1_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_1_MASK;
-#endif
-        break;
-#endif
-
-#if BCHP_VFD_2_REG_START
-    case BVDC_P_FeederId_eVfd2:
-        pFeeder->ulRegOffset = BCHP_VFD_2_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_2_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_2_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_2_MASK;
-#endif
-        break;
-#endif
 
 #if BCHP_MFD_1_REG_START
-    case BVDC_P_FeederId_eMfd1:
-        pFeeder->ulRegOffset = BCHP_MFD_1_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_1_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_1_MASK;
-#endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
-        break;
+        case BVDC_P_FeederId_eMfd1:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 1);
+            break;
 #endif
 
 #if BCHP_MFD_2_REG_START
-    case BVDC_P_FeederId_eMfd2:
-        pFeeder->ulRegOffset = BCHP_MFD_2_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_2_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_2_MASK;
-#endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
-        break;
+        case BVDC_P_FeederId_eMfd2:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 2);
+            break;
 #endif
 
 #if BCHP_MFD_3_REG_START
-    case BVDC_P_FeederId_eMfd3:
-        pFeeder->ulRegOffset = BCHP_MFD_3_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_3_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_3_MASK;
-#endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
-        break;
+        case BVDC_P_FeederId_eMfd3:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 3);
+            break;
 #endif
 
 #if BCHP_MFD_4_REG_START
-    case BVDC_P_FeederId_eMfd4:
-        pFeeder->ulRegOffset = BCHP_MFD_4_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_4_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_4_MASK;
-#endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
-        break;
+        case BVDC_P_FeederId_eMfd4:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 4);
+            break;
 #endif
 
 #if BCHP_MFD_5_REG_START
-    case BVDC_P_FeederId_eMfd5:
-        pFeeder->ulRegOffset = BCHP_MFD_5_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = 0;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_MFD_5_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_MFD_5_MASK;
+        case BVDC_P_FeederId_eMfd5:
+            BVDC_P_MAKE_MFEEDER(pFeeder, 5);
+            break;
 #endif
-        pFeeder->eImageFormat = BVDC_P_Feeder_ImageFormat_eAVC_MPEG;
+
+        case BVDC_P_FeederId_eVfd0:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 0);
         break;
+
+#if BCHP_VFD_1_REG_START
+        case BVDC_P_FeederId_eVfd1:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 1);
+            break;
+#endif
+
+#if BCHP_VFD_2_REG_START
+        case BVDC_P_FeederId_eVfd2:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 2);
+            break;
 #endif
 
 #if BCHP_VFD_3_REG_START
-    case BVDC_P_FeederId_eVfd3:
-        pFeeder->ulRegOffset = BCHP_VFD_3_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_3_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_3_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_3_MASK;
-#endif
-        break;
+        case BVDC_P_FeederId_eVfd3:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 3);
+            break;
 #endif
 
 #if BCHP_VFD_4_REG_START
-    case BVDC_P_FeederId_eVfd4:
-        pFeeder->ulRegOffset = BCHP_VFD_4_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_4_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_4_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_4_MASK;
-#endif
-        break;
+        case BVDC_P_FeederId_eVfd4:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 4);
+            break;
 #endif
 
 #if BCHP_VFD_5_REG_START
-    case BVDC_P_FeederId_eVfd5:
-        pFeeder->ulRegOffset = BCHP_VFD_5_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_5_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_5_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_5_MASK;
-#endif
-        break;
+        case BVDC_P_FeederId_eVfd5:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 5);
+            break;
 #endif
 
 #if BCHP_VFD_6_REG_START
-    case BVDC_P_FeederId_eVfd6:
-        pFeeder->ulRegOffset = BCHP_VFD_6_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_6_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_6_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_6_MASK;
-#endif
-        break;
+        case BVDC_P_FeederId_eVfd6:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 6);
+            break;
 #endif
 
 #if BCHP_VFD_7_REG_START
-    case BVDC_P_FeederId_eVfd7:
-        pFeeder->ulRegOffset = BCHP_VFD_7_REG_START - BCHP_MFD_0_REG_START;
-        pFeeder->ulVfd0RegOffset = BCHP_VFD_7_REG_START - BCHP_VFD_0_REG_START;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulResetMask = BCHP_FMISC_SW_INIT_VFD_7_MASK;
-#else
-        pFeeder->ulResetMask = BCHP_FMISC_SOFT_RESET_VFD_7_MASK;
+        case BVDC_P_FeederId_eVfd7:
+            BVDC_P_MAKE_VFEEDER(pFeeder, 7);
+            break;
 #endif
-        break;
-#endif
-
-    default:
+        default:
             BDBG_ASSERT(false);
     }
 
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-    pFeeder->ulVnetResetAddr = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT;
-#elif BCHP_MMISC_VNET_F_CHANNEL_RESET
-    pFeeder->ulVnetResetAddr = BCHP_MMISC_VNET_F_CHANNEL_RESET;
-#endif
-    if(BVDC_P_Feeder_IS_MPEG(pFeeder))
-    {
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_MFD_0_MASK<<(eFeederId - BVDC_P_FeederId_eMfd0);
-#elif BCHP_MMISC_VNET_F_CHANNEL_RESET
-        pFeeder->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_RESET_MFD_0_RESET_MASK<<(eFeederId - BVDC_P_FeederId_eMfd0);
-#endif
-    }
-    else
-    {
-#if BVDC_P_SUPPORT_NEW_SW_INIT
-        pFeeder->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_SW_INIT_VFD_0_MASK<<(eFeederId - BVDC_P_FeederId_eVfd0);
-#elif BCHP_MMISC_VNET_F_CHANNEL_RESET
-        pFeeder->ulVnetResetMask = BCHP_MMISC_VNET_F_CHANNEL_RESET_VFD_0_RESET_MASK<<(eFeederId - BVDC_P_FeederId_eVfd0);
-#endif
-    }
-#if (BVDC_P_MFD_NEED_CRC_WORKAROUND)
-    /* MPEG feeder only */
-    if(BVDC_P_Feeder_IS_MPEG(pFeeder))
-    {
-        pFeeder->ulLumaCrcRegAddr = BRDC_AllocScratchReg(pFeeder->hRdc);
-        if(!pFeeder->ulLumaCrcRegAddr)
-        {
-            BDBG_ERR(("Not enough scratch registers for Luma Crc!"));
-            BDBG_OBJECT_DESTROY(pFeeder, BVDC_FDR);
-            BKNI_Free((void*)pFeeder);
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-
-        pFeeder->ulChromaCrcRegAddr = BRDC_AllocScratchReg(pFeeder->hRdc);
-        if(!pFeeder->ulChromaCrcRegAddr)
-        {
-            BDBG_ERR(("Not enough scratch registers for Chroma Crc!"));
-            BDBG_OBJECT_DESTROY(pFeeder, BVDC_FDR);
-            BKNI_Free((void*)pFeeder);
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-    }
-#endif
     /* init the SubRul sub-module */
     BVDC_P_SubRul_Init(&(pFeeder->SubRul), 0 /* 0 means it has no src mux */,
         BVDC_P_Feeder_PostMuxValue(pFeeder), BVDC_P_DrainMode_eFront, 0, hResource);
@@ -476,6 +333,12 @@ BERR_Code BVDC_P_Feeder_Create
 #endif
     }
 
+    /* Dram type: There is no mixed dram configuration */
+    if(BVDC_P_Feeder_IS_MPEG(pFeeder))
+    {
+        pFeeder->eDramType = hSource->hVdc->stMemInfo.memc[0].type;
+    }
+
     /* All done. now return the new fresh context to user. */
     *phFeeder = (BVDC_P_Feeder_Handle)pFeeder;
 
@@ -492,14 +355,6 @@ void BVDC_P_Feeder_Destroy
 {
     BDBG_ENTER(BVDC_P_Feeder_Destroy);
     BDBG_OBJECT_ASSERT(hFeeder, BVDC_FDR);
-
-#if (BVDC_P_MFD_NEED_CRC_WORKAROUND)
-    if(BVDC_P_Feeder_IS_MPEG(hFeeder))
-    {
-        BRDC_FreeScratchReg(hFeeder->hRdc, hFeeder->ulLumaCrcRegAddr);
-        BRDC_FreeScratchReg(hFeeder->hRdc, hFeeder->ulChromaCrcRegAddr);
-    }
-#endif
 
     /* for VFD, hFeeder->hSource is NOT NULL iff hFeeder is created by
      * BVDC_P_Source_Create */
@@ -534,8 +389,8 @@ void BVDC_P_Feeder_Init
     BDBG_ENTER(BVDC_P_Feeder_Init);
     BDBG_OBJECT_ASSERT(hFeeder, BVDC_FDR);
 
-    /* Clear out shadow registers. */
-    BKNI_Memset((void*)hFeeder->aulRegs, 0x0, sizeof(hFeeder->aulRegs));
+    /* Clear out registers. */
+    BKNI_Memset((void*)&hFeeder->stRegs, 0x0, sizeof(BVDC_P_FeederRegisterSetting));
 
     hFeeder->hWindow = hWindow;
     hFeeder->stUpSampler.bUnbiasedRound = false;
@@ -549,6 +404,8 @@ void BVDC_P_Feeder_Init
 #endif
     hFeeder->ulPicOffset = 0;
     hFeeder->ulPicOffset_R = 0;
+    hFeeder->eBitDepth = BAVC_VideoBitDepth_eMax;
+    hFeeder->eChromaBitDepth = BAVC_VideoBitDepth_eMax;
 
     if(BVDC_P_Feeder_IS_MPEG(hFeeder))
     {
@@ -558,30 +415,13 @@ void BVDC_P_Feeder_Init
 
         /* enable CRC, in display mode and load seed on every vsync
          * TODO: support N-field CRC checking; */
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_CRC_CTRL ) =
+        hFeeder->stRegs.ulCrcCtrl =
             BCHP_FIELD_ENUM(MFD_0_CRC_CTRL , ENABLE, ON)    |
 #if (BVDC_P_MFD_SUPPORT_CRC_TYPE)
             BCHP_FIELD_DATA(MFD_0_CRC_CTRL , TYPE, hFeeder->hSource->stCurInfo.eCrcType) |
 #endif
             BCHP_FIELD_ENUM(MFD_0_CRC_CTRL , MODE, DISPLAY) |
             BCHP_FIELD_ENUM(MFD_0_CRC_CTRL , LOAD_CRC_SEED, AT_SOF);
-
-        /* Initial seed value should be all '1's */
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_CRC_SEED) = 0xFFFFFFFF;
-
-#if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_3) && (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_5)
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_US_422_TO_444) =
-            BCHP_FIELD_ENUM(MFD_0_US_422_TO_444, UNBIASED_ROUND_ENABLE, DISABLE)    |
-            BCHP_FIELD_ENUM(MFD_0_US_422_TO_444, FILT_CTRL, CHROMA_DUPLICATION);
-
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_CSC_CNTL) =
-            BCHP_FIELD_ENUM(MFD_0_CSC_CNTL, CSC_ENABLE, OFF);
-
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_DS_CNTL) =
-            BCHP_FIELD_ENUM(MFD_0_DS_CNTL, RING_SUPPRESSION, DISABLE)   |
-            BCHP_FIELD_ENUM(MFD_0_DS_CNTL, FILTER_TYPE, FILTER_TYPE_DECIMATE);
-#endif
-
     }
     else if(BVDC_P_Feeder_IS_VFD(hFeeder))
     {
@@ -595,10 +435,10 @@ void BVDC_P_Feeder_Init
     }
 
 #if (BVDC_P_MFD_VER_15 == BVDC_P_SUPPORT_MFD_VER)
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_TEST_MODE_CNTL) =
+    hFeeder->stRegs.ulTestModeCntl =
         BCHP_FIELD_DATA(MFD_0_TEST_MODE_CNTL, DISABLE_DOUBLE_BUFFER, 1);
 #else
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_TEST_MODE_CNTL) = 0x0;
+    hFeeder->stRegs.ulTestModeCntl = 0x0;
 #endif
 
     hFeeder->bGfxSrc = bGfxSrc;
@@ -711,84 +551,114 @@ static void BVDC_P_Feeder_BuildRulMfd_isr
 {
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
-#if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_3) && (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_5)
+    /* striped gfx source needs to update shadow registers */
+    if (hFeeder->bGfxSrc && hFeeder->stMfdPicture.ePxlFmt == BPXL_INVALID)
+    {
+        BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
+    }
 
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_RANGE_EXP_REMAP_CNTL, MFD_0_DS_CNTL,
-        pList->pulCurrent);
+    /* Addresses */
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic0Addr0);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic0Addr0_R);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE0_LINE_ADDR_1 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic0Addr1);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE0_LINE_ADDR_1_R + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic0Addr1_R);
 
-#elif (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_6)
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_BYTE_ORDER,
-        MFD_0_CHROMA_REPOSITION_DERING_ENABLE, pList->pulCurrent);
+    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_TEST_MODE_CNTL, hFeeder->ulRegOffset,
+        pList->pulCurrent, hFeeder->stRegs.ulTestModeCntl);
 
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_DATA_MODE, MFD_0_RANGE_EXP_REMAP_CNTL,
-        pList->pulCurrent);
+#if (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_15)
+    BDBG_CASSERT(6 == (((BCHP_MFD_0_DISP_VSIZE - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_DISP_VSIZE - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_FEEDER_CNTL + hFeeder->ulRegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFeederCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFixedColor;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLacCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulStride;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulHSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulVSize;
 
-#elif (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_9)
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_PICTURE0_LINE_ADDR_1,
-        MFD_0_CHROMA_NMBY, pList->pulCurrent);
+    BDBG_CASSERT(3 == (((BCHP_MFD_0_BYTE_ORDER - BCHP_MFD_0_DATA_MODE) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_BYTE_ORDER - BCHP_MFD_0_DATA_MODE) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_DATA_MODE + hFeeder->ulRegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDataMode;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulPicOffset;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulCompOrder;
 
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, pList->pulCurrent);
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_RANGE_EXP_REMAP_CNTL, pList->pulCurrent);
+    BDBG_CASSERT(3 == (((BCHP_MFD_0_CHROMA_NMBY - BCHP_MFD_0_CHROMA_SAMPLING_CNTL) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_CHROMA_NMBY- BCHP_MFD_0_CHROMA_SAMPLING_CNTL) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_CHROMA_SAMPLING_CNTL + hFeeder->ulRegOffset);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(MFD_0_CHROMA_SAMPLING_CNTL, CHROMA_REPOSITION_ENABLE, hFeeder->stRegs.bChromaRepEnable);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLumaNMBY;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulChromaNMBY;
 
-#elif (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_12)
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_PICTURE0_LINE_ADDR_1,
-        MFD_0_CHROMA_NMBY, pList->pulCurrent);
+    /* MFD_0_CHROMA_REPOSITION_DERING_ENABLE */
+    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, hFeeder->ulRegOffset,
+        pList->pulCurrent,
+        BCHP_FIELD_DATA(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, DERING_EN, hFeeder->stRegs.bChromaRepEnable));
 
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, pList->pulCurrent);
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_RANGE_EXP_REMAP_CNTL, pList->pulCurrent);
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_PICTURE0_LINE_ADDR_0_R,
-        MFD_0_PICTURE0_LINE_ADDR_1_R, pList->pulCurrent);
+    /* MFD_0_RANGE_EXP_REMAP_CNTL */
+    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_RANGE_EXP_REMAP_CNTL, hFeeder->ulRegOffset,
+        pList->pulCurrent, hFeeder->stRegs.ulRangeExpRemap);
+#else
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE1_LINE_ADDR_0 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic1Addr0);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE1_LINE_ADDR_0_R + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic1Addr0_R);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE1_LINE_ADDR_1 + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic1Addr1);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_MFD_0_PICTURE1_LINE_ADDR_1_R + hFeeder->ulRegOffset,
+        hFeeder->stRegs.ullPic1Addr1_R);
 
-#elif (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_13) && (BVDC_P_MFD_VER_15 >= BVDC_P_SUPPORT_MFD_VER)
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_PICTURE0_LINE_ADDR_1,
-        MFD_0_CHROMA_NMBY, pList->pulCurrent);
+    BDBG_CASSERT(11 == (((BCHP_MFD_0_COMP_ORDER - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_COMP_ORDER - BCHP_MFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_FEEDER_CNTL + hFeeder->ulRegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFeederCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLacCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFixedColor;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulStride;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulHSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulVSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDataMode;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherCtrl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherLfsrInit;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherLfsrCtrl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulCompOrder;
 
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, pList->pulCurrent);
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_RANGE_EXP_REMAP_CNTL, pList->pulCurrent);
-
-    BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_PICTURE0_LINE_ADDR_0_R,
-        MFD_0_PICTURE0_LINE_ADDR_1_R, pList->pulCurrent);
+    BDBG_CASSERT(6 == (((BCHP_MFD_0_CHROMA_REPOSITION_DERING_ENABLE - BCHP_MFD_0_LUMA_NMBY) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_MFD_0_CHROMA_REPOSITION_DERING_ENABLE - BCHP_MFD_0_LUMA_NMBY) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_LUMA_NMBY + hFeeder->ulRegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLumaNMBY;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulChromaNMBY;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulPicOffset;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulRangeExpRemap;
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(MFD_0_CHROMA_SAMPLING_CNTL, CHROMA_REPOSITION_ENABLE, hFeeder->stRegs.bChromaRepEnable);
+    *pList->pulCurrent++ =
+        BCHP_FIELD_DATA(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, DERING_EN, hFeeder->stRegs.bChromaRepEnable);
 #endif
 
-#if (BVDC_P_MFD_NEED_CRC_WORKAROUND)
-    /* Read and store CRC values. Need to read before feeder is enabled */
-    *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_LUMA_CRC + hFeeder->ulRegOffset);
-    *pList->pulCurrent++ = BRDC_REGISTER(hFeeder->ulLumaCrcRegAddr);
-
-    *pList->pulCurrent++ = BRDC_OP_REG_TO_REG( 1 );
-    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_CHROMA_CRC + hFeeder->ulRegOffset);
-    *pList->pulCurrent++ = BRDC_REGISTER(hFeeder->ulChromaCrcRegAddr);
-
-#endif
-
-    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_TEST_MODE_CNTL, pList->pulCurrent);
-
+    /* 422 gfx surface is set from shadow registers from user thread; so build shadow register RUL
+       here to override MFD address RUL built earlier. */
     if (hFeeder->bGfxSrc && hFeeder->stMfdPicture.ePxlFmt != BPXL_INVALID)
     {
-#if (BVDC_P_SUPPORT_MFD_VER<=BVDC_P_MFD_VER_6)
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_FEEDER_CNTL, MFD_0_CHROMA_NMBY,
-            pList->pulCurrent);
-#else
-#if (BVDC_P_MFD_VER_16 <= BVDC_P_SUPPORT_MFD_VER)
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_FEEDER_CNTL, MFD_0_COMP_ORDER,
-                    pList->pulCurrent);
-#else
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_FEEDER_CNTL, MFD_0_BYTE_ORDER,
-            pList->pulCurrent);
-#endif
-#endif
-
         BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
+    }
 
-        BVDC_P_MFD_WRITE_TO_RUL(MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-    }
-    else
-    {
-        BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(MFD_0_FEEDER_CNTL, MFD_0_PIC_FEED_CMD,
-            pList->pulCurrent);
-    }
+    BVDC_P_MFD_WRITE_TO_RUL(MFD_0_PIC_FEED_CMD, hFeeder->ulRegOffset,
+        pList->pulCurrent, hFeeder->stRegs.ulPicCmd);
 
     return;
 }
@@ -982,7 +852,8 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
 {
     BVDC_P_GfxSurfaceContext  *pGfxSurface;
     BVDC_P_SurfaceInfo   *pCurSur;
-    uint32_t  ulSurAddr, ulBottomOffset;
+    BMMA_DeviceOffset     ullSurAddr;
+    uint32_t  ulBottomOffset;
     uint32_t  ulAddrShadowReg0, ulAddrShadowReg1;
     uint32_t  ulRAddrShadowReg0, ulRAddrShadowReg1;
 
@@ -992,8 +863,8 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
     /* ---------------------------------------------------------------------
      * (1) send new surface to address shadow registers.
      */
-    ulSurAddr = pCurSur->ulAddress + pGfxSurface->ulMainByteOffset;
-    if (ulSurAddr != pGfxSurface->stSurNode[pGfxSurface->ucNodeIdx].ulAddr)
+    ullSurAddr = pCurSur->ullAddress + pGfxSurface->ulMainByteOffset;
+    if (ullSurAddr != pGfxSurface->stSurNode[pGfxSurface->ucNodeIdx].ullAddr)
     {
         BVDC_P_GfxSurface_SetShadowRegs_isr(&hFeeder->stGfxSurface, pCurSur, hFeeder->hSource);
     }
@@ -1034,79 +905,74 @@ static void BVDC_Feeder_BuildRulGfxSurAddr_isr
             BFMT_Orientation_e3D_Right == hFeeder->eOutputOrientation)
         {
             /* sawp right Surface and left surface due to output orientation */
-            ulAddrShadowReg0  = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[0]);
-            ulAddrShadowReg1  = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[1]);
-            ulRAddrShadowReg0 = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[0]);
-            ulRAddrShadowReg1 = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[1]);
+            ulAddrShadowReg0  = pGfxSurface->ulRSurAddrReg[0];
+            ulAddrShadowReg1  = pGfxSurface->ulRSurAddrReg[1];
+            ulRAddrShadowReg0 = pGfxSurface->ulSurAddrReg[0];
+            ulRAddrShadowReg1 = pGfxSurface->ulSurAddrReg[1];
         }
         else
         {
-            ulAddrShadowReg0  = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[0]);
-            ulAddrShadowReg1  = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[1]);
-            ulRAddrShadowReg0 = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[0]);
-            ulRAddrShadowReg1 = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[1]);
+            ulAddrShadowReg0  = pGfxSurface->ulSurAddrReg[0];
+            ulAddrShadowReg1  = pGfxSurface->ulSurAddrReg[1];
+            ulRAddrShadowReg0 = pGfxSurface->ulRSurAddrReg[0];
+            ulRAddrShadowReg1 = pGfxSurface->ulRSurAddrReg[1];
         }
 
-        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-        *pList->pulCurrent++ = BRDC_REGISTER(pGfxSurface->ulRegIdxReg);
-        *pList->pulCurrent++ = BRDC_OP_VAR_XOR_IMM_TO_VAR(BRDC_Variable_0, BRDC_Variable_1);
-        *pList->pulCurrent++ = ~0;
+        BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            pGfxSurface->ulRegIdxReg, BRDC_Variable_0);
+        BRDC_AddrRul_XorImmToVar_isr(&pList->pulCurrent,
+            BRDC_Variable_0, -1, BRDC_Variable_1);
 
-        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_2);
-        *pList->pulCurrent++ = ulAddrShadowReg1;
-        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_3);
-        *pList->pulCurrent++ = ulAddrShadowReg0;
+        BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            ulAddrShadowReg1, BRDC_Variable_2);
+        BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            ulAddrShadowReg0, BRDC_Variable_3);
 
-        *pList->pulCurrent++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
-        *pList->pulCurrent++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_1, BRDC_Variable_3, BRDC_Variable_3);
-        *pList->pulCurrent++ = BRDC_OP_VAR_OR_VAR_TO_VAR (BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+        BRDC_AddrRul_AndToVar_isr(&pList->pulCurrent, BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
+        BRDC_AddrRul_AndToVar_isr(&pList->pulCurrent, BRDC_Variable_1, BRDC_Variable_3, BRDC_Variable_3);
+        BRDC_AddrRul_OrToVar_isr(&pList->pulCurrent, BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
 
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_3);
-        *pList->pulCurrent++ = ulBottomOffset;
-        *pList->pulCurrent++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+        BRDC_AddrRul_ImmToVar_isr(&pList->pulCurrent,ulBottomOffset, BRDC_Variable_3);
+        BRDC_AddrRul_SumToVar_isr(&pList->pulCurrent, BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
 
-        *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_2);
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_PICTURE0_LINE_ADDR_0) + hFeeder->ulRegOffset;
+        BRDC_AddrRul_VarToReg_isr(&pList->pulCurrent,
+            BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset,
+            BRDC_Variable_2);
 
-#if BVDC_P_MFD_SUPPORT_3D_VIDEO
         if(BVDC_P_ORIENTATION_IS_3D(pCurSur->stAvcPic.eInOrientation) &&
            BVDC_P_ORIENTATION_IS_3D(hFeeder->eOutputOrientation))
         {
-            *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_2);
-            *pList->pulCurrent++ = ulRAddrShadowReg1;
-            *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_3);
-            *pList->pulCurrent++ = ulRAddrShadowReg0;
+            BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            ulRAddrShadowReg1, BRDC_Variable_2);
+            BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            ulRAddrShadowReg0, BRDC_Variable_3);
 
-            *pList->pulCurrent++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
-            *pList->pulCurrent++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_1, BRDC_Variable_3, BRDC_Variable_3);
-            *pList->pulCurrent++ = BRDC_OP_VAR_OR_VAR_TO_VAR (BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+            BRDC_AddrRul_AndToVar_isr(&pList->pulCurrent, BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
+            BRDC_AddrRul_AndToVar_isr(&pList->pulCurrent, BRDC_Variable_1, BRDC_Variable_3, BRDC_Variable_3);
+            BRDC_AddrRul_OrToVar_isr(&pList->pulCurrent, BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
 
-            *pList->pulCurrent++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_3);
-            *pList->pulCurrent++ = ulBottomOffset;
-            *pList->pulCurrent++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+            BRDC_AddrRul_ImmToVar_isr(&pList->pulCurrent,ulBottomOffset, BRDC_Variable_3);
+            BRDC_AddrRul_SumToVar_isr(&pList->pulCurrent, BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
 
-            *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_2);
-            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R) + hFeeder->ulRegOffset;
+            BRDC_AddrRul_VarToReg_isr(&pList->pulCurrent,
+                BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset, BRDC_Variable_2);
         }
         else
         {
-            *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-            *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R) + hFeeder->ulRegOffset;
-            *pList->pulCurrent++ = 0;
+            BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+                BCHP_MFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulRegOffset, 0);
+
         }
-#endif
     }
     else if(hFeeder->stMfdPicture.ePxlFmt != BPXL_INVALID)/* !(pGfxSurface->b3dSrc) && not striped */
     {
-        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-        *pList->pulCurrent++ = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[0]);
+        BRDC_AddrRul_RegToVar_isr(&pList->pulCurrent,
+            pGfxSurface->ulSurAddrReg[0], BRDC_Variable_0);
 
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_1);
-        *pList->pulCurrent++ = ulBottomOffset;
-        *pList->pulCurrent++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_1, BRDC_Variable_0);
-
-        *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_0);
-        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_MFD_0_PICTURE0_LINE_ADDR_0) + hFeeder->ulRegOffset;
+        BRDC_AddrRul_ImmToVar_isr(&pList->pulCurrent, ulBottomOffset, BRDC_Variable_1);
+        BRDC_AddrRul_SumToVar_isr(&pList->pulCurrent, BRDC_Variable_0, BRDC_Variable_1, BRDC_Variable_0);
+        BRDC_AddrRul_VarToReg_isr(&pList->pulCurrent,
+            BCHP_MFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulRegOffset, BRDC_Variable_0);
     }
 
     /* set RUL to increase VsyncCntr */
@@ -1227,7 +1093,7 @@ static void BVDC_P_Feeder_BuildRulVfd_isr
         /* DCDM is not in MFD !!!.
          * Can not use shadow registers settings in MFD */
         /* VFD_0_DCDM_CFG */
-#if (BVDC_P_SUPPORT_LPDDR4)
+#if (BVDC_P_MFD_SUPPORT_NEW_MEMORY_PITCH)
         if(!hFeeder->bFixedColor)
 #else
         if(pPicture->bEnableDcxm && !hFeeder->bFixedColor)
@@ -1251,83 +1117,60 @@ static void BVDC_P_Feeder_BuildRulVfd_isr
     }
 #endif
 
-    /* Address Offsets are different between MFD and VFD.
-     * Be careful when using BVDC_P_MFD_BLOCK_WRITE_TO_RUL or
-     * BVDC_P_MFD_WRITE_TO_RUL */
+    /* Address Offsets are different between MFD and VFD */
     /* VFD_0_TEST_MODE_CNTL */
-    *pList->pulCurrent++ = BRDC_OP_IMM_TO_REG();
-    *pList->pulCurrent++ = BRDC_REGISTER(
-        BCHP_VFD_0_TEST_MODE_CNTL + hFeeder->ulVfd0RegOffset);
-    *pList->pulCurrent++ = BVDC_P_MFD_GET_REG_DATA(MFD_0_TEST_MODE_CNTL);
+    BVDC_P_MFD_WRITE_TO_RUL(VFD_0_TEST_MODE_CNTL, hFeeder->ulVfd0RegOffset,
+        pList->pulCurrent, hFeeder->stRegs.ulTestModeCntl);
 
-    if (!hFeeder->bGfxSrc)
-    {
-#if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_16)
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_FEEDER_CNTL,  MFD_0_PICTURE0_LINE_ADDR_0_R, pList->pulCurrent);
-        BVDC_P_MFD_WRITE_TO_RUL(
-            MFD_0_PIC_FEED_CMD, pList->pulCurrent);
+    /* address */
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_VFD_0_PICTURE0_LINE_ADDR_0 + hFeeder->ulVfd0RegOffset,
+        hFeeder->stRegs.ullPic0Addr0);
+    BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+        BCHP_VFD_0_PICTURE0_LINE_ADDR_0_R + hFeeder->ulVfd0RegOffset,
+        hFeeder->stRegs.ullPic0Addr0_R);
+
+#if (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_15)
+    BDBG_CASSERT(6 == (((BCHP_VFD_0_DISP_VSIZE - BCHP_VFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_VFD_0_DISP_VSIZE - BCHP_VFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VFD_0_FEEDER_CNTL + hFeeder->ulVfd0RegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFeederCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFixedColor;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLacCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulStride;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulHSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulVSize;
+
+    BDBG_CASSERT(3 == (((BCHP_VFD_0_BYTE_ORDER - BCHP_VFD_0_DATA_MODE) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_VFD_0_BYTE_ORDER - BCHP_VFD_0_DATA_MODE) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VFD_0_DATA_MODE + hFeeder->ulVfd0RegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDataMode;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulPicOffset;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulCompOrder;
 #else
-
-#if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10)
-        BVDC_P_MFD_WRITE_TO_RUL(
-            MFD_0_PICTURE0_LINE_ADDR_0_R, pList->pulCurrent);
+    BDBG_CASSERT(11 == (((BCHP_VFD_0_COMP_ORDER - BCHP_VFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1));
+    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_VFD_0_COMP_ORDER - BCHP_VFD_0_FEEDER_CNTL) / sizeof(uint32_t)) + 1);
+    *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VFD_0_FEEDER_CNTL + hFeeder->ulVfd0RegOffset);
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFeederCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulLacCntl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulFixedColor;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulStride;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulHSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulVSize;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDataMode;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherCtrl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherLfsrInit;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulDitherLfsrCtrl;
+    *pList->pulCurrent++ = hFeeder->stRegs.ulCompOrder;
 #endif
 
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_FEEDER_CNTL, MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-#endif
-
-#if (!BVDC_P_USE_RDC_TIMESTAMP)
-        /* Read and store timestamp */
-        *pList->pulCurrent++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-        *pList->pulCurrent++ = BRDC_REGISTER(hFeeder->stTimerReg.status);
-
-        *pList->pulCurrent++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_1);
-        *pList->pulCurrent++ = BCHP_TIMER_TIMER0_STAT_COUNTER_VAL_MASK;
-
-        *pList->pulCurrent++ = BRDC_OP_VAR_AND_VAR_TO_VAR(
-            BRDC_Variable_0, BRDC_Variable_1, BRDC_Variable_2);
-
-        *pList->pulCurrent++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_2);
-        *pList->pulCurrent++ = BRDC_REGISTER(hFeeder->ulTimestampRegAddr);
-#endif
-
+    if (hFeeder->bGfxSrc)
+    {
+        BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
     }
 
-    else /* feed gfx surface */
-    {
-#if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_10)
-        /* Split the above BLOCK WRITE to set PICTURE0_LINE_ADDR_0
-         * from shadow registers */
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_FEEDER_CNTL, MFD_0_DISP_VSIZE, pList->pulCurrent);
-
-        BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
-
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_DATA_MODE, MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-
-#else
-        /* Split the above BLOCK WRITE to set PICTURE0_LINE_ADDR_0
-         * from shadow registers */
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_FEEDER_CNTL, MFD_0_PICTURE0_DISP_VERT_WINDOW, pList->pulCurrent);
-
-        BVDC_Feeder_BuildRulGfxSurAddr_isr(hFeeder, pList);
-
-#if (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_5)
-        BVDC_P_MFD_WRITE_TO_RUL(
-            MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_MFD_VER == BVDC_P_MFD_VER_7)
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_US_422_TO_444, MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_MFD_VER <= BVDC_P_MFD_VER_9)
-        BVDC_P_MFD_BLOCK_WRITE_TO_RUL(
-            MFD_0_BYTE_ORDER, MFD_0_PIC_FEED_CMD, pList->pulCurrent);
-#endif
-#endif
-    }
+    BVDC_P_MFD_WRITE_TO_RUL(VFD_0_PIC_FEED_CMD, hFeeder->ulVfd0RegOffset,
+        pList->pulCurrent, hFeeder->stRegs.ulPicCmd);
 
     return;
 }
@@ -1359,7 +1202,16 @@ void BVDC_P_Feeder_BuildRul_isr
     else if (ulRulOpsFlags & BVDC_P_RulOp_eDisable)
     {
         BVDC_P_Feeder_SetEnable_isr(hFeeder, false);
-        BVDC_P_MFD_WRITE_TO_RUL(MFD_0_PIC_FEED_CMD, pList->pulCurrent);
+        if(!BVDC_P_Feeder_IS_MPEG(hFeeder))
+        {
+            BVDC_P_MFD_WRITE_TO_RUL(VFD_0_PIC_FEED_CMD, hFeeder->ulVfd0RegOffset,
+                pList->pulCurrent, hFeeder->stRegs.ulPicCmd);
+        }
+        else
+        {
+            BVDC_P_MFD_WRITE_TO_RUL(MFD_0_PIC_FEED_CMD, hFeeder->ulRegOffset,
+                pList->pulCurrent, hFeeder->stRegs.ulPicCmd);
+        }
     }
 
     /* Include a reset at the beginning of feeder bringup. */
@@ -1380,16 +1232,16 @@ void BVDC_P_Feeder_BuildRul_isr
             }
 #endif
 
-            BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CRC_CTRL, pList->pulCurrent);
-            BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CRC_SEED, pList->pulCurrent);
+            BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CRC_CTRL, hFeeder->ulRegOffset, pList->pulCurrent, hFeeder->stRegs.ulCrcCtrl);
+            /* Initial seed value should be all '1's */
+            BVDC_P_MFD_WRITE_TO_RUL(MFD_0_CRC_SEED, hFeeder->ulRegOffset, pList->pulCurrent, 0xFFFFFFFF);
         }
 
         hFeeder->bInitial = false;
     }
 
     /* Add feeder registers to RUL */
-    if((BVDC_P_MFD_COMPARE_FIELD_DATA(MFD_0_PIC_FEED_CMD, START_FEED, 1)) &&
-       (ulRulOpsFlags & BVDC_P_RulOp_eEnable))
+    if( hFeeder->stRegs.ulPicCmd && (ulRulOpsFlags & BVDC_P_RulOp_eEnable))
     {
         if (BVDC_P_Feeder_IS_MPEG(hFeeder))
         {
@@ -1496,25 +1348,7 @@ static BERR_Code BVDC_P_Feeder_GetFormatCtrlSettings_isr
 #endif
 
         /* default for VFD */
-#if (!BVDC_P_VFD_SUPPORT_IMAGE_FORMAT)
-        /* No VFD_0_FEEDER_CNTL_IMAGE_FORMAT field. Reserved field
-         * must be written with 0 */
-        eImageFormat = 0;
-#else
         eImageFormat = BVDC_P_Feeder_ImageFormat_ePacked;
-#endif
-
-#if (BVDC_P_MFD_SUPPORT_10BIT_444)
-        /* Image format */
-        if(BVDC_P_CAP_PIXEL_FORMAT_10BIT444 == (BPXL_Format)ePxlFormat)
-        {
-            eImageFormat = BVDC_P_Feeder_ImageFormat_eYUV444;
-        }
-        else
-        {
-            eImageFormat = BVDC_P_Feeder_ImageFormat_ePacked;
-        }
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_IMAGE_FORMAT_PACKED_NEW)
         /* Use new format to match the byte order with capture */
@@ -1535,7 +1369,6 @@ static BERR_Code BVDC_P_Feeder_GetFormatCtrlSettings_isr
     return BERR_TRACE(err);
 }
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
 /***************************************************************************
  * Set MFD_0_FEEDER_CNTL.MEM_VIDEO and MFD_0_FEEDER_CNTL.BVB_VIDEO
  */
@@ -1543,13 +1376,13 @@ static BERR_Code BVDC_P_Feeder_SetOrientation_isr
     ( BVDC_P_Feeder_Handle             hFeeder )
 {
     /* MFD_0_FEEDER_CNTL */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, MEM_VIDEO) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, BVB_VIDEO));
 
     /* Only MODE_2D and MODE_3D_DUAL_POINTER are supported
      * starting from BVDC_P_MFD_VER_16 */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
 #if (BVDC_P_SUPPORT_MFD_VER < BVDC_P_MFD_VER_16)
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, MEM_VIDEO,
             s_hwOrientation[hFeeder->eInputOrientation]) |
@@ -1563,7 +1396,6 @@ static BERR_Code BVDC_P_Feeder_SetOrientation_isr
 
     return BERR_SUCCESS;
 }
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_PACKING_TYPE)
 /***************************************************************************
@@ -1639,10 +1471,10 @@ static BERR_Code BVDC_P_Feeder_SetPackingType_isr
             break;
     }
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, PACKING_TYPE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, PACKING_TYPE, ulPackingType));
 
     return BERR_TRACE(err);
@@ -1656,16 +1488,15 @@ static BERR_Code BVDC_P_Feeder_SetImageFormat_isr
     ( BVDC_P_Feeder_Handle             hFeeder )
 {
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl  &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, IMAGE_FORMAT) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, IMAGE_FORMAT, hFeeder->eImageFormat) );
 
     return BERR_SUCCESS;
 }
 
-#if (BVDC_P_MFD_SUPPORT_PIXEL_SATURATION_ENABLE)
 /***************************************************************************
  * Set MFD_0_FEEDER_CNTL.PIXEL_SATURATION_ENABLE
  */
@@ -1673,17 +1504,15 @@ static BERR_Code BVDC_P_Feeder_SetPixelSaturation_isr
     ( BVDC_P_Feeder_Handle             hFeeder )
 {
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, PIXEL_SATURATION_ENABLE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, PIXEL_SATURATION_ENABLE, OFF));
 
     return BERR_SUCCESS;
 }
-#endif
 
-#if (BVDC_P_MFD_SUPPORT_SCB_CLIENT_SEL)
 /***************************************************************************
  *  MFD only
  * Set MFD_0_FEEDER_CNTL.SCB_CLIENT_SEL
@@ -1693,7 +1522,7 @@ static BERR_Code BVDC_P_Feeder_SetScbClient_isr
 {
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, SCB_CLIENT_SEL));
 
     /* CLIENT_A is designed to handle data rates up to 1080i60
@@ -1706,18 +1535,17 @@ static BERR_Code BVDC_P_Feeder_SetScbClient_isr
      */
     if((hFeeder->ulThroughput <= 62208000) && !hFeeder->hSource->ulMosaicCount)
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+        hFeeder->stRegs.ulFeederCntl |= (
             BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, SCB_CLIENT_SEL, CLIENT_A));
     }
     else
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+        hFeeder->stRegs.ulFeederCntl |= (
             BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, SCB_CLIENT_SEL, CLIENT_B));
     }
 
     return BERR_SUCCESS;
 }
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_SMOOTHING_BUFFER)
 /***************************************************************************
@@ -1729,10 +1557,10 @@ static BERR_Code BVDC_P_Feeder_SetSmoothBuffer_isr
 {
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, SMOOTHING_BUFFER));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, SMOOTHING_BUFFER, ENABLE));
 
     return BERR_SUCCESS;
@@ -1800,11 +1628,11 @@ static BERR_Code BVDC_P_Feeder_SetInitPhase_isr
         }
     }
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, BOT_INIT_PHASE) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, TOP_INIT_PHASE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, BOT_INIT_PHASE, cBotInitPhase) |
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, TOP_INIT_PHASE, cTopInitPhase));
     return BERR_SUCCESS;
@@ -1822,10 +1650,10 @@ static BERR_Code BVDC_P_Feeder_SetSkipFirstLine_isr
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
     /* TODO: Settings ? */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, BOT_SKIP_FIRST_LINE) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, TOP_SKIP_FIRST_LINE));
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, BOT_SKIP_FIRST_LINE, hFeeder->bSkipFirstLine) |
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, TOP_SKIP_FIRST_LINE, hFeeder->bSkipFirstLine));
 
@@ -1857,15 +1685,11 @@ static BERR_Code BVDC_P_Feeder_SetFeederCntl_isr
     /* Set IMAGE_FORMAT */
     err = BVDC_P_Feeder_SetImageFormat_isr(hFeeder);
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
     /* Set MEM_VIDEO and BVB_VIDEO */
     err = BVDC_P_Feeder_SetOrientation_isr(hFeeder);
-#endif
 
-#if (BVDC_P_MFD_SUPPORT_PIXEL_SATURATION_ENABLE)
     /* Set PIXEL_SATURATION_ENABLE */
     err = BVDC_P_Feeder_SetPixelSaturation_isr(hFeeder);
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_PACKING_TYPE)
     err = BVDC_P_Feeder_SetPackingType_isr(hFeeder, pFieldData, pPicture);
@@ -1876,10 +1700,8 @@ static BERR_Code BVDC_P_Feeder_SetFeederCntl_isr
      */
     if(BVDC_P_Feeder_IS_MPEG(hFeeder))
     {
-#if (BVDC_P_MFD_SUPPORT_SCB_CLIENT_SEL)
         /* Set SCB_CLIENT_SEL */
         err = BVDC_P_Feeder_SetScbClient_isr(hFeeder);
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_SMOOTHING_BUFFER)
         /* Set SMOOTHING_BUFFER */
@@ -1901,16 +1723,15 @@ static BERR_Code BVDC_P_Feeder_SetFeederCntl_isr
     }
 
     /* MFD_0_FEEDER_CNTL */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE, OFF));
 
     return (err);
 }
 
-#if (BVDC_P_MFD_SUPPORT_BYTE_ORDER)
 /***************************************************************************
  * Set MFD_0_BYTE_ORDER
  */
@@ -1988,7 +1809,7 @@ static BERR_Code BVDC_P_Feeder_SetByteOrder_isr
                 BCHP_FIELD_ENUM(MFD_0_COMP_ORDER, COMP_0_SEL, CB));
             break;
     }
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_COMP_ORDER) = ulByteOrder;
+    hFeeder->stRegs.ulCompOrder = ulByteOrder;
 #else
     switch((BPXL_Format)hFeeder->ePxlFormat)
     {
@@ -2059,13 +1880,11 @@ static BERR_Code BVDC_P_Feeder_SetByteOrder_isr
 
     }
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_BYTE_ORDER) = ulByteOrder;
+    hFeeder->stRegs.ulCompOrder = ulByteOrder;
 #endif
     return BERR_SUCCESS;
 }
-#endif
 
-#if (BVDC_P_MFD_SUPPORT_DATA_MODE)
 /***************************************************************************
  * Set MFD_0_DATA_MODE
  */
@@ -2087,14 +1906,14 @@ static BERR_Code BVDC_P_Feeder_SetDataMode_isr
         b8BitMode = false;
     }
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DATA_MODE) &= ~(
+    hFeeder->stRegs.ulDataMode &= ~(
 #if (BCHP_MFD_0_DATA_MODE_PRECISION_MASK)
         BCHP_MASK(MFD_0_DATA_MODE, PRECISION) |
 #endif
         BCHP_MASK(MFD_0_DATA_MODE, PIXEL_WIDTH));
 
     /* 10-bit capable MFD0 will process in 10-bit; 8-bit only MFDs will ignore PRECISION bit */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DATA_MODE) |= (
+    hFeeder->stRegs.ulDataMode |= (
 #if (BCHP_MFD_0_DATA_MODE_PRECISION_MASK)
         BCHP_FIELD_ENUM(MFD_0_DATA_MODE, PRECISION, MODE_10_BIT) |
 #endif
@@ -2102,7 +1921,6 @@ static BERR_Code BVDC_P_Feeder_SetDataMode_isr
 
     return BERR_SUCCESS;
 }
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_10BIT_DITHER)
 /***************************************************************************
@@ -2117,7 +1935,7 @@ static BERR_Code BVDC_P_Feeder_SetDither_isr
     {
         BDBG_ASSERT(pFieldData);
 
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_DITHER_CTRL) &= ~(
+        hFeeder->stRegs.ulDitherCtrl &= ~(
             BCHP_MASK(MFD_0_DITHER_CTRL,       MODE) |
             BCHP_MASK(MFD_0_DITHER_CTRL, OFFSET_CH2) |
             BCHP_MASK(MFD_0_DITHER_CTRL, OFFSET_CH1) |
@@ -2126,9 +1944,9 @@ static BERR_Code BVDC_P_Feeder_SetDither_isr
             BCHP_MASK(MFD_0_DITHER_CTRL,  SCALE_CH1) |
             BCHP_MASK(MFD_0_DITHER_CTRL,  SCALE_CH0));
 
-        if(BAVC_VideoBitDepth_e10Bit == pFieldData->eBitDepth && !hFeeder->hSource->bIs10BitCore)
+        if((BAVC_VideoBitDepth_e8Bit != pFieldData->eBitDepth) && !hFeeder->hSource->bIs10BitCore)
         {
-            BVDC_P_MFD_GET_REG_DATA(MFD_0_DITHER_CTRL) |= (
+            hFeeder->stRegs.ulDitherCtrl |= (
                 BCHP_FIELD_ENUM(MFD_0_DITHER_CTRL, MODE, DITHER) |
                 BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH2, 1) |
                 BCHP_FIELD_DATA(MFD_0_DITHER_CTRL, OFFSET_CH1, 1) |
@@ -2137,11 +1955,11 @@ static BERR_Code BVDC_P_Feeder_SetDither_isr
                 BCHP_FIELD_DATA(MFD_0_DITHER_CTRL,  SCALE_CH1, 4) |
                 BCHP_FIELD_DATA(MFD_0_DITHER_CTRL,  SCALE_CH0, 4));
 
-            BVDC_P_MFD_GET_REG_DATA(MFD_0_DITHER_LFSR_INIT) = (
+            hFeeder->stRegs.ulDitherLfsrInit = (
                 BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_INIT, SEQ, ONCE_PER_SOP) |
                 BCHP_FIELD_DATA(MFD_0_DITHER_LFSR_INIT,          VALUE, 0));
 
-            BVDC_P_MFD_GET_REG_DATA(MFD_0_DITHER_LFSR_CTRL) = (
+            hFeeder->stRegs.ulDitherLfsrCtrl = (
                 BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T0,  B3) |
                 BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T1,  B8) |
                 BCHP_FIELD_ENUM(MFD_0_DITHER_LFSR_CTRL, T2, B12));
@@ -2159,19 +1977,19 @@ static BERR_Code BVDC_P_Feeder_SetLacCntlOutput_isr
     ( BVDC_P_Feeder_Handle             hFeeder,
       BAVC_Polarity                    ePolarity)
 {
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_LAC_CNTL) &= ~(
+    hFeeder->stRegs.ulLacCntl &= ~(
         BCHP_MASK(MFD_0_LAC_CNTL, OUTPUT_TYPE          ) |
         BCHP_MASK(MFD_0_LAC_CNTL, OUTPUT_FIELD_POLARITY) );
 
     if(ePolarity != BAVC_Polarity_eFrame)
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_LAC_CNTL) |=
+        hFeeder->stRegs.ulLacCntl |=
             BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, OUTPUT_TYPE, INTERLACED         ) |
             BCHP_FIELD_DATA(MFD_0_LAC_CNTL, OUTPUT_FIELD_POLARITY, ePolarity);
     }
     else
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_LAC_CNTL) |=
+        hFeeder->stRegs.ulLacCntl |=
             BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, OUTPUT_TYPE, PROGRESSIVE   ) |
             BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, OUTPUT_FIELD_POLARITY, TOP );
     }
@@ -2210,36 +2028,30 @@ static BERR_Code BVDC_P_Feeder_SetLacCntl_isr
         }
 #endif
 
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_LAC_CNTL) &= ~(
+        hFeeder->stRegs.ulLacCntl &= ~(
 #if (BVDC_P_MFD_SUPPORT_MAP_SELECT)
             BCHP_MASK(MFD_0_LAC_CNTL,  MAP_SELECT               ) |
 #endif
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
             BCHP_MASK(MFD_0_LAC_CNTL, SEPARATE_FIELD_BUFFER     ) |
 #endif
-#if (BVDC_P_MFD_SUPPORT_STRIPE_WIDTH_SEL)
             BCHP_MASK(MFD_0_LAC_CNTL, STRIPE_WIDTH_SEL          ) |
-#endif
 #if (BVDC_P_MFD_SUPPORT_CHROMA_VERT_POSITION)
             BCHP_MASK(MFD_0_LAC_CNTL, CHROMA_VERT_POSITION      ) |
 #endif
             BCHP_MASK(MFD_0_LAC_CNTL, CHROMA_TYPE               ) |
             BCHP_MASK(MFD_0_LAC_CNTL, CHROMA_INTERPOLATION      ));
 
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_LAC_CNTL) = (
+        hFeeder->stRegs.ulLacCntl |= (
 #if (BVDC_P_MFD_SUPPORT_MAP_SELECT)
-#if (BVDC_P_SUPPORT_LPDDR4)
-            BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP8) |
-#else
-            BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP5) |
-#endif
+            ((hFeeder->eDramType == BCHP_DramType_eLPDDR4)
+            ? BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP8)
+            : BCHP_FIELD_ENUM(MFD_0_LAC_CNTL, MAP_SELECT, SEL_MAP5)) |
 #endif
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
             BCHP_FIELD_DATA(MFD_0_LAC_CNTL, SEPARATE_FIELD_BUFFER, pFieldData->eBufferFormat) |
 #endif
-#if (BVDC_P_MFD_SUPPORT_STRIPE_WIDTH_SEL)
             BCHP_FIELD_DATA(MFD_0_LAC_CNTL, STRIPE_WIDTH_SEL, pFieldData->eStripeWidth) |
-#endif
 #if (BVDC_P_MFD_SUPPORT_CHROMA_VERT_POSITION)
             BCHP_FIELD_DATA(MFD_0_LAC_CNTL, CHROMA_VERT_POSITION, eChromaVertPos) |
 #endif
@@ -2267,39 +2079,23 @@ static BERR_Code BVDC_P_Feeder_SetChromaRepEnable_isr
     ( BVDC_P_Feeder_Handle             hFeeder,
       const BAVC_MVD_Field            *pFieldData )
 {
-    bool     bChromaRepEnable = false;
-
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
     BDBG_ASSERT(pFieldData->eMpegType <= BAVC_ChromaLocation_eType3);
-
-    if((pFieldData->eMpegType == BAVC_ChromaLocation_eType0) ||
-       (pFieldData->eMpegType == BAVC_ChromaLocation_eType2))
-    {
-        bChromaRepEnable = false;
-    }
-    else if((pFieldData->eMpegType == BAVC_ChromaLocation_eType1) ||
-            (pFieldData->eMpegType == BAVC_ChromaLocation_eType3))
-    {
-        bChromaRepEnable = true;
-    }
 
     /* CHROMA_REPOSITION_ENABLE controls horizontal filter enabled, and is used to
      * reposition the chroma pixel to the luma pixel position in horizontal position.
      * It's required for MPEG1. In the case of MEPG2, chroma is co-located with luma
      * after vertical filtering. */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_SAMPLING_CNTL) &= ~(
-        BCHP_MASK(MFD_0_CHROMA_SAMPLING_CNTL, CHROMA_REPOSITION_ENABLE) );
-
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_SAMPLING_CNTL) |= (
-        BCHP_FIELD_DATA(MFD_0_CHROMA_SAMPLING_CNTL, CHROMA_REPOSITION_ENABLE, bChromaRepEnable));
-
-#if (BVDC_P_MFD_SUPPORT_DERINGING)
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_REPOSITION_DERING_ENABLE) &= ~(
-        BCHP_MASK(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, DERING_EN));
-
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_REPOSITION_DERING_ENABLE) |=  (
-        BCHP_FIELD_DATA(MFD_0_CHROMA_REPOSITION_DERING_ENABLE, DERING_EN, bChromaRepEnable));
-#endif
+    if((pFieldData->eMpegType == BAVC_ChromaLocation_eType0) ||
+       (pFieldData->eMpegType == BAVC_ChromaLocation_eType2))
+    {
+        hFeeder->stRegs.bChromaRepEnable = false;
+    }
+    else if((pFieldData->eMpegType == BAVC_ChromaLocation_eType1) ||
+            (pFieldData->eMpegType == BAVC_ChromaLocation_eType3))
+    {
+        hFeeder->stRegs.bChromaRepEnable = true;
+    }
 
     return BERR_SUCCESS;
 }
@@ -2314,7 +2110,7 @@ static BERR_Code BVDC_P_Feeder_SetRangeExpRemap_isr
 {
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_RANGE_EXP_REMAP_CNTL) = (
+    hFeeder->stRegs.ulRangeExpRemap = (
         BCHP_FIELD_DATA(MFD_0_RANGE_EXP_REMAP_CNTL, SCALE_Y, pFieldData->ulLumaRangeRemapping) |
         BCHP_FIELD_DATA(MFD_0_RANGE_EXP_REMAP_CNTL, SCALE_C, pFieldData->ulChromaRangeRemapping) );
 
@@ -2327,19 +2123,61 @@ static BERR_Code BVDC_P_Feeder_SetRangeExpRemap_isr
  */
 static BERR_Code BVDC_P_Feeder_SetCrcType_isr
     ( BVDC_P_Feeder_Handle             hFeeder,
-      BVDC_Source_CrcType              eCrcType )
+      BVDC_Source_CrcType              eCrcType,
+      BAVC_VideoBitDepth               eBitDepth,
+      BAVC_VideoBitDepth               eChromaBitDepth)
 {
+#if (BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH)
+    uint32_t ulLumaWidth, ulChromaWidth;
+
+    switch(eBitDepth)
+    {
+        case BAVC_VideoBitDepth_e8Bit:
+            ulLumaWidth = BCHP_MFD_0_CRC_CTRL_LUMA_DATA_WIDTH_DATA_8_BIT;
+            break;
+        case BAVC_VideoBitDepth_e9Bit:
+            ulLumaWidth = BCHP_MFD_0_CRC_CTRL_LUMA_DATA_WIDTH_DATA_9_BIT;
+            break;
+        case BAVC_VideoBitDepth_e10Bit:
+        default:
+            ulLumaWidth = BCHP_MFD_0_CRC_CTRL_LUMA_DATA_WIDTH_DATA_10_BIT;
+            break;
+    }
+
+    switch(eChromaBitDepth)
+    {
+        case BAVC_VideoBitDepth_e8Bit:
+            ulChromaWidth = BCHP_MFD_0_CRC_CTRL_CHROMA_DATA_WIDTH_DATA_8_BIT;
+            break;
+        case BAVC_VideoBitDepth_e9Bit:
+            ulChromaWidth = BCHP_MFD_0_CRC_CTRL_CHROMA_DATA_WIDTH_DATA_9_BIT;
+            break;
+        case BAVC_VideoBitDepth_e10Bit:
+        default:
+            ulChromaWidth = BCHP_MFD_0_CRC_CTRL_CHROMA_DATA_WIDTH_DATA_10_BIT;
+            break;
+    }
+#else
+    BSTD_UNUSED(eBitDepth);
+    BSTD_UNUSED(eChromaBitDepth);
+#endif
+
     BDBG_ASSERT(BVDC_P_Feeder_IS_MPEG(hFeeder));
 
 #if (BVDC_P_MFD_SUPPORT_CRC_TYPE)
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CRC_CTRL) &= ~(
+    hFeeder->stRegs.ulCrcCtrl &= ~(
+#if (BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH)
+        BCHP_MASK(MFD_0_CRC_CTRL,   LUMA_DATA_WIDTH) |
+        BCHP_MASK(MFD_0_CRC_CTRL, CHROMA_DATA_WIDTH) |
+#endif
         BCHP_MASK(MFD_0_CRC_CTRL, TYPE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CRC_CTRL) |=  (
+    hFeeder->stRegs.ulCrcCtrl |=  (
+#if (BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH)
+        BCHP_FIELD_DATA(MFD_0_CRC_CTRL, LUMA_DATA_WIDTH,     ulLumaWidth) |
+        BCHP_FIELD_DATA(MFD_0_CRC_CTRL, CHROMA_DATA_WIDTH, ulChromaWidth) |
+#endif
         BCHP_FIELD_DATA(MFD_0_CRC_CTRL, TYPE, eCrcType));
-
-    /* Initial seed value should be all '1's */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CRC_SEED) = 0xFFFFFFFF;
 
 #else
     BSTD_UNUSED(hFeeder);
@@ -2361,15 +2199,11 @@ static BERR_Code BVDC_P_Feeder_SetFormatCtrl_isr
     /* Set MFD_0_FEEDER_CNTL */
     BVDC_P_Feeder_SetFeederCntl_isr(hFeeder, pFieldData, pPicture);
 
-#if (BVDC_P_MFD_SUPPORT_BYTE_ORDER)
     /* Set MFD_0_BYTE_ORDER */
     BVDC_P_Feeder_SetByteOrder_isr(hFeeder);
-#endif
 
-#if (BVDC_P_MFD_SUPPORT_DATA_MODE)
     /* Set MFD_0_DATA_MODE */
     BVDC_P_Feeder_SetDataMode_isr(hFeeder, pPicture, pFieldData);
-#endif
 
 #if (BVDC_P_MFD_SUPPORT_10BIT_DITHER)
     /* Set MFD_0_DITHER_CTRL etc */
@@ -2383,15 +2217,23 @@ static BERR_Code BVDC_P_Feeder_SetFormatCtrl_isr
     {
         BDBG_ASSERT(pFieldData);
 
-        if(hFeeder->eCrcType != hFeeder->hSource->stCurInfo.eCrcType)
+        if(
+#if (BVDC_P_MFD_SUPPORT_CRC_CHROMA_WIDTH)
+            (hFeeder->eBitDepth != pFieldData->eBitDepth)||
+            (hFeeder->eChromaBitDepth != pFieldData->eChromaBitDepth)||
+#endif
+            (hFeeder->eCrcType != hFeeder->hSource->stCurInfo.eCrcType))
         {
             hFeeder->bInitial = true;
             hFeeder->eCrcType = hFeeder->hSource->stCurInfo.eCrcType;
-            BVDC_P_Feeder_SetCrcType_isr(hFeeder, hFeeder->eCrcType);
+            hFeeder->eBitDepth = pFieldData->eBitDepth;
+            hFeeder->eChromaBitDepth = pFieldData->eChromaBitDepth;
+            BVDC_P_Feeder_SetCrcType_isr(hFeeder, hFeeder->eCrcType, pFieldData->eBitDepth, pFieldData->eChromaBitDepth);
         }
 
         /* Set MFD_0_RANGE_EXP_REMAP_CNTL */
         BVDC_P_Feeder_SetRangeExpRemap_isr(hFeeder, pFieldData);
+
         /* Set MFD_0_CHROMA_SAMPLING_CNTL, MFD_0_CHROMA_REPOSITION_DERING_ENABLE */
         BVDC_P_Feeder_SetChromaRepEnable_isr(hFeeder, pFieldData);
     }
@@ -2434,21 +2276,21 @@ static BERR_Code BVDC_P_Feeder_SetMpegStride_isr
     BDBG_MSG(("Luma   stride = 0x%x", ulLumaStride));
 
     /* Set stride */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) &= ~(
+    hFeeder->stRegs.ulStride &= ~(
         BCHP_MASK(MFD_0_STRIDE, AVC_MPEG_CHROMA_LINE_STRIDE) |
         BCHP_MASK(MFD_0_STRIDE, AVC_MPEG_LUMA_LINE_STRIDE  ) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) |= (
+    hFeeder->stRegs.ulStride |= (
         BCHP_FIELD_DATA(MFD_0_STRIDE, AVC_MPEG_CHROMA_LINE_STRIDE, ulChromaStride) |
         BCHP_FIELD_DATA(MFD_0_STRIDE, AVC_MPEG_LUMA_LINE_STRIDE,   ulLumaStride  ) );
 
     /* Set NMBY */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_LUMA_NMBY) &= ~BCHP_MASK(MFD_0_LUMA_NMBY, VALUE);
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_LUMA_NMBY) |=
+    hFeeder->stRegs.ulLumaNMBY &= ~BCHP_MASK(MFD_0_LUMA_NMBY, VALUE);
+    hFeeder->stRegs.ulLumaNMBY |=
         BCHP_FIELD_DATA(MFD_0_LUMA_NMBY, VALUE, pFieldData->ulLuminanceNMBY);
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_NMBY) &= ~BCHP_MASK(MFD_0_CHROMA_NMBY, VALUE);
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CHROMA_NMBY) |=
+    hFeeder->stRegs.ulChromaNMBY &= ~BCHP_MASK(MFD_0_CHROMA_NMBY, VALUE);
+    hFeeder->stRegs.ulChromaNMBY |=
         BCHP_FIELD_DATA(MFD_0_CHROMA_NMBY, VALUE, pFieldData->ulChrominanceNMBY);
 
     return BERR_SUCCESS;
@@ -2458,13 +2300,13 @@ static BERR_Code BVDC_P_Feeder_SetMpegStride_isr
 static void BVDC_P_Feeder_GetDpbDeviceOffset_isr
     ( BMMA_Block_Handle           hBlock,
       uint32_t                    ulBlockOffset,
-      uint32_t                   *pulDevOffset )
+      BMMA_DeviceOffset          *pullDevOffset )
 {
-    BMMA_DeviceOffset devOffset;
+    BMMA_DeviceOffset ullDevOffset;
 
-    devOffset = (hBlock != NULL) ? BMMA_GetOffset_isr(hBlock) : 0;
+    ullDevOffset = (hBlock != NULL) ? BMMA_GetOffset_isr(hBlock) : 0;
 
-    *pulDevOffset = (uint32_t)devOffset + ulBlockOffset;
+    *pullDevOffset = ullDevOffset + ulBlockOffset;
 }
 
 /***************************************************************************
@@ -2474,9 +2316,9 @@ static void BVDC_P_Feeder_GetDpbDeviceOffset_isr
      * MacroBlock colomns); different AVD frame buffers might be non-
      * contiguous; H.264 picture might have stream clip;
      */
-static uint32_t BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
+static BMMA_DeviceOffset BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
     ( BVDC_P_Feeder_StripeWidthConfig  eStripeWidthCfg,
-      uint32_t                         ulDeviceOffset,
+      BMMA_DeviceOffset                ullDeviceOffset,
       uint32_t                         ulNMBY,
       uint32_t                         ulLeftOffset,
       uint32_t                         ulVertOffset,
@@ -2488,13 +2330,13 @@ static uint32_t BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
     uint32_t        ulStripeWidth, ulStripeShift, ulStride;
 
     if((pFieldData->ePxlFmt != BPXL_INVALID) && !bIsLuma)
-        return ulDeviceOffset;
+        return ullDeviceOffset;
 
     ulStripeWidth   = eStripeWidthCfg.ulStripeWidth;
     ulStripeShift   = eStripeWidthCfg.ulShift;
 
     /* ulLeftOffset is already even pixels aligned. 10Bit needs to be 6 pixels aligned. */
-    if(pFieldData->eBitDepth == BAVC_VideoBitDepth_e10Bit)
+    if(pFieldData->eBitDepth != BAVC_VideoBitDepth_e8Bit)
     {
         ulLeftOffsetInByte = BVDC_P_FEEDER_GET_ONE_THIRD(4 * ulLeftOffset) & ~7;
         ulPicOffset = ulLeftOffset % 6;
@@ -2508,7 +2350,7 @@ static uint32_t BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
         ulLeftOffset, ulLeftOffsetInByte, ulPicOffset));
 
     /* to calculate the chroma starting address including the pan/scan/cropping; */
-    ulDeviceOffset +=
+    ullDeviceOffset +=
         /* stripe offset */
         (ulLeftOffsetInByte >> ulStripeShift) * ulNMBY * 16 * ulStripeWidth +
 
@@ -2535,7 +2377,7 @@ static uint32_t BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
         if((pFieldData->eChrominanceInterpolationMode == BAVC_InterpolationMode_eField) ||
             bIsLuma )
         {
-            ulDeviceOffset   += ulStride;
+            ullDeviceOffset   += ulStride;
         }
     }
 
@@ -2544,13 +2386,13 @@ static uint32_t BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr
     if( (pFieldData->eSourcePolarity == BAVC_Polarity_eBotField) &&
         (BAVC_DecodedPictureBuffer_eFieldsPair != pFieldData->eBufferFormat))
     {
-        ulDeviceOffset   += ulStride ;
+        ullDeviceOffset   += ulStride ;
     }
 #endif
     if(pulPicOffset)
         *pulPicOffset = ulPicOffset;
 
-    return ulDeviceOffset;
+    return ullDeviceOffset;
 }
 
 /***************************************************************************
@@ -2562,9 +2404,8 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
       const BVDC_P_Rect                   *pScanoutRect,
       BVDC_P_Feeder_MpegDeviceAddrConfig  *pstDeviceAddr )
 {
-    uint32_t           lumaDevOffset, chromaDevOffset;
+    BMMA_DeviceOffset  ullLumaDevOffset, ullChromaDevOffset;
     uint32_t           ulLumaVertOffset, ulChromaVertOffset;
-
     uint32_t           ulTopOffset, ulLeftOffset, ulLeftOffset_R;
     uint32_t           ulStripeWidth;
     BAVC_YCbCrType     eYCbCrType = pFieldData->eYCbCrType;
@@ -2596,65 +2437,64 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
 
     /* get the 1st eye's top or frame buffer base address */
     BVDC_P_Feeder_GetDpbDeviceOffset_isr(pFieldData->hLuminanceFrameBufferBlock,
-        pFieldData->ulLuminanceFrameBufferBlockOffset, &lumaDevOffset);
+        pFieldData->ulLuminanceFrameBufferBlockOffset, &ullLumaDevOffset);
     BVDC_P_Feeder_GetDpbDeviceOffset_isr(pFieldData->hChrominanceFrameBufferBlock,
-        pFieldData->ulChrominanceFrameBufferBlockOffset, &chromaDevOffset);
+        pFieldData->ulChrominanceFrameBufferBlockOffset, &ullChromaDevOffset);
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
     if(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat) {
         /* get the 1st eye's bottom buffer base address */
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pFieldData->hLuminanceBotFieldBufferBlock,
-            pFieldData->ulLuminanceBotFieldBufferBlockOffset, &pstDeviceAddr->ulLumaBotDeviceAddr);
+            pFieldData->ulLuminanceBotFieldBufferBlockOffset, &pstDeviceAddr->ullLumaBotDeviceAddr);
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pFieldData->hChrominanceBotFieldBufferBlock,
-            pFieldData->ulChrominanceBotFieldBufferBlockOffset, &pstDeviceAddr->ulChromaBotDeviceAddr);
+            pFieldData->ulChrominanceBotFieldBufferBlockOffset, &pstDeviceAddr->ullChromaBotDeviceAddr);
 
         /* compute the bottom field starting address */
-        pstDeviceAddr->ulLumaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, pstDeviceAddr->ulLumaBotDeviceAddr,
+        pstDeviceAddr->ullLumaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, pstDeviceAddr->ullLumaBotDeviceAddr,
             pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
             true, pFieldData, &hFeeder->ulPicOffset);
 
-        pstDeviceAddr->ulChromaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, pstDeviceAddr->ulChromaBotDeviceAddr,
+        pstDeviceAddr->ullChromaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, pstDeviceAddr->ullChromaBotDeviceAddr,
             pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
             false, pFieldData, &hFeeder->ulPicOffset);
     }
 #endif
 
     /* compute frame or top field starting address */
-    pstDeviceAddr->ulLumaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-        eStripeWidthCfg, (uint32_t)lumaDevOffset,
+    pstDeviceAddr->ullLumaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+        eStripeWidthCfg, ullLumaDevOffset,
         pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
         true, pFieldData, &hFeeder->ulPicOffset);
 
-    pstDeviceAddr->ulChromaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-        eStripeWidthCfg, (uint32_t)chromaDevOffset,
+    pstDeviceAddr->ullChromaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+        eStripeWidthCfg, ullChromaDevOffset,
         pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
         false, pFieldData, &hFeeder->ulPicOffset);
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
     /* e3D_LeftRight has single picture buffer */
     if(pFieldData->eOrientation == BFMT_Orientation_e3D_LeftRight)
     {
         /* compute the top or frame buffer Right eye start address */
-        pstDeviceAddr->ulLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, lumaDevOffset,
+        pstDeviceAddr->ullLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullLumaDevOffset,
             pFieldData->ulLuminanceNMBY, ulLeftOffset_R, ulLumaVertOffset,
             true, pFieldData, &hFeeder->ulPicOffset_R);
 
-        pstDeviceAddr->ulChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, chromaDevOffset,
+        pstDeviceAddr->ullChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullChromaDevOffset,
             pFieldData->ulChrominanceNMBY, ulLeftOffset_R, ulChromaVertOffset,
             false, pFieldData, &hFeeder->ulPicOffset_R);
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
         if(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat) {
             /* compute the bottom field Right-eye starting address */
-            pstDeviceAddr->ulLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulLumaBotDeviceAddr,
+            pstDeviceAddr->ullLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullLumaBotDeviceAddr,
                 pFieldData->ulLuminanceNMBY, ulLeftOffset_R, ulLumaVertOffset,
                 true, pFieldData, &hFeeder->ulPicOffset_R);
 
-            pstDeviceAddr->ulChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulChromaBotDeviceAddr,
+            pstDeviceAddr->ullChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullChromaBotDeviceAddr,
                 pFieldData->ulChrominanceNMBY, ulLeftOffset_R, ulChromaVertOffset,
                 false, pFieldData, &hFeeder->ulPicOffset_R);
         }
@@ -2683,26 +2523,26 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
         if(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat) {
             /* compute the bottom field Right-eye starting address */
-            pstDeviceAddr->ulLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulLumaBotDeviceAddr,
+            pstDeviceAddr->ullLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullLumaBotDeviceAddr,
                 pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset_R,
                 true, pFieldData, &hFeeder->ulPicOffset_R);
 
-            pstDeviceAddr->ulChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulChromaBotDeviceAddr,
+            pstDeviceAddr->ullChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullChromaBotDeviceAddr,
                 pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset_R,
                 false, pFieldData, &hFeeder->ulPicOffset_R);
         }
 #endif
 
         /* compute the top or frame buffer Right eye start address */
-        pstDeviceAddr->ulLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, lumaDevOffset,
+        pstDeviceAddr->ullLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullLumaDevOffset,
             pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset_R,
             true, pFieldData, &hFeeder->ulPicOffset_R);
 
-        pstDeviceAddr->ulChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, chromaDevOffset,
+        pstDeviceAddr->ullChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullChromaDevOffset,
             pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset_R,
             false, pFieldData, &hFeeder->ulPicOffset_R);
 
@@ -2712,9 +2552,9 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
         (pFieldData->eOrientation == BFMT_Orientation_e3D_Right))
     {
         BAVC_MVD_Field  *pEnhancedFieldData;
-        uint32_t  enhancedLumaDevOffset, enhancedChromaDevOffset;
+        BMMA_DeviceOffset  ullEnhancedLumaDevOffset, ullEnhancedChromaDevOffset;
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
-        uint32_t  enhancedLumaBotDevOffset, enhancedChromaBotDevOffset;
+        BMMA_DeviceOffset  ullEnhancedLumaBotDevOffset, ullEnhancedChromaBotDevOffset;
 #endif
 
         pEnhancedFieldData = (BAVC_MVD_Field*)(pFieldData->pEnhanced);
@@ -2722,23 +2562,23 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
 
         /* get the 2nd eye's top or frame buffer base address */
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hLuminanceFrameBufferBlock,
-            pEnhancedFieldData->ulLuminanceFrameBufferBlockOffset, &enhancedLumaDevOffset);
+            pEnhancedFieldData->ulLuminanceFrameBufferBlockOffset, &ullEnhancedLumaDevOffset);
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hChrominanceFrameBufferBlock,
-            pEnhancedFieldData->ulChrominanceFrameBufferBlockOffset, &enhancedChromaDevOffset);
+            pEnhancedFieldData->ulChrominanceFrameBufferBlockOffset, &ullEnhancedChromaDevOffset);
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
         if(BAVC_DecodedPictureBuffer_eFieldsPair == pEnhancedFieldData->eBufferFormat) {
             BDBG_ASSERT(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat);
             /* get the 2nd eye's bottom buffer base address */
             BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hLuminanceBotFieldBufferBlock,
-                pEnhancedFieldData->ulLuminanceBotFieldBufferBlockOffset, &enhancedLumaBotDevOffset);
+                pEnhancedFieldData->ulLuminanceBotFieldBufferBlockOffset, &ullEnhancedLumaBotDevOffset);
             BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hChrominanceBotFieldBufferBlock,
-                pEnhancedFieldData->ulChrominanceBotFieldBufferBlockOffset, &enhancedChromaBotDevOffset);
+                pEnhancedFieldData->ulChrominanceBotFieldBufferBlockOffset, &ullEnhancedChromaBotDevOffset);
         }
         else
         {
-            enhancedLumaBotDevOffset   = 0;
-            enhancedChromaBotDevOffset = 0;
+            ullEnhancedLumaBotDevOffset   = 0;
+            ullEnhancedChromaBotDevOffset = 0;
         }
 #endif
 
@@ -2748,26 +2588,26 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
             BDBG_ASSERT(pEnhancedFieldData->eOrientation == BFMT_Orientation_e3D_Right);
 
             /* pEnhancedFieldData is right buffer */
-            pstDeviceAddr->ulLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, enhancedLumaDevOffset,
+            pstDeviceAddr->ullLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, ullEnhancedLumaDevOffset,
                 pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
                 true, pFieldData, &hFeeder->ulPicOffset_R);
 
-            pstDeviceAddr->ulChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, enhancedChromaDevOffset,
+            pstDeviceAddr->ullChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, ullEnhancedChromaDevOffset,
                 pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
                 false, pFieldData, &hFeeder->ulPicOffset_R);
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
             if(BAVC_DecodedPictureBuffer_eFieldsPair == pEnhancedFieldData->eBufferFormat) {
                 /* compute the 2nd eye's bottom field starting address */
-                pstDeviceAddr->ulLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                    eStripeWidthCfg, enhancedLumaBotDevOffset,
+                pstDeviceAddr->ullLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                    eStripeWidthCfg, ullEnhancedLumaBotDevOffset,
                     pEnhancedFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
                     true, pEnhancedFieldData, &hFeeder->ulPicOffset_R);
 
-                pstDeviceAddr->ulChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                    eStripeWidthCfg, enhancedChromaBotDevOffset,
+                pstDeviceAddr->ullChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                    eStripeWidthCfg, ullEnhancedChromaBotDevOffset,
                     pEnhancedFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
                     false, pEnhancedFieldData, &hFeeder->ulPicOffset_R);
             }
@@ -2778,33 +2618,33 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
             BDBG_ASSERT(pEnhancedFieldData->eOrientation == BFMT_Orientation_e3D_Left);
 
             /* 1st eye is Right, 2nd eye is Left: swap */
-            pstDeviceAddr->ulLumaDeviceAddr_R   = pstDeviceAddr->ulLumaDeviceAddr;
-            pstDeviceAddr->ulChromaDeviceAddr_R = pstDeviceAddr->ulChromaDeviceAddr;
+            pstDeviceAddr->ullLumaDeviceAddr_R   = pstDeviceAddr->ullLumaDeviceAddr;
+            pstDeviceAddr->ullChromaDeviceAddr_R = pstDeviceAddr->ullChromaDeviceAddr;
 
             /* pEnhancedFieldData is left buffer */
-            pstDeviceAddr->ulLumaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, enhancedLumaDevOffset,
+            pstDeviceAddr->ullLumaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, ullEnhancedLumaDevOffset,
                 pFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
                 true, pFieldData, &hFeeder->ulPicOffset);
 
-            pstDeviceAddr->ulChromaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, enhancedChromaDevOffset,
+            pstDeviceAddr->ullChromaDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, ullEnhancedChromaDevOffset,
                 pFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
                 false, pFieldData, &hFeeder->ulPicOffset);
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
             if(BAVC_DecodedPictureBuffer_eFieldsPair == pEnhancedFieldData->eBufferFormat) {
-                pstDeviceAddr->ulLumaBotDeviceAddr_R   = pstDeviceAddr->ulLumaBotDeviceAddr;
-                pstDeviceAddr->ulChromaBotDeviceAddr_R = pstDeviceAddr->ulChromaBotDeviceAddr;
+                pstDeviceAddr->ullLumaBotDeviceAddr_R   = pstDeviceAddr->ullLumaBotDeviceAddr;
+                pstDeviceAddr->ullChromaBotDeviceAddr_R = pstDeviceAddr->ullChromaBotDeviceAddr;
 
                 /* compute the 2nd eye's bottom field starting address */
-                pstDeviceAddr->ulLumaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                    eStripeWidthCfg, enhancedLumaBotDevOffset,
+                pstDeviceAddr->ullLumaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                    eStripeWidthCfg, ullEnhancedLumaBotDevOffset,
                     pEnhancedFieldData->ulLuminanceNMBY, ulLeftOffset, ulLumaVertOffset,
                     true, pEnhancedFieldData, &hFeeder->ulPicOffset);
 
-                pstDeviceAddr->ulChromaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                    eStripeWidthCfg, enhancedChromaBotDevOffset,
+                pstDeviceAddr->ullChromaBotDeviceAddr = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                    eStripeWidthCfg, ullEnhancedChromaBotDevOffset,
                     pEnhancedFieldData->ulChrominanceNMBY, ulLeftOffset, ulChromaVertOffset,
                     false, pEnhancedFieldData, &hFeeder->ulPicOffset);
             }
@@ -2814,49 +2654,49 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
     else if(pFieldData->eOrientation == BFMT_Orientation_eLeftRight_Enhanced)
     {
         BAVC_MVD_Field  *pEnhancedFieldData;
-        uint32_t  enhancedLumaDevOffset, enhancedChromaDevOffset;
+        BMMA_DeviceOffset  ullEnhancedLumaDevOffset, ullEnhancedChromaDevOffset;
 
         pEnhancedFieldData = (BAVC_MVD_Field*)(pFieldData->pEnhanced);
         BDBG_ASSERT(pEnhancedFieldData);
 
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hLuminanceFrameBufferBlock,
-            pEnhancedFieldData->ulLuminanceFrameBufferBlockOffset, &enhancedLumaDevOffset);
+            pEnhancedFieldData->ulLuminanceFrameBufferBlockOffset, &ullEnhancedLumaDevOffset);
         BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hChrominanceFrameBufferBlock,
-            pEnhancedFieldData->ulChrominanceFrameBufferBlockOffset, &enhancedChromaDevOffset);
+            pEnhancedFieldData->ulChrominanceFrameBufferBlockOffset, &ullEnhancedChromaDevOffset);
 
         /* Get the offset of the right buffer */
         ulLeftOffset_R = (pScanoutRect->lLeft_R + pFieldData->ulSourceClipLeft +
             pFieldData->ulSourceHorizontalSize/2) & ~1;
 
-        pstDeviceAddr->ulLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, enhancedLumaDevOffset,
+        pstDeviceAddr->ullLumaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullEnhancedLumaDevOffset,
             pFieldData->ulLuminanceNMBY, ulLeftOffset_R, ulLumaVertOffset,
             true, pFieldData, &hFeeder->ulPicOffset_R);
 
-        pstDeviceAddr->ulChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-            eStripeWidthCfg, enhancedChromaDevOffset,
+        pstDeviceAddr->ullChromaDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+            eStripeWidthCfg, ullEnhancedChromaDevOffset,
             pFieldData->ulChrominanceNMBY, ulLeftOffset_R, ulChromaVertOffset,
             false, pFieldData, &hFeeder->ulPicOffset_R);
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
         if(BAVC_DecodedPictureBuffer_eFieldsPair == pEnhancedFieldData->eBufferFormat) {
-            uint32_t  enhancedLumaBotDevOffset, enhancedChromaBotDevOffset;
+            BMMA_DeviceOffset  ullEnhancedLumaBotDevOffset, ullEnhancedChromaBotDevOffset;
             BDBG_ASSERT(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat);
 
             /* get the 2nd eye's bottom buffer base address */
             BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hLuminanceBotFieldBufferBlock,
-                pEnhancedFieldData->ulLuminanceBotFieldBufferBlockOffset, &enhancedLumaBotDevOffset);
+                pEnhancedFieldData->ulLuminanceBotFieldBufferBlockOffset, &ullEnhancedLumaBotDevOffset);
             BVDC_P_Feeder_GetDpbDeviceOffset_isr(pEnhancedFieldData->hChrominanceBotFieldBufferBlock,
-                pEnhancedFieldData->ulChrominanceBotFieldBufferBlockOffset, &enhancedChromaBotDevOffset);
+                pEnhancedFieldData->ulChrominanceBotFieldBufferBlockOffset, &ullEnhancedChromaBotDevOffset);
 
             /* compute the bottom field Right-eye starting address */
-            pstDeviceAddr->ulLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulLumaBotDeviceAddr,
+            pstDeviceAddr->ullLumaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullLumaBotDeviceAddr,
                 pEnhancedFieldData->ulLuminanceNMBY, ulLeftOffset_R, ulLumaVertOffset,
                 true, pEnhancedFieldData, &hFeeder->ulPicOffset_R);
 
-            pstDeviceAddr->ulChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
-                eStripeWidthCfg, pstDeviceAddr->ulChromaBotDeviceAddr,
+            pstDeviceAddr->ullChromaBotDeviceAddr_R = BVDC_P_Feeder_GetMpegDeviceBaseAddr_isr(
+                eStripeWidthCfg, pstDeviceAddr->ullChromaBotDeviceAddr,
                 pEnhancedFieldData->ulChrominanceNMBY, ulLeftOffset_R, ulChromaVertOffset,
                 false, pEnhancedFieldData, &hFeeder->ulPicOffset_R);
         }
@@ -2864,31 +2704,28 @@ static void BVDC_P_Feeder_GetMpegDeviceAddr_isr
     }
     else
     {
-        pstDeviceAddr->ulLumaDeviceAddr_R   = pstDeviceAddr->ulLumaDeviceAddr;
-        pstDeviceAddr->ulChromaDeviceAddr_R = pstDeviceAddr->ulChromaDeviceAddr;
+        pstDeviceAddr->ullLumaDeviceAddr_R   = pstDeviceAddr->ullLumaDeviceAddr;
+        pstDeviceAddr->ullChromaDeviceAddr_R = pstDeviceAddr->ullChromaDeviceAddr;
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
         if(BAVC_DecodedPictureBuffer_eFieldsPair == pFieldData->eBufferFormat) {
-            pstDeviceAddr->ulLumaBotDeviceAddr_R   = pstDeviceAddr->ulLumaBotDeviceAddr;
-            pstDeviceAddr->ulChromaBotDeviceAddr_R = pstDeviceAddr->ulChromaBotDeviceAddr;
+            pstDeviceAddr->ullLumaBotDeviceAddr_R   = pstDeviceAddr->ullLumaBotDeviceAddr;
+            pstDeviceAddr->ullChromaBotDeviceAddr_R = pstDeviceAddr->ullChromaBotDeviceAddr;
         }
 #endif
     }
-#endif
 
     /* TODO: clarify the usage of this feature */
     if(hFeeder->bSkipFirstLine)
     {
-        pstDeviceAddr->ulLumaDeviceAddr += hFeeder->ulLumaStride;
-        pstDeviceAddr->ulChromaDeviceAddr += hFeeder->ulChromaStride;
+        pstDeviceAddr->ullLumaDeviceAddr += hFeeder->ulLumaStride;
+        pstDeviceAddr->ullChromaDeviceAddr += hFeeder->ulChromaStride;
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
 /* TODO: anything to do here?? */
 #endif
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-        pstDeviceAddr->ulChromaDeviceAddr_R += hFeeder->ulChromaStride;
-        pstDeviceAddr->ulLumaDeviceAddr_R += hFeeder->ulLumaStride;
-#endif
+        pstDeviceAddr->ullChromaDeviceAddr_R += hFeeder->ulChromaStride;
+        pstDeviceAddr->ullLumaDeviceAddr_R += hFeeder->ulLumaStride;
     }
 
     return;
@@ -2913,83 +2750,81 @@ BERR_Code BVDC_P_Feeder_SetMpegAddr_isr
             &stMpegDeviceAddr);
     }
 #if (BVDC_P_SUPPORT_MFD_VER >= BVDC_P_MFD_VER_16)
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PIC_OFFSET) &= ~(
+    hFeeder->stRegs.ulPicOffset &= ~(
         BCHP_MASK(MFD_0_PIC_OFFSET,  H_OFFSET_R) |
         BCHP_MASK(MFD_0_PIC_OFFSET,  H_OFFSET));
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PIC_OFFSET) |= (
+    hFeeder->stRegs.ulPicOffset |= (
         BCHP_FIELD_DATA(MFD_0_PIC_OFFSET, H_OFFSET_R, hFeeder->ulPicOffset_R) |
         BCHP_FIELD_DATA(MFD_0_PIC_OFFSET, H_OFFSET, hFeeder->ulPicOffset));
 #endif
 
     /* Set address */
     /* MFD_0_PICTURE0_LINE_ADDR_0 */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) &= ~(
+    hFeeder->stRegs.ullPic0Addr0 &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0, AVC_MPEG_LUMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) |= (
+    hFeeder->stRegs.ullPic0Addr0 |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, AVC_MPEG_LUMA_ADDR,
-            stMpegDeviceAddr.ulLumaDeviceAddr) );
+            stMpegDeviceAddr.ullLumaDeviceAddr) );
 
     /* MFD_0_PICTURE0_LINE_ADDR_1 */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_1) &= ~(
+    hFeeder->stRegs.ullPic0Addr1 &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_1, AVC_MPEG_CHROMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_1) |= (
+    hFeeder->stRegs.ullPic0Addr1 |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_1, AVC_MPEG_CHROMA_ADDR,
-            stMpegDeviceAddr.ulChromaDeviceAddr) );
+            stMpegDeviceAddr.ullChromaDeviceAddr) );
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
     /* MFD_0_PICTURE1_LINE_ADDR_0 */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_0) &= ~(
+    hFeeder->stRegs.ullPic1Addr0 &= ~(
         BCHP_MASK(MFD_0_PICTURE1_LINE_ADDR_0, AVC_MPEG_LUMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_0) |= (
+    hFeeder->stRegs.ullPic1Addr0 |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE1_LINE_ADDR_0, AVC_MPEG_LUMA_ADDR,
-            stMpegDeviceAddr.ulLumaBotDeviceAddr) );
+            stMpegDeviceAddr.ullLumaBotDeviceAddr) );
 
     /* MFD_0_PICTURE1_LINE_ADDR_1 */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_1) &= ~(
+    hFeeder->stRegs.ullPic1Addr1 &= ~(
         BCHP_MASK(MFD_0_PICTURE1_LINE_ADDR_1, AVC_MPEG_CHROMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_1) |= (
+    hFeeder->stRegs.ullPic1Addr1 |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE1_LINE_ADDR_1, AVC_MPEG_CHROMA_ADDR,
-            stMpegDeviceAddr.ulChromaBotDeviceAddr) );
+            stMpegDeviceAddr.ullChromaBotDeviceAddr) );
 #endif
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
     /* MFD_0_PICTURE0_LINE_ADDR_0_R */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) &= ~(
+    hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, AVC_MPEG_LUMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) |= (
+    hFeeder->stRegs.ullPic0Addr0_R |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, AVC_MPEG_LUMA_ADDR,
-            stMpegDeviceAddr.ulLumaDeviceAddr_R) );
+            stMpegDeviceAddr.ullLumaDeviceAddr_R) );
 
     /* MFD_0_PICTURE0_LINE_ADDR_1_R */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_1_R) &= ~(
+    hFeeder->stRegs.ullPic0Addr1_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_1_R, AVC_MPEG_CHROMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_1_R) |= (
+    hFeeder->stRegs.ullPic0Addr1_R |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_1_R, AVC_MPEG_CHROMA_ADDR,
-            stMpegDeviceAddr.ulChromaDeviceAddr_R) );
+            stMpegDeviceAddr.ullChromaDeviceAddr_R) );
 
 #if (BVDC_P_MFD_SUPPORT_INTERLACED_HEVC) /* for fields pair buffer */
     /* MFD_0_PICTURE1_LINE_ADDR_0_R */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_0_R) &= ~(
+    hFeeder->stRegs.ullPic1Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE1_LINE_ADDR_0_R, AVC_MPEG_LUMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_0_R) |= (
+    hFeeder->stRegs.ullPic1Addr0_R |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE1_LINE_ADDR_0_R, AVC_MPEG_LUMA_ADDR,
-            stMpegDeviceAddr.ulLumaBotDeviceAddr_R) );
+            stMpegDeviceAddr.ullLumaBotDeviceAddr_R) );
 
     /* MFD_0_PICTURE1_LINE_ADDR_1_R */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_1_R) &= ~(
+    hFeeder->stRegs.ullPic1Addr1_R &= ~(
         BCHP_MASK(MFD_0_PICTURE1_LINE_ADDR_1_R, AVC_MPEG_CHROMA_ADDR) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE1_LINE_ADDR_1_R) |= (
+    hFeeder->stRegs.ullPic1Addr1_R |= (
         BCHP_FIELD_DATA(MFD_0_PICTURE1_LINE_ADDR_1_R, AVC_MPEG_CHROMA_ADDR,
-            stMpegDeviceAddr.ulChromaBotDeviceAddr_R) );
-#endif
+            stMpegDeviceAddr.ullChromaBotDeviceAddr_R) );
 #endif
 
     return BERR_SUCCESS;
@@ -3018,18 +2853,16 @@ static BERR_Code BVDC_P_Feeder_SetSurfaceStrideAddr_isr
     hFeeder->stGfxSurface.ulMainByteOffset =
         pScanoutRect->lTop * ulStride + ulOffsetByteInLine;
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) &= ~(
+    hFeeder->stRegs.ulStride &= ~(
         BCHP_MASK(MFD_0_STRIDE, PACKED_LINE_STRIDE) );
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) |=
+    hFeeder->stRegs.ulStride |=
         BCHP_FIELD_DATA(MFD_0_STRIDE, PACKED_LINE_STRIDE, ulStride);
 
     /* Set address: real addr is set to scratch registers */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) &= ~(
+    hFeeder->stRegs.ullPic0Addr0  &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR) );
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) &= ~(
+    hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR) );
-#endif
 
     return err;
 }
@@ -3147,8 +2980,8 @@ BERR_Code BVDC_P_Feeder_SetMpegInfo_isr
     }
 
     /* Common MPEG settings */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_HSIZE) &= ~(BCHP_MASK(MFD_0_DISP_HSIZE, VALUE));
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_HSIZE) |= (
+    hFeeder->stRegs.ulHSize &= ~(BCHP_MASK(MFD_0_DISP_HSIZE, VALUE));
+    hFeeder->stRegs.ulHSize |= (
         BCHP_FIELD_DATA(MFD_0_DISP_HSIZE, VALUE, pScanoutRect->ulWidth) );
     BDBG_MSG(("Scanout HSIZE = 0x%x", pScanoutRect->ulWidth));
 
@@ -3194,10 +3027,6 @@ BERR_Code BVDC_P_Feeder_SetMpegInfo_isr
         }
     }
 
-#if (BVDC_P_MFD_SUPPORT_CSC)
-    BVDC_P_Feeder_SetCsc_isr(hFeeder, pFieldData);
-#endif
-
     /* Enable feeder */
     if( pScanoutRect->ulWidth )
     {
@@ -3223,10 +3052,8 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
       BAVC_Polarity                    ePolarity)
 {
     unsigned int   uiStride, uiByteOffset, ulWidth;
-    uint32_t  ulDeviceAddr, ulStride;
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-    uint32_t  ulDeviceAddr_R = 0;
-#endif
+    uint32_t       ulStride;
+    BMMA_DeviceOffset  ullDeviceAddr, ullDeviceAddr_R = 0;
 
     if (hFeeder->bGfxSrc)
     {
@@ -3238,7 +3065,7 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
         ulStride = (ePolarity == BAVC_Polarity_eFrame)?
             hFeeder->stGfxSurface.stCurSurInfo.ulPitch :
             hFeeder->stGfxSurface.stCurSurInfo.ulPitch * 2;
-        ulDeviceAddr = 0; /* really set from scratch register */
+        ullDeviceAddr = 0; /* really set from scratch register */
         hFeeder->stGfxSurface.ulMainByteOffset =
             pSrcOut->lTop * ulStride + ulOffsetByteInLine;
     }
@@ -3248,7 +3075,7 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
            with CAP pitch as well! */
         ulWidth = (pPicture->pVfdIn->ulWidth + 1) & ~0x1;
 
-#if (BVDC_P_SUPPORT_LPDDR4)
+#if (BVDC_P_MFD_SUPPORT_NEW_MEMORY_PITCH)
         if(pPicture->bMosaicMode)
         {
             if(pPicture->bEnableDcxm)
@@ -3256,7 +3083,7 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
             else
                 BPXL_GetBytesPerNPixels_isr(pPicture->ePixelFormat, ulWidth, &ulStride);
             ulStride += (pPicture->eCapOrientation == BFMT_Orientation_e2D)
-                ? BVDC_P_CAP_LPDDR4_GUARD_MEMORY_2D : BVDC_P_CAP_LPDDR4_GUARD_MEMORY_3D;
+                ? BVDC_P_CAP_GUARD_MEMORY_2D : BVDC_P_CAP_GUARD_MEMORY_3D;
         }
         else
         {
@@ -3274,22 +3101,21 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
             (pPicture->pVfdOut->lLeft & ~1), &uiByteOffset);
 
         /* Convert address to device offset address */
-        ulDeviceAddr = BVDC_P_Buffer_GetDeviceOffset(pPicture);
-        ulDeviceAddr += uiByteOffset +
+        ullDeviceAddr = BVDC_P_Buffer_GetDeviceOffset(pPicture);
+        ullDeviceAddr += uiByteOffset +
              ulStride * (bProgressiveCap ? pPicture->pVfdOut->lTop : pPicture->pVfdOut->lTop / 2);
 
         if(bEnableAlignWkr)
-            ulDeviceAddr += 4;
+            ullDeviceAddr += 4;
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-        /* TODO: optimize ulDeviceAddr and ulDeviceAddr_R */
+        /* TODO: optimize ullDeviceAddr and ullDeviceAddr_R */
         if(hFeeder->hWindow && hFeeder->hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)
         {
-            ulDeviceAddr_R = BVDC_P_Buffer_GetDeviceOffset_R(pPicture);
-            ulDeviceAddr_R += uiByteOffset +
+            ullDeviceAddr_R = BVDC_P_Buffer_GetDeviceOffset_R(pPicture);
+            ullDeviceAddr_R += uiByteOffset +
                  ulStride * (bProgressiveCap ? pPicture->pVfdOut->lTop : pPicture->pVfdOut->lTop / 2);
             if(bEnableAlignWkr)
-                ulDeviceAddr_R += 4;
+                ullDeviceAddr_R += 4;
         }
         else if(hFeeder->hWindow && hFeeder->hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRCombined)
         {
@@ -3299,15 +3125,14 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
                 hFeeder->hWindow->hCapHeap,
                 hFeeder->hWindow->eBufferHeapIdRequest, &ulBufHeapSize);
 
-            ulDeviceAddr_R = ulDeviceAddr + ulBufHeapSize / 2;
+            ullDeviceAddr_R = ullDeviceAddr + ulBufHeapSize / 2;
         }
         else
         {
             /* If source is 2D, set right buffer same as left in case display
              * is 3D mode */
-            ulDeviceAddr_R = ulDeviceAddr;
+            ullDeviceAddr_R = ullDeviceAddr;
         }
-#endif
 
         if(ePolarity != BAVC_Polarity_eFrame)
         {
@@ -3324,10 +3149,8 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
                 if(bAddStride)
                 {
                     /* one frame line stride */
-                    ulDeviceAddr += ulStride;
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
-                    ulDeviceAddr_R += ulStride;
-#endif
+                    ullDeviceAddr += ulStride;
+                    ullDeviceAddr_R += ulStride;
                 }
             }
             /* Double the stride because we captured frames and scanout as fields. */
@@ -3336,47 +3159,43 @@ static BERR_Code BVDC_P_Feeder_SetPlaybackStrideAddr_isr
     }
 
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) &= ~(
+    hFeeder->stRegs.ulStride &= ~(
         BCHP_MASK(MFD_0_STRIDE, PACKED_LINE_STRIDE) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_STRIDE) |= (
+    hFeeder->stRegs.ulStride |= (
         BCHP_FIELD_DATA(MFD_0_STRIDE, PACKED_LINE_STRIDE, ulStride) );
 
     /* Set address */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) &= ~(
+    hFeeder->stRegs.ullPic0Addr0 &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR) );
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
     if((pPicture->eDispOrientation != BFMT_Orientation_e2D) &&
        (pPicture->e3dSrcBufSel == BVDC_3dSourceBufferSelect_eRightBuffer))
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) |= (
-            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR, ulDeviceAddr_R) );
+        hFeeder->stRegs.ullPic0Addr0 |= (
+            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr_R) );
     }
     else
-#endif
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0) |= (
-            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR, ulDeviceAddr) );
+        hFeeder->stRegs.ullPic0Addr0 |= (
+            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr) );
     }
 
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
     /* Set address */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) &= ~(
+    hFeeder->stRegs.ullPic0Addr0_R &= ~(
         BCHP_MASK(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR) );
 
     if((pPicture->eDispOrientation != BFMT_Orientation_e2D) &&
        (pPicture->e3dSrcBufSel == BVDC_3dSourceBufferSelect_eLeftBuffer))
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) |= (
-            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR, ulDeviceAddr) );
+        hFeeder->stRegs.ullPic0Addr0_R |= (
+            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr) );
     }
     else
     {
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R) |= (
-            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR, ulDeviceAddr_R) );
+        hFeeder->stRegs.ullPic0Addr0_R |= (
+            BCHP_FIELD_DATA(MFD_0_PICTURE0_LINE_ADDR_0_R, PACKED_LUMA_CHROMA_ADDR, ullDeviceAddr_R) );
     }
-#endif
 
     return BERR_SUCCESS;
 }
@@ -3403,7 +3222,7 @@ void BVDC_P_Feeder_SetPlaybackInfo_isr
     BDBG_OBJECT_ASSERT(hFeeder, BVDC_FDR);
 
     /* Common video feeder settings */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_HSIZE) &= ~(BCHP_MASK(MFD_0_DISP_HSIZE, VALUE));
+    hFeeder->stRegs.ulHSize &= ~(BCHP_MASK(MFD_0_DISP_HSIZE, VALUE));
 
     hFeeder->bFixedColor = bFixedColor;
     if (hFeeder->bGfxSrc)
@@ -3416,7 +3235,7 @@ void BVDC_P_Feeder_SetPlaybackInfo_isr
         ePolarity = hFeeder->stPicture.eSrcPolarity;
         bProgressiveCap = (BAVC_Polarity_eFrame == ePolarity);
 
-        BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_HSIZE) |= (
+        hFeeder->stRegs.ulHSize |= (
             BCHP_FIELD_DATA(MFD_0_DISP_HSIZE, VALUE, ulWidth & ~1));
     }
     else
@@ -3468,7 +3287,7 @@ void BVDC_P_Feeder_SetPlaybackInfo_isr
             }
 #endif
 
-            BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_HSIZE) |= (
+            hFeeder->stRegs.ulHSize |= (
                 BCHP_FIELD_DATA(MFD_0_DISP_HSIZE, VALUE, ulWidth));
         }
     }
@@ -3525,28 +3344,24 @@ static void BVDC_P_Feeder_SetFixedColor_isr
     ucCb   = (uint8_t)BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, ulMuteColorYCrCb, 1);
     ucCr   = (uint8_t)BPXL_GET_COMPONENT(BPXL_eA8_Y8_Cb8_Cr8, ulMuteColorYCrCb, 0);
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) &= ~(
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
+    hFeeder->stRegs.ulFeederCntl &= ~(
         BCHP_MASK(MFD_0_FEEDER_CNTL, MEM_VIDEO          ) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, BVB_VIDEO          ) |
-#endif
         BCHP_MASK(MFD_0_FEEDER_CNTL, IMAGE_FORMAT       ) |
         BCHP_MASK(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FEEDER_CNTL) |= (
-#if (BVDC_P_MFD_SUPPORT_3D_VIDEO)
+    hFeeder->stRegs.ulFeederCntl |= (
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, MEM_VIDEO, MODE_2D     ) |
         BCHP_FIELD_DATA(MFD_0_FEEDER_CNTL, BVB_VIDEO, hFeeder->eOutputOrientation)|
-#endif
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, IMAGE_FORMAT, PACKED   ) |
         BCHP_FIELD_ENUM(MFD_0_FEEDER_CNTL, FIXED_COLOUR_ENABLE, ON) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FIXED_COLOUR) &= ~(
+    hFeeder->stRegs.ulFixedColor &= ~(
         BCHP_MASK(MFD_0_FIXED_COLOUR, LUMA) |
         BCHP_MASK(MFD_0_FIXED_COLOUR, CB  ) |
         BCHP_MASK(MFD_0_FIXED_COLOUR, CR  ) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_FIXED_COLOUR) |= (
+    hFeeder->stRegs.ulFixedColor |= (
         BCHP_FIELD_DATA(MFD_0_FIXED_COLOUR, LUMA, ucLuma) |
         BCHP_FIELD_DATA(MFD_0_FIXED_COLOUR, CB,   ucCb  ) |
         BCHP_FIELD_DATA(MFD_0_FIXED_COLOUR, CR,   ucCr  ) );
@@ -3570,60 +3385,16 @@ static BERR_Code BVDC_P_Feeder_SetVertWindow_isr
       const uint32_t                   ulTop,
       const uint32_t                   ulHeight)
 {
-#if (BVDC_P_SUPPORT_MFD_VER < BVDC_P_MFD_VER_10)
-    uint32_t   ulVertStart, ulVertEnd;
-
-    switch( eSourcePolarity )
-    {
-    case BAVC_Polarity_eTopField:
-        /* Top field interlaced scan out from 0 to (height - 2) */
-        ulVertStart  = ulTop;
-        ulVertEnd    = ulTop + ulHeight - 2;
-        BDBG_ASSERT((ulVertStart & 1) == (ulVertEnd & 1));
-        break;
-
-    case BAVC_Polarity_eBotField:
-        /* Bottom field interlaced scan out from 1 to (height - 1) */
-        ulVertStart  = ulTop + 1;
-        ulVertEnd    = ulTop + ulHeight - 1;
-        BDBG_ASSERT((ulVertStart & 1) == (ulVertEnd & 1));
-        break;
-
-    case BAVC_Polarity_eFrame:
-        /* Progressive scan out from 0 to (height - 1) */
-        ulVertStart  = ulTop;
-        ulVertEnd    = ulTop + ulHeight - 1;
-        break;
-
-    default:
-        /* Top field interlaced scan out from 0 to (height - 2) */
-        ulVertStart  = ulTop;
-        ulVertEnd    = ulTop + ulHeight - 2;
-        break;
-    }
-
-    BDBG_MSG(("Feeder %d ePolarity = %d", hFeeder->eId, eSourcePolarity));
-    BDBG_MSG(("Scanout VERT_WIN_START = %d", ulVertStart));
-    BDBG_MSG(("Scanout VERT_WIN_END   = %d", ulVertEnd));
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_DISP_VERT_WINDOW) &= ~(
-        BCHP_MASK(MFD_0_PICTURE0_DISP_VERT_WINDOW, START) |
-        BCHP_MASK(MFD_0_PICTURE0_DISP_VERT_WINDOW, END  ) );
-
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_DISP_VERT_WINDOW) |= (
-        BCHP_FIELD_DATA(MFD_0_PICTURE0_DISP_VERT_WINDOW, START, ulVertStart) |
-        BCHP_FIELD_DATA(MFD_0_PICTURE0_DISP_VERT_WINDOW, END,   ulVertEnd  ) );
-#else
     BDBG_MSG(("Feeder %d ePolarity = %d", hFeeder->eId, eSourcePolarity));
     BDBG_MSG(("Scanout MFD_0_DISP_VSIZE = %d",
         (BAVC_Polarity_eFrame==eSourcePolarity)
         ? (ulHeight - ulTop) : ((ulHeight - ulTop)/2)));
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_VSIZE) &= ~(
+    hFeeder->stRegs.ulVSize &= ~(
         BCHP_MASK(MFD_0_DISP_VSIZE, VALUE));
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_DISP_VSIZE) |= (
+    hFeeder->stRegs.ulVSize |= (
         BCHP_FIELD_DATA(MFD_0_DISP_VSIZE, VALUE, (BAVC_Polarity_eFrame==eSourcePolarity)
             ? (ulHeight - ulTop) : ((ulHeight - ulTop)/2)) );
-#endif
 
     return BERR_SUCCESS;
 }
@@ -3638,10 +3409,10 @@ BERR_Code BVDC_P_Feeder_SetEnable_isr
       bool                             bEnable )
 {
     /* Turn on/off the feeder. */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PIC_FEED_CMD) &= ~(
+    hFeeder->stRegs.ulPicCmd &= ~(
         BCHP_MASK(MFD_0_PIC_FEED_CMD, START_FEED) );
 
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_PIC_FEED_CMD) |= (
+    hFeeder->stRegs.ulPicCmd |= (
         BCHP_FIELD_DATA(MFD_0_PIC_FEED_CMD, START_FEED, bEnable) );
 
     return BERR_SUCCESS;
@@ -3660,16 +3431,6 @@ void BVDC_P_Feeder_GetCrc_isr
     BDBG_ASSERT(hFeeder->eId < BVDC_P_FeederId_eVfd0);
 
     /* Fetch the new CRC values */
-#if (BVDC_P_MFD_NEED_CRC_WORKAROUND)
-    pData->ulLumaCrc   = BREG_Read32_isr(hReg, hFeeder->ulLumaCrcRegAddr);
-    pData->ulChromaCrc = BREG_Read32_isr(hReg, hFeeder->ulChromaCrcRegAddr);
-
-    pData->ulChroma1Crc = BVDC_P_MFD_INVALID_CRC;
-    pData->ulLumaCrcR   = BVDC_P_MFD_INVALID_CRC;
-    pData->ulChromaCrcR = BVDC_P_MFD_INVALID_CRC;
-    pData->ulChroma1CrcR = BVDC_P_MFD_INVALID_CRC;
-#else
-
     pData->ulLumaCrc   = BREG_Read32_isr(hReg, BCHP_MFD_0_LUMA_CRC + hFeeder->ulRegOffset);
     pData->ulChromaCrc = BREG_Read32_isr(hReg, BCHP_MFD_0_CHROMA_CRC + hFeeder->ulRegOffset);
 
@@ -3690,119 +3451,10 @@ void BVDC_P_Feeder_GetCrc_isr
     pData->ulChroma1CrcR = BVDC_P_MFD_INVALID_CRC;
 #endif
 
-#endif
     pData->stMask.bCrcValue = BVDC_P_DIRTY;
 
     return;
 }
-
-#if (BVDC_P_MFD_SUPPORT_CSC)
-/***************************************************************************
- *
- */
-static void BVDC_P_Feeder_SetCsc_isr
-    ( BVDC_P_Feeder_Handle             hFeeder,
-      const BAVC_MVD_Field            *pFieldData )
-{
-    BVDC_P_CscCoeffs stCscCoeffs;
-
-    BDBG_OBJECT_ASSERT(hFeeder->hSource, BVDC_SRC);
-
-#if (BVDC_P_CMP_MOSAIC_CSC_SLOTS == 0)
-    if(hFeeder->hSource->stCurInfo.bMosaicMode)
-    {
-        BVDC_P_CscCfg stCscCfg;
-        /* Correct way is to convert individual input color space from
-         * pFieldData->eMatrixCoefficients to tracked channel color space
-         * defined by hFeeder->hSource->eMatrixCoefficients.
-         * BVDC_P_Compositor_GetCscTable_isr(&stCscCoeffs, false,
-         * pFieldData->eMatrixCoefficients, hFeeder->hSource->eMatrixCoefficients);
-         *
-         * Since we don't have all the matrices yet, just convert all to HD.
-         * hFeeder->hSource->eMatrixCoefficients is hard coded to
-         * BAVC_MatrixCoefficients_eItu_R_BT_709 in
-         * BVDC_P_Window_UpdateSrcAndUserInfo_isr. */
-        BVDC_P_Compositor_GetCscTable_isrsafe(&stCscCfg, true,
-            pFieldData->eMatrixCoefficients, BVDC_P_MatrixCoeffs_eBt709,
-            BAVC_HDMI_DRM_EOTF_eSDR, BAVC_HDMI_DRM_EOTF_eSDR, false);
-
-        stCscCoeffs = stCscCfg.stCscMC;
-    }
-    else
-#endif
-    {
-        /* Use s_Identity */
-        BVDC_P_Csc_GetHdDviTable_isr(&stCscCoeffs, BAVC_CscMode_e709YCbCr);
-    }
-
-    /* Turn on CSC. */
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CSC_CNTL) &= ~(
-        BCHP_MASK(MFD_0_CSC_CNTL, CSC_ENABLE) );
-
-    BVDC_P_MFD_GET_REG_DATA(MFD_0_CSC_CNTL) |= (
-        BCHP_FIELD_ENUM(MFD_0_CSC_CNTL, CSC_ENABLE, ON) );
-
-#if (BVDC_P_MFD_SUPPORT_NEW_CSC)
-    /* [ c00, c01 c02 c03 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C00, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C00, COEFF_MUL, stCscCoeffs.usY0));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C01, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C01, COEFF_MUL, stCscCoeffs.usY1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C02, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C02, COEFF_MUL, stCscCoeffs.usY2));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C03, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C03, COEFF_ADD, stCscCoeffs.usYOffset));
-
-    /* [ c10, c11 c12 c13 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C10, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C10, COEFF_MUL, stCscCoeffs.usCb0));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C11, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C11, COEFF_MUL, stCscCoeffs.usCb1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C12, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C12, COEFF_MUL, stCscCoeffs.usCb2));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C13, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C13, COEFF_ADD, stCscCoeffs.usCbOffset));
-
-    /* [ c20, c21 c22 c23 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C20, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C20, COEFF_MUL, stCscCoeffs.usCr0));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C21, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C21, COEFF_MUL, stCscCoeffs.usCr1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C22, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C22, COEFF_MUL, stCscCoeffs.usCr2));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C23, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C23, COEFF_ADD, stCscCoeffs.usCrOffset));
-
-#else
-    /* [ c00, c01 c02 c03 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C01_C00, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C01_C00, COEFF_C0, stCscCoeffs.usY0) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C01_C00, COEFF_C1, stCscCoeffs.usY1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C03_C02, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C03_C02, COEFF_C2, stCscCoeffs.usY2) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C03_C02, COEFF_C3, stCscCoeffs.usYOffset));
-
-    /* [ c10, c11 c12 c13 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C11_C10, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C11_C10, COEFF_C0, stCscCoeffs.usCb0) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C11_C10, COEFF_C1, stCscCoeffs.usCb1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C13_C12, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C13_C12, COEFF_C2, stCscCoeffs.usCb2) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C13_C12, COEFF_C3, stCscCoeffs.usCbOffset));
-
-    /* [ c20, c21 c22 c23 ] */
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C21_C20, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C21_C20, COEFF_C0, stCscCoeffs.usCr0) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C21_C20, COEFF_C1, stCscCoeffs.usCr1));
-    BVDC_P_MFD_SET_REG_DATA(MFD_0_CSC_COEFF_C23_C22, \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C23_C22, COEFF_C2, stCscCoeffs.usCr2) | \
-        BCHP_FIELD_DATA(MFD_0_CSC_COEFF_C23_C22, COEFF_C3, stCscCoeffs.usCrOffset));
-#endif
-
-    return;
-}
-
-#endif
 
 
 /*****************************************************************************
@@ -3884,7 +3536,7 @@ BERR_Code BVDC_P_Feeder_ValidateChanges
     hFeeder->pNewSur = pNewSur;
 
     /* don't validate if no surface is set yet */
-    if (hFeeder->hWindow && pNewSur->ulAddress)
+    if (hFeeder->hWindow && pNewSur->ullAddress)
     {
         /* validates the combination of clip, scaler-out and dest rectangles
          * and surface size. */

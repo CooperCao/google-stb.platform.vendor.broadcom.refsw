@@ -47,14 +47,88 @@
 BDBG_MODULE(BVBI);
 
 /*
- * Handle processing
+ * BVBI/BMMA functions
+ */
+
+/***************************************************************************
+ *
+ */
+BERR_Code BVBI_P_MmaAlloc
+    (BMMA_Heap_Handle hMmaHeap, size_t size, unsigned alignment,
+     BVBI_P_MmaData* pMmaData)
+{
+    BERR_Code eErr = BERR_SUCCESS;
+
+    pMmaData->handle = BMMA_Alloc (hMmaHeap, size, alignment, NULL);
+    if (pMmaData->handle == NULL)
+    {
+        eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto init_done;
+    }
+    pMmaData->pSwAccess = BMMA_Lock (pMmaData->handle);
+    if (pMmaData->pSwAccess == NULL)
+    {
+        eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto init_done;
+    }
+    pMmaData->pHwAccess = BMMA_LockOffset (pMmaData->handle);
+    if (pMmaData->pHwAccess == (BMMA_DeviceOffset)0)
+    {
+        eErr = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        goto init_done;
+    }
+
+init_done:
+    if (eErr != BERR_SUCCESS)
+    {
+        if (pMmaData->handle != NULL)
+        {
+            if (pMmaData->pSwAccess != NULL)
+            {
+                BMMA_Unlock (pMmaData->handle, pMmaData->pSwAccess);
+                pMmaData->pSwAccess = NULL;
+            }
+            BMMA_Free (pMmaData->handle);
+            pMmaData->handle = NULL;
+        }
+    }
+    return eErr;
+}
+
+/***************************************************************************
+ *
+ */
+void BVBI_P_MmaFree (BVBI_P_MmaData* pMmaData)
+{
+    if (pMmaData->handle != NULL)
+    {
+        BMMA_UnlockOffset (pMmaData->handle, pMmaData->pHwAccess);
+        pMmaData->pHwAccess = (BMMA_DeviceOffset)0;
+        BMMA_Unlock (pMmaData->handle, pMmaData->pSwAccess);
+        pMmaData->pSwAccess = NULL;
+        BMMA_Free (pMmaData->handle);
+        pMmaData->handle = NULL;
+    }
+}
+
+/***************************************************************************
+ *
+ */
+void BVBI_P_MmaFlush_isrsafe (BVBI_P_MmaData* pMmaData, size_t size)
+{
+    BMMA_FlushCache_isrsafe (pMmaData->handle, pMmaData->pSwAccess, size);
+}
+
+
+/*
+ * LineBuilder functions
  */
 
 /* The LineBuilder object implements a double buffer. This struct defines
  properties common to both buffers. */
 typedef struct P_Bank
 {
-    uint8_t* rawData;       /* The raw data being stored/buffered.          */
+    BVBI_P_MmaData rawData; /* The raw data being stored/buffered.          */
     size_t accumLength;     /* How many bytes have been accumulated.        */
     int sequenceNumber;     /* A trigger that causes accumulation to reset.
                                If zero, indicates there is no valid data.   */
@@ -70,7 +144,7 @@ struct BVBI_P_LineBuilder_Handle
     BDBG_OBJECT (BVBI_LBLDR)
 
     /* Needed to allocate memory */
-    BMEM_Handle hMem;
+    BMMA_Heap_Handle hMmaHeap;
 
     /* Usable line length in bytes, set at creation time. */
     size_t lineCount;
@@ -86,19 +160,21 @@ struct BVBI_P_LineBuilder_Handle
 
 };
 
-#if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
+/* Debug code: knocked out */
+#if (1 || BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 
 /***************************************************************************
  *
  */
 BERR_Code BVBI_LineBuilder_Open (
     BVBI_LineBuilder_Handle* pHandle,
-    BMEM_Handle hMem, size_t lineCount, size_t lineSize)
+    BMMA_Heap_Handle hMmaHeap, size_t lineCount, size_t lineSize)
 {
 
     int iBank;
     size_t iEntry;
     struct BVBI_P_LineBuilder_Handle* context;
+    BERR_Code eErr = BERR_SUCCESS;
 
     BDBG_ENTER(BVBI_LineBuilder_Open);
 
@@ -127,62 +203,42 @@ BERR_Code BVBI_LineBuilder_Open (
     BDBG_OBJECT_INIT (context, BVBI_LBLDR);
 
     /* Store attributes provided by user */
-    context->hMem      =      hMem;
+    context->hMmaHeap  = hMmaHeap;
     context->lineCount = lineCount;
-    context->lineSize  =  lineSize;
+    context->lineSize  = lineSize;
 
     /* Two allocations to go. Avoid memory leaks after failure. */
-    context->bank[0].rawData =
-        (uint8_t*)(BMEM_AllocAligned (
-            context->hMem,
-            lineSize,
-            4,
-            0));
-    if (!(context->bank[0].rawData))
+    eErr = BVBI_P_MmaAlloc (
+        context->hMmaHeap, lineSize, 16, &(context->bank[0].rawData));
+    if (eErr != BERR_SUCCESS)
     {
         BDBG_OBJECT_DESTROY (context, BVBI_LBLDR);
         BKNI_Free (context);
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return BERR_TRACE(eErr);
     }
-    context->bank[1].rawData =
-        (uint8_t*)(BMEM_AllocAligned (
-            context->hMem,
-            lineSize,
-            4,
-            0));
-    if (!(context->bank[1].rawData))
+    eErr = BVBI_P_MmaAlloc (
+        context->hMmaHeap, lineSize, 4, &(context->bank[1].rawData));
+    if (context->bank[1].rawData.handle == NULL)
     {
-        BMEM_Free (context->hMem, context->bank[0].rawData);
+        BVBI_P_MmaFree (&(context->bank[0].rawData));
         BDBG_OBJECT_DESTROY (context, BVBI_LBLDR);
         BKNI_Free (context);
-        return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        return BERR_TRACE(eErr);
     }
 
     /* Initialize state */
     context->accumBank = 0;
     for (iBank = 0 ; iBank < 2 ; ++iBank)
     {
-        void* cached_ptr;
         uint8_t* rawData;
-        BERR_Code eErr;
         P_Bank* bank = &(context->bank[iBank]);
         bank->accumLength    = 0;
         bank->sequenceNumber = 0;
         bank->lineNumber     = 0;
-        if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached (
-            context->hMem, bank->rawData, &cached_ptr))) !=
-                BERR_SUCCESS)
-        {
-            BMEM_Free (context->hMem, context->bank[1].rawData);
-            BMEM_Free (context->hMem, context->bank[0].rawData);
-            BDBG_OBJECT_DESTROY (context, BVBI_LBLDR);
-            BKNI_Free (context);
-            return eErr;
-        }
-        rawData = (uint8_t*)cached_ptr;
+        rawData = (uint8_t*)bank->rawData.pSwAccess;
         for (iEntry = lineCount ; iEntry < lineSize ; ++iEntry)
             rawData[iEntry] = 0;
-        BMEM_FlushCache (context->hMem, cached_ptr, lineSize);
+        BVBI_P_MmaFlush_isrsafe (&(bank->rawData), lineSize);
     }
 
     /* All done. now return the new context to user. */
@@ -209,7 +265,7 @@ void BVBI_LineBuilder_Close (BVBI_LineBuilder_Handle handle)
 
     /* Wipe out bank storage */
     for (iBank = 0 ; iBank < 2 ; ++iBank)
-        BMEM_Free (context->hMem, context->bank[iBank].rawData);
+        BVBI_P_MmaFree (&(context->bank[iBank].rawData));
 
     /* Release context in system memory */
     BDBG_OBJECT_DESTROY (context, BVBI_LBLDR);
@@ -228,9 +284,7 @@ BERR_Code BVBI_LineBuilder_Put_isr (
 {
     struct BVBI_P_LineBuilder_Handle* context;
     P_Bank* bank;
-    void* cached_ptr;
     uint8_t* rawData;
-    BERR_Code eErr;
 
     BDBG_ENTER (BVBI_LineBuilder_Put_isr);
 
@@ -261,15 +315,7 @@ BERR_Code BVBI_LineBuilder_Put_isr (
     }
 
     /* Access cached memory only */
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached_isr (
-        context->hMem, bank->rawData, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        BDBG_ERR(("Cache memory failure"));
-        BDBG_LEAVE (BVBI_LineBuilder_Put_isr);
-        return eErr;
-    }
-    rawData = (uint8_t*)cached_ptr;
+    rawData = (uint8_t*)(bank->rawData.pSwAccess);
 
     /* Can the new data be added? */
     if ((sequenceNumber == bank->sequenceNumber) &&
@@ -330,13 +376,11 @@ BERR_Code BVBI_LineBuilder_Put_isr (
  *
  */
 BERR_Code BVBI_LineBuilder_Get_isr (
-    BVBI_LineBuilder_Handle handle, uint8_t** pLineData, int* pSequenceNumber,
-    int* pLineNumber)
+    BVBI_LineBuilder_Handle handle,
+    BMMA_DeviceOffset* pLineData, int* pSequenceNumber, int* pLineNumber)
 {
     struct BVBI_P_LineBuilder_Handle* context;
     P_Bank* bank;
-    BERR_Code eErr;
-    void* cached_ptr;
 
     BDBG_ENTER (BVBI_LineBuilder_Get_isr);
 
@@ -348,18 +392,10 @@ BERR_Code BVBI_LineBuilder_Get_isr (
     bank = &context->bank[1 - context->accumBank];
 
     /* Flush cached DRAM */
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached_isr (
-        context->hMem, bank->rawData, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        BDBG_ERR(("Cache memory failure"));
-        BDBG_LEAVE (BVBI_LineBuilder_Get_isr);
-        return eErr;
-    }
-    BMEM_FlushCache_isr (context->hMem, cached_ptr, bank->accumLength);
+    BVBI_P_MmaFlush_isrsafe (&(bank->rawData), bank->accumLength);
 
     /* Point to data, or lack thereof. */
-    *pLineData = bank->rawData;
+    *pLineData = bank->rawData.pHwAccess;
     *pSequenceNumber = bank->sequenceNumber;
     *pLineNumber = bank->lineNumber;
 

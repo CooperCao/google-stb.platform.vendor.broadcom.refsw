@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -194,7 +194,31 @@ static void found_teiError(
 
 #endif /* ifdef SNMP_SUPPORT */
 
-eRet CChannel::mapInputBand(CInputBand * pInputBand)
+eRet CChannel::dupParserBand(CParserBand * pParserBand)
+{
+    eRet ret = eRet_Ok;
+
+    BDBG_ASSERT(NULL != pParserBand);
+    if (_tuned == false)
+    {
+        BDBG_ERR((" Channel Is not Tuned, Cannot duplicate ParserBand"));
+        ret = eRet_ExternalError;
+        goto error;
+    }
+
+    ret = mapInputBand(_pInputBand, pParserBand);
+    CHECK_ERROR_GOTO("error mapping input band to parser band", ret, error);
+
+    BDBG_MSG(("Successfully duplicated the parser band"));
+    BDBG_MSG(("FOR CH NUMBER: %d.%d", getMajor(), getMinor()));
+error:
+    return(ret);
+} /* dupParserBand */
+
+eRet CChannel::mapInputBand(
+        CInputBand *  pInputBand,
+        CParserBand * pParserBand
+        )
 {
     eRet                     ret    = eRet_Ok;
     NEXUS_Error              nerror = NEXUS_SUCCESS;
@@ -204,7 +228,15 @@ eRet CChannel::mapInputBand(CInputBand * pInputBand)
     BDBG_ASSERT(NULL != _pParserBand);
     BDBG_ASSERT(NULL != pInputBand);
 
-    band = _pParserBand->getBand();
+    if (pParserBand != NULL)
+    {
+        BDBG_MSG(("parserBand is passed in"));
+        band = pParserBand->getBand();
+    }
+    else
+    {
+        band = _pParserBand->getBand();
+    }
     NEXUS_ParserBand_GetSettings(band, &settings);
 
 #if NEXUS_HAS_FRONTEND
@@ -606,7 +638,7 @@ error:
 
 eRet CChannel::closePids()
 {
-    eRet   ret         = eRet_Ok;
+    eRet ret = eRet_Ok;
 
     _pidMgr.closePidChannels();
 

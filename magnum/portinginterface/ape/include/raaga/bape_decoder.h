@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -468,14 +468,13 @@ typedef struct BAPE_DecoderStatus
     } codecStatus;
 } BAPE_DecoderStatus;
 
-#define BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH      8
-#define BAPE_AC4_PRESENTATION_NAME_LENGTH               36
 typedef struct BAPE_DecoderAc4PresentationInfo
 {
-    unsigned id;                                                /* Identifier for this Presentation */
+    unsigned index;                                             /* Index of this Presentation */
+    char id[BAPE_AC4_PRESENTATION_ID_LENGTH];                   /* Unique Identifier for this Presentation */
     BAPE_Ac4AssociateType associateType;                        /* Describes what the associated program contains */
     char name[BAPE_AC4_PRESENTATION_NAME_LENGTH];               /* Name/Title of the Presentation */
-    char language[BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH];  /* Language of the Presentation */
+    char language[BAPE_AC4_LANGUAGE_NAME_LENGTH];               /* Language of the Presentation */
 } BAPE_DecoderAc4PresentationInfo;
 
 /***************************************************************************

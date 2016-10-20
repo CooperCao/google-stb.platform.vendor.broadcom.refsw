@@ -22,4 +22,4 @@ Do this on the settop:
 	nexus buildfont 
 
 	# here's a sample
-	nexus buildfont /mnt/nfs/font.ttf 10 1 fonts/test.bwin_font
+	nexus buildfont /mnt/nfs/font.ttf -size 10 -aa fonts/test.bwin_font

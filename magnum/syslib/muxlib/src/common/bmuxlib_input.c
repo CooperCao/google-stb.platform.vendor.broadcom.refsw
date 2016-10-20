@@ -1176,6 +1176,33 @@ BMUXlib_Input_PeekAtNextDescriptor(
    return true;   /* descriptor is available in pstDescriptor */
 }
 
+bool
+BMUXlib_Input_PeekAtDescriptor(
+         BMUXlib_Input_Handle hInput,
+         unsigned uiIndex,
+         BMUXlib_Input_Descriptor *pstDescriptor
+         )
+{
+   uiIndex += hInput->stDescriptorInfo.uiPendingOffset;
+   uiIndex %= BMUXLIB_INPUT_P_MAX_DESCRIPTORS;
+
+   if ( BMUXlib_Input_GetDescriptorCount( hInput ) < BMUXLIB_INPUT_P_QUEUE_DEPTH ( uiIndex, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS ) )
+   {
+      return false;
+   }
+
+   BMUXlib_Input_P_PeekAtDescriptor( hInput, uiIndex, pstDescriptor );
+   return true;
+}
+
+unsigned
+BMUXlib_Input_GetDescriptorCount(
+   BMUXlib_Input_Handle hInput
+   )
+{
+   return BMUXLIB_INPUT_P_QUEUE_DEPTH ( hInput->stDescriptorInfo.uiPendingOffset, hInput->stDescriptorInfo.uiWriteOffset, BMUXLIB_INPUT_P_MAX_DESCRIPTORS );
+}
+
 /* Returns true if a valid descriptor is available in pstDescriptor
    if no more descriptors, then pstDescriptor->descriptor.pstCommon will be NULL and it will return false
 */

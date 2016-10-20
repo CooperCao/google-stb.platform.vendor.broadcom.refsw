@@ -265,7 +265,7 @@ BERR_Code BHAB_4538_P_InitAp(
                   BHAB_CHK_RETCODE(BHAB_4538_P_ReadMemory(h, addr, (uint8_t *)pVerifyBuf, n));
                   if (BKNI_Memcmp(pImage, pVerifyBuf, n) == 0)
                      break;
-                  BDBG_WRN(("data read back does not match\n"));
+                  BDBG_WRN(("data read back does not match"));
                }
 #else
                break;
@@ -347,7 +347,7 @@ BERR_Code BHAB_4538_P_InitAp(
                       BHAB_CHK_RETCODE(BHAB_4538_P_ReadMemory(h, addr + chunk*chunk_size, (uint8_t *)pVerifyBuf, n));
                       if (BKNI_Memcmp(pImage, pVerifyBuf, n) == 0)
                          break;
-                      BDBG_WRN(("data read back does not match\n"));
+                      BDBG_WRN(("data read back does not match"));
                    }
 #else
                    break;
@@ -400,7 +400,7 @@ BERR_Code BHAB_4538_P_InitAp(
       }
       if ((val32 & BHAB_4538_HIRQ0_INIT_DONE) == 0)
       {
-         BDBG_ERR(("AP initialization timeout\n"));
+         BDBG_ERR(("AP initialization timeout"));
          BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
          goto done;
       }
@@ -408,7 +408,7 @@ BERR_Code BHAB_4538_P_InitAp(
       /* wait for init done interrupt */
       if (BHAB_4538_P_WaitForEvent(h, pImpl->hInitDoneEvent, 5000) != BERR_SUCCESS)
       {
-         BDBG_ERR(("AP initialization timeout\n"));
+         BDBG_ERR(("AP initialization timeout"));
          BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
          goto done;
       }
@@ -428,7 +428,7 @@ BERR_Code BHAB_4538_P_InitAp(
       }
       if ((val32 & BHAB_4538_HIRQ0_INIT_DONE) == 0)
       {
-         BDBG_ERR(("AP initialization timeout\n"));
+         BDBG_ERR(("AP initialization timeout"));
          BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
          goto done;
       }
@@ -1338,7 +1338,7 @@ BERR_Code BHAB_4538_P_RunAp(BHAB_Handle h)
    BHAB_CHK_RETCODE(BHAB_4538_P_ReadBbsi(h, BCHP_CSR_STATUS, &status, 1));
    if (status & BCHP_CSR_STATUS_CPU_RUNNING_MASK)
    {
-      BDBG_WRN(("BHAB_4538_P_RunAp(): AP already running\n"));
+      BDBG_WRN(("BHAB_4538_P_RunAp(): AP already running"));
    }
    else
    {
@@ -1352,7 +1352,7 @@ BERR_Code BHAB_4538_P_RunAp(BHAB_Handle h)
       BHAB_CHK_RETCODE(BHAB_4538_P_ReadBbsi(h, BCHP_CSR_STATUS, &status, 1));
       if ((status & BCHP_CSR_STATUS_CPU_RUNNING_MASK) == 0)
       {
-         BDBG_ERR(("unable to run the AP\n"));
+         BDBG_ERR(("unable to run the AP"));
          BERR_TRACE(retCode = BHAB_ERR_AP_FAIL);
       }
    }
@@ -1453,7 +1453,7 @@ BERR_Code BHAB_4538_P_ServiceHab(
       retCode = BHAB_4538_P_DecodeHabError(h, &habErr);
       if (retCode == BERR_SUCCESS)
       {
-         BDBG_ERR(("HAB command not serviced: err=0x%08X, ack_byte=0x%02X, expected=0x%02X\n", habErr, read_buf[0], ack_byte));
+         BDBG_ERR(("HAB command not serviced: err=0x%08X, ack_byte=0x%02X, expected=0x%02X", habErr, read_buf[0], ack_byte));
          retCode = habErr;
       }
       goto done;
@@ -1471,7 +1471,7 @@ BERR_Code BHAB_4538_P_ServiceHab(
       }
       if (cs != read_buf[read_len - 1])
       {
-         BDBG_ERR(("Bad HAB checksum!\n"));
+         BDBG_ERR(("Bad HAB checksum!"));
          BERR_TRACE(retCode = BHAB_ERR_HAB_CHECKSUM);
       }
    }

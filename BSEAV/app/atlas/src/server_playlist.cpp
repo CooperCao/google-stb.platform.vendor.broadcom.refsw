@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "server_playlist.h"
 #include "atlas.h"
@@ -323,9 +320,9 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
     uint16_t program;
     bool     isHevc;
     bool     is4k;
-    bool playListItem;
+    bool     playListItem;
 
-    MString temp;
+    MString       temp;
     int           i;
     std::ifstream nfoFile;
     MString       streamNfoName;
@@ -419,72 +416,53 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
     playList += boardName;
     playList += "');";
 
-        nIndex = 0;
-        while (NULL != (pVideo = pPlaybackList->getVideo(nIndex++)))
+    nIndex = 0;
+    while (NULL != (pVideo = pPlaybackList->getVideo(nIndex++)))
+    {
+        isHevc       = false;
+        is4k         = false;
+        playListItem = false;
+        /*
+         * CChannelIp  *pCh1 = new CChannelIp(_pCfg);
+         * Now reset params as per the CVideo object.
+         */
+        temp    = pVideo->getVideoName();
+        program = pVideo->getProgram();
+        pCh->setProgram(program);
+        BDBG_MSG((" Name of FILE %s,", temp.s()));
+
+        streamNfoName = temp;
+
+        if ((i = streamNfoName.findRev(".")) != -1)
         {
-            isHevc = false;
-            is4k   = false;
-            playListItem = false;
-            /*
-             * CChannelIp  *pCh1 = new CChannelIp(_pCfg);
-             * Now reset params as per the CVideo object.
-             */
-            temp = pVideo->getVideoName();
-            program = pVideo->getProgram();
-            pCh->setProgram(program);
-            BDBG_MSG((" Name of FILE %s,", temp.s()));
+            streamNfoName.truncate(i);
+            streamNfoName = "videos/" + streamNfoName + ".nfo";
+        }
 
-            streamNfoName = temp;
-
-            if ((i = streamNfoName.findRev(".")) != -1)
+        nfoFile.open(streamNfoName.s());
+        if (nfoFile)
+        {
+            while (!nfoFile.eof())
             {
-                streamNfoName.truncate(i);
-                streamNfoName = "videos/" + streamNfoName + ".nfo";
-            }
-
-            nfoFile.open(streamNfoName.s());
-            if (nfoFile)
-            {
-                while (!nfoFile.eof())
+                nfoFile >> nfoStr;
+                /* Check to see if the stream is HEVC*/
+                if (nfoStr.find(restrictStr1) != std::string::npos)
                 {
-                    nfoFile >> nfoStr;
-                    /* Check to see if the stream is HEVC*/
-                    if (nfoStr.find(restrictStr1) != std::string::npos)
-                    {
-                        isHevc = true;
-                    }
-                    /* Check to see if the stream is 4K*/
-                    if (nfoStr.find(restrictStr2) != std::string::npos)
-                    {
-                        is4k = true;
-                    }
+                    isHevc = true;
+                }
+                /* Check to see if the stream is 4K*/
+                if (nfoStr.find(restrictStr2) != std::string::npos)
+                {
+                    is4k = true;
                 }
             }
-            nfoFile.close();
+        }
+        nfoFile.close();
 #if NEXUS_HAS_VIDEO_ENCODER
-            /* If the decoder/boxmode does not support 4K */
-            if ((decoderCapabilities.memory[0].maxFormat > 25) && (decoderCapabilities.memory[0].maxFormat < 43))
-            {
-                if ((is4k == false) && (true == encoderCapabilities.videoEncoder[0].supported))
-                {
-                    /* If the decoder/boxmode does support HEVC */
-                    if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
-                    {
-                        pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
-                        playListItem = true;
-                    }
-                    /* If the decoder/boxmode does not support HEVC */
-                    else
-                    if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
-                    {
-                        pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
-                        playListItem = true;
-                    }
-                }
-            }
-            /* If the decoder/boxmode does support 4K */
-            else
-            if ((decoderCapabilities.memory[0].maxFormat > 43) && (true == encoderCapabilities.videoEncoder[0].supported))
+        /* If the decoder/boxmode does not support 4K */
+        if ((decoderCapabilities.memory[0].maxFormat > 25) && (decoderCapabilities.memory[0].maxFormat < 43))
+        {
+            if ((is4k == false) && (true == encoderCapabilities.videoEncoder[0].supported))
             {
                 /* If the decoder/boxmode does support HEVC */
                 if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
@@ -500,32 +478,51 @@ MString CPlaylistGenerator::generateiOSPlaylist(CServerPlaylist * pPlayListServe
                     playListItem = true;
                 }
             }
-#endif /* if NEXUS_HAS_VIDEO_ENCODER */
-            BDBG_MSG(("URL= %s", pCh->getUrl().s()));
-#if NEXUS_HAS_VIDEO_ENCODER
-            /* We want to restrict few streams to be listed in HLS playlist as per the server's decoder/box mode capability and the transcode capability*/
-            if (playListItem == true)
-            {
-                playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ temp.s() + "');";
-            }
-#endif /* if NEXUS_HAS_VIDEO_ENCODER */
         }
-
-       /* Now add iOS playlist for QAM uner input */
-        BDBG_ASSERT(NULL != pModel);
-        pChannelMgr = pModel->getChannelMgr();
-        BDBG_ASSERT(NULL != pChannelMgr);
-        pChannel = pChannelMgr->getFirstChannel();
-       /* if pChannel is NULL that means channelMgr is empty.*/
-        while (pChannel != NULL)
+        /* If the decoder/boxmode does support 4K */
+        else
+        if ((decoderCapabilities.memory[0].maxFormat > 43) && (true == encoderCapabilities.videoEncoder[0].supported))
         {
-            MString channelName = pChannel->getChannelNum();
-            pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/channel?" + channelName + ".m3u8"));
-#if NEXUS_HAS_VIDEO_ENCODER
-            playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ "/channel?" + channelName + "');";
-#endif /* if NEXUS_HAS_VIDEO_ENCODER */
-            pChannel = pChannelMgr->getNextChannel(pChannel, false);
+            /* If the decoder/boxmode does support HEVC */
+            if (decoderCapabilities.memory[0].supportedCodecs[19] == true)
+            {
+                pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
+                playListItem = true;
+            }
+            /* If the decoder/boxmode does not support HEVC */
+            else
+            if ((decoderCapabilities.memory[0].supportedCodecs[19] == false) && (isHevc == false))
+            {
+                pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/" + temp.s() + ".m3u8" + "?program=" + MString(program)));
+                playListItem = true;
+            }
         }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
+        BDBG_MSG(("URL= %s", pCh->getUrl().s()));
+#if NEXUS_HAS_VIDEO_ENCODER
+        /* We want to restrict few streams to be listed in HLS playlist as per the server's decoder/box mode capability and the transcode capability*/
+        if (playListItem == true)
+        {
+            playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ temp.s() + "');";
+        }
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
+    }
+
+    /* Now add iOS playlist for QAM uner input */
+    BDBG_ASSERT(NULL != pModel);
+    pChannelMgr = pModel->getChannelMgr();
+    BDBG_ASSERT(NULL != pChannelMgr);
+    pChannel = pChannelMgr->getFirstChannel();
+    /* if pChannel is NULL that means channelMgr is empty.*/
+    while (pChannel != NULL)
+    {
+        MString channelName = pChannel->getChannelNum();
+        pCh->setUrl(MString("http" + MString("://") + pPlayListServer->getHost() + ":" +  pPlayListServer->getHttpServerListeningPort() + "/channel?" + channelName + ".m3u8"));
+#if NEXUS_HAS_VIDEO_ENCODER
+        playList += "add('"+ MString(pCh->getUrl().s()) +"'"+","+"'"+ "/channel?" + channelName + "');";
+#endif /* if NEXUS_HAS_VIDEO_ENCODER */
+        pChannel = pChannelMgr->getNextChannel(pChannel, false);
+    }
     playList += "</script>";
     playList += "</html>";
 error:

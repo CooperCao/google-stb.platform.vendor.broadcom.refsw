@@ -67,7 +67,7 @@ FILE DESCRIPTION
 #define IS_R(r)     ((r) >= REG_R(0)   && (r) <  REG_R(6))
 #define IS_RF(r)    ((r) >= REG_RF(0)  && (r) <  REG_RF(REGFILE_MAX))
 #define IS_FLAG(r)  ((r) == REG_FLAG_A || (r) == REG_FLAG_B)
-#define IS_MAGIC(r) ((r) >= REG_MAX    && (r) <= REG_MAGIC(42))
+#define IS_MAGIC(r) ((r) >= REG_MAX    && (r) <= REG_MAGIC(46))
 #define IS_RRF(r)   (IS_R(r) || IS_RF(r))
 
 static inline unsigned get_max_regfile(unsigned threading) {
@@ -107,6 +107,12 @@ static inline unsigned get_max_regfile(unsigned threading) {
 #define REG_MAGIC_TMUSCM  REG_MAGIC(40)
 #define REG_MAGIC_TMUSF   REG_MAGIC(41)
 #define REG_MAGIC_TMUSLOD REG_MAGIC(42)
+# if V3D_HAS_TMU_PRIORITY
+#define REG_MAGIC_TMUHS     REG_MAGIC(43)
+#define REG_MAGIC_TMUHSCM   REG_MAGIC(44)
+#define REG_MAGIC_TMUHSF    REG_MAGIC(45)
+#define REG_MAGIC_TMUHSLOD  REG_MAGIC(46)
+# endif
 #endif
 
 #if V3D_HAS_LDVPM
@@ -341,7 +347,8 @@ extern GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
                                                  bool bin_mode,
                                                  int threads,
                                                  bool last,
-                                                 bool lthrsw);
+                                                 bool lthrsw,
+                                                 bool sbwaited);
 
 extern GENERATED_SHADER_T *glsl_backend(BackflowChain *iodeps,
                                         ShaderFlavour type,

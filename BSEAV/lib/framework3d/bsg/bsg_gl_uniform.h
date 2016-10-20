@@ -98,6 +98,16 @@ struct GLUInt1Traits
    static void Func(GLint location, const GLint v1)     { glUniform1i(location, v1); }
 };
 
+#ifdef BSG_USE_ES3
+struct GLUUInt1Traits
+{
+   typedef  GLuint   Data_t;
+   typedef  GLuint   Param_t;
+
+   static void Func(GLint location, const GLuint v1)     { glUniform1ui(location, v1); }
+};
+#endif
+
 struct GLUFloat2Traits
 {
    typedef Vec2        Data_t;
@@ -487,6 +497,10 @@ typedef GLUniform<GLUInt1Traits>    GLUniform1i;
 typedef GLUniform<GLUInt2Traits>    GLUniform2i;
 typedef GLUniform<GLUInt3Traits>    GLUniform3i;
 typedef GLUniform<GLUInt4Traits>    GLUniform4i;
+
+#ifdef BSG_USE_ES3
+typedef GLUniform<GLUUInt1Traits>   GLUniform1u;
+#endif
 
 typedef GLUniform<GLUMat2Traits>    GLUniformMat2;
 typedef GLUniform<GLUMat3Traits>    GLUniformMat3;

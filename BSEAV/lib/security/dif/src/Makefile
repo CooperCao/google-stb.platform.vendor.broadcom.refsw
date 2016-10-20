@@ -1,43 +1,41 @@
-#/******************************************************************************
-#* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
-#*
-#* This program is the proprietary software of Broadcom and/or its
-#* licensors, and may only be used, duplicated, modified or distributed pursuant
-#* to the terms and conditions of a separate, written license agreement executed
-#* between you and Broadcom (an "Authorized License").  Except as set forth in
-#* an Authorized License, Broadcom grants no license (express or implied), right
-#* to use, or waiver of any kind with respect to the Software, and Broadcom
-#* expressly reserves all rights in and to the Software and all intellectual
-#* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-#* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-#* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-#*
-#* Except as expressly set forth in the Authorized License,
-#*
-#* 1. This program, including its structure, sequence and organization,
-#*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-#*    reasonable efforts to protect the confidentiality thereof, and to use
-#*    this information only in connection with your use of Broadcom integrated
-#*    circuit products.
-#*
-#* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-#*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-#*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-#*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-#*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-#*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-#*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-#*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-#*
-#* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-#*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-#*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-#*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-#*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-#*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-#*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-#*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-#******************************************************************************/
+############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+#
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  conditions of a separate, written license agreement executed between you and Broadcom
+#  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+#  no license (express or implied), right to use, or waiver of any kind with respect to the
+#  Software, and Broadcom expressly reserves all rights in and to the Software and all
+#  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+#  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+#  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+#
+#  Except as expressly set forth in the Authorized License,
+#
+#  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+#  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+#  and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+#  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+#  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+#  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+#  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+#  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+#  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+#  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+#  USE OR PERFORMANCE OF THE SOFTWARE.
+#
+#  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+#  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+#  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+#  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+#  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+#  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+#  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+#  ANY LIMITED REMEDY.
+#
+############################################################
 URSR_TOP ?= ../../../../..
 NEXUS_TOP := $(URSR_TOP)/nexus
 BSEAV_TOP := $(URSR_TOP)/BSEAV/
@@ -86,7 +84,6 @@ NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 SECURITY_TOP := $(BSEAV_TOP)/lib/security
 COMMON_DRM_TOP := $(SECURITY_TOP)/common_drm
-WIDEVINE_CENC_DIR := $(SECURITY_TOP)/third_party/widevine/CENC21/widevine-cdm_v2.1.6-0-824
 DIF_TOP := $(SECURITY_TOP)/dif
 
 include $(COMMON_DRM_TOP)/lib/prdy_libdir.inc
@@ -96,10 +93,10 @@ include $(DIF_TOP)/dif_libdir.inc
 # Custom include paths
 CFLAGS += -I./include
 ifeq ($(WIDEVINE_SUPPORT),y)
-CFLAGS += -DENABLE_WIDEVINE
-CFLAGS += -I$(WIDEVINE_CENC_DIR)/cdm/include
-CFLAGS += -I$(WIDEVINE_CENC_DIR)/core/include
-CFLAGS += -I$(WIDEVINE_CENC_DIR)/oemcrypto/include
+ifneq ($(MAKECMDGOALS),clean)
+include $(SECURITY_TOP)/third_party/widevine/widevine21.inc
+endif
+CFLAGS += -DENABLE_WIDEVINE $(WIDEVINE21_CFLAGS)
 endif
 CFLAGS += -I$(SECURITY_TOP)/common_drm/include
 CFLAGS += -I$(SECURITY_TOP)/sage/srai/include
@@ -107,6 +104,7 @@ CFLAGS += -I$(URSR_TOP)/magnum/syslib/sagelib/include
 CFLAGS += -DPIC -fpic
 CFLAGS += $(addprefix -I, ${NEXUS_APP_INCLUDE_PATHS})
 CFLAGS += $(addprefix -I, ${DIF_INCLUDES})
+CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
 # PlayreadyPK 3.0 is only supported with Sage
 ifeq ($(SAGE_SUPPORT), y)
@@ -120,7 +118,7 @@ CFLAGS += -I${BSEAV_TOP}/lib/playready/3.0/inc
 endif
 
 ifeq ($(USE_CURL),y)
--include $(BSEAV_TOP)/lib/curl/curl_ver.inc
+include $(BSEAV_TOP)/lib/curl/curl.inc
 CFLAGS += $(CURL_CFLAGS)
 CFLAGS += -DUSE_CURL
 CFLAGS += -DSKIP_PEER_VERIFICATION
@@ -147,6 +145,9 @@ CFLAGS += $(NEXUS_CFLAGS) $(addprefix -I,$(NEXUS_APP_INCLUDE_PATHS)) $(addprefix
 
 #allow c++ style comments
 CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
+
+#allow long long & variadic macros
+CFLAGS += -Wno-long-long -Wno-variadic-macros
 
 ############################################################################
 #
@@ -203,7 +204,6 @@ F_OBJS := $(patsubst %.cpp,%.o, ${F_SRCS})
 F_OBJS := $(patsubst %.c,%.o, ${F_OBJS})
 END_OBJS := $(addprefix ${DIF_OBJ_ROOT}/,${F_OBJS})
 F_INSTALLED_LIBS := $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_LIB_NAMES})
-CDEP_FLAGS := -MMD
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
 #$(error END_OBJS = $(END_OBJS))
@@ -227,18 +227,17 @@ prep_folder:
 
 .PHONY : clean
 clean:
-	$(Q_)if [ -d ${DIF_OBJ_ROOT} ] ; then find ${DIF_OBJ_ROOT} \( -name '*.d' -or -name '*.o' \) -exec rm {} \; ;fi
 	$(Q_)echo Cleaning objects... [${END_OBJS}]
 	$(Q_)rm -f ${END_OBJS}
 	$(Q_)echo Cleaning libraries... [${F_PUBLIC_LIBS}]
-	$(Q_)rm -f ${F_INSTALLED_LIBS} ${DIF_OBJ_ROOT}/lib${LIB_BASENAME}.so ${DIF_OBJ_ROOT}/lib${LIB_BASENAME}.a
+	$(Q_)rm -f ${F_INSTALLED_LIBS}
 	$(Q_)rm -rf ${DIF_OBJ_ROOT}/$(DIF_LIBDIR)
 
 
 ############################################################################
 #                             BUILD RULES
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
-${DIF_OBJ_ROOT}/lib${LIB_BASENAME}.so: ${END_OBJS}
+${D_FOR_LIB_INSTALL}/%.so : ${END_OBJS}
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
 else
@@ -246,17 +245,17 @@ else
 	$(Q_)${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
 endif
 
-${DIF_OBJ_ROOT}/lib${LIB_BASENAME}.a: ${END_OBJS}
+${D_FOR_LIB_INSTALL}/%.a : ${END_OBJS}
 	$(Q_)echo [Linking static library .... $@ ]
 	$(Q_)${AR} rc $@ ${END_OBJS}
 
 ${DIF_OBJ_ROOT}/%.o: %.c
 	$(Q_)echo [Compiling  with $(CC).... $< ]
-	$(Q_)${CC} ${CFLAGS} ${CDEP_FLAGS} -c -o $@ $<
+	$(Q_)${CC} ${CFLAGS} -c -o $@ $<
 
 ${DIF_OBJ_ROOT}/%.o: %.cpp
 	$(Q_)echo [Compiling  with $(CC).... $< ]
-	$(Q_)${CC} ${CFLAGS} ${CDEP_FLAGS} -c -o $@ $<
+	$(Q_)${CC} ${CFLAGS} -c -o $@ $<
 
 idirs:
 	$(Q_)[ -d ${D_FOR_LIB_INSTALL} ] || mkdir -p ${D_FOR_LIB_INSTALL}
@@ -269,12 +268,3 @@ install: all idirs ${F_INSTALLED_LIBS}
 		echo [Copying libdif.so to applibs target]; \
 		install -m 0755 ${D_FOR_LIB_INSTALL}/libdif.so $(APPLIBS_TARGET_LIB_DIR); \
 	fi
-
-${D_FOR_LIB_INSTALL}/%.a : ${DIF_OBJ_ROOT}/%.a
-	install -m 0755 $< $@
-
-${D_FOR_LIB_INSTALL}/%.so : ${DIF_OBJ_ROOT}/%.so
-	install -m 0755 $< $@
-
-#  Include dependency file:
--include ${DIF_OBJ_ROOT}/*.d

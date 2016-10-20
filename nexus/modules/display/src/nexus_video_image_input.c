@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -116,7 +116,6 @@ struct NEXUS_VideoImageInput {
         NEXUS_IsrCallbackHandle ptsError;
         NEXUS_IsrCallbackHandle firstPtsPassed;
         NEXUS_IsrCallbackHandle frameReturned;
-        NEXUS_IsrCallbackHandle eosDone;
         unsigned serialNum;
     } xdm;
     struct
@@ -331,7 +330,7 @@ NEXUS_VideoImageInput_GetDefaultSettings(NEXUS_VideoImageInputSettings *pSetting
 {
     BDBG_ASSERT(pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
-    NEXUS_CALLBACKDESC_INIT(&pSettings->imageCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->imageCallback);
 #if defined NEXUS_VIDEO_IMAGE_INPUT_1080P_FEED || BCHP_CHIP == 3548 || BCHP_CHIP == 3556
     /* macro and BCHP_CHIP support for backward compatibility */
     pSettings->progressiveScan1080 = true;
@@ -340,6 +339,9 @@ NEXUS_VideoImageInput_GetDefaultSettings(NEXUS_VideoImageInputSettings *pSetting
     pSettings->type = NEXUS_VideoImageInput_eMfd;
     pSettings->lowDelayMode = true;
     pSettings->tsmEnabled = true;
+    NEXUS_CallbackDesc_Init(&pSettings->imageCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->ptsError);
+    NEXUS_CallbackDesc_Init(&pSettings->firstPtsPassed);
     return;
 }
 
@@ -449,12 +451,6 @@ NEXUS_VideoImageInput_Open(unsigned index, const NEXUS_VideoImageInputSettings *
         rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
         goto frame_returned;
     }
-    imageInput->xdm.eosDone = NEXUS_IsrCallback_Create(imageInput, NULL);
-    if ( NULL == imageInput->xdm.eosDone )
-    {
-        rc = BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
-        goto eos_done;
-    }
 
     BXDM_PictureProvider_GetDefaultSettings(&providerSettings);
     rc = BXDM_PictureProvider_Create(&imageInput->xdm.provider, &providerSettings);
@@ -541,8 +537,6 @@ err_pictures:
 err_dec_interface:
     (void)BXDM_PictureProvider_Destroy(imageInput->xdm.provider);
 err_provider:
-    NEXUS_IsrCallback_Destroy(imageInput->xdm.eosDone);
-eos_done:
     NEXUS_IsrCallback_Destroy(imageInput->xdm.frameReturned);
 frame_returned:
     NEXUS_IsrCallback_Destroy(imageInput->xdm.firstPtsPassed);
@@ -668,7 +662,6 @@ NEXUS_VideoImageInput_P_Finalizer(NEXUS_VideoImageInputHandle imageInput)
     (void)BXDM_PictureProvider_Destroy(imageInput->xdm.provider);
     NEXUS_IsrCallback_Destroy(imageInput->xdm.firstPtsPassed);
     NEXUS_IsrCallback_Destroy(imageInput->xdm.ptsError);
-    NEXUS_IsrCallback_Destroy(imageInput->xdm.eosDone);
     NEXUS_IsrCallback_Destroy(imageInput->xdm.frameReturned);
     BKNI_Free(imageInput->xdm.pPictures);
 #endif
@@ -1324,11 +1317,11 @@ NEXUS_VideoImageInput_SetSettings(NEXUS_VideoImageInputHandle imageInput, const 
 
     if(pSettings->qScale>127) { return BERR_TRACE(BERR_INVALID_PARAMETER); }
 
-    NEXUS_Module_TaskCallback_Set(imageInput->imageCallback, &pSettings->imageCallback);
+    NEXUS_TaskCallback_Set(imageInput->imageCallback, &pSettings->imageCallback);
 #if NEXUS_HAS_VIDEO_DECODER
-    NEXUS_Module_IsrCallback_Set(imageInput->xdm.frameReturned, &pSettings->imageCallback);
-    NEXUS_Module_IsrCallback_Set(imageInput->xdm.ptsError, &pSettings->ptsError);
-    NEXUS_Module_IsrCallback_Set(imageInput->xdm.firstPtsPassed, &pSettings->firstPtsPassed);
+    NEXUS_IsrCallback_Set(imageInput->xdm.frameReturned, &pSettings->imageCallback);
+    NEXUS_IsrCallback_Set(imageInput->xdm.ptsError, &pSettings->ptsError);
+    NEXUS_IsrCallback_Set(imageInput->xdm.firstPtsPassed, &pSettings->firstPtsPassed);
     {
     bool tsmEnabled=false;
     BERR_Code errCode;
@@ -1487,7 +1480,6 @@ static BERR_Code NEXUS_VideoImageInput_P_ReleasePicture_isr(void *pvHandle, cons
     else
     {
         /* Dummy EOS picture just goes directly into the free list */
-        NEXUS_IsrCallback_Fire_isr(imageInput->xdm.eosDone);
         BLST_SQ_INSERT_TAIL(&imageInput->xdm.freeList, pPicture, node);
         imageInput->xdm.eos = false;
     }

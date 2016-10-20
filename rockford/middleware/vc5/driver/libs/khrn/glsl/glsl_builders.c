@@ -15,7 +15,6 @@ FILE DESCRIPTION
 #include "glsl_builders.h"
 #include "glsl_errors.h"
 #include "glsl_globals.h"
-#include "glsl_trace.h"
 #include "glsl_fastmem.h"
 #include "glsl_ast.h"
 #include "glsl_ast_print.h"
@@ -43,17 +42,27 @@ void glsl_error_if_type_incomplete(SymbolType *type) {
    }
 }
 
-void glsl_reinit_function_builder(FunctionBuilder *fb) {
-   fb->Params = glsl_symbol_table_new();
-   fb->ParamCount = 0;
-   fb->VoidCount = 0;
-}
-
 static void glsl_check_namespace_nonfunction(SymbolTable *table, const char *name)
 {
    Symbol *sym = glsl_symbol_table_lookup_in_current_scope(table, name);
    if (sym)
-      glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "%s", name);
+      glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "%s", name);
+}
+
+uint32_t glsl_layout_combine_block_bits(uint32_t a, uint32_t b) {
+   uint32_t packing_mask = LAYOUT_PACKED | LAYOUT_SHARED | LAYOUT_STD140 | LAYOUT_STD430;
+   uint32_t matrix_order_mask = LAYOUT_ROW_MAJOR | LAYOUT_COLUMN_MAJOR;
+
+   if(b & matrix_order_mask) {
+      a &= ~matrix_order_mask;
+      a |= (b & matrix_order_mask);
+   }
+
+   if(b & packing_mask) {
+      a &= ~packing_mask;
+      a |= (b & packing_mask);
+   }
+   return a;
 }
 
 LayoutQualifier *glsl_create_mixed_lq(const LayoutQualifier *lq_local, const LayoutQualifier *lq_global)
@@ -78,38 +87,21 @@ LayoutQualifier *glsl_create_mixed_lq(const LayoutQualifier *lq_local, const Lay
       res->offset = lq_local->offset;
    }
 
-   if(lq_local->qualified & UNIF_QUALED)
-   {
-      uint32_t packing_mask = LAYOUT_PACKED | LAYOUT_SHARED | LAYOUT_STD140 | LAYOUT_STD430;
-      uint32_t matrix_order_mask = LAYOUT_ROW_MAJOR | LAYOUT_COLUMN_MAJOR;
-
+   if(lq_local->qualified & UNIF_QUALED) {
       res->qualified |= UNIF_QUALED;
-
-      if(lq_local->unif_bits & matrix_order_mask) {
-         res->unif_bits &= ~matrix_order_mask;
-         res->unif_bits |= (lq_local->unif_bits & matrix_order_mask);
-      }
-
-      if(lq_local->unif_bits & packing_mask) {
-         res->unif_bits &= ~packing_mask;
-         res->unif_bits |= (lq_local->unif_bits & packing_mask);
-      }
+      res->unif_bits = glsl_layout_combine_block_bits(res->unif_bits, lq_local->unif_bits);
    }
 
    return res;
 }
 
-void glsl_insert_function_definition(Statement* statement)
+void glsl_insert_function_definition(Statement *statement)
 {
    assert(statement->flavour == STATEMENT_FUNCTION_DEF);
-
    Symbol *header_sym = statement->u.function_def.header;
 
    if (header_sym->u.function_instance.function_def)
-   {
-      glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "function %s already defined", header_sym->name);
-      return;
-   }
+      glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "function %s already defined", header_sym->name);
 
    header_sym->u.function_instance.function_def = statement;
 }
@@ -120,8 +112,6 @@ void glsl_commit_struct_type(SymbolTable *table, SymbolType *type)
    glsl_symbol_construct_type(symbol, type);
    glsl_check_namespace_nonfunction(table, type->name);
    glsl_symbol_table_insert(table, symbol);
-
-   TRACE(("added symbol <%s> as new struct type (%d scalars)\n", type->name, type->scalar_count));
 }
 
 static void check_singleton_is_instantiable(const char *name, const SymbolType *type)
@@ -157,9 +147,9 @@ static SymbolType *make_array_type(SymbolType *member_type, Expr *size)
 
    if (size != NULL) {
       if (size->type != &primitiveTypes[PRIM_INT] && size->type != &primitiveTypes[PRIM_UINT])
-         glsl_compile_error(ERROR_SEMANTIC, 15, g_LineNumber, "found type %s", size->type->name);
+         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "found type %s", size->type->name);
       if (!size->compile_time_value)
-         glsl_compile_error(ERROR_SEMANTIC, 15, g_LineNumber, "not a constant expression");
+         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "not a constant expression");
 
       glsl_complete_array_type(type, *(int*)size->compile_time_value);
       type->name = asprintf_fast("%s[%d]", member_type->name, type->u.array_type.member_count);
@@ -262,7 +252,7 @@ Symbol *glsl_commit_block_type(SymbolTable *table, SymbolType *type, Qualifiers 
    }
 
    if(quals->invariant)
-      glsl_compile_error(ERROR_SEMANTIC, 34, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_SEMANTIC, 9, g_LineNumber, NULL);
    if(quals->tq != TYPE_QUAL_NONE && (quals->sq != STORAGE_IN && quals->sq != STORAGE_OUT))
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "'%s' invalid on block declaration", glsl_type_qual_string(quals->tq));
    if(quals->pq != PREC_NONE)
@@ -323,57 +313,6 @@ static bool is_arrays_of_atomic_type(SymbolType *type) {
    return glsl_prim_is_prim_atomic_type(type);
 }
 
-void glsl_commit_function_param(FunctionBuilder *fb, const char *name, SymbolType *type, QualList *quals, ExprChain *size)
-{
-   Qualifiers q;
-   ParamQualifier pq;
-
-   param_quals_from_list(&q, &pq, quals);
-
-   if (q.mq != MEMORY_NONE && !is_arrays_of_image_type(type))
-      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Memory qualifiers only valid for image or block declarations");
-
-
-   if(size != NULL) {
-      type = glsl_build_array_type(type, size);
-      glsl_error_if_type_incomplete(type);
-   }
-
-   // Ignore nameless parameters with void type, for now at least.
-   if (type == &primitiveTypes[PRIM_VOID] && name == NULL) {
-      fb->VoidCount++;
-      return;
-   }
-
-   if (name == NULL) {
-      char c[16];
-      snprintf(c, sizeof(c), "$$anon%d", fb->ParamCount);
-      name = glsl_intern(c, true);
-   }
-
-   check_singleton_is_instantiable(name, type);
-   glsl_check_namespace_nonfunction(fb->Params, name);
-
-   /* const qualifier and opaque types not allowed for 'out' params*/
-   if(pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT) {
-      if(q.sq == STORAGE_CONST)
-         glsl_compile_error(ERROR_CUSTOM, 10, g_LineNumber, NULL);
-
-      if (glsl_type_contains_opaque(type))
-         glsl_compile_error(ERROR_CUSTOM, 22, g_LineNumber, NULL);
-   }
-
-   assert(q.sq == STORAGE_NONE || q.sq == STORAGE_CONST);
-   assert(!q.invariant);
-
-   Symbol *symbol = malloc_fast(sizeof(Symbol));
-   glsl_symbol_construct_param_instance(symbol, name, type, q.sq, pq, q.mq);
-   glsl_symbol_table_insert(fb->Params, symbol);
-
-   TRACE(("added symbol <%s> as function parameter %d\n", name, fb->ParamCount));
-   fb->ParamCount++;
-}
-
 static bool is_function_overloadable(Symbol *func) {
    /* You can overload everything in version 100 */
    if(g_ShaderVersion == GLSL_SHADER_VERSION(1,0,1)) return true;
@@ -396,7 +335,7 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
       if (type->u.function_type.return_type != &primitiveTypes[PRIM_VOID] ||
           type->u.function_type.param_count != 0)
       {
-         glsl_compile_error(ERROR_SEMANTIC, 29, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 17, g_LineNumber, NULL);
          return NULL;
       }
    }
@@ -406,11 +345,11 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
    if (overload)
    {
       if (overload->flavour != SYMBOL_FUNCTION_INSTANCE) {
-         glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "%s already defined as a non-function", name);
+         glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "%s already defined as a non-function", name);
          return NULL;
       }
       if(user_code && !is_function_overloadable(overload)) {
-         glsl_compile_error(ERROR_SEMANTIC, 31, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 19, g_LineNumber, NULL);
          return NULL;
       }
 
@@ -420,12 +359,11 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
       {
          if (!definition) {
             if (g_ShaderVersion == GLSL_SHADER_VERSION(1, 0, 1) && match->u.function_instance.has_prototype)
-               glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "Illegal redeclaration of function %s", name);
+               glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "Illegal redeclaration of function %s", name);
             match->u.function_instance.has_prototype = true;
          }
 
          // There is already a function with our signature in the symbol table, so don't add a new one.
-         TRACE(("declaration of function symbol <%s> matches existing declaration\n", name));
          // Update parameter names to match this declaration, but only if the
          // function hasn't been defined. If it has then changing the type will
          // mess up its parameter storage, and we don't need the names.
@@ -437,13 +375,11 @@ Symbol *glsl_commit_singleton_function_declaration(SymbolTable *table, const cha
       }
 
       // We have a new overload. Chain the other overloads onto ours.
-      TRACE(("declaration of function symbol <%s> is new overload\n", name));
    }
 
    glsl_symbol_construct_function_instance(symbol, name, type, NULL, overload, !definition);
 
    // At this point we have a fresh declaration to insert into the symbol table.
-   TRACE(("adding symbol <%s> as function\n", name));
    glsl_symbol_table_insert(table, symbol);
    return symbol;
 }
@@ -455,7 +391,7 @@ void glsl_complete_array_type(SymbolType *type, int member_count)
    SymbolType *member_type = type->u.array_type.member_type;
    // Array size must be greater than zero.
    if (member_count <= 0)
-      glsl_compile_error(ERROR_SEMANTIC, 17, g_LineNumber, NULL);
+      glsl_compile_error(ERROR_SEMANTIC, 11, g_LineNumber, NULL);
 
    assert(type->u.array_type.member_count == 0 ||
           type->u.array_type.member_count == (unsigned)member_count);
@@ -601,7 +537,7 @@ static SymbolType *strip_arrays(SymbolType *type) {
    return type;
 }
 
-Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *prec, unsigned *atomic_offset,
+Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *prec, DeclDefaultState *dflt,
                                       QualList *quals, SymbolType *type, const char *name,
                                       ExprChain *array_size, Expr *initialiser)
 {
@@ -610,6 +546,9 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    if (q.pq == PREC_NONE) q.pq = glsl_prec_get_prec(prec, type);
 
    const char *error_name = name ? name : "<empty declaration>";
+
+   if (q.pq == PREC_UNKNOWN)
+      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "type '%s' has unknown precision in declaration of '%s'", type->name, error_name);
 
    if (array_size != NULL)
       type = glsl_build_array_type(type, array_size);
@@ -632,7 +571,7 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
       if ( !(is_integer(base_type) || is_float(base_type)) || is_matrix(base_type))
          glsl_compile_error(ERROR_SEMANTIC, 8, g_LineNumber, "\"%s\"", error_name);
       if (q.tq == TYPE_QUAL_CENTROID)
-         glsl_compile_error(ERROR_SEMANTIC, 15, g_LineNumber, "Use of centroid out in a fragment shader");
+         glsl_compile_error(ERROR_SEMANTIC, 10, g_LineNumber, "Use of centroid out in a fragment shader");
    }
    else if ((g_ShaderFlavour == SHADER_VERTEX   && q.sq == STORAGE_OUT) ||
             (g_ShaderFlavour == SHADER_FRAGMENT && q.sq == STORAGE_IN)    )
@@ -747,20 +686,20 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
    if (is_arrays_of_atomic_type(type)) {
       /* Process the offset */
       assert(q.lq->qualified & BINDING_QUALED);
-      if (q.lq->qualified & OFFSET_QUALED) atomic_offset[q.lq->binding] = q.lq->offset;
+      if (q.lq->qualified & OFFSET_QUALED) dflt->atomic_offset[q.lq->binding] = q.lq->offset;
       else {
          q.lq->qualified = q.lq->qualified | OFFSET_QUALED;
-         q.lq->offset = atomic_offset[q.lq->binding];
+         q.lq->offset = dflt->atomic_offset[q.lq->binding];
       }
       if (name != NULL)
-         atomic_offset[q.lq->binding] += 4 * type->scalar_count;
+         dflt->atomic_offset[q.lq->binding] += 4 * type->scalar_count;
    }
 
    if(q.invariant && q.sq != STORAGE_OUT) {
       if (g_ShaderVersion != GLSL_SHADER_VERSION(1,0,1))
-         glsl_compile_error(ERROR_SEMANTIC, 34, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 9, g_LineNumber, NULL);
       else if (g_ShaderFlavour != SHADER_FRAGMENT || q.sq != STORAGE_IN)
-         glsl_compile_error(ERROR_SEMANTIC, 34, g_LineNumber, NULL);
+         glsl_compile_error(ERROR_SEMANTIC, 9, g_LineNumber, NULL);
    }
 
    if(g_InGlobalScope && initialiser && initialiser->compile_time_value == NULL)
@@ -802,12 +741,9 @@ Symbol *glsl_commit_variable_instance(SymbolTable *table, const PrecisionTable *
          glsl_compile_error(ERROR_SEMANTIC, 2, g_LineNumber, "const variable initialisers must be constant expressions");
 
       compile_time_value = initialiser->compile_time_value;
-      TRACE_CONSTANT(fs_type->type, compile_time_value);
    }
 
-   TRACE(("adding symbol <%s> as instance\n", name));
-   Symbol *s = glsl_commit_var_instance(table, name, type, &q, compile_time_value);
-   return s;
+   return glsl_commit_var_instance(table, name, type, &q, compile_time_value);
 }
 
 static void validate_member_layout(LayoutQualifier *member_lq, StorageQualifier sq)
@@ -844,7 +780,7 @@ static void glsl_map_member(Map *struct_map, StorageQualifier valid_sq,
 
    check_singleton_is_instantiable(name, type);
    if (glsl_map_get(struct_map, name) != NULL)
-      glsl_compile_error(ERROR_SEMANTIC, 22, g_LineNumber, "%s", name);
+      glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "%s", name);
 
    glsl_map_put(struct_map, name, member);
 }
@@ -980,15 +916,46 @@ void glsl_commit_anonymous_block_members(SymbolTable *table, Symbol *symbol, Mem
    }
 }
 
-SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_type, FunctionBuilder *args)
+static Symbol *build_function_param(const char *name, SymbolType *type, QualList *quals, ExprChain *size)
 {
-   if (args->VoidCount > 1 || (args->VoidCount == 1 && args->ParamCount > 0))
-   {
-      // void type can only be used in empty formal parameter list.
-      glsl_compile_error(ERROR_CUSTOM, 19, g_LineNumber, NULL);
-      return NULL;
+   Qualifiers q;
+   ParamQualifier pq;
+
+   param_quals_from_list(&q, &pq, quals);
+
+   if (q.mq != MEMORY_NONE && !is_arrays_of_image_type(type))
+      glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Memory qualifiers only valid for image or block declarations");
+
+   if(size != NULL) {
+      type = glsl_build_array_type(type, size);
+      glsl_error_if_type_incomplete(type);
    }
 
+   if (name != NULL)
+      check_singleton_is_instantiable(name, type);
+   else
+      name = glsl_intern("$$anon", true);
+
+   /* const qualifier and opaque types not allowed for 'out' params*/
+   if(pq == PARAM_QUAL_INOUT || pq == PARAM_QUAL_OUT) {
+      if(q.sq == STORAGE_CONST)
+         glsl_compile_error(ERROR_CUSTOM, 10, g_LineNumber, NULL);
+
+      if (glsl_type_contains_opaque(type))
+         glsl_compile_error(ERROR_CUSTOM, 22, g_LineNumber, NULL);
+   }
+
+   assert(q.sq == STORAGE_NONE || q.sq == STORAGE_CONST);
+   assert(!q.invariant);
+
+   Symbol *symbol = malloc_fast(sizeof(Symbol));
+   glsl_symbol_construct_param_instance(symbol, name, type, q.sq, pq, q.mq);
+
+   return symbol;
+}
+
+SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_type, ParamList *params)
+{
    if (return_quals) {
       /* Only precision qualifiers are allowed. TODO: They're currently ignored */
       for (QualListNode *n = return_quals->head; n; n=n->next) {
@@ -1001,30 +968,41 @@ SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_
        g_ShaderVersion < GLSL_SHADER_VERSION(3, 0, 1))
    {
       glsl_compile_error(ERROR_CUSTOM, 19, g_LineNumber, "function returning array invalid in version 100");
-      return NULL;
    }
+
+   unsigned void_count  = 0;
+   unsigned param_count = 0;
+   for (ParamList *l = params; l != NULL; l = l->next) {
+      if (l->p->type == &primitiveTypes[PRIM_VOID]) {
+         if (l->p->name != NULL || l->p->size != NULL)
+            glsl_compile_error(ERROR_CUSTOM, 18, g_LineNumber, NULL);
+         void_count++;
+      } else
+         param_count++;
+   }
+
+   /* void type can only be used in empty formal parameter list. */
+   if (void_count > 1 || (void_count == 1 && param_count > 0))
+      glsl_compile_error(ERROR_CUSTOM, 19, g_LineNumber, NULL);
 
    Symbol **functionParams = NULL;
    SymbolType *type = malloc_fast(sizeof(SymbolType));
-   if (args->ParamCount > 0)
-   {
-      functionParams = (Symbol **)malloc_fast(sizeof(Symbol*) * args->ParamCount);
-
-      // Populate the parameter array.
-      int i;
-      MapNode *map_node;
-      for (map_node = args->Params->map->scopes->map->head, i = 0; map_node; map_node = map_node->next, i++)
-      {
-         Symbol* symbol = (Symbol*)map_node->v;
-         assert(SYMBOL_PARAM_INSTANCE == symbol->flavour);
-         functionParams[i] = symbol;
+   if (param_count > 0) {
+      functionParams = malloc_fast(sizeof(Symbol*) * param_count);
+      unsigned i = 0;
+      for (ParamList *l = params; l != NULL; l = l->next, i++) {
+         for (int j=0; i<i; j++) {
+            /* Rely on the fact that we've interned the strings to compare quickly */
+            if (functionParams[j]->name == l->p->name)
+               glsl_compile_error(ERROR_SEMANTIC, 13, g_LineNumber, "%s", l->p->name);
+         }
+         functionParams[i] = build_function_param(l->p->name, l->p->type, l->p->quals, l->p->size);
       }
-      assert(i == args->ParamCount);
 
       // Create the type name (working forwards!).
       StringBuilder *sb = glsl_sb_new();
       glsl_sb_append(sb, "(");
-      for (i = 0; i < args->ParamCount; i++) {
+      for (i = 0; i < param_count; i++) {
          if (i > 0) glsl_sb_append(sb, ", ");
          glsl_sb_append(sb, "%s %s ", glsl_storage_qual_string(functionParams[i]->u.param_instance.storage_qual),
                                       glsl_param_qual_string(functionParams[i]->u.param_instance.param_qual));
@@ -1034,14 +1012,12 @@ SymbolType *glsl_build_function_type(QualList *return_quals, SymbolType *return_
       type->name = glsl_sb_content(sb);
    }
    else
-   {
       type->name = "()";
-   }
 
    type->flavour                     = SYMBOL_FUNCTION_TYPE;
    type->scalar_count                = 0;
    type->u.function_type.return_type = return_type;
-   type->u.function_type.param_count = args->ParamCount;
+   type->u.function_type.param_count = param_count;
    type->u.function_type.params      = functionParams;
 
    return type;

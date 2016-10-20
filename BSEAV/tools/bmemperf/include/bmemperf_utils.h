@@ -278,7 +278,7 @@ const char *nofprintf(
     );
 char *getClientName( int client_index );
 
-pid_t daemonize( void );
+pid_t daemonize( const char * logFileName );
 
 char *decodeFilename( const char *filename );
 int   sendFileToBrowser(

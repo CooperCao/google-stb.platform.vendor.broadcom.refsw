@@ -115,7 +115,7 @@
 /* BDSP_AudioProcessing */
 #define BDSP_Raaga_DdbmStatus                   BDSP_Raaga_Audio_ProcessingStreamInfo
 #define BDSP_Raaga_DtsNeoStatus                 BDSP_Raaga_Audio_ProcessingStreamInfo
-#define BDSP_Raaga_AVLStatus                    BDSP_Raaga_Audio_ProcessingStreamInfo
+#define BDSP_Raaga_AVLStatus                    BDSP_Raaga_Audio_AvlPPStatusInfo
 #define BDSP_Raaga_DDConvertStatus              BDSP_Raaga_Audio_ProcessingStreamInfo
 #define BDSP_Raaga_PLllStatus                   BDSP_Raaga_Audio_ProcessingStreamInfo
 #define BDSP_Raaga_SrsXtStatus                  BDSP_Raaga_Audio_ProcessingStreamInfo
@@ -4253,6 +4253,39 @@ typedef struct BDSP_Raaga_Audio_ALSDecStreamInfo
     uint32_t    bit_width;
 
 }BDSP_Raaga_Audio_ALSDecStreamInfo;
+
+
+typedef struct BDSP_Raaga_Audio_AvlPPStatusInfo
+{
+    /*  No of channels processed */
+    uint32_t   ui32NumChannels;
+
+    /* This field represents the peak power calculated channel wise in DBr(dB-relative) scale. Supports Max 6 channels.
+    * 0 dBr results mean the the max power which will be the case for full scale signal. The results are expected to be
+    * negative always which indicate that level is below 0 dBr. The peak power is calculated and converted to DBr scale as
+    * Peak power in dBr = 20*log (MAX (ABS(X1), ABS(X2), ., ABS (XN))/ MAX32), N:Number of samples in the frame. Log is base 10
+    * The channel indices in case of stereo and 5.1 will be as follows
+    * Stereo: L=0, R=1
+    * 5.1 Multichannel: L=0, R=1, Ls=2, Rs=3, C=4, LFE=5 */
+    int32_t    i32PeakPowerinDB[6];
+
+    /*This field represents the peak power calculated channel wise in DBr(dB-relative) scale. Supports Max 6 channels.
+    * 0 dBr results mean the the max power which will be the case for full scale signal. The results are expected to be negative
+    * always which indicate that level is below 0 dBr. The power is calculated and converted to DBr scale as
+    * RMS power in dBr = 20*log (sqrt (sum Square(X0, X1, X2XN)/N)/ MAX32 ), N:Number of samples in the frame. Log is base 10
+    * The channel indices in case of stereo and 5.1 will be as follows
+    * Stereo: L=0, R=1
+    * 5.1 Multichannel: L=0, R=1, Ls=2, Rs=3, C=4, LFE=5 */
+    int32_t    i32RMSPowerinDB[6];
+
+    /* This is time snapshot of unadulterated 45KHz timer */
+    uint32_t   ui32TimeSnapshot45KHz;
+
+    /* ui32StatusValid=1 indicates status as "valid"
+    ui32StatusValid= other than 1 indicates status as "in-valid" */
+    uint32_t                        ui32StatusValid;
+
+}BDSP_Raaga_Audio_AvlPPStatusInfo;
 
 
 typedef struct BDSP_Raaga_Audio_FadeCtrlPPStatusInfo

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -44,7 +44,6 @@
 #include "atlas.h"
 #include "resource.h"
 #include "display.h"
-#include "mixer.h"
 #include "playback.h"
 #include "record.h"
 
@@ -127,7 +126,7 @@ public:
     ~CBoardFeatures(void);
 
     void clear();
-    void dump();
+    void dump(bool bForce = false);
 
 public:
     bool _videoHd;       /* system could decode HD video */
@@ -150,8 +149,8 @@ public:
     bool _videoFormatIsSupported[NEXUS_VideoFormat_eMax]; /* Array of supported video formats (index w/bvideo_format values) */
 };
 
-#define ANY_INDEX  0xFFFF
-#define ANY_NUMBER 0xFFFFFFFF
+#define ANY_INDEX   0xFFFF
+#define ANY_NUMBER  0xFFFFFFFF
 
 class CBoardResources
 {
@@ -177,7 +176,7 @@ public:
     eRet registerObserver(void * id, eBoardResource resource, CObserver * pObserver, uint16_t index = ANY_INDEX, eNotification notification = eNotify_All);
     eRet unregisterObserver(void * id, eBoardResource resource, CObserver * pObserver, uint16_t index = ANY_INDEX, eNotification notification = eNotify_All);
 
-    void dump();
+    void dump(bool bForce = false);
     void dumpList(MList <CResource> * pList);
 
 protected:
@@ -214,7 +213,6 @@ protected:
 #endif
     MAutoList <CInputBand>         _inputBandList;         /* list of transport input bands */
     MAutoList <CParserBand>        _parserBandList;        /* list of transport parser bands */
-    MAutoList <CMixer>             _mixerList;             /* list of audio mixers */
     MAutoList <COutputSpdif>       _outputSpdifList;       /* list of SPDIF outputs */
     MAutoList <COutputAudioDac>    _outputAudioDacList;    /* list of audio dac outputs */
     MAutoList <COutputAudioDacI2s> _outputAudioDacI2sList; /* list of audio dac outputs */

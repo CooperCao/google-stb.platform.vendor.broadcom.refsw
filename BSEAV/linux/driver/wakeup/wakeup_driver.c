@@ -113,6 +113,7 @@ static struct wakeup_source sources[] = {
 	{ WAKEUP_CEC,		"CEC" },
 	{ WAKEUP_IRR,		"IRR" },
 	{ WAKEUP_KPD,		"KPD" },
+	{ WAKEUP_GPIO,      "GPIO" },
 	{ WAKEUP_UHFR,		"UHFR" },
 	{ WAKEUP_XPT_PMU,	"XPT_PMU" },
 };
@@ -221,6 +222,7 @@ static uint32_t struct_to_mask(wakeup_devices *wakeups)
     if(wakeups->ir) mask |= WAKEUP_IRR;
     if(wakeups->uhf) mask |= WAKEUP_UHFR;
     if(wakeups->keypad) mask |= WAKEUP_KPD;
+    if(wakeups->gpio) mask |= WAKEUP_GPIO;
     if(wakeups->cec) mask |= WAKEUP_CEC;
     if(wakeups->transport) mask |= WAKEUP_XPT_PMU;
 
@@ -232,6 +234,7 @@ static int mask_to_struct(uint32_t mask, wakeup_devices *wakeups)
     if(mask & WAKEUP_IRR) wakeups->ir = 1;
     if(mask & WAKEUP_UHFR) wakeups->uhf = 1;
     if(mask & WAKEUP_KPD) wakeups->keypad = 1;
+    if(mask & WAKEUP_GPIO) wakeups->gpio = 1;
     if(mask & WAKEUP_CEC) wakeups->cec = 1;
     if(mask & WAKEUP_XPT_PMU) wakeups->transport = 1;
 
@@ -411,7 +414,15 @@ static int __init wakeup_init(void)
 				  info);
 
 		if (ret) {
-            pr_err("request_irq failed for '%s'\n", resources[i].name);
+		    /*
+		     * if source is not gpio, print error
+		     * otherwise, just means linux has consumed gpio int and is
+		     * managing it
+		     */
+		    if (strcasecmp(resources[i].name, "GPIO"))
+		    {
+		        pr_err("request_irq failed for '%s'\n", resources[i].name);
+		    }
             info->irq_masks[i] = 0;
             info->wakeups_present &= ~mask;
         }

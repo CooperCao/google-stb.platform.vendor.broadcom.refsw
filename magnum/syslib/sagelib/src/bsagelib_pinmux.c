@@ -189,7 +189,7 @@ BERR_Code BSAGElib_P_Init_Serial(BSAGElib_Handle hSAGElib)
      * GPIO_006    : TP_IN_18
      * GPIO_007    : TP_OUT_19
      */
-#if defined(NEXUS_USE_7439_SV) && defined(NEXUS_USE_7439_DR4)
+#if defined(NEXUS_USE_7439_SV) && !defined(NEXUS_USE_7439_DR3)
     /* pinmux for Rx */
     reg = BREG_Read32(hSAGElib->core_handles.hReg, BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_13);
     reg &= ~(

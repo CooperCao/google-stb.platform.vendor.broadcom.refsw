@@ -37,12 +37,15 @@
 #
 #############################################################################
 
-NEXUS_FRONTEND_3128 := n
-NEXUS_FRONTEND_DOCSIS := y
-ifeq ($(NEXUS_FRONTEND_312x_VER),)
-NEXUS_FRONTEND_312x_VER := C0
-else
-NEXUS_FRONTEND_312x_VER := $(NEXUS_FRONTEND_312x_VER)
+ifeq ($(NEXUS_USE_7268_VMS),y)
+	NEXUS_SYSTEM_CABLE := y
+	NEXUS_FRONTEND_3128 := n
+	NEXUS_FRONTEND_DOCSIS := y
+	ifeq ($(NEXUS_FRONTEND_312x_VER),)
+	NEXUS_FRONTEND_312x_VER := C0
+	else
+	NEXUS_FRONTEND_312x_VER := $(NEXUS_FRONTEND_312x_VER)
+	endif
 endif
 
 include $(NEXUS_TOP)/platforms/common/build/platform_modules.inc

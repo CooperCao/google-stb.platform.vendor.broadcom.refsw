@@ -118,6 +118,8 @@ NEXUS_Playpump_GetDefaultSettings(NEXUS_PlaypumpSettings *pSettings)
     pSettings->dataNotCpuAccessible = false;
     NEXUS_CallbackDesc_Init(&pSettings->dataCallback);
     NEXUS_CallbackDesc_Init(&pSettings->errorCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->ccError);
+    NEXUS_CallbackDesc_Init(&pSettings->teiError);
     return;
 }
 
@@ -223,8 +225,6 @@ NEXUS_Playpump_Open(unsigned index, const NEXUS_PlaypumpOpenSettings *pSettings)
         rc = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         goto error;
     }
-    NEXUS_CallbackDesc_Init(&p->settings.dataCallback);
-    NEXUS_CallbackDesc_Init(&p->settings.errorCallback);
     b_pid_map_init(&p->packetizer_map, NEXUS_P_PACKETIZER_BASE);
 
     BLST_S_INIT(&p->pid_list);

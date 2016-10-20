@@ -8,7 +8,7 @@ All rights reserved.
 #include <stddef.h>
 #include <assert.h>
 
-void FenceInterface_Create(const struct FenceInterface *fi, int *fence)
+void FenceInterface_Create(const FenceInterface *fi, int *fence)
 {
    assert(fi != NULL);
    assert(fence != NULL);
@@ -19,7 +19,7 @@ void FenceInterface_Create(const struct FenceInterface *fi, int *fence)
       *fence = fi->invalid_fence;
 }
 
-void FenceInterface_Destroy(const struct FenceInterface *fi, int *fence)
+void FenceInterface_Destroy(const FenceInterface *fi, int *fence)
 {
    assert(fi != NULL);
    assert(fence != NULL);
@@ -29,7 +29,7 @@ void FenceInterface_Destroy(const struct FenceInterface *fi, int *fence)
    *fence = fi->invalid_fence;
 }
 
-bool FenceInterface_Keep(const struct FenceInterface *fi, int fence)
+bool FenceInterface_Keep(const FenceInterface *fi, int fence)
 {
    assert(fi != NULL);
 
@@ -37,7 +37,7 @@ bool FenceInterface_Keep(const struct FenceInterface *fi, int fence)
          fi->keep(fi->base.context, fence) : false;
 }
 
-bool FenceInterface_Wait(const struct FenceInterface *fi, int fence,
+bool FenceInterface_Wait(const FenceInterface *fi, int fence,
       uint32_t timeoutms)
 {
    assert(fi != NULL);
@@ -46,7 +46,7 @@ bool FenceInterface_Wait(const struct FenceInterface *fi, int fence,
       fi->wait(fi->base.context, fence, timeoutms) : true;
 }
 
-void FenceInterface_Signal(const struct FenceInterface *fi, int fence)
+void FenceInterface_Signal(const FenceInterface *fi, int fence)
 {
    assert(fi != NULL);
 
@@ -54,7 +54,7 @@ void FenceInterface_Signal(const struct FenceInterface *fi, int fence)
       fi->signal(fi->base.context, fence);
 }
 
-void FenceInterface_WaitAndDestroy(const struct FenceInterface *fi,
+void FenceInterface_WaitAndDestroy(const FenceInterface *fi,
       int *fence)
 {
    assert(fi != NULL);

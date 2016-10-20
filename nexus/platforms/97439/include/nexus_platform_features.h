@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
 ***************************************************************************/
 #ifndef NEXUS_PLATFORM_FEATURES_H__
 #define NEXUS_PLATFORM_FEATURES_H__
@@ -61,7 +60,7 @@
 #define NEXUS_NUM_AUDIO_DECODERS 6
 #define NEXUS_NUM_AUDIO_INPUT_CAPTURES 1 /* Number of external inputs active at a time */
 #define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_INPUTS 0
+#define NEXUS_NUM_SPDIF_INPUTS 1
 #define NEXUS_NUM_SPDIF_OUTPUTS 1
 #define NEXUS_NUM_AUDIO_MIXERS 8
 #define NEXUS_NUM_AUDIO_DUMMY_OUTPUTS 2
@@ -148,8 +147,9 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_SECURE_PICTURE_BUFFER_HEAP 10
 #define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_EXT_HEAP 11
 #define NEXUS_MEMC1_SECURE_PICTURE_BUFFER_HEAP 12
-#define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP 13
-#define NEXUS_EXPORT_HEAP 14
+#define NEXUS_MEMC0_SECURE_GRAPHICS_HEAP 13
+#define NEXUS_MEMC1_SECURE_GRAPHICS_HEAP 14
+#define NEXUS_EXPORT_HEAP 15
 
 
 #define NEXUS_AVS_MONITOR           0

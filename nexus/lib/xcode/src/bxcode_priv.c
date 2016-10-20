@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -165,7 +165,7 @@ static void BXCode_P_SeekNextChunk(
         /* discontinuity may result in a short chunk; but it should be ok */
         dpts = (endPosition->pts >= startPosition->pts)? (endPosition->pts - startPosition->pts)
                 : ((unsigned long)(-1) - startPosition->pts + 1 + endPosition->pts);
-        BDBG_MODULE_MSG(chunk_state, ("dpts[%lu], start[%ld]@pts=%08x, end[%ld] pts=%08x", dpts, startPosition->index, startPosition->pts, index, endPosition->pts));
+        BDBG_MODULE_MSG(chunk_state, ("dpts[%lu], start[%ld]@pts=%08lx, end[%ld] pts=%08lx", dpts, startPosition->index, startPosition->pts, index, endPosition->pts));
     } while(dpts/45 < BXCODE_P_CHUNK_DURATION);
 
     /* in case stream file doesn't start with transport packet sync byte 0x47, e.g., bad file truncation,
@@ -178,7 +178,7 @@ static void BXCode_P_SeekNextChunk(
     if(endPosition->index != -1) {/* end of file no need to round down */
         endPosition->offsetLo   = endPosition->offsetLo / 188 * 188;
     }
-    BDBG_MODULE_MSG(chunk_state, ("Chunk start at index %ld, end at index %ld with duration %u ms\n",
+    BDBG_MODULE_MSG(chunk_state, ("Chunk start at index %ld, end at index %ld with duration %lu ms\n",
         pContext->latestVideoChunk.startRapIndex, index, dpts/45));
     pContext->latestVideoChunk.endRapIndex = index;
 
@@ -541,7 +541,7 @@ static void BXCode_P_GetUserDataPsiFromPmt(BXCode_P_Context *pContext)
 
                 /* sanity check descriptor size */
                 if(pContext->userDataDescLen[num] > 188) {
-                    BDBG_ERR(("User data descriptor length %d too long!"));
+                    BDBG_ERR(("User data descriptor length %d too long!", pContext->userDataDescLen[num]));
                     pContext->userDataStreamValid[num] = false;/* invalidate */
                     goto Done_getUserDataPsi;
                 }
@@ -791,10 +791,10 @@ static void BXCode_P_CreateSystemData( BXCode_P_Context  *pContext )
         switch(audCodec) {
             case NEXUS_AudioCodec_eMpeg:         audStreamType[numAudPids] = 0x4; break;
             case NEXUS_AudioCodec_eMp3:          audStreamType[numAudPids] = 0x4; break;
-            case NEXUS_AudioCodec_eAac    :      audStreamType[numAudPids] = 0xf; break; /* ADTS */
-            case NEXUS_AudioCodec_eAacPlus:      audStreamType[numAudPids] = 0x11; break;/* LOAS */
-            /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType[numAudPids] = 0x11; break;
+            case NEXUS_AudioCodec_eAacAdts:      audStreamType[numAudPids] = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType[numAudPids] = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacLoas:      audStreamType[numAudPids] = 0x11; break;/* LOAS */
+            case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType[numAudPids] = 0x11; break;/* LOAS */
             case NEXUS_AudioCodec_eAc3:          audStreamType[numAudPids] = 0x81; break;
             case NEXUS_AudioCodec_eLpcm1394:     audStreamType[numAudPids] = 0x83; break;
             default:
@@ -953,9 +953,9 @@ static void BXCode_P_Recpump_thread(
                 duration);
 
             /* HLS NOTE: update duration fifo reader: assume one RAI per segment */
-#define BTST_TPIT_DEBUG
+/*#define BTST_TPIT_DEBUG*/
 #ifdef BTST_TPIT_DEBUG
-            BDBG_MSG(("RAI tpit entry: index bytesRead %d, tipt[0] 0x%x, tpit[2] 0x%x, tpit[3] 0x%x", *(uint32_t*)indexBuf, *((uint32_t*)indexBuf+2), *((uint32_t*)indexBuf+3)));
+            BDBG_MSG(("RAI tpit entry: index bytesRead %d, tipt[0] 0x%08x, tpit[2] 0x%08x, tpit[3] 0x%08x", *(uint32_t*)indexBuf, *((uint32_t*)indexBuf+2), *((uint32_t*)indexBuf+3)));
 #endif
             indexBuf = (uint8_t *)indexBuf + BRCM_TPIT_ENTRY_SIZE;/* consume one index */
             rc = NEXUS_Recpump_IndexReadComplete(pContext->recpump, BRCM_TPIT_ENTRY_SIZE);
@@ -1532,7 +1532,7 @@ static NEXUS_Error bxcode_p_open_audio_transcode(
     audioMuxSettings.index.fifoSize *= bxcode->openSettings.vpipes;
     pContext->muxOutput = NEXUS_AudioMuxOutput_Create(&audioMuxSettings);
     if(!pContext->muxOutput) {BDBG_ERR(("BXCode%u failed to create audio mux output[%u]!", bxcode->id, i)); return NEXUS_NOT_AVAILABLE;}
-    BDBG_MSG(("BXCode%u audio[%u] mux output= %p", bxcode->id, i, pContext->muxOutput));
+    BDBG_MSG(("BXCode%u audio[%u] mux output= %p", bxcode->id, i, (void*)pContext->muxOutput));
     return NEXUS_SUCCESS;
 }
 
@@ -1652,11 +1652,11 @@ void bxcode_p_post_start(BXCode_P_Context  *bxcode)
         if(videoEncoderStatus.bufferBlock) {
             NEXUS_MemoryBlock_Lock(videoEncoderStatus.bufferBlock, &bxcode->video[0].pEncoderBufferBase);
         }
-        BDBG_MSG(("video[%u] pEncoderBufferBase: %p", 0, bxcode->video[0].pEncoderBufferBase));
+        BDBG_MSG(("video[%u] pEncoderBufferBase: %p", 0, (void*)bxcode->video[0].pEncoderBufferBase));
         if(videoEncoderStatus.metadataBufferBlock) {
             NEXUS_MemoryBlock_Lock(videoEncoderStatus.metadataBufferBlock, &bxcode->video[0].pEncoderMetadataBufferBase);
         }
-        BDBG_MSG(("video[%u] pEncoderMetadataBufferBase: %p", 0, bxcode->video[0].pEncoderMetadataBufferBase));
+        BDBG_MSG(("video[%u] pEncoderMetadataBufferBase: %p", 0, (void*)bxcode->video[0].pEncoderMetadataBufferBase));
     }
 
     /* start audio */
@@ -1676,11 +1676,11 @@ void bxcode_p_post_start(BXCode_P_Context  *bxcode)
             if(audioMuxStatus.bufferBlock) {
                 NEXUS_MemoryBlock_Lock(audioMuxStatus.bufferBlock, &bxcode->audio[i].pEncoderBufferBase);
             }
-            BDBG_MSG(("audio[%u] pEncoderBufferBase: %p", i, bxcode->audio[i].pEncoderBufferBase));
+            BDBG_MSG(("audio[%u] pEncoderBufferBase: %p", i, (void*)bxcode->audio[i].pEncoderBufferBase));
             if(audioMuxStatus.metadataBufferBlock) {
                 NEXUS_MemoryBlock_Lock(audioMuxStatus.metadataBufferBlock, &bxcode->audio[i].pEncoderMetadataBufferBase);
             }
-            BDBG_MSG(("audio[%u] pEncoderMetadataBufferBase: %p", i, bxcode->audio[i].pEncoderMetadataBufferBase));
+            BDBG_MSG(("audio[%u] pEncoderMetadataBufferBase: %p", i, (void*)bxcode->audio[i].pEncoderMetadataBufferBase));
         }
     }
 
@@ -1939,7 +1939,7 @@ void bxcode_start_video_transcode(
             if(pSettings->input.type == BXCode_InputType_eStream && pSettings->input.vPid) {
                 pContext->pidChannel = NEXUS_Playpump_OpenPidChannel(bxcode->playpump, pSettings->input.vPid, NULL);
             }
-            BDBG_MSG(("bxcode[%u] video[%u] opened PID channel %p for input %d.", bxcode->id, pContext->id, pContext->pidChannel, pSettings->input.type));
+            BDBG_MSG(("bxcode[%u] video[%u] opened PID channel %p for input %d.", bxcode->id, pContext->id, (void*)pContext->pidChannel, pSettings->input.type));
         }
         NEXUS_VideoDecoder_SetSettings(pContext->decoder, &videoDecodeSettings);
     } else if (pSettings->input.type == BXCode_InputType_eLive) {/* live input */
@@ -1949,19 +1949,19 @@ void bxcode_start_video_transcode(
 
         if(pSettings->input.vPid) {/* open vpid channel */
             pContext->pidChannel = NEXUS_PidChannel_Open(pSettings->input.parserBand, pSettings->input.vPid, NULL);
-            BDBG_MSG(("BXCode[%u] opened vPID %u for parser band %d.", bxcode->id, pSettings->input.vPid, pSettings->input.parserBand));
+            BDBG_MSG(("BXCode[%u] opened vPID %u for parser band %d.", bxcode->id, pSettings->input.vPid, (int)pSettings->input.parserBand));
         } else
             goto BXCode_P_SetupVideoEncoder;
 
         if(pSettings->input.pcrPid != pSettings->input.vPid) {/* open pcr pid channel */
             bxcode->pcrPidChannel = NEXUS_PidChannel_Open(pSettings->input.parserBand, pSettings->input.pcrPid, NULL);
-            BDBG_MSG(("BXCode[%u] opened PCR PID %u for parser band %d.", bxcode->id, pSettings->input.pcrPid, pSettings->input.parserBand));
+            BDBG_MSG(("BXCode[%u] opened PCR PID %u for parser band %d.", bxcode->id, pSettings->input.pcrPid, (int)pSettings->input.parserBand));
             stcSettings.modeSettings.pcr.pidChannel = bxcode->pcrPidChannel;/* different PCR PID */
         } else {
             stcSettings.modeSettings.pcr.pidChannel = pContext->pidChannel; /* PCR happens to be on video pid */
         }
         NEXUS_StcChannel_SetSettings(pContext->stcChannel, &stcSettings);
-        BDBG_MSG(("Video[%u] opened source vSTC [%p].", i, pContext->stcChannel));
+        BDBG_MSG(("Video[%u] opened source vSTC [%p].", i, (void*)pContext->stcChannel));
     } else { /* hdmi/image input */
 #if NEXUS_HAS_HDMI_INPUT
         if(pSettings->input.type == BXCode_InputType_eHdmi) {
@@ -2269,7 +2269,7 @@ void bxcode_start_audio_transcode(
             NEXUS_StcChannel_GetSettings(pContext->stcChannel, &stcSettings);
             stcSettings.modeSettings.Auto.behavior = NEXUS_StcChannelAutoModeBehavior_eAudioMaster;
             NEXUS_StcChannel_SetSettings(pContext->stcChannel, &stcSettings);
-            BDBG_MSG(("Audio[%u] masters source aSTC  [%p].", pContext->id, pContext->stcChannel));
+            BDBG_MSG(("Audio[%u] masters source aSTC  [%p].", pContext->id, (void*)pContext->stcChannel));
 
             /* file I/O */
             pContext->fd = open(bxcode->startSettings.input.data, O_RDONLY | O_LARGEFILE, 0666);
@@ -2301,14 +2301,14 @@ void bxcode_start_audio_transcode(
                 audioCodec = bxcode->startSettings.input.aCodec[i];
                 pContext->pidChannel = NEXUS_Playpump_OpenPidChannel(bxcode->playpump, bxcode->startSettings.input.aPid[i], NULL);
             }
-            BDBG_MSG(("BXCode[%u] audio[%u] opened PID channel %p for input %d.", bxcode->id, pContext->id, pContext->pidChannel, pSettings->input.type));
+            BDBG_MSG(("BXCode[%u] audio[%u] opened PID channel %p for input %d.", bxcode->id, pContext->id, (void*)pContext->pidChannel, pSettings->input.type));
         }
     }
     else if (pSettings->input.type == BXCode_InputType_eLive) {/* live input */
         if(pSettings->input.aPid[i]) {/* open apid channel */
             audioCodec = bxcode->startSettings.input.aCodec[i];
             pContext->pidChannel = NEXUS_PidChannel_Open(pSettings->input.parserBand, pSettings->input.aPid[i], NULL);
-            BDBG_MSG(("BXCode[%u] opened aPID[%u] %u from parser band %d.", bxcode->id, i, pSettings->input.aPid[i], pSettings->input.parserBand));
+            BDBG_MSG(("BXCode[%u] opened aPID[%u] %u from parser band %d.", bxcode->id, i, pSettings->input.aPid[i], (int)pSettings->input.parserBand));
         } else
             goto BXCode_P_SetupAudioEncoder;
     } else if (pSettings->input.type == BXCode_InputType_eHdmi) {/* hdmi input */
@@ -2697,7 +2697,7 @@ void bxcode_start_mux(
         pContext->tsMuxConfig.stcChannel = pContext->stcChannelEncoder;
         NEXUS_StreamMux_Start(pContext->streamMux,&pContext->tsMuxConfig, &muxOutput);
         pContext->pidChannelMuxVideo = muxOutput.video[0];
-        BDBG_MSG(("video pid channel %p", pContext->pidChannelMuxVideo));
+        BDBG_MSG(("video pid channel %p", (void*)pContext->pidChannelMuxVideo));
 
         /* add multiplex data to the same record */
         if(!pContext->startSettings.output.transport.segmented &&
@@ -2713,17 +2713,17 @@ void bxcode_start_mux(
                         (pContext->startSettings.output.video.encoder.codec==NEXUS_VideoCodec_eH264);
                 recordPidSettings.recpumpSettings.pidTypeSettings.video.codec = pContext->startSettings.output.video.encoder.codec;
                 NEXUS_Record_AddPidChannel(pContext->record, pContext->pidChannelMuxVideo, &recordPidSettings);
-                BDBG_MSG(("BXCode[%u] record added video pid channel %p", pContext->id, pContext->pidChannelMuxVideo));
+                BDBG_MSG(("BXCode[%u] record added video pid channel %p", pContext->id, (void*)pContext->pidChannelMuxVideo));
             }
 
             for(i=0; i < BXCODE_MAX_AUDIO_PIDS && pContext->startSettings.output.audio[i].pid; i++) {
                 pContext->pidChannelMuxAudio[i] = muxOutput.audio[i];
                 NEXUS_Record_AddPidChannel(pContext->record, pContext->pidChannelMuxAudio[i], NULL);
-                BDBG_MSG(("BXCode[%u] record added audio pid channel[%u] %p", pContext->id, i, pContext->pidChannelMuxAudio[i]));
+                BDBG_MSG(("BXCode[%u] record added audio pid channel[%u] %p", pContext->id, i, (void*)pContext->pidChannelMuxAudio[i]));
             }
             for(i=0; i < NEXUS_MAX_MUX_PIDS && pContext->userDataStreamValid[i]; i++) {
                 NEXUS_Record_AddPidChannel(pContext->record, pContext->pidChannelMuxUserData[i], NULL);
-                BDBG_MSG(("BXCode[%u] record added user data pid channel[%u] %p", pContext->id, i, pContext->pidChannelMuxUserData[i]));
+                BDBG_MSG(("BXCode[%u] record added user data pid channel[%u] %p", pContext->id, i, (void*)pContext->pidChannelMuxUserData[i]));
             }
             NEXUS_Record_AddPidChannel(pContext->record, pContext->pidChannelMuxPcr, NULL);
             /* non-segmented ts output use timer-based psi insertion */
@@ -2762,17 +2762,17 @@ void bxcode_start_mux(
                 recpumpAddPidSettings.pidTypeSettings.video.index = false; /* TODO: add nav index */
                 recpumpAddPidSettings.pidTypeSettings.video.codec = pContext->startSettings.output.video.encoder.codec;
                 NEXUS_Recpump_AddPidChannel(pContext->recpump, pContext->pidChannelMuxVideo, &recpumpAddPidSettings);
-                BDBG_MSG(("BXCode[%u] recpump added video pid channel %p", pContext->id, pContext->pidChannelMuxVideo));
+                BDBG_MSG(("BXCode[%u] recpump added video pid channel %p", pContext->id, (void*)pContext->pidChannelMuxVideo));
             }
 
             for(i=0; i < BXCODE_MAX_AUDIO_PIDS && pContext->startSettings.output.audio[i].pid; i++) {
                 pContext->pidChannelMuxAudio[i] = muxOutput.audio[i];
                 NEXUS_Recpump_AddPidChannel(pContext->recpump, pContext->pidChannelMuxAudio[i], NULL);
-                BDBG_MSG(("BXCode[%u] recpump added audio pid channel[%u] %p", pContext->id, i, pContext->pidChannelMuxAudio[i]));
+                BDBG_MSG(("BXCode[%u] recpump added audio pid channel[%u] %p", pContext->id, i, (void*)pContext->pidChannelMuxAudio[i]));
             }
             for(i=0; i < NEXUS_MAX_MUX_PIDS && pContext->userDataStreamValid[i]; i++) {
                 NEXUS_Recpump_AddPidChannel(pContext->recpump, pContext->pidChannelMuxUserData[i], NULL);
-                BDBG_MSG(("BXCode[%u] recpump added user data pid channel[%u] %p", pContext->id, i, pContext->pidChannelMuxUserData[i]));
+                BDBG_MSG(("BXCode[%u] recpump added user data pid channel[%u] %p", pContext->id, i, (void*)pContext->pidChannelMuxUserData[i]));
             }
             NEXUS_Recpump_AddPidChannel(pContext->recpump, pContext->pidChannelMuxPcr, NULL);
             /* non-segmented ts output use timer-based psi insertion */

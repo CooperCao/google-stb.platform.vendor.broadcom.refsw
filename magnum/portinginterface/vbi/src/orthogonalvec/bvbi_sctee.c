@@ -746,7 +746,6 @@ BERR_Code BVBI_P_SCTE_Enc_Program (
     BSTD_UNUSED (bArib480p);
     BSTD_UNUSED (scteType);
     BSTD_UNUSED (csc);
-    BSTD_UNUSED (coCsc);
 
     return BERR_TRACE (BVBI_ERR_HW_UNSUPPORTED);
 
@@ -758,7 +757,6 @@ BERR_Code BVBI_P_SCTE_Enc_Program (
  */
 uint32_t BVBI_P_SCTE_Encode_Data_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -769,7 +767,7 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
     BVBI_LineBuilder_Handle hBotScteNrtv[2],
     BVBI_LineBuilder_Handle hTopScteMono[2],
     BVBI_LineBuilder_Handle hBotScteMono[2],
-    uint8_t** pSctePamData
+    BVBI_P_MmaData** pSctePamData
 )
 {
 #if (BVBI_NUM_SCTEE > 0)  /** { **/
@@ -791,7 +789,7 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
     int      lineIndex;
     int iBulk;
     int nrtv_sequence_number[2] = {0, 0};
-    uint8_t*    bulkNrtvData[2] = {0, 0};
+    BMMA_DeviceOffset bulkNrtvData[2] = {0, 0};
     int line_number[2];
 
     /* Debug code
@@ -1224,18 +1222,7 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
         ulRegAddr =
             BCHP_SCTE_0_CH0_DMA_ADDR_BANK0 + ulCoreOffset +
                 (regBankOffset * bankIndex);
-        eErr = BERR_TRACE (BMEM_ConvertAddressToOffset_isr (
-            hMem, bulkNrtvData[0], &hardware_offset));
-        BDBG_ASSERT (eErr == BERR_SUCCESS);
-        /* Debug code
-        printf ("Programmed bank %d DMA CH0 address %08x "
-            "(read pointer was %d)\n",
-            bankIndex, hardware_offset, ulReadPointer);
-        printf ("CH0:\n");
-        for (ulRegVal = 0 ; ulRegVal < 704 ; ++ulRegVal)
-            printf ("%02x ", bulkNrtvData[0][ulRegVal]);
-        printf ("\n");
-        */
+        hardware_offset = bulkNrtvData[0];
         ulRegVal = 0;
         ulRegVal |=
             BCHP_FIELD_DATA (SCTE_0_CH0_DMA_ADDR_BANK0, START_ADDR,
@@ -1245,28 +1232,12 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
         ulRegAddr =
             BCHP_SCTE_0_CH1_DMA_ADDR_BANK0 + ulCoreOffset +
                 (regBankOffset * bankIndex);
-        eErr = BERR_TRACE (BMEM_ConvertAddressToOffset_isr (
-            hMem, bulkNrtvData[1], &hardware_offset));
-        BDBG_ASSERT (eErr == BERR_SUCCESS);
-        /* Debug code
-        printf ("Programmed bank %d DMA CH1 address %08x "
-        "(read pointer was %d)\n",
-            bankIndex, hardware_offset, ulReadPointer);
-        printf ("CH1:\n");
-        for (ulRegVal = 0 ; ulRegVal < 704 ; ++ulRegVal)
-            printf ("%02x ", bulkNrtvData[1][ulRegVal]);
-        printf ("\n");
-        */
+        hardware_offset = bulkNrtvData[1];
         ulRegVal = 0;
         ulRegVal |=
             BCHP_FIELD_DATA (SCTE_0_CH1_DMA_ADDR_BANK0, START_ADDR,
             hardware_offset);
         BREG_Write32 (hReg, ulRegAddr, ulRegVal);
-
-        /* Debug code
-        printf ("    Programming DMA addresses %08x %08x\n",
-            bulkNrtvData[0], bulkNrtvData[1]);
-        */
 
         /* Program DMA length, etc. */
         regBankOffset =
@@ -1301,11 +1272,10 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
     /* Program PAM registers */
     if ((pData->pam_data_count != 0) && (scteType == BVBI_SCTE_Type_CCPAM))
     {
-        uint8_t* sourceArray;
+        BVBI_P_MmaData* sourceArray;
         int dma_length;
         int field_index = pData->field_number;
         int reset = (bankIndex == 0) ? 1 : 0;
-        BERR_Code eErr = BERR_SUCCESS;
 
         /* Swap PAM bulk data between field handle and VEC encoder handle */
         P_SWAP (*pSctePamData, pData->pam_data, sourceArray);
@@ -1317,9 +1287,7 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
         ulRegAddr =
             BCHP_SCTE_0_CH0_DMA_ADDR_BANK0 + ulCoreOffset +
                 (regBankOffset * bankIndex);
-        eErr = BERR_TRACE (BMEM_ConvertAddressToOffset_isr (
-            hMem, *pSctePamData, &hardware_offset));
-        BDBG_ASSERT (eErr == BERR_SUCCESS);
+        hardware_offset = (*pSctePamData)->pHwAccess;
         ulRegVal = 0;
         ulRegVal |=
             BCHP_FIELD_DATA (SCTE_0_CH0_DMA_ADDR_BANK0, START_ADDR,

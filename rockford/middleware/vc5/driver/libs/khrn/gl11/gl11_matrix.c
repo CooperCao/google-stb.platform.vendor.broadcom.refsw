@@ -28,7 +28,7 @@ OpenGL ES 1.1 matrix and matrix stack implementation.
 
    Khronos documentation [See GL1.1 S2.10.2 - Matrices]:
 
-   LoadMatrix takes a pointer to a 4 × 4 matrix stored in column-major order as 16
+   LoadMatrix takes a pointer to a 4 * 4 matrix stored in column-major order as 16
    consecutive fixed- or floating-point values, i.e. as
 
    a0  a4  a8  a12

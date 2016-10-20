@@ -142,26 +142,10 @@ void B_PlaybackIp_UdpProcessing(
 #endif
     }
 
-    {
-#if 0
-        /* TODO: improve this logic in-liu of dumping of initial set of bytes. */
-        size_t bufSize = 1500;
-        ssize_t bytesAvailable;
-        size_t bytesDumped = 0;
-        char *bufp;
-
-        bufp = BKNI_Malloc(bufSize);
-        BDBG_ASSERT(bufp);
-
-        while (1)
-        {
-            bytesAvailable = recvfrom(playback_ip->socketState.fd, bufp, bufSize, MSG_DONTWAIT, NULL, NULL);
-            if (bytesAvailable <= 0) break;
-            bytesDumped += bytesAvailable;
-        }
-        BDBG_WRN(("%s: >>>>> Dropped %d bytes of initially buffered data",__FUNCTION__, bytesDumped ));
-#endif
+    if (B_PlaybackIp_UtilsDiscardBufferedData(playback_ip, playback_ip->socketState.fd, SOCK_DGRAM) == false) {
+        BDBG_WRN(("%s: B_PlaybackIp_UtilsDiscardBufferedData failed, but continuing...", __FUNCTION__));
     }
+
     /* main loop */
     while (playback_ip->playback_state != B_PlaybackIpState_eStopping) {
         /* get an adequately sized buffer from the playpump */
@@ -219,18 +203,10 @@ void B_PlaybackIp_UdpProcessing(
             playback_ip->openSettings.eventCallback(playback_ip->openSettings.appCtx, B_PlaybackIpEvent_eIpTunerLocked);
             playback_ip->ipTunerLockedEventSent = true;
         }
+
         if (playback_ip->startSettings.monitorPsi) {
             B_PlaybackIp_ParseAndProcessPsiState(playback_ip, playback_ip->buffer, totalBytesRecv);
         }
-#define TOSS_START_DATA (1)
-#if TOSS_START_DATA
-            static int tossfirst = 500 * 1024;
-            if (tossfirst > 0){
-//                BDBG_LOG(("%s:tossfirst=%d  totalBytesRecv=%d\n", __FUNCTION__,tossfirst, totalBytesRecv));
-                tossfirst -= totalBytesRecv;
-            }
-            else /* elseif, don't feed the data */
-#endif
 
         /* now feed appropriate data it to the playpump */
         if (NEXUS_Playpump_ReadComplete(playback_ip->nexusHandles.playpump, 0, totalBytesRecv )) {

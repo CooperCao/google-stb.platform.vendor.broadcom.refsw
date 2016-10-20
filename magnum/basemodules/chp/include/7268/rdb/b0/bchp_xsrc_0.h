@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:02 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,90 +70,90 @@
 /***************************************************************************
  *XSRC_0 - Cross-Source 0 Registers
  ***************************************************************************/
-#define BCHP_XSRC_0_REVISION_ID                  0x20624800 /* [RO] Revision register */
-#define BCHP_XSRC_0_HW_CONFIGURATION             0x20624804 /* [RO] Hardware Configuration Register */
-#define BCHP_XSRC_0_TOP_CONTROL                  0x20624808 /* [RW] Top Level Control register */
-#define BCHP_XSRC_0_HORIZ_CONTROL                0x2062480c /* [RW] Video Horizontal Scaler Control register */
-#define BCHP_XSRC_0_BVB_IN_SIZE                  0x20624810 /* [RW] BVB Input Picture Size Information */
-#define BCHP_XSRC_0_PIC_OFFSET                   0x20624814 /* [RW] BVB Input Picture OFFSET Information for 2D or 3D left view */
-#define BCHP_XSRC_0_PIC_OFFSET_R                 0x20624818 /* [RW] BVB Input Picture OFFSET Information for 3D right view */
-#define BCHP_XSRC_0_SRC_PIC_SIZE                 0x2062481c /* [RW] Source Picture Size Information */
-#define BCHP_XSRC_0_DEST_PIC_SIZE                0x20624820 /* [RW] Destination Picture Size Information */
-#define BCHP_XSRC_0_SRC_PIC_HORIZ_PAN_SCAN       0x20624824 /* [RW] Source Picture Horizontal Pan/Scan Information */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_SRC_PIC_OFFSET 0x20624828 /* [RW] Horizontal Poly-Phase Filter Source Picture Luma Offset */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_SRC_PIC_OFFSET 0x2062482c /* [RW] Horizontal Poly-Phase Filter Source Picture Chroma Offset */
-#define BCHP_XSRC_0_HORIZ_FIR_INIT_PHASE_ACC     0x20624830 /* [RW] Horizontal Poly-Phase Filter Inital Phase Accumulate Value */
-#define BCHP_XSRC_0_HORIZ_FIR_INIT_PHASE_ACC_R   0x20624834 /* [RW] Horizontal Poly-Phase Filter Initial Phase Accumulate Value */
-#define BCHP_XSRC_0_HORIZ_FIR_INIT_STEP_FRAC     0x20624838 /* [RW] Horizontal Poly-Phase Filter Initial Stepping Size (fractional part) for Region 0 */
-#define BCHP_XSRC_0_HORIZ_FIR_INIT_STEP_INT      0x2062483c /* [RW] Horizontal Poly-Phase Filter Initial Stepping Size (integer part) for Region 0 */
-#define BCHP_XSRC_0_HORIZ_FIR_DEST_PIC_REGION_0_STEP_DELTA 0x20624840 /* [RW] Horizontal Poly-Phase Filter Picture Delta Increment for Region 0 Stepping Size */
-#define BCHP_XSRC_0_HORIZ_FIR_DEST_PIC_REGION_2_STEP_DELTA 0x20624844 /* [RW] Horizontal Poly-Phase Filter Picture Delta Increment for Region 2 Stepping Size */
-#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_N1_END 0x20624848 /* [RW] Horizontal Poly-Phase Filter Destination Region N1 Ending Position */
-#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_0_END  0x2062484c /* [RW] Horizontal Poly-Phase Filter Destination Region 0 Ending Position */
-#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_1_END  0x20624850 /* [RW] Horizontal Poly-Phase Filter Destination Region 1 Ending Position */
-#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_2_END  0x20624854 /* [RW] Horizontal Poly-Phase Filter Destination Region 2 Ending Position */
-#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_3_END  0x20624858 /* [RW] Horizontal Poly-Phase Filter Destination Region 3 Ending Position */
-#define BCHP_XSRC_0_HORIZ_DITHER_LFSR_INIT       0x2062485c /* [RW] Dither LFSR Init value and control */
-#define BCHP_XSRC_0_HORIZ_DITHER_LFSR_CTRL       0x20624860 /* [RW] Dither LFSR Control */
-#define BCHP_XSRC_0_HORIZ_DITHER_CTRL            0x20624864 /* [RW] Dither Control */
-#define BCHP_XSRC_0_DERINGING                    0x20624868 /* [RW] Horizontal only Scaler Deringing Control */
-#define BCHP_XSRC_0_VIDEO_3D_MODE                0x2062486c /* [RW] Video 3D mode */
-#define BCHP_XSRC_0_CCA_CONFIG                   0x20624870 /* [RW] Cb/Cr Amplifier Configuration */
-#define BCHP_XSRC_0_ENABLE                       0x20624874 /* [RW] Enable */
-#define BCHP_XSRC_0_TEST_PORT_CONTROL            0x20624878 /* [RW] Testportl control register */
-#define BCHP_XSRC_0_TEST_PORT_DATA               0x2062487c /* [RO] Testport data register */
-#define BCHP_XSRC_0_SCRATCH_0                    0x20624880 /* [RW] Scratch register 0 */
-#define BCHP_XSRC_0_SCRATCH_1                    0x20624884 /* [RW] Scratch register 1 */
-#define BCHP_XSRC_0_BVB_IN_STATUS_CLEAR          0x20624888 /* [WO] Broadcom Video Bus Input Status Clear */
-#define BCHP_XSRC_0_BVB_IN_STATUS                0x2062488c /* [RO] Broadcom Video Bus Input Status */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01 0x20624b40 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_02_03 0x20624b44 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_04_05 0x20624b48 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_00_01 0x20624b4c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_02_03 0x20624b50 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_04_05 0x20624b54 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_00_01 0x20624b58 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_02_03 0x20624b5c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_04_05 0x20624b60 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_00_01 0x20624b64 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_02_03 0x20624b68 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_04_05 0x20624b6c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_00_01 0x20624b70 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_02_03 0x20624b74 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_04_05 0x20624b78 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_00_01 0x20624b7c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_02_03 0x20624b80 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_04_05 0x20624b84 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_00_01 0x20624b88 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_02_03 0x20624b8c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_04_05 0x20624b90 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_00_01 0x20624b94 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 0 and 1 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_02_03 0x20624b98 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 2 and 3 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_04_05 0x20624b9c /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 4 and 5 LUMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_00_01 0x20624ba0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_02_03 0x20624ba4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_04_05 0x20624ba8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_00_01 0x20624bac /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_02_03 0x20624bb0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_04_05 0x20624bb4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_00_01 0x20624bb8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_02_03 0x20624bbc /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_04_05 0x20624bc0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_00_01 0x20624bc4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_02_03 0x20624bc8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_04_05 0x20624bcc /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_00_01 0x20624bd0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_02_03 0x20624bd4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_04_05 0x20624bd8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_00_01 0x20624bdc /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_02_03 0x20624be0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_04_05 0x20624be4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_00_01 0x20624be8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_02_03 0x20624bec /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_04_05 0x20624bf0 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 4 and 5 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_00_01 0x20624bf4 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 0 and 1 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_02_03 0x20624bf8 /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 2 and 3 CHROMA Coefficients */
-#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05 0x20624bfc /* [RW] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_REVISION_ID                  0x20624800 /* [RO][32] Revision register */
+#define BCHP_XSRC_0_HW_CONFIGURATION             0x20624804 /* [RO][32] Hardware Configuration Register */
+#define BCHP_XSRC_0_TOP_CONTROL                  0x20624808 /* [RW][32] Top Level Control register */
+#define BCHP_XSRC_0_HORIZ_CONTROL                0x2062480c /* [RW][32] Video Horizontal Scaler Control register */
+#define BCHP_XSRC_0_BVB_IN_SIZE                  0x20624810 /* [RW][32] BVB Input Picture Size Information */
+#define BCHP_XSRC_0_PIC_OFFSET                   0x20624814 /* [RW][32] BVB Input Picture OFFSET Information for 2D or 3D left view */
+#define BCHP_XSRC_0_PIC_OFFSET_R                 0x20624818 /* [RW][32] BVB Input Picture OFFSET Information for 3D right view */
+#define BCHP_XSRC_0_SRC_PIC_SIZE                 0x2062481c /* [RW][32] Source Picture Size Information */
+#define BCHP_XSRC_0_DEST_PIC_SIZE                0x20624820 /* [RW][32] Destination Picture Size Information */
+#define BCHP_XSRC_0_SRC_PIC_HORIZ_PAN_SCAN       0x20624824 /* [RW][32] Source Picture Horizontal Pan/Scan Information */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_SRC_PIC_OFFSET 0x20624828 /* [RW][32] Horizontal Poly-Phase Filter Source Picture Luma Offset */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_SRC_PIC_OFFSET 0x2062482c /* [RW][32] Horizontal Poly-Phase Filter Source Picture Chroma Offset */
+#define BCHP_XSRC_0_HORIZ_FIR_INIT_PHASE_ACC     0x20624830 /* [RW][32] Horizontal Poly-Phase Filter Inital Phase Accumulate Value */
+#define BCHP_XSRC_0_HORIZ_FIR_INIT_PHASE_ACC_R   0x20624834 /* [RW][32] Horizontal Poly-Phase Filter Initial Phase Accumulate Value */
+#define BCHP_XSRC_0_HORIZ_FIR_INIT_STEP_FRAC     0x20624838 /* [RW][32] Horizontal Poly-Phase Filter Initial Stepping Size (fractional part) for Region 0 */
+#define BCHP_XSRC_0_HORIZ_FIR_INIT_STEP_INT      0x2062483c /* [RW][32] Horizontal Poly-Phase Filter Initial Stepping Size (integer part) for Region 0 */
+#define BCHP_XSRC_0_HORIZ_FIR_DEST_PIC_REGION_0_STEP_DELTA 0x20624840 /* [RW][32] Horizontal Poly-Phase Filter Picture Delta Increment for Region 0 Stepping Size */
+#define BCHP_XSRC_0_HORIZ_FIR_DEST_PIC_REGION_2_STEP_DELTA 0x20624844 /* [RW][32] Horizontal Poly-Phase Filter Picture Delta Increment for Region 2 Stepping Size */
+#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_N1_END 0x20624848 /* [RW][32] Horizontal Poly-Phase Filter Destination Region N1 Ending Position */
+#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_0_END  0x2062484c /* [RW][32] Horizontal Poly-Phase Filter Destination Region 0 Ending Position */
+#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_1_END  0x20624850 /* [RW][32] Horizontal Poly-Phase Filter Destination Region 1 Ending Position */
+#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_2_END  0x20624854 /* [RW][32] Horizontal Poly-Phase Filter Destination Region 2 Ending Position */
+#define BCHP_XSRC_0_HORIZ_DEST_PIC_REGION_3_END  0x20624858 /* [RW][32] Horizontal Poly-Phase Filter Destination Region 3 Ending Position */
+#define BCHP_XSRC_0_HORIZ_DITHER_LFSR_INIT       0x2062485c /* [RW][32] Dither LFSR Init value and control */
+#define BCHP_XSRC_0_HORIZ_DITHER_LFSR_CTRL       0x20624860 /* [RW][32] Dither LFSR Control */
+#define BCHP_XSRC_0_HORIZ_DITHER_CTRL            0x20624864 /* [RW][32] Dither Control */
+#define BCHP_XSRC_0_DERINGING                    0x20624868 /* [RW][32] Horizontal only Scaler Deringing Control */
+#define BCHP_XSRC_0_VIDEO_3D_MODE                0x2062486c /* [RW][32] Video 3D mode */
+#define BCHP_XSRC_0_CCA_CONFIG                   0x20624870 /* [RW][32] Cb/Cr Amplifier Configuration */
+#define BCHP_XSRC_0_ENABLE                       0x20624874 /* [RW][32] Enable */
+#define BCHP_XSRC_0_TEST_PORT_CONTROL            0x20624878 /* [RW][32] Testportl control register */
+#define BCHP_XSRC_0_TEST_PORT_DATA               0x2062487c /* [RO][32] Testport data register */
+#define BCHP_XSRC_0_SCRATCH_0                    0x20624880 /* [RW][32] Scratch register 0 */
+#define BCHP_XSRC_0_SCRATCH_1                    0x20624884 /* [RW][32] Scratch register 1 */
+#define BCHP_XSRC_0_BVB_IN_STATUS_CLEAR          0x20624888 /* [WO][32] Broadcom Video Bus Input Status Clear */
+#define BCHP_XSRC_0_BVB_IN_STATUS                0x2062488c /* [RO][32] Broadcom Video Bus Input Status */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_00_01 0x20624b40 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_02_03 0x20624b44 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE0_04_05 0x20624b48 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_00_01 0x20624b4c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_02_03 0x20624b50 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE1_04_05 0x20624b54 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_00_01 0x20624b58 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_02_03 0x20624b5c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE2_04_05 0x20624b60 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_00_01 0x20624b64 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_02_03 0x20624b68 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE3_04_05 0x20624b6c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_00_01 0x20624b70 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_02_03 0x20624b74 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE4_04_05 0x20624b78 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_00_01 0x20624b7c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_02_03 0x20624b80 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE5_04_05 0x20624b84 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_00_01 0x20624b88 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_02_03 0x20624b8c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE6_04_05 0x20624b90 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_00_01 0x20624b94 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 0 and 1 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_02_03 0x20624b98 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 2 and 3 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_LUMA_COEFF_PHASE7_04_05 0x20624b9c /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 4 and 5 LUMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_00_01 0x20624ba0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_02_03 0x20624ba4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE0_04_05 0x20624ba8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 0 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_00_01 0x20624bac /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_02_03 0x20624bb0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE1_04_05 0x20624bb4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 1 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_00_01 0x20624bb8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_02_03 0x20624bbc /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE2_04_05 0x20624bc0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 2 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_00_01 0x20624bc4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_02_03 0x20624bc8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE3_04_05 0x20624bcc /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 3 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_00_01 0x20624bd0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_02_03 0x20624bd4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE4_04_05 0x20624bd8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 4 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_00_01 0x20624bdc /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_02_03 0x20624be0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE5_04_05 0x20624be4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 5 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_00_01 0x20624be8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_02_03 0x20624bec /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE6_04_05 0x20624bf0 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 6 Tap 4 and 5 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_00_01 0x20624bf4 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 0 and 1 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_02_03 0x20624bf8 /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 2 and 3 CHROMA Coefficients */
+#define BCHP_XSRC_0_HORIZ_FIR_CHROMA_COEFF_PHASE7_04_05 0x20624bfc /* [RW][32] Horizontal Scaler 12-tap Poly-Phase Filter Phase 7 Tap 4 and 5 CHROMA Coefficients */
 
 /***************************************************************************
  *REVISION_ID - Revision register

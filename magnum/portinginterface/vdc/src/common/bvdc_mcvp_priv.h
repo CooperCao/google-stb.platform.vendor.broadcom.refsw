@@ -69,7 +69,6 @@ extern "C" {
 #define BVDC_P_MCVP_BUFFER_MAX_COUNT            (4)
 
 /* MCVP Versions */
-#define BVDC_P_MCVP_VER_1                       (1) /* 7420 */
 #define BVDC_P_MCVP_VER_2                       (2) /* 7422Ax/7425Ax */
 #define BVDC_P_MCVP_VER_3                       (3) /* 7231Ax/7344Ax/7346Ax/7358Ax/7552Ax */
 #define BVDC_P_MCVP_VER_4                       (4) /* 7366 */
@@ -77,56 +76,13 @@ extern "C" {
 #define BVDC_P_MCVP_VER_6                       (6) /* 7364 Ax 7439 B0 MVP_TOP_1_DITHER_CTR*/
 
 
-
-#ifdef BCHP_MVP_TOP_5_REG_START
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId) \
-    ((BVDC_P_McvpId_eMcvp5==(eMcvpId)) ? (BCHP_MVP_TOP_5_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp4==(eMcvpId)) ? (BCHP_MVP_TOP_4_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp3==(eMcvpId)) ? (BCHP_MVP_TOP_3_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp2==(eMcvpId)) ? (BCHP_MVP_TOP_2_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp1==(eMcvpId)) ? (BCHP_MVP_TOP_1_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_MVP_TOP_4_REG_START
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId) \
-    ((BVDC_P_McvpId_eMcvp4==(eMcvpId)) ? (BCHP_MVP_TOP_4_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp3==(eMcvpId)) ? (BCHP_MVP_TOP_3_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp2==(eMcvpId)) ? (BCHP_MVP_TOP_2_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp1==(eMcvpId)) ? (BCHP_MVP_TOP_1_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_MVP_TOP_3_REG_START
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId) \
-    ((BVDC_P_McvpId_eMcvp3==(eMcvpId)) ? (BCHP_MVP_TOP_3_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp2==(eMcvpId)) ? (BCHP_MVP_TOP_2_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp1==(eMcvpId)) ? (BCHP_MVP_TOP_1_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_MVP_TOP_2_REG_START
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId) \
-    ((BVDC_P_McvpId_eMcvp2==(eMcvpId)) ? (BCHP_MVP_TOP_2_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(BVDC_P_McvpId_eMcvp1==(eMcvpId)) ? (BCHP_MVP_TOP_1_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_MVP_TOP_1_REG_START
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId) \
-    ((BVDC_P_McvpId_eMcvp1==(eMcvpId)) ? (BCHP_MVP_TOP_1_REG_START - BCHP_MVP_TOP_0_REG_START) \
-    :(0))
-#else
-#define BVDC_P_MVP_GET_REG_OFFSET(eMcvpId)           (0)
-#endif /* Mcvp_1 */
-#endif /* Mcvp_2 */
-#endif /* Mcvp_3 */
-#endif /* Mcvp_4 */
-#endif /* Mcvp_5 */
 /****************************************************************************
 * Mcvp dirty bits to makr RUL building and executing dirty.
 */
 typedef union
 {
     struct {
-        uint32_t                           bSize           : 1;
-        uint32_t                           bPrevBypass     : 1;
+        uint32_t                           bCompress       : 1;
     } stBits;
 
     uint32_t aulInts [BVDC_P_DIRTY_INT_ARRAY_SIZE];
@@ -146,6 +102,7 @@ typedef struct BVDC_P_McvpContext
     uint32_t                           ulMaxHeight; /* max height limited by RTS */
     uint32_t                           ulHsclSizeThreshold; /* hsize that triggers use of HSCL before deinterlacing */
     uint32_t                           ulRegOffset;
+    uint32_t                           ulRegOffset1;
 
     /* Core & Vnet Channel Reset */
     uint32_t                           ulCoreResetAddr;
@@ -181,12 +138,15 @@ typedef struct BVDC_P_McvpContext
     /* buffers */
     uint32_t                           ulPixelBufCnt;
     uint32_t                           ulQmBufCnt;
-    /*BVDC_P_HeapNodePtr               apHeapNode[BVDC_P_MCVP_BUFFER_MAX_COUNT];*/
+
+    /*compression*/
+    BVDC_P_Compression_Settings        stMvpCompression;
+    BVDC_P_McvpDirtyBits               stDirty;
 
     /* sub-struct to manage vnet and rul build opreations */
     BVDC_P_SubRulContext               SubRul;
 
-    BVDC_P_VnetMode                    stMcvpMode[BAVC_MOSAIC_MAX];
+    BVDC_P_MvpMode                    stMcvpMode[BAVC_MOSAIC_MAX];
 } BVDC_P_McvpContext;
 
 
@@ -211,7 +171,7 @@ typedef struct BVDC_P_McvpContext
 */
 BERR_Code BVDC_P_Mcvp_Create
     ( BVDC_P_Mcvp_Handle *           phMcvp,
-    BVDC_P_McvpId                    eMcvpId,
+    BVDC_P_McvpId                    eMvpId,
     BREG_Handle                      hRegister,
     BVDC_P_Resource_Handle           hResource );
 
@@ -307,6 +267,26 @@ void BVDC_P_Mcvp_BuildRul_isr(
     BVDC_P_State                       eVnetState,
     BVDC_P_WindowContext              *pWindow,
     BVDC_P_PictureNode                *pPicture );
+
+/***************************************************************************
+* Initialized back to default whatever user did not customized.
+*
+*/
+void BVDC_P_Mvp_Init_Default
+    ( BVDC_MadGameMode                   *peGameMode,
+      BPXL_Format                        *pePxlFormat,
+      BVDC_Mode                          *pePqEnhancement,
+      bool                               *pbShrinkWidth,
+      bool                               *pbReverse32Pulldown,
+      bool                               *pbReverse22Pulldown,
+      BVDC_Deinterlace_ChromaSettings    *pChromaSettings,
+      BVDC_Deinterlace_MotionSettings    *pMotionSettings );
+
+
+void BVDC_P_Mvp_Init_Custom
+    ( BVDC_422To444UpSampler            *pUpSampler,
+      BVDC_444To422DnSampler            *pDnSampler,
+      BVDC_Deinterlace_LowAngleSettings *pLowAngles );
 
 
 #ifdef __cplusplus

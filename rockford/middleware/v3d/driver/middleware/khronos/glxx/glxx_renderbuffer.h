@@ -13,7 +13,6 @@ OpenGL ES 2.0 / Open GL ES 1.1 OES_framebuffer_object renderbuffer structure dec
 #define GLXX_RENDERBUFFER_H
 
 #include "interface/khronos/include/GLES2/gl2.h"
-
 #include "middleware/khronos/common/khrn_image.h"
 
 typedef enum {
@@ -36,10 +35,7 @@ typedef struct {
 } GLXX_RENDERBUFFER_T;
 
 extern void glxx_renderbuffer_init(GLXX_RENDERBUFFER_T *renderbuffer, int32_t name);
-extern void glxx_renderbuffer_term(void *v, uint32_t size);
-
-extern bool glxx_renderbuffer_storage(GLXX_RENDERBUFFER_T *renderbuffer,
-   GLenum internalformat, GLuint width, GLuint height, bool secure);
+extern void glxx_renderbuffer_term(MEM_HANDLE_T handle);
 
 extern bool glxx_renderbuffer_unmerge(GLXX_RENDERBUFFER_T *renderbuffer);
 extern void glxx_renderbuffer_attempt_merge(GLXX_RENDERBUFFER_T *depth, GLXX_RENDERBUFFER_T *stencil);

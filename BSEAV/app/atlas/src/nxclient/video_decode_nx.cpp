@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -313,7 +313,7 @@ eRet CSimpleVideoDecodeNx::start(
     /* disable close captioning routing for mosaic decodes */
     if ((eWindowType_Mosaic1 <= getWindowType()) && (eWindowType_Max > getWindowType()))
     {
-        NEXUS_SimpleVideoDecoderClientSettings  videoDecoderClientSettings;
+        NEXUS_SimpleVideoDecoderClientSettings videoDecoderClientSettings;
 
         NEXUS_SimpleVideoDecoder_GetClientSettings(getSimpleDecoder(), &videoDecoderClientSettings);
         videoDecoderClientSettings.closedCaptionRouting = false;
@@ -369,7 +369,10 @@ error:
     return(ret);
 } /* start */
 
-eRet CSimpleVideoDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSettings, int index)
+eRet CSimpleVideoDecodeNx::updateConnectSettings(
+        NxClient_ConnectSettings * pSettings,
+        int                        index
+        )
 {
     eRet          ret       = eRet_Ok;
     CGraphicsNx * pGraphics = (CGraphicsNx *)_pModel->getGraphics();
@@ -380,7 +383,7 @@ eRet CSimpleVideoDecodeNx::updateConnectSettings(NxClient_ConnectSettings * pSet
     {
         /* pip is fullscreen (swap occurred) */
         pSettings->simpleVideoDecoder[index].windowCapabilities.type = /* NxClient_VideoWindowType_eMain; */
-            (eWindowType_Pip == getWindowType()) ? NxClient_VideoWindowType_eMain : NxClient_VideoWindowType_ePip;
+                                                                       (eWindowType_Pip == getWindowType()) ? NxClient_VideoWindowType_eMain : NxClient_VideoWindowType_ePip;
     }
     else
     {

@@ -37,12 +37,12 @@ struct v3d_printer_vtbl
    void (*boolean_field)(struct v3d_printer *root, const char *name, bool value);
 };
 
-#define V3D_PRINTER_VTBL_INIT(CLASS)      \
-   .begin = CLASS##_begin,                \
-   .end = CLASS##_end,                    \
-   .field = CLASS##_field,                \
-   .addr_field = CLASS##_addr_field,      \
-   .boolean_field = CLASS##_boolean_field
+#define V3D_PRINTER_VTBL_INIT(CLASS)   \
+   CLASS##_begin,                      \
+   CLASS##_end,                        \
+   CLASS##_field,                      \
+   CLASS##_addr_field,                 \
+   CLASS##_boolean_field
 
 extern void v3d_printer_addr_field(struct v3d_printer *root, const char *name, v3d_addr_t value);
 extern void v3d_printer_boolean_field(struct v3d_printer *root, const char *name, bool value);
@@ -93,8 +93,8 @@ struct v3d_basic_printer_vtbl
 };
 
 #define V3D_BASIC_PRINTER_VTBL_INIT(CLASS)   \
-   .base = {V3D_PRINTER_VTBL_INIT(CLASS)},   \
-   .line = CLASS##_line
+   {V3D_PRINTER_VTBL_INIT(CLASS)},           \
+   CLASS##_line
 
 extern void v3d_basic_printer_begin(struct v3d_printer *root, v3d_printer_container_type_t type, const char *name, bool hidden);
 extern void v3d_basic_printer_end(struct v3d_printer *root);

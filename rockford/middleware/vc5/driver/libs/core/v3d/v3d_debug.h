@@ -31,7 +31,7 @@ struct v3d_debug_vertex
 
 struct v3d_debug_prim
 {
-   v3d_prim_type_t type;
+   uint32_t num_verts;
    struct v3d_debug_vertex v[3];
    union
    {

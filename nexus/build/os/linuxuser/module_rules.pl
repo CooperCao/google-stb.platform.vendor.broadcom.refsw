@@ -79,6 +79,7 @@ print OUTFILE "NEXUS_IPC_MODULES :=\$(NEXUS_SYNCTHUNK_DIR)/nexus_ipc_modules.h\n
 print OUTFILE "\$(NEXUS_IPC_MODULES): \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
 print OUTFILE "\t\$(Q_)\${PERL} \$(NEXUS_TOP)/build/tools/common/generate_nexus_driver_modules.pl \$\@ \$(NEXUS_SERVER_MODULES)\n";
 print OUTFILE "\n";
+my $cnt = 0;
 
 foreach $moduleUpper (@ARGV) {
     my $moduleLower = lc $moduleUpper;
@@ -105,7 +106,11 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "ifeq (\$(NEXUS_MODE),proxy)\n";
             print OUTFILE "ifeq (,\$(filter $moduleUpper,\$(NEXUS_CLIENT_MODULES)))\n";
             # for proxy, only compile the proxy object
+            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
+            print OUTFILE "NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_proxy.\$(NEXUS_OBJ_SUFFIX) \n";
+            print OUTFILE "else\n";
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_proxy.\$(NEXUS_OBJ_SUFFIX) \n";
+            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS += \$(addprefix \$(NEXUS_OBJ_DIR)/$moduleUpper/,\$(patsubst %.c,%.\$(NEXUS_OBJ_SUFFIX),\$(notdir \$(NEXUS_$moduleUpper\_LOCAL_SOURCES))))\n";
             print OUTFILE "NEXUS_$moduleUpper\_CFLAGS += -DNEXUS_THUNK_LAYER \n";
             if ( $moduleUpper eq 'PLATFORM') {
@@ -117,6 +122,28 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ioctl.h: \$(NEXUS_SYNCTHUNK_DIR)/exists \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST)\n";
             print OUTFILE "endif\n"; #proxy
         }
+
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_api.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_client.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_driver.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_ioctl.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_ipc.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_server.c: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_api.h: \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c\n";
+
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : CC_AARCH32?=arm-linux-gcc\n";
+        print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
+        print OUTFILE "\t\@echo \"[ABI....... $moduleLower]\"\n";
+        print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/abiverify \$(NEXUS_TOP)/build/tools/abiverify/bapi_build.pl --stdin --class_list \$(CLASS_LIST) --module_number $cnt $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
+        print OUTFILE "ifeq (\$(B_REFSW_ARCH), aarch64-linux)\n";
+        print OUTFILE "ifdef QEMU_DIR\n";
+        print OUTFILE "\t\@echo \"[ABI-QEMU..... $moduleLower]\"\n";
+        print OUTFILE "\t\$(Q_)\${CC_AARCH32} -DNEXUS_P_ABI_VERIFY_MODE_PRINT=1 \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin\n";
+        print OUTFILE "\t\${Q_}\${QEMU_DIR}/arm-linux-user/qemu-arm -L \$(shell dirname \$(dir \$(shell which \${CC})))/arm-linux-gnueabihf/sys-root/ \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin >\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.h\n";
+        print OUTFILE "\t\$(Q_)\${CC} -DNEXUS_P_ABI_VERIFY_MODE_VERIFY=1  \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch64.o\n";
+        print OUTFILE "endif\n";
+        print OUTFILE "endif\n";
 
         # usermode IPC
         if ( $ipc == 1) {
@@ -130,10 +157,16 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "\t\@echo \"[Ipc....... $moduleLower]\"\n";
             print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) |  \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/ipcthunk \$(NEXUS_TOP)/build/tools/ipcthunk/bapi_build.pl --stdin --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n\n";
 
+
             # for client, only compile the client object + local sources
             print OUTFILE "ifeq (\${NEXUS_MODE},client)\n";
+            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
+            print OUTFILE "  NEXUS_$moduleUpper\_CLIENT := \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_client.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_api.h\n";
+            print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_client.\$(NEXUS_OBJ_SUFFIX)\n";
+            print OUTFILE "else\n";
             print OUTFILE "  NEXUS_$moduleUpper\_CLIENT := \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_client.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_api.h\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS := \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_ipc_client.\$(NEXUS_OBJ_SUFFIX)\n";
+            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(addprefix \$(NEXUS_OBJ_DIR)/$moduleUpper/,\$(patsubst %.c,%.\$(NEXUS_OBJ_SUFFIX),\$(notdir \$(NEXUS_$moduleUpper\_LOCAL_SOURCES))))\n";
             print OUTFILE "  NEXUS_$moduleUpper\_CFLAGS += -DNEXUS_THUNK_LAYER \n";
             if ( $moduleUpper eq 'PLATFORM') {
@@ -141,7 +174,11 @@ foreach $moduleUpper (@ARGV) {
             }
             print OUTFILE "else\n";
             # for server, add the server object
+            print OUTFILE "ifeq (\$(NEXUS_ABICOMPAT_MODE),y)\n";
+            print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_server.\$(NEXUS_OBJ_SUFFIX) \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify_ipc.\$(NEXUS_OBJ_SUFFIX)\n";
+            print OUTFILE "else\n";
             print OUTFILE "  NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_ipc_server.\$(NEXUS_OBJ_SUFFIX)\n";
+            print OUTFILE "endif\n"; #NEXUS_ABICOMPAT_MODE
             print OUTFILE "endif\n"; #client
             print OUTFILE "endif\n"; #NEXUS_CLIENT_MODULES
             print OUTFILE "endif\n"; #proxy
@@ -165,20 +202,6 @@ foreach $moduleUpper (@ARGV) {
             print OUTFILE "ifeq (\$(filter $moduleUpper,\${NEXUS_ABIVERIFY_MODULES}), $moduleUpper)\n";
             print OUTFILE "NEXUS_$moduleUpper\_OBJECTS += \$(NEXUS_OBJ_DIR)/$moduleUpper/nexus_$moduleLower\_abiverify.\$(NEXUS_OBJ_SUFFIX)\n";
             print OUTFILE "endif\n";
-            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h\n";
-            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c : CC_AARCH32?=arm-linux-gcc\n";
-            print OUTFILE "\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.h : \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES))) \$(CLASS_LIST) \$(NEXUS_SYNCTHUNK_DIR)/exists\n";
-            print OUTFILE "\t\@echo \"[ABI..... $moduleLower]\"\n";
-            print OUTFILE "\t\$(Q_)\$(CC) -MM \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) \$(filter-out %_init.h,\$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))) | \$(PERL) -I \$(NEXUS_TOP)/build/tools/common -I \$(NEXUS_TOP)/build/tools/abiverify \$(NEXUS_TOP)/build/tools/abiverify/bapi_build.pl --stdin --class_list \$(CLASS_LIST) $moduleUpper \$(NEXUS_SYNCTHUNK_DIR) \$(wildcard \$(addsuffix /*.h,\$(NEXUS_$moduleUpper\_PUBLIC_INCLUDES)))\n";
-            print OUTFILE "ifeq (\$(B_REFSW_ARCH), aarch64-linux)\n";
-            print OUTFILE "ifdef QEMU_DIR\n";
-            print OUTFILE "\t\@echo \"[ABI-QEMU..... $moduleLower]\"\n";
-            print OUTFILE "\t\$(Q_)\${CC_AARCH32} -DNEXUS_P_ABI_VERIFY_MODE_PRINT=1 \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin\n";
-            print OUTFILE "\t\${Q_}\${QEMU_DIR}/arm-linux-user/qemu-arm -L \$(shell dirname \$(dir \$(shell which \${CC})))/arm-linux-gnueabihf/sys-root/ \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.bin >\$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch32.h\n";
-            print OUTFILE "\t\$(Q_)\${CC} -DNEXUS_P_ABI_VERIFY_MODE_VERIFY=1  \$(NEXUS_CFLAGS) \$(NEXUS_$moduleUpper\_CFLAGS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify.c -c -o \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_abiverify_aarch64.o\n";
-            print OUTFILE "endif\n";
-            print OUTFILE "endif\n";
-            print OUTFILE "\n";
         }
         # Module Rules
         my $static_analyzer = <<"EOF";
@@ -197,7 +220,7 @@ EOF
         print OUTFILE "\n";
         print OUTFILE "\$(NEXUS_$moduleUpper\_OBJECTS): \$(NEXUS_OBJ_DIR)/$moduleUpper/%.\$(NEXUS_OBJ_SUFFIX): %.c \${NEXUS_OBJ_DIR}/$moduleUpper/exists \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},\${NEXUS_OBJ_DIR}/$moduleUpper/nexus_$moduleLower\_precompiled.h.gch \${NEXUS_PRECOMPILED_HEADER_H}.gch) \$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(NEXUS_IPC_MODULES)\n";
         print OUTFILE "\t\@echo \"[Compile... \$(notdir \$<) ($moduleLower)]\"\n";
-        print OUTFILE "\t\$(Q_)\$(CC) \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},-include \$(if \$(filter \$<,\$(NEXUS_$moduleUpper\_SYNCTHUNKS) \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_proxy.c \$(NEXUS_SYNCTHUNK_DIR)/nexus_$moduleLower\_ipc_client.c),\${NEXUS_PRECOMPILED_HEADER_H},\${NEXUS_OBJ_DIR}/$moduleUpper/nexus_$moduleLower\_precompiled.h)) \$(CDEP_FLAG) \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@\n";
+        print OUTFILE "\t\$(Q_)\$(CC) \$(if \${NEXUS_P_WITH_PRECOMPILED_HEADERS},-include \$(if \$(filter \$(notdir \$<), nexus_$moduleLower\_thunks.c nexus_$moduleLower\_abiverify_proxy.c nexus_$moduleLower\_proxy.c nexus_$moduleLower\_abiverify_client.c nexus_$moduleLower\_ipc.c nexus_$moduleLower\_ipc_client.c),\${NEXUS_PRECOMPILED_HEADER_H},\${NEXUS_OBJ_DIR}/$moduleUpper/nexus_$moduleLower\_precompiled.h)) \$(CDEP_FLAG) \$(NEXUS_CFLAGS) \$(NEXUS_CFLAGS_BPROFILE) \$(NEXUS_$moduleUpper\_CFLAGS) -c \$< -o \$@\n";
         print OUTFILE $static_analyzer;
         print OUTFILE "\n";
         print OUTFILE "else\n";
@@ -208,6 +231,7 @@ EOF
         print OUTFILE "\n";
         print OUTFILE "endif\n";
 
+        $cnt++;
 }
 close OUTFILE;
 

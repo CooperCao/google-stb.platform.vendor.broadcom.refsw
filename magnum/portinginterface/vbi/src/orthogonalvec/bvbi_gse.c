@@ -113,12 +113,10 @@ BERR_Code BVBI_P_GS_Enc_Program (
         uint32_t ulGse_controlReg;
         uint32_t baseline;
         uint32_t linemask;
-#if defined(BVBI_P_GSE_VER2)
         uint32_t waveform = (
                 gsOptions->bTvg2x ?
                         BCHP_GSE_0_CONTROL_WAVE_MODE_TVG2X_CEA2020 :
                         BCHP_GSE_0_CONTROL_WAVE_MODE_GEMSTAR);
-#endif
 
         BDBG_ENTER(BVBI_P_GS_Enc_Program);
 
@@ -148,13 +146,6 @@ BERR_Code BVBI_P_GS_Enc_Program (
                         return BERR_TRACE (BVBI_ERR_VFMT_CONFLICT);
                 }
         }
-#if !defined(BVBI_P_GSE_VER2)
-        if (gsOptions->bTvg2x)
-        {
-                if (bActive)
-                        return BERR_TRACE (BVBI_ERR_HW_UNSUPPORTED);
-        }
-#endif
 
         baseline = gsOptions->baseline_top;
         linemask = gsOptions->linemask_top;
@@ -268,9 +259,7 @@ BERR_Code BVBI_P_GS_Enc_Program (
         if (bActive)
         {
                 ulGse_controlReg |= (
-#if defined(BVBI_P_GSE_VER2)
                         BCHP_FIELD_DATA (GSE_0_CONTROL, WAVE_MODE, waveform) |
-#endif
                         BCHP_FIELD_ENUM (GSE_0_CONTROL,    ENABLE,  ENABLED) );
         }
         else

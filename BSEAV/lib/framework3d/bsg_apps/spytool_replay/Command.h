@@ -15,7 +15,7 @@ DESC
 #define BSG_NO_NAME_MANGLING
 
 #include "packet.h"
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
 #include "api_command_ids.h"
 #else
 #include "interface/khronos/common/khrn_api_command_ids.h"

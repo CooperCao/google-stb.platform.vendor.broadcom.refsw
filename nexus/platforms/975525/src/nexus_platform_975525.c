@@ -70,13 +70,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    BCHP_MemoryInfo memInfo;
-
     BSTD_UNUSED(boxMode);
-
-    BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
-
-    BDBG_WRN(("Nexus built for 975525 platform with %d MB RAM", (unsigned)(memInfo.memc[0].size / MB) ));
 
     /* bmem=192M@64M for 256MB platforms or bmem=100M@28M for 128MB platforms which both use only one heap. */
     /* bmem=192M@64M bmem=192M@512M for the boards with 512 MB or more of memory. */
@@ -93,7 +87,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
     }
 
-    if (memInfo.memc[0].size > 256*MB) {
+    if (g_platformMemory.memoryLayout.memc[0].size > 256*MB) {
 
         pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].memcIndex = 0;
         pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].subIndex = 1;
@@ -114,6 +108,12 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
+#if NEXUS_USE_75525_C
+    BDBG_WRN(("*** Initializing 75815 SFF Board ...***"));
+#else
+    BDBG_WRN(("*** Initializing 75525 SFF Board ...***"));
+#endif
+
     return NEXUS_SUCCESS;
 }
 

@@ -301,6 +301,10 @@ bool BXVD_P_VerifyWatchdogFired_##family##_isr \
 /* Rev N core */
 #define BXVD_CHIP 'N'
 
+#elif (BCHP_CHIP == 7278)
+/* Rev T core */
+#define BXVD_CHIP 'T'
+
 #else
 #define BXVD_CHIP BCHP_CHIP
 #endif
@@ -342,11 +346,14 @@ bool BXVD_P_VerifyWatchdogFired_##family##_isr \
 #elif (BXVD_CHIP == 'N')
 #include "bxvd_core_avd_revn0.h"
 #include "bxvd_platform_revn0.h"
+#elif (BXVD_CHIP == 'T')
+#include "bxvd_core_avd_revt0.h"
+#include "bxvd_platform_revt0.h"
 #else
 #error Unsupported BCHP_CHIP version!
 #endif
 
-#if ((BXVD_CHIP != 'K') && (BXVD_CHIP != 'N'))
+#if ((BXVD_CHIP != 'K') && (BXVD_CHIP != 'N') && (BXVD_CHIP != 'T'))
 #define BXVD_P_USE_RELF 1
 #else
 #define BXVD_P_USE_RELF 0

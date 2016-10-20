@@ -36,16 +36,12 @@ static khrn_fmem_client_pool client_pool;
 
 bool khrn_fmem_client_pool_init(void)
 {
-   unsigned int i;
-   KHRN_FMEM_BUFFER *buffer;
-
-   if (vcos_mutex_create(&client_pool.lock, "client_pool.lock") !=
-         VCOS_SUCCESS)
+   if (vcos_mutex_create(&client_pool.lock, "client_pool.lock") != VCOS_SUCCESS)
       return false;
 
-   for (i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
+   for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
    {
-      buffer = &client_pool.buffer[i];
+      KHRN_FMEM_BUFFER* buffer = &client_pool.buffer[i];
       buffer->in_use = false;
       buffer->bytes_used = ~0u;
       buffer->cpu_address = NULL;
@@ -60,15 +56,16 @@ bool khrn_fmem_client_pool_init(void)
 
 void khrn_fmem_client_pool_deinit(void)
 {
-   unsigned int i;
-   KHRN_FMEM_BUFFER *buffer;
-
-   for (i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
+   for (unsigned i = 0; i < KHRN_FMEM_MAX_BLOCKS; i++)
    {
-      buffer = &client_pool.buffer[i];
+      KHRN_FMEM_BUFFER* buffer = &client_pool.buffer[i];
       assert(!buffer->in_use);
       if (buffer->handle != GMEM_HANDLE_INVALID)
+      {
+         assert(buffer->cpu_address != NULL);
+         gmem_unmap(buffer->handle);
          gmem_free(buffer->handle);
+      }
    }
    vcos_mutex_delete(&client_pool.lock);
 }
@@ -107,8 +104,6 @@ end:
 static void client_pool_release_buffer(KHRN_FMEM_BUFFER *buffer, bool was_submitted)
 {
    vcos_mutex_lock(&client_pool.lock);
-   /* we should have unmapped the handle by now and set the cpu_addr to NULL */
-   assert(buffer->cpu_address == NULL);
    buffer->in_use = false;
    client_pool.n_free_buffers++;
    if (was_submitted)
@@ -127,9 +122,8 @@ static void client_pool_add_submitted_buffers(unsigned count)
 
 unsigned khrn_fmem_client_pool_get_num_free_and_submitted()
 {
-   unsigned count;
    vcos_mutex_lock(&client_pool.lock);
-   count = client_pool.n_submitted_buffers + client_pool.n_free_buffers;
+   unsigned count = client_pool.n_submitted_buffers + client_pool.n_free_buffers;
    vcos_mutex_unlock(&client_pool.lock);
    return count;
 }
@@ -147,13 +141,7 @@ void khrn_fmem_pool_deinit(KHRN_FMEM_POOL_T *pool)
 
    for (unsigned i = 0; i < pool->n_buffers; i++)
    {
-      KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
-      if (buffer->cpu_address)
-      {
-         gmem_unmap(buffer->handle);
-         buffer->cpu_address = NULL;
-      }
-      client_pool_release_buffer(buffer, pool->buffers_submitted);
+      client_pool_release_buffer(pool->buffer[i], pool->buffers_submitted);
    }
 }
 
@@ -186,18 +174,22 @@ void* khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool)
    if (buffer->handle == GMEM_HANDLE_INVALID)
    {
       buffer->handle = gmem_alloc(KHRN_FMEM_BUFFER_SIZE, KHRN_FMEM_ALIGN_MAX,
-            GMEM_USAGE_ALL, "Fmem buffer");
+            GMEM_USAGE_V3D_READ | GMEM_USAGE_CPU, "Fmem buffer");
       if (buffer->handle == GMEM_HANDLE_INVALID)
       {
          log_error("[%s] gmem_alloc failed", VCOS_FUNCTION);
          goto fail;
       }
-  }
 
-   assert(buffer->cpu_address == NULL);
-   buffer->cpu_address = gmem_map(buffer->handle);
-   if (!buffer->cpu_address)
-      goto fail;
+      assert(buffer->cpu_address == NULL);
+      buffer->cpu_address = gmem_map(buffer->handle);
+      if (!buffer->cpu_address)
+      {
+         gmem_free(buffer->handle);
+         buffer->handle = GMEM_HANDLE_INVALID;
+         goto fail;
+      }
+   }
 
    buffer->hw_address = gmem_lock(&pool->lock_list, buffer->handle);
    if (buffer->hw_address == 0)
@@ -205,16 +197,10 @@ void* khrn_fmem_pool_alloc(KHRN_FMEM_POOL_T *pool)
 
    gmem_sync_pre_cpu_access(buffer->handle, GMEM_SYNC_CPU_WRITE | GMEM_SYNC_DISCARD);
    pool->buffer[pool->n_buffers++] = buffer;
-   buffer->is_render_output = false;
    buffer->bytes_used = ~0u;
    return buffer->cpu_address;
 
 fail:
-   if (buffer->cpu_address)
-   {
-      gmem_unmap(buffer->handle);
-      buffer->cpu_address = NULL;
-   }
    client_pool_release_buffer(buffer, false);
    return NULL;
 }
@@ -228,20 +214,11 @@ void khrn_fmem_pool_submit(KHRN_FMEM_POOL_T *pool,
 
       gmem_sync_post_cpu_write_range(buffer->handle, 0, buffer->bytes_used, GMEM_SYNC_CPU_WRITE | GMEM_SYNC_RELAXED);
 
-      if (!buffer->is_render_output)
-      {
-         gmem_unmap(buffer->handle);
-         buffer->cpu_address = NULL;
-      } /* else: keep output buffers mapped so we can read them after the frame completes */
-
       // Be conservative with read flags since all sorts of data can live in fmem.
-      uint32_t bin_sync_flags = (GMEM_SYNC_V3D_READ & ~GMEM_SYNC_TFU_READ)
-                              | GMEM_SYNC_RELAXED;
-      uint32_t render_sync_flags = bin_sync_flags
-                                 | (buffer->is_render_output ? GMEM_SYNC_CORE_WRITE : 0u);
+      uint32_t sync_flags = (GMEM_SYNC_V3D_READ & ~GMEM_SYNC_TFU_READ) | GMEM_SYNC_RELAXED;
       assert(buffer->bytes_used != ~0u);
-      khrn_synclist_add_range(bin, buffer->handle, 0, buffer->bytes_used, bin_sync_flags);
-      khrn_synclist_add_range(render, buffer->handle, 0, buffer->bytes_used, render_sync_flags);
+      khrn_synclist_add_range(bin, buffer->handle, 0, buffer->bytes_used, sync_flags);
+      khrn_synclist_add_range(render, buffer->handle, 0, buffer->bytes_used, sync_flags);
    }
 
    assert(pool->buffers_submitted == false);
@@ -291,25 +268,9 @@ v3d_addr_t khrn_fmem_pool_hw_address(KHRN_FMEM_POOL_T *pool, void *address)
    return buffer->hw_address + ((char *)address - (char *)buffer->cpu_address);
 }
 
-void khrn_fmem_pool_mark_as_render_output(KHRN_FMEM_POOL_T *pool, void *address)
-{
-   KHRN_FMEM_BUFFER *buffer = get_buffer_containing(pool, address);
-   buffer->is_render_output = true;
-}
-
 void khrn_fmem_pool_finalise_end(KHRN_FMEM_POOL_T *pool, void *address)
 {
    KHRN_FMEM_BUFFER *buffer = get_buffer_containing(pool, address);
    assert(buffer->bytes_used == ~0u);
    buffer->bytes_used = (char*)address - (char*)buffer->cpu_address;
-}
-
-void khrn_fmem_pool_pre_cpu_read_outputs(const KHRN_FMEM_POOL_T *pool)
-{
-   for (unsigned i = 0; i != pool->n_buffers; ++i)
-   {
-      const KHRN_FMEM_BUFFER *buffer = pool->buffer[i];
-      if (buffer->is_render_output)
-         gmem_sync_pre_cpu_access(buffer->handle, GMEM_SYNC_CPU_READ);
-   }
 }

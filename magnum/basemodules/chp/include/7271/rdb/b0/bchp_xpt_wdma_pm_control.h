@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *XPT_WDMA_PM_CONTROL - Performance Monitor Registers
  ***************************************************************************/
-#define BCHP_XPT_WDMA_PM_CONTROL_INTERVAL        0x20a68500 /* [RW] Performance Monitor Interval (108 MHz clocks) */
-#define BCHP_XPT_WDMA_PM_CONTROL_STATS_GUARD     0x20a68504 /* [RW] Performance Monitor Stats Guard */
-#define BCHP_XPT_WDMA_PM_CONTROL_MODE            0x20a68508 /* [RW] Performance Monitor Mode of operation */
-#define BCHP_XPT_WDMA_PM_CONTROL_ARM             0x20a6850c /* [RW] ARM Bit */
-#define BCHP_XPT_WDMA_PM_CONTROL_READY           0x20a68510 /* [RO] READY Bit */
+#define BCHP_XPT_WDMA_PM_CONTROL_INTERVAL        0x20a68500 /* [RW][32] Performance Monitor Interval (108 MHz clocks) */
+#define BCHP_XPT_WDMA_PM_CONTROL_STATS_GUARD     0x20a68504 /* [RW][32] Performance Monitor Stats Guard */
+#define BCHP_XPT_WDMA_PM_CONTROL_MODE            0x20a68508 /* [RW][32] Performance Monitor Mode of operation */
+#define BCHP_XPT_WDMA_PM_CONTROL_ARM             0x20a6850c /* [RW][32] ARM Bit */
+#define BCHP_XPT_WDMA_PM_CONTROL_READY           0x20a68510 /* [RO][32] READY Bit */
 
 /***************************************************************************
  *INTERVAL - Performance Monitor Interval (108 MHz clocks)

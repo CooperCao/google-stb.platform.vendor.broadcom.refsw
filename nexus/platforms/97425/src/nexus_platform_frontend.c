@@ -1,42 +1,40 @@
-/***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
-*
-*  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_types.h"
 #include "nexus_platform.h"
 #include "priv/nexus_core.h"
@@ -222,37 +220,37 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     data = 0x05005800;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 5 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 5 error"));
 
     /* register 4 */
     data = 0x6c619100;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 4 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 4 error"));
 
     /* register 3 */
     data = 0xb3040000;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 3 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 3 error"));
 
     /* register 2 */
     data = 0xc28e0100;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 2 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 2 error"));
 
     /* register 1 */
     data = 0x39ad0008;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 1 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 1 error"));
 
     /* register 0 */
     data = 0x2826dc02;
     rc = NEXUS_Spi_Write(mixerPllSpi, (uint8_t *)&data, sizeof(data));
     if (rc)
-        BDBG_ERR(("NEXUS_Spi_Write reg 0 error\n"));
+        BDBG_ERR(("NEXUS_Spi_Write reg 0 error"));
 
     NEXUS_Frontend_GetDefault4528Settings(&st4528Settings);
 
@@ -717,7 +715,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_Docsis_GetDefaultOpenDeviceSettings(&docsisDeviceSettings);
     docsisDeviceSettings.rpcTimeOut = 50; /* units ms */
     hDocsisDevice = NEXUS_Docsis_OpenDevice(0,&docsisDeviceSettings);
-    if(hDocsisDevice) 
+    if(hDocsisDevice)
     {
         NEXUS_Docsis_GetDeviceCapabilities(hDocsisDevice,&docsisDeviceCaps);
         BDBG_MSG(("DOCSIS Capabilities : Total Channels %u QAM Channels %u Docsis Channels %u oob %s",
@@ -728,7 +726,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
              docsisChannel++)
         {
             NEXUS_Docsis_GetDefaultOpenChannelSettings(&docsisChannelSettings);
-            if(docsisChannel >=docsisDeviceCaps.numDataChannels) 
+            if(docsisChannel >=docsisDeviceCaps.numDataChannels)
             {
                 docsisChannelSettings.autoAcquire = true;
                 docsisChannelSettings.channelNum = docsisChannel;
@@ -750,11 +748,11 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             userParams.param1 = docsisDeviceCaps.isMtsif ? docsisChannel  : NEXUS_InputBand_e0+docsisChannel;
             userParams.isMtsif = docsisDeviceCaps.isMtsif;
-            userParams.chipId = 0x3384; 
+            userParams.chipId = 0x3384;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
             NEXUS_Frontend_GetLTSID(pConfig->frontend[i], &ltsidParams);
             ltsidParams.ltsidNum = userParams.param1;
-            ltsidParams.chipId = 0x3384; 
+            ltsidParams.chipId = 0x3384;
             ltsidParams.mtsifNum = 1;
             ltsidParams.mtsifEnabled = true;
             NEXUS_Frontend_SetLTSID(pConfig->frontend[i], &ltsidParams);
@@ -763,7 +761,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         }
     }
     else
-    { 
+    {
         BDBG_ERR(("NEXUS_Docsis_OpenDevice failed"));
     }
     #else
@@ -900,7 +898,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_Docsis_GetDefaultOpenDeviceSettings(&docsisDeviceSettings);
     docsisDeviceSettings.rpcTimeOut = 50; /* units ms */
     hDocsisDevice = NEXUS_Docsis_OpenDevice(0,&docsisDeviceSettings);
-    if(hDocsisDevice) 
+    if(hDocsisDevice)
     {
         NEXUS_Docsis_GetDeviceCapabilities(hDocsisDevice,&docsisDeviceCaps);
         BDBG_MSG(("DOCSIS Capabilities : Total Channels %u QAM Channels %u Docsis Channels %u oob %s",
@@ -911,7 +909,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
              docsisChannel++)
         {
             NEXUS_Docsis_GetDefaultOpenChannelSettings(&docsisChannelSettings);
-            if(docsisChannel >= docsisDeviceCaps.numDataChannels) 
+            if(docsisChannel >= docsisDeviceCaps.numDataChannels)
             {
                 docsisChannelSettings.autoAcquire = true;
                 docsisChannelSettings.channelNum = docsisChannel;
@@ -933,11 +931,11 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             userParams.param1 = docsisDeviceCaps.isMtsif ? docsisChannel : NEXUS_InputBand_e0+docsisChannel;
             userParams.isMtsif = docsisDeviceCaps.isMtsif;
-            userParams.chipId = 0x3384; 
+            userParams.chipId = 0x3384;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
             NEXUS_Frontend_GetLTSID(pConfig->frontend[i], &ltsidParams);
             ltsidParams.ltsidNum = userParams.param1;
-            ltsidParams.chipId = 0x3384; 
+            ltsidParams.chipId = 0x3384;
             ltsidParams.mtsifNum = 1;
             ltsidParams.mtsifEnabled = true;
             NEXUS_Frontend_SetLTSID(pConfig->frontend[i], &ltsidParams);
@@ -1179,7 +1177,7 @@ done:
         NEXUS_Docsis_GetDefaultOpenDeviceSettings(&docsisDeviceSettings);
         docsisDeviceSettings.rpcTimeOut = 50; /* units ms */
         hDocsisDevice = NEXUS_Docsis_OpenDevice(0,&docsisDeviceSettings);
-        if(hDocsisDevice) 
+        if(hDocsisDevice)
         {
             NEXUS_Docsis_GetDeviceCapabilities(hDocsisDevice,&docsisDeviceCaps);
             BDBG_MSG(("DOCSIS Capabilities : Total Channels %u QAM Channels %u Docsis Channels %u oob %s",
@@ -1201,7 +1199,7 @@ done:
      * If OOB channel is present in the Docsis device, check for the channel number
      */
     #if defined(NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT)
-    if(hDocsisDevice && docsisDeviceCaps.numOutOfBandChannels) 
+    if(hDocsisDevice && docsisDeviceCaps.numOutOfBandChannels)
     {
         NEXUS_Docsis_GetDefaultOpenChannelSettings(&docsisChannelSettings);
         docsisChannelSettings.channelType=NEXUS_DocsisChannelType_eOutOfBand;
@@ -1223,11 +1221,11 @@ done:
         ltsidCount[ltsidParams.ltsidNum] += 1;
         i++;
     }
-    if(hDocsisDevice && docsisDeviceCaps.numUpStreamChannels) 
+    if(hDocsisDevice && docsisDeviceCaps.numUpStreamChannels)
     {
         NEXUS_Docsis_GetDefaultOpenChannelSettings(&docsisChannelSettings);
         docsisChannelSettings.channelType = NEXUS_DocsisChannelType_eUpstream;
-        docsisChannelSettings.channelNum = docsisDeviceCaps.numDataChannels + docsisDeviceCaps.numQamChannels + 
+        docsisChannelSettings.channelNum = docsisDeviceCaps.numDataChannels + docsisDeviceCaps.numQamChannels +
                                            docsisDeviceCaps.numOutOfBandChannels;
         pConfig->frontend[i] = NEXUS_Docsis_OpenChannel(hDocsisDevice,&docsisChannelSettings);
         if(!pConfig->frontend[i])
@@ -1299,7 +1297,7 @@ done:
     }
 
     NEXUS_Frontend_GetDefault3128ConfigSettings(&st3128DeviceSettings);
-    
+
 #ifdef BCM3128_OOB_CABLECARD_SUPPORT
     st3128DeviceSettings.outOfBand.outputMode = NEXUS_FrontendOutOfBandOutputMode_eDifferentialDecoder;
 #else
@@ -1321,7 +1319,7 @@ done:
     ltsidCount[ltsidParams.ltsidNum] += 1;
 #endif /* NEXUS_PLATFORM_DOCSIS_OOB_SUPPORT */
 
-    /* TODO: this is completely bogus and relied on SetLTSID() overriding userParams, which it is not allowed to do. 
+    /* TODO: this is completely bogus and relied on SetLTSID() overriding userParams, which it is not allowed to do.
        if you mess with userParams.param1, you will get no data routed */
     #if 0
     /* Check for multiple configurations on the same LTSID number */
@@ -1401,7 +1399,7 @@ done:
 
     NEXUS_FrontendDevice_GetDefault31xxOpenSettings(&st31xxDeviceOpenSettings);
 
-    st31xxDeviceOpenSettings.outOfBand.ifFrequency = 0;     
+    st31xxDeviceOpenSettings.outOfBand.ifFrequency = 0;
     st31xxDeviceOpenSettings.inBandOpenDrain=true;
     st31xxDeviceOpenSettings.loadAP = true;
     st31xxDeviceOpenSettings.configureWatchdog = false;
@@ -1470,7 +1468,7 @@ done:
         }
 
         st31xxDeviceOpenSettings.gpioInterrupt = tunerGpio[i];
-        
+
         st31xxSettings.device = NEXUS_FrontendDevice_Open31xx(0, &st31xxDeviceOpenSettings);
         if (NULL == st31xxSettings.device)
         {
@@ -1496,11 +1494,11 @@ done:
 #endif /* defined(NEXUS_USE_7425_VMS_SFF) || defined(NEXUS_USE_7422_VMS_SFF)*/
 
     #if defined(NEXUS_PLATFORM_DOCSIS_PLUS_BCM3128_IB_SUPPORT) && defined(NEXUS_PLATFORM_DOCSIS_BCM33843_SUPPORT)
-    /* 
+    /*
      * On platforms with DOCSIS and BCM3128 enabled, LNA device is shared between BCM3128 and DOCSIS,
-     * but LNA device is controlled by DOCSIS. This linking would be used for extracting the 
-     * AGC val from DOCSIS device by the BCM3128 private APIs to program the AGC value into 
-     * BCM3128 device. 
+     * but LNA device is controlled by DOCSIS. This linking would be used for extracting the
+     * AGC val from DOCSIS device by the BCM3128 private APIs to program the AGC value into
+     * BCM3128 device.
      */
     NEXUS_FrontendDevice_Link(hDocsisDevice,st3128Settings.device, NULL);
     #endif
@@ -1588,7 +1586,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_Frontend_GetDefault4506Settings(&settings4506);
     settings4506.i2cDevice = pConfig->i2c[NEXUS_I2C_CHANNEL_LNA];
     if (!settings4506.i2cDevice) {
-        BDBG_ERR(("Unable to initialize I2C \n"));
+        BDBG_ERR(("Unable to initialize I2C"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1655,7 +1653,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
         if ( NULL == frontend )
         {
-            BDBG_ERR(("Unable to init on-board 4506 \n"));
+            BDBG_ERR(("Unable to init on-board 4506 "));
         }
 
         /* Set the appropriate input bands */

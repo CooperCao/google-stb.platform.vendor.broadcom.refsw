@@ -89,38 +89,9 @@ endif
 #################
 
 ##################
-### 65nm platforms ####
-###   FALCON CORE ####
-##################
-ifeq ($(filter $(BCHP_CHIP), 7325 7335 7400 7405), $(BCHP_CHIP))
-
-	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core65nm/bhdm_priv_falcon.c
-
-	# DVO Support
-	ifeq ($(BHDM_DVO_ENABLE_SUPPORT),y)
-		BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core65nm/bhdm_dvo_falcon.c
-		BHDM_DEFINES += BHDM_ENABLE_DVO
-	endif
-
-##################
-### 65nm platforms ####
-###   DVP HT CORE ####
-##################
-else ifeq ($(filter $(BCHP_CHIP), 7125 7340 7342 7408 7420 7468 7550), $(BCHP_CHIP))
-	### 65nm platforms with HDMI DVP_HT core
-
-	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core65nm/bhdm_priv_dvpht.c
-
-	# DVO Support
-	ifeq ($(BHDM_DVO_ENABLE_SUPPORT),y)
-		BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core65nm/bhdm_dvo_dvpht.c
-		BHDM_DEFINES += BHDM_ENABLE_DVO
-	endif
-
-##################
 ### 40nm platforms ####
 ##################
-else ifeq ($(filter $(BCHP_CHIP), 7422 7425 7429 74295 7435 7231 7358 7344 7346 7360 7362 73625 7552 7640 7584 75845 7563 75635 7543 7228 75525 73465), $(BCHP_CHIP))
+ifeq ($(filter $(BCHP_CHIP), 7422 7425 7429 74295 7435 7231 7358 7344 7346 7360 7362 73625 7552 7640 7584 75845 7563 75635 7543 7228 75525 73465), $(BCHP_CHIP))
 	BHDM_SOURCES += $(MAGNUM)/portinginterface/hdm/src/core40nm/bhdm_priv.c
 
 

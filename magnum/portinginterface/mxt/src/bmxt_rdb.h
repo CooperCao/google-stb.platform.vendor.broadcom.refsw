@@ -119,5 +119,6 @@ const uint32_t BMXT_REGBASE_45216 = 0x06b02000;
 
 const uint32_t BMXT_REGBASE_45308 = 0x07100000;
 const uint32_t BMXT_REGBASE_3158  = 0x04402000;
+const uint32_t BMXT_REGBASE_3466  = 0x04b02000;
 
 #endif

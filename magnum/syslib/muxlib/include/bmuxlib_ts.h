@@ -396,6 +396,13 @@ typedef struct BMUXlib_TS_StartSettings
    BMUXlib_TS_InterleaveMode eInterleaveMode; /* Specifies A/V interleave timing mode */
    bool bInsertPtsOnlyOnFirstKeyFrameOfSegment; /* If enabled, limits PTS insertion for each A/V input to
                                                  * only the first key frame of each segment */
+
+   struct
+   {
+      bool bInitialVideoPTSValid; /* set to true if uiInitialVideoPTS is valid */
+      uint64_t uiInitialVideoPTS; /* 33-bits in 90Khz clock ticks. Indicates the desired PTS for the first
+                                   * video frame. All other A/V timing parameters are adjusted accordingly */
+   } stNonRealTimeSettings;
 } BMUXlib_TS_StartSettings;
 
 void

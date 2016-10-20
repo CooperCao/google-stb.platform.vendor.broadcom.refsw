@@ -59,9 +59,23 @@ class GLProgram : public NoCopy
 public:
    GLProgram();
    GLProgram(const std::string &vert, const std::string &frag, const std::vector<std::string> &defines);
+   GLProgram(
+      const std::string &vert,
+      const std::string &frag,
+      const std::string &tc,
+      const std::string &te,
+      const std::string &geom,
+      const std::vector<std::string> &defines);
    ~GLProgram();
 
    void SetPrograms(const std::string &vert, const std::string &frag, const std::vector<std::string> &defines);
+   void SetPrograms(
+      const std::string &vert,
+      const std::string &frag,
+      const std::string &tc,
+      const std::string &te,
+      const std::string &geom,
+      const std::vector<std::string> &defines);
    void Use();
 
    // TODO interface to query program properties
@@ -76,9 +90,12 @@ private:
    void HandleDefinesIfNeeded();
 
 private:
-   GLint                         m_vert;
-   GLint                         m_frag;
-   GLint                         m_prog;
+   GLint m_vert;
+   GLint m_frag;
+   GLint m_tessc;
+   GLint m_tesse;
+   GLint m_geom;
+   GLint m_prog;
 
    mutable std::map<std::string, GLint>  m_uniformLocs;
    mutable std::map<std::string, GLint>  m_attribLocs;

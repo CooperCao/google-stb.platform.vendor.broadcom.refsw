@@ -40,7 +40,7 @@
  ***************************************************************************/
 
 #include <stdio.h>
-#include "bsu_stdlib.h"
+//#include "bsu_stdlib.h"
 #include "bsu_prompt.h"
 #include "bsu-api.h"
 #include "bsu-api2.h"
@@ -143,7 +143,7 @@ void bcm_main(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
 
         printf("    1) Option 1\n");
         printf("    2) Option 2\n");
-        printf("    3) Exit to BOLT\n");
+        printf("    3) Exit to BOLT/CFE\n");
 
         command_id = PromptChar();
 
@@ -158,7 +158,11 @@ void bcm_main(uint32_t r0, uint32_t r1, uint32_t r2, uint32_t r3)
                 break;
 
             case '3':
+#ifdef MIPS_SDE
+                printf("Unsupported\n");
+#else
                 mini_exit();
+#endif
                 break;
 
             default:

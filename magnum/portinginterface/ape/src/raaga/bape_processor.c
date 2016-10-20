@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Post Processor
 *    Specific APIs related to Post Processing
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -551,6 +543,7 @@ static void BAPE_Processor_P_RemoveInputCallback(struct BAPE_PathNode *pNode, BA
 static void BAPE_Processor_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNode, struct BAPE_PathConnection *pConnection, unsigned newSampleRate)
 {
     BAPE_ProcessorHandle handle;
+    unsigned i;
 
     BDBG_OBJECT_ASSERT(pNode, BAPE_PathNode);
     BDBG_OBJECT_ASSERT(pConnection, BAPE_PathConnection);
@@ -562,6 +555,12 @@ static void BAPE_Processor_P_InputSampleRateChange_isr(struct BAPE_PathNode *pNo
     handle->sampleRate = newSampleRate;
 
     BDBG_MSG(("Input Samplrate is now %u", handle->sampleRate));
+
+    /* propagate the sample rate change to our output connecters */
+    for ( i = 0; i < pNode->numConnectors; i++ )
+    {
+        BAPE_Connector_P_SetSampleRate_isr(&pNode->connectors[i], handle->sampleRate);
+    }
 
     /* error checking?? */
 }

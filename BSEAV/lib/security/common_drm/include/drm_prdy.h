@@ -81,7 +81,7 @@ void DRM_Prdy_GetDefaultParamSettings(
  *
  * Description:
  * The DRM_Prdy_Initialize() creates and initializes the DRM_APP_CONTEXT. It also
- * initialzes OEM_Settings and OEM_Context
+ * initialzes OEM_Settings and OEM8_Context
  *
  * Maps to:
  * call Drm_Platform_Initialize()
@@ -96,6 +96,30 @@ void DRM_Prdy_GetDefaultParamSettings(
  *
  ***********************************************************************************/
 DRM_Prdy_Handle_t  DRM_Prdy_Initialize(DRM_Prdy_Init_t * pInitSetting);
+
+/***********************************************************************************
+ * Function: DRM_Prdy_Initialize_Ex()
+ *
+ * Description:
+ * The DRM_Prdy_Initialize_Ex() creates and initializes the DRM_APP_CONTEXT.
+ * It also initialzes OEM_Settings and OEM_Context.
+ * Same behavior with DRM_Prdy_Initialize except additional argument for containing error code.
+ *
+ * Maps to:
+ * call Drm_Platform_Initialize()
+ * call Drm_Initialize()
+ * call Drm_Revocation_SetBuffer()
+ *
+ * Parameters:
+ *  N/A
+ *
+ * Return:
+ *  On Success:   A valid DRM_Prdy_Handle_t
+ *  On Failure:   Null handle with corresponding error code.
+ *
+ ***********************************************************************************/
+DRM_Prdy_Handle_t  DRM_Prdy_Initialize_Ex(DRM_Prdy_Init_t * pInitSetting, DRM_Prdy_Error_e * Drm_Prdy_Error);
+
 
 
 /***********************************************************************************

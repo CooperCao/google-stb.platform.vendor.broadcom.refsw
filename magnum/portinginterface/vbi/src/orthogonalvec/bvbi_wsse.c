@@ -272,12 +272,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_ANCIL_0_control, active_line              );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_ANCIL_0_control, active_line, ulActiveLine);
-#if defined(BVBI_P_WSE_VER1)
-        ulControlReg &=
-            ~BCHP_MASK       (WSE_ANCIL_0_control, AUTO_PARITY_TYP_656      );
-        ulControlReg |=
-             BCHP_FIELD_ENUM (WSE_ANCIL_0_control, AUTO_PARITY_TYP_656,  ODD);
-#endif
         ulControlReg &=
             ~BCHP_MASK       (WSE_ANCIL_0_control, AUTO_PARITY_EN_656       );
         ulControlReg |=
@@ -298,12 +292,6 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_TYP          );
         ulControlReg |=
              BCHP_FIELD_ENUM (WSE_0_control, AUTO_PARITY_TYP,      ODD);
-#if defined(BVBI_P_WSE_VER1)
-        ulControlReg &=
-            ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_TYP_656       );
-        ulControlReg |=
-             BCHP_FIELD_ENUM (WSE_0_control, AUTO_PARITY_TYP_656,  ODD);
-#endif
         ulControlReg &=
             ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_EN           );
         ulControlReg |=
@@ -312,13 +300,10 @@ BERR_Code BVBI_P_WSS_Enc_Program (
             ~BCHP_MASK       (WSE_0_control, AUTO_PARITY_EN_656       );
         ulControlReg |=
              BCHP_FIELD_DATA (WSE_0_control, AUTO_PARITY_EN_656,     1);
-#if defined(BVBI_P_WSE_VER3) || defined(BVBI_P_WSE_VER4) || \
-    defined(BVBI_P_WSE_VER5)
         ulControlReg &=
             ~BCHP_MASK       (WSE_0_control, DECIMATOR_EN             );
         ulControlReg |=
              BCHP_FIELD_ENUM (WSE_0_control, DECIMATOR_EN,     DISABLE);
-#endif
     }
     BREG_Write32 (hReg, BCHP_WSE_0_control + ulCoreOffset, ulControlReg);
 

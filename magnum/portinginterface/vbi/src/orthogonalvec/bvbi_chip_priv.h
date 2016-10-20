@@ -44,24 +44,9 @@
 
 /*
  * Explanation of VEC/VDEC counts and capabilities:
- * BVBI_P_HAS_SCTEE_CO      SCTE encoder has component only registers.
  * BVBI_P_HAS_XSER_TT:      TTX core has serial output capability.
- * BVBI_P_TTXADR_WAROUND:   TTX core has the PR22720 bug in accessing DRAM. A
- *                          software fix is provided.
- * BVBI_P_CGMSAE_VER2:      CGMSAE core is version first appearing in 3548-A0.
- *                          Capable of CGMS-B output.
- * BVBI_P_CGMSAE_VER3:      CGMSAE core is version first appearing in 3548-B0.
- *                          Capable of CEA-805-D style output.
- * BVBI_P_CGMSAE_VER4:      CGMSAE core is version first appearing in 7420-A0.
- *                          The BIT_ORDER bitfields were removed.
  * BVBI_P_CGMSAE_VER5:      CGMSAE core is version first appearing in 7420-B0.
  *                          The BIT_ORDER bitfields were restored.
- * BVBI_P_WSE_VER2:         WSE core is version first appearing in 3548-A0.
- *                          ITU-R 656 output is handled in a different way.
- * BVBI_P_WSE_VER3:         WSE core is version first appearing in 7601-A0.
- *                          Capable of IEC-62375 output on 576P video.
- * BVBI_P_WSE_VER4:         WSE core is version first appearing in 3548-B2.
- *                          Has a bug fix related to WSS and VPS output.
  * BVBI_P_WSE_VER5:         WSE core is version first appearing in 7420-B0.
  *                          Register file is identical to VER3 cores.
  * BVBI_P_GSE_VER2:         GSE core is version first appearing in 7408-A0.
@@ -80,16 +65,6 @@
  */
 
 #if (BCHP_CHIP==7422) ||(BCHP_CHIP==7425) || (BCHP_CHIP==7435)
-    #define BVBI_P_HAS_EXT_656 1
-    #define BVBI_P_HAS_XSER_TT 1
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
-    #define BVBI_P_ENC_NUM_CROSSBAR_REG_656 5
-    #define BVBI_P_CGMSAE_VER5 1
-    #define BVBI_P_WSE_VER5 1
-    #define BVBI_P_GSE_VER2 1
-    #define BVBI_P_CCE_VER2 1
-
-#elif (BCHP_CHIP==7145)
     #define BVBI_P_HAS_EXT_656 1
     #define BVBI_P_HAS_XSER_TT 1
     #define BVBI_P_ENC_NUM_CROSSBAR_REG 6
@@ -209,20 +184,17 @@
     #error Unknown video chip name
 #endif
 
-/* I should have started these series in a different way */
-#if !defined(BVBI_P_CGMSAE_VER2) && !defined(BVBI_P_CGMSAE_VER3) && \
-    !defined(BVBI_P_CGMSAE_VER4) && !defined(BVBI_P_CGMSAE_VER5)
-        #define BVBI_P_CGMSAE_VER1 1
+#if !defined(BVBI_P_CGMSAE_VER5)
+    #error undefined CGMSAE hardware version
 #endif
-#if !defined(BVBI_P_WSE_VER2) && !defined(BVBI_P_WSE_VER3) && \
-    !defined(BVBI_P_WSE_VER4) && !defined(BVBI_P_WSE_VER5)
-    #define BVBI_P_WSE_VER1 1
+#if !defined(BVBI_P_WSE_VER5)
+    #error undefined WSE hardware version
 #endif
 #if !defined(BVBI_P_GSE_VER2)
-    #define BVBI_P_GSE_VER1 1
+    #error undefined GSE hardware version
 #endif
 #if !defined(BVBI_P_CCE_VER2)
-    #define BVBI_P_CCE_VER1 1
+    #error undefined CCE hardware version
 #endif
 
 #endif /* BVBI_CHIP_PRIV_H__ */

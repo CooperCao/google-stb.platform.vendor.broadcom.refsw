@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -36,6 +36,9 @@
  * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bip_priv.h"
+#if NXCLIENT_SUPPORT
+#include "nxclient.h"
+#endif
 
 /* Protocols supported by BIP Player as mapped from the URL scheme. */
 typedef enum BIP_PlayerProtocol
@@ -81,9 +84,19 @@ typedef enum BIP_PlayerApiState
 
 typedef struct BIP_PlayerTrackListEntry
 {
-    unsigned                                    trackId;
+    unsigned                                    trackId;                    /* Virtual trackId assigned by the BIP_MediaInfo. Can be different from the realTrackId when multiple tracks contain the same trackId. */
+                                                                            /* e.g. for HLS container formats, audio may not be muxed into the main stream and is accessed via a separate URL. In that case, multiple audio tracks may be on different URLs & thus can have same real trackId. */
     BIP_PlayerOpenPidChannelSettings            settings;
     NEXUS_PidChannelHandle                      hPidChannel;
+    bool                                        appOwnedDecoders;
+#if NXCLIENT_SUPPORT
+    NxClient_AllocResults                       allocResults;
+#endif
+    unsigned                                    connectId;
+    bool                                        connected;
+    bool                                        alloced;
+    NEXUS_PlaypumpHandle                        hPlaypump;                  /* Some AV tracks may not be muxed in the main stream and thus may have same trackId as ones in the main stream, */
+                                                                            /*so we would need a separate playpump to feed such tracks. */
 
     BLST_Q_ENTRY(BIP_PlayerTrackListEntry)      trackListNext;
 } BIP_PlayerTrackListEntry;
@@ -267,15 +280,15 @@ typedef struct BIP_Player
     NEXUS_PlaypumpHandle            hPlaypump2;
 
     unsigned                        videoTrackId;
-    NEXUS_PidChannelHandle          hVideoPidChannel;
+    NEXUS_PidChannelHandle          hVideoPidChannel;           /* PidChannel handle associated with currently played Video Track. */
     NEXUS_VideoDecoderHandle        hVideoDecoder;
     NEXUS_SimpleVideoDecoderHandle  hSimpleVideoDecoder;
     NEXUS_DisplayHandle             hDisplay;
     NEXUS_VideoWindowHandle         hWindow;
 
     unsigned                        audioTrackId;
-    BIP_MediaInfoTrack              audioTrackInfo;
-    NEXUS_PidChannelHandle          hPrimaryAudioPidChannel;
+    BIP_MediaInfoTrack              audioTrackInfo;             /* Cached audio track that is currently being played. */
+    NEXUS_PidChannelHandle          hPrimaryAudioPidChannel;    /* PidChannel handle associated with currently played Audio Track. */
     NEXUS_AudioDecoderHandle        hPrimaryAudioDecoder;
     NEXUS_SimpleAudioDecoderHandle  hSimplePrimaryAudioDecoder;
 

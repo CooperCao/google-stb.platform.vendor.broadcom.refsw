@@ -514,7 +514,7 @@ NEXUS_Error NEXUS_HdmiOutput_SetExtraSettings(
     {
         if (output->extraSettings.overrideDynamicRangeMasteringInfoFrame != pSettings->overrideDynamicRangeMasteringInfoFrame)
         {
-            BDBG_MSG(("%s drm info frame override", pSettings->overrideDynamicRangeMasteringInfoFrame ? "Engaging" : "Releasing"));
+            BDBG_WRN(("%s drm info frame override", pSettings->overrideDynamicRangeMasteringInfoFrame ? "Engaging" : "Releasing"));
         }
         drmChanged = true;
     }

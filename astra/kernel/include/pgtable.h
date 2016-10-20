@@ -144,6 +144,7 @@ public:
     void unmapBootstrap(const void *devTree);
 
     void dump();
+    void dumpInMem(void * mem);
 
 private:
     void* operator new(size_t sz, void* where);
@@ -151,6 +152,7 @@ private:
     TzMem::PhysAddr lookUpNoLock(TzMem::VirtAddr vaddr, EntryAttribs *attribs = nullptr) const;
     void reserveRange(const TzMem::VirtAddr vaddrFirstPage, const TzMem::VirtAddr vaddrLastPage);
 
+    void DumpPageTableInfo(void * mem);
 
 private:
     uint64_t *l1Dir;

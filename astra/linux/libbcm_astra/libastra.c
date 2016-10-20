@@ -44,9 +44,11 @@
 
 #include "libastra.h"
 #include "libastra_ioctl.h"
+#include "libastra_coredump.h"
 
 struct astra_struct astra = {
     .fd = -1,
+    .core_fd = -1,
     .psmem = NULL,
 };
 
@@ -586,4 +588,44 @@ int _astra_call_smc(
     }
 
     return 0;
+}
+
+#define COREDUMP_FILE_SIZE        4*1024*1024
+
+void _astra_uapp_coredump(
+    struct astra_uapp *pUapp)
+{
+    int err = 0;
+    void * core_buf=NULL;
+    unsigned int *buf=NULL;
+
+    /* open Coredump device */
+    pAstra->core_fd = open("/dev/astra_coredump", O_RDWR | O_SYNC);
+
+    if (pAstra->core_fd == -1) {
+        LOGE("failed to open coredump device");
+        return ;
+    }
+
+    core_buf = mmap(
+        0,
+        COREDUMP_FILE_SIZE,
+        PROT_READ | PROT_WRITE,
+        MAP_SHARED,
+        pAstra->core_fd,
+        0);
+
+    if (core_buf== (void *)-1) {
+        LOGE("failed to map coredump memory to user space");
+        return;
+    }
+    /* uapp core dump */
+    err = _astra_ioctl_uapp_coredump((astra_kuapp_handle)pUapp);
+
+    if (err) {
+        LOGE("failed to core dump userapp");
+    }
+
+    buf = (unsigned int *)core_buf;
+    _astra_uapp_coredump_proc(buf);
 }

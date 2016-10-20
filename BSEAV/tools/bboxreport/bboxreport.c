@@ -982,10 +982,7 @@ int main(
                 unsigned int errorLogLineCount = bmemperf_get_boa_error_log_line_count( errorLogContents );
                 printf( "~FATALNOALERT~NEXUS_Platform_MemConfigInit() returned error code %d for %s BoxMode %d<br><textarea cols=150 rows=%u >%s</textarea>~",
                         rc, getPlatform(), boxmode, errorLogLineCount, errorLogContents );
-                if ( errorLogContents )
-                {
-                    free ( errorLogContents );
-                }
+                Bsysperf_Free( errorLogContents );
             }
             else
             {
@@ -1003,10 +1000,7 @@ int main(
                     unsigned int heapIdx;
                     for (heapIdx = 0; heapIdx<NEXUS_MAX_HEAPS; heapIdx++)
                     {
-                        if (g_heap_info[heapIdx].memoryType != NULL)
-                        {
-                            free( g_heap_info[heapIdx].memoryType );
-                        }
+                        Bsysperf_Free( g_heap_info[heapIdx].memoryType );
                     }
                 }
 

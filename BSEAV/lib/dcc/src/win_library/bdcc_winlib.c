@@ -1020,6 +1020,8 @@ BDCC_WINLIB_ErrCode BDCC_WINLIB_LoadFont(
 #else
      font = bfont_open(pFontFile);
 #endif
+    if (!font)
+        return BDCC_WINLIB_FAILURE;
 
     hWinLibHandle->fontFaces[ fontStyle ][ penSize ][ penStyle ] = font;
 

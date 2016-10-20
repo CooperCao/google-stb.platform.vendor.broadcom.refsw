@@ -117,7 +117,7 @@ void GIC::init(void *devTree) {
 
     spinlock_init("gic.lock", &lock);
 
-    printf("gic primary init done\n");
+    printf("GIC primary init done\n");
 }
 
 void GIC::secondaryCpuInit() {

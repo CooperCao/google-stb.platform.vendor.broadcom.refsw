@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1695,6 +1695,7 @@ int main(int argc, const char *argv[])
         videoDecoderSettings.maxWidth = opts.common.maxWidth;
         videoDecoderSettings.maxHeight = opts.common.maxHeight;
     }
+    videoDecoderSettings.scanMode = opts.common.scanMode;
     rc = NEXUS_VideoDecoder_SetSettings(videoDecoder, &videoDecoderSettings);
     BDBG_ASSERT(!rc);
 
@@ -2680,8 +2681,21 @@ int main(int argc, const char *argv[])
             }
 #endif
             else if (strstr(buf, "display_format") == buf) {
+                NEXUS_HdmiOutputStatus hdmiOutputStatus ;
+
+                NEXUS_HdmiOutput_GetStatus(platformConfig.outputs.hdmi[0], &hdmiOutputStatus) ;
                 NEXUS_Display_GetSettings(display, &displaySettings);
-                displaySettings.format = lookup(g_videoFormatStrs, buf+strlen("display_format "));;
+                displaySettings.format = lookup(g_videoFormatStrs, buf+strlen("display_format "));
+
+                if ((!opts.common.ignore_edid)
+                &&  (!hdmiOutputStatus.videoFormatSupported[displaySettings.format]))
+                {
+                    BDBG_ERR(("HDMI Rx <%s> does not support %s; use cmdline option -ignore_edid to force",
+                        hdmiOutputStatus.monitorName, lookup_name(g_videoFormatStrs, displaySettings.format))) ;
+                    break ;
+                }
+
+
                 rc = NEXUS_Display_SetSettings(display, &displaySettings);
                 if (rc) {
                     BDBG_WRN(("Unable to modify Nexus DisplaySettings")) ;
@@ -2715,7 +2729,8 @@ int main(int argc, const char *argv[])
                             BDBG_ERR(("Something went wrong. Presentation Status Codec doesn't match the current decode codec."));
                         }
                         else {
-                            BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
+                            BDBG_ERR(("Presentation %lu index: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.index));
+                            BDBG_ERR(("  Presentation %lu id: %s", (unsigned long)i, presentStatus.status.ac4.id));
                             BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
                             BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
                             BDBG_ERR(("  Presentation %lu associateType: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.associateType));
@@ -2727,17 +2742,17 @@ int main(int argc, const char *argv[])
             else if (strstr(buf, "apres(") == buf) {
                 NEXUS_AudioDecoderStatus audStatus;
                 NEXUS_AudioDecoderCodecSettings codecSettings;
-                unsigned presentationId;
+                unsigned presentationIndex;
 
-                sscanf(buf+6, "%u", &presentationId);
+                sscanf(buf+6, "%u", &presentationIndex);
                 NEXUS_AudioDecoder_GetStatus(audioDecoder, &audStatus);
 
                 BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
                 if ( audStatus.codec == NEXUS_AudioCodec_eAc4 )
                 {
-                    BDBG_ERR(("Selecting Presentation id %lu", (unsigned long)presentationId));
+                    BDBG_ERR(("Selecting Presentation id %lu", (unsigned long)presentationIndex));
                     NEXUS_AudioDecoder_GetCodecSettings(audioDecoder, audStatus.codec, &codecSettings);
-                    codecSettings.codecSettings.ac4.presentationId = presentationId;
+                    codecSettings.codecSettings.ac4.presentationIndex = presentationIndex;
                     NEXUS_AudioDecoder_SetCodecSettings(audioDecoder, &codecSettings);
                 }
             }

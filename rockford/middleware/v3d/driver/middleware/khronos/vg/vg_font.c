@@ -170,10 +170,9 @@ font
 vcos_static_assert(sizeof(VG_FONT_BPRINT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_FONT_BPRINT_T) <= VG_STEM_ALIGN);
 
-void vg_font_bprint_term(void *p, uint32_t size)
+void vg_font_bprint_term(MEM_HANDLE_T handle)
 {
-   UNUSED(p);
-   UNUSED(size);
+   UNUSED(handle);
 }
 
 /*
@@ -206,19 +205,17 @@ void vg_font_bprint_from_stem(
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_FONT_BPRINT_T");
-   mem_set_term(handle, vg_font_bprint_term);
+   mem_set_term(handle, vg_font_bprint_term, NULL);
 }
 
 vcos_static_assert(sizeof(VG_FONT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_FONT_T) <= VG_STEM_ALIGN);
 
-void vg_font_term(void *p, uint32_t size)
+void vg_font_term(MEM_HANDLE_T handle)
 {
-   VG_FONT_T *font = (VG_FONT_T *)p;
+   VG_FONT_T *font = (VG_FONT_T *)mem_lock(handle, NULL);
    VG_FONT_LOCKED_T font_locked;
    uint32_t i;
-
-   UNUSED(size);
 
    vg_font_lock(font, &font_locked);
    for (i = 0; i != (font_locked.capacity * 2); ++i) {
@@ -230,6 +227,8 @@ void vg_font_term(void *p, uint32_t size)
 
    mem_release(font->entries);
    mem_release(font->slots);
+
+   mem_unlock(handle);
 }
 
 /*
@@ -319,7 +318,7 @@ bool vg_font_from_bprint(MEM_HANDLE_T handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_FONT_T");
-   mem_set_term(handle, vg_font_term);
+   mem_set_term(handle, vg_font_term, NULL);
 
    return true;
 }

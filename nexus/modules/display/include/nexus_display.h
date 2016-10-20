@@ -440,6 +440,47 @@ NEXUS_Error NEXUS_Display_SetGraphicsFramebuffer(
 
 /**
 Summary:
+State of surface with respect to this display.
+
+This can be used to avoid tearing when calling SetGraphicsFramebuffer without waiting for the framebufferCallback. This enables
+rendering faster than the vsync but still having lowest latency.
+
+An application should avoid making decisions based on the difference between eQueued and eDisplayed, and it should avoid
+inferring which surfaces are unused based on other surfaces being eQueued or eDisplayed.
+
+The only persistent state is eUnused. If a surface is currently unused it will remain unused (unless SetGraphicsFramebuffer is called with it).
+An application should verify a surface is eUnused before rendering into it.
+**/
+typedef enum NEXUS_GraphicsFramebufferState
+{
+    NEXUS_GraphicsFramebufferState_eQueued, /* Surface will be displayed soon unless another call to SetGraphicsFramebuffer supplants it. */
+    NEXUS_GraphicsFramebufferState_eDisplayed, /* Surface is currently displayed. An eQueued surface will replace this on the next vsync. */
+    NEXUS_GraphicsFramebufferState_eUnused, /* Surface is not and never will be displayed. */
+    NEXUS_GraphicsFramebufferState_eMax
+} NEXUS_GraphicsFramebufferState;
+
+/**
+Summary:
+Status returned by NEXUS_Display_GetGraphicsFramebufferStatus
+**/
+typedef struct NEXUS_GraphicsFramebufferStatus
+{
+    NEXUS_GraphicsFramebufferState state;
+} NEXUS_GraphicsFramebufferStatus;
+
+/**
+Summary:
+Learn if a surface is or will be displayed as this display's framebuffer.
+This can be used to reduce latency if rendering faster than the vsync.
+**/
+NEXUS_Error NEXUS_Display_GetGraphicsFramebufferStatus(
+    NEXUS_DisplayHandle display,
+    NEXUS_SurfaceHandle surface,
+    NEXUS_GraphicsFramebufferStatus *pStatus
+    );
+
+/**
+Summary:
 Get current color space convertor matrix for the graphics feeder (GFD)
 **/
 void NEXUS_Display_GetGraphicsColorMatrix(

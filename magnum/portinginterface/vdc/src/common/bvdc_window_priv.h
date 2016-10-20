@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -46,6 +46,7 @@
 #include "bvdc_tnt_priv.h"
 #include "bvdc_subrul_priv.h"
 #include "bvdc_csc_priv.h"
+#include "bvdc_capture_priv.h"
 
 #if BVDC_P_SUPPORT_SEC_CMP
 #include "bchp_cmp_1.h"
@@ -197,17 +198,10 @@ BDBG_OBJECT_ID_DECLARE(BVDC_BFH);
 #define BVDC_P_WIN_CAP_MOSAIC_INPUT_V_MIN    (5)
 #define BVDC_P_WIN_VFD_MOSAIC_OUTPUT_V_MIN   (5)
 
-#if BVDC_P_SUPPORT_MCVP
 #define BVDC_P_WIN_MAD_INPUT_H_MIN           (64)
 #define BVDC_P_WIN_MAD_INPUT_V_MIN            (8)
 #define BVDC_P_WIN_ANR_INPUT_H_MIN           (64)
 #define BVDC_P_WIN_ANR_INPUT_V_MIN            (8)
-#else
-#define BVDC_P_WIN_MAD_INPUT_H_MIN           (58)
-#define BVDC_P_WIN_MAD_INPUT_V_MIN            (8)
-#define BVDC_P_WIN_ANR_INPUT_H_MIN           (32)
-#define BVDC_P_WIN_ANR_INPUT_V_MIN            (3)
-#endif
 #define BVDC_P_WIN_DNR_INPUT_H_MIN           (32)
 #define BVDC_P_WIN_DNR_INPUT_V_MIN           (16)
 
@@ -236,6 +230,10 @@ minimum picture size for VMXVM is 72 pixels
 
 /* Mad delay buffer count, >3  and 2 power*/
 #define BVDC_MADDELAY_BUF_COUNT                  (4)
+
+/* New pitch setting for mosaic */
+#define BVDC_P_BUFFER_ADD_GUARD_MEMORY  (BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
+
 typedef enum
 {
     BVDC_P_BufHeapType_eCapture = 0,
@@ -324,25 +322,24 @@ typedef union
     /* and/or user customize CSC */
     uint32_t                 bCscAdjust               : 1;
 
-    /* Pep: Tab, Cab, Lab */
-    uint32_t                 bTabAdjust               : 1;
-    uint32_t                 bTntAdjust               : 1;  /* 4 */
-    uint32_t                 bLabAdjust               : 1;
+    /* Pep: Tnt, Cab, Lab */
+    uint32_t                 bTntAdjust               : 1;
+    uint32_t                 bLabAdjust               : 1;  /* 4 */
     uint32_t                 bCabAdjust               : 1;
     uint32_t                 bDitAdjust               : 1;
 
     /* Color Key */
-    uint32_t                 bColorKeyAdjust          : 1;  /* 8 */
+    uint32_t                 bColorKeyAdjust          : 1;
 
     /* Dirty bits for destroy and cleanup windows, bShutdown must be taken
      * care first before handling bDestroy, bSrcPending, or bReConfigVnet. */
-    uint32_t                 bShutdown                : 1;
+    uint32_t                 bShutdown                : 1;  /* 8 */
     uint32_t                 bDestroy                 : 1;
     uint32_t                 bSrcPending              : 1;
-    uint32_t                 bReConfigVnet            : 1;  /* 12 */
+    uint32_t                 bReConfigVnet            : 1;
 
     /* Mad is dirty. */
-    uint32_t                 bDeinterlace             : 1;
+    uint32_t                 bDeinterlace             : 1;  /* 12 */
 
     /* Anr is dirty. */
     uint32_t                 bAnrAdjust               : 1;
@@ -351,8 +348,8 @@ typedef union
     uint32_t                 bSharedScl               : 1;
 
     /* User capture */
-    uint32_t                 bUserCaptureBuffer       : 1;  /* 16 */
-    uint32_t                 bUserReleaseBuffer       : 1;
+    uint32_t                 bUserCaptureBuffer       : 1;
+    uint32_t                 bUserReleaseBuffer       : 1;  /* 16 */
 
     /* mosaic mode */
     uint32_t                 bMosaicMode              : 1;
@@ -361,10 +358,10 @@ typedef union
     uint32_t                 bReallocBuffers          : 1;
 
     /* box detect */
-    uint32_t                 bBoxDetect               : 1;  /* 20 */
+    uint32_t                 bBoxDetect               : 1;
 
     /* Histogram rect */
-    uint32_t                 bHistoRect               : 1;
+    uint32_t                 bHistoRect               : 1;  /* 20 */
 
     /* 3D Stereoscopic Video/Graphics */
     uint32_t                 b3D                      : 1;
@@ -374,15 +371,18 @@ typedef union
     uint32_t                 bMiscCtrl                : 1;
 
     /* Coefficient index */
-    uint32_t                 bCtIndex                 : 1;  /* 24 */
+    uint32_t                 bCtIndex                 : 1;
 
-    uint32_t                 bVnetCrc                 : 1;
+    uint32_t                 bVnetCrc                 : 1;  /* 24 */
 
     uint32_t                 bBufAllocMode            : 1;
     uint32_t                 bStg                     : 1; /* output to STG/ViCE triggerred */
 
+    /* pending for out of capture buffer memory */
+    uint32_t                 bBufferPending           : 1;
+
 #if BVDC_P_SUPPORT_TNTD
-    uint32_t                 bTntd                    : 1;
+    uint32_t                 bTntd                    : 1;  /* 28 */
 #endif
     } stBits;
 
@@ -582,8 +582,6 @@ typedef struct
     BVDC_ColorKey_Settings        stColorKey;
 
     /* Luma Rect setting */
-    bool                          bHistEnable;
-    bool                          bHistAtSrc;
     BVDC_LumaSettings             stLumaRect;
 
     /* MosaicMode: sub-rectangles placement and size; */
@@ -672,8 +670,6 @@ Summary:
 typedef struct
 {
     BVDC_P_Rect                   stSrcOut;
-    BVDC_LumaStatus               stHistData;
-    uint32_t                      ulHistSize;
     uint32_t                      ulOrigPTS;
 
     bool                          bIgnorePicture;
@@ -701,12 +697,11 @@ typedef struct
     BVDC_P_Feeder_Handle          hPlayback;
     BVDC_P_Pep_Handle             hPep;
     BVDC_P_Dnr_Handle             hDnr;
-    BVDC_P_Hist_Handle            hHist;
     BVDC_P_Mcvp_Handle            hMcvp;
     BVDC_P_Xsrc_Handle            hXsrc;
+    BVDC_P_Vfc_Handle             hVfc;
     BVDC_P_Tntd_Handle            hTntd;
     BVDC_P_Hscaler_Handle         hHscaler;
-    BVDC_P_Mad_Handle             hMad32;
     BVDC_P_Anr_Handle             hAnr;
     BVDC_P_BoxDetect_Handle       hBoxDetect;
     BVDC_P_VnetCrc_Handle         hVnetCrc;
@@ -796,7 +791,7 @@ typedef struct BVDC_P_WindowContext
     /* Set to true when new & old validated by apply changes */
     bool                          bUserAppliedChanges;
     BVDC_P_VnetMode               stVnetMode;
-
+    BVDC_P_MvpMode                stMvpMode;            /* Dictates what modules inside Mvp in use*/
 
     /* Shadow registers and context in parent compositor. */
     BVDC_P_WindowId               eId;
@@ -1005,10 +1000,6 @@ typedef struct BVDC_P_WindowContext
     uint8_t                       aMosaicEotfConvSlotForEotf[BAVC_HDMI_DRM_EOTF_eMax];
     BAVC_HDMI_DRM_EOTF            aEotfInMosaicEotfConvSlot[BVDC_P_CSC_SLOTS];
 
-    /* This flag is to indicate if the new HIST hardware is available */
-    /* This is chip specific */
-    bool                          bHistAvail;
-
     /* This flag indicate if the bandwidth equation is symmetric or not */
     bool                          bSclCapSymmetric;
 
@@ -1018,14 +1009,14 @@ typedef struct BVDC_P_WindowContext
 #if BVDC_P_SUPPORT_MOSAIC_MODE
     /* capture drain buffer for mosaic mode */
     BMMA_Block_Handle              hMosaicMmaBlock;
-    uint32_t                       ulNullBufOffset;
+    BMMA_DeviceOffset              ullNullBufOffset;
     uint32_t                       aulMosaicZOrderIndex[BAVC_MOSAIC_MAX];
 #endif
 
     uint32_t                       ulDropCntNonIgnoredPics;
 
+#if (BVDC_P_MAX_MULTI_BUFFER_COUNT > 0)
     BVDC_P_HeapNodePtr             apHeapNode[BVDC_P_MAX_MULTI_BUFFER_COUNT];
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     BVDC_P_HeapNodePtr             apHeapNode_R[BVDC_P_MAX_MULTI_BUFFER_COUNT];
 #endif
 
@@ -1045,7 +1036,6 @@ typedef struct BVDC_P_WindowContext
 
     /* for refine rev 3:2 pulldown cadence when MTG is used */
     bool                           bMadOutPhase3Over2;
-    bool                           bBufCntAddedByMtg;
     int                            iPrevPhaseCntr;
     int                            iPhaseCntr;
     int                            iLockCntr;
@@ -1053,7 +1043,7 @@ typedef struct BVDC_P_WindowContext
     BFMT_Orientation               eSrcOrientation;
     BFMT_Orientation               eDispOrientation;
 
-    BVDC_P_MosaicCanvasCoverage    stCoverageTbl;
+    bool                           bNotEnoughCapBuf;
 
 } BVDC_P_WindowContext;
 
@@ -1286,7 +1276,8 @@ bool BVDC_P_Window_GetReconfiguring_isr
 void BVDC_P_Window_SetReconfiguring_isr
     ( BVDC_Window_Handle               hWindow,
       bool                             bSrcPending,
-      bool                             bReConfigVnet );
+      bool                             bReConfigVnet,
+      bool                             bBufferPending );
 
 BERR_Code BVDC_P_Window_CapturePicture_isr
     ( BVDC_Window_Handle               hWindow,
@@ -1328,10 +1319,6 @@ BERR_Code BVDC_P_Window_SetMcvp_DeinterlaceConfiguration
     bool                             bDeinterlace,
     const BVDC_Deinterlace_Settings *pMadSettings);
 
-BERR_Code BVDC_P_Window_SetMad_DeinterlaceConfiguration
-    (BVDC_Window_Handle               hWindow,
-    bool                              bDeinterlace,
-    const BVDC_Deinterlace_Settings  *pMadSettings);
 
 const BVDC_P_ResourceFeature* BVDC_P_Window_GetResourceFeature_isrsafe
     ( BVDC_P_WindowId                  eWindowId );

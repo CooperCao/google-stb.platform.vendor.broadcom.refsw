@@ -142,16 +142,16 @@ CTunerQam::CTunerQam(
     _scanThread_name = "CTunerQam_Scan";
 }
 
-eRet CTunerQam::tune(NEXUS_FrontendQamSettings settings)
+eRet CTunerQam::tune(NEXUS_FrontendQamSettings * settings)
 {
     eRet        ret    = eRet_Ok;
     NEXUS_Error nerror = NEXUS_SUCCESS;
 
-    settings.asyncStatusReadyCallback.callback = statusCallback;
-    settings.asyncStatusReadyCallback.context  = this;
+    settings->asyncStatusReadyCallback.callback = statusCallback;
+    settings->asyncStatusReadyCallback.context  = this;
 
-    settings.lockCallback.callback = nexusTunerLockCallback;
-    settings.lockCallback.context  = this;
+    settings->lockCallback.callback = nexusTunerLockCallback;
+    settings->lockCallback.context  = this;
 
     NEXUS_StartCallbacks(_frontend);
     B_Event_Reset(_statusEvent);
@@ -160,28 +160,28 @@ eRet CTunerQam::tune(NEXUS_FrontendQamSettings settings)
 
     /* debug */
     {
-        BDBG_MSG(("TUNE mode:            %s", modeToString(settings.mode).s()));
-        BDBG_MSG(("TUNE annex:           %s", annexToString(settings.annex).s()));
-        BDBG_MSG(("TUNE freq:            %u", settings.frequency));
-        BDBG_MSG(("TUNE sym rate:        %u", settings.symbolRate));
-        BDBG_MSG(("TUNE fastQcq:         %s", (0 == settings.fastAcquisition) ? "false" : "true"));
-        BDBG_MSG(("TUNE terrestrial:     %s", (0 == settings.terrestrial) ? "false" : "true"));
-        BDBG_MSG(("TUNE autoAcq:         %s", (0 == settings.autoAcquire) ? "false" : "true"));
-        BDBG_MSG(("TUNE bandwidth:       %u", settings.bandwidth));
-        BDBG_MSG(("TUNE pwr measurement: %s", (0 == settings.enablePowerMeasurement) ? "false" : "true"));
-        BDBG_MSG(("TUNE spectrum mode:   %s", (NEXUS_FrontendQamSpectrumMode_eAuto == settings.spectrumMode) ? "auto" : "manual"));
-        BDBG_MSG(("TUNE spectral inv:    %s", (NEXUS_FrontendQamSpectralInversion_eNormal == settings.spectralInversion) ? "normal" : "inverted"));
-        BDBG_MSG(("TUNE freq offset:     %u", settings.frequencyOffset));
-        BDBG_MSG(("TUNE enable null pkts:%s", (0 == settings.enableNullPackets) ? "false" : "true"));
-        BDBG_MSG(("TUNE acq mode:        %s", acquisitionModeToString(settings.acquisitionMode).s()));
+        BDBG_MSG(("TUNE mode:            %s", modeToString(settings->mode).s()));
+        BDBG_MSG(("TUNE annex:           %s", annexToString(settings->annex).s()));
+        BDBG_MSG(("TUNE freq:            %u", settings->frequency));
+        BDBG_MSG(("TUNE sym rate:        %u", settings->symbolRate));
+        BDBG_MSG(("TUNE fastQcq:         %s", (0 == settings->fastAcquisition) ? "false" : "true"));
+        BDBG_MSG(("TUNE terrestrial:     %s", (0 == settings->terrestrial) ? "false" : "true"));
+        BDBG_MSG(("TUNE autoAcq:         %s", (0 == settings->autoAcquire) ? "false" : "true"));
+        BDBG_MSG(("TUNE bandwidth:       %u", settings->bandwidth));
+        BDBG_MSG(("TUNE pwr measurement: %s", (0 == settings->enablePowerMeasurement) ? "false" : "true"));
+        BDBG_MSG(("TUNE spectrum mode:   %s", (NEXUS_FrontendQamSpectrumMode_eAuto == settings->spectrumMode) ? "auto" : "manual"));
+        BDBG_MSG(("TUNE spectral inv:    %s", (NEXUS_FrontendQamSpectralInversion_eNormal == settings->spectralInversion) ? "normal" : "inverted"));
+        BDBG_MSG(("TUNE freq offset:     %u", settings->frequencyOffset));
+        BDBG_MSG(("TUNE enable null pkts:%s", (0 == settings->enableNullPackets) ? "false" : "true"));
+        BDBG_MSG(("TUNE acq mode:        %s", acquisitionModeToString(settings->acquisitionMode).s()));
     }
 
-    nerror = NEXUS_Frontend_TuneQam(_frontend, &settings);
+    nerror = NEXUS_Frontend_TuneQam(_frontend, settings);
     CHECK_NEXUS_ERROR_GOTO("unable to tune QAM frontend", ret, nerror, error);
 
 #ifdef SNMP_SUPPORT
     setState(lock_tuning);
-    setLastFrequency(settings.frequency);
+    setLastFrequency(settings->frequency);
 #endif
 
 error:
@@ -488,11 +488,12 @@ error:
 
 NEXUS_FrontendQamMode CTunerQam::getDefaultMode()
 {
-#if 1
+#if 0
     /* dtt todo: 7231 is incorrectly reporting NEXUS_FrontendQamMode_eAuto_64_256 is
      * is a valid qam mode, but then chokes on it if you use it while tuning.  for now
      * we'll always use e256 as the default mode */
     return(NEXUS_FrontendQamMode_e256);
+
 #else
     if (true == _capabilities.qamModes[NEXUS_FrontendQamMode_eAuto_64_256])
     {
@@ -503,7 +504,7 @@ NEXUS_FrontendQamMode CTunerQam::getDefaultMode()
         return(NEXUS_FrontendQamMode_e256);
     }
 #endif /* if 0 */
-}
+} /* getDefaultMode */
 
 uint32_t CTunerQam::getDefaultSymbolRateMax(NEXUS_FrontendQamMode mode)
 {
@@ -646,17 +647,18 @@ error:
 } /* doScan */
 
 #else /* ifdef MPOD_SUPPORT */
+
 void CTunerQam::doScan()
 {
-    eRet                       ret            = eRet_Ok;
-    uint16_t                   major          = 1;
-    uint16_t                   numFreqToScan  = 0;
-    uint16_t                   numFreqScanned = 0;
-    CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */
-    CTunerScanNotificationData notifyData(this);   /* notification data for reporting scan start/stop/progress */
-    uint32_t *                 pFreq = NULL;
+    eRet     ret            = eRet_Ok;
+    uint16_t major          = 1;
+    uint16_t numFreqToScan  = 0;
+    uint16_t numFreqScanned = 0;
 
-    MListItr <uint32_t> freqListItr(&(_scanData._freqList));
+    CTunerScanNotificationData notifyData(this); /* notification data for reporting scan start/stop/progress */
+
+    /* set the starting major channel number for newly found channels */
+    major = _scanData._majorStartNum;
 
     BDBG_ASSERT(NULL != _scanThread_handle);
 
@@ -681,11 +683,59 @@ void CTunerQam::doScan()
         CHECK_NEXUS_ERROR_GOTO("fast status is not supported - aborting scan", ret, nerror, error);
     }
 
-    /* set the starting major channel number for newly found channels */
-    major = _scanData._majorStartNum;
-
     notifyObserversAsync(eNotify_ScanStarted, &notifyData);
     notifyObserversAsync(eNotify_ScanProgress, &notifyData);
+
+    ret = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
+    if (eRet_NotSupported == ret)
+    {
+        BDBG_WRN(("*** Scan mode unsupported - retry using mode 64 and mode 256"));
+        numFreqToScan *= 2;
+
+        _scanData._symbolRateMax = -1;
+        _scanData._symbolRateMin = -1;
+
+        _scanData._mode = NEXUS_FrontendQamMode_e64;
+        ret             = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
+        if (eRet_NotSupported == ret)
+        {
+            ("*** Scan mode unsupported: 64");
+        }
+
+        _scanData._mode = NEXUS_FrontendQamMode_e256;
+        ret             = scanFrequencies(&major, &numFreqToScan, &numFreqScanned);
+        if (eRet_NotSupported == ret)
+        {
+            ("*** Scan mode unsupported: 256");
+        }
+    }
+
+error:
+    notifyData.setPercent(100 * numFreqScanned / numFreqToScan);
+    scanDone(&notifyData);
+
+    _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
+} /* doScan */
+
+#endif /* ifdef MPOD_SUPPORT */
+
+eRet CTunerQam::scanFrequencies(
+        uint16_t * pMajor,
+        uint16_t * pNumFreqToScan,
+        uint16_t * pNumFreqScanned
+        )
+{
+    CChannelQam                chQam(_pCfg, this); /* temp channel we'll use to do tuning during scan */
+    CTunerScanNotificationData notifyData(this);   /* notification data for reporting scan start/stop/progress */
+    uint32_t *                 pFreq = NULL;
+    eRet ret                         = eRet_Ok;
+
+    MListItr <uint32_t> freqListItr(&(_scanData._freqList));
+
+    BDBG_ASSERT(NULL != pMajor);
+    BDBG_ASSERT(NULL != pNumFreqToScan);
+    BDBG_ASSERT(NULL != pNumFreqScanned);
+    BDBG_ASSERT(0 < *pNumFreqToScan);
 
     /* loop through all frequencies in given freq list */
     for (pFreq = freqListItr.first(); pFreq; pFreq = freqListItr.next())
@@ -764,14 +814,12 @@ void CTunerQam::doScan()
                 {
                     /* some frontends don't accurately represent their capabilities.  for QAM it is most
                      * likely when specifying auto mode which really may not be supported. if this is the
-                     * case, we will default to 256 mode and try tuning again. */
-                    settings.mode   = NEXUS_FrontendQamMode_e256;
-                    chQam.setSettings(settings);
-
-                    BDBG_WRN(("Failure tuning with unsupported QAM mode - defaulting to 256"));
-                    ret = chQam.tune(_scanThread_id, _pConfig, true);
+                     * case, we will try 64 mode */
+                    BDBG_WRN(("Failure tuning with unsupported QAM mode"));
+                    goto error;
                 }
 
+                /* if tune successful look for programs and save to channel list */
                 if (eRet_Ok == ret)
                 {
                     NEXUS_FrontendQamScanStatus scanStatus;
@@ -800,12 +848,15 @@ void CTunerQam::doScan()
                         }
                     }
 
-                    chQam.setMajor(major);
+                    chQam.setMajor(*pMajor);
 
                     if (0 < chQam.addPsiPrograms(_scanThread_callback, _scanThread_context))
                     {
-                        /* found channels so increment major channel number */
-                        major++;
+                        /*
+                         * found channels so increment major channel number
+                         * *pMajor++ causes undefined behavior
+                         */
+                        *pMajor = *pMajor + 1;
                     }
                 }
                 else
@@ -818,8 +869,8 @@ void CTunerQam::doScan()
             }
         }
 
-        numFreqScanned++;
-        notifyData.setPercent(100 * numFreqScanned / numFreqToScan);
+        (*pNumFreqScanned)++;
+        notifyData.setPercent(100 * (*pNumFreqScanned) / (*pNumFreqToScan));
         notifyObserversAsync(eNotify_ScanProgress, &notifyData);
     }
 
@@ -828,9 +879,7 @@ error:
     {
         chQam.unTune(_pConfig, true);
     }
-    scanDone(&notifyData);
-    _pWidgetEngine->removeCallback(this, CALLBACK_TUNER_LOCK_STATUS_QAM);
-} /* doScan */
+    return(ret);
+} /* scanFrequencies */
 
-#endif /* ifdef MPOD_SUPPORT */
 #endif /* NEXUS_HAS_FRONTEND */

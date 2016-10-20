@@ -76,7 +76,7 @@ endif
 endif
 
 ifeq ($(filter $(BCHP_CHIP),7364), $(BCHP_CHIP))
-ifeq ($(filter $(BCHP_VER),A0 B0), $(BCHP_VER))
+ifeq ($(filter $(BCHP_VER),A0 B0 C0), $(BCHP_VER))
 HAS_BOX_MODES = y
 endif
 endif

@@ -61,6 +61,7 @@
 #include <string.h>
 #endif
 #include "server/nexus_server_prologue.h"
+#include "../common/ipc/nexus_ipc_server_api.h"
 #include "blst_queue.h"
 
 
@@ -1196,6 +1197,7 @@ static void nexus_server_channel_thread(void *context)
                         }
 
                         /*BDBG_MSG_TRACE(("read %d", received));*/
+                        /* batom_range_dump(in_data, received, "RECV"); */
                         rc = (*g_nexus_server_handlers[channel->moduleId].process)(&cxn->client_module_state, in_data, received, channel->out_data, channel->dataSize, &out);
                         if (rc) {
                             BDBG_ERR(("client(%p,%p,%d) module(%d) call failed: %d", (void *)cxn->client, (void *)cxn, cxn->fd, cxn->channel->moduleId, rc));
@@ -1205,6 +1207,7 @@ static void nexus_server_channel_thread(void *context)
                         }
                         ((NEXUS_Ipc_Header *)out.data)->packet_size = out.size;
 
+                        /* batom_range_dump(out.data, out.size, "SEND"); */
                         rc = b_nexus_write(cxn->fd, out.data, out.size);
                         if (rc < 0) {
                             /* if we can't write a response, we need to close connection */
@@ -1773,12 +1776,10 @@ void NEXUS_Platform_GetDefaultClientAuthenticationSettings( NEXUS_ClientAuthenti
     BSTD_UNUSED(pSettings);
 }
 
-void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings )
+void NEXUS_Platform_GetClientConfiguration_driver( NEXUS_ClientConfiguration *pSettings )
 {
     NEXUS_PlatformConfiguration *config;
 
-    /* syncthunk skips nexus_platform_client.h, so we manually lock */
-    NEXUS_LockModule();
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
 
     /* kernel mode server works like client, so we mimic that in user mode */
@@ -1791,5 +1792,4 @@ void NEXUS_Platform_GetClientConfiguration( NEXUS_ClientConfiguration *pSettings
         BKNI_Memcpy(pSettings->heap, config->heap, sizeof(pSettings->heap));
         BKNI_Free(config);
     }
-    NEXUS_UnlockModule();
 }

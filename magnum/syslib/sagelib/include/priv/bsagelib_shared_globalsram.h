@@ -114,8 +114,8 @@
 #define BSAGElib_GlobalSram_eHsmReserved                0x50 /* uses 16 indexes */ /* TODO: check with HSM folks the right value */
         /* note: BSAGElib_GlobalSram_eHsmReserved consumes 16 indexes */
 
-    /* new entries could be add here in the futur
-       in order to remain backward compatible, all GlobalSram will be set to 0x0 and 0x0 is not a valid value for any field from here
+    /* new entries could be add here in the future
+       in order to remain backwards compatible, all GlobalSram will be set to 0x0 and 0x0 is not a valid value for any field from here
        all the parts that will interpret new values from here needs to add logic in order to be backward compatible */
 
     /* Reserved entries to expand GlobalSram into GLR memory block if need to pass more parameters */
@@ -124,6 +124,12 @@
 /* Note: Nothing can be added > 0x69 */
 
 #define BSAGElib_GlobalSram_Size                        0x70
+
+/* On HOST reset (SAGE remain active), overload the following 2 fields
+* for SAGE->HOST to store GLR offset. HOST will check this to make sure
+* that basic HSI will function */
+#define BSAGElib_GlobalSram_eLastRegionGlrOffset        BSAGElib_GlobalSram_eRegionMapOffset
+#define BSAGElib_GlobalSram_eLastRegionGlrSize          BSAGElib_GlobalSram_eRegionMapSize
 
 
 #define BSAGElib_GlobalSram_GetOffset(INDEX) ((INDEX)*4) /* convert index to offset */

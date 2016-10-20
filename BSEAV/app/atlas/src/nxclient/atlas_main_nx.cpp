@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -125,7 +125,7 @@ error:
 done:
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-}
+} /* mosaicInitialize */
 
 void CAtlasNx::mosaicUninitialize()
 {
@@ -149,29 +149,29 @@ CSimpleVideoDecode * CAtlasNx::videoDecodeCreate(eWindowType windowType)
 
     if (eWindowType_Pip == windowType)
     {
-        CConfigNx * pConfig = (CConfigNx *)_pConfig;
-        NxClient_AllocResults *pAllocResults = pConfig->getAllocResultsPip();
+        CConfigNx *             pConfig       = (CConfigNx *)_pConfig;
+        NxClient_AllocResults * pAllocResults = pConfig->getAllocResultsPip();
 
         /* must use a particular video decoder for pip based on alloc results.
-           nxclient pip decoder alloc id must match checked out decoder resource number
-           to ensure we are checking out the correct pip decoder. */
+         * nxclient pip decoder alloc id must match checked out decoder resource number
+         * to ensure we are checking out the correct pip decoder. */
         pVideoDecode =
             (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(
-                this,
-                eBoardResource_simpleDecodeVideo,
-                ANY_INDEX,
-                pAllocResults->simpleVideoDecoder[0].id);
+                    this,
+                    eBoardResource_simpleDecodeVideo,
+                    ANY_INDEX,
+                    pAllocResults->simpleVideoDecoder[0].id);
     }
     else
     {
-        pVideoDecode =  (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
+        pVideoDecode = (CSimpleVideoDecodeNx *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
     }
     CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     _model.addSimpleVideoDecode(pVideoDecode, windowType);
 error:
     return(pVideoDecode);
-}
+} /* videoDecodeCreate */
 
 CSimpleAudioDecode * CAtlasNx::audioDecodeCreate(eWindowType windowType)
 {

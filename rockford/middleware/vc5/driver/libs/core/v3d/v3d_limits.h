@@ -1,15 +1,10 @@
 /*=============================================================================
-Broadcom Proprietary and Confidential. (c)2014 Broadcom.
+Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
-
-Project  :  helpers
-Module   :
-
-FILE DESCRIPTION
 =============================================================================*/
+#pragma once
 
-#ifndef V3D_LIMITS_H
-#define V3D_LIMITS_H
+#include "libs/util/assert_helpers.h"
 
 #define V3D_MAX_CORES 16
 
@@ -100,4 +95,13 @@ FILE DESCRIPTION
 
 #define V3D_MAX_GEOMETRY_INVOCATIONS 32u
 
+/* Number of bits of sub-pixel precision in the rasterizer */
+#if V3D_HAS_RAST_PREC
+#define V3D_COORD_SHIFT 6
+#else
+#define V3D_COORD_SHIFT 4
 #endif
+static_assrt(V3D_COORD_SHIFT >= 4);
+static_assrt(V3D_COORD_SHIFT <= 8);
+
+#define V3D_COORD_SCALE (1 << V3D_COORD_SHIFT)

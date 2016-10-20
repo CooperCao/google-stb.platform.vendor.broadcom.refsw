@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,227 +70,227 @@
 /***************************************************************************
  *XPT_FE - XPT FRONTEND Control Registers
  ***************************************************************************/
-#define BCHP_XPT_FE_FE_CTRL                      0x20a20000 /* [RW] Data Transport Front-End Control Register */
-#define BCHP_XPT_FE_PWR_CTRL                     0x20a20004 /* [RW] Data Transport Front-End Power Control Register */
-#define BCHP_XPT_FE_MAX_PID_CHANNEL              0x20a20008 /* [RW] Maximum Pid Channel number register */
-#define BCHP_XPT_FE_IB_SYNC_DETECT_CTRL          0x20a2000c /* [RW] Data Transport Input Band Sync detect control */
-#define BCHP_XPT_FE_INTR_STATUS0_REG             0x20a20010 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_INTR_STATUS1_REG             0x20a20014 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_INTR_STATUS2_REG             0x20a20018 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_INTR_STATUS0_REG_EN          0x20a20024 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_INTR_STATUS1_REG_EN          0x20a20028 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_INTR_STATUS2_REG_EN          0x20a2002c /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_TSMF_INTR_STATUS0_REG        0x20a20038 /* [RW] TSMF Demultiplexer Interrupt Status Register */
-#define BCHP_XPT_FE_TSMF_INTR_STATUS0_REG_EN     0x20a2003c /* [RW] TSMF Demultiplexer Interrupt Status Enable Register */
-#define BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG    0x20a20040 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG_EN 0x20a20048 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_PARSERS_TSMF_FRAME_ERROR_INTR_STATUS0_REG 0x20a20050 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_PARSERS_TSMF_SYNC_ERROR_INTR_STATUS0_REG 0x20a20058 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_PARSERS_INBUFF_OVFL_ERROR_INTR_STATUS0_REG 0x20a20060 /* [RW] Interrupt Status Register */
-#define BCHP_XPT_FE_PARSERS_TSMF_FRAME_ERROR_INTR_STATUS0_REG_EN 0x20a20068 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_PARSERS_TSMF_SYNC_ERROR_INTR_STATUS0_REG_EN 0x20a20070 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_PARSERS_INBUFF_OVFL_ERROR_INTR_STATUS0_REG_EN 0x20a20078 /* [RW] Interrupt Status Enable Register */
-#define BCHP_XPT_FE_ATS_COUNTER_CTRL             0x20a200a0 /* [RW] FE_ATS_COUNTER_CTRL */
-#define BCHP_XPT_FE_ATS_TS_MOD300                0x20a200a4 /* [RW] FE_ATS_TS_MOD300 */
-#define BCHP_XPT_FE_ATS_TS_BINARY                0x20a200a8 /* [RW] FE_ATS_TS_BINARY */
-#define BCHP_XPT_FE_TV_STATUS_0                  0x20a200b0 /* [RO] TV Status_0 */
-#define BCHP_XPT_FE_TV_STATUS_1                  0x20a200b4 /* [RO] TV Status_1 */
-#define BCHP_XPT_FE_TV_STATUS_2                  0x20a200b8 /* [RO] TV Status_2 */
-#define BCHP_XPT_FE_TV_STATUS_3                  0x20a200bc /* [RO] TV Status_3 */
-#define BCHP_XPT_FE_TV_STATUS_4                  0x20a200c0 /* [RO] TV Status_4 */
-#define BCHP_XPT_FE_IB0_CTRL                     0x20a20100 /* [RW] Data Transport Input Band 0 Control Register */
-#define BCHP_XPT_FE_IB0_CTRL2                    0x20a20104 /* [RW] Data Transport Input Band 0 Control2 Register */
-#define BCHP_XPT_FE_IB0_SYNC_COUNT               0x20a20108 /* [RW] Data Transport Input Band 0 Sync counter Register */
-#define BCHP_XPT_FE_IB1_CTRL                     0x20a2010c /* [RW] Data Transport Input Band 1 Control Register */
-#define BCHP_XPT_FE_IB1_CTRL2                    0x20a20110 /* [RW] Data Transport Input Band 1 Control2 Register */
-#define BCHP_XPT_FE_IB1_SYNC_COUNT               0x20a20114 /* [RW] Data Transport Input Band 1 Sync counter Register */
-#define BCHP_XPT_FE_IB2_CTRL                     0x20a20118 /* [RW] Data Transport Input Band 2 Control Register */
-#define BCHP_XPT_FE_IB2_CTRL2                    0x20a2011c /* [RW] Data Transport Input Band 2 Control2 Register */
-#define BCHP_XPT_FE_IB2_SYNC_COUNT               0x20a20120 /* [RW] Data Transport Input Band 2 Sync counter Register */
-#define BCHP_XPT_FE_IB3_CTRL                     0x20a20124 /* [RW] Data Transport Input Band 3 Control Register */
-#define BCHP_XPT_FE_IB3_CTRL2                    0x20a20128 /* [RW] Data Transport Input Band 3 Control2 Register */
-#define BCHP_XPT_FE_IB3_SYNC_COUNT               0x20a2012c /* [RW] Data Transport Input Band 3 Sync counter Register */
-#define BCHP_XPT_FE_IB11_CTRL                    0x20a20184 /* [RW] Data Transport Input Band 11 Control Register */
-#define BCHP_XPT_FE_IB11_CTRL2                   0x20a20188 /* [RW] Data Transport Input Band 11 Control2 Register */
-#define BCHP_XPT_FE_IB11_SYNC_COUNT              0x20a2018c /* [RW] Data Transport Input Band 11 Sync counter Register */
-#define BCHP_XPT_FE_IB12_CTRL                    0x20a20190 /* [RW] Data Transport Input Band 12 Control Register */
-#define BCHP_XPT_FE_IB12_CTRL2                   0x20a20194 /* [RW] Data Transport Input Band 12 Control2 Register */
-#define BCHP_XPT_FE_IB12_SYNC_COUNT              0x20a20198 /* [RW] Data Transport Input Band 12 Sync counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1       0x20a20280 /* [RW] Data Transport Parser Band 0 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2       0x20a20284 /* [RW] Data Transport Parser Band 0 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_ALL_PASS_CTRL 0x20a20288 /* [RW] Data Transport Parser Band 0 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER1_CTRL1       0x20a2028c /* [RW] Data Transport Parser Band 1 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER1_CTRL2       0x20a20290 /* [RW] Data Transport Parser Band 1 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER1_ALL_PASS_CTRL 0x20a20294 /* [RW] Data Transport Parser Band 1 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER2_CTRL1       0x20a20298 /* [RW] Data Transport Parser Band 2 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER2_CTRL2       0x20a2029c /* [RW] Data Transport Parser Band 2 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER2_ALL_PASS_CTRL 0x20a202a0 /* [RW] Data Transport Parser Band 2 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER3_CTRL1       0x20a202a4 /* [RW] Data Transport Parser Band 3 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER3_CTRL2       0x20a202a8 /* [RW] Data Transport Parser Band 3 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER3_ALL_PASS_CTRL 0x20a202ac /* [RW] Data Transport Parser Band 3 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_CTRL1       0x20a202b0 /* [RW] Data Transport Parser Band 4 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_CTRL2       0x20a202b4 /* [RW] Data Transport Parser Band 4 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_ALL_PASS_CTRL 0x20a202b8 /* [RW] Data Transport Parser Band 4 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER5_CTRL1       0x20a202bc /* [RW] Data Transport Parser Band 5 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER5_CTRL2       0x20a202c0 /* [RW] Data Transport Parser Band 5 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER5_ALL_PASS_CTRL 0x20a202c4 /* [RW] Data Transport Parser Band 5 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER6_CTRL1       0x20a202c8 /* [RW] Data Transport Parser Band 6 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER6_CTRL2       0x20a202cc /* [RW] Data Transport Parser Band 6 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER6_ALL_PASS_CTRL 0x20a202d0 /* [RW] Data Transport Parser Band 6 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER7_CTRL1       0x20a202d4 /* [RW] Data Transport Parser Band 7 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER7_CTRL2       0x20a202d8 /* [RW] Data Transport Parser Band 7 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER7_ALL_PASS_CTRL 0x20a202dc /* [RW] Data Transport Parser Band 7 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_CTRL1       0x20a202e0 /* [RW] Data Transport Parser Band 8 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_CTRL2       0x20a202e4 /* [RW] Data Transport Parser Band 8 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_ALL_PASS_CTRL 0x20a202e8 /* [RW] Data Transport Parser Band 8 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER9_CTRL1       0x20a202ec /* [RW] Data Transport Parser Band 9 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER9_CTRL2       0x20a202f0 /* [RW] Data Transport Parser Band 9 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER9_ALL_PASS_CTRL 0x20a202f4 /* [RW] Data Transport Parser Band 9 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER10_CTRL1      0x20a202f8 /* [RW] Data Transport Parser Band 10 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER10_CTRL2      0x20a202fc /* [RW] Data Transport Parser Band 10 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER10_ALL_PASS_CTRL 0x20a20300 /* [RW] Data Transport Parser Band 10 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER11_CTRL1      0x20a20304 /* [RW] Data Transport Parser Band 11 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER11_CTRL2      0x20a20308 /* [RW] Data Transport Parser Band 11 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER11_ALL_PASS_CTRL 0x20a2030c /* [RW] Data Transport Parser Band 11 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_CTRL1      0x20a20310 /* [RW] Data Transport Parser Band 12 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_CTRL2      0x20a20314 /* [RW] Data Transport Parser Band 12 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_ALL_PASS_CTRL 0x20a20318 /* [RW] Data Transport Parser Band 12 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER13_CTRL1      0x20a2031c /* [RW] Data Transport Parser Band 13 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER13_CTRL2      0x20a20320 /* [RW] Data Transport Parser Band 13 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER13_ALL_PASS_CTRL 0x20a20324 /* [RW] Data Transport Parser Band 13 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER14_CTRL1      0x20a20328 /* [RW] Data Transport Parser Band 14 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER14_CTRL2      0x20a2032c /* [RW] Data Transport Parser Band 14 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER14_ALL_PASS_CTRL 0x20a20330 /* [RW] Data Transport Parser Band 14 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER15_CTRL1      0x20a20334 /* [RW] Data Transport Parser Band 15 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER15_CTRL2      0x20a20338 /* [RW] Data Transport Parser Band 15 Control Register 2 */
-#define BCHP_XPT_FE_MINI_PID_PARSER15_ALL_PASS_CTRL 0x20a2033c /* [RW] Data Transport Parser Band 15 Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID 0x20a20400 /* [RW] MINI PID PARSER0 to PARSER3 BAND ID */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID 0x20a20404 /* [RW] MINI PID PARSER4 to PARSER7 BAND ID */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID 0x20a20408 /* [RW] MINI PID PARSER8 to PARSER11 BAND ID */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID 0x20a2040c /* [RW] MINI PID PARSER12 to PARSER15 BAND ID */
-#define BCHP_XPT_FE_TSMF0_CTRL                   0x20a20420 /* [RW] Data Transport TSMF Demultiplexer -- Control Register */
-#define BCHP_XPT_FE_TSMF0_SLOT_MAP_LO            0x20a20424 /* [RW] Data Transport TSMF Demultiplexer -- Slot Map Vector LSBs Register */
-#define BCHP_XPT_FE_TSMF0_SLOT_MAP_HI            0x20a20428 /* [RW] Data Transport TSMF Demultiplexer -- Slot Map Vector MSBs Register */
-#define BCHP_XPT_FE_TSMF0_STATUS                 0x20a2042c /* [RO] Data Transport TSMF Demultiplexer -- Status Register */
-#define BCHP_XPT_FE_TSMF1_CTRL                   0x20a20430 /* [RW] Data Transport TSMF Demultiplexer -- Control Register */
-#define BCHP_XPT_FE_TSMF1_SLOT_MAP_LO            0x20a20434 /* [RW] Data Transport TSMF Demultiplexer -- Slot Map Vector LSBs Register */
-#define BCHP_XPT_FE_TSMF1_SLOT_MAP_HI            0x20a20438 /* [RW] Data Transport TSMF Demultiplexer -- Slot Map Vector MSBs Register */
-#define BCHP_XPT_FE_TSMF1_STATUS                 0x20a2043c /* [RO] Data Transport TSMF Demultiplexer -- Status Register */
-#define BCHP_XPT_FE_MTSIF_RX0_CTRL1              0x20a204c0 /* [RW] FE_MTSIF_RX0_CTRL1 */
-#define BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD        0x20a204c4 /* [RW] MTSIF RX0 Secret Word Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND0_BAND31_ID_DROP 0x20a204c8 /* [RW] MTSIF RX0 Band0 to Band31 ID Drop Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND0_BAND3_ID     0x20a204cc /* [RW] MTSIF RX0 Band0 to Band3 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND4_BAND7_ID     0x20a204d0 /* [RW] MTSIF RX0 Band4 to Band7 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND8_BAND11_ID    0x20a204d4 /* [RW] MTSIF RX0 Band8 to Band11 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND12_BAND15_ID   0x20a204d8 /* [RW] MTSIF RX0 Band12 to Band15 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND16_BAND19_ID   0x20a204dc /* [RW] MTSIF RX0 Band16 to Band19 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND20_BAND23_ID   0x20a204e0 /* [RW] MTSIF RX0 Band20 to Band23 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND24_BAND27_ID   0x20a204e4 /* [RW] MTSIF RX0 Band24 to Band27 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND28_BAND31_ID   0x20a204e8 /* [RW] MTSIF RX0 Band28 to Band31 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND32_BAND35_ID   0x20a204ec /* [RW] MTSIF RX0 Band32 to Band35 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND36_BAND39_ID   0x20a204f0 /* [RW] MTSIF RX0 Band36 to Band39 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND40_BAND43_ID   0x20a204f4 /* [RW] MTSIF RX0 Band40 to Band43 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND44_BAND47_ID   0x20a204f8 /* [RW] MTSIF RX0 Band44 to Band47 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND48_BAND51_ID   0x20a204fc /* [RW] MTSIF RX0 Band48 to Band51 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND52_BAND55_ID   0x20a20500 /* [RW] MTSIF RX0 Band52 to Band55 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND56_BAND59_ID   0x20a20504 /* [RW] MTSIF RX0 Band56 to Band59 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_BAND60_BAND63_ID   0x20a20508 /* [RW] MTSIF RX0 Band60 to Band63 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT 0x20a2050c /* [RW] MTSIF RX0 Packet Band0 to Band31 Detect Register */
-#define BCHP_XPT_FE_MTSIF_RX1_CTRL1              0x20a20510 /* [RW] FE_MTSIF_RX1_CTRL1 */
-#define BCHP_XPT_FE_MTSIF_RX1_SECRET_WORD        0x20a20514 /* [RW] MTSIF RX1 Secret Word Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND0_BAND31_ID_DROP 0x20a20518 /* [RW] MTSIF RX1 Band0 to Band31 ID Drop Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND0_BAND3_ID     0x20a2051c /* [RW] MTSIF RX1 Band0 to Band3 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND4_BAND7_ID     0x20a20520 /* [RW] MTSIF RX1 Band4 to Band7 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND8_BAND11_ID    0x20a20524 /* [RW] MTSIF RX1 Band8 to Band11 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND12_BAND15_ID   0x20a20528 /* [RW] MTSIF RX1 Band12 to Band15 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND16_BAND19_ID   0x20a2052c /* [RW] MTSIF RX1 Band16 to Band19 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND20_BAND23_ID   0x20a20530 /* [RW] MTSIF RX1 Band20 to Band23 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND24_BAND27_ID   0x20a20534 /* [RW] MTSIF RX1 Band24 to Band27 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND28_BAND31_ID   0x20a20538 /* [RW] MTSIF RX1 Band28 to Band31 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND32_BAND35_ID   0x20a2053c /* [RW] MTSIF RX1 Band32 to Band35 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND36_BAND39_ID   0x20a20540 /* [RW] MTSIF RX1 Band36 to Band39 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND40_BAND43_ID   0x20a20544 /* [RW] MTSIF RX1 Band40 to Band43 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND44_BAND47_ID   0x20a20548 /* [RW] MTSIF RX1 Band44 to Band47 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND48_BAND51_ID   0x20a2054c /* [RW] MTSIF RX1 Band48 to Band51 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND52_BAND55_ID   0x20a20550 /* [RW] MTSIF RX1 Band52 to Band55 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND56_BAND59_ID   0x20a20554 /* [RW] MTSIF RX1 Band56 to Band59 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_BAND60_BAND63_ID   0x20a20558 /* [RW] MTSIF RX1 Band60 to Band63 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT 0x20a2055c /* [RW] MTSIF RX1 Packet Band0 to Band31 Detect Register */
-#define BCHP_XPT_FE_MTSIF_RX2_CTRL1              0x20a20560 /* [RW] FE_MTSIF_RX2_CTRL1 */
-#define BCHP_XPT_FE_MTSIF_RX2_SECRET_WORD        0x20a20564 /* [RW] MTSIF RX2 Secret Word Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND0_BAND31_ID_DROP 0x20a20568 /* [RW] MTSIF RX2 Band0 to Band31 ID Drop Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND0_BAND3_ID     0x20a2056c /* [RW] MTSIF RX2 Band0 to Band3 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND4_BAND7_ID     0x20a20570 /* [RW] MTSIF RX2 Band4 to Band7 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND8_BAND11_ID    0x20a20574 /* [RW] MTSIF RX2 Band8 to Band11 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND12_BAND15_ID   0x20a20578 /* [RW] MTSIF RX2 Band12 to Band15 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND16_BAND19_ID   0x20a2057c /* [RW] MTSIF RX2 Band16 to Band19 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND20_BAND23_ID   0x20a20580 /* [RW] MTSIF RX2 Band20 to Band23 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND24_BAND27_ID   0x20a20584 /* [RW] MTSIF RX2 Band24 to Band27 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND28_BAND31_ID   0x20a20588 /* [RW] MTSIF RX2 Band28 to Band31 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND32_BAND35_ID   0x20a2058c /* [RW] MTSIF RX2 Band32 to Band35 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND36_BAND39_ID   0x20a20590 /* [RW] MTSIF RX2 Band36 to Band39 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND40_BAND43_ID   0x20a20594 /* [RW] MTSIF RX2 Band40 to Band43 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND44_BAND47_ID   0x20a20598 /* [RW] MTSIF RX2 Band44 to Band47 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND48_BAND51_ID   0x20a2059c /* [RW] MTSIF RX2 Band48 to Band51 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND52_BAND55_ID   0x20a205a0 /* [RW] MTSIF RX2 Band52 to Band55 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND56_BAND59_ID   0x20a205a4 /* [RW] MTSIF RX2 Band56 to Band59 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_BAND60_BAND63_ID   0x20a205a8 /* [RW] MTSIF RX2 Band60 to Band63 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX2_PKT_BAND0_BAND31_DETECT 0x20a205ac /* [RW] MTSIF RX2 Packet Band0 to Band31 Detect Register */
-#define BCHP_XPT_FE_MTSIF_RX3_CTRL1              0x20a205b0 /* [RW] FE_MTSIF_RX3_CTRL1 */
-#define BCHP_XPT_FE_MTSIF_RX3_SECRET_WORD        0x20a205b4 /* [RW] MTSIF RX3 Secret Word Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND0_BAND31_ID_DROP 0x20a205b8 /* [RW] MTSIF RX3 Band0 to Band31 ID Drop Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND0_BAND3_ID     0x20a205bc /* [RW] MTSIF RX3 Band0 to Band3 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND4_BAND7_ID     0x20a205c0 /* [RW] MTSIF RX3 Band4 to Band7 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND8_BAND11_ID    0x20a205c4 /* [RW] MTSIF RX3 Band8 to Band11 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND12_BAND15_ID   0x20a205c8 /* [RW] MTSIF RX3 Band12 to Band15 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND16_BAND19_ID   0x20a205cc /* [RW] MTSIF RX3 Band16 to Band19 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND20_BAND23_ID   0x20a205d0 /* [RW] MTSIF RX3 Band20 to Band23 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND24_BAND27_ID   0x20a205d4 /* [RW] MTSIF RX3 Band24 to Band27 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND28_BAND31_ID   0x20a205d8 /* [RW] MTSIF RX3 Band28 to Band31 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND32_BAND35_ID   0x20a205dc /* [RW] MTSIF RX3 Band32 to Band35 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND36_BAND39_ID   0x20a205e0 /* [RW] MTSIF RX3 Band36 to Band39 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND40_BAND43_ID   0x20a205e4 /* [RW] MTSIF RX3 Band40 to Band43 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND44_BAND47_ID   0x20a205e8 /* [RW] MTSIF RX3 Band44 to Band47 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND48_BAND51_ID   0x20a205ec /* [RW] MTSIF RX3 Band48 to Band51 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND52_BAND55_ID   0x20a205f0 /* [RW] MTSIF RX3 Band52 to Band55 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND56_BAND59_ID   0x20a205f4 /* [RW] MTSIF RX3 Band56 to Band59 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_BAND60_BAND63_ID   0x20a205f8 /* [RW] MTSIF RX3 Band60 to Band63 ID Register */
-#define BCHP_XPT_FE_MTSIF_RX3_PKT_BAND0_BAND31_DETECT 0x20a205fc /* [RW] MTSIF RX3 Packet Band0 to Band31 Detect Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_TB_CTRL1    0x20a20800 /* [RW] Data Transport Parser Band 0 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER0_SYNC_COUNT  0x20a20804 /* [RW] Data Transport Parser Band 0 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER1_TB_CTRL1    0x20a20808 /* [RW] Data Transport Parser Band 1 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER1_SYNC_COUNT  0x20a2080c /* [RW] Data Transport Parser Band 1 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER2_TB_CTRL1    0x20a20810 /* [RW] Data Transport Parser Band 2 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER2_SYNC_COUNT  0x20a20814 /* [RW] Data Transport Parser Band 2 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER3_TB_CTRL1    0x20a20818 /* [RW] Data Transport Parser Band 3 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER3_SYNC_COUNT  0x20a2081c /* [RW] Data Transport Parser Band 3 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_TB_CTRL1    0x20a20820 /* [RW] Data Transport Parser Band 4 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER4_SYNC_COUNT  0x20a20824 /* [RW] Data Transport Parser Band 4 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER5_TB_CTRL1    0x20a20828 /* [RW] Data Transport Parser Band 5 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER5_SYNC_COUNT  0x20a2082c /* [RW] Data Transport Parser Band 5 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER6_TB_CTRL1    0x20a20830 /* [RW] Data Transport Parser Band 6 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER6_SYNC_COUNT  0x20a20834 /* [RW] Data Transport Parser Band 6 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER7_TB_CTRL1    0x20a20838 /* [RW] Data Transport Parser Band 7 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER7_SYNC_COUNT  0x20a2083c /* [RW] Data Transport Parser Band 7 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_TB_CTRL1    0x20a20840 /* [RW] Data Transport Parser Band 8 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER8_SYNC_COUNT  0x20a20844 /* [RW] Data Transport Parser Band 8 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER9_TB_CTRL1    0x20a20848 /* [RW] Data Transport Parser Band 9 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER9_SYNC_COUNT  0x20a2084c /* [RW] Data Transport Parser Band 9 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER10_TB_CTRL1   0x20a20850 /* [RW] Data Transport Parser Band 10 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER10_SYNC_COUNT 0x20a20854 /* [RW] Data Transport Parser Band 10 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER11_TB_CTRL1   0x20a20858 /* [RW] Data Transport Parser Band 11 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER11_SYNC_COUNT 0x20a2085c /* [RW] Data Transport Parser Band 11 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_TB_CTRL1   0x20a20860 /* [RW] Data Transport Parser Band 12 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER12_SYNC_COUNT 0x20a20864 /* [RW] Data Transport Parser Band 12 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER13_TB_CTRL1   0x20a20868 /* [RW] Data Transport Parser Band 13 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER13_SYNC_COUNT 0x20a2086c /* [RW] Data Transport Parser Band 13 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER14_TB_CTRL1   0x20a20870 /* [RW] Data Transport Parser Band 14 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER14_SYNC_COUNT 0x20a20874 /* [RW] Data Transport Parser Band 14 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER15_TB_CTRL1   0x20a20878 /* [RW] Data Transport Parser Band 15 Transponder Bonding Control Register */
-#define BCHP_XPT_FE_MINI_PID_PARSER15_SYNC_COUNT 0x20a2087c /* [RW] Data Transport Parser Band 15 Transponder Bonding Sync Counter Register */
-#define BCHP_XPT_FE_TB_GLOBAL_CTRL1              0x20a20900 /* [RW] Transponder Bonding Global Control Register 1 */
-#define BCHP_XPT_FE_TB_PARSERS_PRIVATE_DATA_LENGTH_ERROR_STATUS0_REG 0x20a2090c /* [RW] Parsers Private Data Length Error Status Register */
-#define BCHP_XPT_FE_TB_PARSERS_PRIVATE_DATA_FIELD_LENGTH_ERROR_STATUS0_REG 0x20a20910 /* [RW] Parsers Private Data Field Length Error Status Register */
+#define BCHP_XPT_FE_FE_CTRL                      0x20a20000 /* [RW][32] Data Transport Front-End Control Register */
+#define BCHP_XPT_FE_PWR_CTRL                     0x20a20004 /* [RW][32] Data Transport Front-End Power Control Register */
+#define BCHP_XPT_FE_MAX_PID_CHANNEL              0x20a20008 /* [RW][32] Maximum Pid Channel number register */
+#define BCHP_XPT_FE_IB_SYNC_DETECT_CTRL          0x20a2000c /* [RW][32] Data Transport Input Band Sync detect control */
+#define BCHP_XPT_FE_INTR_STATUS0_REG             0x20a20010 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_INTR_STATUS1_REG             0x20a20014 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_INTR_STATUS2_REG             0x20a20018 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_INTR_STATUS0_REG_EN          0x20a20024 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_INTR_STATUS1_REG_EN          0x20a20028 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_INTR_STATUS2_REG_EN          0x20a2002c /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_TSMF_INTR_STATUS0_REG        0x20a20038 /* [RW][32] TSMF Demultiplexer Interrupt Status Register */
+#define BCHP_XPT_FE_TSMF_INTR_STATUS0_REG_EN     0x20a2003c /* [RW][32] TSMF Demultiplexer Interrupt Status Enable Register */
+#define BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG    0x20a20040 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_MTSIF_RX_INTR_STATUS0_REG_EN 0x20a20048 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_PARSERS_TSMF_FRAME_ERROR_INTR_STATUS0_REG 0x20a20050 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_PARSERS_TSMF_SYNC_ERROR_INTR_STATUS0_REG 0x20a20058 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_PARSERS_INBUFF_OVFL_ERROR_INTR_STATUS0_REG 0x20a20060 /* [RW][32] Interrupt Status Register */
+#define BCHP_XPT_FE_PARSERS_TSMF_FRAME_ERROR_INTR_STATUS0_REG_EN 0x20a20068 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_PARSERS_TSMF_SYNC_ERROR_INTR_STATUS0_REG_EN 0x20a20070 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_PARSERS_INBUFF_OVFL_ERROR_INTR_STATUS0_REG_EN 0x20a20078 /* [RW][32] Interrupt Status Enable Register */
+#define BCHP_XPT_FE_ATS_COUNTER_CTRL             0x20a200a0 /* [RW][32] FE_ATS_COUNTER_CTRL */
+#define BCHP_XPT_FE_ATS_TS_MOD300                0x20a200a4 /* [RW][32] FE_ATS_TS_MOD300 */
+#define BCHP_XPT_FE_ATS_TS_BINARY                0x20a200a8 /* [RW][32] FE_ATS_TS_BINARY */
+#define BCHP_XPT_FE_TV_STATUS_0                  0x20a200b0 /* [RO][32] TV Status_0 */
+#define BCHP_XPT_FE_TV_STATUS_1                  0x20a200b4 /* [RO][32] TV Status_1 */
+#define BCHP_XPT_FE_TV_STATUS_2                  0x20a200b8 /* [RO][32] TV Status_2 */
+#define BCHP_XPT_FE_TV_STATUS_3                  0x20a200bc /* [RO][32] TV Status_3 */
+#define BCHP_XPT_FE_TV_STATUS_4                  0x20a200c0 /* [RO][32] TV Status_4 */
+#define BCHP_XPT_FE_IB0_CTRL                     0x20a20100 /* [RW][32] Data Transport Input Band 0 Control Register */
+#define BCHP_XPT_FE_IB0_CTRL2                    0x20a20104 /* [RW][32] Data Transport Input Band 0 Control2 Register */
+#define BCHP_XPT_FE_IB0_SYNC_COUNT               0x20a20108 /* [RW][32] Data Transport Input Band 0 Sync counter Register */
+#define BCHP_XPT_FE_IB1_CTRL                     0x20a2010c /* [RW][32] Data Transport Input Band 1 Control Register */
+#define BCHP_XPT_FE_IB1_CTRL2                    0x20a20110 /* [RW][32] Data Transport Input Band 1 Control2 Register */
+#define BCHP_XPT_FE_IB1_SYNC_COUNT               0x20a20114 /* [RW][32] Data Transport Input Band 1 Sync counter Register */
+#define BCHP_XPT_FE_IB2_CTRL                     0x20a20118 /* [RW][32] Data Transport Input Band 2 Control Register */
+#define BCHP_XPT_FE_IB2_CTRL2                    0x20a2011c /* [RW][32] Data Transport Input Band 2 Control2 Register */
+#define BCHP_XPT_FE_IB2_SYNC_COUNT               0x20a20120 /* [RW][32] Data Transport Input Band 2 Sync counter Register */
+#define BCHP_XPT_FE_IB3_CTRL                     0x20a20124 /* [RW][32] Data Transport Input Band 3 Control Register */
+#define BCHP_XPT_FE_IB3_CTRL2                    0x20a20128 /* [RW][32] Data Transport Input Band 3 Control2 Register */
+#define BCHP_XPT_FE_IB3_SYNC_COUNT               0x20a2012c /* [RW][32] Data Transport Input Band 3 Sync counter Register */
+#define BCHP_XPT_FE_IB11_CTRL                    0x20a20184 /* [RW][32] Data Transport Input Band 11 Control Register */
+#define BCHP_XPT_FE_IB11_CTRL2                   0x20a20188 /* [RW][32] Data Transport Input Band 11 Control2 Register */
+#define BCHP_XPT_FE_IB11_SYNC_COUNT              0x20a2018c /* [RW][32] Data Transport Input Band 11 Sync counter Register */
+#define BCHP_XPT_FE_IB12_CTRL                    0x20a20190 /* [RW][32] Data Transport Input Band 12 Control Register */
+#define BCHP_XPT_FE_IB12_CTRL2                   0x20a20194 /* [RW][32] Data Transport Input Band 12 Control2 Register */
+#define BCHP_XPT_FE_IB12_SYNC_COUNT              0x20a20198 /* [RW][32] Data Transport Input Band 12 Sync counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_CTRL1       0x20a20280 /* [RW][32] Data Transport Parser Band 0 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_CTRL2       0x20a20284 /* [RW][32] Data Transport Parser Band 0 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_ALL_PASS_CTRL 0x20a20288 /* [RW][32] Data Transport Parser Band 0 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER1_CTRL1       0x20a2028c /* [RW][32] Data Transport Parser Band 1 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER1_CTRL2       0x20a20290 /* [RW][32] Data Transport Parser Band 1 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER1_ALL_PASS_CTRL 0x20a20294 /* [RW][32] Data Transport Parser Band 1 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER2_CTRL1       0x20a20298 /* [RW][32] Data Transport Parser Band 2 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER2_CTRL2       0x20a2029c /* [RW][32] Data Transport Parser Band 2 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER2_ALL_PASS_CTRL 0x20a202a0 /* [RW][32] Data Transport Parser Band 2 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER3_CTRL1       0x20a202a4 /* [RW][32] Data Transport Parser Band 3 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER3_CTRL2       0x20a202a8 /* [RW][32] Data Transport Parser Band 3 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER3_ALL_PASS_CTRL 0x20a202ac /* [RW][32] Data Transport Parser Band 3 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_CTRL1       0x20a202b0 /* [RW][32] Data Transport Parser Band 4 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_CTRL2       0x20a202b4 /* [RW][32] Data Transport Parser Band 4 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_ALL_PASS_CTRL 0x20a202b8 /* [RW][32] Data Transport Parser Band 4 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER5_CTRL1       0x20a202bc /* [RW][32] Data Transport Parser Band 5 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER5_CTRL2       0x20a202c0 /* [RW][32] Data Transport Parser Band 5 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER5_ALL_PASS_CTRL 0x20a202c4 /* [RW][32] Data Transport Parser Band 5 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER6_CTRL1       0x20a202c8 /* [RW][32] Data Transport Parser Band 6 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER6_CTRL2       0x20a202cc /* [RW][32] Data Transport Parser Band 6 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER6_ALL_PASS_CTRL 0x20a202d0 /* [RW][32] Data Transport Parser Band 6 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER7_CTRL1       0x20a202d4 /* [RW][32] Data Transport Parser Band 7 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER7_CTRL2       0x20a202d8 /* [RW][32] Data Transport Parser Band 7 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER7_ALL_PASS_CTRL 0x20a202dc /* [RW][32] Data Transport Parser Band 7 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_CTRL1       0x20a202e0 /* [RW][32] Data Transport Parser Band 8 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_CTRL2       0x20a202e4 /* [RW][32] Data Transport Parser Band 8 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_ALL_PASS_CTRL 0x20a202e8 /* [RW][32] Data Transport Parser Band 8 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER9_CTRL1       0x20a202ec /* [RW][32] Data Transport Parser Band 9 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER9_CTRL2       0x20a202f0 /* [RW][32] Data Transport Parser Band 9 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER9_ALL_PASS_CTRL 0x20a202f4 /* [RW][32] Data Transport Parser Band 9 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER10_CTRL1      0x20a202f8 /* [RW][32] Data Transport Parser Band 10 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER10_CTRL2      0x20a202fc /* [RW][32] Data Transport Parser Band 10 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER10_ALL_PASS_CTRL 0x20a20300 /* [RW][32] Data Transport Parser Band 10 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER11_CTRL1      0x20a20304 /* [RW][32] Data Transport Parser Band 11 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER11_CTRL2      0x20a20308 /* [RW][32] Data Transport Parser Band 11 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER11_ALL_PASS_CTRL 0x20a2030c /* [RW][32] Data Transport Parser Band 11 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_CTRL1      0x20a20310 /* [RW][32] Data Transport Parser Band 12 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_CTRL2      0x20a20314 /* [RW][32] Data Transport Parser Band 12 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_ALL_PASS_CTRL 0x20a20318 /* [RW][32] Data Transport Parser Band 12 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER13_CTRL1      0x20a2031c /* [RW][32] Data Transport Parser Band 13 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER13_CTRL2      0x20a20320 /* [RW][32] Data Transport Parser Band 13 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER13_ALL_PASS_CTRL 0x20a20324 /* [RW][32] Data Transport Parser Band 13 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER14_CTRL1      0x20a20328 /* [RW][32] Data Transport Parser Band 14 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER14_CTRL2      0x20a2032c /* [RW][32] Data Transport Parser Band 14 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER14_ALL_PASS_CTRL 0x20a20330 /* [RW][32] Data Transport Parser Band 14 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER15_CTRL1      0x20a20334 /* [RW][32] Data Transport Parser Band 15 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER15_CTRL2      0x20a20338 /* [RW][32] Data Transport Parser Band 15 Control Register 2 */
+#define BCHP_XPT_FE_MINI_PID_PARSER15_ALL_PASS_CTRL 0x20a2033c /* [RW][32] Data Transport Parser Band 15 Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_TO_PARSER3_BAND_ID 0x20a20400 /* [RW][32] MINI PID PARSER0 to PARSER3 BAND ID */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_TO_PARSER7_BAND_ID 0x20a20404 /* [RW][32] MINI PID PARSER4 to PARSER7 BAND ID */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_TO_PARSER11_BAND_ID 0x20a20408 /* [RW][32] MINI PID PARSER8 to PARSER11 BAND ID */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_TO_PARSER15_BAND_ID 0x20a2040c /* [RW][32] MINI PID PARSER12 to PARSER15 BAND ID */
+#define BCHP_XPT_FE_TSMF0_CTRL                   0x20a20420 /* [RW][32] Data Transport TSMF Demultiplexer -- Control Register */
+#define BCHP_XPT_FE_TSMF0_SLOT_MAP_LO            0x20a20424 /* [RW][32] Data Transport TSMF Demultiplexer -- Slot Map Vector LSBs Register */
+#define BCHP_XPT_FE_TSMF0_SLOT_MAP_HI            0x20a20428 /* [RW][32] Data Transport TSMF Demultiplexer -- Slot Map Vector MSBs Register */
+#define BCHP_XPT_FE_TSMF0_STATUS                 0x20a2042c /* [RO][32] Data Transport TSMF Demultiplexer -- Status Register */
+#define BCHP_XPT_FE_TSMF1_CTRL                   0x20a20430 /* [RW][32] Data Transport TSMF Demultiplexer -- Control Register */
+#define BCHP_XPT_FE_TSMF1_SLOT_MAP_LO            0x20a20434 /* [RW][32] Data Transport TSMF Demultiplexer -- Slot Map Vector LSBs Register */
+#define BCHP_XPT_FE_TSMF1_SLOT_MAP_HI            0x20a20438 /* [RW][32] Data Transport TSMF Demultiplexer -- Slot Map Vector MSBs Register */
+#define BCHP_XPT_FE_TSMF1_STATUS                 0x20a2043c /* [RO][32] Data Transport TSMF Demultiplexer -- Status Register */
+#define BCHP_XPT_FE_MTSIF_RX0_CTRL1              0x20a204c0 /* [RW][32] FE_MTSIF_RX0_CTRL1 */
+#define BCHP_XPT_FE_MTSIF_RX0_SECRET_WORD        0x20a204c4 /* [RW][32] MTSIF RX0 Secret Word Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND0_BAND31_ID_DROP 0x20a204c8 /* [RW][32] MTSIF RX0 Band0 to Band31 ID Drop Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND0_BAND3_ID     0x20a204cc /* [RW][32] MTSIF RX0 Band0 to Band3 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND4_BAND7_ID     0x20a204d0 /* [RW][32] MTSIF RX0 Band4 to Band7 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND8_BAND11_ID    0x20a204d4 /* [RW][32] MTSIF RX0 Band8 to Band11 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND12_BAND15_ID   0x20a204d8 /* [RW][32] MTSIF RX0 Band12 to Band15 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND16_BAND19_ID   0x20a204dc /* [RW][32] MTSIF RX0 Band16 to Band19 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND20_BAND23_ID   0x20a204e0 /* [RW][32] MTSIF RX0 Band20 to Band23 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND24_BAND27_ID   0x20a204e4 /* [RW][32] MTSIF RX0 Band24 to Band27 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND28_BAND31_ID   0x20a204e8 /* [RW][32] MTSIF RX0 Band28 to Band31 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND32_BAND35_ID   0x20a204ec /* [RW][32] MTSIF RX0 Band32 to Band35 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND36_BAND39_ID   0x20a204f0 /* [RW][32] MTSIF RX0 Band36 to Band39 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND40_BAND43_ID   0x20a204f4 /* [RW][32] MTSIF RX0 Band40 to Band43 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND44_BAND47_ID   0x20a204f8 /* [RW][32] MTSIF RX0 Band44 to Band47 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND48_BAND51_ID   0x20a204fc /* [RW][32] MTSIF RX0 Band48 to Band51 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND52_BAND55_ID   0x20a20500 /* [RW][32] MTSIF RX0 Band52 to Band55 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND56_BAND59_ID   0x20a20504 /* [RW][32] MTSIF RX0 Band56 to Band59 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_BAND60_BAND63_ID   0x20a20508 /* [RW][32] MTSIF RX0 Band60 to Band63 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX0_PKT_BAND0_BAND31_DETECT 0x20a2050c /* [RW][32] MTSIF RX0 Packet Band0 to Band31 Detect Register */
+#define BCHP_XPT_FE_MTSIF_RX1_CTRL1              0x20a20510 /* [RW][32] FE_MTSIF_RX1_CTRL1 */
+#define BCHP_XPT_FE_MTSIF_RX1_SECRET_WORD        0x20a20514 /* [RW][32] MTSIF RX1 Secret Word Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND0_BAND31_ID_DROP 0x20a20518 /* [RW][32] MTSIF RX1 Band0 to Band31 ID Drop Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND0_BAND3_ID     0x20a2051c /* [RW][32] MTSIF RX1 Band0 to Band3 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND4_BAND7_ID     0x20a20520 /* [RW][32] MTSIF RX1 Band4 to Band7 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND8_BAND11_ID    0x20a20524 /* [RW][32] MTSIF RX1 Band8 to Band11 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND12_BAND15_ID   0x20a20528 /* [RW][32] MTSIF RX1 Band12 to Band15 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND16_BAND19_ID   0x20a2052c /* [RW][32] MTSIF RX1 Band16 to Band19 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND20_BAND23_ID   0x20a20530 /* [RW][32] MTSIF RX1 Band20 to Band23 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND24_BAND27_ID   0x20a20534 /* [RW][32] MTSIF RX1 Band24 to Band27 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND28_BAND31_ID   0x20a20538 /* [RW][32] MTSIF RX1 Band28 to Band31 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND32_BAND35_ID   0x20a2053c /* [RW][32] MTSIF RX1 Band32 to Band35 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND36_BAND39_ID   0x20a20540 /* [RW][32] MTSIF RX1 Band36 to Band39 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND40_BAND43_ID   0x20a20544 /* [RW][32] MTSIF RX1 Band40 to Band43 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND44_BAND47_ID   0x20a20548 /* [RW][32] MTSIF RX1 Band44 to Band47 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND48_BAND51_ID   0x20a2054c /* [RW][32] MTSIF RX1 Band48 to Band51 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND52_BAND55_ID   0x20a20550 /* [RW][32] MTSIF RX1 Band52 to Band55 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND56_BAND59_ID   0x20a20554 /* [RW][32] MTSIF RX1 Band56 to Band59 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_BAND60_BAND63_ID   0x20a20558 /* [RW][32] MTSIF RX1 Band60 to Band63 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX1_PKT_BAND0_BAND31_DETECT 0x20a2055c /* [RW][32] MTSIF RX1 Packet Band0 to Band31 Detect Register */
+#define BCHP_XPT_FE_MTSIF_RX2_CTRL1              0x20a20560 /* [RW][32] FE_MTSIF_RX2_CTRL1 */
+#define BCHP_XPT_FE_MTSIF_RX2_SECRET_WORD        0x20a20564 /* [RW][32] MTSIF RX2 Secret Word Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND0_BAND31_ID_DROP 0x20a20568 /* [RW][32] MTSIF RX2 Band0 to Band31 ID Drop Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND0_BAND3_ID     0x20a2056c /* [RW][32] MTSIF RX2 Band0 to Band3 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND4_BAND7_ID     0x20a20570 /* [RW][32] MTSIF RX2 Band4 to Band7 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND8_BAND11_ID    0x20a20574 /* [RW][32] MTSIF RX2 Band8 to Band11 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND12_BAND15_ID   0x20a20578 /* [RW][32] MTSIF RX2 Band12 to Band15 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND16_BAND19_ID   0x20a2057c /* [RW][32] MTSIF RX2 Band16 to Band19 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND20_BAND23_ID   0x20a20580 /* [RW][32] MTSIF RX2 Band20 to Band23 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND24_BAND27_ID   0x20a20584 /* [RW][32] MTSIF RX2 Band24 to Band27 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND28_BAND31_ID   0x20a20588 /* [RW][32] MTSIF RX2 Band28 to Band31 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND32_BAND35_ID   0x20a2058c /* [RW][32] MTSIF RX2 Band32 to Band35 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND36_BAND39_ID   0x20a20590 /* [RW][32] MTSIF RX2 Band36 to Band39 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND40_BAND43_ID   0x20a20594 /* [RW][32] MTSIF RX2 Band40 to Band43 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND44_BAND47_ID   0x20a20598 /* [RW][32] MTSIF RX2 Band44 to Band47 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND48_BAND51_ID   0x20a2059c /* [RW][32] MTSIF RX2 Band48 to Band51 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND52_BAND55_ID   0x20a205a0 /* [RW][32] MTSIF RX2 Band52 to Band55 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND56_BAND59_ID   0x20a205a4 /* [RW][32] MTSIF RX2 Band56 to Band59 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_BAND60_BAND63_ID   0x20a205a8 /* [RW][32] MTSIF RX2 Band60 to Band63 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX2_PKT_BAND0_BAND31_DETECT 0x20a205ac /* [RW][32] MTSIF RX2 Packet Band0 to Band31 Detect Register */
+#define BCHP_XPT_FE_MTSIF_RX3_CTRL1              0x20a205b0 /* [RW][32] FE_MTSIF_RX3_CTRL1 */
+#define BCHP_XPT_FE_MTSIF_RX3_SECRET_WORD        0x20a205b4 /* [RW][32] MTSIF RX3 Secret Word Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND0_BAND31_ID_DROP 0x20a205b8 /* [RW][32] MTSIF RX3 Band0 to Band31 ID Drop Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND0_BAND3_ID     0x20a205bc /* [RW][32] MTSIF RX3 Band0 to Band3 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND4_BAND7_ID     0x20a205c0 /* [RW][32] MTSIF RX3 Band4 to Band7 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND8_BAND11_ID    0x20a205c4 /* [RW][32] MTSIF RX3 Band8 to Band11 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND12_BAND15_ID   0x20a205c8 /* [RW][32] MTSIF RX3 Band12 to Band15 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND16_BAND19_ID   0x20a205cc /* [RW][32] MTSIF RX3 Band16 to Band19 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND20_BAND23_ID   0x20a205d0 /* [RW][32] MTSIF RX3 Band20 to Band23 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND24_BAND27_ID   0x20a205d4 /* [RW][32] MTSIF RX3 Band24 to Band27 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND28_BAND31_ID   0x20a205d8 /* [RW][32] MTSIF RX3 Band28 to Band31 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND32_BAND35_ID   0x20a205dc /* [RW][32] MTSIF RX3 Band32 to Band35 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND36_BAND39_ID   0x20a205e0 /* [RW][32] MTSIF RX3 Band36 to Band39 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND40_BAND43_ID   0x20a205e4 /* [RW][32] MTSIF RX3 Band40 to Band43 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND44_BAND47_ID   0x20a205e8 /* [RW][32] MTSIF RX3 Band44 to Band47 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND48_BAND51_ID   0x20a205ec /* [RW][32] MTSIF RX3 Band48 to Band51 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND52_BAND55_ID   0x20a205f0 /* [RW][32] MTSIF RX3 Band52 to Band55 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND56_BAND59_ID   0x20a205f4 /* [RW][32] MTSIF RX3 Band56 to Band59 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_BAND60_BAND63_ID   0x20a205f8 /* [RW][32] MTSIF RX3 Band60 to Band63 ID Register */
+#define BCHP_XPT_FE_MTSIF_RX3_PKT_BAND0_BAND31_DETECT 0x20a205fc /* [RW][32] MTSIF RX3 Packet Band0 to Band31 Detect Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_TB_CTRL1    0x20a20800 /* [RW][32] Data Transport Parser Band 0 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER0_SYNC_COUNT  0x20a20804 /* [RW][32] Data Transport Parser Band 0 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER1_TB_CTRL1    0x20a20808 /* [RW][32] Data Transport Parser Band 1 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER1_SYNC_COUNT  0x20a2080c /* [RW][32] Data Transport Parser Band 1 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER2_TB_CTRL1    0x20a20810 /* [RW][32] Data Transport Parser Band 2 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER2_SYNC_COUNT  0x20a20814 /* [RW][32] Data Transport Parser Band 2 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER3_TB_CTRL1    0x20a20818 /* [RW][32] Data Transport Parser Band 3 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER3_SYNC_COUNT  0x20a2081c /* [RW][32] Data Transport Parser Band 3 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_TB_CTRL1    0x20a20820 /* [RW][32] Data Transport Parser Band 4 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER4_SYNC_COUNT  0x20a20824 /* [RW][32] Data Transport Parser Band 4 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER5_TB_CTRL1    0x20a20828 /* [RW][32] Data Transport Parser Band 5 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER5_SYNC_COUNT  0x20a2082c /* [RW][32] Data Transport Parser Band 5 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER6_TB_CTRL1    0x20a20830 /* [RW][32] Data Transport Parser Band 6 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER6_SYNC_COUNT  0x20a20834 /* [RW][32] Data Transport Parser Band 6 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER7_TB_CTRL1    0x20a20838 /* [RW][32] Data Transport Parser Band 7 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER7_SYNC_COUNT  0x20a2083c /* [RW][32] Data Transport Parser Band 7 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_TB_CTRL1    0x20a20840 /* [RW][32] Data Transport Parser Band 8 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER8_SYNC_COUNT  0x20a20844 /* [RW][32] Data Transport Parser Band 8 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER9_TB_CTRL1    0x20a20848 /* [RW][32] Data Transport Parser Band 9 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER9_SYNC_COUNT  0x20a2084c /* [RW][32] Data Transport Parser Band 9 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER10_TB_CTRL1   0x20a20850 /* [RW][32] Data Transport Parser Band 10 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER10_SYNC_COUNT 0x20a20854 /* [RW][32] Data Transport Parser Band 10 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER11_TB_CTRL1   0x20a20858 /* [RW][32] Data Transport Parser Band 11 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER11_SYNC_COUNT 0x20a2085c /* [RW][32] Data Transport Parser Band 11 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_TB_CTRL1   0x20a20860 /* [RW][32] Data Transport Parser Band 12 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER12_SYNC_COUNT 0x20a20864 /* [RW][32] Data Transport Parser Band 12 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER13_TB_CTRL1   0x20a20868 /* [RW][32] Data Transport Parser Band 13 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER13_SYNC_COUNT 0x20a2086c /* [RW][32] Data Transport Parser Band 13 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER14_TB_CTRL1   0x20a20870 /* [RW][32] Data Transport Parser Band 14 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER14_SYNC_COUNT 0x20a20874 /* [RW][32] Data Transport Parser Band 14 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER15_TB_CTRL1   0x20a20878 /* [RW][32] Data Transport Parser Band 15 Transponder Bonding Control Register */
+#define BCHP_XPT_FE_MINI_PID_PARSER15_SYNC_COUNT 0x20a2087c /* [RW][32] Data Transport Parser Band 15 Transponder Bonding Sync Counter Register */
+#define BCHP_XPT_FE_TB_GLOBAL_CTRL1              0x20a20900 /* [RW][32] Transponder Bonding Global Control Register 1 */
+#define BCHP_XPT_FE_TB_PARSERS_PRIVATE_DATA_LENGTH_ERROR_STATUS0_REG 0x20a2090c /* [RW][32] Parsers Private Data Length Error Status Register */
+#define BCHP_XPT_FE_TB_PARSERS_PRIVATE_DATA_FIELD_LENGTH_ERROR_STATUS0_REG 0x20a20910 /* [RW][32] Parsers Private Data Field Length Error Status Register */
 
 /***************************************************************************
  *FE_CTRL - Data Transport Front-End Control Register

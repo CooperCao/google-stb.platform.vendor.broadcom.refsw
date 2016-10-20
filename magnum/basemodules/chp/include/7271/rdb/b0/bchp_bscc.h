@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,28 +70,28 @@
 /***************************************************************************
  *BSCC - Broadcom Serial Control Master C
  ***************************************************************************/
-#define BCHP_BSCC_CHIP_ADDRESS                   0x20419b00 /* [RW] BSC Chip Address And Read/Write Control */
-#define BCHP_BSCC_DATA_IN0                       0x20419b04 /* [RW] BSC Write Data Register 0 */
-#define BCHP_BSCC_DATA_IN1                       0x20419b08 /* [RW] BSC Write Data Register 1 */
-#define BCHP_BSCC_DATA_IN2                       0x20419b0c /* [RW] BSC Write Data Register 2 */
-#define BCHP_BSCC_DATA_IN3                       0x20419b10 /* [RW] BSC Write Data Register 3 */
-#define BCHP_BSCC_DATA_IN4                       0x20419b14 /* [RW] BSC Write Data Register 4 */
-#define BCHP_BSCC_DATA_IN5                       0x20419b18 /* [RW] BSC Write Data Register 5 */
-#define BCHP_BSCC_DATA_IN6                       0x20419b1c /* [RW] BSC Write Data Register 6 */
-#define BCHP_BSCC_DATA_IN7                       0x20419b20 /* [RW] BSC Write Data Register 7 */
-#define BCHP_BSCC_CNT_REG                        0x20419b24 /* [RW] BSC Transfer Count Register */
-#define BCHP_BSCC_CTL_REG                        0x20419b28 /* [RW] BSC Control Register */
-#define BCHP_BSCC_IIC_ENABLE                     0x20419b2c /* [RW] BSC Read/Write Enable And Interrupt */
-#define BCHP_BSCC_DATA_OUT0                      0x20419b30 /* [RO] BSC Read Data Register 0 */
-#define BCHP_BSCC_DATA_OUT1                      0x20419b34 /* [RO] BSC Read Data Register 1 */
-#define BCHP_BSCC_DATA_OUT2                      0x20419b38 /* [RO] BSC Read Data Register 2 */
-#define BCHP_BSCC_DATA_OUT3                      0x20419b3c /* [RO] BSC Read Data Register 3 */
-#define BCHP_BSCC_DATA_OUT4                      0x20419b40 /* [RO] BSC Read Data Register 4 */
-#define BCHP_BSCC_DATA_OUT5                      0x20419b44 /* [RO] BSC Read Data Register 5 */
-#define BCHP_BSCC_DATA_OUT6                      0x20419b48 /* [RO] BSC Read Data Register 6 */
-#define BCHP_BSCC_DATA_OUT7                      0x20419b4c /* [RO] BSC Read Data Register 7 */
-#define BCHP_BSCC_CTLHI_REG                      0x20419b50 /* [RW] BSC Control Register */
-#define BCHP_BSCC_SCL_PARAM                      0x20419b54 /* [RW] BSC SCL Parameter Register */
+#define BCHP_BSCC_CHIP_ADDRESS                   0x20419b00 /* [RW][32] BSC Chip Address And Read/Write Control */
+#define BCHP_BSCC_DATA_IN0                       0x20419b04 /* [RW][32] BSC Write Data Register 0 */
+#define BCHP_BSCC_DATA_IN1                       0x20419b08 /* [RW][32] BSC Write Data Register 1 */
+#define BCHP_BSCC_DATA_IN2                       0x20419b0c /* [RW][32] BSC Write Data Register 2 */
+#define BCHP_BSCC_DATA_IN3                       0x20419b10 /* [RW][32] BSC Write Data Register 3 */
+#define BCHP_BSCC_DATA_IN4                       0x20419b14 /* [RW][32] BSC Write Data Register 4 */
+#define BCHP_BSCC_DATA_IN5                       0x20419b18 /* [RW][32] BSC Write Data Register 5 */
+#define BCHP_BSCC_DATA_IN6                       0x20419b1c /* [RW][32] BSC Write Data Register 6 */
+#define BCHP_BSCC_DATA_IN7                       0x20419b20 /* [RW][32] BSC Write Data Register 7 */
+#define BCHP_BSCC_CNT_REG                        0x20419b24 /* [RW][32] BSC Transfer Count Register */
+#define BCHP_BSCC_CTL_REG                        0x20419b28 /* [RW][32] BSC Control Register */
+#define BCHP_BSCC_IIC_ENABLE                     0x20419b2c /* [RW][32] BSC Read/Write Enable And Interrupt */
+#define BCHP_BSCC_DATA_OUT0                      0x20419b30 /* [RO][32] BSC Read Data Register 0 */
+#define BCHP_BSCC_DATA_OUT1                      0x20419b34 /* [RO][32] BSC Read Data Register 1 */
+#define BCHP_BSCC_DATA_OUT2                      0x20419b38 /* [RO][32] BSC Read Data Register 2 */
+#define BCHP_BSCC_DATA_OUT3                      0x20419b3c /* [RO][32] BSC Read Data Register 3 */
+#define BCHP_BSCC_DATA_OUT4                      0x20419b40 /* [RO][32] BSC Read Data Register 4 */
+#define BCHP_BSCC_DATA_OUT5                      0x20419b44 /* [RO][32] BSC Read Data Register 5 */
+#define BCHP_BSCC_DATA_OUT6                      0x20419b48 /* [RO][32] BSC Read Data Register 6 */
+#define BCHP_BSCC_DATA_OUT7                      0x20419b4c /* [RO][32] BSC Read Data Register 7 */
+#define BCHP_BSCC_CTLHI_REG                      0x20419b50 /* [RW][32] BSC Control Register */
+#define BCHP_BSCC_SCL_PARAM                      0x20419b54 /* [RW][32] BSC SCL Parameter Register */
 
 #endif /* #ifndef BCHP_BSCC_H__ */
 

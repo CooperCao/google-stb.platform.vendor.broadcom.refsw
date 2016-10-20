@@ -85,7 +85,7 @@ typedef struct BVDC_P_SurfaceInfo
     BAVC_Gfx_Picture                stAvcPic;            /* AVC gfx pic passed by user */
 
     /* main surface */
-    uint32_t                        ulAddress;           /* main surface pixel addr */
+    BMMA_DeviceOffset               ullAddress;          /* main surface pixel addr */
     uint32_t                        ulPitch;             /* main surface pitch  */
     uint32_t                        ulWidth;             /* main surface width */
     uint32_t                        ulHeight;            /* main surface height */
@@ -102,7 +102,7 @@ typedef struct BVDC_P_SurfaceInfo
      * However, this assumption is checked during validation
      * and an error is returned if proven otherwise.
      */
-    uint32_t                        ulRAddress;          /* right surface pixel addr */
+    BMMA_DeviceOffset               ullRAddress;         /* right surface pixel addr */
 
     /* dirty bit for AppplyChange */
     bool                            bChangeSurface;
@@ -121,8 +121,8 @@ typedef struct BVDC_P_GfxSurNode
 
     bool                            bExeDuringSet;       /* RUL executed while setting */
     uint32_t                        ulVsyncCntr;         /* vsync cntr seen after setting */
-    uint32_t                        ulAddr;              /* main surface pixel addr */
-    uint32_t                        ulRAddr;             /* right surface pixel addr */
+    BMMA_DeviceOffset               ullAddr;             /* main surface pixel addr */
+    BMMA_DeviceOffset               ullRAddr;            /* right surface pixel addr */
     uint32_t                        ulPitch;             /* surface pitch */
 
 } BVDC_P_GfxSurNode;
@@ -162,7 +162,7 @@ typedef struct BVDC_P_GfxSurfaceContext
     uint32_t                         ulRSurAddrReg[2];
     uint32_t                         ulRegIdxReg;
 
-    uint32_t                         ulRegIdx;
+    BMMA_DeviceOffset                ullRegIdx;
 
     /* vsync counter register for stSurNode managing,
      * it is updated by RUL when it is executed, and is read by CPU

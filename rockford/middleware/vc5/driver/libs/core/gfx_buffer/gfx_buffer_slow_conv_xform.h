@@ -5,6 +5,7 @@
 #pragma once
 
 #include "libs/core/lfmt/lfmt_block.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 #include "gfx_buffer.h"
 
 VCOS_EXTERN_C_BEGIN

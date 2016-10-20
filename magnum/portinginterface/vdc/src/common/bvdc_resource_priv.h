@@ -64,14 +64,13 @@ typedef enum BVDC_P_ResourceType
     /* shared resources represented by handle */
     BVDC_P_ResourceType_eVfd = 0,          /* shared VFD */
     BVDC_P_ResourceType_eCap,              /* shared CAP */
-    BVDC_P_ResourceType_eMad,              /* shared MAD */
     BVDC_P_ResourceType_eXsrc,             /* shared XSRC */
+    BVDC_P_ResourceType_eVfc,              /* shared VFC */
     BVDC_P_ResourceType_eTntd,             /* shared TNTD */
     BVDC_P_ResourceType_eMcvp,             /* shared Mcvp */
     BVDC_P_ResourceType_eDnr,              /* shared DNR */
     BVDC_P_ResourceType_eBoxDetect,        /* shared box detetct */
     BVDC_P_ResourceType_eScl,              /* shared SCL */
-    BVDC_P_ResourceType_eHist,             /* shared HIST */
     BVDC_P_ResourceType_eVnetCrc,          /* shared vnet_b crc */
 
     /* separator between handle resources and HwId resources */

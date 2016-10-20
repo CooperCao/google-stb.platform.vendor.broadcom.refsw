@@ -57,6 +57,12 @@
 
 BDBG_MODULE(nexus_sage_svp);
 
+union sageSvpSharedMem
+{
+    BAVC_CoreList coreList;
+    uint64_t heapInfo[2][BCHP_P_MEMC_COUNT+1]; /* URR(s) + XRR */
+};
+
 struct sageSvpInfo {
     BSAGElib_ClientHandle sagelibClientHandle;
     BSAGElib_RpcRemoteHandle hSagelibRpcPlatformHandle;
@@ -67,7 +73,7 @@ struct sageSvpInfo {
     BKNI_EventHandle indication;
     BKNI_EventHandle initEvent;
     bool init; /* SVP delayed init complete */
-    uint8_t *pCoreList;
+    uint8_t *pSharedMem;
     NEXUS_ThreadHandle hThread;
     struct
     {
@@ -80,6 +86,7 @@ struct sageSvpInfo {
     struct {
         unsigned refcnt, toggles;
     } aeCoreStat[BAVC_CoreId_eMax];
+    uint32_t apiVer;
 };
 
 static const struct {
@@ -214,9 +221,9 @@ static BERR_Code NEXUS_Sage_SVP_P_WaitForSage(int timeoutMsec)
     }
     else
     {
-        if (lHandle->sageContainer->basicOut[0] != BERR_SUCCESS)
+        if (lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_RETCODE] != BERR_SUCCESS)
         {
-            rc = BERR_TRACE(lHandle->sageContainer->basicOut[0]);
+            rc = BERR_TRACE(lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_RETCODE]);
         }
     }
 
@@ -225,27 +232,71 @@ done:
     return rc;
 }
 
-static NEXUS_Error NEXUS_Sage_SVP_P_SetState(secureVideo_Toggle_e urr, secureVideo_Toggle_e xrr)
+/* Note... this WILL result in nexus/sage getting out of sync... this should be
+fine as long as any nexus app is following the rules... but you could shoot
+yourself in the foot if you try to do dynamic urr */
+/* The long and short... any attempts to toggle either gfx or urr, will result in
+* ALL gfx/urr getting toggled. This should be fine if the app intends to toggle
+* everything (i.e. pre-dynamic-urr) and correctly walks through all nexus heaps */
+static NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps_2_5(bool disable)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_SecurityKeySlotSettings keySlotSettings;
     NEXUS_KeySlotHandle scrubbingKeyHandle = 0;
     NEXUS_SecurityKeySlotInfo  keyslotInfo;
     uint8_t *pDmaMemoryPool = NULL;
     unsigned size = 4*1024;
+    /* Actually missed deleting this enum... not needed w/ new code */
+    secureVideo_Toggle_e xrr=bvn_monitor_Command_eIgnore, urr=bvn_monitor_Command_eIgnore;
+    unsigned heapIndex;
+    BERR_Code rc;
 
-#ifdef NEXUS_SAGE_SVP_TEST
-    /* TODO */
-#endif
-
-    rc=NEXUS_Sage_SVP_isReady();
-    if(rc!=NEXUS_SUCCESS)
+    if(disable)
     {
-        goto EXIT;
+        /* Disable everything */
+        xrr=bvn_monitor_Command_eDisable;
+        urr=bvn_monitor_Command_eDisable;
+    }
+    else
+    {
+        urr=bvn_monitor_Command_eEnable;
+
+        for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+            NEXUS_MemoryStatus status;
+
+            NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
+            if (!heap)
+            {
+                continue;
+            }
+
+            rc = NEXUS_Heap_GetStatus(heap, &status);
+            if (rc!=NEXUS_SUCCESS)
+            {
+                continue;
+            }
+
+            if (!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
+            {
+                continue;
+            }
+
+            if((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) ||
+                (status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) ||
+                (status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS))
+            {
+                if(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF)
+                {
+                    /* Anything marked as unsecure means we toggle everything off */
+                    urr=bvn_monitor_Command_eDisable;
+                }
+            }
+
+        }
     }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
+
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
     lHandle->sageContainer->basicIn[1]=(int32_t)urr;
     lHandle->sageContainer->basicIn[2]=(int32_t)xrr;
 
@@ -257,11 +308,11 @@ static NEXUS_Error NEXUS_Sage_SVP_P_SetState(secureVideo_Toggle_e urr, secureVid
         keySlotSettings.client = NEXUS_SecurityClientType_eSage;
         scrubbingKeyHandle = NEXUS_Security_AllocateKeySlot(&keySlotSettings);
         if(scrubbingKeyHandle == NULL)
-        {
+         {
             rc = NEXUS_UNKNOWN;
             BDBG_ERR(("NEXUS_Security_AllocateKeySlot() failure"));
             goto EXIT;
-        }
+         }
 
         NEXUS_Security_GetKeySlotInfo(scrubbingKeyHandle, &keyslotInfo);
         lHandle->sageContainer->basicIn[3] = (int32_t)keyslotInfo.keySlotNumber;
@@ -275,6 +326,7 @@ static NEXUS_Error NEXUS_Sage_SVP_P_SetState(secureVideo_Toggle_e urr, secureVid
             BDBG_ERR(("%s - Error calling SRAI_Memory_Allocate()", __FUNCTION__));
             goto EXIT;
         }
+
         lHandle->sageContainer->blocks[0].data.ptr  = pDmaMemoryPool;
         lHandle->sageContainer->blocks[0].len = size;
     }
@@ -283,11 +335,10 @@ static NEXUS_Error NEXUS_Sage_SVP_P_SetState(secureVideo_Toggle_e urr, secureVid
             bvn_monitor_CommandId_eToggle, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eToggle, lHandle->uiLastAsyncId));
-
-    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TOGGLE_TIMEOUT);
+    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
     if (rc != BERR_SUCCESS)
     {
-        rc = BERR_TRACE(rc);
+        rc=BERR_TRACE(rc);
     }
 
 EXIT:
@@ -300,6 +351,107 @@ EXIT:
         NEXUS_Security_FreeKeySlot(scrubbingKeyHandle);
     }
 
+    return rc;
+}
+
+NEXUS_Error NEXUS_Sage_SVP_P_UpdateHeaps(bool disable)
+{
+    unsigned heapIndex;
+    NEXUS_Error rc = NEXUS_SUCCESS;
+    uint64_t *start=(uint64_t *)lHandle->pSharedMem;
+    uint64_t *size=(uint64_t *)(lHandle->pSharedMem+(sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1)));
+
+#ifdef NEXUS_SAGE_SVP_TEST
+    /* TODO */
+#endif
+
+    rc=NEXUS_Sage_SVP_isReady();
+    if(rc!=NEXUS_SUCCESS)
+    {
+        goto EXIT;
+    }
+
+    switch(lHandle->apiVer)
+    {
+        case 0x00020005:
+            return NEXUS_Sage_SVP_P_UpdateHeaps_2_5(disable);
+        default:
+            break;
+    }
+
+    BKNI_Memset(lHandle->pSharedMem, 0, sizeof(union sageSvpSharedMem));
+
+    for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
+        NEXUS_MemoryStatus status;
+
+        NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
+        if (!heap)
+        {
+            continue;
+        }
+
+        rc = NEXUS_Heap_GetStatus(heap, &status);
+        if (rc!=NEXUS_SUCCESS)
+        {
+            continue;
+        }
+
+        if (!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
+        {
+            continue;
+        }
+
+        if(status.heapType & NEXUS_HEAP_TYPE_EXPORT_REGION)
+        {
+            start[BCHP_P_MEMC_COUNT]=status.offset;
+            if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
+            {
+                size[BCHP_P_MEMC_COUNT]=status.size;
+            }
+            continue;
+        }
+
+        if((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) ||
+            (status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) ||
+            (status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS))
+        {
+            if((start[status.memcIndex]==0) ||
+                ((size[status.memcIndex]==0) && !(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF)))
+            {
+                start[status.memcIndex]=(uint32_t)status.offset;
+            }
+
+            if(!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE_OFF))
+            {
+                size[status.memcIndex]+=status.size;
+            }
+        }
+    }
+
+    if(disable)
+    {
+        BKNI_Memset(size, 0, sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1));
+    }
+
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_UPDATEHEAPS_IN_COUNT]=BCHP_P_MEMC_COUNT+1;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].len=sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_START].data.ptr=(uint8_t *)start;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].len=sizeof(uint64_t)*(BCHP_P_MEMC_COUNT+1);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_UPDATEHEAPS_BLOCK_SIZE].data.ptr=(uint8_t *)size;
+
+    rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
+            bvn_monitor_CommandId_eUpdateHeaps, lHandle->sageContainer, &lHandle->uiLastAsyncId);
+    BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
+              (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eUpdateHeaps, lHandle->uiLastAsyncId));
+    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+    if (rc != BERR_SUCCESS)
+    {
+        rc = BERR_TRACE(rc);
+    }
+
+EXIT:
     return rc;
 }
 
@@ -329,6 +481,30 @@ void NEXUS_Sage_P_SvpUninit(void)
     /* Free local info */
     BKNI_Free(lHandle);
     lHandle=NULL;
+}
+
+static void NEXUS_Sage_P_SvpHandleApiVer(uint32_t sageApiVersion)
+{
+    if(sageApiVersion==lHandle->apiVer)
+    {
+        return;
+    }
+
+    BDBG_MSG(("HOST (0x%08x) vs. SAGE (0x%08x)", lHandle->apiVer, sageApiVersion));
+
+    switch(sageApiVersion)
+    {
+        case 0: /* Intentional fall-through.. */
+                /* Pre 0x00020006, SAGE did not return a version (i.e. 0) */
+                /* No Pre 0x00020006 release made with sage 3.x other than 0x00020005 */
+        case 0x00020005: /* Can handle this, but not ideal */
+            BDBG_WRN(("OLDER SAGE SVP API VERSION SET DETECTED!"));
+            lHandle->apiVer=0x00020005;
+            break;
+        default:
+            BDBG_ERR(("INCOMPATIBLE SAGE SVP API VERSION SET. SVP WILL NOT BE FUNCTIONAL"));
+            break;
+    }
 }
 
 /* Some of the init needs to be delayed until SAGE is running */
@@ -518,8 +694,10 @@ static void NEXUS_Sage_P_SvpInitDelayed(void *dummy)
     BDBG_MSG(("Initialized SAGE SVP Module: receivedSageModuleHandle [%p], assignedAsyncId [0x%x]",
               (void*)lHandle->hSagelibRpcModuleHandle, lHandle->uiLastAsyncId));
 
+    NEXUS_Sage_P_SvpHandleApiVer(lHandle->sageContainer->basicOut[SECURE_VIDEO_OUT_VER]);
+
     /* Allocate some shared memory */
-    lHandle->pCoreList = BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, sizeof(BAVC_CoreList), BSAGElib_MemoryType_Global);
+    lHandle->pSharedMem = BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, sizeof(union sageSvpSharedMem), BSAGElib_MemoryType_Global);
 
     /* Set URR state to match nexus */
     /* I.e. normally this would be secure, but if coming out of S3, may not be */
@@ -560,7 +738,7 @@ EXIT:
     /* This has to be after event */
     if(lHandle->hSagelibRpcModuleHandle)
     {
-        NEXUS_Sage_SVP_P_SetState(urr, bvn_monitor_Command_eEnable);
+        NEXUS_Sage_SVP_P_UpdateHeaps(false);
     }
 
     BDBG_MSG(("SAGE SVP init complete (0x%x)", rc));
@@ -621,6 +799,8 @@ NEXUS_Error NEXUS_Sage_P_SvpInit(void)
         goto ERROR_EXIT;
     }
 
+    lHandle->apiVer=SECURE_VIDEO_VER_ID;
+
     return NEXUS_SUCCESS;
 
 ERROR_EXIT:
@@ -676,7 +856,7 @@ void NEXUS_Sage_P_SvpStop(bool reset)
         if(!reset) /* On a SAGE reset, don't try to communicate */
         {
             /* Scrub first, failure to do so may result in not being able to restart nexus */
-            NEXUS_Sage_SVP_P_SetState(bvn_monitor_Command_eDisable, bvn_monitor_Command_eDisable);
+            NEXUS_Sage_SVP_P_UpdateHeaps(true);
 
             BSAGElib_Rai_Module_Uninit(lHandle->hSagelibRpcModuleHandle, &lHandle->uiLastAsyncId);
             rc=NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
@@ -714,10 +894,10 @@ void NEXUS_Sage_P_SvpStop(bool reset)
     }
 
     /* Free memory */
-    if(lHandle->pCoreList)
+    if(lHandle->pSharedMem)
     {
-        BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, lHandle->pCoreList);
-        lHandle->pCoreList = NULL;
+        BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, lHandle->pSharedMem);
+        lHandle->pSharedMem = NULL;
     }
 
     /* Free container */
@@ -737,7 +917,8 @@ void NEXUS_Sage_P_SvpStop(bool reset)
 
 NEXUS_Error NEXUS_Sage_P_SvpEnterS3(void)
 {
-    return NEXUS_Sage_SVP_P_SetState(bvn_monitor_Command_eDisable, bvn_monitor_Command_eDisable);
+    /* Scrub */
+    return NEXUS_Sage_SVP_P_UpdateHeaps(true);
 }
 
 NEXUS_Error NEXUS_Sage_P_SvpSetRegions(void)
@@ -847,97 +1028,15 @@ EXIT:
     return rc;
 }
 
-
 /* Not to be called from within SAGE module itself */
-NEXUS_Error NEXUS_Sage_UrrToggle(bool enable)
+NEXUS_Error NEXUS_Sage_UpdateHeaps(void)
 {
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    secureVideo_Toggle_e urr;
-
-    urr=enable ? bvn_monitor_Command_eEnable : bvn_monitor_Command_eDisable;
+    NEXUS_Error rc;
 
     NEXUS_LockModule();
 
-    rc = NEXUS_Sage_SVP_P_SetState(urr, bvn_monitor_Command_eIgnore);
+    rc=NEXUS_Sage_SVP_P_UpdateHeaps(false);
 
-    NEXUS_UnlockModule();
-
-    return rc;
-}
-
-/* Not to be called from within SAGE module itself */
-NEXUS_Error NEXUS_Sage_UpdateUrr(void)
-{
-    unsigned heapIndex;
-    NEXUS_Error rc = NEXUS_SUCCESS;
-    uint32_t start[3] = {0,0,0}, len[3] = {0,0,0};
-
-    NEXUS_LockModule();
-
-#ifdef NEXUS_SAGE_SVP_TEST
-    /* TODO */
-#endif
-    rc=NEXUS_Sage_SVP_isReady();
-    if(rc!=NEXUS_SUCCESS)
-    {
-        goto EXIT;
-    }
-
-    for (heapIndex=0;heapIndex<NEXUS_MAX_HEAPS;heapIndex++) {
-        NEXUS_MemoryStatus status;
-
-        NEXUS_HeapHandle heap = g_pCoreHandles->heap[heapIndex].nexus;
-        if (!heap)
-        {
-            continue;
-        }
-
-        rc = NEXUS_Heap_GetStatus(heap, &status);
-        if (rc!=NEXUS_SUCCESS)
-        {
-            continue;
-        }
-
-        if (!(status.memoryType & NEXUS_MEMORY_TYPE_SECURE))
-        {
-            continue;
-        }
-
-        if ((status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFER_EXT) ||
-            (status.heapType & NEXUS_HEAP_TYPE_PICTURE_BUFFERS) ||
-            (status.heapType & NEXUS_HEAP_TYPE_SECURE_GRAPHICS))
-        {
-            /* Either "picture buffer ext", "secure gfx", or picture buffer heap */
-            /* Assume all adjacent */
-            /* SAGE will error if "new" urr is not valid */
-            if((start[status.memcIndex]==0)||(status.offset<start[status.memcIndex]))
-            {
-                start[status.memcIndex]=(uint32_t)status.offset;
-            }
-            len[status.memcIndex]+=status.size;
-        }
-    }
-
-    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
-    lHandle->sageContainer->basicIn[1]=start[0];
-    lHandle->sageContainer->basicIn[2]=len[0];
-    lHandle->sageContainer->basicIn[3]=start[1];
-    lHandle->sageContainer->basicIn[4]=len[1];
-    lHandle->sageContainer->basicIn[5]=start[2];
-    lHandle->sageContainer->basicIn[6]=len[2];
-
-    rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
-            bvn_monitor_CommandId_eUpdateUrr, lHandle->sageContainer, &lHandle->uiLastAsyncId);
-    BDBG_MSG(("Sending command to SAGE: sageModuleHandle [%p], commandId [%d], assignedAsyncId [0x%x]",
-              (void*)lHandle->hSagelibRpcModuleHandle, bvn_monitor_CommandId_eUpdateUrr, lHandle->uiLastAsyncId));
-    rc = NEXUS_Sage_SVP_P_WaitForSage(SAGERESPONSE_TIMEOUT);
-    if (rc != BERR_SUCCESS)
-    {
-        rc = BERR_TRACE(rc);
-    }
-
-EXIT:
     NEXUS_UnlockModule();
 
     return rc;
@@ -978,11 +1077,12 @@ NEXUS_Error NEXUS_Sage_AddSecureCores(const BAVC_CoreList *pCoreList)
     }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    BKNI_Memcpy(lHandle->pCoreList, pCoreList, sizeof(*pCoreList));
-    lHandle->sageContainer->blocks[0].len = sizeof(*pCoreList);
-    lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
-    lHandle->sageContainer->basicIn[1]=true;
-    lHandle->sageContainer->blocks[0].data.ptr = lHandle->pCoreList;
+    BKNI_Memset(lHandle->pSharedMem, 0, sizeof(union sageSvpSharedMem));
+    BKNI_Memcpy(lHandle->pSharedMem, pCoreList, sizeof(*pCoreList));
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD]=true;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem;
 
     rc = BSAGElib_Rai_Module_ProcessCommand(lHandle->hSagelibRpcModuleHandle,
             bvn_monitor_CommandId_eSetCores, lHandle->sageContainer, &lHandle->uiLastAsyncId);
@@ -1056,11 +1156,12 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
     }
 
     BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
-    BKNI_Memcpy(lHandle->pCoreList, pCoreList, sizeof(*pCoreList));
-    lHandle->sageContainer->blocks[0].len = sizeof(*pCoreList);
-    lHandle->sageContainer->basicIn[0]=SECURE_VIDEO_VER_ID;
-    lHandle->sageContainer->basicIn[1]=false;
-    lHandle->sageContainer->blocks[0].data.ptr = lHandle->pCoreList;
+    BKNI_Memset(lHandle->pSharedMem, 0, sizeof(union sageSvpSharedMem));
+    BKNI_Memcpy(lHandle->pSharedMem, pCoreList, sizeof(*pCoreList));
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_IN_VER]=lHandle->apiVer;
+    lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_ADD]=false;
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].len = sizeof(*pCoreList);
+    lHandle->sageContainer->blocks[SECURE_VIDEO_SETCORES_BLOCK_CORELIST].data.ptr = lHandle->pSharedMem;
 
     /* Some check on 3D.. must have a secure gfx heap to allow this */
     if(pCoreList->aeCores[BAVC_CoreId_eV3D_0] || pCoreList->aeCores[BAVC_CoreId_eV3D_1])
@@ -1094,8 +1195,8 @@ void NEXUS_Sage_RemoveSecureCores(const BAVC_CoreList *pCoreList)
             }
 
             /* TODO.. verify casting? */
-            lHandle->sageContainer->basicIn[2]=(uint32_t)offset;
-            lHandle->sageContainer->basicIn[3]=SECURE_VIDEO_V3D_SIZE;
+            lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_V3D_OFFSET]=(uint32_t)offset;
+            lHandle->sageContainer->basicIn[SECURE_VIDEO_SETCORES_IN_V3D_SIZE]=SECURE_VIDEO_V3D_SIZE;
         }
     }
 

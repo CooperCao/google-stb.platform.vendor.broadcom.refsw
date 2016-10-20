@@ -49,10 +49,6 @@ static_assrt(KHRN_FMEM_MAX_PER_RS > 0);
 
 typedef struct
 {
-   /* If this is set, it means V3D may write to this buffer and it may be read
-    * on the CPU after the frame has completed. eg This should be set if the
-    * buffer contains occlusion query counters. */
-   bool is_render_output;
    bool in_use;
 
    gmem_handle_t handle;
@@ -103,11 +99,7 @@ static inline bool khrn_fmem_pool_should_flush(KHRN_FMEM_POOL_T *pool)
    return pool->n_buffers >= KHRN_FMEM_MAX_PER_RS;
 }
 
-extern void khrn_fmem_pool_mark_as_render_output(KHRN_FMEM_POOL_T *pool, void *address);
-
 /* Mark the end of a block allocated from khrn_fmem_pool_alloc. */
 extern void khrn_fmem_pool_finalise_end(KHRN_FMEM_POOL_T *pool, void *address);
-
-extern void khrn_fmem_pool_pre_cpu_read_outputs(const KHRN_FMEM_POOL_T *pool);
 
 #endif

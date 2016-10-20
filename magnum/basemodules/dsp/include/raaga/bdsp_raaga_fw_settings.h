@@ -111,8 +111,6 @@
 /* BDSP_AudioProcessing */
 #define BDSP_Raaga_DtsNeoSettings                   BDSP_Raaga_Audio_ProcessingConfigParams
 #define BDSP_Raaga_AVLSettings                      BDSP_Raaga_Audio_AVLConfigParams
-#define BDSP_Raaga_PLllSettings                     BDSP_Raaga_Audio_PL2ConfigParams
-#define BDSP_Raaga_SrsXtSettings                    BDSP_Raaga_Audio_TruSurrndXTConfigParams
 #define BDSP_Raaga_BbeSettings                      BDSP_Raaga_Audio_ProcessingConfigParams
 #define BDSP_Raaga_SrcSettings                      BDSP_Raaga_Audio_SRCUserConfigParams
 #define BDSP_Raaga_CustomVoiceSettings              BDSP_Raaga_Audio_CustomVoiceConfigParams
@@ -121,7 +119,6 @@
 #define BDSP_Raaga_SrsHdSettings                    BDSP_Raaga_Audio_TruSurrndHDConfigParams
 #define BDSP_Raaga_GenericPassThruSettings          BDSP_Raaga_Audio_PassthruConfigParams
 #define BDSP_Raaga_SrsTruVolumeSettings             BDSP_Raaga_Audio_TruVolumeUserConfig
-#define BDSP_Raaga_DolbyVolumeSettings              BDSP_Raaga_Audio_DolbyVolumeUserConfig
 #define BDSP_Raaga_Brcm3DSurroundSettings           BDSP_Raaga_Audio_Brcm3DSurroundConfigParams
 #define BDSP_Raaga_FWMixerSettings                  BDSP_Raaga_Audio_ProcessingConfigParams
 #define BDSP_Raaga_DdreSettings                     BDSP_Raaga_Audio_DDReencodeConfigParams
@@ -144,7 +141,6 @@
 #define BDSP_Raaga_AacLcSettings                    BDSP_Raaga_Audio_AaclcEncConfigParams
 #define BDSP_Raaga_AacHeSettings                    BDSP_Raaga_Audio_AacheEncConfigParams
 #define BDSP_Raaga_Ac3EncodeSettings                BDSP_Raaga_Audio_DDTranscodeConfigParams
-#define BDSP_Raaga_SbcSettings                      BDSP_Raaga_Audio_SbcEncoderUserConfig
 #define BDSP_Raaga_G711G726EncodeSettings           BDSP_Raaga_Audio_G711_G726EncConfigParams
 #define BDSP_Raaga_G729EncodeSettings               BDSP_Raaga_Audio_G729EncoderUserConfig
 #define BDSP_Raaga_G723_1EncodeSettings             BDSP_Raaga_Audio_G723EncoderUserConfig
@@ -403,6 +399,7 @@ typedef struct BDSP_Raaga_Audio_MpegConfigParams
     uint32_t    ui32AncDataParseEnable;         /* Flag to enable MPEG Ancillary Data Parsing: Default 0 (Disable)*/
     BDSP_AF_P_sSINGLE_CIRC_BUFFER   sAncDataCircBuff;       /* Ancillary RDB Buffer Structure */
     uint32_t    ui32OutputChannelMatrix[BDSP_AF_P_MAX_CHANNELS];
+    BDSP_Raaga_eBOOLEAN eMonotoStereoDownScale;
 }BDSP_Raaga_Audio_MpegConfigParams;
 
 
@@ -1092,7 +1089,6 @@ typedef struct  BDSP_Raaga_Audio_Ac3EncConfigParams
 
 }BDSP_Raaga_Audio_Ac3EncConfigParams;
 
-
 /*
    This data structure defines SRC user configuration parameters
 */
@@ -1144,25 +1140,6 @@ typedef enum
     BDSP_Raaga_Audio_ADChannelConfig_eLast,
     BDSP_Raaga_Audio_ADChannelConfig_eInvalid = 0x7FFFFFFF
 }BDSP_Raaga_Audio_ADChannelConfig;
-
-
-typedef struct  BDSP_Raaga_Audio_AudioDescPanConfigParams
-{
-    /* Range 0 (mute)-0x7ffffffff(0Db) */
-
-    int32_t    i32UserVolumeLevel;      /*Default - 0x7fffffff */
-
-    uint32_t   ui32PanFadeInterfaceAddr;/* This is a Dram Structure having the type 'BDSP_Raaga_Audio_sPanFadeIf'*/
-
-    BDSP_Raaga_Audio_ADChannelConfig eADChannelConfig; /*This will give the AD channel is
-                                                    enable or disable. Default of this
-                                                    is Enable*/
-    uint32_t ui32PanFadeInterfaceValidFlag;      /*Default value will be zero and set to 1 when the InterFaceAddr is filled*/
-
-    uint32_t ui32AudioRampTimeInMs;                 /*Default value should be 1000. Range 0 to 4Sec  */
-
-}BDSP_Raaga_Audio_AudioDescPanConfigParams;
-
 
 /*
    This data structure defines Frame sync configuration parameters
@@ -1230,54 +1207,6 @@ typedef enum BDSP_Raaga_Audio_SpeakerSize
 
 } BDSP_Raaga_Audio_SpeakerSize;
 
-
-/*
-    This data structure defines Tru Surrnd-XT configuration parameters
-*/
-typedef struct  BDSP_Raaga_Audio_TruSurrndXTConfigParams
-{
-    /* TruSurround options  */
-    uint32_t   ui32TSEnable;            /* Default value = Enable:  Enable =1 Disable =0 */
-    uint32_t   ui32TSHeadphone;         /* Default value = Disable:  Enable =1 Disable =0 */
-    int32_t    i32TruSurroundInputGain; /* Default value 0x40000000 corresponding to 1. Fixed point range 0 to 0x7fffffff. Floating point range 0 to 2*/
-
-    /*DialogClarity options*/
-    uint32_t   ui32DialogClarityEnable; /* Default value = Enable:  Enable =1 Disable =0 */
-    uint32_t   ui32DialogClarityLevel;   /*Default value 0x40000000 corresponding to 0.5. Fixed point range 0 to 0x7fffffff. Floating point range 0 to 1*/
-
-    /* TruBass options */
-    uint32_t   ui32TBEnable;                /* Default value = Enable:  Enable =1 Disable =0 */
-    int32_t    i32TBLevel;                   /* Default value 4CCCCCCD corresponding to 0.6. Fixed point range 0 to 0x7fffffff. Floating point range 0 to 1.0 */
-    BDSP_Raaga_Audio_SpeakerSize eTBSpeakerSize; /* Default value BDSP_Raaga_Audio_SpeakerSize_eLFResponse60Hz */
-
-    /* Certification related options */
-    uint32_t  ui32CertificationEnableFlag;   /*Default value is 0.  Set to 1 while doing certification*/
-    BDSP_Raaga_Audio_AcMode            eAcMode; /*Varies depending on the input mode to be certified*/
-
-}BDSP_Raaga_Audio_TruSurrndXTConfigParams;
-
-
-/*
-    This data structure defines Dolby Prologic II configuration parameters
-*/
-
-typedef struct BDSP_Raaga_Audio_PL2ConfigParams
-{
-    uint32_t  ui32enable;       /* Default value = Enable:   Enable =1 Disable =0 */
-    uint32_t  ui32abalflg;      /* Default value = Disable:  Enable =1 Disable =0 */
-    uint32_t  ui32decmode;      /* Default = 3*/
-    uint32_t  ui32chancfg;      /* Default = 7*/
-    uint32_t  ui32cwidthcfg;    /* Default = 3*/
-    uint32_t  ui32dimcfg;       /* Default = 3*/
-    uint32_t  ui32panoramaflg;  /* Default value = Disable:  Enable =1 Disable =0 */
-    uint32_t  ui32sfiltflg;     /* Default value = Disable:  Enable =1 Disable =0 */
-    uint32_t  ui32rspolinvflg;  /* Default value = Disable:  Enable =1 Disable =0 */
-    uint32_t  ui32pcmscl;       /* Default = 100 */
-    uint32_t  ui32debugOn;      /* Default value = Off:  On =1 Off =0 */
-    uint32_t  ui32outputch;     /* Default = 0*/
-
-} BDSP_Raaga_Audio_PL2ConfigParams;
-
 /*
     This data structure defines DVD LPCM configuration parameters
 */
@@ -1343,56 +1272,6 @@ typedef struct BDSP_Raaga_Audio_FadeCtrlConfigParams
 } BDSP_Raaga_Audio_FadeCtrlConfigParams;
 
 /*
-    This data structure defines Custom bass configuration parameters
-*/
-
-typedef struct BDSP_Raaga_Audio_CustomBassUserConfig
-{
-
-    uint32_t ui32enable;                /* Enable =1 Disable =0 Default=Enable */
-    uint32_t ui32operation;             /* 0 (AGC and Harmonics) */
-    uint32_t ui32agcType;               /* 0 (low and high) */
-    uint32_t ui32harmonicsType;         /* 0 (half wave rectifier) */
-    uint32_t ui32lpfFc;                 /* 0xE (200 Hz) */
-    uint32_t ui32hpfFc;                 /* 0x12 (315 Hz) */
-    uint32_t ui32agcGainMax;            /* 0x12 (6 dB) */
-    uint32_t ui32agcGainMin;            /* 0xC (0 dB) */
-    uint32_t ui32agcAttackTime;         /* 0x2 (5 ms)  */
-    uint32_t ui32agcRelTime;            /* 0x2 (0.5 s)  */
-    uint32_t ui32agcThreshold;          /* 0x16 (-22 dB) */
-    uint32_t ui32agcHpfFc;              /* 0x8 (100 Hz) */
-    uint32_t ui32harLevel;              /* 0 (0 dB) */
-    uint32_t ui32harLpfFc;              /* 0x11 (280 Hz) */
-    uint32_t ui32harHpfFc;              /* 0x8 (100 Hz) */
-
-} BDSP_Raaga_Audio_CustomBassUserConfig;
-
-
-/*
-    This data structure defines Custom Surround configuration parameters
-*/
-typedef struct BDSP_Raaga_Audio_CustomSurroundUserConfig
-{
-    uint32_t ui32enable;        /* Enable =1 Disable =0 Default=Enable */
-    uint32_t ui32combOn;        /* FALSE;      TURE, FALSE*/
-    uint32_t ui32delay;         /* 0;          0x0 ~ 0x1F samples*/
-    uint32_t ui32volume1;       /* 0(0dB);     0x0 ~ 0xC (0dB ~ 12dB), 0xF (infinite)*/
-    uint32_t ui32volume2;       /* 0(0dB);     0x0 ~ 0xC (0dB ~ 12dB), 0xF (infinite)*/
-    uint32_t ui32volume3;       /* 0(0dB);     0x0 ~ 0xC (0dB ~ 12dB), 0xF (infinite)*/
-    uint32_t ui32volume4;       /* 0x1E(-3dB); 0x0 ~ 0x40 (12dB ~ -20dB with half dB step)*/
-    uint32_t ui32volume5;       /* 0x1E(-3dB); 0x0 ~ 0x40 (12dB ~ -20dB with half dB step)*/
-    uint32_t ui32lpfFc;         /* 0x74(8kHz); 0x70 ~ 0x76 (5kHz ~ 10kHz)*/
-    uint32_t ui32lpfQ;          /* 0x44(1.0);  0x40 ~ 0x4F (0.33 ~ 8.20)*/
-    uint32_t ui32lpfGain;       /* 0x56(-6dB); 0x40 ~ 0x4C (0dB ~ 12dB), 0x51 ~ 0x5C (-1dB ~ -12dB) */
-
-    /* The funcVol and inputTrim are independent of SHARP Surround */
-    uint32_t ui32funcVol;       /* 0x40        (0 dB)*/
-    uint32_t ui32inputTrim;     /* 0x14        (-20 dB)*/
-
-} BDSP_Raaga_Audio_CustomSurroundUserConfig;
-
-
-/*
     This data structure defines DTS core configuration parameters
 */
 typedef struct  BDSP_Raaga_Audio_DtsCoreUserConfig
@@ -1409,87 +1288,6 @@ typedef struct  BDSP_Raaga_Audio_DtsCoreConfigParams
     BDSP_Raaga_Audio_DtsCoreUserConfig   sUserOutputCfg[2]; /* These are user config parameters required from user  */
 
 }BDSP_Raaga_Audio_DtsCoreConfigParams;
-
-/*
-    This data structure defines Dolby Volume configuration parameters
-*/
-
-typedef struct BDSP_Raaga_Audio_DolbyVolumeUserConfig
-{
-    /*General Settings*/
-
-    int32_t     i32DolbyVolumeEnable;           /*Range of values -  0 or 1
-
-                                                  As per the new guyidelines from Dolby, i32VolumeIqEnable =1(True) for
-                                                  both when DV is enabled and disabled.
-
-                                                  The controlling factor is now i32LvlEnable
-
-                                                  Default value is 1 (True)
-                                                */
-
-    int32_t     i32BlockSize;                   /*Size of processing block in samples */
-                                                /*Range of values - 256, 512 */
-                                                /*Default value    : 512 */
-    int32_t     i32nBands;                      /*Number of critical bands to use */
-                                                /*Possible values 20 or 40, default 20*/
-
-
-    int32_t     i32nChans;                      /*Number of input/output channels */
-                                                /*Default val 2*/
-
-    /* System Settings*/
-    int32_t     i32InputReferenceLevel;         /*Input reference level in dBSPL */
-                                                /*Range of values(in dB )- (0 to 100 in 8.24 format)*/
-                                                /*Default value :0x4A000000 (74 dB)*/
-
-    int32_t     i32OutputReferenceLevel;        /* Output reference level in dBSPL */
-                                                /*Range of values(in dB) - (0 to 100 in 8.24 format)*/
-                                                /*Default value :0x4A000000 (74 dB)*/
-
-    int32_t     i32Calibration;                 /*Calibration offset in dB */
-                                                /*Range of values(in dB)- (-100 to 30 in 8.24 format)*/
-                                                /*Default value    : 0x00000000 (0 dB)*/
-    int32_t     i32VlmEnable;                   /*Volume modeler on/off */
-                                                /*Possible value 0 and 1, default 1*/
-    int32_t     i32ResetNowFlag;                /*User-input forced reset flag */
-                                                /*Range [0,1], default 0*/
-
-
-    /*Volume Modeler Settings*/
-    int32_t     i32DigitalVolumeLevel;          /*Volume level gain in dB -- applied by dolby volume */
-                                                /*Range of values(in dB) - (-100 to 30 in 8.24 format)*/
-                                                /*Default value    : 0x00000000 (0 dB)*/
-
-    int32_t     i32AnalogVolumeLevel;           /*Volume level gain in dB -- applied after dolby volume */
-                                                /*Range of values(in dB) - (-100 to 30 in 8.24 format)*/
-                                                /*Default value    :  0x00000000 (0 dB)*/
-
-    /*Volume Leveler Settings */
-    int32_t     i32LvlAmount;                   /*Range of values - [0 to 10]*/
-                                                /*Default value     : 9*/
-
-    int32_t     i32LvlEnable;                   /*Range of values -  0=FALSE , 1=TRUE
-
-                                                 i32LvlEnable = 1 When Dolby Volume is Enabled
-                                                 i32LvlEnable = 0 When Dolby Volume is Disabled
-
-                                                 Default value : 1 (TRUE - volume leveler enabled)
-                                                */
-
-    int32_t     i32EnableMidsideProc;           /*Enable midside processing */
-                                                /*Range [0,1], default ->0-> disable*/
-
-    int32_t     i32HalfmodeFlag;                /*Flag to operate Dolby Volume in half mode*/
-                                                /*Range [0,1], default ->0-> disable*/
-    int32_t     i32LimiterEnable;               /*Enable Limter*/
-                                                /*When DV is enabled limiter_enable = TRUE
-                                                  When DV is disabled limiter_enable = FALSE*/
-
-}BDSP_Raaga_Audio_DolbyVolumeUserConfig;
-
-
-
 
 /*
     This data structure defines DTS broadcast decoder configuration parameters
@@ -1852,22 +1650,6 @@ typedef struct BDSP_Raaga_Audio_Mpeg1L3EncConfigParams
     BDSP_Raaga_Audio_Mp3EncodeMonoChannelSelect eMp3EncodeMonoChannelSelect;
 
 }BDSP_Raaga_Audio_Mpeg1L3EncConfigParams;
-
-
-/*
-   This data structure defines SBC Encoder user configuration parameters
-*/
-
-typedef struct BDSP_Raaga_Audio_SbcEncoderUserConfig
-{
-    uint32_t        NumBlocks;      /* Default = 8; Possible Values: 4, 8, 12 and 16 */
-    uint32_t        NumSubbands;    /* Default = 8; Possible Values: 4 and 8 */
-    uint32_t        JointStereo;    /* Default = 1; 0 -> JointStereo OFF, 1 -> JointStereo ON */
-    uint32_t        BitAllocation;  /* Default = 0; 0 -> Loudness, 1 -> SNR */
-    uint32_t        BitPool;        /* Default = 45; Range of Values: 2 to (16 * Number of Channels * Number of Subbands) */
-
-} BDSP_Raaga_Audio_SbcEncoderUserConfig;
-
 
 /*
    This data structure defines AMR Decoder user configuration parameters
@@ -2400,16 +2182,6 @@ typedef struct  BDSP_Raaga_Audio_DDTranscodeConfigParams
     BDSP_AF_P_EnableDisable   eTranscodeEnable;
 
 }BDSP_Raaga_Audio_DDTranscodeConfigParams;
-
-/*
-   This data structure defines Mono Downmix user configuration parameters
-*/
-typedef struct BDSP_Raaga_Audio_MonoDownMixConfigParams
-{
-    int32_t i32MonoDownMixEnableFlag; /*Default=1 Enable =1 Disable =0 */
-
-}BDSP_Raaga_Audio_MonoDownMixConfigParams;
-
 
 /*
 
@@ -5126,26 +4898,17 @@ extern const BDSP_Raaga_Audio_TruVolumeUserConfig BDSP_sDefSrsTruVolumeUserConfi
 extern const BDSP_Raaga_Audio_DDReencodeConfigParams BDSP_sDefDDReencodeUserConfig;
 extern const BDSP_Raaga_Audio_DV258ConfigParams BDSP_sDefDV258UserConfig;
 extern const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrUserConfig;
-extern const BDSP_Raaga_Audio_DolbyVolumeUserConfig BDSP_sDefDolbyVolUserConfig;
-extern const BDSP_Raaga_Audio_PL2ConfigParams BDSP_sDefProLogicIIConfigSettings;
-extern const BDSP_Raaga_Audio_TruSurrndXTConfigParams BDSP_sDefTruSurroundXtSettings;
 extern const BDSP_Raaga_Audio_SRCUserConfigParams   BDSP_sDefaultSrcSettings;
-extern const BDSP_Raaga_Audio_CustomSurroundUserConfig BDSP_sDefCustomSurroundConfigSettings;
-extern const BDSP_Raaga_Audio_CustomBassUserConfig BDSP_sDefaultCustomBassSettings;
 extern const BDSP_Raaga_Audio_CustomVoiceConfigParams BDSP_sDefCustomVoiceConfigSettings;
 extern const BDSP_Raaga_Audio_GenCdbItbConfigParams BDSP_sDefGenCdbItbConfigSettings;
 extern const BDSP_Raaga_Audio_BtscEncoderConfigParams BDSP_sDefBtscEncoderConfigSettings;
-extern const BDSP_Raaga_Audio_AudioDescPanConfigParams BDSP_sDefAdPanConfigSettings;
 extern const BDSP_Raaga_Audio_DtsBroadcastEncConfigParams BDSP_sDefDTSENCConfigSettings;
 extern const BDSP_Raaga_Audio_AacheEncConfigParams BDSP_sDefAacHeENCConfigSettings;
-extern const BDSP_Raaga_Audio_Ac3EncConfigParams BDSP_sDefAc3ENCConfigSettings;
 extern const BDSP_Raaga_Audio_DDTranscodeConfigParams BDSP_sDefDDTranscodeConfigSettings;
 extern const BDSP_Raaga_Audio_G711_G726EncConfigParams BDSP_sDefG711G726EncConfigSettings;
 extern const BDSP_Raaga_Audio_G729EncoderUserConfig BDSP_sDefG729EncConfigSettings;
 extern const BDSP_Raaga_Audio_Mpeg1L3EncConfigParams   BDSP_sDefMpeg1L3EncConfigSettings;
-extern const BDSP_Raaga_Audio_SbcEncoderUserConfig   BDSP_sDefSbcEncConfigSettings;
 extern const BDSP_Raaga_Audio_Brcm3DSurroundConfigParams   BDSP_sDefBrcm3DSurroundConfigSettings;
-extern const BDSP_Raaga_Audio_MonoDownMixConfigParams   BDSP_sDefMonoDownmixConfigSettings;
 extern const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings;
 extern const BDSP_Raaga_Audio_DsolaConfigParams BDSP_sDefDsolaConfigSettings;
 extern const BDSP_Raaga_Audio_FadeCtrlConfigParams BDSP_sDefFadeCtrlConfigSettings;

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #############################################################################
 # Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #

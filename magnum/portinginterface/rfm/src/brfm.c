@@ -44,29 +44,9 @@
 #include "bchp_rfm_l2.h"
 #include "bchp_rfm_sysclk.h"
 #include "bchp_int_id_rfm_l2.h"
-#if (BCHP_CHIP==7420)
-#include "bchp_int_id_rfm_bbe_l2.h"
-#endif
 #include "brfm_priv.h"
 #include "brfm_scripts.h"
-
-#if BRFM_DUAL_DAC
-#include "bchp_rfm_bbe_sysclk.h"
-#include "bchp_rfm_bbe_clk27.h"
-#include "bbe/brfm_scripts_bbe.h"
-#if (BRFM_REVID==50)
-#include "bchp_rfm_bbe_l2.h"
-#endif
-#endif /* BRFM_DUAL_DAC */
-
-#if (BRFM_REVID>=40)
-#if (BCHP_CHIP==7325) || (BCHP_CHIP==7552)  || (BCHP_CHIP==7429) || (BCHP_CHIP==7360)  || (BCHP_CHIP==7584) || (BCHP_CHIP==7445) || (BCHP_CHIP==7145) || (BCHP_CHIP==7543) || \
-    (BCHP_CHIP==7439) || (BCHP_CHIP==74371) || (BCHP_CHIP==7364) || (BCHP_CHIP==75845) || (BCHP_CHIP==74295) || (BCHP_CHIP == 75525)
 #include "bchp_clkgen.h"
-#else
-#include "bchp_clk.h"
-#endif
-#endif
 
 #ifdef BCHP_PWR_SUPPORT
 #include "bchp_pwr.h"
@@ -99,52 +79,7 @@ do {                                               \
 
 typedef enum
 {
-#if (BCHP_CHIP==7038 || BCHP_CHIP==7438)
-    MAKE_INT_ENUM(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
-    MAKE_INT_ENUM(AUDIO_RFIFO_UF_INTR),         /* BRFM Interrupt Id = 0x01 */
-    MAKE_INT_ENUM(AUDIO_RFIFO_OF_INTR),         /* BRFM Interrupt Id = 0x02 */
-    MAKE_INT_ENUM(AUDIO_LFIFO_UF_INTR),         /* BRFM Interrupt Id = 0x03 */
-    MAKE_INT_ENUM(AUDIO_LFIFO_OF_INTR),         /* BRFM Interrupt Id = 0x04 */
-    MAKE_INT_ENUM(VIDEO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x05 */
-    MAKE_INT_ENUM(VIDEO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x06 */
-    MAKE_INT_ENUM(AUDIO_VIDEO_CLIP_INTR),       /* BRFM Interrupt Id = 0x07 */
-    MAKE_INT_ENUM(AUDIO_LEFT_CLIP_INTR),        /* BRFM Interrupt Id = 0x08 */
-    MAKE_INT_ENUM(AUDIO_RIGHT_CLIP_INTR),       /* BRFM Interrupt Id = 0x09 */
-    MAKE_INT_ENUM(AUDIO_RATE_CLIP_INTR),        /* BRFM Interrupt Id = 0x0A */
-    MAKE_INT_ENUM(AUDIO_LINE_LOSS_INTR),        /* BRFM Interrupt Id = 0x0B */
-    MAKE_INT_ENUM(AUDIO_SUM_CLIP_INTR),         /* BRFM Interrupt Id = 0x0C */
-    MAKE_INT_ENUM(AUDIO_DIFF_CLIP_INTR),        /* BRFM Interrupt Id = 0x0D */
-    MAKE_INT_ENUM(AUDIO_SUMDIFF_CLIP_INTR),     /* BRFM Interrupt Id = 0x0E */
-    MAKE_INT_ENUM(AUDIO_COMP_CLIP_INTR),        /* BRFM Interrupt Id = 0x0F */
-    MAKE_INT_ENUM(RFIFD_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x10 */
-    MAKE_INT_ENUM(RFIFD_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x11 */
-    MAKE_INT_ENUM(AUDIO_RVID_FIFO_UF_INTR),     /* BRFM Interrupt Id = 0x12 */
-    MAKE_INT_ENUM(AUDIO_RVID_FIFO_OF_INTR),     /* BRFM Interrupt Id = 0x13 */
-    MAKE_INT_ENUM(AUDIO_LVID_FIFO_UF_INTR),     /* BRFM Interrupt Id = 0x14 */
-    MAKE_INT_ENUM(AUDIO_LVID_FIFO_OF_INTR),     /* BRFM Interrupt Id = 0x15 */
-
-#elif (BCHP_CHIP==7118 || BCHP_CHIP==7401 || BCHP_CHIP==7403 \
-   || (BCHP_CHIP==7400 && BCHP_VER < BCHP_VER_B0))
-    MAKE_INT_ENUM(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
-    MAKE_INT_ENUM(AUDIO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x01 */
-    MAKE_INT_ENUM(AUDIO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x02 */
-    MAKE_INT_ENUM(VIDEO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x03 */
-    MAKE_INT_ENUM(VIDEO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x04 */
-    MAKE_INT_ENUM(AUDIO_VIDEO_CLIP_INTR),       /* BRFM Interrupt Id = 0x05 */
-    MAKE_INT_ENUM(AUDIO_LEFT_CLIP_INTR),        /* BRFM Interrupt Id = 0x06 */
-    MAKE_INT_ENUM(AUDIO_RIGHT_CLIP_INTR),       /* BRFM Interrupt Id = 0x07 */
-    MAKE_INT_ENUM(AUDIO_RATE_CLIP_INTR),        /* BRFM Interrupt Id = 0x08 */
-    MAKE_INT_ENUM(AUDIO_LINE_LOSS_INTR),        /* BRFM Interrupt Id = 0x09 */
-    MAKE_INT_ENUM(AUDIO_SUM_CLIP_INTR),         /* BRFM Interrupt Id = 0x0A */
-    MAKE_INT_ENUM(AUDIO_DIFF_CLIP_INTR),        /* BRFM Interrupt Id = 0x0B */
-    MAKE_INT_ENUM(AUDIO_SUMDIFF_CLIP_INTR),     /* BRFM Interrupt Id = 0x0C */
-    MAKE_INT_ENUM(AUDIO_COMP_CLIP_INTR),        /* BRFM Interrupt Id = 0x0D */
-    MAKE_INT_ENUM(RFIFD_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x0E */
-    MAKE_INT_ENUM(RFIFD_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x0F */
-    MAKE_INT_ENUM(AUDIO_VID_FIFO_UF_INTR),      /* BRFM Interrupt Id = 0x10 */
-    MAKE_INT_ENUM(AUDIO_VID_FIFO_OF_INTR),      /* BRFM Interrupt Id = 0x11 */
-
-#elif (BRFM_REVID>=40)
+#if (BRFM_REVID>=40)
     MAKE_INT_ENUM(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
     MAKE_INT_ENUM(AUDIO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x01 */
     MAKE_INT_ENUM(AUDIO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x02 */
@@ -221,89 +156,10 @@ static const BRFM_Settings defDevSettings =
     BRFM_SETTINGS_ENCTYPE
 };
 
-/* Dual RFM core 7400 has a single register block, RFM_L2, that contains interrupts for both cores.
-7420, on the other hand, splits these into two register blocks, RFM_L2 and RFM_BBE_L2.
-Because some of the field names now overlap, they must be redefined. */
-#if BCHP_CHIP==7420
-#define BCHP_INT_ID_GISB_ERROR_INTR         BCHP_INT_ID_RFM_L2_GISB_ERROR_INTR
-#define BCHP_INT_ID_AUDIO_FIFO_UF_INTR      BCHP_INT_ID_RFM_L2_AUDIO_FIFO_UF_INTR
-#define BCHP_INT_ID_AUDIO_FIFO_OF_INTR      BCHP_INT_ID_RFM_L2_AUDIO_FIFO_OF_INTR
-#define BCHP_INT_ID_AUDIO_VID_FIFO_UF_INTR  BCHP_INT_ID_RFM_L2_AUDIO_VID_FIFO_UF_INTR
-#define BCHP_INT_ID_AUDIO_VID_FIFO_OF_INTR  BCHP_INT_ID_RFM_L2_AUDIO_VID_FIFO_OF_INTR
-#define BCHP_INT_ID_AUDIO_VIDEO_CLIP_INTR   BCHP_INT_ID_RFM_L2_AUDIO_VIDEO_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_LEFT_CLIP_INTR    BCHP_INT_ID_RFM_L2_AUDIO_LEFT_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_RIGHT_CLIP_INTR   BCHP_INT_ID_RFM_L2_AUDIO_RIGHT_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_RATE_CLIP_INTR    BCHP_INT_ID_RFM_L2_AUDIO_RATE_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_LINE_LOSS_INTR    BCHP_INT_ID_RFM_L2_AUDIO_LINE_LOSS_INTR
-#define BCHP_INT_ID_AUDIO_SUM_CLIP_INTR     BCHP_INT_ID_RFM_L2_AUDIO_SUM_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_DIFF_CLIP_INTR    BCHP_INT_ID_RFM_L2_AUDIO_DIFF_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_SUMDIFF_CLIP_INTR BCHP_INT_ID_RFM_L2_AUDIO_SUMDIFF_CLIP_INTR
-#define BCHP_INT_ID_AUDIO_COMP_CLIP_INTR    BCHP_INT_ID_RFM_L2_AUDIO_COMP_CLIP_INTR
-
-#define BCHP_INT_ID_BBE_AUDIO_FIFO_UF_INTR      BCHP_INT_ID_RFM_BBE_L2_AUDIO_FIFO_UF_INTR
-#define BCHP_INT_ID_BBE_AUDIO_FIFO_OF_INTR      BCHP_INT_ID_RFM_BBE_L2_AUDIO_FIFO_OF_INTR
-#define BCHP_INT_ID_BBE_AUDIO_VIDEO_CLIP_INTR   BCHP_INT_ID_RFM_BBE_L2_AUDIO_VIDEO_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_LEFT_CLIP_INTR    BCHP_INT_ID_RFM_BBE_L2_AUDIO_LEFT_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_RIGHT_CLIP_INTR   BCHP_INT_ID_RFM_BBE_L2_AUDIO_RIGHT_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_RATE_CLIP_INTR    BCHP_INT_ID_RFM_BBE_L2_AUDIO_RATE_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_LINE_LOSS_INTR    BCHP_INT_ID_RFM_BBE_L2_AUDIO_LINE_LOSS_INTR
-#define BCHP_INT_ID_BBE_AUDIO_SUM_CLIP_INTR     BCHP_INT_ID_RFM_BBE_L2_AUDIO_SUM_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_DIFF_CLIP_INTR    BCHP_INT_ID_RFM_BBE_L2_AUDIO_DIFF_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_SUMDIFF_CLIP_INTR BCHP_INT_ID_RFM_BBE_L2_AUDIO_SUMDIFF_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_COMP_CLIP_INTR    BCHP_INT_ID_RFM_BBE_L2_AUDIO_COMP_CLIP_INTR
-#define BCHP_INT_ID_BBE_AUDIO_VID_FIFO_UF_INTR  BCHP_INT_ID_RFM_BBE_L2_AUDIO_VID_FIFO_UF_INTR
-#define BCHP_INT_ID_BBE_AUDIO_VID_FIFO_OF_INTR  BCHP_INT_ID_RFM_BBE_L2_AUDIO_VID_FIFO_OF_INTR
-#endif
-
 static const BINT_Id IntId[] =
 {
 
-#if (BCHP_CHIP==7038 || BCHP_CHIP==7438)
-    MAKE_INT_ID(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
-    MAKE_INT_ID(AUDIO_RFIFO_UF_INTR),         /* BRFM Interrupt Id = 0x01 */
-    MAKE_INT_ID(AUDIO_RFIFO_OF_INTR),         /* BRFM Interrupt Id = 0x02 */
-    MAKE_INT_ID(AUDIO_LFIFO_UF_INTR),         /* BRFM Interrupt Id = 0x03 */
-    MAKE_INT_ID(AUDIO_LFIFO_OF_INTR),         /* BRFM Interrupt Id = 0x04 */
-    MAKE_INT_ID(VIDEO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x05 */
-    MAKE_INT_ID(VIDEO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x06 */
-    MAKE_INT_ID(AUDIO_VIDEO_CLIP_INTR),       /* BRFM Interrupt Id = 0x07 */
-    MAKE_INT_ID(AUDIO_LEFT_CLIP_INTR),        /* BRFM Interrupt Id = 0x08 */
-    MAKE_INT_ID(AUDIO_RIGHT_CLIP_INTR),       /* BRFM Interrupt Id = 0x09 */
-    MAKE_INT_ID(AUDIO_RATE_CLIP_INTR),        /* BRFM Interrupt Id = 0x0A */
-    MAKE_INT_ID(AUDIO_LINE_LOSS_INTR),        /* BRFM Interrupt Id = 0x0B */
-    MAKE_INT_ID(AUDIO_SUM_CLIP_INTR),         /* BRFM Interrupt Id = 0x0C */
-    MAKE_INT_ID(AUDIO_DIFF_CLIP_INTR),        /* BRFM Interrupt Id = 0x0D */
-    MAKE_INT_ID(AUDIO_SUMDIFF_CLIP_INTR),     /* BRFM Interrupt Id = 0x0E */
-    MAKE_INT_ID(AUDIO_COMP_CLIP_INTR),        /* BRFM Interrupt Id = 0x0F */
-    MAKE_INT_ID(RFIFD_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x10 */
-    MAKE_INT_ID(RFIFD_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x11 */
-    MAKE_INT_ID(AUDIO_RVID_FIFO_UF_INTR),     /* BRFM Interrupt Id = 0x12 */
-    MAKE_INT_ID(AUDIO_RVID_FIFO_OF_INTR),     /* BRFM Interrupt Id = 0x13 */
-    MAKE_INT_ID(AUDIO_LVID_FIFO_UF_INTR),     /* BRFM Interrupt Id = 0x14 */
-    MAKE_INT_ID(AUDIO_LVID_FIFO_OF_INTR),     /* BRFM Interrupt Id = 0x15 */
-
-#elif (BCHP_CHIP==7118 || BCHP_CHIP==7401 || BCHP_CHIP==7403 \
-   || (BCHP_CHIP==7400 && BCHP_VER < BCHP_VER_B0))
-    MAKE_INT_ID(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
-    MAKE_INT_ID(AUDIO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x01 */
-    MAKE_INT_ID(AUDIO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x02 */
-    MAKE_INT_ID(VIDEO_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x03 */
-    MAKE_INT_ID(VIDEO_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x04 */
-    MAKE_INT_ID(AUDIO_VIDEO_CLIP_INTR),       /* BRFM Interrupt Id = 0x05 */
-    MAKE_INT_ID(AUDIO_LEFT_CLIP_INTR),        /* BRFM Interrupt Id = 0x06 */
-    MAKE_INT_ID(AUDIO_RIGHT_CLIP_INTR),       /* BRFM Interrupt Id = 0x07 */
-    MAKE_INT_ID(AUDIO_RATE_CLIP_INTR),        /* BRFM Interrupt Id = 0x08 */
-    MAKE_INT_ID(AUDIO_LINE_LOSS_INTR),        /* BRFM Interrupt Id = 0x09 */
-    MAKE_INT_ID(AUDIO_SUM_CLIP_INTR),         /* BRFM Interrupt Id = 0x0A */
-    MAKE_INT_ID(AUDIO_DIFF_CLIP_INTR),        /* BRFM Interrupt Id = 0x0B */
-    MAKE_INT_ID(AUDIO_SUMDIFF_CLIP_INTR),     /* BRFM Interrupt Id = 0x0C */
-    MAKE_INT_ID(AUDIO_COMP_CLIP_INTR),        /* BRFM Interrupt Id = 0x0D */
-    MAKE_INT_ID(RFIFD_FIFO_UF_INTR),          /* BRFM Interrupt Id = 0x0E */
-    MAKE_INT_ID(RFIFD_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x0F */
-    MAKE_INT_ID(AUDIO_VID_FIFO_UF_INTR),      /* BRFM Interrupt Id = 0x10 */
-    MAKE_INT_ID(AUDIO_VID_FIFO_OF_INTR),      /* BRFM Interrupt Id = 0x11 */
-
-#elif (BRFM_REVID>=40)
+#if (BRFM_REVID>=40)
     #if (BCHP_CHIP!=7552)
     MAKE_INT_ID(GISB_ERROR_INTR),             /* BRFM Interrupt Id = 0x00 */
     #else
@@ -328,9 +184,6 @@ static const BINT_Id IntId[] =
     MAKE_INT_ID(NICAM_FIFO_OF_INTR),          /* BRFM Interrupt Id = 0x11 */
 
 #if BRFM_DUAL_DAC
-#if BCHP_CHIP==7420
-    MAKE_INT_ID(RFM_BBE_L2_GISB_ERROR_INTR),
-#endif
     MAKE_INT_ID(BBE_AUDIO_FIFO_UF_INTR),      /* BRFM Interrupt Id = 0x12 or 0x01 */
     MAKE_INT_ID(BBE_AUDIO_FIFO_OF_INTR),      /* BRFM Interrupt Id = 0x13 or 0x02 */
     MAKE_INT_ID(BBE_AUDIO_VIDEO_CLIP_INTR),   /* BRFM Interrupt Id = 0x14 or 0x05 */
@@ -366,21 +219,10 @@ static void BRFM_HandleInterrupt_isr(
     BDBG_ASSERT(hDev);
     switch ((BRFM_IntType) parm2)
     {
-#if (BCHP_CHIP==7038 || BCHP_CHIP==7438)
-        case MAKE_INT_ENUM(AUDIO_RFIFO_UF_INTR):
-        case MAKE_INT_ENUM(AUDIO_RFIFO_OF_INTR):
-        case MAKE_INT_ENUM(AUDIO_LFIFO_UF_INTR):
-        case MAKE_INT_ENUM(AUDIO_LFIFO_OF_INTR):
-        case MAKE_INT_ENUM(AUDIO_RVID_FIFO_UF_INTR):
-        case MAKE_INT_ENUM(AUDIO_RVID_FIFO_OF_INTR):
-        case MAKE_INT_ENUM(AUDIO_LVID_FIFO_UF_INTR):
-        case MAKE_INT_ENUM(AUDIO_LVID_FIFO_OF_INTR):
-#else
         case MAKE_INT_ENUM(AUDIO_FIFO_UF_INTR):
         case MAKE_INT_ENUM(AUDIO_FIFO_OF_INTR):
         case MAKE_INT_ENUM(AUDIO_VID_FIFO_UF_INTR):
         case MAKE_INT_ENUM(AUDIO_VID_FIFO_OF_INTR):
-#endif /* common to all platforms */
         case MAKE_INT_ENUM(VIDEO_FIFO_UF_INTR):
         case MAKE_INT_ENUM(VIDEO_FIFO_OF_INTR):
         case MAKE_INT_ENUM(AUDIO_VIDEO_CLIP_INTR):
@@ -1030,7 +872,7 @@ BERR_Code BRFM_Open(BRFM_Handle *phRfm, BCHP_Handle hChip, BREG_Handle hRegister
     hDev = (BRFM_Handle) BKNI_Malloc(sizeof(BRFM_P_Handle));
     if (hDev == NULL) {
         retCode = BERR_OUT_OF_SYSTEM_MEMORY;
-        BDBG_ERR(("BRFM_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BRFM_Open: BKNI_malloc() failed"));
         goto done;
     }
     BKNI_Memset(hDev, 0x00, sizeof(BRFM_P_Handle));

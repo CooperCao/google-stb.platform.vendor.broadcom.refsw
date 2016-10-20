@@ -46,7 +46,7 @@
     (BCHP_CHIP == 7405) || (BCHP_CHIP == 7408) || (BCHP_CHIP == 7420) || (BCHP_CHIP == 7468) || (BCHP_CHIP == 7550)
     #include "bchp_irq0.h"
     #include "bchp_int_id_irq0.h"
-#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
+#elif (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
     #include "bchp_int_id_upg_main_aon_irq.h"
 #else
     #include "bchp_int_id_irq0_aon.h"
@@ -147,7 +147,7 @@ BERR_Code BKPD_Open(
     {
         *pKpd = NULL;
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BKPD_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BKPD_Open: BKNI_malloc() failed"));
         goto done;
     }
 

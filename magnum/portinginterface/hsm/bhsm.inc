@@ -43,6 +43,7 @@ include $(MAGNUM)/portinginterface/hsm/bhsm_defs.inc
 
 BHSM_DEFINES += BHSM_ZEUS_VER_MAJOR=$(BHSM_ZEUS_VER_MAJOR)
 BHSM_DEFINES += BHSM_ZEUS_VER_MINOR=$(BHSM_ZEUS_VER_MINOR)
+BHSM_DEFINES += BHSM_ZEUS_VER_SUBMINOR=$(BHSM_ZEUS_VER_SUBMINOR)
 
 #$(warning  ..........bhsm_zeus.inc entered with CORETECH = $(CORETECH) and ZEUSVER = $(ZEUSVER))
 
@@ -363,6 +364,9 @@ ifeq ($(BHSM_NSKCMD),ON)
         BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/nsk_cmd/bhsm_nskcmd.c
     endif
 
+    ifeq ($(BHSM_BUILD_HSM_FOR_SAGE),ON)
+        BHSM_SOURCES += $(MAGNUM)/portinginterface/hsm/src/nsk_cmd/bhsm_nskcmd_sage.c
+    endif
 endif
 
 ## SECURE PKL Functions

@@ -139,7 +139,7 @@ static void NEXUS_RegionVerify_P_Finalizer( NEXUS_RegionVerifyHandle handle )
     NEXUS_OBJECT_ASSERT( NEXUS_RegionVerify, handle );
 
     handle->allocated = false;
-    NEXUS_OBJECT_DESTROY( NEXUS_RegionVerify, handle );
+    NEXUS_OBJECT_UNSET( NEXUS_RegionVerify, handle );
 
     BDBG_ENTER( NEXUS_RegionVerify_P_Finalizer );
     return;

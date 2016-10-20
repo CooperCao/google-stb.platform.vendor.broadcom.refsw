@@ -105,6 +105,11 @@ static void nexus_p_surface_client_init(NEXUS_SurfaceClientHandle client)
     }
     client->settings.orientation = NEXUS_VideoOrientation_e2D;
     nexus_p_surface_composition_init(&client->settings.composition);
+    NEXUS_CallbackDesc_Init(&client->settings.displayed);
+    NEXUS_CallbackDesc_Init(&client->settings.recycled);
+    NEXUS_CallbackDesc_Init(&client->settings.displayStatusChanged);
+    NEXUS_CallbackDesc_Init(&client->settings.windowMoved);
+    NEXUS_CallbackDesc_Init(&client->settings.vsync);
 
     return ;
 }

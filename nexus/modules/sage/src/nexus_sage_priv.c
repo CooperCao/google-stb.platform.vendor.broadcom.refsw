@@ -288,7 +288,7 @@ NEXUS_SageModule_Standby_priv(
             /* Scrub and disable URR/XRR */
             NEXUS_Sage_P_SvpEnterS3();
             NEXUS_Sage_P_SvpStop(false);
-            NEXUS_Sage_P_ARUninit();
+            NEXUS_Sage_P_ARUninit(SAGElibStandbyMode);
         }
 
         SAGElib_rc = BSAGElib_Standby(g_sage_standby.hSAGElibClient, SAGElibStandbyMode);

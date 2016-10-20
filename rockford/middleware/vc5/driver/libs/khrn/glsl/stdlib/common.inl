@@ -933,7 +933,7 @@ static void modf__const_vec4__const_vec4__const_out_vec4(const_vec4* result, con
 
 static void isinf__const_bool__const_float(const_bool* result, const_float* x)
 {
-   *result = gfx_is_inf_bits(*x) ? 1 : 0;
+   *result = isinf(gfx_float_from_bits(*x)) ? 1 : 0;
 }
 
 static void isinf__const_bvec2__const_vec2(const_bvec2* result, const_vec2* x)
@@ -959,7 +959,7 @@ static void isinf__const_bvec4__const_vec4(const_bvec4* result, const_vec4* x)
 
 static void isnan__const_bool__const_float(const_bool* result, const_float* x)
 {
-   *result = gfx_is_nan_bits(*x) ? 1 : 0;
+   *result = isnan(gfx_float_from_bits(*x)) ? 1 : 0;
 }
 
 static void isnan__const_bvec2__const_vec2(const_bvec2* result, const_vec2* x)

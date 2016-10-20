@@ -321,7 +321,7 @@ BERR_Code BHAB_7366_P_InitAp(
             if (BHAB_7366_VerifyMemory(h, fwAddr, pDataBuf, fwSize))
                break;
 
-            BDBG_ERR(("data read back does not match\n"));
+            BDBG_ERR(("data read back does not match"));
 #else
             break;
 #endif
@@ -387,7 +387,7 @@ BERR_Code BHAB_7366_P_InitAp(
 #ifdef BHAB_VERIFY_DOWNLOAD
                 if (BHAB_7366_VerifyMemory(h, fwAddr + chunk*chunk_size, pImage, n))
                    break;
-                BDBG_ERR(("data read back does not match\n"));
+                BDBG_ERR(("data read back does not match"));
 #else
                 break;
 #endif
@@ -439,7 +439,7 @@ BERR_Code BHAB_7366_P_InitAp(
    }
    if ((val32 & BHAB_7366_HIRQ0_INIT_DONE) == 0)
    {
-      BDBG_ERR(("AP initialization timeout\n"));
+      BDBG_ERR(("AP initialization timeout"));
       BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
       goto done;
    }
@@ -453,7 +453,7 @@ BERR_Code BHAB_7366_P_InitAp(
          BDBG_ERR(("firmware initialized but host didnt get init_done irq!"));
          goto got_init_done;
       }
-      BDBG_ERR(("AP initialization timeout\n"));
+      BDBG_ERR(("AP initialization timeout"));
       BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
       goto done;
    }

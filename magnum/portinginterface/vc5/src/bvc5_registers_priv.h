@@ -307,4 +307,38 @@
 
 #endif /* BVC5_HARDWARE_SIMPENROSE */
 
+#if V3D_VER_AT_LEAST(3,4,0,0)
+
+#define V3D_AXI_ID_L2T 0
+#define V3D_AXI_ID_PTB 1
+#define V3D_AXI_ID_PSE 2
+#define V3D_AXI_ID_TLB 3
+#define V3D_AXI_ID_CLE 4
+#define V3D_AXI_ID_TFU 5
+#define V3D_AXI_ID_MMU 6
+#define V3D_AXI_ID_GMP 7
+
+#elif V3D_VER_AT_LEAST(3,3,0,0)
+
+#define V3D_AXI_ID_L2T 0
+#define V3D_AXI_ID_CLE 1
+#define V3D_AXI_ID_PTB 2
+#define V3D_AXI_ID_PSE 3
+#define V3D_AXI_ID_TLB 4
+#define V3D_AXI_ID_GMP 7
+#define V3D_AXI_ID_TFU 8
+
+#else
+
+#define V3D_AXI_ID_L2C 0
+#define V3D_AXI_ID_CLE 1
+#define V3D_AXI_ID_PTB 2
+#define V3D_AXI_ID_PSE 3
+#define V3D_AXI_ID_VCD 4
+#define V3D_AXI_ID_L2T 6
+#define V3D_AXI_ID_TLB 7
+#define V3D_AXI_ID_TFU 8
+
+#endif
+
 #endif /* BVC5_REGISTERS_PRIV_H */

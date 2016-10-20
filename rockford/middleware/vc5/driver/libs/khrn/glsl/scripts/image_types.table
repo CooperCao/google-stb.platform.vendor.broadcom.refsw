@@ -7,13 +7,16 @@ image3D              float       3   N     N      N    GL_IMAGE_3D
 imageCube            float       3   N     N      Y    GL_IMAGE_CUBE
 image2DArray         float       2   Y     N      N    GL_IMAGE_2D_ARRAY
 imageCubeArray       float       3   Y     N      Y    GL_IMAGE_CUBE_MAP_ARRAY
+imageBuffer          float       1   N     N      N    GL_IMAGE_BUFFER
 iimage2D             int         2   N     N      N    GL_INT_IMAGE_2D
 iimage3D             int         3   N     N      N    GL_INT_IMAGE_3D
 iimageCube           int         3   N     N      Y    GL_INT_IMAGE_CUBE
 iimage2DArray        int         2   Y     N      N    GL_INT_IMAGE_2D_ARRAY
 iimageCubeArray      int         3   Y     N      Y    GL_INT_IMAGE_CUBE_MAP_ARRAY
+iimageBuffer         int         1   N     N      N    GL_INT_IMAGE_BUFFER
 uimage2D             uint        2   N     N      N    GL_UNSIGNED_INT_IMAGE_2D
 uimage3D             uint        3   N     N      N    GL_UNSIGNED_INT_IMAGE_3D
 uimageCube           uint        3   N     N      Y    GL_UNSIGNED_INT_IMAGE_CUBE
 uimage2DArray        uint        2   Y     N      N    GL_UNSIGNED_INT_IMAGE_2D_ARRAY
 uimageCubeArray      uint        3   Y     N      Y    GL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY
+uimageBuffer         uint        1   N     N      N    GL_UNSIGNED_INT_IMAGE_BUFFER

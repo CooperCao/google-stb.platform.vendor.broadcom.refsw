@@ -9,7 +9,7 @@
 #include "bstd.h"
 #include "birb.h"
 #include "bchp_irb.h"
-#if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260)
+#if (BCHP_CHIP == 7271) || (BCHP_CHIP == 7268) || (BCHP_CHIP == 7260) || (BCHP_CHIP == 7278)
 #include "bchp_int_id_upg_main_irq.h"
 #include "bchp_upg_main_irq.h"
 #else
@@ -281,7 +281,7 @@ static const SIrbConfiguration RC6Configuration =
         640,                    /* 4T (not used) */
         800,                    /* 5T (not used) */
         960,                    /* 6T */
-        30126                   /* 83.6 ms */ 
+        30126                   /* 83.6 ms */
     },
     (FRAME_PERIOD/INDEX_PERIOD),/* frame period A */
     0,                          /* frame period B */
@@ -329,11 +329,11 @@ static const BIRB_Settings defIrbSettings =
 *   Private Module Functions (Prototypes)
 *
 *******************************************************************************/
-static void BIRB_P_EnableInt(BIRB_Handle hDev); 
-static void BIRB_P_DisableInt(BIRB_Handle hDev); 
-static void BIRB_P_ConfigDataSequence(BIRB_Handle hDev, uint32_t *pData, uint8_t bits, bool headerPulse); 
+static void BIRB_P_EnableInt(BIRB_Handle hDev);
+static void BIRB_P_DisableInt(BIRB_Handle hDev);
+static void BIRB_P_ConfigDataSequence(BIRB_Handle hDev, uint32_t *pData, uint8_t bits, bool headerPulse);
 static void BIRB_P_ConfigDataSequenceRC6(BIRB_Handle hDev, unsigned mode, unsigned trailer, uint32_t *pData, uint8_t bits);
-static void BIRB_P_ConfigDataSequenceAB(BIRB_Handle hDev, uint32_t *pDataA, uint8_t bitsA, 
+static void BIRB_P_ConfigDataSequenceAB(BIRB_Handle hDev, uint32_t *pDataA, uint8_t bitsA,
 	uint32_t *pDataB, uint8_t bitsB, bool headerA, bool headerB, bool fixedFlag);
 static void BIRB_P_ConfigDataSequenceAA(BIRB_Handle hDev, uint32_t *pData, uint8_t bits, bool headerPulse, bool fixedFlag);
 static void BIRB_P_ConfigDataSequenceXmp2(BIRB_Handle hDev, uint8_t *pData, uint8_t numByte);
@@ -367,7 +367,7 @@ BERR_Code BIRB_Open(
     {
         *pIrb = NULL;
         retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-        BDBG_ERR(("BIRB_Open: BKNI_malloc() failed\n"));
+        BDBG_ERR(("BIRB_Open: BKNI_malloc() failed"));
         goto done;
     }
 
@@ -548,7 +548,7 @@ BERR_Code BIRB_Config (
 
 	if (pConfig)
 		BIRB_ConfigCustom(hDev, pConfig);
-	
+
     return( retCode );
 }
 
@@ -1109,7 +1109,7 @@ static void rc6DataToSequence(SIrbConfiguration *pConfig, int *pSeqIndex, uint32
 
 static void BIRB_P_ConfigDataSequenceRC6(
     BIRB_Handle     hDev,
-    unsigned        mode, 
+    unsigned        mode,
     unsigned        trailer,
     uint32_t        *pData,         /* pointer to data to blast */
     uint8_t         bits            /* number of bits to blast */
@@ -1140,7 +1140,7 @@ static void BIRB_P_ConfigDataSequenceRC6(
     /* Control and Information fields :  regular RC6 data encoded */
     rc6DataToSequence(pIrbConfig, &i, *pData,bits, 1,1);
 
-#if 0 
+#if 0
     /* Signal-freq time: 6t off */
     pIrbConfig->sequenceIndex[i].on = 0;
     pIrbConfig->sequenceIndex[i].off = 6;

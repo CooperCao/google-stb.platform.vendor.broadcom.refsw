@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,39 +70,39 @@
 /***************************************************************************
  *SCA - Smart Card A
  ***************************************************************************/
-#define BCHP_SCA_UART_CMD                        0x2040b000 /* [RW] Smart Card Uart Command */
-#define BCHP_SCA_IF_CMD                          0x2040b004 /* [RW] Smart Card Interface Command */
-#define BCHP_SCA_CLK_CMD                         0x2040b008 /* [RW] Smart Card Clock Command */
-#define BCHP_SCA_PROTO_CMD                       0x2040b00c /* [RW] Smart Card Protocol Command */
-#define BCHP_SCA_PRESCALE                        0x2040b010 /* [RW] Smart Card Clock Prescale */
-#define BCHP_SCA_TGUARD                          0x2040b014 /* [RW] Smart Card Transmit Guard Time */
-#define BCHP_SCA_TRANSMIT                        0x2040b018 /* [RW] Smart Card Transmit */
-#define BCHP_SCA_RECEIVE                         0x2040b01c /* [RO] Smart Card Receive */
-#define BCHP_SCA_TLEN                            0x2040b024 /* [RW] Smart Card Transmit Length */
-#define BCHP_SCA_FLOW_CMD                        0x2040b028 /* [RW] Smart Card Flow Command */
-#define BCHP_SCA_RLEN                            0x2040b030 /* [RO] Smart Card Receive Length */
-#define BCHP_SCA_STATUS                          0x2040b034 /* [RO] Smart Card Status */
-#define BCHP_SCA_BGT                             0x2040b044 /* [RW] Smart Card Block Guard Time */
-#define BCHP_SCA_TIMER_CMD                       0x2040b048 /* [RW] Smart Card Timer Command */
-#define BCHP_SCA_INTR_EN                         0x2040b050 /* [RW] Smart Card Interrupt Enable */
-#define BCHP_SCA_INTR_STAT                       0x2040b058 /* [RO] Smart Card Interrupt Status */
-#define BCHP_SCA_TIMER_CMP                       0x2040b060 /* [RW] Smart Card General Purpose Timer Compare */
-#define BCHP_SCA_TIMER_CNT                       0x2040b068 /* [RO] Smart Card General Purpose Timer Count */
-#define BCHP_SCA_WAIT                            0x2040b070 /* [RW] Smart Card Waiting Timer */
-#define BCHP_SCA_EVENT1_CNT                      0x2040b080 /* [RO] Smart Card Event 1 Count */
-#define BCHP_SCA_EVENT1_CMP                      0x2040b088 /* [RW] Smart Card Event 1 Compare */
-#define BCHP_SCA_EVENT1_CMD                      0x2040b090 /* [RW] Smart Card Event 1 Command */
-#define BCHP_SCA_EVENT2_CMP                      0x2040b0a0 /* [RW] Smart Card Event 2 Compare */
-#define BCHP_SCA_EVENT2_CNT                      0x2040b0a8 /* [RO] Smart Card Event 2 Count */
-#define BCHP_SCA_EVENT2_CMD                      0x2040b0b0 /* [RW] Smart Card Event 2 Command */
-#define BCHP_SCA_SMODE_TICK                      0x2040b0c0 /* [RW] Smart Card Synchronous Mode Timebase */
-#define BCHP_SCA_IOIF_TICK                       0x2040b0c4 /* [RW] Smart Card I/O Interface Timebase */
-#define BCHP_SCA_SMODE_RLEN                      0x2040b0c8 /* [RW] Smart Card Synchronous Receive Length */
-#define BCHP_SCA_AFE_CMD_1                       0x2040b0cc /* [RW] Smart Card Analog Front End Command 1 */
-#define BCHP_SCA_AFE_CMD_2                       0x2040b0d0 /* [RW] Smart Card Analog Front End Command 2 */
-#define BCHP_SCA_TMON_CMP                        0x2040b0d4 /* [RW] Smart Card Temperature Monitor Compare Threshold */
-#define BCHP_SCA_TMON_TEMP                       0x2040b0d8 /* [RO] Smart Card Interface Contact Temperature */
-#define BCHP_SCA_REVISION_ID                     0x2040b0fc /* [RO] Smart Card Revision ID */
+#define BCHP_SCA_UART_CMD                        0x2040b000 /* [RW][32] Smart Card Uart Command */
+#define BCHP_SCA_IF_CMD                          0x2040b004 /* [RW][32] Smart Card Interface Command */
+#define BCHP_SCA_CLK_CMD                         0x2040b008 /* [RW][32] Smart Card Clock Command */
+#define BCHP_SCA_PROTO_CMD                       0x2040b00c /* [RW][32] Smart Card Protocol Command */
+#define BCHP_SCA_PRESCALE                        0x2040b010 /* [RW][32] Smart Card Clock Prescale */
+#define BCHP_SCA_TGUARD                          0x2040b014 /* [RW][32] Smart Card Transmit Guard Time */
+#define BCHP_SCA_TRANSMIT                        0x2040b018 /* [RW][32] Smart Card Transmit */
+#define BCHP_SCA_RECEIVE                         0x2040b01c /* [RO][32] Smart Card Receive */
+#define BCHP_SCA_TLEN                            0x2040b024 /* [RW][32] Smart Card Transmit Length */
+#define BCHP_SCA_FLOW_CMD                        0x2040b028 /* [RW][32] Smart Card Flow Command */
+#define BCHP_SCA_RLEN                            0x2040b030 /* [RO][32] Smart Card Receive Length */
+#define BCHP_SCA_STATUS                          0x2040b034 /* [RO][32] Smart Card Status */
+#define BCHP_SCA_BGT                             0x2040b044 /* [RW][32] Smart Card Block Guard Time */
+#define BCHP_SCA_TIMER_CMD                       0x2040b048 /* [RW][32] Smart Card Timer Command */
+#define BCHP_SCA_INTR_EN                         0x2040b050 /* [RW][32] Smart Card Interrupt Enable */
+#define BCHP_SCA_INTR_STAT                       0x2040b058 /* [RO][32] Smart Card Interrupt Status */
+#define BCHP_SCA_TIMER_CMP                       0x2040b060 /* [RW][32] Smart Card General Purpose Timer Compare */
+#define BCHP_SCA_TIMER_CNT                       0x2040b068 /* [RO][32] Smart Card General Purpose Timer Count */
+#define BCHP_SCA_WAIT                            0x2040b070 /* [RW][32] Smart Card Waiting Timer */
+#define BCHP_SCA_EVENT1_CNT                      0x2040b080 /* [RO][32] Smart Card Event 1 Count */
+#define BCHP_SCA_EVENT1_CMP                      0x2040b088 /* [RW][32] Smart Card Event 1 Compare */
+#define BCHP_SCA_EVENT1_CMD                      0x2040b090 /* [RW][32] Smart Card Event 1 Command */
+#define BCHP_SCA_EVENT2_CMP                      0x2040b0a0 /* [RW][32] Smart Card Event 2 Compare */
+#define BCHP_SCA_EVENT2_CNT                      0x2040b0a8 /* [RO][32] Smart Card Event 2 Count */
+#define BCHP_SCA_EVENT2_CMD                      0x2040b0b0 /* [RW][32] Smart Card Event 2 Command */
+#define BCHP_SCA_SMODE_TICK                      0x2040b0c0 /* [RW][32] Smart Card Synchronous Mode Timebase */
+#define BCHP_SCA_IOIF_TICK                       0x2040b0c4 /* [RW][32] Smart Card I/O Interface Timebase */
+#define BCHP_SCA_SMODE_RLEN                      0x2040b0c8 /* [RW][32] Smart Card Synchronous Receive Length */
+#define BCHP_SCA_AFE_CMD_1                       0x2040b0cc /* [RW][32] Smart Card Analog Front End Command 1 */
+#define BCHP_SCA_AFE_CMD_2                       0x2040b0d0 /* [RW][32] Smart Card Analog Front End Command 2 */
+#define BCHP_SCA_TMON_CMP                        0x2040b0d4 /* [RW][32] Smart Card Temperature Monitor Compare Threshold */
+#define BCHP_SCA_TMON_TEMP                       0x2040b0d8 /* [RO][32] Smart Card Interface Contact Temperature */
+#define BCHP_SCA_REVISION_ID                     0x2040b0fc /* [RO][32] Smart Card Revision ID */
 
 /***************************************************************************
  *UART_CMD - Smart Card Uart Command

@@ -10,7 +10,7 @@ All rights reserved.
 #include "../glxx/gl_public_api.h"
 #include "../glxx/glxx_int_config.h"
 #include "../common/khrn_process.h"
-#define GL20_EXTS_STR_MAX_SIZE 1590
+#define GL20_EXTS_STR_MAX_SIZE 1718
 static inline char *gl20_exts_str(char *s_in)
 {
    char *s = s_in;
@@ -27,9 +27,6 @@ static inline char *gl20_exts_str(char *s_in)
 #endif
    memcpy(s, "GL_BRCM_texture_1D", 18);
    s += 18;
-   *(s++) = ' ';
-   memcpy(s, "GL_BRCM_texture_mirror_swap", 27);
-   s += 27;
    *(s++) = ' ';
    memcpy(s, "GL_BRCM_texture_norm16", 22);
    s += 22;
@@ -139,6 +136,12 @@ static inline char *gl20_exts_str(char *s_in)
    s += 23;
    *(s++) = ' ';
 #endif
+   memcpy(s, "GL_KHR_blend_equation_advanced", 30);
+   s += 30;
+   *(s++) = ' ';
+   memcpy(s, "GL_KHR_blend_equation_advanced_coherent", 39);
+   s += 39;
+   *(s++) = ' ';
    memcpy(s, "GL_KHR_debug", 12);
    s += 12;
    *(s++) = ' ';
@@ -171,6 +174,9 @@ static inline char *gl20_exts_str(char *s_in)
    s += 27;
    *(s++) = ' ';
 #endif
+   memcpy(s, "GL_OES_draw_elements_base_vertex", 32);
+   s += 32;
+   *(s++) = ' ';
 #if GLXX_HAS_TNG
    memcpy(s, "GL_OES_geometry_point_size", 26);
    s += 26;
@@ -192,9 +198,19 @@ static inline char *gl20_exts_str(char *s_in)
    memcpy(s, "GL_OES_packed_depth_stencil", 27);
    s += 27;
    *(s++) = ' ';
+#if KHRN_GLES31_DRIVER
+   memcpy(s, "GL_OES_primitive_bounding_box", 29);
+   s += 29;
+   *(s++) = ' ';
+#endif
    memcpy(s, "GL_OES_rgb8_rgba8", 17);
    s += 17;
    *(s++) = ' ';
+#if V3D_HAS_SRS
+   memcpy(s, "GL_OES_sample_shading", 21);
+   s += 21;
+   *(s++) = ' ';
+#endif
 #if KHRN_GLES31_DRIVER && V3D_HAS_SRS
    memcpy(s, "GL_OES_sample_variables", 23);
    s += 23;
@@ -261,7 +277,7 @@ static inline char *gl20_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define GL20_MAX_EXTS 61
+#define GL20_MAX_EXTS 65
 static inline unsigned gl20_exts(const char **e_in)
 {
    const char **e = e_in;
@@ -271,7 +287,6 @@ static inline unsigned gl20_exts(const char **e_in)
    *(e++) = "GL_BRCM_provoking_vertex";
 #endif
    *(e++) = "GL_BRCM_texture_1D";
-   *(e++) = "GL_BRCM_texture_mirror_swap";
    *(e++) = "GL_BRCM_texture_norm16";
 #if V3D_HAS_BASEINSTANCE
    *(e++) = "GL_EXT_base_instance";
@@ -328,6 +343,8 @@ static inline unsigned gl20_exts(const char **e_in)
 #if V3D_VER_AT_LEAST(3,3,0,0)
    *(e++) = "GL_EXT_texture_sRGB_RG8";
 #endif
+   *(e++) = "GL_KHR_blend_equation_advanced";
+   *(e++) = "GL_KHR_blend_equation_advanced_coherent";
    *(e++) = "GL_KHR_debug";
    if (khrn_get_has_astc())
       *(e++) = "GL_KHR_texture_compression_astc_ldr";
@@ -340,6 +357,7 @@ static inline unsigned gl20_exts(const char **e_in)
 #if V3D_HAS_PER_RT_BLEND
    *(e++) = "GL_OES_draw_buffers_indexed";
 #endif
+   *(e++) = "GL_OES_draw_elements_base_vertex";
 #if GLXX_HAS_TNG
    *(e++) = "GL_OES_geometry_point_size";
 #endif
@@ -351,7 +369,13 @@ static inline unsigned gl20_exts(const char **e_in)
 #endif
    *(e++) = "GL_OES_mapbuffer";
    *(e++) = "GL_OES_packed_depth_stencil";
+#if KHRN_GLES31_DRIVER
+   *(e++) = "GL_OES_primitive_bounding_box";
+#endif
    *(e++) = "GL_OES_rgb8_rgba8";
+#if V3D_HAS_SRS
+   *(e++) = "GL_OES_sample_shading";
+#endif
 #if KHRN_GLES31_DRIVER && V3D_HAS_SRS
    *(e++) = "GL_OES_sample_variables";
 #endif

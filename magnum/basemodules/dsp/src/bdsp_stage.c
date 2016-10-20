@@ -45,9 +45,6 @@
 
 BDBG_MODULE(BDSP_Stage);
 
-BDBG_OBJECT_ID(BDSP_TaskStageInput);
-BDBG_OBJECT_ID(BDSP_AudioCapture);
-
 void BDSP_Stage_GetDefaultCreateSettings(
     BDSP_ContextHandle hContext,
     BDSP_AlgorithmType algoType,
@@ -243,6 +240,7 @@ BERR_Code BDSP_Stage_AddOutputStage(
     }
 }
 
+#if !B_REFSW_MINIMAL
 void BDSP_Stage_RemoveOutput(
     BDSP_StageHandle hStage,
     unsigned outputIndex
@@ -253,6 +251,7 @@ void BDSP_Stage_RemoveOutput(
     BDBG_ASSERT(NULL != hStage->removeOutput);
     hStage->removeOutput(hStage->pStageHandle, outputIndex);
 }
+#endif/*!B_REFSW_MINIMAL*/
 
 BERR_Code BDSP_Stage_AddInterTaskBufferInput(
     BDSP_StageHandle hStage,
@@ -642,6 +641,7 @@ void BDSP_Queue_Flush(
     hQueue->flush((void *)hQueue->pQueueHandle);
 }
 
+#if !B_REFSW_MINIMAL
 BERR_Code BDSP_Stage_AddQueueInput(
     BDSP_StageHandle hStage,
     BDSP_QueueHandle hQueue,    /*Queue handle */
@@ -665,6 +665,7 @@ BERR_Code BDSP_Stage_AddQueueInput(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
 }
+#endif /*!B_REFSW_MINIMAL*/
 
 BERR_Code BDSP_Stage_AddQueueOutput(
     BDSP_StageHandle hStage,

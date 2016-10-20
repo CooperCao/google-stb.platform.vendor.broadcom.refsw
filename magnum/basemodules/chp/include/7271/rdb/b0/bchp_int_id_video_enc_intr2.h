@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:48:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Fri Jul 15 14:42:00 2016
+ *                 Full Compile MD5 Checksum  a61c3e77c3e4762495be1e815ba7b1be
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ebfb721f4d0dacb1abc72ab93bc4f8f3
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                unknown
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1066
  *                 generate_int_id.pl         1.0
- *                 Perl Interpreter           5.014001
+ *                 Perl Interpreter           5.008008
  *                 Operating System           linux
- *                 Script Source              /home/pntruong/sbin/generate_int_id.pl
- *                 DVTSWVER                   n/a
+ *                 Script Source              /tools/dvtsw/current/Linux/generate_int_id.pl
+ *                 DVTSWVER                   current
  *
  *
 ********************************************************************************/
@@ -79,7 +79,8 @@
 #define BCHP_INT_ID_FIELD_SYNC_656_0_INTR     BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_FIELD_SYNC_656_0_INTR_SHIFT)
 #define BCHP_INT_ID_FIELD_SYNC_DVI_0_INTR     BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_FIELD_SYNC_DVI_0_INTR_SHIFT)
 #define BCHP_INT_ID_FIELD_SYNC_VF_0_INTR      BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_FIELD_SYNC_VF_0_INTR_SHIFT)
-#define BCHP_INT_ID_HDR_EN_ERR_0_INTR         BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_EN_ERR_0_INTR_SHIFT)
+#define BCHP_INT_ID_HDR_DONE_0_INTR           BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_DONE_0_INTR_SHIFT)
+#define BCHP_INT_ID_HDR_ERROR_0_INTR          BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_ERROR_0_INTR_SHIFT)
 #define BCHP_INT_ID_VBI_0_0_INTR              BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_VBI_0_0_INTR_SHIFT)
 #define BCHP_INT_ID_VBI_0_1_INTR              BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_VBI_0_1_INTR_SHIFT)
 #define BCHP_INT_ID_VBI_1_0_INTR              BCHP_INT_ID_CREATE(BCHP_VIDEO_ENC_INTR2_CPU_STATUS, BCHP_VIDEO_ENC_INTR2_CPU_STATUS_VBI_1_0_INTR_SHIFT)

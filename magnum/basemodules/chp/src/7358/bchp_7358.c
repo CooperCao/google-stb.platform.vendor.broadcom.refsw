@@ -1,24 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2006-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bdbg.h"
 #include "bkni.h"
@@ -106,7 +122,7 @@ typedef struct BCHP_P_7358_Context
        (((BCHP_P_7358_Context*)((handle)->chipHandle))->ulBlackMagic != \
        sizeof(BCHP_P_7358_Context))) \
     { \
-        BDBG_ERR(("Corrupted context handle\n")); \
+        BDBG_ERR(("Corrupted context handle")); \
         (context) = NULL; \
     } \
     else \
@@ -172,7 +188,7 @@ BERR_Code BCHP_Open7358
     if((!phChip) ||
        (!hRegister))
     {
-        BDBG_ERR(("Invalid parameter\n"));
+        BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -202,24 +218,24 @@ BERR_Code BCHP_Open7358
 
     /* Fill up the base chip context. */
     pChip->chipHandle       = (void*)p7358Chip;
-	pChip->regHandle        = hRegister;
+    pChip->regHandle        = hRegister;
     pChip->pCloseFunc       = BCHP_P_Close7358;
     pChip->pGetChipInfoFunc = BCHP_P_GetChipInfoComformWithBaseClass;
     pChip->pGetFeatureFunc  = BCHP_P_GetFeature;
     pChip->pMonitorPvtFunc  = BCHP_P_MonitorPvt;
     pChip->pGetAvsDataFunc  = BCHP_P_GetAvsData;
-	pChip->pStandbyModeFunc = BCHP_P_StandbyMode;
+    pChip->pStandbyModeFunc = BCHP_P_StandbyMode;
 
     /* Fill up the chip context. */
     p7358Chip->ulBlackMagic = sizeof(BCHP_P_7358_Context);
     p7358Chip->hRegister    = hRegister;
 
-	/* Open BCHP_PWR - but first, do a reset on some of the Magnum controlled cores so
-	* that they don't interfere with BCHP_PWR_Open's powering up/down.
-	*/
+    /* Open BCHP_PWR - but first, do a reset on some of the Magnum controlled cores so
+    * that they don't interfere with BCHP_PWR_Open's powering up/down.
+    */
     BCHP_P_ResetMagnumCores( pChip );
 
-	/* Note: PWR_Open MUST go here (before AvsOpen) */
+    /* Note: PWR_Open MUST go here (before AvsOpen) */
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
     if (rc) {
@@ -232,7 +248,7 @@ BERR_Code BCHP_Open7358
     BCHP_P_AvsOpen(&p7358Chip->hAvsHandle, pChip);
     if(!p7358Chip->hAvsHandle)
     {
-		/*BCHP_PWR_Close(pChip->pwrManager); <--- Add this when adding PWR_Open */
+        /*BCHP_PWR_Close(pChip->pwrManager); <--- Add this when adding PWR_Open */
         BKNI_Free(pChip);
         BKNI_Free(p7358Chip);
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
@@ -250,7 +266,7 @@ Example: 0x73580000 becomes "7358A0" */
     {
         BDBG_MSG(("Supported Chip Family and revision: %x%c%d", PRINT_CHIP(s_aChipInfoTable[ulIdx].ulChipIdReg)));
         BDBG_MSG(("Supported Chip ID: %x", s_aChipInfoTable[ulIdx].usChipId));
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
     }
 
     /* Lookup corresponding chip id. */
@@ -278,12 +294,12 @@ Example: 0x73580000 becomes "7358A0" */
     {
         BKNI_Free(p7358Chip);
         BKNI_Free(pChip);
-    	BDBG_ERR(("*****************************************************************\n"));
-    	BDBG_ERR(("ERROR ERROR ERROR ERROR \n"));
+        BDBG_ERR(("*****************************************************************"));
+        BDBG_ERR(("ERROR ERROR ERROR ERROR"));
         BDBG_ERR(("Unsupported Revision: %x%c%d", PRINT_CHIP(ulChipIdReg)));
-    	BDBG_ERR(("*****************************************************************\n"));
-	phChip = NULL;
-	BDBG_ASSERT(phChip);
+        BDBG_ERR(("*****************************************************************"));
+        phChip = NULL;
+        BDBG_ASSERT(phChip);
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BDBG_MSG(("found %x%c%d", PRINT_CHIP(p7358Chip->pChipInfo->ulChipIdReg)));
@@ -292,12 +308,12 @@ Example: 0x73580000 becomes "7358A0" */
     *phChip = (BCHP_Handle)pChip;
 
 #if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-	BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
 #endif
 
 
-	/* Clear AVD/SVD shutdown enable bit */
-	BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
+    /* Clear AVD/SVD shutdown enable bit */
+    BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
 
     /* TODO: Bring up the clocks */
     BDBG_MSG(("Hack Hack,programming BCHP_SUN_GISB_ARB_REQ_MASK, this should be done in CFE"));
@@ -309,11 +325,11 @@ Example: 0x73580000 becomes "7358A0" */
         BCHP_MASK( SUN_GISB_ARB_REQ_MASK, raaga)|
         BCHP_MASK( SUN_GISB_ARB_REQ_MASK, rdc), 0);
 #else
-	ulVal = BREG_Read32(hRegister, BCHP_SUN_GISB_ARB_REQ_MASK);
-	ulVal &= ~( BCHP_MASK(SUN_GISB_ARB_REQ_MASK, avd_0) |
-			BCHP_MASK(SUN_GISB_ARB_REQ_MASK, raaga) |
-			BCHP_MASK(SUN_GISB_ARB_REQ_MASK, rdc) );
-	BREG_Write32(hRegister, BCHP_SUN_GISB_ARB_REQ_MASK, ulVal);
+    ulVal = BREG_Read32(hRegister, BCHP_SUN_GISB_ARB_REQ_MASK);
+    ulVal &= ~( BCHP_MASK(SUN_GISB_ARB_REQ_MASK, avd_0) |
+            BCHP_MASK(SUN_GISB_ARB_REQ_MASK, raaga) |
+            BCHP_MASK(SUN_GISB_ARB_REQ_MASK, rdc) );
+    BREG_Write32(hRegister, BCHP_SUN_GISB_ARB_REQ_MASK, ulVal);
 #endif
 
     /* increase tuner LDO voltage */
@@ -323,25 +339,25 @@ Example: 0x73580000 becomes "7358A0" */
            | BCHP_FIELD_DATA( SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_pwrdn, 0 )
            | BCHP_FIELD_DATA( SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1 ));
 #else
-	ulVal = BREG_Read32(hRegister, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1);
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl, 0x70));
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_pwrdn, 0));
-	ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1));
-	BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ulVal);
+    ulVal = BREG_Read32(hRegister, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1);
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl, 0x70));
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_pwrdn, 0));
+    ulVal |=  (BCHP_FIELD_DATA(SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ldo_vregcntl_en, 1));
+    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_GENERAL_CTRL_NO_SCAN_1, ulVal);
 #endif
 
-	if ( ulChipIdReg == 0x73580000 ||
-		ulChipIdReg == 0x73580001 )
-	{
-		/* Set M2MC clk to 324M */
-		ulVal = BREG_Read32 (hRegister, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
-		ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
-		BREG_Write32(hRegister, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
-	}
+    if ( ulChipIdReg == 0x73580000 ||
+        ulChipIdReg == 0x73580001 )
+    {
+        /* Set M2MC clk to 324M */
+        ulVal = BREG_Read32 (hRegister, BCHP_CLKGEN_INTERNAL_MUX_SELECT);
+        ulVal |=  (BCHP_FIELD_DATA(CLKGEN_INTERNAL_MUX_SELECT, GFX_M2MC_CORE_CLOCK, 0x1));
+        BREG_Write32(hRegister, BCHP_CLKGEN_INTERNAL_MUX_SELECT, ulVal);
+    }
 
 
 #if BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED
-	BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
+    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_MAGNUM_CONTROLLED);
 #endif
 
     BDBG_LEAVE(BCHP_Open7358);
@@ -368,11 +384,11 @@ static BERR_Code BCHP_P_Close7358
     }
 
     if (p7358Chip->hAvsHandle) {
-		BCHP_P_AvsClose(p7358Chip->hAvsHandle);
-    	p7358Chip->hAvsHandle = NULL;
-	}
+        BCHP_P_AvsClose(p7358Chip->hAvsHandle);
+        p7358Chip->hAvsHandle = NULL;
+    }
 
-	/* Note: PWR_Close goes here (after AvsClose) */
+    /* Note: PWR_Close goes here (after AvsClose) */
     BCHP_PWR_Close(hChip->pwrManager);
 
     /* Invalidate the magic number. */
@@ -497,8 +513,8 @@ static BERR_Code BCHP_P_GetFeature
 
     case BCHP_Feature_eMacrovisionCapable:
         /* macrovision capable? (bool) */
-		*(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
-			SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_macrovision_disable) ? false : true;
+        *(bool *)pFeatureValue = BCHP_GET_FIELD_DATA(ulBondStatus,
+            SUN_TOP_CTRL_OTP_OPTION_STATUS_0, otp_option_macrovision_disable) ? false : true;
         rc = BERR_SUCCESS;
         break;
 
@@ -561,7 +577,7 @@ static void BCHP_P_MonitorPvt( BCHP_Handle hChip, BCHP_AvsSettings *pSettings )
     BCHP_P_GET_CONTEXT(hChip, p7358Chip);
 
     if (p7358Chip->hAvsHandle)
-    	BCHP_P_AvsMonitorPvt(p7358Chip->hAvsHandle);
+        BCHP_P_AvsMonitorPvt(p7358Chip->hAvsHandle);
 
     BDBG_LEAVE(BCHP_P_MonitorPvt);
 }
@@ -578,7 +594,7 @@ static BERR_Code BCHP_P_GetAvsData( BCHP_Handle hChip, BCHP_AvsData *pData )
     BCHP_P_GET_CONTEXT(hChip, p7358Chip);
 
     if (p7358Chip->hAvsHandle)
-    	BCHP_P_AvsGetData(p7358Chip->hAvsHandle, pData);
+        BCHP_P_AvsGetData(p7358Chip->hAvsHandle, pData);
 
     BDBG_LEAVE(BCHP_GetAVdata);
     return BERR_SUCCESS;
@@ -593,10 +609,10 @@ static BERR_Code BCHP_P_StandbyMode( BCHP_Handle hChip, bool activate )
     /* get base context */
     BCHP_P_GET_CONTEXT(hChip, p7358Chip);
 
-	/* Do anything required for CHP Standby changes */
+    /* Do anything required for CHP Standby changes */
 
     if (p7358Chip->hAvsHandle)
-    	BCHP_P_AvsStandbyMode(p7358Chip->hAvsHandle, activate);
+        BCHP_P_AvsStandbyMode(p7358Chip->hAvsHandle, activate);
 
     BDBG_LEAVE(BCHP_P_StandbyMode);
     return BERR_SUCCESS;
@@ -632,7 +648,7 @@ static BERR_Code BCHP_P_ResetMagnumCores
 
 {
     BCHP_P_ResetRaagaCore(hChip, hChip->regHandle);
-	/* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
+    /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
     /* Note, SW_INIT set/clear registers don't need read-modify-write. */
     BREG_Write32(hChip->regHandle, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
            BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, xpt_sw_init, 1 )

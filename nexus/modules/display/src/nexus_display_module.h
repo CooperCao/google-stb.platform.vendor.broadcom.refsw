@@ -110,6 +110,7 @@ BCHP_CHIP==7342 || BCHP_CHIP==7340 || BCHP_CHIP==7468 || BCHP_CHIP ==7125 || BCH
 #include "bxudlib.h"
 #endif
 
+#include "nexus_hdmi_types.h"
 #include "nexus_display_impl.h"
 #include "nexus_video_window_impl.h"
 #include "nexus_video_output_impl.h"
@@ -274,7 +275,7 @@ struct NEXUS_Display {
     unsigned index;
     NEXUS_DisplaySettings cfg;
     NEXUS_DisplayStatus status;
-    BVDC_DacConnectionState dacStatus[NEXUS_VideoDac_eMax];
+    BVDC_DacConnectionState dacStatus[BVDC_MAX_DACS];
     NEXUS_PictureCtrlColorClipSettings colorClipSettings;
     NEXUS_DisplayStgSettings stgSettings;
     unsigned stgIndex;

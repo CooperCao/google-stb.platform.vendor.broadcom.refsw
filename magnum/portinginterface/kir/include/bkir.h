@@ -679,8 +679,8 @@ See Also:
 
 
 ****************************************************************************/
-#define BKIR_IsRepeated BKIR_IsRepeated_isr
-BERR_Code BKIR_IsRepeated_isr(
+#define BKIR_IsRepeated BKIR_IsRepeated_isrsafe
+BERR_Code BKIR_IsRepeated_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *repeatFlag     /* [out] flag to remote A repeat condition */
     );
@@ -699,7 +699,8 @@ See Also:
 
 
 ****************************************************************************/
-BERR_Code BKIR_IsPreambleA(
+#define BKIR_IsPreambleA BKIR_IsPreambleA_isrsafe
+BERR_Code BKIR_IsPreambleA_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *preambleFlag   /* [out] flag for preamble A */
     );
@@ -718,7 +719,8 @@ See Also:
 
 
 ****************************************************************************/
-BERR_Code BKIR_IsPreambleB(
+#define BKIR_IsPreambleB BKIR_IsPreambleB_isrsafe
+BERR_Code BKIR_IsPreambleB_isrsafe(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     bool                    *preambleFlag   /* [out] flag for preamble B */
     );
@@ -741,7 +743,9 @@ See Also:
 void BKIR_GetLastKey(
     BKIR_ChannelHandle      hChn,           /* [in] Device channel handle */
     uint32_t *code,           /* [out] lower 32-bits of returned code */
-    uint32_t *codeHigh        /* [out] upper 32-bits of returned code */
+    uint32_t *codeHigh,       /* [out] upper 32-bits of returned code */
+    bool *preambleA,          /* [out] flag for preamble A */
+    bool *preambleB           /* [out] flag for preamble B */
     );
 
 /***************************************************************************

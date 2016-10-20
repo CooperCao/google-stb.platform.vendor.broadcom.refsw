@@ -670,7 +670,7 @@ NEXUS_VideoDecoder_P_PictureParams_isr(void *data, int unused, void *info_)
     streamInfo.aspectRatio = NEXUS_P_AspectRatio_FromMagnum_isrsafe(info->eAspectRatio);
     streamInfo.sampleAspectRatioX = info->uiSampleAspectRatioX;
     streamInfo.sampleAspectRatioY = info->uiSampleAspectRatioY;
-    streamInfo.colorDepth = (info->eBitDepth == BAVC_VideoBitDepth_e10Bit) ? 10 : 8;
+    streamInfo.colorDepth = info->eBitDepth;
 
     /* pick 4 values to help assure Nexus and Magnum enums stay in sync */
     BDBG_CASSERT(NEXUS_MatrixCoefficients_eSmpte_240M == (NEXUS_MatrixCoefficients)BAVC_MatrixCoefficients_eSmpte_240M);
@@ -1164,7 +1164,6 @@ void NEXUS_VideoDecoder_GetDisplayConnection_priv_Avd(NEXUS_VideoDecoderHandle v
     else {
         pConnection->parentIndex = videoDecoder->mfdIndex;
     }
-    pConnection->psfMode = (videoDecoder->settings.scanMode == NEXUS_VideoDecoderScanMode_ePsF);
     pConnection->secureVideo = nexus_p_use_secure_picbuf(videoDecoder);
 }
 

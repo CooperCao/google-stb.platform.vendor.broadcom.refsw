@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,30 +70,35 @@
 /***************************************************************************
  *VIDEO_ENC_INTR2 - VEC Level-2 Interrupt Controls
  ***************************************************************************/
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS          0x206e7800 /* [RO] CPU interrupt Status Register */
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET             0x206e7804 /* [WO] CPU interrupt Set Register */
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR           0x206e7808 /* [WO] CPU interrupt Clear Register */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS     0x206e780c /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET        0x206e7810 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR      0x206e7814 /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS          0x206e7818 /* [RO] PCI interrupt Status Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET             0x206e781c /* [WO] PCI interrupt Set Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR           0x206e7820 /* [WO] PCI interrupt Clear Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS     0x206e7824 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET        0x206e7828 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR      0x206e782c /* [WO] PCI interrupt Mask Clear Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS          0x206e7800 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET             0x206e7804 /* [WO][32] CPU interrupt Set Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR           0x206e7808 /* [WO][32] CPU interrupt Clear Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS     0x206e780c /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET        0x206e7810 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR      0x206e7814 /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS          0x206e7818 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET             0x206e781c /* [WO][32] PCI interrupt Set Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR           0x206e7820 /* [WO][32] PCI interrupt Clear Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS     0x206e7824 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET        0x206e7828 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR      0x206e782c /* [WO][32] PCI interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS - CPU interrupt Status Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_STATUS :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_reserved0_MASK             0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_reserved0_SHIFT            14
+/* VIDEO_ENC_INTR2 :: CPU_STATUS :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_reserved0_MASK             0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_reserved0_SHIFT            15
 
-/* VIDEO_ENC_INTR2 :: CPU_STATUS :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_EN_ERR_0_INTR_MASK     0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_EN_ERR_0_INTR_SHIFT    13
-#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_EN_ERR_0_INTR_DEFAULT  0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_STATUS :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_DONE_0_INTR_MASK       0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_DONE_0_INTR_SHIFT      14
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_DONE_0_INTR_DEFAULT    0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_STATUS :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_ERROR_0_INTR_MASK      0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_ERROR_0_INTR_SHIFT     13
+#define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_HDR_ERROR_0_INTR_DEFAULT   0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_STATUS :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_STATUS_ANCIL_VBI_0_1_INTR_MASK    0x00001000
@@ -163,14 +168,19 @@
 /***************************************************************************
  *CPU_SET - CPU interrupt Set Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_SET :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET_reserved0_MASK                0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET_reserved0_SHIFT               14
+/* VIDEO_ENC_INTR2 :: CPU_SET :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_reserved0_MASK                0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_reserved0_SHIFT               15
 
-/* VIDEO_ENC_INTR2 :: CPU_SET :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_EN_ERR_0_INTR_MASK        0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_EN_ERR_0_INTR_SHIFT       13
-#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_EN_ERR_0_INTR_DEFAULT     0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_SET :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_DONE_0_INTR_MASK          0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_DONE_0_INTR_SHIFT         14
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_DONE_0_INTR_DEFAULT       0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_SET :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_ERROR_0_INTR_MASK         0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_ERROR_0_INTR_SHIFT        13
+#define BCHP_VIDEO_ENC_INTR2_CPU_SET_HDR_ERROR_0_INTR_DEFAULT      0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_SET :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_SET_ANCIL_VBI_0_1_INTR_MASK       0x00001000
@@ -240,14 +250,19 @@
 /***************************************************************************
  *CPU_CLEAR - CPU interrupt Clear Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_CLEAR :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_reserved0_MASK              0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_reserved0_SHIFT             14
+/* VIDEO_ENC_INTR2 :: CPU_CLEAR :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_reserved0_MASK              0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_reserved0_SHIFT             15
 
-/* VIDEO_ENC_INTR2 :: CPU_CLEAR :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_EN_ERR_0_INTR_MASK      0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_EN_ERR_0_INTR_SHIFT     13
-#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_EN_ERR_0_INTR_DEFAULT   0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_CLEAR :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_DONE_0_INTR_MASK        0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_DONE_0_INTR_SHIFT       14
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_DONE_0_INTR_DEFAULT     0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_CLEAR :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_ERROR_0_INTR_MASK       0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_ERROR_0_INTR_SHIFT      13
+#define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_HDR_ERROR_0_INTR_DEFAULT    0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_CLEAR :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_CLEAR_ANCIL_VBI_0_1_INTR_MASK     0x00001000
@@ -317,14 +332,19 @@
 /***************************************************************************
  *CPU_MASK_STATUS - CPU interrupt Mask Status Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_reserved0_MASK        0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_reserved0_SHIFT       14
+/* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_reserved0_MASK        0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_reserved0_SHIFT       15
 
-/* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_EN_ERR_0_INTR_MASK 0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_EN_ERR_0_INTR_SHIFT 13
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_DONE_0_INTR_MASK  0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_DONE_0_INTR_SHIFT 14
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_DONE_0_INTR_DEFAULT 0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_ERROR_0_INTR_MASK 0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_ERROR_0_INTR_SHIFT 13
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_MASK_STATUS :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_MASK_STATUS_ANCIL_VBI_0_1_INTR_MASK 0x00001000
@@ -394,14 +414,19 @@
 /***************************************************************************
  *CPU_MASK_SET - CPU interrupt Mask Set Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_reserved0_MASK           0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_reserved0_SHIFT          14
+/* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_reserved0_MASK           0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_reserved0_SHIFT          15
 
-/* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_EN_ERR_0_INTR_MASK   0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_EN_ERR_0_INTR_SHIFT  13
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_DONE_0_INTR_MASK     0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_DONE_0_INTR_SHIFT    14
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_DONE_0_INTR_DEFAULT  0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_ERROR_0_INTR_MASK    0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_ERROR_0_INTR_SHIFT   13
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_MASK_SET :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_MASK_SET_ANCIL_VBI_0_1_INTR_MASK  0x00001000
@@ -471,14 +496,19 @@
 /***************************************************************************
  *CPU_MASK_CLEAR - CPU interrupt Mask Clear Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_reserved0_MASK         0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_reserved0_SHIFT        14
+/* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_reserved0_MASK         0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_reserved0_SHIFT        15
 
-/* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_EN_ERR_0_INTR_MASK 0x00002000
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_EN_ERR_0_INTR_SHIFT 13
-#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_DONE_0_INTR_MASK   0x00004000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_DONE_0_INTR_SHIFT  14
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_DONE_0_INTR_DEFAULT 0x00000000
+
+/* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_ERROR_0_INTR_MASK  0x00002000
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_ERROR_0_INTR_SHIFT 13
+#define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: CPU_MASK_CLEAR :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_CPU_MASK_CLEAR_ANCIL_VBI_0_1_INTR_MASK 0x00001000
@@ -548,14 +578,19 @@
 /***************************************************************************
  *PCI_STATUS - PCI interrupt Status Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_STATUS :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_reserved0_MASK             0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_reserved0_SHIFT            14
+/* VIDEO_ENC_INTR2 :: PCI_STATUS :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_reserved0_MASK             0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_reserved0_SHIFT            15
 
-/* VIDEO_ENC_INTR2 :: PCI_STATUS :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_EN_ERR_0_INTR_MASK     0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_EN_ERR_0_INTR_SHIFT    13
-#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_EN_ERR_0_INTR_DEFAULT  0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_STATUS :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_DONE_0_INTR_MASK       0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_DONE_0_INTR_SHIFT      14
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_DONE_0_INTR_DEFAULT    0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_STATUS :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_ERROR_0_INTR_MASK      0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_ERROR_0_INTR_SHIFT     13
+#define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_HDR_ERROR_0_INTR_DEFAULT   0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_STATUS :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_STATUS_ANCIL_VBI_0_1_INTR_MASK    0x00001000
@@ -625,14 +660,19 @@
 /***************************************************************************
  *PCI_SET - PCI interrupt Set Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_SET :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET_reserved0_MASK                0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET_reserved0_SHIFT               14
+/* VIDEO_ENC_INTR2 :: PCI_SET :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_reserved0_MASK                0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_reserved0_SHIFT               15
 
-/* VIDEO_ENC_INTR2 :: PCI_SET :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_EN_ERR_0_INTR_MASK        0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_EN_ERR_0_INTR_SHIFT       13
-#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_EN_ERR_0_INTR_DEFAULT     0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_SET :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_DONE_0_INTR_MASK          0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_DONE_0_INTR_SHIFT         14
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_DONE_0_INTR_DEFAULT       0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_SET :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_ERROR_0_INTR_MASK         0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_ERROR_0_INTR_SHIFT        13
+#define BCHP_VIDEO_ENC_INTR2_PCI_SET_HDR_ERROR_0_INTR_DEFAULT      0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_SET :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_SET_ANCIL_VBI_0_1_INTR_MASK       0x00001000
@@ -702,14 +742,19 @@
 /***************************************************************************
  *PCI_CLEAR - PCI interrupt Clear Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_CLEAR :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_reserved0_MASK              0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_reserved0_SHIFT             14
+/* VIDEO_ENC_INTR2 :: PCI_CLEAR :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_reserved0_MASK              0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_reserved0_SHIFT             15
 
-/* VIDEO_ENC_INTR2 :: PCI_CLEAR :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_EN_ERR_0_INTR_MASK      0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_EN_ERR_0_INTR_SHIFT     13
-#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_EN_ERR_0_INTR_DEFAULT   0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_CLEAR :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_DONE_0_INTR_MASK        0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_DONE_0_INTR_SHIFT       14
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_DONE_0_INTR_DEFAULT     0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_CLEAR :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_ERROR_0_INTR_MASK       0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_ERROR_0_INTR_SHIFT      13
+#define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_HDR_ERROR_0_INTR_DEFAULT    0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_CLEAR :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_CLEAR_ANCIL_VBI_0_1_INTR_MASK     0x00001000
@@ -779,14 +824,19 @@
 /***************************************************************************
  *PCI_MASK_STATUS - PCI interrupt Mask Status Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_reserved0_MASK        0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_reserved0_SHIFT       14
+/* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_reserved0_MASK        0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_reserved0_SHIFT       15
 
-/* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_EN_ERR_0_INTR_MASK 0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_EN_ERR_0_INTR_SHIFT 13
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_DONE_0_INTR_MASK  0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_DONE_0_INTR_SHIFT 14
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_DONE_0_INTR_DEFAULT 0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_ERROR_0_INTR_MASK 0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_ERROR_0_INTR_SHIFT 13
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_MASK_STATUS :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_MASK_STATUS_ANCIL_VBI_0_1_INTR_MASK 0x00001000
@@ -856,14 +906,19 @@
 /***************************************************************************
  *PCI_MASK_SET - PCI interrupt Mask Set Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_reserved0_MASK           0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_reserved0_SHIFT          14
+/* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_reserved0_MASK           0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_reserved0_SHIFT          15
 
-/* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_EN_ERR_0_INTR_MASK   0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_EN_ERR_0_INTR_SHIFT  13
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_DONE_0_INTR_MASK     0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_DONE_0_INTR_SHIFT    14
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_DONE_0_INTR_DEFAULT  0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_ERROR_0_INTR_MASK    0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_ERROR_0_INTR_SHIFT   13
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_MASK_SET :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_MASK_SET_ANCIL_VBI_0_1_INTR_MASK  0x00001000
@@ -933,14 +988,19 @@
 /***************************************************************************
  *PCI_MASK_CLEAR - PCI interrupt Mask Clear Register
  ***************************************************************************/
-/* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: reserved0 [31:14] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_reserved0_MASK         0xffffc000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_reserved0_SHIFT        14
+/* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: reserved0 [31:15] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_reserved0_MASK         0xffff8000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_reserved0_SHIFT        15
 
-/* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: HDR_EN_ERR_0_INTR [13:13] */
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_EN_ERR_0_INTR_MASK 0x00002000
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_EN_ERR_0_INTR_SHIFT 13
-#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_EN_ERR_0_INTR_DEFAULT 0x00000000
+/* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: HDR_DONE_0_INTR [14:14] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_DONE_0_INTR_MASK   0x00004000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_DONE_0_INTR_SHIFT  14
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_DONE_0_INTR_DEFAULT 0x00000000
+
+/* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: HDR_ERROR_0_INTR [13:13] */
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_ERROR_0_INTR_MASK  0x00002000
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_ERROR_0_INTR_SHIFT 13
+#define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_HDR_ERROR_0_INTR_DEFAULT 0x00000000
 
 /* VIDEO_ENC_INTR2 :: PCI_MASK_CLEAR :: ANCIL_VBI_0_1_INTR [12:12] */
 #define BCHP_VIDEO_ENC_INTR2_PCI_MASK_CLEAR_ANCIL_VBI_0_1_INTR_MASK 0x00001000

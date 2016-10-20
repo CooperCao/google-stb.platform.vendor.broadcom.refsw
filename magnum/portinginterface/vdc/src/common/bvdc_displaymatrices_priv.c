@@ -469,16 +469,13 @@ static const BVDC_P_DisplayCscMatrix* const s_apSDYCbCr_MatrixTbl[BVDC_P_Output_
     &s_SDYCbCr_to_YUV_M,     /* SVideo, Composite, SC (for Pal_M) */
     &s_SDYCbCr_to_YUV_N,     /* SVideo, Composite, SC (for Pal_N) */
     &s_SDYCbCr_to_YUV_NC,    /* SVideo, Composite, SC (for PAL_NC) */
-#if BVDC_P_SUPPORT_VEC_SECAM
     &s_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
     &s_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
     &s_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
-#endif
     &s_SDYCbCr_to_SDYPbPr,   /* SYPbPr, CYPbPr, SCYPbPr, SDYPbPr */
     &s_SDYCbCr_to_RGB,       /* RGBSRGB, CRGB, SCRGB, RGB */
 };
 
-#if 1
 /* xvYCC SDYCbCr CSC table, based on BVDC_P_Output */
 static const BVDC_P_DisplayCscMatrix* const s_apXvYCC_SDYCbCr_MatrixTbl[BVDC_P_Output_eMax] =
 {
@@ -487,15 +484,12 @@ static const BVDC_P_DisplayCscMatrix* const s_apXvYCC_SDYCbCr_MatrixTbl[BVDC_P_O
     &s_XvYCC_SDYCbCr_to_YUV,       /* SVideo, Composite, SC (for generic Pal) */
     &s_XvYCC_SDYCbCr_to_YUV_N,     /* SVideo, Composite, SC (for Pal_N/M) */
     &s_XvYCC_SDYCbCr_to_YUV,       /* SVideo, Composite, SC (for PAL_NC) */
-#if BVDC_P_SUPPORT_VEC_SECAM
     &s_XvYCC_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
     &s_XvYCC_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
     &s_XvYCC_SDYCbCr_to_YDbDr,     /* SVideo, Composite, SC (for SECAM) */
-#endif
     &s_XvYCC_SDYCbCr_to_SDYPbPr,   /* SYPbPr, CYPbPr, SCYPbPr, SDYPbPr */
     &s_XvYCC_SDYCbCr_to_RGB,       /* RGBSRGB, CRGB, SCRGB, RGB */
 };
-#endif
 
 static const BVDC_P_DisplayCscMatrix* const s_apHDYCbCr_MatrixTbl[] =
 {
@@ -607,25 +601,25 @@ void BVDC_P_Display_GetDviCscTable_isr
     eColorComponent = pDispInfo->stHdmiSettings.stSettings.eColorComponent;
     eColorRange = pDispInfo->stHdmiSettings.stSettings.eColorRange;
 
-    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("dviOut color Space %d, range %d, matrixCoeff %d", eColorComponent, eColorRange, pDispInfo->eHdmiOutput));
+    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("dviOut color Space %d, range %d, matrixCoeff %d", eColorComponent, eColorRange, pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs));
 
     /* this is for back compatibility */
     if (BAVC_ColorRange_eAuto == eColorRange)
     {
-        eColorRange = ((BAVC_MatrixCoefficients_eDvi_Full_Range_RGB    == pDispInfo->eHdmiOutput) ||
-                       (BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr == pDispInfo->eHdmiOutput)) ?
+        eColorRange = ((BAVC_MatrixCoefficients_eDvi_Full_Range_RGB    == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
+                       (BAVC_MatrixCoefficients_eHdmi_Full_Range_YCbCr == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)) ?
             BAVC_ColorRange_eFull : BAVC_ColorRange_eLimited;
     }
-    if (((BAVC_MatrixCoefficients_eHdmi_RGB           == pDispInfo->eHdmiOutput) ||
-         (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pDispInfo->eHdmiOutput)) &&
+    if (((BAVC_MatrixCoefficients_eHdmi_RGB           == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs) ||
+         (BAVC_MatrixCoefficients_eDvi_Full_Range_RGB == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)) &&
         (BAVC_Colorspace_eRGB != eColorComponent))
     {
         eColorComponent = BAVC_Colorspace_eRGB;
-        BDBG_MSG(("Hdmi output BAVC_MatrixCoefficients = %d but ColorSpace is NOT RGB (%d)", pDispInfo->eHdmiOutput, eColorComponent));
+        BDBG_MSG(("Hdmi output BAVC_MatrixCoefficients = %d but ColorSpace is NOT RGB (%d)", pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs, eColorComponent));
     }
 
 #if BVDC_P_SUPPORT_CMP_NON_LINEAR_CSC
-    if (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->eHdmiOutput)
+    if (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)
     {
         /* setup for NL CSC HW */
         *ppCscMatrix = &s_UHDYCbCr_to_RGB_Full_Range_DVI_for_CL;
@@ -688,7 +682,7 @@ void BVDC_P_Display_GetDviCscTable_isr
 
     BDBG_MSG(("Refer to BVDC_P_MAKE_VEC_CSC, YCbCr col 0 and col 1 are swapped."));
     BDBG_MSG(("Refer to BVDC_P_MAKE_VEC_RGB_CSC, RGB raws are also swapped: r0 on r1 position, r1 on r2, r2 on r0"));
-    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("DVI_CSC: CL2020_NLCsc_En %d", (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->eHdmiOutput)? 1: 0));
+    BDBG_MODULE_MSG(BVDC_DVI_NLCSC, ("DVI_CSC: CL2020_NLCsc_En %d", (BAVC_MatrixCoefficients_eItu_R_BT_2020_CL == pDispInfo->stHdmiSettings.stSettings.eMatrixCoeffs)? 1: 0));
 
     BVDC_P_Csc_Print_isr(&((*ppCscMatrix)->stCscCoeffs));
     return;

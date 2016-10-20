@@ -282,30 +282,63 @@ static inline GLenum untranslate_logic_op(uint64_t op)
 }
 
 /*** Blend ***/
-static inline v3d_blend_eqn_t translate_blend_equation(GLenum mode)
+static inline glxx_blend_eqn_t translate_blend_equation(GLenum mode)
 {
    switch (mode)
    {
-   case GL_FUNC_ADD:                return V3D_BLEND_EQN_ADD;
-   case GL_FUNC_SUBTRACT:           return V3D_BLEND_EQN_SUB;
-   case GL_FUNC_REVERSE_SUBTRACT:   return V3D_BLEND_EQN_RSUB;
-   case GL_MIN:                     return V3D_BLEND_EQN_MIN;
-   case GL_MAX:                     return V3D_BLEND_EQN_MAX;
-   default:                         return V3D_BLEND_EQN_INVALID;
+   case GL_FUNC_ADD:                return GLXX_BLEND_EQN_ADD;
+   case GL_FUNC_SUBTRACT:           return GLXX_BLEND_EQN_SUB;
+   case GL_FUNC_REVERSE_SUBTRACT:   return GLXX_BLEND_EQN_RSUB;
+   case GL_MIN:                     return GLXX_BLEND_EQN_MIN;
+   case GL_MAX:                     return GLXX_BLEND_EQN_MAX;
+
+   case GL_MULTIPLY:                return GLXX_ADV_BLEND_EQN_MULTIPLY;
+   case GL_SCREEN:                  return GLXX_ADV_BLEND_EQN_SCREEN;
+   case GL_OVERLAY:                 return GLXX_ADV_BLEND_EQN_OVERLAY;
+   case GL_DARKEN:                  return GLXX_ADV_BLEND_EQN_DARKEN;
+   case GL_LIGHTEN:                 return GLXX_ADV_BLEND_EQN_LIGHTEN;
+   case GL_COLORDODGE:              return GLXX_ADV_BLEND_EQN_COLORDODGE;
+   case GL_COLORBURN:               return GLXX_ADV_BLEND_EQN_COLORBURN;
+   case GL_HARDLIGHT:               return GLXX_ADV_BLEND_EQN_HARDLIGHT;
+   case GL_SOFTLIGHT:               return GLXX_ADV_BLEND_EQN_SOFTLIGHT;
+   case GL_DIFFERENCE:              return GLXX_ADV_BLEND_EQN_DIFFERENCE;
+   case GL_EXCLUSION:               return GLXX_ADV_BLEND_EQN_EXCLUSION;
+   case GL_HSL_HUE:                 return GLXX_ADV_BLEND_EQN_HSL_HUE;
+   case GL_HSL_SATURATION:          return GLXX_ADV_BLEND_EQN_HSL_SATURATION;
+   case GL_HSL_COLOR:               return GLXX_ADV_BLEND_EQN_HSL_COLOR;
+   case GL_HSL_LUMINOSITY:          return GLXX_ADV_BLEND_EQN_HSL_LUMINOSITY;
+
+   default:                         return GLXX_BLEND_EQN_INVALID;
    }
 }
 
-static inline GLenum untranslate_blend_equation(v3d_blend_eqn_t mode)
+static inline GLenum untranslate_blend_equation(glxx_blend_eqn_t mode)
 {
    switch (mode)
    {
-   case V3D_BLEND_EQN_ADD:    return GL_FUNC_ADD;
-   case V3D_BLEND_EQN_SUB:    return GL_FUNC_SUBTRACT;
-   case V3D_BLEND_EQN_RSUB:   return GL_FUNC_REVERSE_SUBTRACT;
-   case V3D_BLEND_EQN_MIN:    return GL_MIN;
-   case V3D_BLEND_EQN_MAX:    return GL_MAX;
+   case GLXX_BLEND_EQN_ADD:                  return GL_FUNC_ADD;
+   case GLXX_BLEND_EQN_SUB:                  return GL_FUNC_SUBTRACT;
+   case GLXX_BLEND_EQN_RSUB:                 return GL_FUNC_REVERSE_SUBTRACT;
+   case GLXX_BLEND_EQN_MIN:                  return GL_MIN;
+   case GLXX_BLEND_EQN_MAX:                  return GL_MAX;
+
+   case GLXX_ADV_BLEND_EQN_MULTIPLY:         return GL_MULTIPLY;
+   case GLXX_ADV_BLEND_EQN_SCREEN:           return GL_SCREEN;
+   case GLXX_ADV_BLEND_EQN_OVERLAY:          return GL_OVERLAY;
+   case GLXX_ADV_BLEND_EQN_DARKEN:           return GL_DARKEN;
+   case GLXX_ADV_BLEND_EQN_LIGHTEN:          return GL_LIGHTEN;
+   case GLXX_ADV_BLEND_EQN_COLORDODGE:       return GL_COLORDODGE;
+   case GLXX_ADV_BLEND_EQN_COLORBURN:        return GL_COLORBURN;
+   case GLXX_ADV_BLEND_EQN_HARDLIGHT:        return GL_HARDLIGHT;
+   case GLXX_ADV_BLEND_EQN_SOFTLIGHT:        return GL_SOFTLIGHT;
+   case GLXX_ADV_BLEND_EQN_DIFFERENCE:       return GL_DIFFERENCE;
+   case GLXX_ADV_BLEND_EQN_EXCLUSION:        return GL_EXCLUSION;
+   case GLXX_ADV_BLEND_EQN_HSL_HUE:          return GL_HSL_HUE;
+   case GLXX_ADV_BLEND_EQN_HSL_SATURATION:   return GL_HSL_SATURATION;
+   case GLXX_ADV_BLEND_EQN_HSL_COLOR:        return GL_HSL_COLOR;
+   case GLXX_ADV_BLEND_EQN_HSL_LUMINOSITY:   return GL_HSL_LUMINOSITY;
    default:
-      unreachable();          return 0;
+      unreachable();                         return 0;
    }
 }
 

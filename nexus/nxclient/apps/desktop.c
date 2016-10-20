@@ -111,6 +111,7 @@ int main(int argc, const char **argv)
     const char *background = "nxclient/desktop_background.png";
     char fontname[100];
     bool done = false;
+    struct desktop_item *item;
 
     memset(pContext, 0, sizeof(*pContext));
     strcpy(fontname, DEFAULT_FONTNAME);
@@ -161,7 +162,7 @@ int main(int argc, const char **argv)
             if (find) *find = 0;
             find = strchr(s, ':');
             if (find) {
-                struct desktop_item *item = BKNI_Malloc(sizeof(*item));
+                item = BKNI_Malloc(sizeof(*item));
                 BKNI_Memset(item, 0, sizeof(*item));
                 strncpy(item->name, s, find-s);
                 strcpy(item->cmdline, ++find);
@@ -247,6 +248,10 @@ int main(int argc, const char **argv)
     binput_close(pContext->input);
     if (pContext->background) {
         NEXUS_Surface_Destroy(pContext->background);
+    }
+    while ((item=BLST_Q_FIRST(&pContext->launch))) {
+        BLST_Q_REMOVE_HEAD(&pContext->launch, link);
+        BKNI_Free(item);
     }
     NxClient_Uninit();
     return 0;

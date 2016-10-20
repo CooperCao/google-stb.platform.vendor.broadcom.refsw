@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,17 +35,9 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Frontend QAM
 *    Generic APIs for QAM tuning.
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 ***************************************************************************/
 
@@ -67,6 +59,7 @@ void NEXUS_Frontend_GetDefaultSatelliteSettings( NEXUS_FrontendSatelliteSettings
     pSettings->ldpcPilotPll = true;
     pSettings->nyquist20 = true;
     pSettings->nyquistRolloff = NEXUS_FrontendSatelliteNyquistFilter_e20;
+    NEXUS_CallbackDesc_Init(&pSettings->lockCallback);
 }
 
 void NEXUS_Frontend_GetDefaultSatelliteSettingsForMode( NEXUS_FrontendSatelliteMode mode, NEXUS_FrontendSatelliteSettings *pSettings )
@@ -479,6 +472,7 @@ void NEXUS_Frontend_GetDefaultSatellitePeakscanSettings(NEXUS_FrontendSatelliteP
     pSettings->frequencyRange = 5 * 1000000;
     pSettings->frequencyStep = 1 * 1000000;
     /* TODO: hardcoded values are ok for now, but consider querying AST for these */
+    NEXUS_CallbackDesc_Init(&pSettings->peakscanCallback);
 }
 
 void NEXUS_Frontend_GetDefaultSatelliteToneSearchSettings(NEXUS_FrontendSatelliteToneSearchSettings *pSettings)
@@ -488,6 +482,7 @@ void NEXUS_Frontend_GetDefaultSatelliteToneSearchSettings(NEXUS_FrontendSatellit
     pSettings->frequencyRange = 5 * 1000000;
     pSettings->minRatio.numerator = 5; /* default: 2.5  (2 1/2 = 5/2) */
     pSettings->minRatio.denominator = 2;
+    NEXUS_CallbackDesc_Init(&pSettings->completionCallback);
 }
 
 NEXUS_Error NEXUS_Frontend_SatellitePeakscan( NEXUS_FrontendHandle handle, const NEXUS_FrontendSatellitePeakscanSettings *pSettings )

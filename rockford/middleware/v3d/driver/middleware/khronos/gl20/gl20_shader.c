@@ -38,21 +38,22 @@ void gl20_shader_init(GL20_SHADER_T *shader, int32_t name, GLenum type)
    MEM_ASSIGN(shader->mh_info, MEM_EMPTY_STRING_HANDLE);
 }
 
-void gl20_shader_term(void *v, uint32_t size)
+void gl20_shader_term(MEM_HANDLE_T handle)
 {
-   GL20_SHADER_T *shader = (GL20_SHADER_T *)v;
-
-   UNUSED(size);
+   GL20_SHADER_T *shader = (GL20_SHADER_T *)mem_lock(handle, NULL);
 
    MEM_ASSIGN(shader->mh_sources_current, MEM_INVALID_HANDLE);
    MEM_ASSIGN(shader->mh_sources_compile, MEM_INVALID_HANDLE);
 
    MEM_ASSIGN(shader->mh_info, MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
-void gl20_shader_sources_term(void *v, uint32_t size)
+void gl20_shader_sources_term(MEM_HANDLE_T handle)
 {
-   MEM_HANDLE_T *base = (MEM_HANDLE_T *)v;
+   MEM_HANDLE_T *base = (MEM_HANDLE_T *)mem_lock(handle, NULL);
+   uint32_t size = mem_get_size(handle);
 
    int i, count = size / sizeof(MEM_HANDLE_T);
 
@@ -60,6 +61,8 @@ void gl20_shader_sources_term(void *v, uint32_t size)
 
    for (i = 0; i < count; i++)
       MEM_ASSIGN(base[i], MEM_INVALID_HANDLE);
+
+   mem_unlock(handle);
 }
 
 void gl20_shader_acquire(GL20_SHADER_T *shader)

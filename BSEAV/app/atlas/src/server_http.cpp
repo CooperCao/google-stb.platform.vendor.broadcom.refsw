@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -146,11 +146,12 @@ void CServerHttp::stopStreamer()
             {
                 /* first remove the Streamer from the list.*/
                 _streamerList.remove(pStreamer);
-                if(true == pStreamer->checkEndOfStreamer())
+                if (true == pStreamer->checkEndOfStreamer())
                 {
                     BDBG_MSG((BIP_MSG_PRE_FMT "INSIDE:_streamerListTotal=%d, removed and stopping streamer since end Of streamer %p" BIP_MSG_PRE_ARG, _streamerList.total(), (void *)pStreamer));
                 }
-                else if(status.inactivityTimeInMs >= HTTP_STREAMER_MAX_INACTIVITY_TIME_IN_MSEC)
+                else
+                if (status.inactivityTimeInMs >= HTTP_STREAMER_MAX_INACTIVITY_TIME_IN_MSEC)
                 {
                     BDBG_MSG((BIP_MSG_PRE_FMT "INSIDE:_streamerListTotal=%d, removed and stopping streamer since inactivity timedout %p" BIP_MSG_PRE_ARG, _streamerList.total(), (void *)pStreamer));
                 }

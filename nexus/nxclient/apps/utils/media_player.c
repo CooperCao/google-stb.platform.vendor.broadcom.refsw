@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -64,6 +64,7 @@ void media_player_get_default_start_settings( media_player_start_settings *psett
     psettings->audio.dolbyDrcMode = NEXUS_AudioDecoderDolbyDrcMode_eMax; /* none */
     psettings->stcTrick = true;
     psettings->video.pid = 0x1fff;
+    psettings->video.scanMode = NEXUS_VideoDecoderScanMode_eAuto;
     psettings->audio.pid = 0x1fff;
     psettings->sync = NEXUS_SimpleStcChannelSyncMode_eDefaultAdjustmentConcealment;
     psettings->transportType = NEXUS_TransportType_eMax; /* no override */
@@ -663,6 +664,7 @@ int media_player_start( media_player_t player, const media_player_start_settings
                 settings.customSourceOrientation = true;
                 settings.sourceOrientation = NEXUS_VideoDecoderSourceOrientation_e3D_OverUnder;
             }
+            settings.scanMode = psettings->video.scanMode;
             NEXUS_SimpleVideoDecoder_SetSettings(videoDecoder, &settings);
         }
 
@@ -676,6 +678,11 @@ int media_player_start( media_player_t player, const media_player_start_settings
             }
             if (stcSettings.modeSettings.Auto.transportType != probe_results.transportType) {
                 stcSettings.modeSettings.Auto.transportType = probe_results.transportType;
+                setStc = true;
+            }
+            if (stcSettings.astm != psettings->astm)
+            {
+                stcSettings.astm = psettings->astm;
                 setStc = true;
             }
             if (setStc)
@@ -955,7 +962,7 @@ int media_player_ac4_status( media_player_t player, int action )
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
             unsigned i;
-            BDBG_ERR(("The current presentation is %lu", (unsigned long)codecSettings.codecSettings.ac4.presentationId));
+            BDBG_ERR(("The current presentation index is %lu", (unsigned long)codecSettings.codecSettings.ac4.presentationIndex));
             BDBG_ERR(("numPresentations %lu", (unsigned long)audStatus.codecStatus.ac4.numPresentations));
             for (i = 0; i<audStatus.codecStatus.ac4.numPresentations; i++) {
                 NEXUS_AudioDecoderPresentationStatus presentStatus;
@@ -964,7 +971,8 @@ int media_player_ac4_status( media_player_t player, int action )
                     BDBG_ERR(("Something went wrong. Presentation Status Codec doesn't match the current decode codec."));
                 }
                 else {
-                    BDBG_ERR(("Presentation %lu id: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.id));
+                    BDBG_ERR(("Presentation %lu index: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.index));
+                    BDBG_ERR(("  Presentation %lu id: %s", (unsigned long)i, presentStatus.status.ac4.id));
                     BDBG_ERR(("  Presentation %lu name: %s", (unsigned long)i, presentStatus.status.ac4.name));
                     BDBG_ERR(("  Presentation %lu language: %s", (unsigned long)i, presentStatus.status.ac4.language));
                     BDBG_ERR(("  Presentation %lu associateType: %lu", (unsigned long)i, (unsigned long)presentStatus.status.ac4.associateType));
@@ -976,24 +984,36 @@ int media_player_ac4_status( media_player_t player, int action )
     else if (action == 2) {
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
-            BDBG_ERR(("The currentPresentation id is %lu. Incrementing it by 1", (unsigned long)(codecSettings.codecSettings.ac4.presentationId)));
-            codecSettings.codecSettings.ac4.presentationId = codecSettings.codecSettings.ac4.presentationId + 1;
+            BDBG_ERR(("The currentPresentation index is %lu. Moving to the next presentation", (unsigned long)(codecSettings.codecSettings.ac4.presentationIndex)));
+            if ( codecSettings.codecSettings.ac4.presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
+                codecSettings.codecSettings.ac4.presentationIndex = 0;
+            }
+            codecSettings.codecSettings.ac4.presentationIndex = codecSettings.codecSettings.ac4.presentationIndex + 1;
+            if ( codecSettings.codecSettings.ac4.presentationIndex >= audStatus.codecStatus.ac4.numPresentations ) {
+                codecSettings.codecSettings.ac4.presentationIndex = 0;
+            }
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary,&codecSettings);
         }
     }
     else if (action ==3) {
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
-            BDBG_ERR(("The current dialog enhancement level is %lu. Incrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
+            BDBG_ERR(("The current dialog enhancement level is %ld. Incrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
             codecSettings.codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount + 3;
+            if ( codecSettings.codecSettings.ac4.dialogEnhancerAmount > 12 ) {
+                codecSettings.codecSettings.ac4.dialogEnhancerAmount = 12;
+            }
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
         }
     }
     else if (action ==4) {
         BDBG_ERR(("Codec is %lu", (unsigned long)audStatus.codec));
         if ( audStatus.codec == NEXUS_AudioCodec_eAc4 ) {
-            BDBG_ERR(("The current dialog enhancement level is %lu. decrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
+            BDBG_ERR(("The current dialog enhancement level is %ld. decrementing it by 3", (unsigned long)(codecSettings.codecSettings.ac4.dialogEnhancerAmount)));
             codecSettings.codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount - 3;
+            if ( codecSettings.codecSettings.ac4.dialogEnhancerAmount < -12 ) {
+                codecSettings.codecSettings.ac4.dialogEnhancerAmount = -12;
+            }
             NEXUS_SimpleAudioDecoder_SetCodecSettings(player->audioDecoder,NEXUS_SimpleAudioDecoderSelector_ePrimary, &codecSettings);
         }
     }

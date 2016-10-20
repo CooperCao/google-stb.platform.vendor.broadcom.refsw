@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "servermgr.h"
 #include "atlas.h"
@@ -84,7 +81,6 @@ eRet CServerMgr::open(CWidgetEngine * pWidgetEngine)
     ret = _pServerHttp->open(_pWidgetEngine, _pCfg);
     CHECK_ERROR_GOTO("Unable to open HTTP server object", ret, error);
 
-
     /* Create UDP Server object */
     _pServerUdp = new CServerUdp(_pCfg);
     CHECK_PTR_ERROR_GOTO("Unable to allocate Http Server object", _pServerHttp, ret, eRet_OutOfMemory, error);
@@ -92,8 +88,8 @@ eRet CServerMgr::open(CWidgetEngine * pWidgetEngine)
     ret = _pServerUdp->open(_pWidgetEngine, _pCfg);
     if (ret != eRet_Ok)
     {
-       /* This is optional so print out informational message */
-       BDBG_MSG(("UDP server is not started create udpUrl.xml"));
+        /* This is optional so print out informational message */
+        BDBG_MSG(("UDP server is not started create udpUrl.xml"));
     }
 
     /* Now Create HTTP Playlist server object.*/
@@ -118,9 +114,10 @@ eRet CServerMgr::registerObserver(
     ret = _pServerHttp->registerObserver(observer, notification);
     CHECK_ERROR_GOTO("Unable to registerObserver for _pServerHttp", ret, error);
 
-    if (_pServerUdp) {
-       ret = _pServerUdp->registerObserver(observer, notification);
-       CHECK_ERROR_GOTO("Unable to registerObserver for _pServerHttp", ret, error);
+    if (_pServerUdp)
+    {
+        ret = _pServerUdp->registerObserver(observer, notification);
+        CHECK_ERROR_GOTO("Unable to registerObserver for _pServerHttp", ret, error);
     }
 
     ret = _pServerPlaylist->registerObserver(observer, notification);
@@ -128,7 +125,7 @@ eRet CServerMgr::registerObserver(
 
 error:
     return(ret);
-}
+} /* registerObserver */
 
 eRet CServerMgr::startHttpServer(void)
 {
@@ -164,9 +161,9 @@ eRet CServerMgr::startUdpServer(void)
     ret = _pServerUdp->start();
     if (ret != eRet_Ok)
     {
-       /* this is optional that it is why this is a MSG and not ERR */
-       BDBG_MSG(("UDP Server not started "));
-       ret = eRet_ExternalError;
+        /* this is optional that it is why this is a MSG and not ERR */
+        BDBG_MSG(("UDP Server not started "));
+        ret = eRet_ExternalError;
     }
 error:
     return(ret);
@@ -237,7 +234,6 @@ eRet CServerMgr::stopPlaylistServer(void)
     ret = _pServerPlaylist->stop();
     CHECK_ERROR_GOTO("Unable to stop HTTP server object", ret, error);
 
-
 error:
     return(ret);
 }
@@ -248,13 +244,14 @@ void CServerMgr::close()
     _pServerHttp->close();
     DEL(_pServerHttp);
 
-    if (_pServerUdp) {
-       stopUdpServer();
-       _pServerUdp->close();
-       DEL(_pServerUdp);
+    if (_pServerUdp)
+    {
+        stopUdpServer();
+        _pServerUdp->close();
+        DEL(_pServerUdp);
     }
 
     stopPlaylistServer();
     _pServerPlaylist->close();
     DEL(_pServerPlaylist);
-}
+} /* close */

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,30 +70,30 @@
 /***************************************************************************
  *DNR_1 - Digital Noise Reduction 1 Registers
  ***************************************************************************/
-#define BCHP_DNR_1_REVISION                      0x20626200 /* [RO] Digital Noise Reduction (DNR) Revision ID */
-#define BCHP_DNR_1_DNR_TOP_CTRL                  0x20626204 /* [RW] DNR Top Level Control */
-#define BCHP_DNR_1_SRC_PIC_SIZE                  0x2062620c /* [RW] Source Picture Size */
-#define BCHP_DNR_1_SRC_SCAN_SETTING              0x20626210 /* [RW] Source Scan Setting */
-#define BCHP_DNR_1_BNR_CTRL                      0x20626214 /* [RW] Block Noise Reduction Control */
-#define BCHP_DNR_1_VBNR_CONFIG                   0x20626218 /* [RW] Vertical Block Noise Reduction Configuration */
-#define BCHP_DNR_1_MNR_CTRL                      0x20626220 /* [RW] Mosquito Noise Reduction Control */
-#define BCHP_DNR_1_MNR_CONFIG                    0x20626224 /* [RW] Mosquito Noise Reduction Configuration */
-#define BCHP_DNR_1_FILT_EFFECT_STATUS            0x20626230 /* [RO] DNR Filters Effect Status */
-#define BCHP_DNR_1_BVB_IN_STATUS                 0x20626234 /* [RO] DNR BVB Input Status */
-#define BCHP_DNR_1_BVB_IN_STATUS_CLEAR           0x20626238 /* [WO] DNR BVB Input Status Clear */
-#define BCHP_DNR_1_SCRATCH_REGISTER              0x2062623c /* [RW] DNR Scratch Register */
-#define BCHP_DNR_1_DNR_DEMO_SETTING              0x20626240 /* [RW] DNR Demo Setting */
-#define BCHP_DNR_1_DNR_DEMO_CTRL                 0x20626244 /* [RW] DNR Demo Control */
-#define BCHP_DNR_1_DNR_VIDEO_MODE                0x20626250 /* [RW] DNR 2D_3D Modes */
-#define BCHP_DNR_1_DCR_CTRL                      0x20626280 /* [RW] Digital Contour Removal Control */
-#define BCHP_DNR_1_DCR_FILT_LIMIT                0x20626284 /* [RW] DCR Filtering Limits */
-#define BCHP_DNR_1_DCR_FILT_CONFIG               0x20626288 /* [RW] DCR Filtering Configuration */
-#define BCHP_DNR_1_DCR_DITH_ORDER_PATTERN        0x20626290 /* [RW] DCR Ordered Dither Pattern Control */
-#define BCHP_DNR_1_DCR_DITH_ORDER_VALUE          0x20626294 /* [RW] DCR Ordered Dither Value */
-#define BCHP_DNR_1_DCR_DITH_RANDOM_PATTERN       0x20626298 /* [RW] DCR Random Dither Pattern Control */
-#define BCHP_DNR_1_DCR_DITH_RANDOM_VALUE         0x2062629c /* [RW] DCR Random Dither Values */
-#define BCHP_DNR_1_DCR_DITH_OUT_CTRL             0x206262a0 /* [RW] DCR Dither Output Control */
-#define BCHP_DNR_1_HW_CONFIGURATION              0x206262a4 /* [RO] Hardware Config */
+#define BCHP_DNR_1_REVISION                      0x20626200 /* [RO][32] Digital Noise Reduction (DNR) Revision ID */
+#define BCHP_DNR_1_DNR_TOP_CTRL                  0x20626204 /* [RW][32] DNR Top Level Control */
+#define BCHP_DNR_1_SRC_PIC_SIZE                  0x2062620c /* [RW][32] Source Picture Size */
+#define BCHP_DNR_1_SRC_SCAN_SETTING              0x20626210 /* [RW][32] Source Scan Setting */
+#define BCHP_DNR_1_BNR_CTRL                      0x20626214 /* [RW][32] Block Noise Reduction Control */
+#define BCHP_DNR_1_VBNR_CONFIG                   0x20626218 /* [RW][32] Vertical Block Noise Reduction Configuration */
+#define BCHP_DNR_1_MNR_CTRL                      0x20626220 /* [RW][32] Mosquito Noise Reduction Control */
+#define BCHP_DNR_1_MNR_CONFIG                    0x20626224 /* [RW][32] Mosquito Noise Reduction Configuration */
+#define BCHP_DNR_1_FILT_EFFECT_STATUS            0x20626230 /* [RO][32] DNR Filters Effect Status */
+#define BCHP_DNR_1_BVB_IN_STATUS                 0x20626234 /* [RO][32] DNR BVB Input Status */
+#define BCHP_DNR_1_BVB_IN_STATUS_CLEAR           0x20626238 /* [WO][32] DNR BVB Input Status Clear */
+#define BCHP_DNR_1_SCRATCH_REGISTER              0x2062623c /* [RW][32] DNR Scratch Register */
+#define BCHP_DNR_1_DNR_DEMO_SETTING              0x20626240 /* [RW][32] DNR Demo Setting */
+#define BCHP_DNR_1_DNR_DEMO_CTRL                 0x20626244 /* [RW][32] DNR Demo Control */
+#define BCHP_DNR_1_DNR_VIDEO_MODE                0x20626250 /* [RW][32] DNR 2D_3D Modes */
+#define BCHP_DNR_1_DCR_CTRL                      0x20626280 /* [RW][32] Digital Contour Removal Control */
+#define BCHP_DNR_1_DCR_FILT_LIMIT                0x20626284 /* [RW][32] DCR Filtering Limits */
+#define BCHP_DNR_1_DCR_FILT_CONFIG               0x20626288 /* [RW][32] DCR Filtering Configuration */
+#define BCHP_DNR_1_DCR_DITH_ORDER_PATTERN        0x20626290 /* [RW][32] DCR Ordered Dither Pattern Control */
+#define BCHP_DNR_1_DCR_DITH_ORDER_VALUE          0x20626294 /* [RW][32] DCR Ordered Dither Value */
+#define BCHP_DNR_1_DCR_DITH_RANDOM_PATTERN       0x20626298 /* [RW][32] DCR Random Dither Pattern Control */
+#define BCHP_DNR_1_DCR_DITH_RANDOM_VALUE         0x2062629c /* [RW][32] DCR Random Dither Values */
+#define BCHP_DNR_1_DCR_DITH_OUT_CTRL             0x206262a0 /* [RW][32] DCR Dither Output Control */
+#define BCHP_DNR_1_HW_CONFIGURATION              0x206262a4 /* [RO][32] Hardware Config */
 
 #endif /* #ifndef BCHP_DNR_1_H__ */
 

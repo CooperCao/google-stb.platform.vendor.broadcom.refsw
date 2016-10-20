@@ -1,43 +1,39 @@
 /******************************************************************************
- * (c) 2003-2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 
@@ -336,6 +332,56 @@ BXPT_Playback_PackHdr_Config;
 
 #if BXPT_HAS_MULTICHANNEL_PLAYBACK
 typedef struct BXPT_P_GpcInfo *BXPT_Playback_PacingCounter;
+
+/*
+The skip/repeat feature allows the pacing counter to be run at a faster or slower rate.
+Depending on the mode, when the pacing counter has incremented a given number of times, it
+will either drop the next increment (skip) or increment twice (repeat). If skipped, the
+GPC will effectively run slower; if repeated, the GPC will effectively run faster.
+
+Note that the GPC's counting is driven by a timebase clock pulse. The GPC and timebase hw
+work on a core frequency of 108 MHz (regardless of what the rest of XPT is using). So, to
+scale the 108 MHz clock to the 27 MHz clock that pacing actually uses, each increment of the
+GPC will take place after 4 ticks of the core 108 MHz clock.
+
+To show how the skip/repeat works, consider the case where the count value is 1000 (decimel)
+and mode is skip: the GPC will increment after ticks 5 rather than 4, causing the GPC to run slower
+by about 0.02% . That value is derived like so:
+
+(((actual count after 1001 timebase pulses) - (ideal count after 1001 timebase pulses)) / (ideal count after 1001 timebase pulses)) * 100
+= ((1000.8 - 1001) / 1001) * 100
+= - 0.02%
+
+Going the other direction, using a count value of 1000 (decimel) and repeat mode, the GPC will increment
+after 3 ticks rather than 4, causing the GPC to run faster by about 0.02% . The math for that is:
+
+(((actual count after 1001 timebase pulses) - (ideal count after 1001 timebase pulses)) / (ideal count after 1001 timebase pulses)) * 100
+= ((1001.25 - 1001) / 1001) * 100
+= 0.02%
+
+Changes to any of the skip/repeat parameters will take effect immediately. The hw to
+discard the old values and restart with the new values.
+*/
+typedef struct BXPT_Playback_SkipRepeat
+{
+    enum skipMode
+    {
+        BXPT_SkipRepeat_eModeSkip = 0,      /* Skip the next increment after 'count' increments. */
+        BXPT_SkipRepeat_eModeRepeat = 1     /* Repeat the next increment after 'count' incrememts. */
+    } mode;
+    unsigned count;     /* Number of increments needed to trigger a skip or repeat. */
+    bool enable;        /* Enable skip/repeat for this pacing counter. */
+}BXPT_Playback_SkipRepeat;
+
+BERR_Code BXPT_Get_SkipRepeatSetting(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    BXPT_Playback_SkipRepeat *skipRepeatCfg
+    );
+
+BERR_Code BXPT_Set_SkipRepeatSetting(
+    BXPT_Playback_Handle hPb,    /* [in] Handle for the playback channel */
+    const BXPT_Playback_SkipRepeat *skipRepeatCfg
+    );
 #endif
 
 /***************************************************************************

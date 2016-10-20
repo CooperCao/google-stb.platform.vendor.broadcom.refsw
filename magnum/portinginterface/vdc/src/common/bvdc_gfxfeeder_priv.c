@@ -68,6 +68,12 @@
 BDBG_MODULE(BVDC_GFX);
 BDBG_OBJECT_ID(BVDC_GFX);
 
+#define BVDC_P_MAKE_GFD(pGfxFeeder, id)                                                   \
+{                                                                                         \
+    (pGfxFeeder)->ulRegOffset = BCHP_GFD_##id##_REG_START - BCHP_GFD_0_REG_START;         \
+    (pGfxFeeder)->ulResetMask = BCHP_BMISC_SW_INIT_GFD_##id##_MASK;                       \
+}
+
 
 #define BVDC_P_GFD_MSG_ON              0
 #if (BVDC_P_GFD_MSG_ON==1)
@@ -196,45 +202,49 @@ BERR_Code BVDC_P_GfxFeeder_Create
     pGfxFeeder->hRdc = hRdc;
     pGfxFeeder->b3dSrc = b3dSrc;
     pGfxFeeder->hSource = hSource;
-
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     pGfxFeeder->ulResetRegAddr = BCHP_BMISC_SW_INIT;
-    pGfxFeeder->ulResetMask    =
-        BCHP_BMISC_SW_INIT_GFD_0_MASK << (eGfdId - BAVC_SourceId_eGfx0);
-#else
-    pGfxFeeder->ulResetRegAddr = BCHP_BMISC_SOFT_RESET;
-    pGfxFeeder->ulResetMask    =
-        BCHP_BMISC_SOFT_RESET_GFD_0_MASK << (eGfdId - BAVC_SourceId_eGfx0);
-#endif
 
-#if (BVDC_P_MAX_GFX_WINDOWS >= 2)
-    /* register offset into which gfxfeeder */
-    pGfxFeeder->ulRegOffset =
-#if (BVDC_P_MAX_GFX_WINDOWS >= 3)
-        (BAVC_SourceId_eGfx2 == pGfxFeeder->eId)?
-        (BCHP_GFD_2_REVISION - BCHP_GFD_0_REVISION) :
+    switch(pGfxFeeder->eId)
+    {
+        case BAVC_SourceId_eGfx0:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 0);
+            break;
+#ifdef BCHP_GFD_1_REG_START
+        case BAVC_SourceId_eGfx1:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 1);
+            break;
 #endif
-#if (BVDC_P_MAX_GFX_WINDOWS >= 4)
-        (BAVC_SourceId_eGfx3 == pGfxFeeder->eId)?
-        (BCHP_GFD_3_REVISION - BCHP_GFD_0_REVISION) :
+#ifdef BCHP_GFD_2_REG_START
+        case BAVC_SourceId_eGfx2:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 2);
+            break;
 #endif
-#if (BVDC_P_MAX_GFX_WINDOWS >= 5)
-        (BAVC_SourceId_eGfx4 == pGfxFeeder->eId)?
-        (BCHP_GFD_4_REVISION - BCHP_GFD_0_REVISION) :
+#ifdef BCHP_GFD_3_REG_START
+        case BAVC_SourceId_eGfx3:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 3);
+            break;
 #endif
-#if (BVDC_P_MAX_GFX_WINDOWS >= 6)
-        (BAVC_SourceId_eGfx5 == pGfxFeeder->eId)?
-        (BCHP_GFD_5_REVISION - BCHP_GFD_0_REVISION) :
+#ifdef BCHP_GFD_4_REG_START
+        case BAVC_SourceId_eGfx4:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 4);
+            break;
 #endif
-#if (BVDC_P_MAX_GFX_WINDOWS >= 7)
-        (BAVC_SourceId_eGfx6 == pGfxFeeder->eId)?
-        (BCHP_GFD_6_REVISION - BCHP_GFD_0_REVISION) :
+#ifdef BCHP_GFD_5_REG_START
+        case BAVC_SourceId_eGfx5:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 5);
+            break;
 #endif
-        ((BAVC_SourceId_eGfx1 == pGfxFeeder->eId)?
-         (BCHP_GFD_1_REVISION - BCHP_GFD_0_REVISION) : 0);
-#else
-    pGfxFeeder->ulRegOffset = 0;
+#ifdef BCHP_GFD_6_REG_START
+        case BAVC_SourceId_eGfx6:
+            BVDC_P_MAKE_GFD(pGfxFeeder, 6);
+            break;
 #endif
+        default:
+            BDBG_ERR(("Need to handle BAVC_SourceId_eGfx%d", pGfxFeeder->eId));
+            BDBG_ASSERT(0);
+            break;
+    }
+
 
     /* HW feature related to vertical scaling */
     pGfxFeeder->ulVertLineBuf = 0;
@@ -808,7 +818,8 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
     {
         BAVC_Gfx_Picture     stAvcPic;
         const BPXL_Plane    *pSurface;
-        uint32_t             ulPitch, ulSurOffset, ulWidth, ulHeight;
+        BMMA_DeviceOffset    ullSurOffset;
+        uint32_t             ulPitch, ulWidth, ulHeight;
         BPXL_Format          ePxlFmt;
         bool                 bOrientationOverride;
         BVDC_P_SurfaceInfo  *pCurSur = &(hGfxFeeder->stGfxSurface.stCurSurInfo);
@@ -820,8 +831,8 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
         ulWidth = pSurface->ulWidth;
         ulHeight = pSurface->ulHeight;
         ePxlFmt = pSurface->eFormat;
-        ulSurOffset = pCurSur->ulAddress;
-        ulSurOffset += pSurface->ulPixelsOffset;
+        ullSurOffset = pCurSur->ullAddress;
+        ullSurOffset += pSurface->ulPixelsOffset;
 
         hGfxFeeder->stGfxSurface.stTempSurInfo = hGfxFeeder->stGfxSurface.stCurSurInfo;
         pNewSur = &hGfxFeeder->stGfxSurface.stTempSurInfo;
@@ -852,7 +863,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
 
             pNewSur->ulHeight = ulHeight >> (BFMT_Orientation_e3D_OverUnder == eSrcOrientation);
             pNewSur->ulWidth  = ulWidth  >> (BFMT_Orientation_e3D_LeftRight == eSrcOrientation);
-            pNewSur->ulRAddress = ulSurOffset +
+            pNewSur->ullRAddress = ullSurOffset +
                 (BFMT_Orientation_e3D_OverUnder == eSrcOrientation) * pNewSur->ulHeight* ulPitch +
                 (BFMT_Orientation_e3D_LeftRight == eSrcOrientation) * pNewSur->ulWidth * BPXL_BITS_PER_PIXEL(ePxlFmt)/8;
 
@@ -1004,7 +1015,7 @@ BERR_Code BVDC_P_GfxFeeder_ValidateChanges
        (pWinNewInfo->lOffsetB              != pWinCurInfo->lOffsetB       ) ||
        (pWinNewInfo->bCscRgbMatching       != pWinCurInfo->bCscRgbMatching) ||
        (pDispNewInfo->bXvYcc               != pDispCurInfo->bXvYcc)         ||
-       (pDispNewInfo->eHdmiOutput          != pDispCurInfo->eHdmiOutput)    ||
+       (pDispNewInfo->stHdmiSettings.stSettings.eMatrixCoeffs          != pDispCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs)    ||
        (pDispNewInfo->stHdmiSettings.stSettings.eEotf != pDispCurInfo->stHdmiSettings.stSettings.eEotf)||
        (pDispNewInfo->stDirty.stBits.bTiming))
     {
@@ -1173,10 +1184,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForUserChangeOnly_isr
         ulClutSize = pCurCfg->ulNumGammaClutEntries;
 
         /* set the addr and size for table loading */
-        /* TODO: add 64-bit address & command support */
-        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
-        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_START ) + ulRulOffset;
-        *pulRulCur++ = ulClutAddr;
+        BRDC_AddrRul_ImmToReg_isr(&pulRulCur,
+            BCHP_GFD_0_PALETTE_START + ulRulOffset,
+            ulClutAddr);
         *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_SIZE ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_SIZE,  SIZE, ulClutSize );
@@ -1297,8 +1307,6 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     bool  bChangeClipOrField;
     uint32_t  ulFirStepLow, ulFirStepInt;
     uint32_t  *pulCoeffs;
-    uint32_t  ulAddrShadowReg0, ulAddrShadowReg1;
-    uint32_t  ulRAddrShadowReg0, ulRAddrShadowReg1;
 
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_3)
     uint32_t  ulEnDejag, ulEnDering, ulEnDemoMode;
@@ -1306,9 +1314,6 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     uint32_t  ulVsclFirStep;
     uint32_t  *pulVsclCoeffs;
     uint32_t  ulCntHeight;
-#endif
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
-    uint32_t  ulAddrReg;
 #endif
 
     BDBG_ENTER(BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr);
@@ -1448,14 +1453,19 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             return BERR_TRACE(eResult);
 
         /* BRDC_Variable_3 holds factor to determine if pitch is to be applied for the next field */
-        *pulRulCur++ = BRDC_OP_VAR_SUM_IMM_TO_VAR(BRDC_Variable_0, BRDC_Variable_3);
-        *pulRulCur++ = 0xFFFFFFFF; /* 0x0->0xFFFFFFFF, 0x1->0x0 */
-        *pulRulCur++ = BRDC_OP_NOT_VAR_TO_VAR(BRDC_Variable_3, BRDC_Variable_3);
+        BRDC_AddrRul_SumImmToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            (uint64_t)(-1), /* 0->(-1); 1->0, i.e., var - 1 */
+            BRDC_Variable_3);
+        BRDC_AddrRul_NotToVar_isr(&pulRulCur,
+            BRDC_Variable_3,
+            BRDC_Variable_3);
     }
     else
     {
-        *pulRulCur++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_3);
-        *pulRulCur++ = 0;
+        BRDC_AddrRul_ImmToVar_isr(&pulRulCur,
+            0,
+            BRDC_Variable_3);
     }
 
     /* (4) set RUL for main size, pitch, offset and scl initial phase
@@ -1514,6 +1524,7 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
             }
             else /* setup for RUL to automatically adjust vertical init phase according to polarity */
             {
+                /* note, var3 is either 0 or all f's which is independent of 64/32 bit operand; 32-bit operand for non-address math; */
                 /* (BRDC_Variable_3 & ulVsclInitPhaseBot) | (~BRDC_Variable_3 & ulVsclInitPhaseBot) */
                 *pulRulCur++ = BRDC_OP_VAR_AND_IMM_TO_VAR(BRDC_Variable_3, BRDC_Variable_0);
                 *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_VERT_FIR_INIT_PHASE, PHASE, pCurCfg->ulVsclInitPhaseBot );
@@ -1570,78 +1581,111 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
         BPXL_IS_COMPRESSED_FORMAT(pCurSur->eInputPxlFmt))
     {
         /* in these cases, GFD always fetch frame */
-        *pulRulCur++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_3);
-        *pulRulCur++ = 0;
+        BRDC_AddrRul_ImmToVar_isr(&pulRulCur,
+            0,
+            BRDC_Variable_3);
     }
     else
     {
         /* set RUL to auto adjust ulBottomOffset according to polarity */
-        *pulRulCur++ = BRDC_OP_IMM_TO_VAR(BRDC_Variable_0);
-        *pulRulCur++ = pCurSur->ulPitch;
-        *pulRulCur++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_3, BRDC_Variable_3);
+        BRDC_AddrRul_ImmToVar_isr(&pulRulCur,
+            pCurSur->ulPitch,
+            BRDC_Variable_0);
+        BRDC_AddrRul_AndToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            BRDC_Variable_3,
+            BRDC_Variable_3);
     }
 
     if (pGfxSurface->b3dSrc)
     {
-        ulAddrShadowReg0  = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[0]);
-        ulAddrShadowReg1  = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[1]);
-        ulRAddrShadowReg0 = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[0]);
-        ulRAddrShadowReg1 = BRDC_REGISTER(pGfxSurface->ulRSurAddrReg[1]);
-
         /* BRDC_Variable_0 = pGfxSurface->ulRegIdxReg  (0xffffffff or 0x0) */
-        *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-        *pulRulCur++ = BRDC_REGISTER(pGfxSurface->ulRegIdxReg);
-        *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_1);
-        *pulRulCur++ = ulAddrShadowReg1;
-        *pulRulCur++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_1, BRDC_Variable_1);
+        BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+            pGfxSurface->ulRegIdxReg,
+            BRDC_Variable_0);
+        BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+            pGfxSurface->ulSurAddrReg[1],
+            BRDC_Variable_1);
+        BRDC_AddrRul_AndToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            BRDC_Variable_1,
+            BRDC_Variable_1);
 
-        *pulRulCur++ = BRDC_OP_NOT_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_0);
-        *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_2);
-        *pulRulCur++ = ulAddrShadowReg0;
-        *pulRulCur++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
+        BRDC_AddrRul_NotToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            BRDC_Variable_0);
+        BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+            pGfxSurface->ulSurAddrReg[0],
+            BRDC_Variable_2);
+        BRDC_AddrRul_AndToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            BRDC_Variable_2,
+            BRDC_Variable_2);
 
-        *pulRulCur++ = BRDC_OP_VAR_OR_VAR_TO_VAR (BRDC_Variable_1, BRDC_Variable_2, BRDC_Variable_2);
+        BRDC_AddrRul_OrToVar_isr(&pulRulCur,
+            BRDC_Variable_1,
+            BRDC_Variable_2,
+            BRDC_Variable_2);
+
 
         /* BRDC_Variable_3 = ulBottomOffset */
-        *pulRulCur++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+        BRDC_AddrRul_SumToVar_isr(&pulRulCur,
+            BRDC_Variable_2,
+            BRDC_Variable_3,
+            BRDC_Variable_2);
 
-        *pulRulCur++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_2);
-        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_SRC_START ) + ulRulOffset;
+        BRDC_AddrRul_VarToReg_isr(&pulRulCur,
+            BCHP_GFD_0_SRC_START + ulRulOffset,
+            BRDC_Variable_2);
 
         /* right surface and alpha surface are never used at the same time
          * and they share shadow registers */
 
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
-        ulAddrReg = BRDC_REGISTER( BCHP_GFD_0_SRC_START_R);
-#endif
-
-#if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
         if(BVDC_P_ORIENTATION_IS_3D(pCurCfg->eInOrientation))
         {
-            *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-            *pulRulCur++ = BRDC_REGISTER(pGfxSurface->ulRegIdxReg);
-            *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_1);
-            *pulRulCur++ = ulRAddrShadowReg1;
-            *pulRulCur++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_1, BRDC_Variable_1);
+            BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+                pGfxSurface->ulRegIdxReg,
+                BRDC_Variable_0);
+            BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+                pGfxSurface->ulRSurAddrReg[1],
+                BRDC_Variable_1);
+            BRDC_AddrRul_AndToVar_isr(&pulRulCur,
+                BRDC_Variable_0,
+                BRDC_Variable_1,
+                BRDC_Variable_1);
 
-            *pulRulCur++ = BRDC_OP_NOT_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_0);
-            *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_2);
-            *pulRulCur++ = ulRAddrShadowReg0;
-            *pulRulCur++ = BRDC_OP_VAR_AND_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_2, BRDC_Variable_2);
+            BRDC_AddrRul_NotToVar_isr(&pulRulCur,
+                BRDC_Variable_0,
+                BRDC_Variable_0);
+            BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+                pGfxSurface->ulRSurAddrReg[0],
+                BRDC_Variable_2);
+            BRDC_AddrRul_AndToVar_isr(&pulRulCur,
+                BRDC_Variable_0,
+                BRDC_Variable_2,
+                BRDC_Variable_2);
 
-            *pulRulCur++ = BRDC_OP_VAR_OR_VAR_TO_VAR (BRDC_Variable_1, BRDC_Variable_2, BRDC_Variable_2);
+            BRDC_AddrRul_OrToVar_isr(&pulRulCur,
+                BRDC_Variable_1,
+                BRDC_Variable_2,
+                BRDC_Variable_2);
 
             /* BRDC_Variable_3 = ulBottomOffset */
-            *pulRulCur++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_2, BRDC_Variable_3, BRDC_Variable_2);
+            BRDC_AddrRul_SumToVar_isr(&pulRulCur,
+                BRDC_Variable_2,
+                BRDC_Variable_3,
+                BRDC_Variable_2);
 
-            *pulRulCur++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_2);
-            *pulRulCur++ = ulAddrReg + ulRulOffset;
+            BRDC_AddrRul_VarToReg_isr(&pulRulCur,
+                BCHP_GFD_0_SRC_START_R + ulRulOffset,
+                BRDC_Variable_2);
         }
         else
         {
-            *pulRulCur++ = BRDC_OP_IMM_TO_REG();
-            *pulRulCur++ = ulAddrReg + ulRulOffset;
-            *pulRulCur++ = 0;
+            BRDC_AddrRul_ImmToReg_isr(&pulRulCur,
+                BCHP_GFD_0_SRC_START_R + ulRulOffset,
+                0);
         }
 #endif
     }
@@ -1649,13 +1693,18 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForSurCtrl_isr
     /* !(pGfxSurface->b3dSrc) */
     else
     {
-        *pulRulCur++ = BRDC_OP_REG_TO_VAR(BRDC_Variable_0);
-        *pulRulCur++ = BRDC_REGISTER(pGfxSurface->ulSurAddrReg[0]);
+        BRDC_AddrRul_RegToVar_isr(&pulRulCur,
+            pGfxSurface->ulSurAddrReg[0],
+            BRDC_Variable_0);
 
         /* BRDC_Variable_3 = ulBottomOffset */
-        *pulRulCur++ = BRDC_OP_VAR_SUM_VAR_TO_VAR(BRDC_Variable_0, BRDC_Variable_3, BRDC_Variable_0);
-        *pulRulCur++ = BRDC_OP_VAR_TO_REG(BRDC_Variable_0);
-        *pulRulCur++ = BRDC_REGISTER(BCHP_GFD_0_SRC_START) + ulRulOffset;
+        BRDC_AddrRul_SumToVar_isr(&pulRulCur,
+            BRDC_Variable_0,
+            BRDC_Variable_3,
+            BRDC_Variable_0);
+        BRDC_AddrRul_VarToReg_isr(&pulRulCur,
+            BCHP_GFD_0_SRC_START + ulRulOffset,
+            BRDC_Variable_0);
     }
 
     /* (10) set RUL to increase VsyncCntr */
@@ -1760,9 +1809,9 @@ static BERR_Code BVDC_P_GfxFeeder_BuildRulForColorCtrl_isr
         ulClutSize = pCurSur->ulPaletteNumEntries;
 
         /* set the addr and size for table loading */
-        *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
-        *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_START ) + ulRulOffset;
-        *pulRulCur++ = ulClutAddr;
+        BRDC_AddrRul_ImmToReg_isr(&pulRulCur,
+            BCHP_GFD_0_PALETTE_START + ulRulOffset,
+            ulClutAddr);
         *pulRulCur++ = BRDC_OP_IMM_TO_REG( );
         *pulRulCur++ = BRDC_REGISTER( BCHP_GFD_0_PALETTE_SIZE ) + ulRulOffset;
         *pulRulCur++ = BCHP_FIELD_DATA( GFD_0_PALETTE_SIZE,  SIZE, ulClutSize );

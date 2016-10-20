@@ -132,6 +132,13 @@ static bool is_query_target(GLenum target)
       case GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN:
          result = true;
          break;
+      case GL_PRIMITIVES_GENERATED:
+#if V3D_HAS_NEW_TF
+         /* this is supported in es31 with extension geometry_shader */
+         return (KHRN_GLES31_DRIVER ? true : false);
+#else
+         return false;
+#endif
       default:
          result = false;
    }
@@ -384,28 +391,57 @@ end:
    glxx_unlock_server_state();
 }
 
-bool glxx_server_active_queries_install(GLXX_SERVER_STATE_T *state,
+static bool occlusion_query_install(GLXX_SERVER_STATE_T *state,
       GLXX_HW_RENDER_STATE_T *rs)
 {
    struct glxx_queries *queries = &state->queries;
-   unsigned int i;
    bool ok = true;
 
-   for (i=0; i < GLXX_Q_COUNT; i++)
+   struct glxx_queries_of_type *qot = &queries->queries[GLXX_Q_OCCLUSION];
+   if (qot->active)
    {
-      struct glxx_queries_of_type *qot = &queries->queries[i];
+      ok = khrn_timeline_record(&qot->timeline, (KHRN_RENDER_STATE_T*) rs);
+      if (!ok)
+         return false;
+   }
+
+   //enable or disable
+   ok = glxx_occlusion_query_record(rs, qot->active);
+   return ok;
+}
+
+#if V3D_HAS_NEW_TF
+static bool prim_counts_queries_install(GLXX_SERVER_STATE_T *state,
+      GLXX_HW_RENDER_STATE_T *rs)
+{
+   //install prim_gen and prim_written queries
+   enum glxx_query_type type = GLXX_Q_PRIM_GEN;
+   for( unsigned i = 0; i < 2; i++)
+   {
+      struct glxx_queries_of_type *qot = &state->queries.queries[type];
       if (qot->active)
       {
-         ok = khrn_timeline_record(&qot->timeline, (KHRN_RENDER_STATE_T*) rs);
-         if (ok)
-            ok = glxx_query_enable(rs, qot->active);
+         if (!khrn_timeline_record(&qot->timeline, (KHRN_RENDER_STATE_T*) rs))
+            return false;
       }
-      else
-         ok = glxx_query_disable(rs, i);
-      if (!ok)
-         break;
+      type = GLXX_Q_PRIM_WRITTEN;
    }
-   return ok;
+   return glxx_prim_counts_query_record(rs, state->queries.queries[GLXX_Q_PRIM_GEN].active,
+      state->queries.queries[GLXX_Q_PRIM_WRITTEN].active);
+}
+#endif
+
+bool glxx_server_queries_install(GLXX_SERVER_STATE_T *state,
+      GLXX_HW_RENDER_STATE_T *rs)
+{
+   if (!occlusion_query_install(state, rs))
+      return false;
+
+#if V3D_HAS_NEW_TF
+   if (!prim_counts_queries_install(state, rs))
+      return false;
+#endif
+   return true;
 }
 
 bool glxx_server_has_active_query_type(enum glxx_query_type type,

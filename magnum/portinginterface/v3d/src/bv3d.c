@@ -1,5 +1,5 @@
 /***************************************************************************
- *     Broadcom Proprietary and Confidential. (c)2012-13 Broadcom.  All rights reserved.
+ *     Broadcom Proprietary and Confidential. (c)2012-16 Broadcom.  All rights reserved.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -322,6 +322,10 @@ BERR_Code BV3D_Close(
       }
    }
 
+   /* return to unsecure mode */
+   if (hV3d->bSecure)
+      BV3D_P_SwitchMode(hV3d, false);
+
    BV3D_P_ReallyPowerOff(hV3d);
 
    /* remove IRQ handler */
@@ -559,7 +563,7 @@ BERR_Code BV3D_UnregisterClient(
          BDBG_MSG(("Stripped %d records from instruction queue", uiRemovedCount));
    }
 
-   while ((hV3d->sBin.eOperation != BV3D_Operation_eEndInstr && hV3d->sBin.psJob->uiClientId == uiClientId) || 
+   while ((hV3d->sBin.eOperation != BV3D_Operation_eEndInstr && hV3d->sBin.psJob->uiClientId == uiClientId) ||
           (hV3d->sRender.eOperation != BV3D_Operation_eEndInstr && hV3d->sRender.psJob->uiClientId == uiClientId))
    {
       /* We still have instructions active in hardware. Wait for them to complete. */
@@ -595,6 +599,10 @@ BERR_Code BV3D_UnregisterClient(
 
    /* Remove any pending fences */
    BV3D_P_FenceClientDestroy(hV3d->hFences, uiClientId);
+
+   /* if this was the last removed client, make the device mode unsecure */
+   if ((hV3d->bSecure) && (BV3D_P_IQMapSize(hV3d->hIQMap) == 0))
+      BV3D_P_SwitchMode(hV3d, false);
 
    BKNI_ReleaseMutex(hV3d->hModuleMutex);
 
@@ -763,7 +771,7 @@ BERR_Code BV3D_SetPerformanceMonitor(
       BV3D_P_ResetPerfMonitorHWCounters(hV3d);
       BKNI_Memset(&hV3d->sPerfData, 0, sizeof(BV3D_PerfMonitorData));
    }
-   
+
    if ((settings->uiFlags & BV3D_PerfMonitor_Stop) != 0)
    {
       /* Disable performance counters */
@@ -841,6 +849,10 @@ BERR_Code BV3D_Standby(
          break;
       BKNI_ReleaseMutex(hV3d->hModuleMutex);
    }
+
+   /* standby in unsecure mode */
+   if (hV3d->bSecure)
+      BV3D_P_SwitchMode(hV3d, false);
 
 #ifdef BCHP_PWR_SUPPORT
    /* power off if the driver is really powered up but dont change the reallyPoweredOn state */
@@ -988,7 +1000,7 @@ BERR_Code BV3D_FenceOpen(
 
    *pFence = BV3D_P_FenceAlloc(hV3d->hFences, uiClientId);
 
-   BDBG_MSG(("BV3D_FenceOpen fence %d\n", *pFence));
+   BDBG_MSG(("BV3D_FenceOpen fence %d", *pFence));
 
    BV3D_P_FenceArrayMutexRelease(hV3d->hFences);
 

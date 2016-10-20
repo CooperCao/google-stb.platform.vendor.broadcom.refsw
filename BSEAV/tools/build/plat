@@ -103,7 +103,6 @@ unset NEXUS_USE_7250_DGL
 unset NEXUS_USE_7250_CWF
 unset NEXUS_USE_7439_SV
 unset NEXUS_USE_7439_DR3
-unset NEXUS_USE_7439_DR4
 unset NEXUS_USE_7252S_SAT
 unset NEXUS_USE_7439_SFF
 unset NEXUS_USE_7449S_CWM
@@ -165,6 +164,7 @@ unset NEXUS_PLATFORM_7563_ULC
 unset NEXUS_PLATFORM_7563_DGL
 unset NEXUS_PLATFORM_7241_DCSFBTSFF
 unset NEXUS_PLATFORM_7241_T2SFF
+unset NEXUS_USE_75525_C
 fi
 
 for cmd in $@; do
@@ -319,7 +319,7 @@ le|LE)
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
     ;;
-4.1-1.0|4.1-1.1|4.1-1.2)
+4.1-1.0|4.1-1.1|4.1-1.2|4.1-1.3|4.1-1.4)
     # use the standard method to determine chip/ver linux and toolchain paths
     LINUX_ROOT=/opt/brcm/linux-$cmd
     NEW_TOOLCHAIN_PATH=xxx
@@ -383,6 +383,9 @@ C|c)
         ;;
     97422)
         export NEXUS_USE_7422_C=y
+        ;;
+    975525)
+        export NEXUS_USE_75525_C=y
         ;;
     esac
     ;;
@@ -733,14 +736,6 @@ DR3|dr3)
 	;;
    esac
    ;;
-DR4|dr4)
-   case $NEXUS_PLATFORM in
-   97439)
-        export NEXUS_USE_7439_SFF=y
-	export NEXUS_USE_7439_DR4=y
-	;;
-   esac
-   ;;
 *)
     echo Unrecognized option: $cmd
     echo Pre-URSR platforms are no longer supported by plat.
@@ -806,9 +801,9 @@ if [ -z "$NEXUS_PLATFORM" -a -n "$BCHP_VER" ] || [ -n "$NEXUS_PLATFORM" -a -z "$
    echo ' '
 fi
 
-# URSR 16.2 default kernel versions:
-URSR_ARM_LINUX_ROOT=/opt/brcm/linux-3.14-1.14
-URSR_ARM64_LINUX_ROOT=/opt/brcm/linux-4.1-1.2
+# URSR 16.4 default kernel versions:
+URSR_ARM_LINUX_ROOT=/opt/brcm/linux-4.1-1.4
+URSR_ARM64_LINUX_ROOT=/opt/brcm/linux-4.1-1.3
 URSR_MIPS_LINUX_ROOT=/opt/brcm/linux-3.3-3.9
 
 # If NEXUS_PLATFORM was specified and kernel version was not, set a default.
@@ -822,7 +817,17 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         # default LINUX and toolchain
     case $NEXUS_PLATFORM in
 
-    97260|97268|97271|97278)
+    97260)
+       case $BCHP_VER in
+       A0)
+       LINUX_ROOT=$URSR_ARM_LINUX_ROOT
+       ;;
+       *)
+       CHIP_VER_NOT_VALID=1
+       ;;
+       esac
+       ;;
+    97268|97271|97278)
        case $BCHP_VER in
        A0|B0)
        export LINUX=$URSR_ARM64_LINUX_ROOT/7271a0
@@ -868,36 +873,6 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         ;;
         B0|B1|B2)
         LINUX_ROOT=$URSR_MIPS_LINUX_ROOT
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        ;;
-    97325)
-        case $BCHP_VER in
-        A0|A1|A2|B0|B1|C0)
-        LINUX_ROOT=/opt/brcm/linux-2.6.31-3.7
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        ;;
-    97335)
-        case $BCHP_VER in
-        A0|A1|B0)
-        LINUX_ROOT=/opt/brcm/linux-2.6.31-3.7
-        ;;
-        *)
-        CHIP_VER_NOT_VALID=1
-        ;;
-        esac
-        ;;
-    97340|97342)
-        case $BCHP_VER in
-        A0|B0)
-        LINUX_ROOT=/opt/brcm/linux-2.6.37-3.4
         ;;
         *)
         CHIP_VER_NOT_VALID=1
@@ -1003,13 +978,11 @@ if [ -z $NEW_TOOLCHAIN_PATH ]; then
         LINUX_ROOT=$URSR_ARM_LINUX_ROOT
         ;;
         B0)
-	export LINUX=$URSR_ARM_LINUX_ROOT/7364a0
-	NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX}/../misc/toolchain`/bin
+	LINUX_ROOT=$URSR_ARM_LINUX_ROOT
 	export BCHP_VER=B0
         ;;
 	C0)
-	export LINUX=$URSR_ARM_LINUX_ROOT/7364a0
-	NEW_TOOLCHAIN_PATH=/opt/toolchains/`cat ${LINUX}/../misc/toolchain`/bin
+	LINUX_ROOT=$URSR_ARM_LINUX_ROOT
 	export BCHP_VER=C0
 	;;
         *)
@@ -1252,10 +1225,16 @@ fi
 # the linux source per chip & chip revision and to determine the toolchain.
 
 if [ ! -z $LINUX_ROOT ]; then
-    export LINUX=${LINUX_ROOT}/`${LINUX_ROOT}/tools/board2build.pl ${NEXUS_PLATFORM} ${BCHP_VER}`
     if [[ "$NEXUS_PLATFORM" == "97252" ]]; then
             PARENT_PLATFORM=97445
             export LINUX=${LINUX_ROOT}/`${LINUX_ROOT}/tools/board2build.pl ${PARENT_PLATFORM} ${BCHP_VER}`
+    fi
+    if [[ "$B_REFSW_ARCH" == "arm-linux" ]]; then
+            export LINUX=${LINUX_ROOT}/arm
+    elif [[ "$B_REFSW_ARCH" == "aarch64-linux" ]]; then
+            export LINUX=${LINUX_ROOT}/arm64
+    else
+            export LINUX=${LINUX_ROOT}/`${LINUX_ROOT}/tools/board2build.pl ${NEXUS_PLATFORM} ${BCHP_VER}`
     fi
     # use B_REFSW_SW to test for big endian & set the kernel source appropriately
     if [[ "$B_REFSW_ARCH" == "mips-uclibc" || "$B_REFSW_ARCH" == "mips-linux" || "$B_REFSW_ARCH" == "mips-linux-uclibc" ]]; then
@@ -1268,13 +1247,14 @@ fi
 # Check if system is an emulation client
 if [[ "$SYSTEM" == "linuxemu" ]]; then
         if [[ "$B_REFSW_ARCH" != "aarch64-linux" ]]; then
-	NEW_TOOLCHAIN_PATH=/tools/bin/gcc
+	NEW_TOOLCHAIN_PATH=`which gcc`
+	NEW_TOOLCHAIN_PATH=`dirname ${NEW_TOOLCHAIN_PATH}`
         fi
         export TOOLCHAIN=$NEW_TOOLCHAIN_PATH
         unset LINUX
 elif [[ "$SYSTEM" == "linuxclient" ]]; then
-        NEW_TOOLCHAIN_PATH=/tools/bin/gcc
-        export TOOLCHAIN=$NEW_TOOLCHAIN_PATH
+	NEW_TOOLCHAIN_PATH=`which gcc`
+	NEW_TOOLCHAIN_PATH=`dirname ${NEW_TOOLCHAIN_PATH}`
         unset LINUX
 fi
 
@@ -1392,19 +1372,9 @@ case $NEXUS_PLATFORM in
 ;;
 97439)
         case $BCHP_VER in
-        A0)
-        echo "board_subtype options:  SV SFF 7251_SV 7251_T2SFF 74371_XID"
-        echo "NEXUS_USE_7439_SV=$NEXUS_USE_7439_SV"
-        echo "NEXUS_USE_7438_SFF=$NEXUS_USE_7438_SFF"
-        echo "for 7251 USFF use 7251_SV"
-        echo "NEXUS_USE_7251_SV=$NEXUS_USE_7251_SV"
-        echo "NEXUS_USE_7251_T2SFF=$NEXUS_USE_7251_T2SFF"
-        echo "NEXUS_USE_74371_XID=$NEXUS_USE_74371_XID"
-        ;;
         B0)
-        echo "board_subtype options:  DR3 (7449SSV_DR3 SV use DR3) DR4 (7449SSV_DR4 SV use DR4) SAT SFF VMS_SFF CWM (7449SCWM use CWM) 3390_VMS"
-        echo "NEXUS_USE_7439_DR3=$NEXUS_USE_7439_DR3"
-        echo "NEXUS_USE_7439_DR4=$NEXUS_USE_7439_DR4"
+        echo "board_subtype options:   SV (7449SSV_DR4) SAT SFF VMS_SFF CWM (7449SCWM use CWM) 3390_VMS"
+        echo "NEXUS_USE_7439_SV=$NEXUS_USE_7439_SV"
         echo "NEXUS_USE_7439_SFF=$NEXUS_USE_7439_SFF"
         echo "NEXUS_USE_7252S_VMS_SFF=$NEXUS_USE_7252S_VMS_SFF"
         echo "NEXUS_USE_7252S_SAT=$NEXUS_USE_7252S_SAT"

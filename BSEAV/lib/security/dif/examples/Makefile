@@ -90,7 +90,7 @@ include $(BSEAV_TOP)/lib/security/bcrypt/bcrypt_libdir.inc
 include $(BSEAV_TOP)/lib/drmrootfs/drmrootfs_libdir.inc
 
 include $(BSEAV_TOP)/lib/security/dif/dif_libdir.inc
--include $(BSEAV_TOP)/lib/protobuf/protobuf_ver.inc
+-include $(BSEAV_TOP)/lib/protobuf/protobuf.inc
 ifeq ($(NXCLIENT_SUPPORT),y)
 include $(URSR_TOP)/nexus/nxclient/include/nxclient.inc
 endif
@@ -114,7 +114,7 @@ NEXUS_APP_DEFINES += $(foreach module, $(MAGNUM_MODULES), $($(module)_DEFINES))
 
 CFLAGS += -DPIC -fpic
 CFLAGS += -Wl,--exclude-libs,ALL
-CFLAGS += -Wno-variadic-macros -Wno-sign-compare
+CFLAGS += -Wno-variadic-macros -Wno-sign-compare -Wno-long-long
 ifeq ($(ARCH_DIR),arm)
 CFLAGS += -DARM_PLATFORM
 endif
@@ -130,6 +130,7 @@ CFLAGS += -D_GNU_SOURCE=1
 CFLAGS += $(FLAGS) $(NEXUS_CFLAGS)  $(addprefix -D,$(NEXUS_APP_DEFINES))
 
 CFLAGS += $(COMMON_DRM_CFLAGS)
+CFLAGS += $(addprefix -D, ${BSAGELIB_DEFINES})
 
 CFLAGS := $(filter-out -std=c89 -Wstrict-prototypes, $(CFLAGS))
 
@@ -172,6 +173,10 @@ LDFLAGS_OEMCRYPTO_CDM_LIB := -L$(NEXUS_BIN_DIR) -lwvcdm -loemcrypto
 endif
 endif
 
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+PREBLT_LIB_SUFFIX := 64
+endif
+
 LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
 LDFLAGS += $(LDFLAGS_THIRDPARTY_LIB)
@@ -180,12 +185,12 @@ LDFLAGS += $(COMMON_DRM_LDFLAGS)
 LDFLAGS += -L$(NEXUS_BIN_DIR) -lnexus
 LDFLAGS += -L$(NEXUS_TOP)/../obj.$(NEXUS_PLATFORM)/BSEAV/lib/security/bcrypt/$(BCRYPT_LIBDIR) -lbcrypt \
            -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmrootfs
-LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm
+LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm$(PREBLT_LIB_SUFFIX)
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 ifeq ($(SAGE_SUPPORT),y)
 LDFLAGS += -L$(COMMON_DRM_TOP)/lib/$(CMNDRM_DIR) -lcmndrm_tl
 LDFLAGS += -lplayready30pk
-LDFLAGS += -lplayreadypk_host
+LDFLAGS += -lplayreadypk$(PREBLT_LIB_SUFFIX)_host
 else
 LDFLAGS += -lplayreadypk
 endif

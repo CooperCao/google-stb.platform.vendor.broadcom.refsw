@@ -135,7 +135,7 @@ static void BV3D_P_DebugDumpJob(BV3D_Handle hV3d, BV3D_Job *job)
       BKNI_Printf("    Overspill      = %d\n",     job->uiOverspill);
       BKNI_Printf("    CollectTime    = %d\n",     job->bCollectTimeline ? 1 : 0);
       BKNI_Printf("    CallbackParam  = %d\n",     job->uiNotifyCallbackParam);
-      BKNI_Printf("    CallbackSeqNum = "  BDBG_UINT64_FMT "\n",     BDBG_UINT64_ARG(job->uiNotifySequenceNum));
+      BKNI_Printf("    CallbackSeqNum = "  BDBG_UINT64_FMT "",     BDBG_UINT64_ARG(job->uiNotifySequenceNum));
    }
 }
 
@@ -694,7 +694,7 @@ void BV3D_P_DispatchWaiting(
 
       hV3d->uiUserVPM = psJob->uiUserVPM;
    }
- 
+
    /* Only pop jobs with the same new VPM settings */
    while (psJob != NULL && psJob->uiUserVPM == hV3d->uiUserVPM)
    {
@@ -750,7 +750,7 @@ void BV3D_P_InstructionDone(
 }
 
 /***************************************************************************/
-void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint32_t *callbackParam, 
+void BV3D_P_DoClientCallback(BV3D_Handle hV3d, BV3D_Instruction *psInstruction, uint32_t *callbackParam,
                              uint64_t seqNum, bool sync)
 {
    void  (*pCallback)(uint32_t, void *);
@@ -825,7 +825,7 @@ void BV3D_P_HardwareDone(
    if (psInstruction->uiCallbackParam != 0)
    {
       BDBG_MSG(("Issuing HW CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
-      BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam, 
+      BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                               psInstruction->psJob->uiSequence, false);
    }
 
@@ -833,7 +833,7 @@ void BV3D_P_HardwareDone(
    if (psInstruction->psJob->uiNotifyCallbackParam)
    {
       BDBG_MSG(("Issuing HW NOTIFY CALLBACK(p=%d) to client %d", psInstruction->psJob->uiNotifyCallbackParam, psInstruction->psJob->uiClientId));
-      BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->psJob->uiNotifyCallbackParam, 
+      BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->psJob->uiNotifyCallbackParam,
                               psInstruction->psJob->uiNotifySequenceNum, false);
    }
 
@@ -926,7 +926,7 @@ void BV3D_P_IssueBin(
    BV3D_P_PowerOn(hV3d);
 
    hV3d->sBin = *psInstruction;
-   
+
    if (psInstruction->psJob == NULL)
       return;
 
@@ -947,7 +947,7 @@ void BV3D_P_IssueBin(
          BV3D_P_GetTimeNow(&psInstruction->psJob->sTimelineData.sBinStart);
 
       BDBG_MSG(("Binner start = 0x%x, end = 0x%x", psInstruction->uiArg1, psInstruction->uiArg2));
-      BDBG_MSG(("BPCA = 0x%x, BPCS = 0x%x\n",
+      BDBG_MSG(("BPCA = 0x%x, BPCS = 0x%x",
          BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCA), BREG_Read32(hV3d->hReg, BCHP_V3D_PTB_BPCS)));
 
       /* If the binner has used EXACTLY the amount of bytes in the overspill buffer, we can get here with
@@ -1068,7 +1068,7 @@ static bool BV3D_P_NoPendingRenderOrWait(
    return true;
 }
 
-static bool BV3D_P_SwitchMode(
+bool BV3D_P_SwitchMode(
    BV3D_Handle hV3d,
    bool bSecure)
 {
@@ -1156,7 +1156,7 @@ void BV3D_P_IssueInstr(
                   /* log the mode change into the queue */
                   if (BV3D_P_IQGetSecure(hIQ) != !!(psInstruction->uiArg1))
                   {
-                     BDBG_MSG(("Issuing secure transition on client %d\n", psInstruction->psJob->uiClientId));
+                     BDBG_MSG(("Issuing secure transition on client %d", psInstruction->psJob->uiClientId));
 
                      BV3D_P_IQSetSecure(hIQ, !!(psInstruction->uiArg1));
                   }
@@ -1229,9 +1229,9 @@ void BV3D_P_IssueInstr(
                      {
                         BV3D_P_IQSetWaiting(hIQ, true);
 
-                        BDBG_MSG(("Issuing SYNC CALLBACK(p=%d) to client %d\n", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
+                        BDBG_MSG(("Issuing SYNC CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
 
-                        BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam, 
+                        BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                                 psInstruction->psJob->uiSequence, true);
                      }
 
@@ -1258,7 +1258,7 @@ void BV3D_P_IssueInstr(
 
                         BDBG_MSG(("Issuing WAIT CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
 
-                        BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam, 
+                        BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                                 psInstruction->psJob->uiSequence, false);
                      }
 
@@ -1269,19 +1269,19 @@ void BV3D_P_IssueInstr(
                   else
                      bAdvance = false;
                   break;
-                  
+
                case BV3D_Operation_eNotifyInstr:
                   /* We need to notify the client when all render jobs from it are complete.
                      This differs from a wait-render in that it doesn't block later instructions,
                      so a later bin can still be issued for example. */
-                  if (BV3D_P_InstructionIsClear(&hV3d->sRender) || 
+                  if (BV3D_P_InstructionIsClear(&hV3d->sRender) ||
                       psInstruction->psJob->uiClientId != hV3d->sRender.psJob->uiClientId)
                   {
                      /* The renderer is idle, or working for another client - so issue the notify
                         callback immediately */
                      BDBG_MSG(("Issuing NOTIFY CALLBACK(p=%d) to client %d", psInstruction->uiCallbackParam, psInstruction->psJob->uiClientId));
 
-                     BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam, 
+                     BV3D_P_DoClientCallback(hV3d, psInstruction, &psInstruction->uiCallbackParam,
                                              psInstruction->psJob->uiSequence, false);
 
                      bAdvance = true;

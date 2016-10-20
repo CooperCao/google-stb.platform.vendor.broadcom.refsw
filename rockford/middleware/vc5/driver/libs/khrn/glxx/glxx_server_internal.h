@@ -16,6 +16,7 @@ needed by glxx/glxx_server.c, gl11/server.c and gl20/server.c
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "../common/khrn_mem.h"
 #include "glxx_translate.h"
+#include "glxx_tf.h"
 
 extern void glxx_clear_color_internal(float red, float green, float blue, float alpha);
 extern void glxx_clear_depth_internal(float depth);
@@ -339,22 +340,6 @@ static inline void glxx_readpixels_impldefined_formats(GLenum *format, GLenum *t
    gfx_lfmt_to_format_type_maybe(format, type, *dst_lfmt);
 }
 
-extern bool glxx_tf_validate_draw(const GLXX_SERVER_STATE_T *state,
-   GLenum primitive_mode, GLsizei count, GLsizei instance_count);
-extern void glxx_tf_write_primitives(GLXX_SERVER_STATE_T *state,
-   v3d_prim_mode_t primitive_mode, GLsizei count, GLsizei instance_count);
-extern GLint glxx_tf_get_bound(GLXX_SERVER_STATE_T const* state);
-extern GLuint glxx_tf_get_bound_buffer(GLXX_SERVER_STATE_T const* state);
-extern void glxx_tf_delete_buffer(struct GLXX_TRANSFORM_FEEDBACK_T_ *tf, GLXX_BUFFER_T *buffer_obj, GLuint buffer);
-extern GLXX_BUFFER_BINDING_T *glxx_tf_get_buffer_binding(GLXX_SERVER_STATE_T *state);
-bool glxx_tf_bind_buffer_valid(GLXX_SERVER_STATE_T *state);
-GLXX_INDEXED_BINDING_POINT_T *glxx_tf_get_indexed_bindings(GLXX_SERVER_STATE_T *state);
-
-bool glxx_tf_is_active(const GLXX_SERVER_STATE_T *state);
-bool glxx_tf_is_paused(const GLXX_SERVER_STATE_T *state);
-
-extern bool glxx_tf_add_interlock_writes(const GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs, bool* requires_flush);
-
 extern bool glxx_vao_initialise(GLXX_SERVER_STATE_T *state);
 extern void glxx_vao_uninitialise(GLXX_SERVER_STATE_T *state);
 GLXX_VAO_T *glxx_get_vao(GLXX_SERVER_STATE_T *state, uint32_t id);
@@ -363,22 +348,8 @@ extern bool glxx_pipeline_state_initialise(GLXX_SERVER_STATE_T *state);
 extern void glxx_pipeline_state_term(GLXX_SERVER_STATE_T *state);
 
 extern GLXX_QUERY_T *glxx_get_query(GLXX_SERVER_STATE_T *state, GLuint id);
-extern GLXX_TRANSFORM_FEEDBACK_T *glxx_get_transform_feedback(GLXX_SERVER_STATE_T *state, uint32_t id);
 extern bool glxx_server_has_active_query_type(enum glxx_query_type type,
    const GLXX_SERVER_STATE_T *state, const GLXX_HW_RENDER_STATE_T *rs);
-
-// If offset == -1, do not bind indexed binding point
-// If size == -1, use full buffer size, dynamically evaluated each time binding is used
-extern GLenum glxx_tf_set_bound_buffer(GLXX_SERVER_STATE_T *state, GLuint name,
-   GLuint index, GLintptr offset, GLsizeiptr size);
-
-struct GLXX_TRANSFORM_FEEDBACK_T_; // TODO: Just include the file?
-extern struct GLXX_TRANSFORM_FEEDBACK_T_ *glxx_tf_create_default(GLXX_SERVER_STATE_T *state);
-
-struct GL20_PROGRAM_T_; // TODO: Just include the file?
-struct GLXX_PIPELINE_T_;
-
-extern bool glxx_tf_program_used(GLXX_SERVER_STATE_T *state, struct GL20_PROGRAM_T_ *program);
 
 extern uint32_t glxx_get_element_count(GLenum type);
 
@@ -388,5 +359,15 @@ extern void glintGenVertexArrays(GLsizei n, GLuint* arrays);
 extern GLboolean glintIsVertexArray(GLuint array);
 
 extern bool glxx_in_secure_context();
+
+/* TF functions */
+extern GLXX_TRANSFORM_FEEDBACK_T *glxx_get_transform_feedback(GLXX_SERVER_STATE_T *state, uint32_t id);
+extern GLXX_TRANSFORM_FEEDBACK_T* glxx_get_bound_tf(GLXX_SERVER_STATE_T const* state);
+extern bool glxx_server_program_used_by_any_tf(GLXX_SERVER_STATE_T *state,
+      struct GL20_PROGRAM_T_ *program);
+extern bool glxx_server_tf_install(GLXX_SERVER_STATE_T *state, GLXX_HW_RENDER_STATE_T *rs,
+      bool point_size_used);
+extern bool glxx_server_tf_install_post_draw(GLXX_SERVER_STATE_T *state,
+      GLXX_HW_RENDER_STATE_T *rs);
 
 #endif

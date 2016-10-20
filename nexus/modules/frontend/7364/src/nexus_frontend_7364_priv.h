@@ -132,7 +132,6 @@ typedef struct NEXUS_7364Device
     uint8_t lastChannel;
     NEXUS_EventCallbackHandle isrEventCallback;
     unsigned agcValue;                            /* Gain Value*/
-    NEXUS_CallbackDesc updateGainCallbackDesc;    /* Callback will be called when the gain from the lna needs to be updated. */
     NEXUS_TunerRfInput rfInput;
     NEXUS_RfDaisyChain rfDaisyChain;
     bool enableRfLoopThrough;

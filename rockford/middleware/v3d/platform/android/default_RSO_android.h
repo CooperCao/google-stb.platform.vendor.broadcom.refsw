@@ -13,6 +13,7 @@ DESC
 #define _RSOANPL_DEFAULT_RSOANDROID_H__
 
 #include <EGL/egl.h>
+#include <EGL/eglext.h>
 #include <cutils/log.h>
 #include <system/window.h>
 #include <gralloc_priv.h>

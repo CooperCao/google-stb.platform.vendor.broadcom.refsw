@@ -9,7 +9,7 @@ All rights reserved.
 #include "libs/core/v3d/v3d_ver.h"
 #include <EGL/eglext.h>
 #include <EGL/eglext_brcm.h>
-#define EGL_DISPLAY_EXTS_STR_MAX_SIZE 452
+#define EGL_DISPLAY_EXTS_STR_MAX_SIZE 473
 static inline char *egl_display_exts_str(char *s_in)
 {
    char *s = s_in;
@@ -73,6 +73,9 @@ static inline char *egl_display_exts_str(char *s_in)
    memcpy(s, "EGL_KHR_image_base", 18);
    s += 18;
    *(s++) = ' ';
+   memcpy(s, "EGL_KHR_image_pixmap", 20);
+   s += 20;
+   *(s++) = ' ';
    memcpy(s, "EGL_KHR_surfaceless_context", 27);
    s += 27;
    *(s++) = ' ';
@@ -84,7 +87,7 @@ static inline char *egl_display_exts_str(char *s_in)
    *s = '\0';
    return s;
 }
-#define EGL_DISPLAY_MAX_EXTS 18
+#define EGL_DISPLAY_MAX_EXTS 19
 static inline unsigned egl_display_exts(const char **e_in)
 {
    const char **e = e_in;
@@ -116,6 +119,7 @@ static inline unsigned egl_display_exts(const char **e_in)
    *(e++) = "EGL_KHR_gl_texture_cubemap_image";
    *(e++) = "EGL_KHR_image";
    *(e++) = "EGL_KHR_image_base";
+   *(e++) = "EGL_KHR_image_pixmap";
    *(e++) = "EGL_KHR_surfaceless_context";
    *(e++) = "EGL_KHR_wait_sync";
    return e - e_in;

@@ -270,6 +270,7 @@ typedef struct BHDR_P_Handle
 	BAVC_HDMI_AudioInfoFrame AudioInfoFrame ;
 	BAVC_HDMI_SPDInfoFrame SPDInfoFrame;
 	BAVC_HDMI_VendorSpecificInfoFrame VSInfoFrame ;
+	BAVC_HDMI_DRMInfoFrame DRMInfoFrame ;
 	BAVC_HDMI_ACP AudioContentProtection ;
 	BAVC_HDMI_GcpData GeneralControlPacket ;
 	BAVC_HDMI_AudioClockRegenerationPacket AudioClockRegenerationPacket ;
@@ -352,14 +353,6 @@ typedef struct BHDR_P_Handle
 	BHDR_CallbackFunc pfAudioFormatChangeCallback ;
 	void *pvAudioFormatChangeParm1 ;
 	int iAudioFormatChangeParm2 ;
-
-	BHDR_CallbackFunc pfAudioContentProtectionChangeCallback ;
-	void *pvAudioContentProtectionChangeParm1 ;
-	int iAudioContentProtectionChangeParm2 ;
-
-	BHDR_CallbackFunc pfISRCChangeCallback ;
-	void *pvISRCChangeParm1 ;
-	int iISRCChangeParm2 ;
 
 	BHDR_CallbackFunc pfPacketChangeCallback ;
 	void *pvPacketChangeParm1 ;

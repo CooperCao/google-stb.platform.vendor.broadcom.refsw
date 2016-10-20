@@ -152,9 +152,9 @@ bool BMUXlib_TS_P_Userdata_FindTargetPTS(BMUXlib_TS_Handle hMuxTS, BMUXlib_TS_P_
 {
    BMUXlib_TS_P_UserdataStatus *pStatus = &hMuxTS->status.stUserdataStatus;
    uint32_t uiOPTS = BMUXLIB_INPUT_DESCRIPTOR_ORIGINAL_PTS(pstDescriptor);
-   uint32_t uiPTS45kHz = BMUXLIB_INPUT_DESCRIPTOR_PTS(pstDescriptor) >> 1;
+   uint32_t uiPTS45kHz = BMUXLIB_TS_P_INPUT_DESCRIPTOR_PTS(hMuxTS, pstDescriptor) >> 1;
    uint32_t uiDTS45kHz = (BMUXLIB_INPUT_DESCRIPTOR_IS_DTS_VALID(pstDescriptor))?
-            (BMUXLIB_INPUT_DESCRIPTOR_DTS(pstDescriptor) >> 1):uiPTS45kHz;
+            (BMUXLIB_TS_P_INPUT_DESCRIPTOR_DTS(hMuxTS, pstDescriptor) >> 1):uiPTS45kHz;
    BMUXlib_TS_P_UserdataVideoInfo *pVideoInfo = pInput->pstUserdata;
 
    BDBG_ENTER(BMUXlib_TS_P_Userdata_FindTargetPTS);

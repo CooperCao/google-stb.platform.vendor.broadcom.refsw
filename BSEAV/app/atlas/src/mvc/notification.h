@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 
 #ifndef NOTIFICATION_H__
@@ -59,49 +56,49 @@ typedef enum eNotification
     eNotify_KeyDown,        /* keypress - key pressed down */
     eNotify_VirtualKeyDown, /* keypress - fake remote key pressed down */
 
-    eNotify_Tune,                /* command  - tune */
-    eNotify_ChUp,                /* command  - change channel up */
-    eNotify_ChDown,              /* command  - change channel down */
-    eNotify_ScanStart,           /* command  - start channel scan */
-    eNotify_ScanStop,            /* command  - stop channel scan */
-    eNotify_PlaybackListDump,    /* command  - dump playback list */
-    eNotify_PlaybackStart,       /* command  - start a playback */
-    eNotify_PlaybackStop,        /* command  - stop a playback */
-    eNotify_PlaybackTrickMode,   /* command  - do trickmode playback */
-    eNotify_SetVolume,           /* command  - change volume level */
-    eNotify_SetMute,             /* command  - change mute state */
-    eNotify_RecordStart,         /* command  - start a record */
-    eNotify_RecordStop,          /* command  - stop a record */
-    eNotify_EncodeStart,         /* command  - start an encode */
-    eNotify_EncodeStop,          /* command  - stop an encode */
-    eNotify_RefreshPlaybackList, /* command  - stop a playback */
-    eNotify_ChannelListLoad,     /* command  - load channel list */
-    eNotify_ChannelListSave,     /* command  - save channel list */
-    eNotify_ChannelListDump,     /* command  - dump channel list */
-    eNotify_SetAudioProgram,     /* command  - change current audio pid */
-    eNotify_SetAudioProcessing,  /* command  - change audio processing type */
-    eNotify_SetSpdifInput,       /* command  - change spdif input type */
-    eNotify_SetHdmiAudioInput,   /* command  - change hdmi audio input type */
-    eNotify_SetAudioDownmix,     /* command  - change audio downmix */
-    eNotify_SetAudioDualMono,    /* command  - change audio dual mono */
-    eNotify_SetDolbyDRC,         /* command  - change dolby dynamic range control */
-    eNotify_SetDolbyDialogNorm,  /* command  - change dolby dialog normalization */
-    eNotify_SetVideoFormat,      /* command  - change video format and graphics */
-    eNotify_SetContentMode,      /* command  - change video content mode */
-    eNotify_SetColorSpace,       /* command  - change video colorspace */
-    eNotify_SetMpaaDecimation,   /* command  - change mpaa decimation state */
-    eNotify_SetDeinterlacer,     /* command  - change MAD deinterlacer state */
-    eNotify_SetBoxDetect,        /* command  - change box detect state */
-    eNotify_SetAspectRatio,      /* command  - change aspect ratio */
-    eNotify_SetAutoVideoFormat,  /* command  - change auto video format setting */
-    eNotify_SetVbiSettings,      /* command  - change VBI based setting(s) */
-    eNotify_SetPowerMode,        /* command  - set power mode */
-    eNotify_ShowPip,             /* command  - show/hide pip window */
-    eNotify_SwapPip,             /* command  - swap pip/main windows */
-    eNotify_ClosedCaptionEnable, /* command  - enable/disable closed caption */
-    eNotify_ClosedCaptionMode,   /* command  - set 608/708 closed caption mode */
-    eNotify_ipClientTranscodeEnable,     /* command  - enable/disable transcoding in BIP streaming for a given client */
-    eNotify_ipClientTranscodeProfile,     /* command  - set the IP transcode profile in BIP streaming for a given client */
+    eNotify_Tune,                     /* command  - tune */
+    eNotify_ChUp,                     /* command  - change channel up */
+    eNotify_ChDown,                   /* command  - change channel down */
+    eNotify_ScanStart,                /* command  - start channel scan */
+    eNotify_ScanStop,                 /* command  - stop channel scan */
+    eNotify_PlaybackListDump,         /* command  - dump playback list */
+    eNotify_PlaybackStart,            /* command  - start a playback */
+    eNotify_PlaybackStop,             /* command  - stop a playback */
+    eNotify_PlaybackTrickMode,        /* command  - do trickmode playback */
+    eNotify_SetVolume,                /* command  - change volume level */
+    eNotify_SetMute,                  /* command  - change mute state */
+    eNotify_RecordStart,              /* command  - start a record */
+    eNotify_RecordStop,               /* command  - stop a record */
+    eNotify_EncodeStart,              /* command  - start an encode */
+    eNotify_EncodeStop,               /* command  - stop an encode */
+    eNotify_RefreshPlaybackList,      /* command  - stop a playback */
+    eNotify_ChannelListLoad,          /* command  - load channel list */
+    eNotify_ChannelListSave,          /* command  - save channel list */
+    eNotify_ChannelListDump,          /* command  - dump channel list */
+    eNotify_SetAudioProgram,          /* command  - change current audio pid */
+    eNotify_SetAudioProcessing,       /* command  - change audio processing type */
+    eNotify_SetSpdifInput,            /* command  - change spdif input type */
+    eNotify_SetHdmiAudioInput,        /* command  - change hdmi audio input type */
+    eNotify_SetAudioDownmix,          /* command  - change audio downmix */
+    eNotify_SetAudioDualMono,         /* command  - change audio dual mono */
+    eNotify_SetDolbyDRC,              /* command  - change dolby dynamic range control */
+    eNotify_SetDolbyDialogNorm,       /* command  - change dolby dialog normalization */
+    eNotify_SetVideoFormat,           /* command  - change video format and graphics */
+    eNotify_SetContentMode,           /* command  - change video content mode */
+    eNotify_SetColorSpace,            /* command  - change video colorspace */
+    eNotify_SetMpaaDecimation,        /* command  - change mpaa decimation state */
+    eNotify_SetDeinterlacer,          /* command  - change MAD deinterlacer state */
+    eNotify_SetBoxDetect,             /* command  - change box detect state */
+    eNotify_SetAspectRatio,           /* command  - change aspect ratio */
+    eNotify_SetAutoVideoFormat,       /* command  - change auto video format setting */
+    eNotify_SetVbiSettings,           /* command  - change VBI based setting(s) */
+    eNotify_SetPowerMode,             /* command  - set power mode */
+    eNotify_ShowPip,                  /* command  - show/hide pip window */
+    eNotify_SwapPip,                  /* command  - swap pip/main windows */
+    eNotify_ClosedCaptionEnable,      /* command  - enable/disable closed caption */
+    eNotify_ClosedCaptionMode,        /* command  - set 608/708 closed caption mode */
+    eNotify_ipClientTranscodeEnable,  /* command  - enable/disable transcoding in BIP streaming for a given client */
+    eNotify_ipClientTranscodeProfile, /* command  - set the IP transcode profile in BIP streaming for a given client */
 #ifdef NETAPP_SUPPORT
     eNotify_NetworkWifiScanStart,  /* command  - start wifi network scan */
     eNotify_NetworkWifiScanStop,   /* command  - stop wifi network scan */
@@ -184,6 +181,8 @@ typedef enum eNotification
     eNotify_NetworkWifiScanStopped,      /* status   - wifi network scan stopped104 */
     eNotify_NetworkWifiScanResult,       /* status   - results of wifi network scan are available 105*/
     eNotify_NetworkWifiConnectionStatus, /* status   - wifi network connection status is available 106 */
+    eNotify_NetworkWifiConnected,        /* status   - wifi network has been connected */
+    eNotify_NetworkWifiDisconnected,     /* status   - wifi network has been disconnected */
     eNotify_BluetoothDiscoveryStarted,   /* status   - bluetooth discovery started */
     eNotify_BluetoothDiscoveryResult,    /* status   - discovery done and results of bluetooth discovery are available */
     eNotify_BluetoothConnectionStatus,   /* status   - bluetooth connection status is available */

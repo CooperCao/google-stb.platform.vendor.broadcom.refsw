@@ -181,11 +181,15 @@ define generated_src_dir_exists
 @mkdir -p $(GENERATED_SRC_DIR)/driver/libs/util/dglenum
 endef
 
+$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.table : $(glsl_primitive_types_deps)
+	$(glsl_primitive_types_gen)
+
+
 $(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.c \
 $(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.h \
-$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.table \
-$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_type_index.auto.h : $(glsl_primitive_types_deps)
-	$(glsl_primitive_types_gen)
+$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_type_index.auto.h : \
+	$(intermediates)/driver/libs/khrn/glsl/glsl_primitive_types.auto.table
+		@
 
 $(intermediates)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.auto.c : $(LOCAL_PATH)/driver/libs/khrn/glsl/glsl_intrinsic_lookup.gperf
 	$(generated_src_dir_exists)
@@ -204,9 +208,12 @@ $(hide) \
 	-O $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl;
 endef
 
-$(intermediates)/driver/libs/khrn/glsl/textures.auto.glsl \
 $(intermediates)/driver/libs/khrn/glsl/textures.auto.props : $(LOCAL_PATH)/driver/libs/khrn/glsl/scripts/build_texture_functions.py
 	$(textures_auto_gen)
+
+$(intermediates)/driver/libs/khrn/glsl/textures.auto.glsl : \
+	$(intermediates)/driver/libs/khrn/glsl/textures.auto.props
+		@
 
 # sources for stdlib from source tree.
 STDLIB_SOURCES := \
@@ -271,15 +278,21 @@ $(hide) python \
 
 endef
 
-$(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.h \
 $(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.c : $(glsl_stdlib_deps)
 	$(glsl_stdlib_auto_gen)
 
-$(intermediates)/driver/libs/khrn/glsl/glsl_parser.h \
-$(intermediates)/driver/libs/khrn/glsl/glsl_parser.c \
+$(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.h : \
+	$(intermediates)/driver/libs/khrn/glsl/glsl_stdlib.auto.c
+		@
+
 $(intermediates)/driver/libs/khrn/glsl/glsl_parser.output : $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y
 	$(generated_src_dir_exists)
 	bison -d -o $(GENERATED_SRC_DIR)/driver/libs/khrn/glsl/glsl_parser.c $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_parser.y
+
+$(intermediates)/driver/libs/khrn/glsl/glsl_parser.c \
+$(intermediates)/driver/libs/khrn/glsl/glsl_parser.h : \
+	$(intermediates)/driver/libs/khrn/glsl/glsl_parser.output
+		@
 
 $(intermediates)/driver/libs/khrn/glsl/glsl_lexer.c : $(V3D_DRIVER_TOP)/driver/libs/khrn/glsl/glsl_lexer.l
 	$(generated_src_dir_exists)

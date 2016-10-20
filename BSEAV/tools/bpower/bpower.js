@@ -40,6 +40,7 @@
 ******************************************************************************/
 var MasterDebug=0;
 var GlobalDebug = 0;
+var REFRESH_IN_MILLISECONDS=1000;
 var SetVariableCount=0; // number of times setVariable() is called
 var gFieldName = "";
 var CgiTimeoutId=0;
@@ -70,6 +71,12 @@ var THERMOMETER_COLOR_WARNING   ="#ff9333";
 var THERMOMETER_COLOR_CRITICAL  ="#ff0000";
 var DEGREES_PER_PIXEL           = 6;
 var passcount=0;
+var HIDE = false;
+var SHOW = true;
+var DvfsControl =  {Value: 0};
+var GovernorSettingNow = 0;
+var GovernorSettingPrev = 0;
+var CgiTimeoutId=0;
 
 function rtrim(stringToTrim) { return stringToTrim.replace(/\s+$/,""); }
 
@@ -78,6 +85,16 @@ Number.prototype.padZero= function(len){
     len= len || 2;
     while (s.length < len) s= c + s;
     return s;
+}
+
+function OneSecond ()
+{
+    //alert("OneSecond");
+    if (CgiTimeoutId) {
+        clearTimeout(CgiTimeoutId);
+        CgiTimeoutId = 0;
+    }
+    sendCgiRequest();
 }
 
 function MyLoad ()
@@ -97,6 +114,7 @@ function MyLoad ()
         //alert("TZ offset " + local.getTimezoneOffset() );
         localdatetime = (local.getUTCMonth()+1).padZero() + local.getUTCDate().padZero() + local.getUTCHours().padZero() + local.getUTCMinutes().padZero() +
                         local.getUTCFullYear() + "." + local.getUTCSeconds().padZero();
+        hideOrShow("row_DvfsControl", HIDE );
     }
 
     sendCgiRequest();
@@ -290,6 +308,14 @@ function setVariable(fieldName)
                     GetThermal.Value = 1;
                     RefreshGetThermal();
                 }
+            } else if (fieldName == "checkboxDvfsControl" ) {
+                hideOrShow("row_DvfsControl", fieldValue);
+
+                if (fieldValue) {
+                    DvfsControl.Value = 1;
+                } else {
+                    DvfsControl.Value = 0;
+                }
             }
 
             if (obj.checked) {
@@ -299,6 +325,17 @@ function setVariable(fieldName)
         } else if ( obj.type == "text" ) {
             fieldValue = obj.value;
         } else if ( obj.type == "radio" ) {
+            var radios = document.getElementsByName( fieldName );
+
+            fieldValue = document.querySelector('input[name=radioGovernor]:checked').value
+
+            if ( fieldName.indexOf ( "radioGovernor" ) >= 0 ) {
+                var objgovernor = document.getElementById( fieldName );
+                if ( objgovernor ) {
+                    GovernorSettingNow = fieldValue;
+                    sendCgiRequest();
+                }
+            }
         } else if ( obj.type == "select-one" ) {
         } else { // check to see if we can determine the item by its name
             var objrect = document.getElementById( fieldName );
@@ -441,6 +478,16 @@ function sendCgiRequest( )
         url += "&GetThermal=" + GetThermal.Value + "&GetThermalScale=" + GetThermalScale ;
     }
 
+    if ( DvfsControl.Value ) {
+        url += "&DvfsControl=" + DvfsControl.Value;
+    }
+
+    if ( GovernorSettingNow ) {
+        url += "&GovernorSetting=" + GovernorSettingNow;
+        GovernorSettingPrev = GovernorSettingNow;
+        GovernorSettingNow = 0;
+    }
+
     // seems the data sent to the browser cannot exceed 1010 for unknown reason
     if (url.length > 1010) {
         url = url.substr(0,1010);
@@ -515,7 +562,7 @@ debug=0;
                             //alert("element CLOCKINFO not found");
                         }
                         setSvgHeight( SvgHeight );
-                        hideOrShow("row_clocks", true );
+                        hideOrShow("row_clocks", SHOW );
                     } else {
                         if (objclockinfo) {
                             //objclockinfo.innerHTML = "Response was invalid; trying again in 1 second!";
@@ -571,9 +618,71 @@ debug=0;
                         GetThermalTripPoint[tpIndex] = oResponses[i+1];
                     }
                     i++;
+                } else if ( entry == "DvfsControl" ) {
+                    //AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
+                    var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+                    if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                        var DvfsControl = document.getElementById('DvfsControl');
+                        if ( DvfsControl ) {
+                            DvfsControl.innerHTML = oResponses[i+1];
+                            CgiTimeoutId = setTimeout ('OneSecond()', REFRESH_IN_MILLISECONDS );
+                        }
+                    }
+                    i++;
+                } else if ( entry == "GovernorSetting" ) {
+                    AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
+                    var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+                    if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                        var objGovernorSetting = document.getElementById('radioGovernor' + oResponses[i+1] );
+                        if ( objGovernorSetting ) {
+                            objGovernorSetting.checked = true;
+                        }
+                    }
+                    i++;
+                } else if (entry == "STBTIME") {
+                    //AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
+                    var obj2=document.getElementById("stbtime");
+                    if (obj2) {
+                        //if (debug) alert("setting stbtime to " + oResponses[i+1] );
+                        obj2.innerHTML = oResponses[i+1];
+                        i++;
+                    } else {
+                        alert("id=stbtime not found");
+                    }
                 } else if ( entry == "DEBUG" ) {
                     AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
                     if(debug) alert(entry + ":" + oResponses[i+1]);
+                    i++;
+                } else if (entry == "PLATFORM") {
+                    var objplatform = document.getElementById("platform");
+                    if (objplatform) {
+                        objplatform.innerHTML = oResponses[i+1]; CurrentPlatform = oResponses[i+1];
+                    }
+                    i++;
+                } else if (entry == "PLATVER") {
+                    var objplatform = document.getElementById("platver");
+                    if (objplatform) {
+                        objplatform.innerHTML = oResponses[i+1]
+                    }
+                    window.document.title = CurrentPlatform + " " + oResponses[i+1];
+                    i++;
+                } else if (entry == "variant") {
+                    var objvariant = document.getElementById("variant");
+                    if ( objvariant ) {
+                        objvariant.innerHTML = "(Variant: " + oResponses[i+1] + ")";
+                    } else {
+                        alert("varient element not found");
+                    }
+                    i++;
+                } else if (entry == "VERSION") {
+                    AddToDebugOutput ( entry + ":" + oResponses[i+1] + EOL );
+                    i++;
+                } else if (entry == "UNAME") {
+                    //alert(entry + ":" + oResponses[i+1] );
+                    var objplatform = document.getElementById("uname");
+                    if (objplatform) {
+                        objplatform.innerHTML = "Kernel: " + oResponses[i+1];
+                    }
                     i++;
                 } else if ( entry.length ) {
                     AddToDebugOutput ( entry + EOL );

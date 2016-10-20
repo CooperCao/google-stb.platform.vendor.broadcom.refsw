@@ -224,15 +224,6 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmSettings(
     size_t                  settingsBufferSize
     );
 
-BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams(
-    BMEM_Handle     hHeap,
-    BDSP_Algorithm eAlgorithm,
-    void            *pConfigBuf,    /* [in] Config Buf Address */
-    uint32_t        uiConfigBufSize,     /* [in] Config Buf Size */
-    const void      *pSettingsBuffer,
-    size_t          settingsBufferSize
-    );
-
 BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams_isr(
     BMEM_Handle         hHeap,
     BDSP_Algorithm      eAlgorithm,
@@ -240,15 +231,6 @@ BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams_isr(
     uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
     const void         *pSettingsBuffer,
     size_t              settingsBufferSize
-    );
-
-BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams(
-    BMEM_Handle     hHeap,
-    BDSP_Algorithm eAlgorithm,
-    void            *pConfigBuf,    /* [in] Config Buf Address */
-    uint32_t        uiConfigBufSize,     /* [in] Config Buf Size */
-    void           *pSettingsBuffer,
-    size_t          settingsBufferSize
     );
 
 BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(

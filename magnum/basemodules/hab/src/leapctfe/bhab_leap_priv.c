@@ -1,40 +1,43 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *
+ * Module Description:
+ *
+ *****************************************************************************/
 #include "bhab_leap_priv.h"
 #include "bchp_pwr.h"
 #include "bmem.h"
@@ -257,7 +260,7 @@ BERR_Code BHAB_Leap_P_ErrorRecovery(
     val = BHAB_HAB_RESET;
     BHAB_CHK_RETCODE(BHAB_Leap_WriteRegister(handle, BCHP_LEAP_L2_CPU_SET, &val));
     if (BHAB_Leap_P_WaitForEvent(handle, pLeap->hHabReady, BHAB_ERROR_RECOVERY_TIMEOUT) == BERR_TIMEOUT) {
-        BDBG_ERR(("########################## Unable to reset HAB\n"));
+        BDBG_ERR(("########################## Unable to reset HAB"));
         retCode = BHAB_ERR_HAB_TIMEOUT;
     }
 
@@ -813,7 +816,7 @@ BERR_Code BHAB_Leap_ReadRegister(
                 break;
         }
         if (i == 5)
-            BDBG_WRN(("Read transaction not finished\n"));
+            BDBG_WRN(("Read transaction not finished"));
 
         /* read the data */
         BHAB_CHK_RETCODE(BREG_I2C_P_ReadLeap(pLeap->hI2cRegister, handle->settings.chipAddr, BCHP_CSR_RBUS_DATA0, (uint8_t *)&buf, 4));
@@ -906,7 +909,7 @@ BERR_Code BHAB_Leap_WriteRegister(
                 break;
         }
         if (i == 5)
-            BDBG_WRN(("Write transaction not finished\n"));
+            BDBG_WRN(("Write transaction not finished"));
 
     }
 
@@ -1268,8 +1271,8 @@ read_hab:
     }
 
     if ((retries == MAX_HAB_RETRIES) && (retCode == BHAB_ERR_HAB_TIMEOUT)) {
-        BDBG_ERR(("HAB timeout\n"));
-        BDBG_WRN(("Dumping Leap Registers\n"));
+        BDBG_ERR(("HAB timeout"));
+        BDBG_WRN(("Dumping Leap Registers"));
         BHAB_Leap_P_DumpRegisters(handle);
 #ifdef BHAB_DEBUG
         BDBG_ASSERT(false);
@@ -1318,7 +1321,7 @@ BERR_Code BHAB_Leap_P_GetADSChannels(
     }
     if (chipId == 0) {
         chipId = familyId;
-        BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
+        BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
     }
     else if (chipId == 0x18500)
         chipId = 0x3185;
@@ -1367,7 +1370,7 @@ BERR_Code BHAB_Leap_P_GetAOBChannels(
     }
     if (chipId == 0) {
         chipId = familyId;
-        BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
+        BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
     }
     else if (chipId == 0x18500)
         chipId = 0x3185;
@@ -1412,7 +1415,7 @@ BERR_Code BHAB_Leap_P_GetIfDacChannels(
     }
     if (chipId == 0) {
         chipId = familyId;
-        BDBG_MSG(("Using Family ID for Chip ID: %X\n", chipId));
+        BDBG_MSG(("Using Family ID for Chip ID: %X", chipId));
     }
     else if (chipId == 0x18500)
         chipId = 0x3185;
@@ -1739,7 +1742,7 @@ BERR_Code BHAB_Leap_P_ServiceHab(
         BHAB_CHK_RETCODE(BHAB_Leap_P_ReadHab(handle, 0, read_buf, read_len));
         if (bCheckForAck) {
             if (ack_byte != read_buf[0]) {
-                BDBG_ERR(("HAB command not serviced!\n"));
+                BDBG_ERR(("HAB command not serviced!"));
                 BERR_TRACE(retCode = BHAB_ERR_HAB_NO_ACK);
             }
         }

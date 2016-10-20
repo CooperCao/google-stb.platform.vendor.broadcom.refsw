@@ -60,39 +60,24 @@ static void backend_error(const char *description) {
 static uint32_t translate_sigbits(uint32_t sigbits)
 {
    for (uint32_t i = 0; i < 32; i++)
-   {
       if (sigbit_table[i] == sigbits)
          return i;
-   }
+
    return ~0u;
 }
 
 static void translate_write(uint32_t *waddr_out, bool *is_magic, uint32_t reg)
 {
-   assert(reg != REG_UNDECIDED);
+   assert( IS_RF(reg) || reg == REG_R5QUAD ||
+           (IS_R(reg) && reg != REG_R(5)) ||
+           (IS_MAGIC(reg) && reg >= REG_MAGIC(6)));
 
-   if (IS_RF(reg))
-   {
-      *waddr_out = reg - REG_RF(0);
-      *is_magic = false;
-   }
-   else
-   {
-      *is_magic = true;
+   *is_magic = !IS_RF(reg);
 
-      if (reg == REG_R5QUAD) *waddr_out = 5;
-      else if (IS_R(reg))
-      {
-         assert(reg != REG_R(5)); /* r5 writes should go via REG_R5QUAD */
-         *waddr_out = reg - REG_R(0);
-      }
-      else  /* REG_MAGIC_* */
-      {
-         assert(IS_MAGIC(reg));
-         assert(reg >= REG_MAGIC(6));
-         *waddr_out = reg - REG_MAGIC(0);
-      }
-   }
+   if (IS_RF(reg))             *waddr_out = reg - REG_RF(0);
+   else if (reg == REG_R5QUAD) *waddr_out = 5;
+   else if (IS_R(reg))         *waddr_out = reg - REG_R(0);
+   else                        *waddr_out = reg - REG_MAGIC(0);
 }
 
 static uint32_t translate_wac(bool magic_a, bool magic_b)
@@ -105,17 +90,11 @@ static uint32_t translate_wac(bool magic_a, bool magic_b)
 
 static uint32_t translate_mux(uint32_t reg, const uint32_t *reads)
 {
-   assert(IS_RRF(reg));
+   assert(IS_R(reg) || (IS_RF(reg) && (reg == reads[0] || reg == reads[1])));
 
-   if (IS_R(reg))
-      return reg - REG_R(0);
-   else {
-      if (reg == reads[0]) return 6;
-      else {
-         assert(reg == reads[1]);
-         return 7;
-      }
-   }
+   if (IS_R(reg))            return reg - REG_R(0);
+   else if (reg == reads[0]) return 6;
+   else                      return 7;
 }
 
 static uint32_t translate_cond_setf(uint32_t a_cond_setf, uint32_t m_cond_setf)
@@ -179,6 +158,7 @@ static const struct opcode_s opcodes[] = {
    { BACKFLOW_NOT,        186,  0,  ~0u },
    { BACKFLOW_INEG,       186,  1,  ~0u },
    { BACKFLOW_SETMSF,     186,  6,  ~0u },
+   { BACKFLOW_SETREVF,    186,  7,  ~0u },
    { BACKFLOW_TIDX,       187,  0,   1  },
    { BACKFLOW_EIDX,       187,  0,   2  },
    { BACKFLOW_FL,         187,  0,   4  },
@@ -236,6 +216,8 @@ static const struct opcode_s opcodes[] = {
    { BACKFLOW_CLZ,        252,  3,  ~0u },
    { BACKFLOW_UTOF,       252,  4,  ~0u },
 
+   { BACKFLOW_IADD_M,     1,   ~0u, ~0u },
+   { BACKFLOW_ISUB_M,     2,   ~0u, ~0u },
    { BACKFLOW_UMUL,       3,   ~0u, ~0u },
    { BACKFLOW_SMUL,       9,   ~0u, ~0u },
    { BACKFLOW_MULTOP,     10,  ~0u, ~0u },
@@ -245,9 +227,10 @@ static const struct opcode_s opcodes[] = {
 
 };
 
+/* BACKFLOW_FMOV places unpacks in different locations to other instructions */
 static inline uint32_t opcode(BackflowFlavour f, SchedNodeUnpack ul, SchedNodeUnpack ur) {
    assert(opcodes[f].flavour == f);
-   if (glsl_sched_node_admits_unpack(f)) {
+   if (glsl_sched_node_admits_unpack(f) && f != BACKFLOW_FMOV) {
       if (opcodes[f].op1 != ~0u) {
          assert(ur == UNPACK_NONE);
          ur = 0;
@@ -332,19 +315,16 @@ static void gen_from_op(const GLSL_OP_T *op_struct, uint32_t *out_op,
    }
 
    int swap_mode = get_swap_mode(op_struct->op);
-   if (swap_mode != 0)
-   {
+   if (swap_mode != 0) {
       /* Swap arguments and unpack modes for add/addnf and fmin/fmax */
       uint32_t temp;
       uint32_t arga = (op & 12) * 2 + mux_a;
       uint32_t argb = (op & 3) * 8 + mux_b;
-      if (arga == argb)
-      {
-         /* Special case: fmax can be used with equal arguments, as it's equivalent to fmin */
-         assert(swap_mode == 1 || (op >= 128 && op <= 175));
-      }
-      else if ( (swap_mode == 1 && arga > argb) || (swap_mode == 2 && arga < argb) )
-      {
+
+      /* Special case: fmax can be used with equal arguments, as it's equivalent to fmin */
+      assert(arga != argb || swap_mode == 1 || (op >= 128 && op <= 175));
+
+      if ( (swap_mode == 1 && arga > argb) || (swap_mode == 2 && arga < argb) ) {
          op = (op & ~15) | (op & 12) >> 2 | (op & 3) << 2;
          temp = mux_a;
          mux_a = mux_b;
@@ -659,12 +639,12 @@ static uint32_t get_cond_setf_conflicts(uint32_t cond_setf, SchedNodeType alu_ty
 }
 
 static uint32_t get_special_instruction_conflicts(BackflowFlavour op) {
-   if (op == BACKFLOW_SETMSF) return CONFLICT_MSF;    /* Also setrevf. Do we have an op for that? */
-   if (op == BACKFLOW_TMUWT)  return CONFLICT_TMU_W | CONFLICT_TMU_R | CONFLICT_TMU_C;
+   if (op == BACKFLOW_SETMSF || op == BACKFLOW_SETREVF) return CONFLICT_MSF;
+
+   if (op == BACKFLOW_TMUWT) return CONFLICT_TMU_W | CONFLICT_TMU_R | CONFLICT_TMU_C;
 
 #if V3D_HAS_LDVPM
-   if (is_vpm_load(op))  return CONFLICT_VPM;
-   if (is_vpm_store(op)) return CONFLICT_VPM;
+   if (is_vpm_load(op) || is_vpm_store(op))  return CONFLICT_VPM;
 #else
    if (op == BACKFLOW_VPMSETUP) return CONFLICT_VPM;
 #endif
@@ -831,21 +811,23 @@ static uint32_t fit_alu(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, SchedNodeT
 }
 
 static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
-                          BackflowFlavour op_a, SchedNodeUnpack ul_a, SchedNodeUnpack ur_a,
-                          BackflowFlavour op_m, SchedNodeUnpack ul_m, SchedNodeUnpack ur_m,
-                          uint32_t output, uint32_t input, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
+                          BackflowFlavour op_a, BackflowFlavour op_m,
+                          SchedNodeUnpack ul, SchedNodeUnpack ur,
+                          uint32_t output, uint32_t input_a, uint32_t input_b, uint64_t unif, uint32_t cond_setf, MOV_EXCUSE mov_excuse)
 {
    uint32_t conflicts_a, conflicts_m;
    uint32_t read[2] = { REG_UNDECIDED, REG_UNDECIDED };
    bool add = false, mul = false;
+
+   bool add_rep = (op_m == BACKFLOW_MOV || op_m == BACKFLOW_FMOV);
 
    /* Determine conflicts for each lane */
    conflicts_a = get_conflicts(output, cond_setf, ALU_A, op_a, unif);
    conflicts_m = get_conflicts(output, cond_setf, ALU_M, op_m, unif);
 
    /* See which regfiles we're reading from */
-   assert(input!=REG_UNDECIDED);
-   if (IS_RF(input)) read[0] = input;
+   if (IS_RF(input_a)) add_read(read, input_a);
+   if (IS_RF(input_b)) add_read(read, input_b);
 
    /* Advance current instruction until we find one which doesn't conflict */
    INSTR_T *ci;
@@ -871,7 +853,7 @@ static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
    /* Fill in instruction */
    assert(add || mul);
    if (mul) {
-      set_alu(&ci->m, op_m, ul_m, ur_m, output, input, REG_UNDECIDED, cond_setf, mov_excuse);
+      set_alu(&ci->m, op_m, ul, ur, output, input_a, input_b, cond_setf, mov_excuse);
 
       assert(conflicts_ok(ci->conflicts, conflicts_m));
       ci->conflicts |= conflicts_m;
@@ -882,13 +864,13 @@ static uint32_t fit_multi(GLSL_SCHEDULER_STATE_T *sched, uint32_t time,
          memset(alti, 0, sizeof(INSTR_T));
 
          ci->alt_mov_i = alti;
-         set_alu(&alti->a, op_a, ul_a, ur_a, output, input, input, cond_setf, mov_excuse);
+         set_alu(&alti->a, op_a, ul, add_rep ? ul : ur, output, input_a, add_rep ? input_a : input_b, cond_setf, mov_excuse);
 
          assert(alti->conflicts == 0);
          alti->conflicts = conflicts_a;
       }
    } else {
-      set_alu(&ci->a, op_a, ul_a, ur_a, output, input, input, cond_setf, mov_excuse);
+      set_alu(&ci->a, op_a, ul, add_rep ? ul : ur, output, input_a, add_rep ? input_a : input_b, cond_setf, mov_excuse);
 
       assert(conflicts_ok(ci->conflicts, conflicts_a));
       ci->conflicts |= conflicts_a;
@@ -904,7 +886,7 @@ static uint32_t fit_mov(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32_t o
       return fit_alu(sched, time, ALU_A, BACKFLOW_FLN, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
    else {
       assert(IS_RRF(input));
-      return fit_multi(sched, time, BACKFLOW_OR, UNPACK_NONE, UNPACK_NONE, BACKFLOW_MOV, UNPACK_NONE, UNPACK_NONE, output, input, unif, cond_setf, mov_excuse);
+      return fit_multi(sched, time, BACKFLOW_OR, BACKFLOW_MOV, UNPACK_NONE, UNPACK_NONE, output, input, REG_UNDECIDED, unif, cond_setf, mov_excuse);
    }
 }
 
@@ -920,7 +902,9 @@ static bool op_valid_for_thrend(const GLSL_OP_T *op) {
 
 static bool instr_valid_for_thrend(const INSTR_T *i) {
    uint32_t conflicts = (V3D_HAS_LATE_MSF ? 0 : CONFLICT_MSF) | (V3D_HAS_VPM_SYNC ? 0 : CONFLICT_VPM);
-   return op_valid_for_thrend(&i->a) && op_valid_for_thrend(&i->m) && !(i->conflicts & conflicts);
+   return op_valid_for_thrend(&i->a)  && op_valid_for_thrend(&i->m)    &&
+          !(i->conflicts & conflicts) && !(i->sigbits & SIGBIT_LDVARY) &&
+          i->sig_waddr == REG_UNDECIDED;
 }
 
 static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bool lthrsw, bool thrend)
@@ -933,28 +917,23 @@ static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bo
       if (sched->instructions[instr].sigbits & SIGBIT_THRSW) return false;
    }
 
-   const INSTR_T *i0 = &sched->instructions[time-3];
-   const INSTR_T *i1 = &sched->instructions[time-2];
-   const INSTR_T *i2 = &sched->instructions[time-1];
+   const INSTR_T *i = &sched->instructions[time-3];
 
-   if (!can_add_sigbits(i0->sigbits, SIGBIT_THRSW)) return false;
+   if (!can_add_sigbits(i[0].sigbits, SIGBIT_THRSW)) return false;
+   if (lthrsw && !can_add_sigbits(i[1].sigbits, SIGBIT_THRSW)) return false;
 
-   const INSTR_T *i3 = &sched->instructions[time];
-   if (!conflicts_ok(i3->conflicts, CONFLICT_POST_THRSW)) return false;
-
-   if (lthrsw && !can_add_sigbits(i1->sigbits, SIGBIT_THRSW)) return false;
+   if (!conflicts_ok(i[3].conflicts, CONFLICT_POST_THRSW)) return false;
 
    if (thrend) {
-      if (!instr_valid_for_thrend(i0)) return false;
-      if (!instr_valid_for_thrend(i1)) return false;
-      if (!instr_valid_for_thrend(i2)) return false;
+      for (int j=0; j<3; j++)
+         if (!instr_valid_for_thrend(&i[j])) return false;
 
 #if !V3D_HAS_LATE_UNIF
 #  if !V3D_VER_AT_LEAST(3,3,0,0)
-      if (i0->conflicts & CONFLICT_UNIF) return false;
+      if (i[0].conflicts & CONFLICT_UNIF) return false;
 #  endif
-      if (i1->conflicts & CONFLICT_UNIF) return false;
-      if (i2->conflicts & CONFLICT_UNIF) return false;
+      if (i[1].conflicts & CONFLICT_UNIF) return false;
+      if (i[2].conflicts & CONFLICT_UNIF) return false;
 #endif
 
       /* Z-writes are not allowed on the final instruction */
@@ -962,10 +941,10 @@ static bool can_add_thrsw(const GLSL_SCHEDULER_STATE_T *sched, uint32_t time, bo
        * config on that instruction. (This is very likely to be the case because
        * z-writes * have to come before other writes anyway). If this weren't
        * the case then we'd have to determine the config here more cleverly */
-      if ( (i2->a.used && i2->a.output == REG_MAGIC_TLBU) ||
-           (i2->m.used && i2->m.output == REG_MAGIC_TLBU) )
+      if ( (i[2].a.used && i[2].a.output == REG_MAGIC_TLBU) ||
+           (i[2].m.used && i[2].m.output == REG_MAGIC_TLBU) )
       {
-         uint8_t cfg = (i2->unif >> 32) & 0xFF;
+         uint8_t cfg = (i[2].unif >> 32) & 0xFF;
          if ((cfg & 0xF0) == 0x80) return false;
       }
    }
@@ -1123,7 +1102,6 @@ static uint32_t fit_imul32(GLSL_SCHEDULER_STATE_T *sched, uint32_t time, uint32_
          ci[i].conflicts |= conflicts[i];
       }
    }
-
 
    /* Update our temporary registers. Main code updates inputs/outputs */
    read_register(sched, left,  time);
@@ -1355,8 +1333,21 @@ static uint32_t specialise_cond(uint32_t cond_setf, uint32_t reg) {
    return cond_setf; /* Other conditions don't need specialising */
 }
 
+static bool can_use_both_lanes(SchedNodeType type, BackflowFlavour op) {
+   return (type == ALU_A && (op == BACKFLOW_IADD   || op == BACKFLOW_ISUB))   ||
+          (type == ALU_M && (op == BACKFLOW_IADD_M || op == BACKFLOW_ISUB_M)) ||
+          (type == ALU_M && op == BACKFLOW_FMOV);
+}
 
+static const BackflowFlavour valid[3][2] = { { BACKFLOW_MIN,  BACKFLOW_FMOV   },
+                                             { BACKFLOW_IADD, BACKFLOW_IADD_M },
+                                             { BACKFLOW_ISUB, BACKFLOW_ISUB_M } };
 
+static const BackflowFlavour *multi_get_ops(SchedNodeType t, BackflowFlavour op) {
+   for (int i=0; i<3; i++)
+      if (valid[i][ (t == ALU_M) ] == op) return valid[i];
+   unreachable();
+}
 
 static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, Backflow *node)
 {
@@ -1535,21 +1526,20 @@ static void schedule_node(GLSL_SCHEDULER_STATE_T *sched, Backflow *node)
       break;
    case ALU_A:
    case ALU_M:
-      timestamp = fit_alu(sched, timestamp, node->type,
-                          node->u.alu.op, node->u.alu.unpack[0], node->u.alu.unpack[1],
-                          waddr,
-                          input_a, input_b, unif, cond_setf, MOV_EXCUSE_NONE);
-      delay = get_output_delay(waddr);
-      break;
-   case ALU_MOV:
-      timestamp = fit_mov(sched, timestamp, waddr, input_a, unif, cond_setf, MOV_EXCUSE_IR);
-      delay = get_output_delay(waddr);
-      break;
-   case ALU_FMOV:
-      timestamp = fit_multi(sched, timestamp,
-                            BACKFLOW_MIN, node->u.alu.unpack[0], node->u.alu.unpack[0],
-                            BACKFLOW_FMOV, node->u.alu.unpack[0], ~0u,
-                            waddr, input_a, unif, cond_setf, MOV_EXCUSE_IR);
+      if (node->type == ALU_M && node->u.alu.op == BACKFLOW_MOV) {
+         timestamp = fit_mov(sched, timestamp, waddr, input_a, unif, cond_setf, MOV_EXCUSE_IR);
+      } else if (can_use_both_lanes(node->type, node->u.alu.op)) {
+         uint32_t mov_excuse = (node->type == ALU_M && node->u.alu.op == BACKFLOW_FMOV) ? MOV_EXCUSE_IR : MOV_EXCUSE_NONE;
+         const BackflowFlavour *ops = multi_get_ops(node->type, node->u.alu.op);
+         timestamp = fit_multi(sched, timestamp, ops[0], ops[1],
+                               node->u.alu.unpack[0], node->u.alu.unpack[1],
+                               waddr, input_a, input_b, unif, cond_setf, mov_excuse);
+      } else {
+         timestamp = fit_alu(sched, timestamp, node->type,
+                             node->u.alu.op, node->u.alu.unpack[0], node->u.alu.unpack[1],
+                             waddr,
+                             input_a, input_b, unif, cond_setf, MOV_EXCUSE_NONE);
+      }
       delay = get_output_delay(waddr);
       break;
    case SPECIAL_VOID:
@@ -1839,7 +1829,7 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain          *iodeps,
    for (BackflowChainNode *n=iodeps->head; n; n=n->l.next)
       visit_recursive(stack, sched, n->ptr);
 
-   uint32_t last_instr_idx = 0;
+   uint32_t instr_count = 0;
    if (!last) {
       /* Restore the complete blackout here. A single output value that is being
        * placed in multiple registers goes wrong otherwise. It will be moved out
@@ -1858,26 +1848,27 @@ GENERATED_SHADER_T *glsl_backend(BackflowChain          *iodeps,
             move_to_register(sched, r->node->reg, r->reg, MOV_EXCUSE_OUTPUT);
          }
          /* The write is done one instruction before the data will be available */
-         last_instr_idx = gfx_smax(last_instr_idx, sched->reg[r->reg].available-1);
+         instr_count = gfx_smax(instr_count, sched->reg[r->reg].available);
       }
 
       if (branch_idx != -1) {
          RegList *r = outputs;
          for (int i=0; i<branch_idx; i++) r = r->next;
          flagify(sched, r->node, true);      /* Need this in flag a */
-         last_instr_idx = gfx_smax(last_instr_idx, sched->reg[REG_FLAG_A].available-1);
+         instr_count = gfx_smax(instr_count, sched->reg[REG_FLAG_A].available);
       }
    }
 
    for (BackflowChainNode *n=iodeps->head; n; n=n->l.next)
-      last_instr_idx = gfx_umax(last_instr_idx, n->ptr->io_timestamp);
+      instr_count = gfx_umax(instr_count, n->ptr->io_timestamp);
 
-   if (last) {
-      assert(outputs == NULL);
-      last_instr_idx = fit_thrsw(sched, last_instr_idx, true);
-   }
+   if (last)
+      instr_count = fit_thrsw(sched, instr_count, true) + 1;
 
-   uint32_t instr_count = last_instr_idx + 1;
+   /* ldvary has delayed effects that could affect the next block, so wait */
+   if (sched->instructions[instr_count-1].sigbits & SIGBIT_LDVARY) instr_count++;
+
+   assert(!last || !outputs);
    assert(instr_count <= MAX_INSTRUCTIONS);
 
 #ifndef NDEBUG

@@ -221,7 +221,7 @@ typedef enum zigbeeRpcCode {
     RPC_C2S_ZBPRO_ZCL_SapIasAceZoneStatusChangedReq,
     RPC_C2S_ZBPRO_ZCL_SapIasAcePanelStatusChangedReq,
     RPC_C2S_ZBPRO_ZCL_IASWDCmdStartWarningReq,
-    RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkgReq,
+    RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkReq,
     RPC_C2S_ZBPRO_ZCL_IdentifyInd,
     RPC_C2S_ZBPRO_ZCL_ProfileWideCmdReportAttributesInd,
     RPC_C2S_ZBPRO_ZCL_GroupsCmdGetGroupMembershipResponseInd,

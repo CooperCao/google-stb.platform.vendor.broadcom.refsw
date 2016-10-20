@@ -128,13 +128,6 @@ BERR_Code BMXT_Wakeup_SetSettings(BMXT_Handle handle, const BMXT_Wakeup_Settings
 
 void BMXT_Wakeup_ClearInterruptToPMU(BMXT_Handle handle)
 {
-    BKNI_EnterCriticalSection();
-    BMXT_Wakeup_ClearInterruptToPMU_isr(handle);
-    BKNI_LeaveCriticalSection();
-}
-
-void BMXT_Wakeup_ClearInterruptToPMU_isr(BMXT_Handle handle)
-{
     uint32_t reg;
     BDBG_ASSERT(handle);
 

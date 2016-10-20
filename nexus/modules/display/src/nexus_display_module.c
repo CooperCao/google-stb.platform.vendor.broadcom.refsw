@@ -638,29 +638,8 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
     if(NEXUS_MAX_HEAPS != pSettings->primaryDisplayHeapIndex) {
         if(pSettings->fullHdBuffers.count || pSettings->hdBuffers.count || pSettings->sdBuffers.count ||
            pSettings->fullHdBuffers.pipCount || pSettings->hdBuffers.pipCount || pSettings->sdBuffers.pipCount){
-            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.pixelFormat, &mPixelFormat);
-            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->fullHdBuffers.format, &mVideoFormat);
-            vdcCfg.stHeapSettings.ulBufferCnt_2HD = pSettings->fullHdBuffers.count;
-            vdcCfg.stHeapSettings.ulBufferCnt_2HD_Pip = pSettings->fullHdBuffers.pipCount;
-            vdcCfg.stHeapSettings.ePixelFormat_2HD = mPixelFormat;
-            vdcCfg.stHeapSettings.eBufferFormat_2HD = mVideoFormat;
-
-            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->hdBuffers.pixelFormat, &mPixelFormat);
-            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->hdBuffers.format, &mVideoFormat);
-            vdcCfg.stHeapSettings.ulBufferCnt_HD = pSettings->hdBuffers.count;
-            vdcCfg.stHeapSettings.ulBufferCnt_HD_Pip = pSettings->hdBuffers.pipCount;
-            vdcCfg.stHeapSettings.ePixelFormat_HD = mPixelFormat;
-            vdcCfg.stHeapSettings.eBufferFormat_HD = mVideoFormat;
-
-            /* set default format based on hdBuffer format */
-            vdcCfg.eVideoFormat = mVideoFormat;
-
-            (void)NEXUS_P_PixelFormat_ToMagnum_isrsafe(pSettings->sdBuffers.pixelFormat, &mPixelFormat);
-            (void)NEXUS_P_VideoFormat_ToMagnum_isrsafe(pSettings->sdBuffers.format, &mVideoFormat);
-            vdcCfg.stHeapSettings.ulBufferCnt_SD = pSettings->sdBuffers.count;
-            vdcCfg.stHeapSettings.ulBufferCnt_SD_Pip = pSettings->sdBuffers.pipCount;
-            vdcCfg.stHeapSettings.ePixelFormat_SD = mPixelFormat;
-            vdcCfg.stHeapSettings.eBufferFormat_SD = mVideoFormat;
+            rc = BERR_TRACE(NEXUS_NOT_SUPPORTED);
+            goto err_vdc;
         }
         else {
             unsigned heapIndex = pSettings->primaryDisplayHeapIndex;
@@ -732,7 +711,8 @@ NEXUS_DisplayModule_Init( const NEXUS_DisplayModuleInternalSettings *pModuleSett
         vbiSettings.tteShiftDirMsb2Lsb = pSettings->vbi.tteShiftDirMsb2Lsb;
         vbiSettings.in656bufferSize = pSettings->vbi.ccir656InputBufferSize;
         BDBG_MSG(("BVBI_Open"));
-        rc = BVBI_Open(&state->vbi, g_pCoreHandles->chp, g_pCoreHandles->reg, g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mem, &vbiSettings);
+        rc = BVBI_Open(&state->vbi, g_pCoreHandles->chp, g_pCoreHandles->reg,
+             g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].mma, &vbiSettings);
         if(rc!=BERR_SUCCESS) { rc = BERR_TRACE(rc); goto err_vbi; }
 
         rc = BVBIlib_Open (&state->vbilib, state->vbi);
@@ -995,18 +975,12 @@ static void NEXUS_P_SetDisplayCapabilities(void)
     int rc;
     unsigned i, j;
     uint32_t maxPixel; /* max pixel of a given format */
+    unsigned maxPixelVerticalFreq;
 
     if (!g_pCoreHandles->boxConfig->stBox.ulBoxId) {
         maxPixel = UINT32_MAX; /* Whatever maximum HW support */
-        if(pSettings->fullHdBuffers.count || pSettings->hdBuffers.count || pSettings->sdBuffers.count ||
-           pSettings->fullHdBuffers.pipCount || pSettings->hdBuffers.pipCount || pSettings->sdBuffers.pipCount){
-            /* for non-memconfig platforms */
-            pCapabilities->numDisplays = pSettings->legacy.numDisplays;
-            for (j=0;j<pCapabilities->numDisplays;j++) {
-                pCapabilities->display[j].numVideoWindows = pSettings->legacy.numWindowsPerDisplay;
-            }
-        }
-        else {
+        maxPixelVerticalFreq = 6000;
+        {
             /* use per-window heaps to determine runtime display/window support. assume packed arrays. */
             for (j=0;j<NEXUS_MAX_DISPLAYS;j++) {
                 for (i=0;i<NEXUS_MAX_VIDEO_WINDOWS;i++) {
@@ -1034,6 +1008,7 @@ static void NEXUS_P_SetDisplayCapabilities(void)
     else {
         /* report based on box modes */
         maxPixel = 0;
+        maxPixelVerticalFreq = 0;
         for (j=0;j<NEXUS_MAX_DISPLAYS;j++) {
             const BBOX_Vdc_Source_Capabilities *sourceCap;
             const BBOX_Vdc_Display_Capabilities *displayCap;
@@ -1051,6 +1026,7 @@ static void NEXUS_P_SetDisplayCapabilities(void)
                     if(NEXUS_P_GET_MAX_PIXEL(maxFormat) > maxPixel)
                     {
                         maxPixel = NEXUS_P_GET_MAX_PIXEL(maxFormat);
+                        maxPixelVerticalFreq = maxFormat.verticalFreq;
                         BDBG_MSG(("display[%d] max output format (%dx%d%c%d) for boxmode[%d].", j,
                             maxFormat.width, maxFormat.height, maxFormat.interlaced ? 'i' : 'p', maxFormat.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));
                     }
@@ -1079,7 +1055,7 @@ static void NEXUS_P_SetDisplayCapabilities(void)
             {
                 NEXUS_VideoFormatInfo info;
                 NEXUS_VideoFormat_GetInfo(format, &info);
-                if(NEXUS_P_GET_MAX_PIXEL(info) > maxPixel) {
+                if(NEXUS_P_GET_MAX_PIXEL(info) > maxPixel || (info.height >= 720 && info.verticalFreq > maxPixelVerticalFreq)) {
                     pCapabilities->displayFormatSupported[format] = false;
                     BDBG_MSG(("Output format (%dx%d%c%d) exceeds boxmode[%d] capability.",
                         info.width, info.height, info.interlaced ? 'i' : 'p', info.verticalFreq, g_pCoreHandles->boxConfig->stBox.ulBoxId));

@@ -331,6 +331,7 @@ done:
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary: install Receiver Sense Change Callback to notify of RxSense power detect changes
 *******************************************************************************/
@@ -400,3 +401,4 @@ BERR_Code BHDM_UnInstallRxSenseChangeCallback(
 	return BERR_SUCCESS ;
 #endif
 }
+#endif

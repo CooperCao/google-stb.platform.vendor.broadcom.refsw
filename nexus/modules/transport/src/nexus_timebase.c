@@ -121,6 +121,8 @@ void NEXUS_Timebase_GetDefaultSettings(NEXUS_TimebaseSettings *pSettings)
     pSettings->sourceSettings.hdDvi.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
     pSettings->sourceSettings.ccir656.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
     pSettings->sourceSettings.i2s.trackRange = NEXUS_TimebaseTrackRange_e61ppm;
+    NEXUS_CallbackDesc_Init(&pSettings->pcrCallback);
+    NEXUS_CallbackDesc_Init(&pSettings->pcrErrorCallback);
 
     /* at init time, consult HW settings so that, by default, there is no change */
     /* hard code to use timebase zero, because we don't really need an actual timebase for this call */

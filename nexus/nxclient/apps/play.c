@@ -113,6 +113,8 @@ static void print_usage(const struct nxapps_cmdline *cmdline)
     print_list_option("mpeg_type",g_transportTypeStrs);
     printf(
     "  -secure                  use SVP secure picture buffers\n"
+    "  -astm\n"
+    "  -scan 1080p\n"
     );
 }
 
@@ -515,6 +517,12 @@ int main(int argc, const char **argv)  {
         }
         else if (!strcmp(argv[curarg], "-secure")) {
             start_settings.video.secure = true;
+        }
+        else if (!strcmp(argv[curarg], "-astm")) {
+            start_settings.astm = true;
+        }
+        else if (!strcmp(argv[curarg], "-scan") && argc>curarg+1) {
+            start_settings.video.scanMode = !strcmp(argv[++curarg], "1080p") ? NEXUS_VideoDecoderScanMode_e1080p : NEXUS_VideoDecoderScanMode_eAuto;
         }
         else if ((n = nxapps_cmdline_parse(curarg, argc, argv, &cmdline))) {
             if (n < 0) {

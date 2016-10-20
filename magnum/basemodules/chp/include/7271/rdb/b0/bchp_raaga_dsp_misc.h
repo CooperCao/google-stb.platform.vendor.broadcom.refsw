@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,21 +70,21 @@
 /***************************************************************************
  *RAAGA_DSP_MISC - Raaga DSP MISC Registers
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_MISC_REVISION             0x20c20000 /* [RO] Audio DSP System Revision Register */
-#define BCHP_RAAGA_DSP_MISC_SOFT_INIT            0x20c20004 /* [RW] Audio DSP System Soft Reset Control */
-#define BCHP_RAAGA_DSP_MISC_CORE_ID              0x20c20008 /* [RO] DSP Core ID */
-#define BCHP_RAAGA_DSP_MISC_PROC_ID              0x20c2000c /* [RO] DSP Processor ID */
-#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_0       0x20c20010 /* [RW] FP Integration test register */
-#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_1       0x20c20014 /* [RW] FP Integration test register */
-#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_2       0x20c20018 /* [RW] FP Integration test register */
-#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_3       0x20c2001c /* [RW] FP Integration test register */
-#define BCHP_RAAGA_DSP_MISC_SCRATCH_0            0x20c20020 /* [RW] Raaga Scratch register */
-#define BCHP_RAAGA_DSP_MISC_SCRATCH_1            0x20c20024 /* [RW] Raaga Scratch register */
-#define BCHP_RAAGA_DSP_MISC_SCRATCH_2            0x20c20028 /* [RW] Raaga Scratch register */
-#define BCHP_RAAGA_DSP_MISC_SCRATCH_3            0x20c2002c /* [RW] Raaga Scratch register */
-#define BCHP_RAAGA_DSP_MISC_MBIST_TM             0x20c20030 /* [RW] Audio DSP System MBIST Control */
-#define BCHP_RAAGA_DSP_MISC_MISC_DBG_STATUS      0x20c2040c /* [RO] Misc module status reg */
-#define BCHP_RAAGA_DSP_MISC_SOFTBIST_STATUS      0x20c2044c /* [RO] Softbist Status reg */
+#define BCHP_RAAGA_DSP_MISC_REVISION             0x20c20000 /* [RO][32] Audio DSP System Revision Register */
+#define BCHP_RAAGA_DSP_MISC_SOFT_INIT            0x20c20004 /* [RW][32] Audio DSP System Soft Reset Control */
+#define BCHP_RAAGA_DSP_MISC_CORE_ID              0x20c20008 /* [RO][32] DSP Core ID */
+#define BCHP_RAAGA_DSP_MISC_PROC_ID              0x20c2000c /* [RO][32] DSP Processor ID */
+#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_0       0x20c20010 /* [RW][32] FP Integration test register */
+#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_1       0x20c20014 /* [RW][32] FP Integration test register */
+#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_2       0x20c20018 /* [RW][32] FP Integration test register */
+#define BCHP_RAAGA_DSP_MISC_FP_INTG_TEST_3       0x20c2001c /* [RW][32] FP Integration test register */
+#define BCHP_RAAGA_DSP_MISC_SCRATCH_0            0x20c20020 /* [RW][32] Raaga Scratch register */
+#define BCHP_RAAGA_DSP_MISC_SCRATCH_1            0x20c20024 /* [RW][32] Raaga Scratch register */
+#define BCHP_RAAGA_DSP_MISC_SCRATCH_2            0x20c20028 /* [RW][32] Raaga Scratch register */
+#define BCHP_RAAGA_DSP_MISC_SCRATCH_3            0x20c2002c /* [RW][32] Raaga Scratch register */
+#define BCHP_RAAGA_DSP_MISC_MBIST_TM             0x20c20030 /* [RW][32] Audio DSP System MBIST Control */
+#define BCHP_RAAGA_DSP_MISC_MISC_DBG_STATUS      0x20c2040c /* [RO][32] Misc module status reg */
+#define BCHP_RAAGA_DSP_MISC_SOFTBIST_STATUS      0x20c2044c /* [RO][32] Softbist Status reg */
 
 /***************************************************************************
  *REVISION - Audio DSP System Revision Register

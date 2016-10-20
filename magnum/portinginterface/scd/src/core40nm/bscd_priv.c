@@ -533,14 +533,14 @@ static const BSCD_P_DFSmartCardStruct BSCD_P_DF[8][16][14] = {
    {{0x08,0x02,0x1F,0x02}, {0x08,0x02,0x1F,0x02}, {0x10,0x08,0x1F,0x01},
     {0x04,0x02,0x1F,0x04}, {0x08,0x08,0x1F,0x02}, {0x02,0x02,0x1F,0x08},
     {0x08,0x0E,0x1F,0x02}, {0x00,0x00,0x00,0x00}, {0x00,0x00,0x00,0x00},
-    {0x04,0x01,0x20,0x04}, {0x04,0x02,0x20,0x04}, {0x02,0x01,0x20,0x08},
+    {0x04,0x01,0x20,0x02}, {0x04,0x02,0x20,0x04}, {0x02,0x01,0x20,0x08},
     {0x02,0x02,0x20,0x08}, {0x01,0x01,0x20,0x08}},
 
     /* D = 7 */
    {{0x10,0x02,0x1F,0x01}, {0x10,0x02,0x1F,0x01}, {0x00,0x00,0x00,0x00},
     {0x08,0x02,0x1F,0x01}, {0x10,0x08,0x1F,0x01}, {0x04,0x02,0x1F,0x02},
     {0x10,0x0E,0x1F,0x01}, {0x00,0x00,0x00,0x00}, {0x00,0x00,0x00,0x00},
-    {0x08,0x01,0x20,0x01}, {0x08,0x02,0x20,0x01}, {0x04,0x01,0x20,0x02},
+    {0x08,0x01,0x20,0x01}, {0x08,0x02,0x20,0x01}, {0x04,0x01,0x20,0x01},
     {0x04,0x02,0x20,0x02}, {0x02,0x01,0x20,0x04}},
 
 
@@ -1105,7 +1105,7 @@ static const unsigned int BSCD_P_aunFFactor[14] = {372, 372, 558, 744, 1116, 148
                                  -1,  -1, 512, 768, 1024, 1536, 2048};
 
 
-static const unsigned char BSCD_P_aucDFactor[16] = {-1, 1, 2, 4, 8, 16, 32, -1, 12, 20, 0, 0, 0, 0, 80, 93};
+static const unsigned char BSCD_P_aucDFactor[16] = {-1, 1, 2, 4, 8, 16, 32, 64, 12, 20, 0, 0, 0, 0, 80, 93};
 
 static const unsigned char BSCD_P_aucSCClkDiv[16] = {0x00, 0x10, 0x20, 0x30, 0x40, 0x00, 0x00, 0x50,
                                  0x00, 0x60, 0x00, 0x00, 0x00, 0x00, 0x00, 0x70};
@@ -1227,15 +1227,15 @@ BERR_Code BSCD_P_AdjustWWT(
 
         BDBG_ENTER(BSCD_P_AdjustWWT);
 
-        BDBG_MSG(("in_ucDFactor = %d\n", in_ucDFactor));
-        BDBG_MSG(("in_ucFFactor = %d\n", in_ucFFactor));
+        BDBG_MSG(("in_ucDFactor = %d", in_ucDFactor));
+        BDBG_MSG(("in_ucFFactor = %d", in_ucFFactor));
 
-        BDBG_MSG(("baudrate = %lu\n", in_channelHandle->currentChannelSettings.currentBaudRate));
+        BDBG_MSG(("baudrate = %lu", in_channelHandle->currentChannelSettings.currentBaudRate));
 
         BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
                 (in_channelHandle->currentChannelSettings.currentBaudRate == 0) );
 
-        BDBG_MSG (("etu in us= %ld\n",
+        BDBG_MSG (("etu in us= %ld",
                 1000000/in_channelHandle->currentChannelSettings.currentBaudRate));
 
         ucBaudRateAdjustor = BSCD_P_GetISOBaudRateAdjustor(in_ucDFactor);
@@ -1272,6 +1272,9 @@ BERR_Code BSCD_P_FDAdjust(
 {
         BERR_Code errCode = BERR_SUCCESS;
         uint32_t ulClkCmd=0;
+#ifndef SMARTCARD_32_BIT_REGISTER
+	uint32_t ulClkCmd2=0;
+#endif
 
         BDBG_ENTER(BSCD_P_FDAdjust);
 
@@ -1285,15 +1288,15 @@ BERR_Code BSCD_P_FDAdjust(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_PRESCALE),
                 in_channelHandle->currentChannelSettings.unPrescale);
-        BDBG_MSG(("SC_Prescale = 0x%x\n", (unsigned int)in_channelHandle->currentChannelSettings.unPrescale));
+        BDBG_MSG(("SC_Prescale = 0x%x", (unsigned int)in_channelHandle->currentChannelSettings.unPrescale));
 
         in_channelHandle->currentChannelSettings.ucBaudDiv =
                         BSCD_P_GetBaudDiv(in_channelHandle, in_ucDFactor, in_ucFFactor);
 
 
-        BDBG_MSG(("sc_bauddiv = 0x%2x\n", in_channelHandle->currentChannelSettings.ucBaudDiv));
+        BDBG_MSG(("sc_bauddiv = 0x%2x", in_channelHandle->currentChannelSettings.ucBaudDiv));
 
-        BDBG_MSG(("orig ucClkCmd = 0x%x\n", BREG_Read32(
+        BDBG_MSG(("orig ucClkCmd = 0x%x", BREG_Read32(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD)) ));
 
@@ -1306,17 +1309,20 @@ BERR_Code BSCD_P_FDAdjust(
                                 BSCD_P_MapScClkDivToMaskValue(in_channelHandle->currentChannelSettings.ucScClkDiv ) |
                                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  ;
                 else{
-                        #if(BCHP_CHIP==7420) || (BCHP_CHIP==7340) || (BCHP_CHIP==7342)|| (BCHP_CHIP==7125)
                         ulClkCmd = BCHP_SCA_SC_CLK_CMD_clk_en_MASK |
                                 BSCD_P_MapScClkDivToMaskValue(1 ) |
                                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  ;
-                                BREG_Write32(
-                                in_channelHandle->moduleHandle->regHandle,
-                                (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
-                                1);
-                        #else
-                                BDBG_ERR(("Clock divider %d not supported", in_channelHandle->currentChannelSettings.ucScClkDiv));
-                        #endif
+		#ifdef SMARTCARD_32_BIT_REGISTER
+			ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
+		#else
+			ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
+			in_channelHandle->moduleHandle->regHandle,
+			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+			BREG_Write32(
+			in_channelHandle->moduleHandle->regHandle,
+			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+			ulClkCmd2);
+		#endif
                 }
         }
         else {
@@ -1326,18 +1332,23 @@ BERR_Code BSCD_P_FDAdjust(
                                 ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
                                 BCHP_SCA_SC_CLK_CMD_bauddiv_MASK;
                 else{
-                        #if(BCHP_CHIP==7420) || (BCHP_CHIP==7340) || (BCHP_CHIP==7342)|| (BCHP_CHIP==7125)
+
                         ulClkCmd = BCHP_SCA_SC_CLK_CMD_clk_en_MASK |
                                 BSCD_P_MapScClkDivToMaskValue(1 ) |
                         ((in_channelHandle->currentChannelSettings.ucEtuClkDiv - 1) << 1)  |
                                 BCHP_SCA_SC_CLK_CMD_bauddiv_MASK;
-                                BREG_Write32(
-                                in_channelHandle->moduleHandle->regHandle,
-                                (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
-                                1);
-                        #else
-                                BDBG_ERR(("Clock divider %d not supported", in_channelHandle->currentChannelSettings.ucScClkDiv));
-                        #endif
+                #ifdef SMARTCARD_32_BIT_REGISTER
+			ulClkCmd |= BCHP_SCA_CLK_CMD_sc_clkdiv3_MASK;
+		#else
+			ulClkCmd2 = BCHP_SCA_SC_CLK_CMD_2_sc_clkdiv_MASK | BREG_Read32(
+			in_channelHandle->moduleHandle->regHandle,
+			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2));
+			BREG_Write32(
+			in_channelHandle->moduleHandle->regHandle,
+			(in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD_2),
+                                ulClkCmd2);
+                    #endif
+
                 }
         }
 
@@ -1345,7 +1356,7 @@ BERR_Code BSCD_P_FDAdjust(
                 in_channelHandle->moduleHandle->regHandle,
                 (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD),
                 ulClkCmd);
-        BDBG_MSG(("New SC_CLK_CMD = 0x%x\n", ulClkCmd));
+        BDBG_MSG(("New SC_CLK_CMD = 0x%x", ulClkCmd));
 
         BDBG_LEAVE(BSCD_P_FDAdjust);
         return( errCode );
@@ -1359,7 +1370,7 @@ void BSCD_Channel_P_CardInsertCB_isr(
       void                                      *inp_data
 )
 {
-        BDBG_MSG(("default  BSCD_Channel_P_CardInsertCB_isr \n"));
+        BDBG_MSG(("default  BSCD_Channel_P_CardInsertCB_isr "));
         BSTD_UNUSED(inp_data);
         if (in_channelHandle->bIsOpen == true) {
                 BKNI_SetEvent( in_channelHandle->channelWaitEvent.cardWait);
@@ -1371,7 +1382,7 @@ void  BSCD_Channel_P_CardRemoveCB_isr(
       void                                      *inp_data
 )
 {
-        BDBG_MSG(("default  BSCD_Channel_P_CardRemoveCB_isr \n"));
+        BDBG_MSG(("default  BSCD_Channel_P_CardRemoveCB_isr "));
         BSTD_UNUSED(inp_data);
         if (in_channelHandle->bIsOpen == true) {
                 BKNI_SetEvent( in_channelHandle->channelWaitEvent.cardWait);
@@ -1649,7 +1660,7 @@ BERR_Code BSCD_Channel_P_WaitForTimerEvent(
 
         BDBG_ENTER(BSCD_Channel_P_WaitForTimerEvent);
 
-        BDBG_MSG(("Ready to receive scard_timer_wait interrupt\n"));
+        BDBG_MSG(("Ready to receive scard_timer_wait interrupt"));
 
 
 
@@ -1658,8 +1669,8 @@ BERR_Code BSCD_Channel_P_WaitForTimerEvent(
         ulIntrStatus1 = in_channelHandle->ulIntrStatus1;
         BKNI_LeaveCriticalSection();
 
-        BDBG_MSG(("ulIntrStatus1 = 0x%x\n", ulIntrStatus1));
-        BDBG_MSG(("in_channelHandle->ulIntrStatus1 = 0x%x\n", in_channelHandle->ulIntrStatus1));
+        BDBG_MSG(("ulIntrStatus1 = 0x%x", ulIntrStatus1));
+        BDBG_MSG(("in_channelHandle->ulIntrStatus1 = 0x%x", in_channelHandle->ulIntrStatus1));
                 /*09/20/05,Allen.C, check if the Card is removed  */
                 if ( (in_channelHandle-> bIsCardRemoved == true) &&
                         (( ulIntrStatus1 & BCHP_SCA_SC_INTR_STAT_1_pres_intr_MASK ) == BCHP_SCA_SC_INTR_STAT_1_pres_intr_MASK)) {
@@ -1668,7 +1679,7 @@ BERR_Code BSCD_Channel_P_WaitForTimerEvent(
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RESET_CHANNEL_REQUIRED;
                         in_channelHandle-> bIsCardRemoved = false ;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceTimerEvent: SC_CARD_REMOVED error \n"));
+                        BDBG_ERR(("ScardDeviceTimerEvent: SC_CARD_REMOVED error "));
                         errCode = BSCD_STATUS_FAILED ;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -1685,7 +1696,7 @@ BERR_Code BSCD_Channel_P_WaitForTimerEvent(
         BKNI_EnterCriticalSection();
         in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK;
         BKNI_LeaveCriticalSection();
-        BDBG_MSG(("scard_timer_wait interrupt received\n"));
+        BDBG_MSG(("scard_timer_wait interrupt received"));
 
 BSCD_P_DONE_LABEL:
 
@@ -1702,7 +1713,7 @@ BERR_Code BSCD_Channel_P_WaitForATRStart(
 
         BDBG_ENTER(BSCD_Channel_P_WaitForATRStart);
 
-        BDBG_MSG(("Ready to receive scard_atrStart interrupt, ucSlot = %d\n", in_channelHandle->ucChannelNumber));
+        BDBG_MSG(("Ready to receive scard_atrStart interrupt, ucSlot = %d", in_channelHandle->ucChannelNumber));
 
         BKNI_EnterCriticalSection();
         ulIntrStatus1 = in_channelHandle->ulIntrStatus1;
@@ -1710,7 +1721,7 @@ BERR_Code BSCD_Channel_P_WaitForATRStart(
         BKNI_LeaveCriticalSection();
 
         BDBG_MSG(("ulIntrStatus1 = 0x%x, ulIntrStatus2 = 0x%xn", ulIntrStatus1, ulIntrStatus2));
-        BDBG_MSG(("in_channelHandle->ulIntrStatus1 = 0x%x\n", in_channelHandle->ulIntrStatus1));
+        BDBG_MSG(("in_channelHandle->ulIntrStatus1 = 0x%x", in_channelHandle->ulIntrStatus1));
 
 
         do {
@@ -1721,7 +1732,7 @@ BERR_Code BSCD_Channel_P_WaitForATRStart(
                 }
                 else if (( ulIntrStatus1 & BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK)  == BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK) {
                         in_channelHandle->ulIntrStatus1 &= ~BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK;
-                         BDBG_ERR(("ScardDeviceWaitForATRStart: SC_TIMER_INTR error \n"));
+                         BDBG_ERR(("ScardDeviceWaitForATRStart: SC_TIMER_INTR error "));
                          errCode = BSCD_STATUS_TIME_OUT;
                          goto BSCD_P_DONE_LABEL;
 
@@ -1734,7 +1745,7 @@ BERR_Code BSCD_Channel_P_WaitForATRStart(
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RESET_CHANNEL_REQUIRED;
                         in_channelHandle-> bIsCardRemoved = false ;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_CARD_REMOVED error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_CARD_REMOVED error "));
                         errCode = BSCD_STATUS_FAILED ;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -1763,7 +1774,7 @@ BSCD_P_SUCCESS_LABEL:
         BKNI_EnterCriticalSection();
         in_channelHandle->ulIntrStatus2  &= ~BCHP_SCA_SC_INTR_STAT_2_atrs_intr_MASK;
         BKNI_LeaveCriticalSection();
-        BDBG_MSG(("scard_atrStart interrupt received\n"));
+        BDBG_MSG(("scard_atrStart interrupt received"));
 
 BSCD_P_DONE_LABEL:
 
@@ -1781,7 +1792,7 @@ BERR_Code BSCD_Channel_P_WaitForTDone(
 
         BDBG_ENTER(BSCD_Channel_P_WaitForTDone);
 
-        BDBG_MSG(("Ready to receive scard_tDone interrupt, ucSlot = %d\n", in_channelHandle->ucChannelNumber));
+        BDBG_MSG(("Ready to receive scard_tDone interrupt, ucSlot = %d", in_channelHandle->ucChannelNumber));
 
         BKNI_EnterCriticalSection();
         ulIntrStatus1 = in_channelHandle->ulIntrStatus1 ;
@@ -1795,7 +1806,7 @@ BERR_Code BSCD_Channel_P_WaitForTDone(
                         BKNI_EnterCriticalSection();
                          in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_BGT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_BGT_INTR error "));
                          errCode = BSCD_STATUS_FAILED;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -1807,20 +1818,20 @@ BERR_Code BSCD_Channel_P_WaitForTDone(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_retry_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForTDone: RETRY_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForTDone: RETRY_INTR error "));
 
                         in_channelHandle->channelStatus.ulStatus1 |= BSCD_TX_PARITY;
-                         errCode = BSCD_STATUS_FAILED;
-                         goto BSCD_P_DONE_LABEL;
+                        errCode = BSCD_STATUS_FAILED;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 else if (( ulIntrStatus2 & BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK) == BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK) {
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK;
                         BKNI_LeaveCriticalSection();
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_TX_TIMEOUT;
-                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_WAIT_INTR error \n"));
-                         errCode = BSCD_STATUS_FAILED;
-                         goto BSCD_P_DONE_LABEL;
+                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_WAIT_INTR error "));
+                        errCode = BSCD_STATUS_FAILED;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 /*09/20/05,Allen.C, check if the Card is removed  */
                 else if ( (in_channelHandle-> bIsCardRemoved == true) &&
@@ -1830,9 +1841,9 @@ BERR_Code BSCD_Channel_P_WaitForTDone(
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RESET_CHANNEL_REQUIRED;
                         in_channelHandle-> bIsCardRemoved = false ;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_CARD_REMOVED error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForTDone: SC_CARD_REMOVED error "));
                         errCode = BSCD_STATUS_FAILED ;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 else if (( ulIntrStatus1 & BCHP_SCA_SC_INTR_STAT_1_tdone_intr_MASK) != BCHP_SCA_SC_INTR_STAT_1_tdone_intr_MASK) {
                         if ( (errCode = BERR_TRACE(BKNI_WaitForEvent( in_channelHandle->channelWaitEvent.tdoneWait,
@@ -1857,7 +1868,7 @@ BERR_Code BSCD_Channel_P_WaitForTDone(
         in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_tdone_intr_MASK;
         in_channelHandle->ulStatus1 &= ~BCHP_SCA_SC_STATUS_1_tdone_MASK;
         BKNI_LeaveCriticalSection();
-        BDBG_MSG(("tdone_intr interrupt received\n"));
+        BDBG_MSG(("tdone_intr interrupt received"));
 
 
 BSCD_P_DONE_LABEL:
@@ -1876,7 +1887,7 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
 
         BDBG_ENTER(BSCD_Channel_P_WaitForRcv);
 
-        /* BDBG_MSG(("Ready to receive rcv interrupt\n"));  */
+        /* BDBG_MSG(("Ready to receive rcv interrupt"));  */
 
         BKNI_EnterCriticalSection();
         ulIntrStatus1 = in_channelHandle->ulIntrStatus1 ;
@@ -1898,9 +1909,9 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
 		                    in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
 		                    BKNI_LeaveCriticalSection();
 		                    /* This could be a good error if the caller specify a length larger than that of  the actual one. */
-		                    BDBG_MSG(("ScardDeviceWaitForRcv: SC_TIMER_INTR error \n"));
-		                     errCode = BSCD_STATUS_TIME_OUT;
-		                     goto BSCD_P_DONE_LABEL;
+		                    BDBG_MSG(("ScardDeviceWaitForRcv: SC_TIMER_INTR error "));
+		                    errCode = BSCD_STATUS_TIME_OUT;
+		                    goto BSCD_P_DONE_LABEL;
                 }
 
                 /* BSYT???:  Obsolete ??? */
@@ -1909,9 +1920,9 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_BGT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_BGT_INTR error "));
                         errCode = BSCD_STATUS_READ_FAILED;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
 #if 0
                 else if ( ( ulIntrStatus2 & BCHP_SCA_SC_INTR_STAT_2_event2_intr_MASK) == BCHP_SCA_SC_INTR_STAT_2_event2_intr_MASK)  {
@@ -1920,7 +1931,7 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_event2_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus2  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_EVENT2_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_EVENT2_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -1931,7 +1942,7 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus1 &= ~BCHP_SCA_SC_INTR_STAT_1_retry_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_RETRY_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_RETRY_INTR error "));
                         in_channelHandle->channelStatus.ulStatus1 |= BSCD_RX_PARITY;
                         errCode = BSCD_STATUS_PARITY_EDC_ERR;
                         goto BSCD_P_DONE_LABEL;
@@ -1942,7 +1953,7 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_rlen_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_RLEN_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_RLEN_INTR error "));
                         errCode = BSCD_STATUS_READ_FAILED;
                         goto BSCD_P_DONE_LABEL;
                 }
@@ -1951,26 +1962,26 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_WAIT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_WAIT_INTR error "));
                         errCode = BSCD_STATUS_TIME_OUT;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 else if (( ulIntrStatus2 & BCHP_SCA_SC_INTR_STAT_2_cwt_intr_MASK) == BCHP_SCA_SC_INTR_STAT_2_cwt_intr_MASK) {
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_cwt_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_CWT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_CWT_INTR error "));
                         errCode = BSCD_STATUS_TIME_OUT;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 else if (( ulStatus2 & BCHP_SCA_SC_STATUS_2_roverflow_MASK) == BCHP_SCA_SC_STATUS_2_roverflow_MASK) {
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulStatus2 &= ~BCHP_SCA_SC_STATUS_2_roverflow_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_ROVERFLOW error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_ROVERFLOW error "));
                         errCode = BSCD_STATUS_READ_FAILED;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 /*09/20/05,Allen.C, check if the Card is removed  */
                 else if ( (in_channelHandle-> bIsCardRemoved == true) &&
@@ -1980,9 +1991,9 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RESET_CHANNEL_REQUIRED;
                         in_channelHandle-> bIsCardRemoved = false ;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_CARD_REMOVED error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRcv: SC_CARD_REMOVED error "));
                         errCode = BSCD_STATUS_FAILED ;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 else if (( ulIntrStatus2 & BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK) != BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK) {
                         if ( (errCode = BERR_TRACE(BKNI_WaitForEvent( in_channelHandle->channelWaitEvent.rcvWait,
@@ -2008,12 +2019,12 @@ BERR_Code BSCD_Channel_P_WaitForRcv(
         BKNI_EnterCriticalSection();
         in_channelHandle->ulIntrStatus2  &= ~BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK;
         BKNI_LeaveCriticalSection();
-        /* BDBG_MSG(("rcv interrupt received\n"));  */
+        /* BDBG_MSG(("rcv interrupt received"));  */
 
 BSCD_P_DONE_LABEL:
 
         BDBG_LEAVE(BSCD_Channel_P_WaitForRcv);
-        /* BDBG_MSG(("LeaveWaitForRcv errCode = 0x%x \n", errCode));     */
+        /* BDBG_MSG(("LeaveWaitForRcv errCode = 0x%x ", errCode));     */
         return errCode;
 }
 
@@ -2026,7 +2037,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
 
         BDBG_ENTER(BSCD_Channel_P_WaitForRReady);
 
-        BDBG_MSG(("Ready to receive rready interrupt\n"));
+        BDBG_MSG(("Ready to receive rready interrupt"));
 
         BKNI_EnterCriticalSection();
         ulIntrStatus1 = in_channelHandle->ulIntrStatus1 ;
@@ -2039,14 +2050,14 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
         do {
 
 
-                BDBG_MSG(("ulIntrStatus1 = 0x%x, ulIntrStatus2 = 0x%x, ulStatus2 = 0x%x \n",
+                BDBG_MSG(("ulIntrStatus1 = 0x%x, ulIntrStatus2 = 0x%x, ulStatus2 = 0x%x ",
                                 ulIntrStatus1, ulIntrStatus2, ulStatus2));
 
                 if ((ulIntrStatus1 & BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK) == BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK) {
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus1  &= ~BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_BGT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_BGT_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                         goto BSCD_P_DONE_LABEL;
                 }
@@ -2059,7 +2070,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         in_channelHandle->ulIntrStatus1 &= ~BCHP_SCA_SC_INTR_STAT_1_retry_intr_MASK;
                         BKNI_LeaveCriticalSection();
                         /* For T = 1, retry interrupt is not required while reading a block from the ICC */
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RETRY_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RETRY_INTR error "));
                         in_channelHandle->channelStatus.ulStatus1 |= BSCD_RX_PARITY;
                         errCode = BSCD_STATUS_FAILED;
                         goto BSCD_P_DONE_LABEL;
@@ -2070,7 +2081,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_rpar_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RPAR_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RPAR_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                         goto BSCD_P_DONE_LABEL;
                 }
@@ -2081,7 +2092,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulStatus2&= ~BCHP_SCA_SC_STATUS_2_edc_err_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_EDC_ERR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_EDC_ERR error "));
                         errCode = BSCD_STATUS_FAILED;
                         goto BSCD_P_DONE_LABEL;
                 }
@@ -2098,7 +2109,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         in_channelHandle->ulIntrStatus1 &= ~BCHP_SCA_SC_INTR_STAT_1_event1_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_EVENT1_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_EVENT1_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -2109,7 +2120,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_cwt_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_CWT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_CWT_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                          goto BSCD_P_DONE_LABEL;
                 }
@@ -2120,7 +2131,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_rlen_intr_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RLEN_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_RLEN_INTR error "));
                         errCode = BSCD_STATUS_FAILED;
                         goto BSCD_P_DONE_LABEL;
                 }
@@ -2130,18 +2141,18 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         in_channelHandle->ulIntrStatus2 &= ~BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK;
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RX_TIMEOUT;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_WAIT_INTR error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_WAIT_INTR error "));
                         errCode = BSCD_STATUS_TIME_OUT;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
 
                 else if (( ulStatus2 & BCHP_SCA_SC_STATUS_2_roverflow_MASK) == BCHP_SCA_SC_STATUS_2_roverflow_MASK) {
                         BKNI_EnterCriticalSection();
                         in_channelHandle->ulStatus2 &= ~BCHP_SCA_SC_STATUS_2_roverflow_MASK;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_ROVERFLOW error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_ROVERFLOW error "));
                         errCode = BSCD_STATUS_FAILED;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
                 /*09/20/05,Allen.C, check if the Card is removed  */
                 else if ( (in_channelHandle-> bIsCardRemoved == true) &&
@@ -2151,9 +2162,9 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                         in_channelHandle->channelStatus.ulStatus1  |= BSCD_RESET_CHANNEL_REQUIRED;
                         in_channelHandle-> bIsCardRemoved = false ;
                         BKNI_LeaveCriticalSection();
-                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_CARD_REMOVED error \n"));
+                        BDBG_ERR(("ScardDeviceWaitForRReady: SC_CARD_REMOVED error "));
                         errCode = BSCD_STATUS_FAILED ;
-                         goto BSCD_P_DONE_LABEL;
+                        goto BSCD_P_DONE_LABEL;
                 }
 
                 else if (( ulIntrStatus2 & BCHP_SCA_SC_INTR_STAT_2_rready_intr_MASK) != BCHP_SCA_SC_INTR_STAT_2_rready_intr_MASK) {
@@ -2163,7 +2174,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
                                 BKNI_EnterCriticalSection();
                                 in_channelHandle->channelStatus.ulStatus1 |= BSCD_RX_TIMEOUT;
                                 BKNI_LeaveCriticalSection();
-                                BDBG_ERR(("ScardDeviceWaitForRReady: BKNI_WaitForEvent timeout error %d\n", in_channelHandle->currentChannelSettings.timeOut.ulValue));
+                                BDBG_ERR(("ScardDeviceWaitForRReady: BKNI_WaitForEvent timeout error %d", in_channelHandle->currentChannelSettings.timeOut.ulValue));
                                 errCode = BSCD_STATUS_TIME_OUT;
                                 goto BSCD_P_DONE_LABEL;
                         }
@@ -2182,7 +2193,7 @@ BERR_Code BSCD_Channel_P_WaitForRReady(
         in_channelHandle->ulIntrStatus2  &= ~BCHP_SCA_SC_INTR_STAT_2_rready_intr_MASK;
         in_channelHandle->ulStatus2  &= ~BCHP_SCA_SC_STATUS_2_rready_MASK;
         BKNI_LeaveCriticalSection();
-        BDBG_MSG(("rready interrupt received\n"));
+        BDBG_MSG(("rready interrupt received"));
 
 
 BSCD_P_DONE_LABEL:
@@ -2200,7 +2211,7 @@ BSCD_P_DONE_LABEL:
 #endif
 
         BDBG_LEAVE(BSCD_Channel_P_WaitForRReady);
-        BDBG_MSG(("BSCD_Channel_P_WaitForRReady errCode = 0x%x\n", errCode));
+        BDBG_MSG(("BSCD_Channel_P_WaitForRReady errCode = 0x%x", errCode));
 
 #ifdef BSCD_EMV2000_CWT_PLUS_4
         in_channelHandle->bIsReceive = false;
@@ -2281,7 +2292,7 @@ else{
                 (in_channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1),
                  ulIFCmdVal);
 
-        BDBG_MSG(("Activating: SC_RST low \n"));
+        BDBG_MSG(("Activating: SC_RST low "));
 
         /* wait for 42,000 clk cycles. */
         for (i=0; i<in_channelHandle->currentChannelSettings.ucExternalClockDivisor; i++) {
@@ -2328,16 +2339,18 @@ else{
 #endif
 
         /* Enable 2 interrupts with callback */
-        BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
+	BKNI_EnterCriticalSection();
+
+        BSCD_P_CHECK_ERR_CODE_FUNC_CriSec(errCode,
                                 BSCD_Channel_EnableIntrCallback_isr (
                                 in_channelHandle, BSCD_IntType_eATRInt,
                                 BSCD_Channel_P_ATRCB_isr));
 
-        BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
+        BSCD_P_CHECK_ERR_CODE_FUNC_CriSec(errCode,
                                 BSCD_Channel_EnableIntrCallback_isr (
                                 in_channelHandle, BSCD_IntType_eRcvInt,
                                 BSCD_Channel_P_RcvCB_isr));
-
+	BKNI_LeaveCriticalSection();
         /* Set BCM to get ATR packet.       */
         ulVal =  BREG_Read32(
                 in_channelHandle->moduleHandle->regHandle,
@@ -2392,7 +2405,7 @@ if(in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true){
                 }
                 }
 
-                BDBG_MSG(("Activating: Set GP timer \n"));
+                BDBG_MSG(("Activating: Set GP timer "));
                 BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
                         BSCD_Channel_ConfigTimer(in_channelHandle, &timer, &timeValue));
 
@@ -2435,7 +2448,7 @@ if(in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true){
                 timer.bIsTimerEnable = false;
                 BSCD_P_CHECK_ERR_CODE_FUNC(errCode,
                         BSCD_Channel_ConfigTimer(in_channelHandle, &timer, NULL));
-                BDBG_MSG(("Activating: Disable GP timer \n"));
+                BDBG_MSG(("Activating: Disable GP timer "));
 
                 /* Read timer counter, the ATR shall be received after 400 clock cycles */
                 ulTimerCntVal1 =  BREG_Read32(
@@ -2459,7 +2472,7 @@ if(in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true){
 #endif
                 {
 
-                        BDBG_MSG(("PreATRREceive: ulTimerCmdVal = %d\n", ulTimerCntVal));
+                        BDBG_MSG(("PreATRREceive: ulTimerCmdVal = %d", ulTimerCntVal));
                         /* Need to return deactivate for EMV2000 test 1719 xy=30 */
                         BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_DEACTIVATE, true);
                 }
@@ -2467,7 +2480,7 @@ if(in_channelHandle->currentChannelSettings.bAutoDeactiveReq == true){
                 if (errCode == BERR_SUCCESS) {
                         break;
                 }
-                BDBG_MSG(("ulTimerCntVal = %u, MIN_ATR_START_IN_CLK_CYCLES = %d\n", ulTimerCntVal, BSCD_MIN_ATR_START_IN_CLK_CYCLES));
+                BDBG_MSG(("ulTimerCntVal = %u, MIN_ATR_START_IN_CLK_CYCLES = %d", ulTimerCntVal, BSCD_MIN_ATR_START_IN_CLK_CYCLES));
         }
 
 BSCD_P_DONE_LABEL:
@@ -2487,18 +2500,18 @@ void BSCD_P_HexDump(
 {
         size_t   i;
 
-        BDBG_MSG(("\n%s (%u bytes):", inp_cTitle, in_unLen));
+        BDBG_MSG(("%s (%u bytes):", inp_cTitle, in_unLen));
 
         for(i=0; i<in_unLen; i++) {
 
                 if(!(i%20)) {
-                        BDBG_MSG(("\n"));
+                        BDBG_MSG((" "));
                 }
 
                 BDBG_MSG(("%02X  ",*(inp_ucBuf+i)));
         }
 
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
 
         BSTD_UNUSED(inp_cTitle);
         BSTD_UNUSED(inp_ucBuf);
@@ -2557,10 +2570,10 @@ BERR_Code BSCD_Channel_P_T0ReadData(
                 }
 #endif
 
-        BDBG_MSG(("in_ulMaxReadBytes = %lu \n", in_ulMaxReadBytes));
+        BDBG_MSG(("in_ulMaxReadBytes = %lu ", in_ulMaxReadBytes));
         while (ulLen < in_ulMaxReadBytes ) {
 
-                BDBG_MSG(("\nSmartCardReadCmd: After SmartCardSetGPTimer\n"));
+                BDBG_MSG(("SmartCardReadCmd: After SmartCardSetGPTimer"));
 
                 BKNI_EnterCriticalSection();
                 ulStatus2 = in_channelHandle->ulStatus2;
@@ -2569,7 +2582,7 @@ BERR_Code BSCD_Channel_P_T0ReadData(
                 if (((errCode = BSCD_Channel_P_WaitForRcv(in_channelHandle)) != BERR_SUCCESS) ) {
 
                         errCode = BERR_TRACE(errCode);
-                        BDBG_MSG (("After  BSCD_Channel_P_WaitForRcv in BSCD_Channel_P_T0ReadData errCode = 0x%x\n",
+                        BDBG_MSG (("After  BSCD_Channel_P_WaitForRcv in BSCD_Channel_P_T0ReadData errCode = 0x%x",
                                                 errCode));
 
                          if (errCode == BSCD_STATUS_PARITY_EDC_ERR ) {
@@ -2583,9 +2596,9 @@ BERR_Code BSCD_Channel_P_T0ReadData(
                         }
                 }
 
-                /* BDBG_MSG(("\nSmartCardReadCmd: After ScardDeviceWaitForRcv\n")); */
+                /* BDBG_MSG(("SmartCardReadCmd: After ScardDeviceWaitForRcv")); */
 
-                        BDBG_MSG (("In  ulLen < in_ulMaxReadBytes\n"));
+                        BDBG_MSG (("In  ulLen < in_ulMaxReadBytes"));
                         if ((errCode = BSCD_Channel_P_ByteRead(in_channelHandle, &outp_ucRcvData[ulLen])) == BERR_SUCCESS) {
 
                                 in_channelHandle->channelStatus.ulStatus1 &= ~BSCD_RX_PARITY;
@@ -2602,7 +2615,7 @@ BERR_Code BSCD_Channel_P_T0ReadData(
                         }
 
                         else if (errCode == BSCD_STATUS_PARITY_EDC_ERR) {
-                                BDBG_MSG (("errCode == BSCD_STATUS_PARITY_EDC_ERR\n"));
+                                BDBG_MSG (("errCode == BSCD_STATUS_PARITY_EDC_ERR"));
                                 continue;
                         }
                         else {
@@ -2636,7 +2649,7 @@ BSCD_P_DONE_LABEL:
         *outp_ulNumRcvBytes = ulLen;
 
         BDBG_LEAVE(BSCD_Channel_P_T0ReadData);
-        /* BDBG_MSG (("Leave BSCD_Channel_P_T0ReadData errCode = 0x%x\n", errCode));  */
+        /* BDBG_MSG (("Leave BSCD_Channel_P_T0ReadData errCode = 0x%x", errCode));  */
         return errCode;
 }
 
@@ -2686,7 +2699,7 @@ BERR_Code BSCD_Channel_P_ByteRead(
 
               if ( (( ulStatus2 & BCHP_SCA_SC_STATUS_2_rpar_err_MASK) == BCHP_SCA_SC_STATUS_2_rpar_err_MASK) &&
                       (in_channelHandle->currentChannelSettings.scStandard  != BSCD_Standard_eIrdeto)) {
-                        BDBG_MSG(("Receive a parity error byte\n"));
+                        BDBG_MSG(("Receive a parity error byte"));
                         BKNI_EnterCriticalSection();
                         in_channelHandle->channelStatus.ulStatus1 |= BSCD_RX_PARITY;
                         BKNI_LeaveCriticalSection();
@@ -2789,7 +2802,7 @@ BERR_Code BSCD_Channel_P_T1ReadData(
         ulLen = ulLen1& BSCD_RLEN_9_BIT_MASK;
 #endif
         /* RLEN_9_BIT_MASK = 0x01ff */
-        BDBG_MSG(("SmartCardBlockRead: rlen = %d\n", ulLen));
+        BDBG_MSG(("SmartCardBlockRead: rlen = %d", ulLen));
 
         if (ulLen) {
 
@@ -2803,16 +2816,16 @@ BERR_Code BSCD_Channel_P_T1ReadData(
                                                 (in_channelHandle->ulRegStartAddr + BSCD_P_STATUS_2));
 
                         if ((ulVal & BCHP_SCA_SC_STATUS_2_rpar_err_MASK) == BCHP_SCA_SC_STATUS_2_rpar_err_MASK) {
-                                BDBG_MSG(("SmartCardBlockRead: parity error\n"));
+                                BDBG_MSG(("SmartCardBlockRead: parity error"));
                                 errCode = BSCD_STATUS_PARITY_EDC_ERR;
                         }
                         else if ((ulVal & BCHP_SCA_SC_STATUS_2_edc_err_MASK) == BCHP_SCA_SC_STATUS_2_edc_err_MASK) {
-                                BDBG_MSG(("SmartCardBlockRead: EDC error\n"));
+                                BDBG_MSG(("SmartCardBlockRead: EDC error"));
                                 errCode = BSCD_STATUS_PARITY_EDC_ERR;
                         }
 
                         if ((i % 16) == 0) {
-                                BDBG_MSG(("\n"));
+                                BDBG_MSG((" "));
                                 /* Need to this to fix the warning if BDBG_MSG is defined to nothing */
                                 ;
                         }
@@ -2844,11 +2857,11 @@ BERR_Code BSCD_Channel_P_ReceiveAndDecode(
         BDBG_ENTER(BSCD_Channel_P_ReceiveAndDecode);
 
         if (in_channelHandle->currentChannelSettings.resetCardAction == BSCD_ResetCardAction_eNoAction) {
-                BDBG_MSG(("In BSCD_Channel_P_ReceiveAndDecode BSCD_ResetCardAction_eNoAction\n"));
+                BDBG_MSG(("In BSCD_Channel_P_ReceiveAndDecode BSCD_ResetCardAction_eNoAction"));
                         return BERR_SUCCESS;
         }
         else if (in_channelHandle->currentChannelSettings.resetCardAction == BSCD_ResetCardAction_eReceiveAndDecode) {
-                BDBG_MSG(("In BSCD_Channel_P_ReceiveAndDecode BSCD_ResetCardAction_eReceiveAndDecode standard = %d\n",
+                BDBG_MSG(("In BSCD_Channel_P_ReceiveAndDecode BSCD_ResetCardAction_eReceiveAndDecode standard = %d",
                         in_channelHandle->currentChannelSettings.scStandard));
                 switch (in_channelHandle->currentChannelSettings.scStandard) {
                         case BSCD_Standard_eEMV1996:
@@ -2943,10 +2956,10 @@ void BSCD_Channel_P_IntHandler_isr(
 
 #ifdef BSCD_INTERRUPT_DEBUG
 #if 1
-        BDBG_MSG(("unIntrEn1 = %2x, unIntrStaReg1 = %2x, ucSlot = %d\n",
+        BDBG_MSG(("unIntrEn1 = %2x, unIntrStaReg1 = %2x, ucSlot = %d",
                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
-        BDBG_MSG(("unIntrEn2 = %2x, unIntrStaReg2 = %2x\n", unIntrEn2, unIntrStaReg2));
-        BDBG_MSG(("unStaReg1 = %2x, unStaReg2= %2x\n", unStaReg1, unStaReg2));
+        BDBG_MSG(("unIntrEn2 = %2x, unIntrStaReg2 = %2x", unIntrEn2, unIntrStaReg2));
+        BDBG_MSG(("unStaReg1 = %2x, unStaReg2= %2x", unStaReg1, unStaReg2));
 #endif
 #endif
 
@@ -2968,7 +2981,7 @@ void BSCD_Channel_P_IntHandler_isr(
                         channelHandle->moduleHandle->regHandle,
                         (channelHandle->ulRegStartAddr + BSCD_P_STATUS_1));
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("unPrevStaReg1 = %2x\n", unPrevStaReg1));
+                BDBG_MSG(("unPrevStaReg1 = %2x", unPrevStaReg1));
 #endif
 
 if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
@@ -2978,7 +2991,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         channelHandle->moduleHandle->regHandle,
                         (channelHandle->ulRegStartAddr + BSCD_P_IF_CMD_1));
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("1 BCM_SC_IF_CMD_1 = %2x\n", unIFCmdVal));
+                BDBG_MSG(("1 BCM_SC_IF_CMD_1 = %2x", unIFCmdVal));
 #endif
                 if(channelHandle->currentChannelSettings.bConnectDirectly == true){
                                         if(channelHandle->currentChannelSettings.bDirectVccInverted == true)
@@ -3006,28 +3019,28 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         (channelHandle->ulRegStartAddr + BSCD_P_STATUS_1));
 
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("PRES_INTR , IntrEn1 = %x, IntrStaReg1 = %x, unStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("PRES_INTR , IntrEn1 = %x, IntrStaReg1 = %x, unStaReg1 = %x, ucSlot = %d",
                                         unIntrEn1, unIntrStaReg1, unStaReg1, channelHandle->ucChannelNumber));
 #endif
 
                 /* According TDA 8004 Application note, this is how to determine card presence, card removal and hardware failure. */
                 if ( (unStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK) &&  (!(unPrevStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK)) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                        BDBG_MSG(("hardware failure\n"));
+                        BDBG_MSG(("hardware failure"));
 #endif
                         channelHandle->channelStatus.bCardPresent = true;
                         channelHandle->channelStatus.ulStatus1 |= BSCD_HARDWARE_FAILURE | BSCD_RESET_CHANNEL_REQUIRED;
                 }
                 else if ( (unStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK) &&  (unPrevStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                        BDBG_MSG(("Insert\n"));
+                        BDBG_MSG(("Insert"));
 #endif
                         channelHandle->channelStatus.bCardPresent = true;
                 channelHandle->bIsCardRemoved = false;
                 }
                 else if (!(unStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK) && !(unPrevStaReg1 & BCHP_SCA_SC_STATUS_1_card_pres_MASK)) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                        BDBG_MSG(("Remove\n"));
+                        BDBG_MSG(("Remove"));
 #endif
 
                         /* Disable all interrupt but pres_intr to support auto-deactivation.
@@ -3062,7 +3075,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         }
 
 #ifdef BSCD_INTERRUPT_DEBUG
-                        BDBG_MSG(("SC %d Insertion Interrupt\n", channelHandle->ucChannelNumber));
+                        BDBG_MSG(("SC %d Insertion Interrupt", channelHandle->ucChannelNumber));
 
 #endif
 
@@ -3076,7 +3089,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         }
 
 #ifdef BSCD_INTERRUPT_DEBUG
-                        BDBG_MSG(("SC %d Removal Interrupt\n", channelHandle->ucChannelNumber));
+                        BDBG_MSG(("SC %d Removal Interrupt", channelHandle->ucChannelNumber));
 
 #endif
 
@@ -3092,7 +3105,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_tpar_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_tpar_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("TPAR_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("TPAR_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3110,7 +3123,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_timer_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_timer_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("TIMER_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("TIMER_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3127,7 +3140,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_bgt_ien7_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_bgt_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("BGT_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("BGT_INTR , IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                         unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3144,7 +3157,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_tdone_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_tdone_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("TDONE_INTR ,IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("TDONE_INTR ,IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                         unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3161,7 +3174,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_retry_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_retry_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("RETRY_INTR IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("RETRY_INTR IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3188,7 +3201,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_tempty_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_tempty_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("TEMPTY_INTR ,IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("TEMPTY_INTR ,IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3205,7 +3218,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_rpar_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_rpar_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("RPAR_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("RPAR_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                                 unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3222,7 +3235,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
         }
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_atrs_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_atrs_intr_MASK) ) {
-                BDBG_MSG(("ATRS_INTR  unIntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("ATRS_INTR  unIntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                         unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 
                 /*
@@ -3248,7 +3261,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_cwt_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_cwt_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("CWT_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("CWT_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                                 unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3265,7 +3278,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_rlen_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_rlen_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("RLEN_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("RLEN_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                                 unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3281,7 +3294,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_wait_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_wait_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("WAIT_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("WAIT_INTR , IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                         unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3298,7 +3311,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_rcv_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-        BDBG_MSG(("RCV_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+        BDBG_MSG(("RCV_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                         unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3323,7 +3336,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         BSCD_P_CHECK_ERR_CODE_FUNC2(errCode, BSCD_STATUS_READ_FAILED,
                                 BSCD_Channel_P_ConfigTimer_isrsafe(channelHandle, &cwtTimer, &cwtTimeValue));
 
-                        BDBG_MSG(("RCV_INTR  cwt = %d\n", cwtTimeValue.ulValue));
+                        BDBG_MSG(("RCV_INTR  cwt = %d", cwtTimeValue.ulValue));
 
                         channelHandle->ulStatus2 |= unStaReg2;
                         unIntrStaReg2 &= ~BCHP_SCA_SC_INTR_STAT_2_rcv_intr_MASK;
@@ -3345,7 +3358,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_rready_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_rready_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("RREADY_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("RREADY_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                                 unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3357,7 +3370,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
                         cwtTimer.bIsTimerEnable = false;
                         BSCD_P_CHECK_ERR_CODE_FUNC2(errCode, BSCD_STATUS_READ_FAILED,
                                 BSCD_Channel_P_ConfigTimer_isrsafe(channelHandle, &cwtTimer, NULL));
-                        BDBG_MSG(("RREADY_INTR  cwt disable\n"));
+                        BDBG_MSG(("RREADY_INTR  cwt disable"));
                 }
 #endif
 
@@ -3374,7 +3387,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unProtoCmdReg & BCHP_SCA_SC_PROTO_CMD_edc_en_MASK) && (unStaReg2 & BCHP_SCA_SC_STATUS_2_edc_err_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("EDC_ERR , ProtoCmdReg = %x, unStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("EDC_ERR , ProtoCmdReg = %x, unStaReg2 = %x, ucSlot = %d",
                                                 unProtoCmdReg, unStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3390,7 +3403,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
         }
         if ( (unIntrEn1 & BCHP_SCA_SC_INTR_EN_1_event1_ien_MASK) && (unIntrStaReg1 & BCHP_SCA_SC_INTR_STAT_1_event1_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("EVENT1_INTR IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d\n",
+                BDBG_MSG(("EVENT1_INTR IntrEn1 = %x, IntrStaReg1 = %x, ucSlot = %d",
                                                 unIntrEn1, unIntrStaReg1, channelHandle->ucChannelNumber));
 #endif
 
@@ -3407,7 +3420,7 @@ if(channelHandle->currentChannelSettings.bAutoDeactiveReq == false){
 
         if ( (unIntrEn2 & BCHP_SCA_SC_INTR_EN_2_event2_ien_MASK) && (unIntrStaReg2 & BCHP_SCA_SC_INTR_STAT_2_event2_intr_MASK) ) {
 #ifdef BSCD_INTERRUPT_DEBUG
-                BDBG_MSG(("EVENT2_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d\n",
+                BDBG_MSG(("EVENT2_INTR IntrEn2 = %x, IntrStaReg2 = %x, ucSlot = %d",
                                                 unIntrEn2, unIntrStaReg2, channelHandle->ucChannelNumber));
 #endif
 
@@ -3645,7 +3658,7 @@ BERR_Code BSCD_Channel_P_T0T1Transmit(
 
                 BDBG_MSG(("%02x ", inp_ucXmitData[i]));
         }
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
 
         /* Enable EDC */
         ulVal = BREG_Read32(
@@ -3903,7 +3916,7 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
 
                 if (i == (in_ulNumXmitBytes - 1))
                         ulVal |= BCHP_SCA_SC_UART_CMD_1_auto_rcv_MASK;  /* Last TX byte, ready to receive */
-                /* printf("ul val %x \n", ulVal); */
+                /* printf("ul val %x ", ulVal); */
                 BREG_Write32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1),
@@ -3936,7 +3949,7 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
                         (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1),
                         ulVal);*/
 
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
 
 BSCD_P_DONE_LABEL:
 
@@ -4061,18 +4074,18 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
                 ulVal |= BCHP_SCA_SC_UART_CMD_1_t_r_MASK | BCHP_SCA_SC_UART_CMD_1_xmit_go_MASK |BCHP_SCA_SC_UART_CMD_1_io_en_MASK ;
 
                 /*if (BSCD_P_Popcount[inp_ucXmitData[i]] % 2 == 1) {
-                        BDBG_MSG(("flip the parity \n"));
+                        BDBG_MSG(("flip the parity "));
                         ulVal |= BCHP_SCA_SC_UART_CMD_1_inv_par_MASK;
                         }*/
                 if (BSCD_P_Popcount[inp_ucXmitData[i]] % 2 == 0)
       {
-                BDBG_MSG(("Even number of one => Parity = 0 => flip the parity \n"));
+                BDBG_MSG(("Even number of one => Parity = 0 => flip the parity "));
 
                         ulVal |= BCHP_SCA_SC_UART_CMD_1_inv_par_MASK;
                 }
                 else
       {
-         BDBG_MSG(("Odd number of one => Parity = 1 => Do not flip the parity \n"));
+         BDBG_MSG(("Odd number of one => Parity = 1 => Do not flip the parity "));
 
                         ulVal &= ~BCHP_SCA_SC_UART_CMD_1_inv_par_MASK;
                 }
@@ -4091,7 +4104,7 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
                                 BSCD_Channel_P_WaitForTDone(in_channelHandle));
 
         }
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
 
 BSCD_P_DONE_LABEL:
 
@@ -4234,26 +4247,26 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
                 */
                 if (BSCD_P_Popcount[inp_ucXmitData[i]] % 2 == 0)
       {
-                BDBG_MSG(("Even number of one => Parity = 0 => flip the parity \n"));
+                BDBG_MSG(("Even number of one => Parity = 0 => flip the parity "));
 
                         ulVal |= BCHP_SCA_SC_UART_CMD_1_inv_par_MASK;
                 }
                 else
       {
-         BDBG_MSG(("Odd number of one => Parity = 1 => Do not flip the parity \n"));
+         BDBG_MSG(("Odd number of one => Parity = 1 => Do not flip the parity "));
 
                         ulVal &= ~BCHP_SCA_SC_UART_CMD_1_inv_par_MASK;
                 }
 
                 if (i == (in_ulNumXmitBytes - 1))
                         ulVal |= BCHP_SCA_SC_UART_CMD_1_auto_rcv_MASK;  /* Last TX byte, ready to receive */
-                /*printf("ul val %x \n", ulVal);*/
+                /*printf("ul val %x ", ulVal);*/
                 BREG_Write32(
                                 in_channelHandle->moduleHandle->regHandle,
                                 (in_channelHandle->ulRegStartAddr + BSCD_P_UART_CMD_1),
                                 ulVal);
         }
-        BDBG_MSG(("\n"));
+        BDBG_MSG((" "));
 
 
    /* Now that the FIFO is filled we can set the "xmit_go" bit to start the transmission */
@@ -4284,7 +4297,7 @@ BSCD_P_DONE_LABEL:
 }
 #endif /* A582_HAWK */
 
-static BERR_Code BSCD_Channel_P_ConfigGPTimer(
+static BERR_Code BSCD_Channel_P_ConfigGPTimer_isrsafe(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4295,7 +4308,7 @@ static BERR_Code BSCD_Channel_P_ConfigGPTimer(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t            ulTimerCmdVal, ulTimerCmpVal;
 
-    BDBG_ENTER(BSCD_Channel_ConfigGPTimer);
+    BDBG_ENTER(BSCD_Channel_ConfigGPTimer_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
     if(outOfCriticalSection)
@@ -4396,15 +4409,15 @@ static BERR_Code BSCD_Channel_P_ConfigGPTimer(
                         (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
                         ulTimerCmdVal);
 
-    BDBG_MSG (("*** BSCD_Channel_ConfigGPTimer: Timer cmd = 0x%08x\n", ulTimerCmdVal));
+    BDBG_MSG (("*** BSCD_Channel_ConfigGPTimer: Timer cmd = 0x%08x", ulTimerCmdVal));
 
     BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigGPTimer);
+    BDBG_LEAVE(BSCD_Channel_ConfigGPTimer_isrsafe);
     return( errCode );
 }
 
-static BERR_Code BSCD_Channel_P_ConfigWaitTimer(
+static BERR_Code BSCD_Channel_P_ConfigWaitTimer_isrsafe(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4414,7 +4427,7 @@ static BERR_Code BSCD_Channel_P_ConfigWaitTimer(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t            ulTimerCmdVal, ulTimerCmpVal;
 
-    BDBG_ENTER(BSCD_Channel_ConfigWaitTimer);
+    BDBG_ENTER(BSCD_Channel_ConfigWaitTimer_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
 
@@ -4509,15 +4522,15 @@ static BERR_Code BSCD_Channel_P_ConfigWaitTimer(
                         (in_channelHandle->ulRegStartAddr + BSCD_P_TIMER_CMD),
                         ulTimerCmdVal);
 
-        BDBG_MSG (("*** BSCD_Channel_ConfigTimer: Timer cmd = 0x%08x\n", ulTimerCmdVal));
+        BDBG_MSG (("*** BSCD_Channel_ConfigTimer: Timer cmd = 0x%08x", ulTimerCmdVal));
 
     BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigWaitTimer);
+    BDBG_LEAVE(BSCD_Channel_ConfigWaitTimer_isrsafe);
     return( errCode );
 }
 
-static BERR_Code BSCD_Channel_P_ConfigEvent1Timer(
+static BERR_Code BSCD_Channel_P_ConfigEvent1Timer_isrsafe(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4527,7 +4540,7 @@ static BERR_Code BSCD_Channel_P_ConfigEvent1Timer(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t            ulTimerCmdVal;
 
-    BDBG_ENTER(BSCD_Channel_ConfigEvent1Timer);
+    BDBG_ENTER(BSCD_Channel_ConfigEvent1Timer_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
     if(outOfCriticalSection)
@@ -4665,11 +4678,11 @@ static BERR_Code BSCD_Channel_P_ConfigEvent1Timer(
 
     BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigEvent1Timer);
+    BDBG_LEAVE(BSCD_Channel_ConfigEvent1Timer_isrsafe);
     return( errCode );
 }
 
-static BERR_Code BSCD_Channel_P_ConfigEvent2Timer(
+static BERR_Code BSCD_Channel_P_ConfigEvent2Timer_isrsafe(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4679,7 +4692,7 @@ static BERR_Code BSCD_Channel_P_ConfigEvent2Timer(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t            ulTimerCmdVal;
 
-    BDBG_ENTER(BSCD_Channel_ConfigEvent2Timer);
+    BDBG_ENTER(BSCD_Channel_ConfigEvent2Timer_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
     if(outOfCriticalSection)
@@ -4818,12 +4831,12 @@ static BERR_Code BSCD_Channel_P_ConfigEvent2Timer(
 
     BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigEvent2Timer);
+    BDBG_LEAVE(BSCD_Channel_ConfigEvent2Timer_isrsafe);
     return( errCode );
 }
 
 
-static BERR_Code BSCD_Channel_P_ConfigCharWaitingTimeTimer(
+static BERR_Code BSCD_Channel_P_ConfigCharWaitingTimeTimer_isrsafe(
         BSCD_ChannelHandle          in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4833,7 +4846,7 @@ static BERR_Code BSCD_Channel_P_ConfigCharWaitingTimeTimer(
     BERR_Code errCode = BERR_SUCCESS;
     uint32_t            ulTimerCmdVal, ulTimerCmpVal;
 
-    BDBG_ENTER(BSCD_Channel_ConfigCharWaitingTimeTimer);
+    BDBG_ENTER(BSCD_Channel_ConfigCharWaitingTimeTimer_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
     if(outOfCriticalSection)
@@ -4899,12 +4912,12 @@ static BERR_Code BSCD_Channel_P_ConfigCharWaitingTimeTimer(
 
 BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigCharWaitingTimeTimer);
+    BDBG_LEAVE(BSCD_Channel_ConfigCharWaitingTimeTimer_isrsafe);
     return( errCode );
 }
 
 
-BERR_Code BSCD_Channel_P_ConfigTimer_generic(
+BERR_Code BSCD_Channel_P_ConfigTimer_generic_isrsafe(
         BSCD_ChannelHandle   in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,
@@ -4913,7 +4926,7 @@ BERR_Code BSCD_Channel_P_ConfigTimer_generic(
 {
     BERR_Code errCode = BERR_SUCCESS;
 
-    BDBG_ENTER(BSCD_Channel_ConfigTimer);
+    BDBG_ENTER(BSCD_Channel_ConfigTimer_generic_isrsafe);
     BDBG_ASSERT( in_channelHandle );
 
     BSCD_P_CHECK_ERR_CODE_CONDITION( errCode, BSCD_STATUS_FAILED,
@@ -4921,29 +4934,29 @@ BERR_Code BSCD_Channel_P_ConfigTimer_generic(
 
     switch(inp_timer->eTimerType) {
     case BSCD_TimerType_eGPTimer:
-        errCode = BSCD_Channel_P_ConfigGPTimer(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
+        errCode = BSCD_Channel_P_ConfigGPTimer_isrsafe(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
         break;
     case BSCD_TimerType_eWaitTimer:
-        errCode = BSCD_Channel_P_ConfigWaitTimer(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
+        errCode = BSCD_Channel_P_ConfigWaitTimer_isrsafe(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
         break;
     case BSCD_TimerType_eEvent1Timer:
-        errCode = BSCD_Channel_P_ConfigEvent1Timer(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
+        errCode = BSCD_Channel_P_ConfigEvent1Timer_isrsafe(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
         break;
     case BSCD_TimerType_eEvent2Timer:
-        errCode = BSCD_Channel_P_ConfigEvent2Timer(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
+        errCode = BSCD_Channel_P_ConfigEvent2Timer_isrsafe(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
         break;
     case BSCD_TimerType_eCharWaitingTime:
-        errCode = BSCD_Channel_P_ConfigCharWaitingTimeTimer(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
+        errCode = BSCD_Channel_P_ConfigCharWaitingTimeTimer_isrsafe(in_channelHandle,inp_timer,inp_unCount,outOfCriticalSection);
         break;
     default:
-            BDBG_ERR (("*** BSCD_Channel_P_ConfigTimer_generic: unsupported Timer = 0x%08x\n", inp_timer->eTimerType));
+            BDBG_ERR (("*** BSCD_Channel_P_ConfigTimer_generic_isrsafe: unsupported Timer = 0x%08x", inp_timer->eTimerType));
             errCode = BSCD_STATUS_FAILED;
         break;
         }
 
 BSCD_P_DONE_LABEL:
 
-    BDBG_LEAVE(BSCD_Channel_ConfigTimer);
+    BDBG_LEAVE(BSCD_Channel_ConfigTimer_generic_isrsafe);
     return( errCode );
 }
 
@@ -4953,7 +4966,7 @@ BERR_Code BSCD_Channel_P_ConfigTimer_isrsafe(
         BSCD_TimerValue             *inp_unCount
 )
 {
-    return BSCD_Channel_P_ConfigTimer_generic(in_channelHandle, inp_timer, inp_unCount, false);
+    return BSCD_Channel_P_ConfigTimer_generic_isrsafe(in_channelHandle, inp_timer, inp_unCount, false);
 }
 
 BERR_Code BSCD_Channel_P_EnableInterrupts_isr(
@@ -5190,7 +5203,7 @@ BERR_Code BSCD_Channel_P_SetSrcClock(
 		BSTD_UNUSED(ulReg);
 if(inp_sSettings->srcClkFreqInHz){
 
-        BDBG_MSG(("Set smartcard source clock..%ld.\n", inp_sSettings->srcClkFreqInHz));
+        BDBG_MSG(("Set smartcard source clock..%ld.", inp_sSettings->srcClkFreqInHz));
 ulVal=BREG_Read32(
                    in_channelHandle->moduleHandle->regHandle,
                    (in_channelHandle->ulRegStartAddr + BSCD_P_CLK_CMD));
@@ -5225,7 +5238,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                                 in_channelHandle->currentChannelSettings.eSrcClkFreq = BSCD_ClockFreq_e7P14MHZ;
                                 break;
                         default:
-                                BDBG_ERR(("Unknown SC clock freq %ld!\n",inp_sSettings->srcClkFreqInHz ));
+                                BDBG_ERR(("Unknown SC clock freq %ld!",inp_sSettings->srcClkFreqInHz ));
                                 break;
 
                 }
@@ -5299,7 +5312,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                         }
                         break;
                 default:
-                        BDBG_ERR(("Unknown channel number %d\n",in_channelHandle->ucChannelNumber ));
+                        BDBG_ERR(("Unknown channel number %d",in_channelHandle->ucChannelNumber ));
                         break;
         }
 #if (BCHP_CHIP==7231)  || (BCHP_CHIP==7358)  || (BCHP_CHIP==7360)  || (BCHP_CHIP==7362)  || \
@@ -5421,7 +5434,7 @@ ulVal &=~ BCHP_SCA_SC_CLK_CMD_clk_en_MASK;
                                 ulVal);
                         }
                 else{
-                        BDBG_WRN(("Clock not set. Please make sure you set up the smartcard source clock correclty\n"));
+                        BDBG_WRN(("Clock not set. Please make sure you set up the smartcard source clock correclty"));
                         return BSCD_STATUS_FAILED;
                 }
                 ulVal = BREG_Read32(
@@ -5638,7 +5651,7 @@ else if(in_channelHandle->currentChannelSettings.eSrcClkFreq == BSCD_ClockFreq_e
 
 
                 }
-#elif  (BCHP_CHIP==7435)|| (BCHP_CHIP==7445)||(BCHP_CHIP==7366)|| (BCHP_CHIP==7145)|| (BCHP_CHIP==7439) || (BCHP_CHIP==74371)||(BCHP_CHIP==7364)|| (BCHP_CHIP==7250)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271)|| (BCHP_CHIP==7268) ||(BCHP_CHIP==7260)
+#elif  (BCHP_CHIP==7435)|| (BCHP_CHIP==7445)||(BCHP_CHIP==7366)|| (BCHP_CHIP==7145)|| (BCHP_CHIP==7439) || (BCHP_CHIP==74371)||(BCHP_CHIP==7364)|| (BCHP_CHIP==7250)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271)|| (BCHP_CHIP==7268) ||(BCHP_CHIP==7260) || (BCHP_CHIP==7278)
 #if(BCHP_CHIP==7445)
         {
 

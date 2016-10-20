@@ -1,45 +1,40 @@
-/***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
-*
-*  This program is the proprietary software of Broadcom and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-*  Except as expressly set forth in the Authorized License,
-*
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
-*  ANY LIMITED REMEDY.
-*
-* API Description:
-*   API name: Platform Frontend
-*    Platform Frontend Setup
-*
-***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_platform_module.h"
 #include "nexus_types.h"
 #if NEXUS_HAS_I2C && NEXUS_HAS_FRONTEND
@@ -89,7 +84,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #if NEXUS_FRONTEND_4506
     NEXUS_GpioSettings gpioSettings;
     unsigned j;
-	NEXUS_4506Settings settings4506;
+    NEXUS_4506Settings settings4506;
 #endif
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
 
@@ -152,18 +147,18 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         pConfig->frontend[i] = NEXUS_Frontend_Open7346(&settings);
         if ( pConfig->frontend[i] )
         {
-            BDBG_MSG(("NEXUS_Frontend_Open7346: Open sucess [%d] [%x]\n", i, pConfig->frontend[i] ));
+            BDBG_MSG(("NEXUS_Frontend_Open7346: Open sucess [%d] [%x]", i, pConfig->frontend[i] ));
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             switch (i)
             {
 #if (BCHP_CHIP==7346)
                 case 0: userParams.param1 = NEXUS_InputBand_e6; break;
                 case 1: userParams.param1 = NEXUS_InputBand_e7; break;
-                default: BDBG_ERR(("unsupported channel!\n"));
+                default: BDBG_ERR(("unsupported channel!"));
 #else /* 97344 */
                 case 0: userParams.param1 = NEXUS_InputBand_e3; break;
                 case 1: userParams.param1 = NEXUS_InputBand_e2; break;
-                default: BDBG_ERR(("unsupported channel!\n"));
+                default: BDBG_ERR(("unsupported channel!"));
 #endif
                 }
             userParams.pParam2 = 0;
@@ -171,16 +166,16 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         }
         else
         {
-            BDBG_ERR(("NEXUS_Frontend_Open7346 Failed!\n"));
+            BDBG_ERR(("NEXUS_Frontend_Open7346 Failed!"));
         }
     }
 
 #if NEXUS_FRONTEND_4506
-	NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
-	gpioSettings.mode = NEXUS_GpioMode_eInput;
-	gpioSettings.interruptMode = NEXUS_GpioInterrupt_eFallingEdge;
-	gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eAonStandard, 15, &gpioSettings);
-	BDBG_ASSERT(NULL != gpioHandle);
+    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
+    gpioSettings.mode = NEXUS_GpioMode_eInput;
+    gpioSettings.interruptMode = NEXUS_GpioInterrupt_eFallingEdge;
+    gpioHandle = NEXUS_Gpio_Open(NEXUS_GpioType_eAonStandard, 15, &gpioSettings);
+    BDBG_ASSERT(NULL != gpioHandle);
 
     for ( j = 0; j < NEXUS_4505_MAX_FRONTEND_CHANNELS ; j++, i++ )
     {
@@ -189,7 +184,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Frontend_GetDefault4506Settings(&settings4506);
         settings4506.i2cDevice = pConfig->i2c[2];
         if (!settings4506.i2cDevice) {
-            BDBG_ERR(("Unable to initialize I2C \n"));
+            BDBG_ERR(("Unable to initialize I2C "));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
@@ -197,24 +192,24 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         settings4506.i2cAddr = 0x69;
         settings4506.is3445ExternalLna = false;
         settings4506.channelNumber = j;
-		settings4506.gpioInterrupt = gpioHandle;
+        settings4506.gpioInterrupt = gpioHandle;
         pConfig->frontend[i] = NEXUS_Frontend_Open4506(&settings4506);
         if ( pConfig->frontend[i] )
         {
-            BDBG_MSG(("NEXUS_Frontend_Open4506: Open sucess [%d] [%x]\n", i, pConfig->frontend[i] ));
+            BDBG_MSG(("NEXUS_Frontend_Open4506: Open sucess [%d] [%x]", i, pConfig->frontend[i] ));
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             switch (j)
             {
                 case 0: userParams.param1 = NEXUS_InputBand_e5; break;
                 case 1: userParams.param1 = NEXUS_InputBand_e1; break;
-                default: BDBG_ERR(("unsupported channel!\n"));
+                default: BDBG_ERR(("unsupported channel!"));
             }
             userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
         {
-            BDBG_ERR(("NEXUS_Frontend_Open4506 Failed!\n"));
+            BDBG_ERR(("NEXUS_Frontend_Open4506 Failed!"));
         }
     }
 #endif
@@ -246,13 +241,13 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_Frontend_GetDefault4506Settings(&settings4506);
         settings4506.i2cDevice = pConfig->i2c[2];
         if (!settings4506.i2cDevice) {
-            BDBG_ERR(("Unable to initialize I2C \n"));
+            BDBG_ERR(("Unable to initialize I2C"));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
         settings4506.isrNumber = 17;
         settings4506.i2cAddr = 0x69;
-		settings4506.is3445ExternalLna = false;
+        settings4506.is3445ExternalLna = false;
         settings4506.channelNumber = j;
         pConfig->frontend[i] = NEXUS_Frontend_Open4506(&settings4506);
         if ( pConfig->frontend[i] )
@@ -262,14 +257,14 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
             {
                 case 0: userParams.param1 = NEXUS_InputBand_e0; break;
                 case 1: userParams.param1 = NEXUS_InputBand_e1; break;
-                default: BDBG_ERR(("unsupported channel!\n"));
+                default: BDBG_ERR(("unsupported channel!"));
                 }
             userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
         {
-            BDBG_ERR(("NEXUS_Frontend_Open4506 Failed!\n"));
+            BDBG_ERR(("NEXUS_Frontend_Open4506 Failed!"));
         }
     }
 #endif
@@ -290,7 +285,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         settings4506.i2cDevice = pConfig->i2c[1];
 #endif
         if (!settings4506.i2cDevice) {
-            BDBG_ERR(("Unable to initialize I2C \n"));
+            BDBG_ERR(("Unable to initialize I2C"));
             return BERR_TRACE(BERR_INVALID_PARAMETER);
          }
 
@@ -311,14 +306,14 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 #else
                 case 1: userParams.param1 = NEXUS_InputBand_e6; break;
 #endif
-                default: BDBG_ERR(("unsupported channel!\n"));
+                default: BDBG_ERR(("unsupported channel!"));
                 }
             userParams.pParam2 = 0;
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
         else
         {
-            BDBG_ERR(("NEXUS_Frontend_Open External 4506  Failed!\n"));
+            BDBG_ERR(("NEXUS_Frontend_Open External 4506  Failed!"));
         }
     }
 #endif
@@ -348,9 +343,9 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xd, &data_d, 1);
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xe, &data_e, 1);
 
-    BDBG_MSG(("FPGA version:  0x%02x\n", data_e));
+    BDBG_MSG(("FPGA version:  0x%02x", data_e));
 
-    if ((data_c != 0x46) || (data_d != 0x73)) BDBG_ERR(("Reading of Transport FPGA yields CHIPID=0x%02x%02x\n", data_d, data_c));
+    if ((data_c != 0x46) || (data_d != 0x73)) BDBG_ERR(("Reading of Transport FPGA yields CHIPID=0x%02x%02x", data_d, data_c));
 
     data = 0x80;
     (void)NEXUS_I2c_Write(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 4, &data, 1);
@@ -394,48 +389,48 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 
 void NEXUS_Platform_UninitFrontend(void)
 {
-	NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
-	unsigned i=0, j=0;
-	NEXUS_FrontendDeviceHandle tempHandle, deviceHandles[NEXUS_MAX_FRONTENDS];
-	bool handleFound = false;
+    NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
+    unsigned i=0, j=0;
+    NEXUS_FrontendDeviceHandle tempHandle, deviceHandles[NEXUS_MAX_FRONTENDS];
+    bool handleFound = false;
 
-	BKNI_Memset(deviceHandles, 0, sizeof(deviceHandles));
+    BKNI_Memset(deviceHandles, 0, sizeof(deviceHandles));
 
-	for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
-	{
-		handleFound = false;
-		/* Close extensions first */
-		if (pConfig->frontend[i])
-		{
-			tempHandle = NEXUS_Frontend_GetDevice(pConfig->frontend[i]);
-			if(tempHandle != NULL){
-				for( j = 0; j<i; j++){
-					if(tempHandle == deviceHandles[j])
-					handleFound = true;
-				}
-				if(!handleFound)
-					deviceHandles[j] = tempHandle;
-		   }
-			NEXUS_Frontend_Close(pConfig->frontend[i]);
-			pConfig->frontend[i] = NULL;
-		}
+    for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
+    {
+        handleFound = false;
+        /* Close extensions first */
+        if (pConfig->frontend[i])
+        {
+            tempHandle = NEXUS_Frontend_GetDevice(pConfig->frontend[i]);
+            if(tempHandle != NULL){
+                for( j = 0; j<i; j++){
+                    if(tempHandle == deviceHandles[j])
+                    handleFound = true;
+                }
+                if(!handleFound)
+                    deviceHandles[j] = tempHandle;
+           }
+            NEXUS_Frontend_Close(pConfig->frontend[i]);
+            pConfig->frontend[i] = NULL;
+        }
 #if 0 /* Once SWM is in*/
-		/* Close underlying demod */
-		if ( pConfig->frontend[i] )
-		{
-			NEXUS_Frontend_Close(pConfig->frontend[i]);
-		}
+        /* Close underlying demod */
+        if ( pConfig->frontend[i] )
+        {
+            NEXUS_Frontend_Close(pConfig->frontend[i]);
+        }
 #endif
-	}
+    }
 
-	for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
-	{
-		if (deviceHandles[i])
-		{
-			NEXUS_FrontendDevice_Close(deviceHandles[i]);
-			deviceHandles[i] = NULL;
-		}
-	}
+    for (i=0; i<NEXUS_MAX_FRONTENDS; i++)
+    {
+        if (deviceHandles[i])
+        {
+            NEXUS_FrontendDevice_Close(deviceHandles[i]);
+            deviceHandles[i] = NULL;
+        }
+    }
 
     if(gpioHandle)
     {
@@ -456,18 +451,18 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
 
 #if BCHP_CHIP==7344
 
-	switch (index)
-	{
-		case 0:
+    switch (index)
+    {
+        case 0:
                 *pInputBand = NEXUS_InputBand_e0;
-			break;
-		case 1:
+            break;
+        case 1:
                 *pInputBand = NEXUS_InputBand_e1;
-			break;
-		default:
-			BDBG_ERR(("index %d not supported\n", index));
-			return NEXUS_NOT_SUPPORTED;
-	}
+            break;
+        default:
+            BDBG_ERR(("index %d not supported", index));
+            return NEXUS_NOT_SUPPORTED;
+    }
 
 #else
     BSTD_UNUSED(index);

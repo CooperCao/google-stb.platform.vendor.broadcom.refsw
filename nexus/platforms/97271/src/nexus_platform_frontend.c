@@ -72,6 +72,9 @@
 #include "nexus_frontend_3461.h"
 #endif
 
+#if NEXUS_FRONTEND_3466
+#include "nexus_frontend_3466.h"
+#endif
 BDBG_MODULE(nexus_platform_frontend);
 
 /*
@@ -93,22 +96,29 @@ static NEXUS_SpiHandle g_dc_spi[NEXUS_NUM_SPI_CHANNELS] = {NULL};
     #define HB_BOARD_ID 6
     #define HB_INT_GPIO 24
     #define HB_INT_GPIO_TYPE NEXUS_GpioType_eAonStandard
+    #define SPI_SCK_MOSI_ALT 3
+    #define SPI_PIN_MASK 0x04433000
 #elif (BCHP_CHIP == 7268)
     #define SV_BOARD_ID 1
     #define DV_BOARD_ID 3
     #define HB_BOARD_ID 4
     #define HB_INT_GPIO 7
     #define HB_INT_GPIO_TYPE NEXUS_GpioType_eAonStandard
+    #define SPI_SCK_MOSI_ALT 4
+    #define SPI_PIN_MASK 0x04444000
 #elif (BCHP_CHIP == 7271)
     #define SV_BOARD_ID 1
     #define DV_BOARD_ID 3
     #define HB_BOARD_ID 4
     #define HB_INT_GPIO 18
     #define HB_INT_GPIO_TYPE NEXUS_GpioType_eStandard
+    #define SPI_SCK_MOSI_ALT 4
+    #define SPI_PIN_MASK 0x04444000
 #endif
 
 static void ConfigureIntGpioPin(int intGpio);
 
+#if NEXUS_HAS_FRONTEND
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
@@ -199,17 +209,19 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         if (sv) {
             reg = BREG_Read32(hReg, BCHP_AON_PIN_CTRL_PIN_MUX_CTRL_3);
             BDBG_MSG(("AON_PIN_CTRL_PIN_MUX_CTRL_3: %08x",reg));
-            reg &= ~(
-                     BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_21) |
-                     BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_22) |
-                     BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_23) |
-                     BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_24)
-                     );
-            if ((reg & 0xFFFF0000) != 0x44440000) {
+            if ((reg & 0x0FFFF000) != SPI_PIN_MASK) {
                 BDBG_MSG(("Reprogramming SPI registers for frontend communication..."));
+
+                reg &= ~(
+                         BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_21) |
+                         BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_22) |
+                         BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_23) |
+                         BCHP_MASK(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_24)
+                         );
+
                 reg |= (
-                        BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_21, 4) |  /* SPI_M_SCK */
-                        BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_22, 4) |  /* SPI_M_MOSI */
+                        BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_21, SPI_SCK_MOSI_ALT) |  /* SPI_M_SCK */
+                        BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_22, SPI_SCK_MOSI_ALT) |  /* SPI_M_MOSI */
                         BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_23, 4) |  /* SPI_M_SS0B */
                         BCHP_FIELD_DATA(AON_PIN_CTRL_PIN_MUX_CTRL_3, aon_gpio_24, 4)    /* SPI_M_MISO */
                         );
@@ -258,7 +270,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         NEXUS_FrontendDevice_Probe(&deviceSettings, &probeResults);
         if (probeResults.chip.familyId != 0) {
             BDBG_WRN(("Opening %x...",probeResults.chip.familyId));
-            if (probeResults.chip.familyId == 0x3461) {
+            if ((probeResults.chip.familyId == 0x3461) || (probeResults.chip.familyId == 0x3466) || (probeResults.chip.familyId == 0x3465)) {
                 deviceSettings.terrestrial.enabled = true;
                 deviceSettings.loadAP = true;
             } else if (probeResults.chip.familyId == 0x3158)
@@ -290,14 +302,26 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                     NEXUS_FrontendDevice_Set3461Settings(device, &settings);
                 }
 #endif
+
+#if NEXUS_FRONTEND_3466
+                if ((probeResults.chip.familyId == 0x3466) || (probeResults.chip.familyId == 0x3465)) {
+                    NEXUS_FrontendDeviceSettings genericDeviceSettings;
+                    NEXUS_FrontendDevice_GetDefaultSettings(&genericDeviceSettings);
+                    genericDeviceSettings.rfDaisyChain = NEXUS_RfDaisyChain_eInternalLna;
+                    genericDeviceSettings.rfInput = NEXUS_TunerRfInput_eInternalLna;
+                    genericDeviceSettings.enableRfLoopThrough = false;
+                    NEXUS_FrontendDevice_SetSettings(device, &genericDeviceSettings);
+                }
+#endif
+
                 NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
-                BDBG_MSG(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
+                BDBG_WRN(("Opening %d %x frontends",capabilities.numTuners,probeResults.chip.familyId));
                 for (i=0; i < capabilities.numTuners ; i++)
                 {
                     NEXUS_FrontendChannelSettings channelSettings;
                     channelSettings.device = device;
                     channelSettings.channelNumber = i;
-                    if (probeResults.chip.familyId == 0x3461) {
+                    if ((probeResults.chip.familyId == 0x3461) || (probeResults.chip.familyId == 0x3466) || (probeResults.chip.familyId == 0x3465)) {
                         channelSettings.type = NEXUS_FrontendChannelType_eTerrestrial;
                     } else if (probeResults.chip.familyId == 0x3158)
                         channelSettings.type = NEXUS_FrontendChannelType_eCable;
@@ -309,7 +333,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                         BDBG_ERR(("Unable to open %x demod %d (as frontend[%d])",probeResults.chip.familyId,i,i));
                         continue;
                     }
-                    BDBG_MSG(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
+                    BDBG_WRN(("%xfe: %d(%d):%p",probeResults.chip.familyId,i,i,(void *)pConfig->frontend[i]));
                 }
 
                 if (probeResults.chip.familyId == 0x3461) {
@@ -367,7 +391,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_ERR(("Unable to open detected %x frontend", probeResults.chip.familyId));
             }
         } else {
-            BDBG_ERR(("No frontend found."));
+            BDBG_WRN(("No frontend found."));
         }
     }
 
@@ -507,6 +531,18 @@ static void ConfigureIntGpioPin(int intGpio)
     }
 }
 
+#else /* NEXUS_HAS_FRONTEND */
+NEXUS_Error NEXUS_Platform_InitFrontend(void)
+{
+    return NEXUS_SUCCESS;
+}
+
+void NEXUS_Platform_UninitFrontend(void)
+{
+}
+
+#endif /* NEXUS_HAS_FRONTEND */
+
 BTRC_MODULE(ChnChange_TuneStreamer, ENABLE);
 
 NEXUS_Error
@@ -518,7 +554,12 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
     BTRC_TRACE(ChnChange_TuneStreamer, START);
+#if (BCHP_CHIP == 7260)
+    *pInputBand = NEXUS_InputBand_e0;
+#else
     *pInputBand = NEXUS_InputBand_e3;
+#endif
+
     BTRC_TRACE(ChnChange_TuneStreamer, STOP);
     return NEXUS_SUCCESS;
 }

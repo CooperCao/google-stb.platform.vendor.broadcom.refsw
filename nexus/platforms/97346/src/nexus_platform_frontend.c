@@ -701,12 +701,12 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                 BDBG_ERR(("Unable to open %s demod %d",NEXUS_PLATFORM_H43_FRONTEND_STRING,i));
                 continue;
             }
-            BDBG_MSG(("%sfe: %d:%p",NEXUS_PLATFORM_H43_FRONTEND_STRING,i,pConfig->frontend[i]));
+            BDBG_MSG(("%sfe: %d:%p",NEXUS_PLATFORM_H43_FRONTEND_STRING,i,(void *)pConfig->frontend[i]));
             NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
             userParams.isMtsif = true;
             userParams.param1 = userParams.isMtsif ? channelSettings.channelNumber + NEXUS_PLATFORM_H43_MTSIF_OFFSET : NEXUS_InputBand_e0 + i;
             userParams.pParam2 = 0;
-            BDBG_MSG(("%sfe: %d:%p: (%s,%i)",NEXUS_PLATFORM_H43_FRONTEND_STRING,i,pConfig->frontend[i],userParams.isMtsif ? "mtsif" : "not mtsif",userParams.param1));
+            BDBG_MSG(("%sfe: %d:%p: (%s,%i)",NEXUS_PLATFORM_H43_FRONTEND_STRING,i,(void *)pConfig->frontend[i],userParams.isMtsif ? "mtsif" : "not mtsif",userParams.param1));
             NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
         }
 #if NEXUS_FRONTEND_7366
@@ -831,7 +831,7 @@ static bool NEXUS_Platform_P_Is4538(NEXUS_I2cHandle i2cDevice, uint16_t i2cAddr)
     uint8_t subAddr;
 
     i2cHandle = NEXUS_I2c_GetRegHandle(i2cDevice, NULL);
-    BDBG_MSG(("i2c handle: %p, i2caddr: 0x%x",i2cHandle,i2cAddr));
+    BDBG_MSG(("i2c handle: %p, i2caddr: 0x%x",(void *)i2cHandle,i2cAddr));
     buf[0]= 0x0;
     subAddr = 0x1;
     BREG_I2C_WriteNoAddr(i2cHandle, i2cAddr, (uint8_t *)&subAddr, 1);
@@ -1233,7 +1233,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
         {
             BDBG_MSG(("NEXUS_Frontend_Open7346 Failed!"));
         }
-        BDBG_MSG(("pConfig->frontend[%d] = 0x%x", i, pConfig->frontend[i]));
+        BDBG_MSG(("pConfig->frontend[%d] = %p", i, (void *)pConfig->frontend[i]));
     }
 
 #if NEXUS_PLATFORM_97346_I2SFF
@@ -1444,7 +1444,7 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
 /* SET THE FPGA for STREAMER by DEFAULT */
     /* 7346 Board only */
 #if ((BCHP_CHIP == 7346) || (BCHP_CHIP==73465)) && !defined(NEXUS_PLATFORM_97346_SFF)
-    BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
+    BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , (void *)g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xc, &data_c, 1);
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xd, &data_d, 1);
     (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xe, &data_e, 1);
@@ -1558,7 +1558,7 @@ NEXUS_Platform_GetStreamerInputBand(unsigned index, NEXUS_InputBand *pInputBand)
        uint8_t  data_c, data_d, data_e, regaddr=0;
        uint8_t data;
 
-       BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
+       BDBG_MSG(("fpga i2c %d %p", I2C_DEVICE_FPGA_CH , (void *)g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH]));
        (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xc, &data_c, 1);
        (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xd, &data_d, 1);
        (void)NEXUS_I2c_Read(g_NEXUS_platformHandles.config.i2c[I2C_DEVICE_FPGA_CH], FPGA_CHIP_ADDR, 0xe, &data_e, 1);

@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -385,67 +385,67 @@
 typedef struct
 {
     BPXL_Plane             surface;
-	BMMA_Heap_Handle       hMem;
-	int                    iMemIdx;
-	BPXL_Format            ePxlFmt;
-	uint32_t               ulWidth;
-	uint32_t               ulHeight;
-	char                   bmpFile[256];
+    BMMA_Heap_Handle       hMma;
+    int                    iMemIdx;
+    BPXL_Format            ePxlFmt;
+    uint32_t               ulWidth;
+    uint32_t               ulHeight;
+    char                   bmpFile[256];
 } SplashSurface;
 
 typedef struct
 {
-	BFMT_VideoFmt          eDispFmt;
+    BFMT_VideoFmt          eDispFmt;
 
-	BVDC_Source_Handle     hGfxSource;
-	BVDC_Window_Handle     hGfxWindow;
-	BVDC_Compositor_Handle hCompositor;
-	BVDC_Display_Handle    hDisplay;
+    BVDC_Source_Handle     hGfxSource;
+    BVDC_Window_Handle     hGfxWindow;
+    BVDC_Compositor_Handle hCompositor;
+    BVDC_Display_Handle    hDisplay;
 
-	BHDM_Handle            hHdm;
+    BHDM_Handle            hHdm;
 #ifdef SPLASH_SUPPORT_RFM
-	BRFM_Handle            hRfm;
+    BRFM_Handle            hRfm;
 #endif
 
-	SplashSurface         *pSurf;
-	int                    iSurfIdx;
+    SplashSurface         *pSurf;
+    int                    iSurfIdx;
 
-	uint32_t               ulGfdScratchReg0;
-	uint32_t               ulGfdScratchReg1;
+    uint32_t               ulGfdScratchReg0;
+    uint32_t               ulGfdScratchReg1;
 
-	bool                   bGfdHasVertScale;
+    bool                   bGfdHasVertScale;
 
 } SplashDisplay;
 
 typedef struct
 {
-	BRDC_Handle            hRdc;
-	BVDC_Handle            hVdc;
-	BI2C_Handle            hI2c;
-	BI2C_ChannelHandle     hI2cChn ;
-	BREG_I2C_Handle        hRegI2c;
+    BRDC_Handle            hRdc;
+    BVDC_Handle            hVdc;
+    BI2C_Handle            hI2c;
+    BI2C_ChannelHandle     hI2cChn ;
+    BREG_I2C_Handle        hRegI2c;
 
-	int                    iRulMemIdx;
-	BMMA_Heap_Handle       hRulMem;
-	bool                   bScaleToFullScreen;
+    int                    iRulMemIdx;
+    BMMA_Heap_Handle       hRulMem;
+    bool                   bScaleToFullScreen;
 
-	SplashDisplay          disp[SPLASH_NUM_DISPLAY];
-	SplashSurface          surf[SPLASH_NUM_SURFACE];
-	int                    iNumSurf;
-	int                    iNumDisp;
+    SplashDisplay          disp[SPLASH_NUM_DISPLAY];
+    SplashSurface          surf[SPLASH_NUM_SURFACE];
+    int                    iNumSurf;
+    int                    iNumDisp;
 
 } ModeHandles;
 
 
 int splash_generate_script
-	( BCHP_Handle     hChp,
-	  BREG_Handle     hReg,
-	  BINT_Handle     hInt,
-	  BREG_I2C_Handle hRegI2c,
-	  BBOX_Handle     hBox );
+    ( BCHP_Handle     hChp,
+      BREG_Handle     hReg,
+      BINT_Handle     hInt,
+      BREG_I2C_Handle hRegI2c,
+      BBOX_Handle     hBox );
 
 BERR_Code  close_mode
-	( ModeHandles        *pState );
+    ( ModeHandles        *pState );
 
 void APP_BREG_Write32
     ( BREG_Handle  hReg,
@@ -455,4 +455,3 @@ void APP_BREG_Write32
 #endif
 
 /* End of file */
-

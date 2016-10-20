@@ -88,9 +88,9 @@ BVCE_Debug_PrintLogMessageEntry(
    switch ( pstEntry->stMetadata.eType )
    {
       case BVCE_DebugFifo_EntryType_eConfig:
-         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
          BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
-         BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
+         BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
          BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] PIC: protocol=%u,profile=%u,level=%u,input_type=%u,num_slices=%u,force_entropy_coding=%u,single_ref_p=%u,required_patches_only=%u",
             pstEntry->stMetadata.uiTimestamp,
@@ -140,11 +140,12 @@ BVCE_Debug_PrintLogMessageEntry(
             pstEntry->data.stConfig.stSettingsModifiers.bFastChannelChange
          ));
 
-         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] GOP: restart=%u,duration=%u,duration_ramp_up=%u,p=%u,b=%u,open_gop=%u",
+         BDBG_MODULE_MSG(BVCE_DBG_CFG, ("(%10u)[%u][%u] GOP: restart=%u,min_gop_length_after_restart=%u%%,duration=%u,duration_ramp_up=%u,p=%u,b=%u,open_gop=%u",
             pstEntry->stMetadata.uiTimestamp,
             pstEntry->stMetadata.uiInstance,
             pstEntry->stMetadata.uiChannel,
             pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.bAllowNewGOPOnSceneChange,
+            pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiMinGOPLengthAfterSceneChange,
             pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiDuration,
             pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiDurationRampUpFactor,
             pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiNumberOfPFrames,
@@ -633,9 +634,9 @@ BVCE_Debug_FormatLogHeader(
          switch ( eType )
          {
             case BVCE_DebugFifo_EntryType_eConfig:
-               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
+               BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
                BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
-               BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
+               BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                   ",protocol,profile,level,input type,num slices,force entropy coding,single ref P,required patches only"
@@ -653,7 +654,7 @@ BVCE_Debug_FormatLogHeader(
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
                iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-                  ",restart,duration,duration ramp up,p frames,b frames,open gop"
+                  ",restart,min_gop_length_after_restart,duration,duration ramp up,p frames,b frames,open gop"
                );
                if ( iBytesLeft < 0 ) { goto dbg_fmt_hdr_overflow; }
 
@@ -781,9 +782,9 @@ BVCE_Debug_FormatLogMessage(
       switch ( pstEntry->stMetadata.eType )
       {
          case BVCE_DebugFifo_EntryType_eConfig:
-            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 136 );
+            BDBG_CWARNING( sizeof( BVCE_Channel_StartEncodeSettings ) == 140 );
             BDBG_CWARNING( sizeof( BVCE_P_SendCommand_ConfigChannel_Settings ) == 3 );
-            BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 56 );
+            BDBG_CWARNING( sizeof( BVCE_Channel_EncodeSettings ) == 60 );
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
                ",%u,%u,%u,%u,%u,%u,%u,%u",
@@ -831,8 +832,9 @@ BVCE_Debug_FormatLogMessage(
             if ( iBytesLeft < 0 ) { goto dbg_fmt_overflow; }
 
             iBytesLeft -= BKNI_Snprintf( &szMessage[uiSize-iBytesLeft], iBytesLeft,
-               ",%u,%u,%u,%u,%u,%u",
+               ",%u,%u,%u,%u,%u,%u,%u",
                pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.bAllowNewGOPOnSceneChange,
+               pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiMinGOPLengthAfterSceneChange,
                pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiDuration,
                pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiDurationRampUpFactor,
                pstEntry->data.stConfig.stEncodeSettings.stGOPStructure.uiNumberOfPFrames,

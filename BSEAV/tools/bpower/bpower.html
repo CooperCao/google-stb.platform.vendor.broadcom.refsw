@@ -1,8 +1,15 @@
-<html><head><title>Broadcom STB Web Applications</title><script  type="text/javascript" src="bpower.js" ></script></head>
+<html><head><title>Broadcom STB Web Applications</title><script  type="text/javascript" src="bpower.js" ></script>
+<link rel="stylesheet" type="text/css" href="bpower.css" />
+</head>
 <body lang=EN-US onload="MyLoad();">
 <table cols=2 border=0 width=80% style="border-collapse:collapse;" >
     <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
-        <td valign=middle style="font-size:28pt;" ><b id=h1bpower onclick="MyClick(event);" >Bpower - Power and Clock Tool</b></td>
+        <td width=550 valign=middle style="font-size:28pt;" ><b id=h1bpower onclick="MyClick(event);" >Bpower - Power and Clock Tool</b></td>
+        <td valign=middle style="width:20px;" >&nbsp;</td> <!-- spacer -->
+        <td align=left >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span>&nbsp;<span id=variant>variant goes here</span><br>
+        <span id=uname valign=middle ></span><br><span id=stbtime valign=middle ></span></td>
+        <td id=cgicount valign=middle ></td>
+    </tr>
     </tr></table>
 <hr>
 <table cols=2 border=0 id=overalltable > <!-- this outer table is used to hide big sections when checkbox is not checked -->
@@ -27,6 +34,8 @@
                      </table>
                   </td>
                   <td><input type=checkbox id=checkboxclocks onclick="MyClick(event);" ></td><td><div id=ClockTreeTag >Clock&nbsp;Tree</div></td>
+                  <td style="border:solid white 1px;" ><div style="width:30px" >&nbsp;</div></td>
+                  <td><input type=checkbox id=checkboxDvfsControl onclick="MyClick(event);" ></td><td><div id=DvfsTag >DVFS</div></td>
                 </tr>
               </table>
             </td>
@@ -38,6 +47,10 @@
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_GetThermal style="visibility:display;" ><th align=left valign=top id=GetThermalSvg colspan=2 ></th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_DvfsControl style="visibility:display;" ><th align=left valign=top id=DvfsControl colspan=2 >put DVFS stuff here</th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 

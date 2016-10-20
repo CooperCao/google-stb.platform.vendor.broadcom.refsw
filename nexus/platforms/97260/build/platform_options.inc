@@ -44,12 +44,10 @@
 # this file is included by nexus/platform/common/build/platform_modules.inc
 # you can define your platform's options here
 
-NEXUS_POWER_MANAGEMENT ?= y
+NEXUS_POWER_MANAGEMENT ?= n
 NEXUS_SECURITY_SUPPORT ?= y
 
-# Software based encoder support
-#BDSP_ENCODER_SUPPORT ?= y
-
+export NEXUS_FRONTEND_SUPPORT ?= y
 export NEXUS_FRONTEND_3158  ?= y
 export NEXUS_FRONTEND_3461  ?= y
 export NEXUS_FRONTEND_45216 ?= y

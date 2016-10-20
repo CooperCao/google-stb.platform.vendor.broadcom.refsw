@@ -42,17 +42,17 @@ bool glxx_shared_init(GLXX_SHARED_T *shared)
    return true;
 }
 
-void glxx_shared_term(void *v, uint32_t size)
+void glxx_shared_term(MEM_HANDLE_T handle)
 {
-   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)v;
-
-   UNUSED(size);
+   GLXX_SHARED_T *shared = (GLXX_SHARED_T *)mem_lock(handle, NULL);
 
    khrn_map_term(&shared->pobjects);
    khrn_map_term(&shared->textures);
    khrn_map_term(&shared->buffers);
    khrn_map_term(&shared->renderbuffers);
    khrn_map_term(&shared->framebuffers);
+
+   mem_unlock(handle);
 }
 
 uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared)
@@ -62,7 +62,7 @@ uint32_t glxx_shared_create_program(GLXX_SHARED_T *shared)
    MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GL20_PROGRAM_T, MEM_COMPACT_DISCARD);     // check, gl20_program_term
 
    if (handle != MEM_INVALID_HANDLE) {
-      mem_set_term(handle, gl20_program_term);
+      mem_set_term(handle, gl20_program_term, NULL);
 
       gl20_program_init((GL20_PROGRAM_T *)mem_lock(handle, NULL), shared->next_pobject);
       mem_unlock(handle);
@@ -83,7 +83,7 @@ uint32_t glxx_shared_create_shader(GLXX_SHARED_T *shared, uint32_t type)
    MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GL20_SHADER_T, MEM_COMPACT_DISCARD);   // check, gl20_shader_term
 
    if (handle != MEM_INVALID_HANDLE) {
-      mem_set_term(handle, gl20_shader_term);
+      mem_set_term(handle, gl20_shader_term, NULL);
 
       gl20_shader_init((GL20_SHADER_T *)mem_lock(handle, NULL), shared->next_pobject, type);
       mem_unlock(handle);
@@ -111,7 +111,7 @@ MEM_HANDLE_T glxx_shared_get_renderbuffer(GLXX_SHARED_T *shared, uint32_t render
       handle = MEM_ALLOC_STRUCT_EX(GLXX_RENDERBUFFER_T, MEM_COMPACT_DISCARD);       // check, glxx_renderbuffer_term
 
       if (handle != MEM_INVALID_HANDLE) {
-         mem_set_term(handle, glxx_renderbuffer_term);
+         mem_set_term(handle, glxx_renderbuffer_term, NULL);
 
          glxx_renderbuffer_init((GLXX_RENDERBUFFER_T *)mem_lock(handle, NULL), renderbuffer);
          mem_unlock(handle);
@@ -136,7 +136,7 @@ MEM_HANDLE_T glxx_shared_get_framebuffer(GLXX_SHARED_T *shared, uint32_t framebu
       handle = MEM_ALLOC_STRUCT_EX(GLXX_FRAMEBUFFER_T, MEM_COMPACT_DISCARD);        // check, glxx_framebuffer_term
 
       if (handle != MEM_INVALID_HANDLE) {
-         mem_set_term(handle, glxx_framebuffer_term);
+         mem_set_term(handle, glxx_framebuffer_term, NULL);
 
          glxx_framebuffer_init((GLXX_FRAMEBUFFER_T *)mem_lock(handle, NULL), framebuffer);
          mem_unlock(handle);
@@ -220,7 +220,7 @@ MEM_HANDLE_T glxx_shared_get_or_create_texture(GLXX_SHARED_T *shared, uint32_t t
       handle = MEM_ALLOC_STRUCT_EX(GLXX_TEXTURE_T, MEM_COMPACT_DISCARD);                 // check, glxx_texture_term
 
       if (handle != MEM_INVALID_HANDLE) {
-         mem_set_term(handle, glxx_texture_term);
+         mem_set_term(handle, glxx_texture_term, NULL);
 
          glxx_texture_init((GLXX_TEXTURE_T *)mem_lock(handle, NULL), texture, target);
          mem_unlock(handle);

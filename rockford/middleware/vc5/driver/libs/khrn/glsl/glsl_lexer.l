@@ -189,7 +189,7 @@ NONDIG   [_a-zA-Z]
 "iimage2DMSArray"             return handle_keyword(IIMAGE2DMSARRAY,      yylval, KW_FLAGS(NONE,     NONE,     RESERVED, RESERVED));
 "iimage2DRect"                return handle_keyword(IIMAGE2DRECT,         yylval, KW_FLAGS(NONE,     NONE,     RESERVED, RESERVED));
 "iimage3D"                    return handle_keyword(IIMAGE3D,             yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
-"iimageBuffer"                return handle_keyword(IIMAGEBUFFER,         yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"iimageBuffer"                return handle_keyword_w_ext(IIMAGEBUFFER,         yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "iimageCube"                  return handle_keyword(IIMAGECUBE,           yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
 "iimageCubeArray"             return handle_keyword_w_ext(IIMAGECUBEARRAY,      yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "image1D"                     return handle_keyword(IMAGE1D,              yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
@@ -204,7 +204,7 @@ NONDIG   [_a-zA-Z]
 "image2DArrayShadow"          return handle_keyword(IMAGE2DARRAYSHADOW,   yylval, KW_FLAGS(NONE,     RESERVED, NONE,     NONE));
 "image2DShadow"               return handle_keyword(IMAGE2DSHADOW,        yylval, KW_FLAGS(NONE,     RESERVED, NONE,     NONE));
 "image3D"                     return handle_keyword(IMAGE3D,              yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
-"imageBuffer"                 return handle_keyword(IMAGEBUFFER,          yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"imageBuffer"                 return handle_keyword_w_ext(IMAGEBUFFER,          yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "imageCube"                   return handle_keyword(IMAGECUBE,            yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
 "imageCubeArray"              return handle_keyword_w_ext(IMAGECUBEARRAY,       yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "in"                          return handle_keyword(IN,                   yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
@@ -222,7 +222,7 @@ NONDIG   [_a-zA-Z]
 "isampler2DMSArray"           return handle_keyword_w_ext(ISAMPLER2DMSARRAY,    yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_2DMSARRAY);
 "isampler2DRect"              return handle_keyword(ISAMPLER2DRECT,       yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
 "isampler3D"                  return handle_keyword(ISAMPLER3D,           yylval, KW_FLAGS(NONE,     KEYWORD,  KEYWORD,  KEYWORD));
-"isamplerBuffer"              return handle_keyword(ISAMPLERBUFFER,       yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"isamplerBuffer"              return handle_keyword_w_ext(ISAMPLERBUFFER,       yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "isamplerCube"                return handle_keyword(ISAMPLERCUBE,         yylval, KW_FLAGS(NONE,     KEYWORD,  KEYWORD,  KEYWORD));
 "isamplerCubeArray"           return handle_keyword_w_ext(ISAMPLERCUBEARRAY,    yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "ivec2"                       return handle_keyword(IVEC2,                yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
@@ -274,7 +274,7 @@ NONDIG   [_a-zA-Z]
 "sampler2DShadow"             return handle_keyword(SAMPLER2DSHADOW,      yylval, KW_FLAGS(RESERVED, KEYWORD,  KEYWORD,  KEYWORD));
 "sampler3D"                   return handle_keyword(SAMPLER3D,            yylval, KW_FLAGS(RESERVED, KEYWORD,  KEYWORD,  KEYWORD));
 "sampler3DRect"               return handle_keyword(SAMPLER3DRECT,        yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));
-"samplerBuffer"               return handle_keyword(SAMPLERBUFFER,        yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"samplerBuffer"               return handle_keyword_w_ext(SAMPLERBUFFER,        yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "samplerCube"                 return handle_keyword(SAMPLERCUBE,          yylval, KW_FLAGS(KEYWORD,  KEYWORD,  KEYWORD,  KEYWORD));
 "samplerCubeArray"            return handle_keyword_w_ext(SAMPLERCUBEARRAY,       yylval, KW_FLAGS(NONE, NONE, RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "samplerCubeArrayShadow"      return handle_keyword_w_ext(SAMPLERCUBEARRAYSHADOW, yylval, KW_FLAGS(NONE, NONE, RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
@@ -299,7 +299,7 @@ NONDIG   [_a-zA-Z]
 "uimage2DMSArray"             return handle_keyword(UIMAGE2DMSARRAY,   yylval, KW_FLAGS(NONE,     NONE,     RESERVED, RESERVED));
 "uimage2DRect"                return handle_keyword(UIMAGE2DRECT,      yylval, KW_FLAGS(NONE,     NONE,     RESERVED, RESERVED));
 "uimage3D"                    return handle_keyword(UIMAGE3D,          yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
-"uimageBuffer"                return handle_keyword(UIMAGEBUFFER,      yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"uimageBuffer"                return handle_keyword_w_ext(UIMAGEBUFFER,      yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "uimageCube"                  return handle_keyword(UIMAGECUBE,        yylval, KW_FLAGS(NONE,     RESERVED, KEYWORD,  KEYWORD));
 "uimageCubeArray"             return handle_keyword_w_ext(UIMAGECUBEARRAY,   yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "uint"                        return handle_keyword(UINT,              yylval, KW_FLAGS(NONE,     KEYWORD,  KEYWORD,  KEYWORD));
@@ -314,7 +314,7 @@ NONDIG   [_a-zA-Z]
 "usampler2DMSArray"           return handle_keyword_w_ext(USAMPLER2DMSARRAY, yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_2DMSARRAY);
 "usampler2DRect"              return handle_keyword(USAMPLER2DRECT,    yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, RESERVED));
 "usampler3D"                  return handle_keyword(USAMPLER3D,        yylval, KW_FLAGS(NONE,     KEYWORD,  KEYWORD,  KEYWORD));
-"usamplerBuffer"              return handle_keyword(USAMPLERBUFFER,    yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD));
+"usamplerBuffer"              return handle_keyword_w_ext(USAMPLERBUFFER,    yylval, KW_FLAGS(NONE,     RESERVED, RESERVED, KEYWORD), GLSL_EXT_TEXTURE_BUFFER);
 "usamplerCube"                return handle_keyword(USAMPLERCUBE,      yylval, KW_FLAGS(NONE,     KEYWORD,  KEYWORD,  KEYWORD));
 "usamplerCubeArray"           return handle_keyword_w_ext(USAMPLERCUBEARRAY, yylval, KW_FLAGS(NONE,     NONE,     RESERVED, KEYWORD), GLSL_EXT_CUBE_MAP_ARRAY);
 "using"                       return handle_keyword(USING,             yylval, KW_FLAGS(RESERVED, RESERVED, RESERVED, RESERVED));

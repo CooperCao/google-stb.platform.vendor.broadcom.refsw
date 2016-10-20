@@ -51,5 +51,11 @@ LIBBCM_ASTRA_SOURCES := $(LIBBCM_ASTRA_DIR)/libastra.c \
                         $(LIBBCM_ASTRA_DIR)/libastra_api.c \
                         $(LIBBCM_ASTRA_DIR)/libastra_ioctl.c
 
+ifeq (y,$(DEBUG_ENABLE_COREDUMP))
+LIBBCM_ASTRA_SOURCES += $(LIBBCM_ASTRA_DIR)/libastra_coredump.c
+else
+LIBBCM_ASTRA_SOURCES += $(LIBBCM_ASTRA_DIR)/libastra_coredump_dummy.c
+endif
+
 LIBBCM_ASTRA_PUBLIC_INCLUDES := $(LIBBCM_ASTRA_DIR)
 LIBBCM_ASTRA_PRIVATE_INCLUDES := $(LIBBCM_ASTRA_DIR) $(LIBBCM_ASTRA_DIR)/../bcm_astra

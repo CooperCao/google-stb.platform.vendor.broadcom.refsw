@@ -1,7 +1,7 @@
-############################################################
-#     (c)2003-2014 Broadcom Corporation
+#############################################################
+#  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
 #
-#  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+#  This program is the proprietary software of Broadcom and/or its licensors,
 #  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,17 +34,12 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
+############################################################
+
+############################################################
+# Overview:
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
-#
-# Module Description:
-#   This file defines the OS-specific flags for building in ucos.
-#
-# Revision History:
-#
-# $brcm_Log: $
+# This file should only be included by nexus_defs.inc
 #
 ############################################################
 
@@ -52,7 +47,11 @@ NEXUS_CFLAGS += -DBSTD_CPU_ENDIAN=${NEXUS_ENDIAN}
 NEXUS_CFLAGS += -nostdlib -ffreestanding -W -Wstrict-prototypes -Wall
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
-    NEXUS_CFLAGS += -marm -march=armv7-a
+    ifeq ($(ARM_ARCH), V8)
+        NEXUS_CFLAGS += -marm -mcpu=cortex-a53 -march=armv8-a
+    else
+        NEXUS_CFLAGS += -marm -march=armv7-a
+    endif
     NEXUS_CFLAGS += -Wno-unused-but-set-variable
     ifeq ($(NEXUS_ENDIAN), BSTD_ENDIAN_BIG)
         NEXUS_CFLAGS += -mbig-endian
@@ -66,6 +65,9 @@ else
     endif
     NEXUS_CFLAGS += -DMIPS_SDE
 endif
+
+# Debug
+# NEXUS_CFLAGS += -g -O0
 
 # NEXUS_EXTRA_CFLAGS can be defined by the user to bring in extra CFLAGS
 NEXUS_CFLAGS += ${NEXUS_EXTRA_CFLAGS}

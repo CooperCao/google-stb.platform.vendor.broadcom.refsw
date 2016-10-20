@@ -66,43 +66,13 @@ extern "C" {
 /***************************************************************************
  * Private register cracking macros
  ***************************************************************************/
-#define BVDC_P_VIP_GET_REG_IDX(reg) \
-    ((BCHP##_##reg - BCHP_VICE2_VIP_0_0_REG_START) / sizeof(uint32_t))
-
-/* Get/Set reg data */
-#define BVDC_P_VIP_GET_REG_DATA(reg) \
-    (hVip->aulRegs[BVDC_P_VIP_GET_REG_IDX(reg)])
-#define BVDC_P_VIP_SET_REG_DATA(reg, data) \
-    (BVDC_P_VIP_GET_REG_DATA(reg) = (uint32_t)(data))
-
-/* Get field */
-#define BVDC_P_VIP_GET_FIELD_NAME(reg, field) \
-    (BVDC_P_GET_FIELD(BVDC_P_VIP_GET_REG_DATA(reg), reg, field))
-
 /* This macro does a write into RUL (write, addr, data). 3 dwords. */
-#define BVDC_P_VIP_WRITE_TO_RUL(reg, addr_ptr) \
+#define BVDC_P_VIP_WRITE_TO_RUL(reg, addr_ptr, data) \
 { \
     *addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
     *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hVip->ulRegOffset); \
-    *addr_ptr++ = BVDC_P_VIP_GET_REG_DATA(reg); \
+    *addr_ptr++ = data; \
 }
-
-/* This macro does a block write into RUL */
-#define BVDC_P_VIP_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
-do { \
-    uint32_t ulBlockSize = \
-        BVDC_P_REGS_ENTRIES(from, to);\
-    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hVip->ulRegOffset); \
-    BKNI_Memcpy((void*)pulCurrent, \
-        (void*)&(hVip->aulRegs[BVDC_P_VIP_GET_REG_IDX(from)]), \
-        ulBlockSize * sizeof(uint32_t)); \
-    pulCurrent += ulBlockSize; \
-} while(0)
-
-/* number of registers in one block. */
-#define BVDC_P_VIP_REGS_COUNT      \
-    BVDC_P_REGS_ENTRIES(VICE2_VIP_0_0_REG_START, VICE2_VIP_0_0_REG_END)
 
 /***************************************************************************
  * Vip private data types
@@ -164,6 +134,25 @@ typedef struct BVDC_P_VipBufferNode
 typedef struct BVDC_P_VipBufferQueue  BVDC_P_VipBufferQueue;
 BLST_SQ_HEAD(BVDC_P_VipBufferQueue, BVDC_P_VipBufferNode);
 
+
+
+typedef struct BVDC_P_VipRegisterSetting
+{
+    uint32_t                 ulFwControl;       /* VICE2_VIP_0_0_FW_CONTROL */
+    uint32_t                 ulConfig;          /* VICE2_VIP_0_0_CONFIG */
+    uint32_t                 ulDcxvCfg;         /* VICE2_VIP_0_0_DCXV_CFG */
+
+
+    uint32_t                 ulInputPicSize;    /* VICE2_VIP_0_0_INPUT_PICTURE_SIZE */
+    uint32_t                 ulOutputPicSize;   /* VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE */
+    uint32_t                 ulLumaNMBY;        /* VICE2_VIP_0_0_LUMA_NMBY */
+    uint32_t                 ulChromaNMBY;      /* VICE2_VIP_0_0_CHROMA_420_NMBY */
+
+    BMMA_DeviceOffset        ullLumaAddr;       /* VICE2_VIP_0_0_LUMA_ADDR */
+    BMMA_DeviceOffset        ullChromaAddr;     /* VICE2_VIP_0_0_CHROMA_420_ADDR */
+
+} BVDC_P_VipRegisterSetting;
+
 typedef struct BVDC_P_VipContext
 {
     BDBG_OBJECT(BVDC_VIP)
@@ -192,13 +181,13 @@ typedef struct BVDC_P_VipContext
     /* private fields. */
     unsigned                       eId;
     uint32_t                       ulRegOffset; /* VIP_0, VIP_1, and etc. */
-    uint32_t                       aulRegs[BVDC_P_VIP_REGS_COUNT];
+    BVDC_P_VipRegisterSetting      stRegs;
 
     /* picture heap */
     BVDC_P_VipMemSettings          stMemSettings;
     BVDC_P_VipMemConfig            stMemConfig;
     BMMA_Block_Handle              hBlock;
-    uint32_t                       ulDeviceOffset;
+    BMMA_DeviceOffset              ullDeviceOffset;
 
     /* Data mode */
     BVDC_P_VipDataMode             eVipDataMode;

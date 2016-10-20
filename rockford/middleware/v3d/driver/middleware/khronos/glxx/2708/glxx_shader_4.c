@@ -1191,7 +1191,7 @@ Dataflow *glxx_backend(GLXX_HW_BLEND_T blend, GLXX_VEC4_T *color, Dataflow *disc
       Dataflow *value;
       Dataflow *coverage = NULL;
       uint32_t i;
-      uint32_t samples = blend.ms ? 4 : 1;
+      uint32_t samples = blend.ms ? GLXX_CONFIG_SAMPLES : 1;
 
       if (blend.sample_coverage && blend.ms)
       {

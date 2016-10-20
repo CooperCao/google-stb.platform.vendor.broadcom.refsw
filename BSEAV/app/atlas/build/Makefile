@@ -1,5 +1,5 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -261,6 +261,47 @@ $(ATLAS_ODIR):
 ##### NEXUS API Libraries
 ##########
 
+include $(BSEAV)/lib/bwin/build/b_bwin_targets.inc
+include $(BSEAV)/lib/mlibs/b_mlibs_targets.inc
+include $(BSEAV)/lib/bwidgets/build/b_bwidgets_targets.inc
+
+###############
+####### Power Standby
+###############
+PMLIB_BUILD:=
+PMLIB_CLEAN:=
+ifeq ($(NEXUS_POWER_MANAGEMENT),y)
+ifeq ($(call check-linux-version,2,6,30),1)
+# if kernel >= 2.6.30
+PMLIB_TOP=$(BSEAV)/lib/pmlib
+include $(PMLIB_TOP)/pmlib.inc
+include $(PMLIB_TOP)/b_pmlib_targets.inc
+CFLAGS += -DPOWERSTANDBY_SUPPORT $(PMLIB_CFLAGS)
+LDFLAGS += $(PMLIB_LDFLAGS)
+PMLIB_BUILD += b_pmlib_target_build
+PMLIB_CLEAN += b_pmlib_target_clean
+endif
+endif
+
+###############
+####### LUA Support
+###############
+LUA_BUILD:=
+LUA_CLEAN:=
+ifneq ($(LUA_SUPPORT),n)
+include $(BSEAV)/lib/lua/b_lua_targets.inc
+APP_OBJECTS += atlas_lua.o
+LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/lua/lua-5.2.4/install
+CFLAGS += -DLUA_SUPPORT -I$(LUA_DIR)/include
+LIBS += $(LUA_DIR)/lib/liblua.a
+LINENOISE_DIR = $(BSEAV)/app/atlas/src/linenoise/antirez-linenoise-02d7935
+CFLAGS += -DLINENOISE_SUPPORT -I$(LINENOISE_DIR)
+VPATH += $(LINENOISE_DIR)
+APP_OBJECTS += linenoise.o
+LUA_BUILD += b_lua_target_build
+LUA_CLEAN += b_lua_target_clean
+endif
+
 ##########
 #####always build main.o because it contains __DATE__
 ##########
@@ -273,15 +314,9 @@ $(ATLAS_ODIR)/main.o: build_date
 clean-atlas:
 	-@$(RM) -rf $(ATLAS_ODIR)
 
-lib:
-	${Q_}$(MAKE) -C $(BSEAV)/lib/bwin/build
-	${Q_}$(MAKE) -C $(BSEAV)/lib/mlibs
-	${Q_}$(MAKE) -C $(BWIDGETS_DIR)/build
+lib: b_bwin_target_build b_mlibs_target_build b_bwidgets_target_build
 
-lib-clean:
-	${Q_}$(MAKE) -C $(BSEAV)/lib/bwin/build clean
-	${Q_}$(MAKE) -C $(BSEAV)/lib/mlibs clean
-	${Q_}$(MAKE) -C $(BWIDGETS_DIR)/build clean
+lib-clean: b_bwin_target_clean b_mlibs_target_clean b_bwidgets_target_clean
 
 print-atlas-tarball:
 	@echo $(ATLAS_TAR_BALL)
@@ -295,15 +330,19 @@ $(ATLAS_BIN_DIR):
 all: $(ATLAS_BIN_DIR) $(APP)
 	${Q_}$(CP) -f $(APP) $(ATLAS_BIN_DIR)
 
-clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean lua-clean clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools clean-pmlib
+clean: api-clean playback_ip_lib_clean lib-clean nxclient-clean $(LUA_CLEAN) clean-dvrlib clean-pod-driver clean-podlibs clean-dsgcclib clean-cdllib clean-estb-cfglibs clean-dcclib clean-snmp-agent clean-snmp-proxy clean-silib clean-atlas clean-perftools $(PMLIB_CLEAN) $(WPA_SUPPLICANT_CLEAN)
 
 dist-clean: clean dist-clean-netapp
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/lib
 	${Q_}$(RM) -rf $(ATLAS_BIN_ROOT)/BSEAV/linux
 
-api:  $(ATLAS_BIN_DIR) $(ATLAS_ODIR)
+# oslib
+b_os_lib_target_build: $(ATLAS_BIN_DIR) $(ATLAS_ODIR)
+B_OSLIB_TARGET_MAKEFLAGS += INSTALL_DIR=$(ATLAS_BIN_DIR)
+include $(NEXUS_TOP)/lib/os/b_os_lib_targets.inc
+
+api:  $(ATLAS_BIN_DIR) $(ATLAS_ODIR) b_os_lib_target_build
 	@echo [Build..... Nexus]
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/lib/os INSTALL_DIR=$(ATLAS_BIN_DIR)
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build  INSTALL_DIR=$(ATLAS_BIN_DIR)
 	${Q_}$(CP) -f $(NEXUS_BIN_DIR)/lib*.so $(ATLAS_BIN_DIR)
 ifeq  ($(NEXUS_MODE),proxy)
@@ -317,21 +356,21 @@ ifeq ($(SAGE_SUPPORT),y)
 	@echo [Install... Sage binaries]
 	${Q_}$(CP)   $(NEXUS_BIN_DIR)/sage*.bin $(ATLAS_BIN_DIR)
 endif
-	$(Q_)if [ -f $(NEXUS_BIN_DIR)/wakeup_drv.ko ] ; then  \
+	${Q_}if [ -f $(NEXUS_BIN_DIR)/wakeup_drv.ko ] ; then  \
 		$(CP) $(NEXUS_BIN_DIR)/wakeup_drv.ko $(ATLAS_BIN_DIR)/wakeup_drv.ko; \
 	fi;
 
-	$(Q_)if [ -f $(NEXUS_BIN_DIR)/zigbee_drv.ko ] ; then  \
+	${Q_}if [ -f $(NEXUS_BIN_DIR)/zigbee_drv.ko ] ; then  \
 		$(CP) $(NEXUS_BIN_DIR)/zigbee_drv.ko $(ATLAS_BIN_DIR)/zigbee_drv.ko; \
 	fi;
 
-	$(Q_)if [ -f $(NEXUS_BIN_DIR)/SoC_mailboxHost.elf ] ; then  \
+	${Q_}if [ -f $(NEXUS_BIN_DIR)/SoC_mailboxHost.elf ] ; then  \
 		$(CP) $(NEXUS_BIN_DIR)/SoC_mailboxHost.elf $(ATLAS_BIN_DIR)/SoC_mailboxHost.elf; \
 	fi;
 
-api-install:
+api-install: api
 	@echo [Build..... Nexus]
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/lib/os NEXUS_BIN_DIR=$(STAGING_DIR)
+	${Q_}$(foreach file,$(B_OS_LIB_BUILD_FILES),cp -u $(file) $(STAGING_DIR);)
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build  NEXUS_BIN_DIR=$(STAGING_DIR)
 ifeq  ($(NEXUS_MODE),proxy)
 	@echo [Install... KernelMode Driver]
@@ -342,8 +381,7 @@ else
 endif
 
 
-api-clean:
-	${Q_}$(MAKE) -C $(NEXUS_TOP)/lib/os clean
+api-clean: b_os_lib_target_clean
 	${Q_}$(MAKE) -C $(NEXUS_TOP)/build clean
 	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/nexus.ko
 	${Q_}$(RM) -f $(ATLAS_BIN_DIR)/bcmdriver.ko
@@ -402,7 +440,6 @@ APP_OBJECTS += \
     dma.o \
     timebase.o \
     thumb.o \
-    mixer.o \
     audio_decode.o \
     audio_processing.o \
     remote.o \
@@ -709,47 +746,6 @@ LDFLAGS += -lpthread -lm  $(EXTRA_DRM_OBJS)
 endif
 endif
 
-###############
-####### Power Standby
-###############
-ifeq ($(NEXUS_POWER_MANAGEMENT),y)
-ifeq ($(call check-linux-version,2,6,30),1)
-# if kernel >= 2.6.30
-PMLIB_TOP=$(NEXUS_TOP)/../BSEAV/lib/pmlib
-include $(PMLIB_TOP)/pmlib.inc
-CFLAGS += -DPOWERSTANDBY_SUPPORT $(PMLIB_CFLAGS)
-LDFLAGS += $(PMLIB_LDFLAGS)
-
-pmlib:
-	$(Q_)$(MAKE) -C $(PMLIB_TOP)
-clean-pmlib:
-	$(Q_)$(MAKE) -C $(PMLIB_TOP) clean
-else
-pmlib:
-#intentionally left empty
-clean-pmlib:
-#intentionally left empty
-endif
-else
-pmlib:
-#intentionally left empty
-clean-pmlib:
-#intentionally left empty
-endif
-###############
-####### Lua
-###############
-ifneq ($(LUA_SUPPORT),n)
-    APP_OBJECTS += atlas_lua.o
-    LUA_DIR = $(B_REFSW_OBJ_ROOT)/BSEAV/lib/lua/lua-5.2.4/install
-    CFLAGS += -DLUA_SUPPORT -I$(LUA_DIR)/include
-    LIBS += $(LUA_DIR)/lib/liblua.a
-    LINENOISE_DIR = $(BSEAV)/app/atlas/src/linenoise/antirez-linenoise-02d7935
-    CFLAGS += -DLINENOISE_SUPPORT -I$(LINENOISE_DIR)
-    VPATH += $(LINENOISE_DIR)
-    APP_OBJECTS += linenoise.o
-endif
-
 # Set up Nexus' and NxClient's LDFLAGS and CFLAGS depending on the build flags.
 ifeq ($(NXCLIENT_SUPPORT),y)
         # Nexus NxClient Mode: NXCLIENT_SUPPORT=y, NEXUS_CLIENT_SUPPORT=<don't care>
@@ -809,10 +805,10 @@ CXXFLAGS += -I$(MLIBS)
 CFLAGS += -I$(MLIBS)
 
 # DEBUG SUFFIX Defined above
-MLIBS_ODIR=$(B_REFSW_OBJ_ROOT)/BSEAV/lib/mlibs/$(B_REFSW_ARCH).$(DEBUG_SUFFIX)
+MLIBS_ODIR=$(abspath $(sort $(dir $(B_MLIBS_BUILD_FILES))))
 
-CFLAGS += -I$(MLIBS) -L$(MLIBS_ODIR)
-LDFLAGS += -L$(MLIBS_ODIR) -lmcommon -lmnet
+CFLAGS += -I$(MLIBS) $(addprefix -L,$(MLIBS_ODIR))
+LDFLAGS += $(addprefix -L,$(MLIBS_ODIR)) -lmcommon -lmnet
 
 BWIN=$(BSEAV)/lib/bwin
 include $(BWIN)/include/bwin.mak
@@ -985,6 +981,28 @@ export NETAPP_DHCP=n
 export NETAPP_DHCPC=n
 endif
 
+eclipse:
+	@echo [Generate Eclipse Defines...gccdefines_c.h]
+	${Q_}$(CC) $(CFLAGS) -dM -E - < /dev/null > $(B_REFSW_OBJ_ROOT)/../gccdefines_c.h
+
+
+#
+# WPA Supplicant Support
+#
+ifeq ($(WPA_SUPPLICANT_SUPPORT),y)
+include $(BSEAV)/lib/wpa_supplicant/b_wpa_supplicant_targets.inc
+CFLAGS += $(B_WPA_SUPPLICANT_CFLAGS)
+LDFLAGS += $(B_WPA_SUPPLICANT_LDFLAGS)
+WPA_SUPPLICANT_BUILD += b_wpa_supplicant_target_build
+WPA_SUPPLICANT_CLEAN += b_wpa_supplicant_target_clean
+WPA_SUPPLICANT_INSTALL = wpa_supplicant_install_files
+B_SUPPLICANT_INSTALL_FILES = $(sort $(filter-out %.a,$(B_WPA_SUPPLICANT_BUILD_FILES)))
+
+wpa_supplicant_install_files:
+	${Q_}$(foreach file, $(B_SUPPLICANT_INSTALL_FILES),cp -fP $(file) $(STAGING_DIR) &&) true
+
+endif
+
 ##########
 #### Link nexus libraries
 ##########
@@ -1006,12 +1024,12 @@ vpath %.cpp $(VPATH)
 vpath %.c $(VPATH)
 
 # Implicit rule for building local app
-$(APP): api lib playback_ip_lib nxclient lua dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools pmlib $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
+$(APP): api lib playback_ip_lib nxclient dvrlib pod-driver podlibs dsgcclib cdllib estb-cfglibs dcclib snmp-agent snmp-proxy silib netapp perftools $(PMLIB_BUILD) $(LUA_BUILD) $(ATLAS_ODIR) build_date $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(WPA_SUPPLICANT_BUILD)
 	@echo [Linking... $(notdir $@)]
 	$(Q_)$(CXX) -o $@ $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)) $(filter-out -lsettop,$(LDFLAGS)) $(LIBS)
 
 # "order only" prerequisite rule so APP_OBJECTS wait for playback_ip_lib to be built (for make -j option)
-$(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)): | playback_ip_lib nxclient lua netapp
+$(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS)): | playback_ip_lib nxclient $(LUA_BUILD) netapp
 
 $(ATLAS_LIB): $(addprefix $(ATLAS_ODIR)/,$(APP_OBJECTS))
 	@echo [Linking... $(notdir $@)]
@@ -1035,13 +1053,6 @@ $(ATLAS_ODIR)/%.o: %.c
 $(ATLAS_ODIR)/%.o: %.cpp
 	@echo [Compile... $(notdir $<)]
 	$(Q_)$(CXX) -c -o $@ $< $(filter-out $(C_ONLY_FLAGS),$(CFLAGS)) $(CXXFLAGS)
-
-ifneq ($(LUA_SUPPORT),n)
-lua:
-	${Q_}$(MAKE) -C $(BSEAV)/lib/lua
-lua-clean:
-	${Q_}$(MAKE) -C $(BSEAV)/lib/lua clean
-endif
 
 ifeq ($(NXCLIENT_SUPPORT),y)
 .PHONY: nxclient
@@ -1075,15 +1086,14 @@ endif
 ##### Cablecard
 #################
 ifeq ($(CABLECARD_SUPPORT),y)
+include $(BSEAV)/lib/openssl/b_openssl_targets.inc
 #this builds and cleans MPOD driver/lib
-podlibs:
+podlibs: b_openssl_target_build
 	${Q_}$(MAKE) -C $(POD_DIR) DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT) TWOWAY_OOB_CABLECARD_SUPPORT=$(TWOWAY_OOB_CABLECARD_SUPPORT)
-	${Q_}$(MAKE) -C $(BSEAV)/lib/openssl
 	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib
 
-clean-podlibs:
+clean-podlibs: b_openssl_target_clean
 	${Q_}$(MAKE) -C $(POD_DIR) clean DSG_SUPPORT=$(DSG_SUPPORT) ESTB_CFG_SUPPORT=$(ESTB_CFG_SUPPORT)
-	${Q_}$(MAKE) -C $(BSEAV)/lib/openssl clean
 	${Q_}$(MAKE) -C $(CP_DIR)/build -f makefile.cplib clean
 
 pod-driver:
@@ -1184,10 +1194,10 @@ endif # ESTB_CFG_SUPPORT
 #################
 ifeq ($(DCC_SUPPORT),y)
 dcclib:
-	$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y
+	@$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y
 	@$(CP) -fr $(NEXUS_BIN_DIR)/libb_dcc.so $(ATLAS_BIN_DIR)
 clean-dcclib:
-	$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y clean
+	@$(MAKE) -C $(DCC_LIB_DIR) INTEGRATED_BWIN=y clean
 else # DCC_SUPPORT is not defined, so define empty targets
 dcclib:
 #intentionally left empty
@@ -1331,24 +1341,18 @@ endif # SI_SUPPORT
 ######### Playback IP and Releated libraries
 ###############
 ifeq ($(PLAYBACK_IP_SUPPORT),y)
-playback_ip_lib: api
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build INSTALL_DIR=$(ATLAS_BIN_DIR) install
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/playback_ip/apps INSTALL_DIR=$(ATLAS_BIN_DIR) install
+include $(NEXUS_TOP)/lib/bip/build/b_bip_targets.inc
+b_bip_target_build: api
+B_BIP_MAKEFLAGS += INSTALL_DIR=$(ATLAS_BIN_DIR)
+playback_ip_lib: b_bip_target_build
 
+B_PBIP_INSTALL_FILES = $(sort $(filter-out %.a,$(B_BIP_BUILD_FILES)))
 playback_ip_lib_install: api
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build INSTALL_DIR=$(STAGING_DIR) install
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/playback_ip/apps INSTALL_DIR=$(STAGING_DIR) install
+	${Q_}$(foreach file, $(B_PBIP_INSTALL_FILES),cp -fP $(file) $(STAGING_DIR);)
 
-playback_ip_lib_clean:
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build INSTALL_DIR=$(ATLAS_BIN_DIR) clean
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/playback_ip/apps clean
+playback_ip_lib_clean: b_bip_target_clean
 
-playback_ip_lib_min_clean:
-	@echo [..... Minimal Clean ....]
-	@echo [..... Not Cleaning SSL ....]
-	@echo [..... When Switching Endianness please do a \"make clean\" ....]
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/bip/build  minclean
-	${Q_}$(MAKE) REFSW_BUILD=y -C $(NEXUS_TOP)/lib/playback_ip/ clean
+playback_ip_lib_min_clean: playback_ip_lib_clean
 
 else #PLAYBACK_IP_SUPPORT is not defined, so define empty targets
 playback_ip_lib:
@@ -1375,14 +1379,14 @@ min-clean: playback_ip_lib_min_clean clean-atlas api-clean
 # perform the actual installation procedure.
 #
 install:  bin_install $(STAGING_DIR)
-	$(MAKE) install-binaries
-	$(MAKE) make-tarball
+	@$(MAKE) install-binaries
+	@$(MAKE) make-tarball
 
 #
 # Install drivers, libraries and apps
 #
 .PHONY: install-binaries
-install-binaries: api-install playback_ip_lib_install install-config-files install-pod-driver install-cable-files install-snmp-files install-netapp-files install-zigbee-files
+install-binaries: api-install playback_ip_lib_install install-config-files install-pod-driver install-cable-files install-snmp-files install-netapp-files install-zigbee-files $(WPA_SUPPLICANT_INSTALL)
 
 #
 # STAGING_DIR is phony because we always want to remove it and
@@ -1565,7 +1569,7 @@ install-config-files:
 	$(Q_)cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(STAGING_DIR)
 	$(Q_)$(CP) -r ../scripts/atlas.cfg $(STAGING_DIR)/atlas.cfg
-	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" == "y" ]; then \
+	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
 	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(STAGING_DIR)/channels.xml; \
@@ -1586,7 +1590,7 @@ bin-install-config-files:
 	$(Q_)cd ../; \
 		$(CP) -r images/bcmlogo.png images scripts $(ATLAS_BIN_DIR)
 	$(Q_)$(CP) -r ../scripts/atlas.cfg $(ATLAS_BIN_DIR)/atlas.cfg
-	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" == "y" ]; then \
+	$(Q_)if [ "$(NEXUS_USE_7252S_GW)" = "y" ]; then \
 		$(CP) ../channelmap/cable.channels.xml $(STAGING_DIR)/channels.xml; \
 	elif [ -f ../channelmap/$(NEXUS_PLATFORM).channels.xml ] ; then  \
 		$(CP) ../channelmap/$(NEXUS_PLATFORM).channels.xml $(ATLAS_BIN_DIR)/channels.xml; \

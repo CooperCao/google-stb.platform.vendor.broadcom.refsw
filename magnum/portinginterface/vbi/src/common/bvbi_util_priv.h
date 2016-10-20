@@ -43,8 +43,34 @@
 #define BVBI_UTIL_PRIV_H__
 
 #include "bstd.h"
-#include "bmem.h"
+#include "bmma.h"
 #include "berr.h"
+
+/******************************************************************************
+ * BVBI interface to BMMA. Usage of BMMA is very limited, so required features
+ * are encapsulated into this little toolkit. It prevents repetition.
+ *****************************************************************************/
+
+typedef struct BVBI_P_MmaData
+{
+    BMMA_Block_Handle handle;
+    uint8_t* pSwAccess;
+    BMMA_DeviceOffset pHwAccess;
+    /* Programming note: This data structure should have only two states:
+     * completely valid, and completely unused. In the latter case, all three
+     * fields should be NULL.
+     *
+     * Therefore, it is sufficient to test the first field against NULL in any
+     * software logic. This is the convention that will be followed.
+     */
+}
+BVBI_P_MmaData;
+
+BERR_Code BVBI_P_MmaAlloc
+    (BMMA_Heap_Handle hMmaHeap, size_t size, unsigned alignment,
+     BVBI_P_MmaData* pMmaData);
+void BVBI_P_MmaFree (BVBI_P_MmaData* pMmaData);
+void BVBI_P_MmaFlush_isrsafe (BVBI_P_MmaData* pMmaData, size_t size);
 
 /*
  * A software object for accumulating sections of data into a line. Provides
@@ -55,7 +81,7 @@ typedef struct BVBI_P_LineBuilder_Handle* BVBI_LineBuilder_Handle;
 
 BERR_Code BVBI_LineBuilder_Open (
     BVBI_LineBuilder_Handle* pHandle,
-    BMEM_Handle hMem, size_t lineCount, size_t lineSize);
+    BMMA_Heap_Handle hMmaHeap, size_t lineCount, size_t lineSize);
 
 void BVBI_LineBuilder_Close (BVBI_LineBuilder_Handle handle);
 
@@ -64,7 +90,8 @@ BERR_Code BVBI_LineBuilder_Put_isr (
     size_t sectionOffset, int sequenceNumber, int lineNumber);
 
 BERR_Code BVBI_LineBuilder_Get_isr (
-    BVBI_LineBuilder_Handle handle, uint8_t** pLineData, int* pSequenceNumber,
+    BVBI_LineBuilder_Handle handle,
+    BMMA_DeviceOffset* pLineData, int* pSequenceNumber,
     int* pLineNumber);
 
 #endif /* BVBI_UTIL_PRIV_H__ */

@@ -32,17 +32,32 @@ typedef struct {
    uint32_t *unif;
    size_t    unif_count;
    unsigned  n_threads;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    bool      uses_control_flow;
+#endif
    union {
       struct {
          bool writes_z;
          bool ez_disable;
          bool tlb_wait_first_thrsw;
          bool per_sample;
+         bool reads_prim_id;
       } fragment;
       struct {
-         unsigned       reads_total;
+         bool prim_id_used;
+         bool has_point_size;
+      } geometry;
+      struct {
+         bool prim_id_used;
+         bool has_point_size;
+      } tess_e;
+      struct {
+         bool prim_id_used;
+         bool barrier;
+      } tess_c;
+      struct {
          ATTRIBS_USED_T attribs;
+         unsigned       input_words;
          bool           has_point_size;
       } vertex;
    } u;

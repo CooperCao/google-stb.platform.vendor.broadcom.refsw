@@ -233,6 +233,7 @@ NEXUS_P_ThreadEntry(void *data)
 #endif
 
     task->task = current;
+    NEXUS_Base_P_Thread_AssociateInfo(task, current, &task->info);
     /* ignore the return value */
     (task->pThreadFunc)(task->pContext);
     task->task = NULL;
@@ -243,7 +244,6 @@ static void __attribute__((no_instrument_function))
 NEXUS_P_ThreadStart(void *data)
 {
     NEXUS_ThreadHandle task = data;
-    NEXUS_Base_P_Thread_AssociateInfo(task, current, &task->info); 
     kernel_thread((int (*)(void *))NEXUS_P_ThreadEntry, (void *)task, 0);
 }
 

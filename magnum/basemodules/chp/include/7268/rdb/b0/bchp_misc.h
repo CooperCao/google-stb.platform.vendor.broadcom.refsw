@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:04 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:26 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,37 +70,37 @@
 /***************************************************************************
  *MISC - VEC Registers
  ***************************************************************************/
-#define BCHP_MISC_MISC_REVISION_ID               0x206e7000 /* [RO] Revision ID Register */
-#define BCHP_MISC_DAC_0_CFG                      0x206e7004 /* [RW] Config register for DAC_0 */
-#define BCHP_MISC_SYNC_0_CFG                     0x206e7008 /* [RW] Config Register for Sync Port 0 */
-#define BCHP_MISC_IT_0_MASTER_SEL                0x206e700c /* [RW] Master Select for IT_0 */
-#define BCHP_MISC_IT_1_MASTER_SEL                0x206e7010 /* [RW] Master Select for IT_1 */
-#define BCHP_MISC_DVI_DTG_0_MASTER_SEL           0x206e7014 /* [RW] Master Select for DVI DTG_0 */
-#define BCHP_MISC_ITU656_DTG_0_MASTER_SEL        0x206e7018 /* [RW] Master Select for 656 DTG_0 */
-#define BCHP_MISC_DVI_0_SA_CONFIG                0x206e701c /* [RW] SA config for DVI_0 */
-#define BCHP_MISC_DVI_0_SA_CH0_STATUS            0x206e7020 /* [RO] SA status for channel 0 for DVI_0 */
-#define BCHP_MISC_DVI_0_SA_CH1_STATUS            0x206e7024 /* [RO] SA status for channel 1 for DVI_0 */
-#define BCHP_MISC_DVI_0_SA_CH2_STATUS            0x206e7028 /* [RO] SA status for channel 2 for DVI_0 */
-#define BCHP_MISC_ADC_CTRL_0                     0x206e702c /* [RW] ADC control register for DAC0 */
-#define BCHP_MISC_DAC_INST_BIAS_CTRL_0           0x206e7030 /* [RW] DAC bais control register for QDAC0 */
-#define BCHP_MISC_DAC_0_CTRL                     0x206e7034 /* [RW] DAC control register for DAC 0 */
-#define BCHP_MISC_DAC_0_SCALE_CTRL               0x206e7038 /* [RW] DAC Scale control register for DAC 0 */
-#define BCHP_MISC_DAC_CAL_CTRL_0                 0x206e703c /* [RW] DAC calibration control register for DAC0 */
-#define BCHP_MISC_DAC_CAL_ADC_DATA_0             0x206e7040 /* [RO] DAC calibration cal ADC data register for DAC0 */
-#define BCHP_MISC_DAC_ADC_DATA_0                 0x206e7044 /* [RO] DAC calibration adc data register for DAC0 */
-#define BCHP_MISC_DAC_DETECT_CTRL_0              0x206e7048 /* [RW] DAC CABLE DETECT control register for DAC0 */
-#define BCHP_MISC_DAC_DETECT_EN_0                0x206e704c /* [RW] DAC CABLE DETECT Enable register for DAC0 */
-#define BCHP_MISC_DAC_DETECT_SYNC_CTRL_0         0x206e7050 /* [RW] DAC sync present register */
-#define BCHP_MISC_DAC_SQWAVE_LEVEL_0             0x206e7054 /* [RW] Square Wave levels for cable detect */
-#define BCHP_MISC_DAC_DETECT_TIMING_0            0x206e7058 /* [RW] Cable Detect timing control register */
-#define BCHP_MISC_DAC_CABLE_STATUS_0             0x206e705c /* [RW] DAC cable connect status */
-#define BCHP_MISC_DAC_CABLE_DETECT_DEBUG_0       0x206e7060 /* [RO] Dac Cable detect debug register */
-#define BCHP_MISC_DAC_CABLE_RECALIBRATE_0        0x206e7064 /* [RW] DAC cable recalibrate for dac instance 0 */
-#define BCHP_MISC_DAC_CRC_CTRL                   0x206e7068 /* [RW] Dac CRC control register */
-#define BCHP_MISC_DAC_CRC_VALUE                  0x206e706c /* [RW] DAC CRC value register */
-#define BCHP_MISC_VEC_CRC_VALUE                  0x206e7070 /* [RW] VEC CRC value register */
-#define BCHP_MISC_DAC_CRC_STATUS                 0x206e7074 /* [RW] DAC CRC status register */
-#define BCHP_MISC_ADC_RESET_DEASSERT_DELAY       0x206e7078 /* [RW] ADC RESET DEASSERTION delay register */
+#define BCHP_MISC_MISC_REVISION_ID               0x206e7000 /* [RO][32] Revision ID Register */
+#define BCHP_MISC_DAC_0_CFG                      0x206e7004 /* [RW][32] Config register for DAC_0 */
+#define BCHP_MISC_SYNC_0_CFG                     0x206e7008 /* [RW][32] Config Register for Sync Port 0 */
+#define BCHP_MISC_IT_0_MASTER_SEL                0x206e700c /* [RW][32] Master Select for IT_0 */
+#define BCHP_MISC_IT_1_MASTER_SEL                0x206e7010 /* [RW][32] Master Select for IT_1 */
+#define BCHP_MISC_DVI_DTG_0_MASTER_SEL           0x206e7014 /* [RW][32] Master Select for DVI DTG_0 */
+#define BCHP_MISC_ITU656_DTG_0_MASTER_SEL        0x206e7018 /* [RW][32] Master Select for 656 DTG_0 */
+#define BCHP_MISC_DVI_0_SA_CONFIG                0x206e701c /* [RW][32] SA config for DVI_0 */
+#define BCHP_MISC_DVI_0_SA_CH0_STATUS            0x206e7020 /* [RO][32] SA status for channel 0 for DVI_0 */
+#define BCHP_MISC_DVI_0_SA_CH1_STATUS            0x206e7024 /* [RO][32] SA status for channel 1 for DVI_0 */
+#define BCHP_MISC_DVI_0_SA_CH2_STATUS            0x206e7028 /* [RO][32] SA status for channel 2 for DVI_0 */
+#define BCHP_MISC_ADC_CTRL_0                     0x206e702c /* [RW][32] ADC control register for DAC0 */
+#define BCHP_MISC_DAC_INST_BIAS_CTRL_0           0x206e7030 /* [RW][32] DAC bais control register for QDAC0 */
+#define BCHP_MISC_DAC_0_CTRL                     0x206e7034 /* [RW][32] DAC control register for DAC 0 */
+#define BCHP_MISC_DAC_0_SCALE_CTRL               0x206e7038 /* [RW][32] DAC Scale control register for DAC 0 */
+#define BCHP_MISC_DAC_CAL_CTRL_0                 0x206e703c /* [RW][32] DAC calibration control register for DAC0 */
+#define BCHP_MISC_DAC_CAL_ADC_DATA_0             0x206e7040 /* [RO][32] DAC calibration cal ADC data register for DAC0 */
+#define BCHP_MISC_DAC_ADC_DATA_0                 0x206e7044 /* [RO][32] DAC calibration adc data register for DAC0 */
+#define BCHP_MISC_DAC_DETECT_CTRL_0              0x206e7048 /* [RW][32] DAC CABLE DETECT control register for DAC0 */
+#define BCHP_MISC_DAC_DETECT_EN_0                0x206e704c /* [RW][32] DAC CABLE DETECT Enable register for DAC0 */
+#define BCHP_MISC_DAC_DETECT_SYNC_CTRL_0         0x206e7050 /* [RW][32] DAC sync present register */
+#define BCHP_MISC_DAC_SQWAVE_LEVEL_0             0x206e7054 /* [RW][32] Square Wave levels for cable detect */
+#define BCHP_MISC_DAC_DETECT_TIMING_0            0x206e7058 /* [RW][32] Cable Detect timing control register */
+#define BCHP_MISC_DAC_CABLE_STATUS_0             0x206e705c /* [RW][32] DAC cable connect status */
+#define BCHP_MISC_DAC_CABLE_DETECT_DEBUG_0       0x206e7060 /* [RO][32] Dac Cable detect debug register */
+#define BCHP_MISC_DAC_CABLE_RECALIBRATE_0        0x206e7064 /* [RW][32] DAC cable recalibrate for dac instance 0 */
+#define BCHP_MISC_DAC_CRC_CTRL                   0x206e7068 /* [RW][32] Dac CRC control register */
+#define BCHP_MISC_DAC_CRC_VALUE                  0x206e706c /* [RW][32] DAC CRC value register */
+#define BCHP_MISC_VEC_CRC_VALUE                  0x206e7070 /* [RW][32] VEC CRC value register */
+#define BCHP_MISC_DAC_CRC_STATUS                 0x206e7074 /* [RW][32] DAC CRC status register */
+#define BCHP_MISC_ADC_RESET_DEASSERT_DELAY       0x206e7078 /* [RW][32] ADC RESET DEASSERTION delay register */
 
 /***************************************************************************
  *MISC_REVISION_ID - Revision ID Register

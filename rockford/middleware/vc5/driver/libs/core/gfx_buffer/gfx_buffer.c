@@ -206,28 +206,8 @@ uint32_t gfx_buffer_size_plane(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
 
    uint32_t size;
-   switch (gfx_lfmt_collapse_uif_family(swizzling))
+   if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
-   case GFX_LFMT_SWIZZLING_RSO:
-      size = gfx_udiv_round_up(desc->width, bd.block_w) * bd.bytes_per_block;
-      if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&plane->lfmt)) >= 2)
-         size += plane->pitch * (gfx_udiv_round_up(desc->height, bd.block_h) - 1);
-      break;
-   case GFX_LFMT_SWIZZLING_LT:
-   {
-      uint32_t w_in_ut = gfx_udiv_round_up(desc->width, gfx_lfmt_ut_w_2d(&bd));
-      uint32_t h_in_ut = gfx_udiv_round_up(desc->height, gfx_lfmt_ut_h_2d(&bd));
-      size = (plane->pitch * (h_in_ut - 1) * bd.ut_h_in_blocks_2d) + (w_in_ut * GFX_LFMT_UTILE_SIZE);
-      break;
-   }
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-   {
-      uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd, swizzling));
-      uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
-      size = (plane->pitch * (h_in_ub - 1) * gfx_lfmt_ub_h_in_blocks_2d(&bd, swizzling)) + (w_in_ub * GFX_UIF_UB_SIZE);
-      break;
-   }
-   case GFX_LFMT_SWIZZLING_UIF:
       if (gfx_lfmt_is_uif_xor_family(plane->lfmt))
       {
          // TODO Padding is included here...
@@ -246,9 +226,8 @@ uint32_t gfx_buffer_size_plane(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
             ((h_in_ub - 1) * GFX_UIF_COL_W_IN_UB * GFX_UIF_UB_SIZE) +
             (last_col_w_in_ub * GFX_UIF_UB_SIZE);
       }
-      break;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256:
+   }
+   else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
       assert(gfx_lfmt_is_2d(plane->lfmt));
 
@@ -269,8 +248,28 @@ uint32_t gfx_buffer_size_plane(const GFX_BUFFER_DESC_T *desc, uint32_t plane_i)
          bd.block_h * bd.block_w) * bd.bytes_per_block;
 
       /* See GFXH-1344 */
-      size = gfx_zround_up(size, 32);
-
+      if (gfx_lfmt_is_bigend_sand_family((GFX_LFMT_T)swizzling))
+         size = gfx_zround_up(size, 32);
+   }
+   else switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_RSO:
+      size = gfx_udiv_round_up(desc->width, bd.block_w) * bd.bytes_per_block;
+      if (gfx_lfmt_dims_from_enum(gfx_lfmt_get_dims(&plane->lfmt)) >= 2)
+         size += plane->pitch * (gfx_udiv_round_up(desc->height, bd.block_h) - 1);
+      break;
+   case GFX_LFMT_SWIZZLING_LT:
+   {
+      uint32_t w_in_ut = gfx_udiv_round_up(desc->width, gfx_lfmt_ut_w_2d(&bd));
+      uint32_t h_in_ut = gfx_udiv_round_up(desc->height, gfx_lfmt_ut_h_2d(&bd));
+      size = (plane->pitch * (h_in_ut - 1) * bd.ut_h_in_blocks_2d) + (w_in_ut * GFX_LFMT_UTILE_SIZE);
+      break;
+   }
+   case GFX_LFMT_SWIZZLING_UBLINEAR:
+   {
+      uint32_t w_in_ub = gfx_udiv_round_up(desc->width, gfx_lfmt_ub_w_2d(&bd, swizzling));
+      uint32_t h_in_ub = gfx_udiv_round_up(desc->height, gfx_lfmt_ub_h_2d(&bd, swizzling));
+      size = (plane->pitch * (h_in_ub - 1) * gfx_lfmt_ub_h_in_blocks_2d(&bd, swizzling)) + (w_in_ub * GFX_UIF_UB_SIZE);
       break;
    }
    default:
@@ -439,24 +438,25 @@ void gfx_buffer_padded_width_height(
 
    GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&plane->lfmt);
 
-   switch (gfx_lfmt_collapse_uif_family(swizzling))
+   if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
+   {
+      *width = gfx_uround_up(desc->width, gfx_lfmt_ucol_w_2d(&bd, swizzling));
+      *height = gfx_buffer_uif_height_in_ub(desc, plane_i) * gfx_lfmt_ub_h_2d(&bd, swizzling);
+   }
+   else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+   {
+      *width = gfx_uround_up(desc->width, gfx_lfmt_sandcol_w_2d(&bd, swizzling));
+      *height = gfx_buffer_sand_padded_height(desc, plane_i);
+   }
+   else switch (swizzling)
    {
    case GFX_LFMT_SWIZZLING_RSO:
       *width = gfx_buffer_rso_padded_width(desc, plane_i);
       *height = gfx_uround_up(desc->height, bd.block_h);
       break;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256:
-      *width = gfx_uround_up(desc->width, gfx_lfmt_sandcol_w_2d(&bd, swizzling));
-      *height = gfx_buffer_sand_padded_height(desc, plane_i);
-      break;
    case GFX_LFMT_SWIZZLING_LT:
       *width = gfx_buffer_lt_width_in_ut(desc, plane_i) * gfx_lfmt_ut_w_2d(&bd);
       *height = gfx_uround_up(desc->height, gfx_lfmt_ut_h_2d(&bd));
-      break;
-   case GFX_LFMT_SWIZZLING_UIF:
-      *width = gfx_uround_up(desc->width, gfx_lfmt_ucol_w_2d(&bd, swizzling));
-      *height = gfx_buffer_uif_height_in_ub(desc, plane_i) * gfx_lfmt_ub_h_2d(&bd, swizzling);
       break;
    case GFX_LFMT_SWIZZLING_UBLINEAR:
       *width = gfx_buffer_ublinear_width_in_ub(desc, plane_i) * gfx_lfmt_ub_w_2d(&bd, swizzling);
@@ -507,42 +507,39 @@ size_t gfx_buffer_get_align(GFX_LFMT_T lfmt, gfx_buffer_align_t a)
 
    size_t align = bd.bytes_per_word;
 
-   switch (gfx_lfmt_collapse_uif_family(gfx_lfmt_get_swizzling(&lfmt)))
+   GFX_LFMT_SWIZZLING_T swizzling = gfx_lfmt_get_swizzling(&lfmt);
+   if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
-   case GFX_LFMT_SWIZZLING_LT:
-      align = gfx_zmax(align, GFX_LFMT_UTILE_SIZE);
-      break;
-   case GFX_LFMT_SWIZZLING_UIF:
       align = gfx_zmax(align,
          ((a == GFX_BUFFER_ALIGN_RECOMMENDED) && gfx_lfmt_is_uif_xor_family(lfmt)) ?
          GFX_UIF_PAGE_SIZE : GFX_UIF_UB_SIZE);
-      break;
-   case GFX_LFMT_SWIZZLING_UBLINEAR:
-      align = gfx_zmax(align, GFX_UIF_UB_SIZE);
-      break;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256:
+   }
+   else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
    {
-      switch (GFX_DRAM_MAP_MODE)
+      switch (gfx_lfmt_dram_map_version(swizzling))
       {
       case 2:
          break;
       case 5:
       case 8:
-      {
-         size_t stripe_width = (gfx_lfmt_get_swizzling(&lfmt) == GFX_LFMT_SWIZZLING_SAND_128) ? 128 : 256;
-         align = gfx_zmax(align, 4 * stripe_width);
+         align = gfx_zmax(align, 4 * gfx_lfmt_sandcol_w_in_bytes(swizzling));
          break;
-      }
       default:
          unreachable();
       }
 
       /* See GFXH-1344 */
-      align = gfx_zmax(align, 32);
-
-      break;
+      if (gfx_lfmt_is_bigend_sand_family((GFX_LFMT_T)swizzling))
+         align = gfx_zmax(align, 32);
    }
+   else switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_LT:
+      align = gfx_zmax(align, GFX_LFMT_UTILE_SIZE);
+      break;
+   case GFX_LFMT_SWIZZLING_UBLINEAR:
+      align = gfx_zmax(align, GFX_UIF_UB_SIZE);
+      break;
    default:
       break;
    }

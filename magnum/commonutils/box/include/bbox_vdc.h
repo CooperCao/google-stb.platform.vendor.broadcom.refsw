@@ -72,6 +72,9 @@ extern "C" {
 /* This needs to be updated if the number of STG displays in VDC is updated. */
 #define BBOX_VDC_STG_DISPLAY_COUNT             6
 
+/* This needs to be updated if the number of HDMI displays in VDC is updated. */
+#define BBOX_VDC_HDMI_DISPLAY_COUNT            2
+
 /***************************************************************************
  * capability flags are or-ed during acquiring.
  */
@@ -141,12 +144,37 @@ typedef enum
     BBOX_MemcIndex_Invalid      \
 }
 
+/* Macro for cmp hdr memc index table entry */
+#define BBOX_MK_CMP_CFC_MEMC_IDX(cmp)   BBOX_MemcIndex_##cmp
+
+/* Macro for gfd hdr memc index table entry */
+#define BBOX_MK_GFD_CFC_MEMC_IDX(g0)    BBOX_MemcIndex_##g0
+
+/* Macro for HDMI/DVI output hdr memc index table entry */
+#define BBOX_MK_DVI_CFC_MEMC_IDX(dvi) \
+{ \
+    BBOX_MemcIndex_##dvi,             \
+    BBOX_MemcIndex_Invalid            \
+}
+
 /* Macro for video and graphics window memc index table entry */
 #define BBOX_MK_WIN_MEMC_IDX(MemcIdxW0, MemcIdxW1, MemcIdxMad0, MemcIdxMad1, MemcIdxG0)   \
 { \
-    BBOX_MK_VID_WIN_CAP_MEMC_IDX(MemcIdxW0, MemcIdxW1), \
+    BBOX_MK_VID_WIN_CAP_MEMC_IDX(MemcIdxW0, MemcIdxW1),     \
     BBOX_MK_VID_WIN_MAD_MEMC_IDX(MemcIdxMad0, MemcIdxMad1), \
-    BBOX_MK_GFD_WIN_MEMC_IDX(MemcIdxG0)               \
+    BBOX_MK_GFD_WIN_MEMC_IDX(MemcIdxG0),                    \
+    BBOX_MK_CMP_CFC_MEMC_IDX(Invalid),                      \
+    BBOX_MK_GFD_CFC_MEMC_IDX(Invalid)                       \
+}
+
+/* Macro for HDR video and graphics display memc index table entry */
+#define BBOX_MK_HDR_MEMC_IDX(MemcIdxW0, MemcIdxW1, MemcIdxMad0, MemcIdxMad1, MemcIdxG0, CfcCmp, CfcG0) \
+{ \
+    BBOX_MK_VID_WIN_CAP_MEMC_IDX(MemcIdxW0, MemcIdxW1),     \
+    BBOX_MK_VID_WIN_MAD_MEMC_IDX(MemcIdxMad0, MemcIdxMad1), \
+    BBOX_MK_GFD_WIN_MEMC_IDX(MemcIdxG0),                    \
+    BBOX_MK_CMP_CFC_MEMC_IDX(CfcCmp),                       \
+    BBOX_MK_GFD_CFC_MEMC_IDX(CfcG0)                         \
 }
 
 typedef enum
@@ -155,7 +183,7 @@ typedef enum
     BBOX_Vdc_SclCapBias_eSclBeforeCap,
     BBOX_Vdc_SclCapBias_eSclAfterCap,
     BBOX_Vdc_SclCapBias_eAutoDisable,                    /* Disables CAP when possible and selects SCL placement based on bandwidth */
-    BBOX_Vdc_SclCapBias_eAutoDisable1080p,               /* Disables CAP when possible for 'format < 1080p' and selects SCL placement based on bandwidth */
+    BBOX_Vdc_SclCapBias_eAutoDisable1080p,               /* Disables CAP when possible for 'format > 1080p' and selects SCL placement based on bandwidth */
     BBOX_Vdc_SclCapBias_eDisregard = BBOX_VDC_DISREGARD  /* VDC default is selected */
 } BBOX_Vdc_SclCapBias;
 
@@ -463,6 +491,9 @@ typedef struct BBOX_Vdc_MemcIndexSettings
 {
     uint32_t     ulRdcMemcIndex;
 
+    /* Memc Index for hdmi display CFC LUT */
+    uint32_t     aulHdmiDisplayCfcMemcIndex[BBOX_VDC_HDMI_DISPLAY_COUNT];
+
     struct {
         /* Memc Index for video windows */
         uint32_t aulVidWinCapMemcIndex[BBOX_VDC_VIDEO_WINDOW_COUNT_PER_DISPLAY];
@@ -472,6 +503,12 @@ typedef struct BBOX_Vdc_MemcIndexSettings
 
         /* Memc Index for graphics windows */
         uint32_t aulGfdWinMemcIndex[BBOX_VDC_GFX_WINDOW_COUNT_PER_DISPLAY];
+
+        /* Memc Index for compositor CFC LUT */
+        uint32_t ulCmpCfcMemcIndex;
+
+        /* Memc Index for graphics windows CFC LUT */
+        uint32_t ulGfdCfcMemcIndex;
 
     } astDisplay[BBOX_VDC_DISPLAY_COUNT];
 

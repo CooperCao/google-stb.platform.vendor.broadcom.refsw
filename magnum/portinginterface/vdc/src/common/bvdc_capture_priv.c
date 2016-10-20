@@ -52,9 +52,14 @@
 #include "bvdc_window_priv.h"
 #include "bvdc_source_priv.h"
 #include "bvdc_feeder_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bchp_bmisc.h"
 #include "bchp_timer.h"
+
+#define BVDC_P_MAKE_CAP(pCapture, id)                                              \
+{                                                                                  \
+    (pCapture)->ulRegOffset = BCHP_CAP_##id##_REG_START - BCHP_CAP_0_REG_START;    \
+    (pCapture)->ulResetMask = BCHP_BMISC_SW_INIT_CAP_##id##_MASK;                  \
+}
 
 
 BDBG_MODULE(BVDC_CAP);
@@ -113,43 +118,43 @@ BERR_Code BVDC_P_Capture_Create
         break;
 #if BCHP_CAP_1_REG_START
     case BVDC_P_CaptureId_eCap1:
-        pCapture->ulRegOffset = BCHP_CAP_1_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 1);
         break;
 #endif
 
 #if BCHP_CAP_2_REG_START
     case BVDC_P_CaptureId_eCap2:
-        pCapture->ulRegOffset = BCHP_CAP_2_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 2);
         break;
 #endif
 
 #if BCHP_CAP_3_REG_START
     case BVDC_P_CaptureId_eCap3:
-        pCapture->ulRegOffset = BCHP_CAP_3_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 3);
         break;
 #endif
 
 #if BCHP_CAP_4_REG_START
     case BVDC_P_CaptureId_eCap4:
-        pCapture->ulRegOffset = BCHP_CAP_4_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 4);
         break;
 #endif
 
 #if BCHP_CAP_5_REG_START
     case BVDC_P_CaptureId_eCap5:
-        pCapture->ulRegOffset = BCHP_CAP_5_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 5);
         break;
 #endif
 
 #if BCHP_CAP_6_REG_START
     case BVDC_P_CaptureId_eCap6:
-        pCapture->ulRegOffset = BCHP_CAP_6_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 6);
         break;
 #endif
 
 #if BCHP_CAP_7_REG_START
     case BVDC_P_CaptureId_eCap7:
-        pCapture->ulRegOffset = BCHP_CAP_7_REG_START - BCHP_CAP_0_REG_START;
+        BVDC_P_MAKE_CAP(pCapture, 7);
         break;
 #endif
     default:
@@ -157,13 +162,8 @@ BERR_Code BVDC_P_Capture_Create
     }
 
     /* Capture reset address */
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     pCapture->ulResetRegAddr = BCHP_BMISC_SW_INIT;
     pCapture->ulResetMask    = BCHP_BMISC_SW_INIT_CAP_0_MASK << (pCapture->eId);
-#else
-    pCapture->ulResetRegAddr = BCHP_BMISC_SOFT_RESET;
-    pCapture->ulResetMask    = BCHP_BMISC_SOFT_RESET_CAP_0_MASK << (pCapture->eId);
-#endif
 
     /* init the SubRul sub-module */
     BVDC_P_SubRul_Init(&(pCapture->SubRul), BVDC_P_Capture_MuxAddr(pCapture),
@@ -188,13 +188,13 @@ void BVDC_P_Capture_Destroy
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
 
     /* Turn off the capture. */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_CTRL) &= ~(
+    hCapture->stRegs.ulCtrl &= ~(
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_6)
         BCHP_MASK(CAP_0_CTRL, ENABLE_CTRL) |
 #endif
         BCHP_MASK(CAP_0_CTRL, CAP_ENABLE));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_CTRL) |=  (
+    hCapture->stRegs.ulCtrl |=  (
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_6)
         BCHP_FIELD_ENUM(CAP_0_CTRL, ENABLE_CTRL, ENABLE_BY_PICTURE) |
 #endif
@@ -226,14 +226,8 @@ void BVDC_P_Capture_Init
 
     hCapture->hWindow = hWindow;
 
-    /* Clear out shadow registers. */
-    BKNI_Memset((void*)hCapture->aulRegs, 0x0, sizeof(hCapture->aulRegs));
-
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_RX_CTRL) &= ~(
-        BCHP_MASK(CAP_0_RX_CTRL, PADDING_MODE));
-
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_RX_CTRL) |= (
-        BCHP_FIELD_ENUM(CAP_0_RX_CTRL, PADDING_MODE, ENABLE));
+    /* Clear out registers settings. */
+    BKNI_Memset((void*)&hCapture->stRegs, 0x0, sizeof(BVDC_P_CaptureRegisterSetting));
 
     /* Initialize state. */
     hCapture->bInitial = true;
@@ -249,7 +243,7 @@ void BVDC_P_Capture_Init
     if(hWindow->bSupportDcxm)
     {
         /* CAP_0_DCEM_CFG */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_CFG) &= ~(
+        hCapture->stRegs.ulDcemCfg &= ~(
             BCHP_MASK(CAP_0_DCEM_CFG, ENABLE      ) |
 #ifdef BCHP_CAP_0_DCEM_CFG_HALF_VBR_BFR_MODE_SHIFT
             BCHP_MASK(CAP_0_DCEM_CFG, HALF_VBR_BFR_MODE ) |
@@ -257,7 +251,8 @@ void BVDC_P_Capture_Init
             BCHP_MASK(CAP_0_DCEM_CFG, APPLY_QERR  ) |
             BCHP_MASK(CAP_0_DCEM_CFG, FIXED_RATE  ) |
             BCHP_MASK(CAP_0_DCEM_CFG, COMPRESSION ));
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_CFG) |=  (
+
+        hCapture->stRegs.ulDcemCfg |=  (
             BCHP_FIELD_ENUM(CAP_0_DCEM_CFG, ENABLE,      Enable     ) |
 #ifdef BCHP_CAP_0_DCEM_CFG_HALF_VBR_BFR_MODE_SHIFT
             BCHP_FIELD_ENUM(CAP_0_DCEM_CFG, HALF_VBR_BFR_MODE,  Disable) |
@@ -330,56 +325,102 @@ void BVDC_P_Capture_BuildRul_isr
     {
         BVDC_P_SubRul_DropOffVnet_isr(&(hCapture->SubRul), pList);
         BVDC_P_Capture_SetEnable_isr(hCapture, false);
+
         /* Capture does not auto shut-off, need RDC to turn it off. */
-        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_CTRL, pList->pulCurrent);
+        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_CTRL, pList->pulCurrent, hCapture->stRegs.ulCtrl);
     }
 
     if (ulRulOpsFlags & BVDC_P_RulOp_eEnable)
     {
+        /* Size */
+#if (BVDC_P_SUPPORT_CAP_VER > BVDC_P_CAP_VER_4)
+        BDBG_CASSERT(4 == (((BCHP_CAP_0_BVB_IN_SIZE - BCHP_CAP_0_PIC_SIZE) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CAP_0_BVB_IN_SIZE - BCHP_CAP_0_PIC_SIZE) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CAP_0_PIC_SIZE + hCapture->ulRegOffset);
+        *pList->pulCurrent++ = hCapture->stRegs.ulPicSize;
+        *pList->pulCurrent++ = hCapture->stRegs.ulPicOffset;
+        *pList->pulCurrent++ = hCapture->stRegs.ulPicOffsetR;
+        *pList->pulCurrent++ = hCapture->stRegs.ulBvbInSize;
+#else
+        BDBG_CASSERT(3 == (((BCHP_CAP_0_BVB_IN_SIZE - BCHP_CAP_0_PIC_SIZE) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CAP_0_BVB_IN_SIZE - BCHP_CAP_0_PIC_SIZE) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CAP_0_PIC_SIZE + hCapture->ulRegOffset);
+        *pList->pulCurrent++ = hCapture->stRegs.ulPicSize;
+        *pList->pulCurrent++ = hCapture->stRegs.ulPicOffset;
+        *pList->pulCurrent++ = hCapture->stRegs.ulBvbInSize;
+#endif
 
-#if (BVDC_P_SUPPORT_CAP_VER == BVDC_P_CAP_VER_0)
-        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_PIC_OFFSET, pList->pulCurrent);
-        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_PIC_SIZE, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_MSTART, CAP_0_RX_CTRL, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_CAP_VER == BVDC_P_CAP_VER_1)
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_PIC_OFFSET, CAP_0_BVB_IN_SIZE , pList->pulCurrent);
-        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_PIC_SIZE, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_MSTART, CAP_0_RX_CTRL, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_CAP_VER == BVDC_P_CAP_VER_2)
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_PIC_SIZE, CAP_0_PITCH, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_BYTE_ORDER, CAP_0_LINE_CMP_TRIG_1_CFG, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_CAP_VER == BVDC_P_CAP_VER_3)
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_PIC_SIZE, CAP_0_PITCH, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_MODE, CAP_0_DITHER_CTRL, pList->pulCurrent);
-#elif ((BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_4) && (BVDC_P_SUPPORT_CAP_VER <= BVDC_P_CAP_VER_6))
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_PIC_SIZE, CAP_0_PITCH, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_MODE, CAP_0_LINE_CMP_TRIG_1_CFG, pList->pulCurrent);
-#elif (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_7)
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_PIC_SIZE, CAP_0_PITCH, pList->pulCurrent);
-        BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_MODE, CAP_0_BVB_TRIG_1_CFG, pList->pulCurrent);
+        /* Pitch */
+        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_PITCH, pList->pulCurrent, hCapture->stRegs.ulPitch);
+
+        /* Address */
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_CAP_0_MSTART + hCapture->ulRegOffset, hCapture->stRegs.ullMStart);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_CAP_0_MSTART_R + hCapture->ulRegOffset, hCapture->stRegs.ullMStartR);
+
+        /* Mode etc */
+        BDBG_CASSERT(6 == (((BCHP_CAP_0_BVB_TRIG_1_CFG - BCHP_CAP_0_MODE) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CAP_0_BVB_TRIG_1_CFG - BCHP_CAP_0_MODE) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CAP_0_MODE + hCapture->ulRegOffset);
+        *pList->pulCurrent++ = hCapture->stRegs.ulMode;
+        *pList->pulCurrent++ = hCapture->stRegs.ulCompOrder;
+        *pList->pulCurrent++ = BCHP_FIELD_ENUM(CAP_0_RX_CTRL, PADDING_MODE, ENABLE);
+        *pList->pulCurrent++ = hCapture->stRegs.ulTrigCtrl;
+        *pList->pulCurrent++ = BCHP_FIELD_ENUM(CAP_0_BVB_TRIG_0_CFG, TRIG_CFG, END_OF_PICTURE);
+        *pList->pulCurrent++ = BCHP_FIELD_DATA(CAP_0_BVB_TRIG_1_CFG, TRIG_CFG, 0);
 
 #if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
         /* Disable compression if not 10bit core. Default is enabled. */
         if(hCapture->hWindow->bSupportDcxm)
         {
-            uint32_t ulMosaicCount = pPicture->ulMosaicCount;
-            BVDC_P_CAP_WRITE_TO_RUL(CAP_0_DCEM_CFG, pList->pulCurrent);
+            uint32_t i, ulMosaicCount = pPicture->ulMosaicCount;
+            bool   bInterlaced;
 
-#if (!BVDC_P_SUPPORT_LPDDR4)
+            bInterlaced = (hCapture->eCapturePolarity != BAVC_Polarity_eFrame);
+
+            BVDC_P_CAP_WRITE_TO_RUL(CAP_0_DCEM_CFG, pList->pulCurrent,
+                hCapture->stRegs.ulDcemCfg);
+
+#if (!BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
             if(hCapture->bEnableDcxm)
 #endif
             {
-                BVDC_P_CAP_BLOCK_WRITE_TO_RUL(CAP_0_DCEM_RECT_CTRL, CAP_0_DCEM_RECT_ID, pList->pulCurrent);
+                BDBG_CASSERT(3 == (((BCHP_CAP_0_DCEM_RECT_ID - BCHP_CAP_0_DCEM_RECT_CTRL) / sizeof(uint32_t)) + 1));
+                *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_CAP_0_DCEM_RECT_ID - BCHP_CAP_0_DCEM_RECT_CTRL) / sizeof(uint32_t)) + 1);
+                *pList->pulCurrent++ = BRDC_REGISTER(BCHP_CAP_0_DCEM_RECT_CTRL + hCapture->ulRegOffset);
+                *pList->pulCurrent++ = hCapture->stRegs.ulDcemRectCtrl;
+                *pList->pulCurrent++ = hCapture->stRegs.ulDcemRectMask;
+                *pList->pulCurrent++ = hCapture->stRegs.ulDcemRectId;
+
                 if(ulMosaicCount)  {
-                    BVDC_P_CAP_RECT_BLOCK_WRITE_TO_RUL(CAP_0_DCEM_RECT_SIZEi_ARRAY_BASE,
-                        ulMosaicCount, pList->pulCurrent);
-                    BVDC_P_CAP_RECT_BLOCK_WRITE_TO_RUL(CAP_0_DCEM_RECT_OFFSETi_ARRAY_BASE,
-                        ulMosaicCount, pList->pulCurrent);
+                    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(ulMosaicCount);
+                    *pList->pulCurrent++ = BRDC_REGISTER(
+                        BCHP_CAP_0_DCEM_RECT_SIZEi_ARRAY_BASE + hCapture->ulRegOffset);
+                    for(i = 0; i < ulMosaicCount; i++)
+                    {
+                        *pList->pulCurrent++ =
+                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, HSIZE,
+                                pPicture->astMosaicRect[i].ulWidth) |
+                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, VSIZE,
+                                pPicture->astMosaicRect[i].ulHeight >> bInterlaced);
+                    }
+
+                    *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(ulMosaicCount);
+                    *pList->pulCurrent++ = BRDC_REGISTER(
+                        BCHP_CAP_0_DCEM_RECT_OFFSETi_ARRAY_BASE + hCapture->ulRegOffset);
+                    for(i = 0; i < ulMosaicCount; i++)
+                    {
+                        *pList->pulCurrent++ =
+                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, X_OFFSET,
+                                pPicture->astMosaicRect[i].lLeft) |
+                            BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, Y_OFFSET,
+                                pPicture->astMosaicRect[i].lTop >> bInterlaced);
+                    }
+
                 }
             }
         }
-
-#endif
 #endif
 
 #if (!BVDC_P_USE_RDC_TIMESTAMP)
@@ -398,7 +439,7 @@ void BVDC_P_Capture_BuildRul_isr
 #endif
 
         /* must be the last */
-        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_CTRL, pList->pulCurrent);
+        BVDC_P_CAP_WRITE_TO_RUL(CAP_0_CTRL, pList->pulCurrent, hCapture->stRegs.ulCtrl);
 
         /* join in vnet after enable. note: its src mux is initialed as disabled */
         if (ulRulOpsFlags & BVDC_P_RulOp_eVnetInit)
@@ -478,39 +519,38 @@ static BERR_Code BVDC_P_Capture_SetPictureRect_isr
     }
 #endif
 
-
     /* set capture size */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_SIZE) &= ~(
+    hCapture->stRegs.ulPicSize &= ~(
         BCHP_MASK(CAP_0_PIC_SIZE, HSIZE) |
         BCHP_MASK(CAP_0_PIC_SIZE, VSIZE));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_SIZE) |=  (
+    hCapture->stRegs.ulPicSize |=  (
         BCHP_FIELD_DATA(CAP_0_PIC_SIZE, HSIZE, ulWidth) |
         BCHP_FIELD_DATA(CAP_0_PIC_SIZE, VSIZE, ulHeight));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_OFFSET) &= ~(
+    hCapture->stRegs.ulPicOffset &= ~(
         BCHP_MASK(CAP_0_PIC_OFFSET, HSIZE) |
         BCHP_MASK(CAP_0_PIC_OFFSET, VSIZE));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_OFFSET) |=  (
+    hCapture->stRegs.ulPicOffset |=  (
         BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, HSIZE, lLeft) |
         BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, VSIZE, lTop));
 
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_5)
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_OFFSET_R) &= ~(
+    hCapture->stRegs.ulPicOffsetR &= ~(
         BCHP_MASK(CAP_0_PIC_OFFSET_R, ENABLE) |
         BCHP_MASK(CAP_0_PIC_OFFSET_R, HSIZE));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_OFFSET_R) |=  (
+    hCapture->stRegs.ulPicOffsetR |=  (
         BCHP_FIELD_DATA(CAP_0_PIC_OFFSET_R, ENABLE, (lLeft != lLeft_R)) |
         BCHP_FIELD_DATA(CAP_0_PIC_OFFSET_R, HSIZE,  lLeft_R));
 #endif
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_BVB_IN_SIZE) &= ~(
+    hCapture->stRegs.ulBvbInSize &= ~(
         BCHP_MASK(CAP_0_BVB_IN_SIZE, HSIZE) |
         BCHP_MASK(CAP_0_BVB_IN_SIZE, VSIZE));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_BVB_IN_SIZE) |=  (
+    hCapture->stRegs.ulBvbInSize |=  (
         BCHP_FIELD_DATA(CAP_0_BVB_IN_SIZE, HSIZE, ulCapInWidth) |
         BCHP_FIELD_DATA(CAP_0_BVB_IN_SIZE, VSIZE, ulCapInHeight));
 
@@ -525,44 +565,44 @@ static BERR_Code BVDC_P_Capture_SetPictureRect_isr
  */
 BERR_Code BVDC_P_Capture_SetBuffer_isr
     ( BVDC_P_Capture_Handle            hCapture,
-      uint32_t                         ulDeviceAddr,
-      uint32_t                         ulDeviceAddr_R,
+      BMMA_DeviceOffset                ullDeviceAddr,
+      BMMA_DeviceOffset                ullDeviceAddr_R,
       uint32_t                         ulPitch )
 {
     BDBG_ENTER(BVDC_P_Capture_SetBuffer_isr);
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
 
 #if (BVDC_P_SUPPORT_CAP_VER < BVDC_P_CAP_VER_4)
-    BSTD_UNUSED(ulDeviceAddr_R);
+    BSTD_UNUSED(ullDeviceAddr_R);
 #endif
 
     /* This should always be true! */
-#if (!BVDC_P_SUPPORT_LPDDR4)
+#if (!BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
     BDBG_ASSERT(BVDC_P_IS_ALIGN(ulPitch, BVDC_P_PITCH_ALIGN));
 #endif
-    BDBG_ASSERT(BVDC_P_IS_ALIGN(ulDeviceAddr, BVDC_P_BUFFER_ALIGN));
+    BDBG_ASSERT(BVDC_P_IS_ALIGN(ullDeviceAddr, BVDC_P_BUFFER_ALIGN));
 
     /* set mstart */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_MSTART) &= ~(
+    hCapture->stRegs.ullMStart &= ~(
         BCHP_MASK(CAP_0_MSTART, MSTART));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_MSTART) |=  (
-        BCHP_FIELD_DATA(CAP_0_MSTART, MSTART, ulDeviceAddr));
+    hCapture->stRegs.ullMStart |=  (
+        BCHP_FIELD_DATA(CAP_0_MSTART, MSTART, ullDeviceAddr));
 
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_4)
     /* set mstart */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_MSTART_R) &= ~(
+    hCapture->stRegs.ullMStartR &= ~(
         BCHP_MASK(CAP_0_MSTART_R, MSTART));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_MSTART_R) |=  (
-        BCHP_FIELD_DATA(CAP_0_MSTART_R, MSTART, ulDeviceAddr_R));
+    hCapture->stRegs.ullMStartR |=  (
+        BCHP_FIELD_DATA(CAP_0_MSTART_R, MSTART, ullDeviceAddr_R));
 #endif
 
     /* set pitch */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PITCH) &= ~(
+    hCapture->stRegs.ulPitch &= ~(
         BCHP_MASK(CAP_0_PITCH, PITCH));
 
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_PITCH) |=  (
+    hCapture->stRegs.ulPitch |=  (
         BCHP_FIELD_DATA(CAP_0_PITCH, PITCH, ulPitch));
 
 
@@ -588,7 +628,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
 
 #if (BVDC_P_CAP_VER_7 > BVDC_P_SUPPORT_CAP_VER)
     /* set byte order */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) &= ~(
+    hCapture->stRegs.ulCompOrder &= ~(
         BCHP_MASK(CAP_0_BYTE_ORDER, BYTE_3_SEL) |
         BCHP_MASK(CAP_0_BYTE_ORDER, BYTE_2_SEL) |
         BCHP_MASK(CAP_0_BYTE_ORDER, BYTE_1_SEL) |
@@ -599,7 +639,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
     {
     default:
     case BPXL_eY18_Cb8_Y08_Cr8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, CB) |
@@ -607,7 +647,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY08_Cb8_Y18_Cr8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, CB) |
@@ -615,7 +655,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY18_Cr8_Y08_Cb8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, CR) |
@@ -623,7 +663,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY08_Cr8_Y18_Cb8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, CR) |
@@ -631,7 +671,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
             break;
 
     case BPXL_eCr8_Y18_Cb8_Y08:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, Y1) |
@@ -639,7 +679,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eCr8_Y08_Cb8_Y18:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, Y0) |
@@ -647,7 +687,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
             break;
 
     case BPXL_eCb8_Y18_Cr8_Y08:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, Y1) |
@@ -655,7 +695,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eCb8_Y08_Cr8_Y18:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BYTE_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_3_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_2_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_BYTE_ORDER, BYTE_1_SEL, Y0) |
@@ -664,7 +704,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
     }
 #else
     /* set byte order */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) &= ~(
+    hCapture->stRegs.ulCompOrder &= ~(
         BCHP_MASK(CAP_0_COMP_ORDER, COMP_3_SEL) |
         BCHP_MASK(CAP_0_COMP_ORDER, COMP_2_SEL) |
         BCHP_MASK(CAP_0_COMP_ORDER, COMP_1_SEL) |
@@ -675,7 +715,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
     {
     default:
     case BPXL_eY18_Cb8_Y08_Cr8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, CB) |
@@ -683,7 +723,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY08_Cb8_Y18_Cr8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, CB) |
@@ -691,7 +731,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY18_Cr8_Y08_Cb8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, CR) |
@@ -699,7 +739,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eY08_Cr8_Y18_Cb8:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, CR) |
@@ -707,7 +747,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
             break;
 
     case BPXL_eCr8_Y18_Cb8_Y08:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, Y1) |
@@ -715,7 +755,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eCr8_Y08_Cb8_Y18:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, CB) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, Y0) |
@@ -723,7 +763,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
             break;
 
     case BPXL_eCb8_Y18_Cr8_Y08:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, Y0) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, Y1) |
@@ -731,7 +771,7 @@ static BERR_Code BVDC_P_Capture_SetPixelFormat_isr
         break;
 
     case BPXL_eCb8_Y08_Cr8_Y18:
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_COMP_ORDER) |=  (
+        hCapture->stRegs.ulCompOrder |=  (
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_3_SEL, Y1) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_2_SEL, CR) |
             BCHP_FIELD_ENUM(CAP_0_COMP_ORDER, COMP_1_SEL, Y0) |
@@ -757,7 +797,7 @@ static BERR_Code BVDC_P_Capture_SetMode_isr
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
 
     /* CAP_0_MODE */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_MODE) &= ~(
+    hCapture->stRegs.ulMode &= ~(
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_7)
         BCHP_MASK(CAP_0_MODE, PIXEL_MODE) |
 #endif
@@ -767,7 +807,7 @@ static BERR_Code BVDC_P_Capture_SetMode_isr
     /* Always use dual pointer for 3D mode */
     if(pPicture->eCapOrientation == BFMT_Orientation_e2D)
     {
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_MODE) |=  (
+        hCapture->stRegs.ulMode |=  (
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_7)
             BCHP_FIELD_DATA(CAP_0_MODE, PIXEL_MODE, pPicture->bEnable10Bit) |
 #endif
@@ -776,7 +816,7 @@ static BERR_Code BVDC_P_Capture_SetMode_isr
     }
     else
     {
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_MODE) |=  (
+        hCapture->stRegs.ulMode |=  (
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_7)
             BCHP_FIELD_DATA(CAP_0_MODE, PIXEL_MODE, pPicture->bEnable10Bit) |
 #endif
@@ -802,28 +842,24 @@ static BERR_Code BVDC_P_Capture_SetTrigger_isr
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
 #if (BVDC_P_CAP_VER_7 > BVDC_P_SUPPORT_CAP_VER)
     /* Turn off both capture trig0/1. */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_TRIG_CTRL) &= ~(
+    hCapture->stRegs.ulTrigCtrl &= ~(
         BCHP_MASK(CAP_0_TRIG_CTRL, TRIG_0_SEL) |
         BCHP_MASK(CAP_0_TRIG_CTRL, TRIG_1_SEL));
 #else
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_TRIG_CTRL) &= ~(
-        BCHP_FIELD_ENUM(CAP_0_TRIG_CTRL, TRIG_0, DISABLE) |
-        BCHP_FIELD_ENUM(CAP_0_TRIG_CTRL, TRIG_1, DISABLE));
+    hCapture->stRegs.ulTrigCtrl &= ~(
+        BCHP_MASK(CAP_0_TRIG_CTRL, TRIG_0) |
+        BCHP_MASK(CAP_0_TRIG_CTRL, TRIG_1));
 #endif
     if(BVDC_P_CapTriggerType_eBvbField == eTrigType)
     {
 #if (BVDC_P_CAP_VER_7 > BVDC_P_SUPPORT_CAP_VER)
         /* turn on trig 0 */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_TRIG_CTRL) |=  (
+        hCapture->stRegs.ulTrigCtrl |=  (
             BCHP_FIELD_DATA(CAP_0_TRIG_CTRL, TRIG_0_SEL, eTrigType));
 #else
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_TRIG_CTRL) |=  (
+        hCapture->stRegs.ulTrigCtrl |=  (
             BCHP_FIELD_ENUM(CAP_0_TRIG_CTRL, TRIG_0, ENABLE));
 #endif
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BVB_TRIG_0_CFG) &= ~(
-            BCHP_MASK(CAP_0_BVB_TRIG_0_CFG, TRIG_CFG));
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_BVB_TRIG_0_CFG) |=  (
-            BCHP_FIELD_ENUM(CAP_0_BVB_TRIG_0_CFG, TRIG_CFG, END_OF_PICTURE));
     }
 
     BDBG_LEAVE(BVDC_P_Capture_SetTrigger_isr);
@@ -842,7 +878,7 @@ BERR_Code BVDC_P_Capture_SetEnable_isr
     BDBG_OBJECT_ASSERT(hCapture, BVDC_CAP);
 
     /* Turn on/off the capture. */
-    BVDC_P_CAP_GET_REG_DATA(CAP_0_CTRL) &= ~(
+    hCapture->stRegs.ulCtrl &= ~(
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_6)
         BCHP_MASK(CAP_0_CTRL, ENABLE_CTRL) |
 #endif
@@ -850,7 +886,7 @@ BERR_Code BVDC_P_Capture_SetEnable_isr
 
     if(bEnable)
     {
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_CTRL) |=  (
+        hCapture->stRegs.ulCtrl |=  (
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_6)
             BCHP_FIELD_ENUM(CAP_0_CTRL, ENABLE_CTRL, ENABLE_BY_PICTURE) |
 #endif
@@ -858,7 +894,7 @@ BERR_Code BVDC_P_Capture_SetEnable_isr
     }
     else
     {
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_CTRL) |=  (
+        hCapture->stRegs.ulCtrl |=  (
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_6)
             BCHP_FIELD_ENUM(CAP_0_CTRL, ENABLE_CTRL, ENABLE_BY_PICTURE) |
 #endif
@@ -879,58 +915,38 @@ static BERR_Code BVDC_P_Capture_SetDcxmMosaicRect_isr
     ( BVDC_P_Capture_Handle            hCapture,
       const BVDC_P_PictureNodePtr      pPicture,
       uint32_t                         ulMosaicIdx,
-      BAVC_Polarity                    eCapturePolarity,
       bool                             bEnable )
 {
-    bool   bInterlaced = (eCapturePolarity != BAVC_Polarity_eFrame);
     uint32_t ulMosaicCount = pPicture->ulMosaicCount;
 
     if(bEnable)
     {
-        uint32_t   i;
         /* CAP_0_DCEM_RECT_CTRL */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_CTRL) &= ~(
+        hCapture->stRegs.ulDcemRectCtrl &= ~(
             BCHP_MASK(CAP_0_DCEM_RECT_CTRL, RECT_ENABLE));
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_CTRL) |= (
+        hCapture->stRegs.ulDcemRectCtrl |= (
             BCHP_FIELD_ENUM(CAP_0_DCEM_RECT_CTRL, RECT_ENABLE, ENABLE));
 
         /* CAP_0_DCEM_RECT_ENABLE_MASK */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_ENABLE_MASK) = (
+        hCapture->stRegs.ulDcemRectMask = (
             BCHP_FIELD_DATA(CAP_0_DCEM_RECT_ENABLE_MASK, RECT_ENABLE_MASK,
                 (1<<ulMosaicCount) - 1));
 
         /* CAP_0_DCEM_RECT_ID */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_ID) = (
+        hCapture->stRegs.ulDcemRectId = (
             BCHP_FIELD_DATA(CAP_0_DCEM_RECT_ID, REC_CURR_ID, ulMosaicIdx));
-
-        for(i = 0; i < ulMosaicCount; i++)
-        {
-            /* CAP_0_DCEM_RECT_SIZEi_ARRAY_BASE */
-            BVDC_P_CAP_GET_REG_DATA_I(i, CAP_0_DCEM_RECT_SIZEi_ARRAY_BASE) =
-                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, HSIZE,
-                    pPicture->astMosaicRect[i].ulWidth) |
-                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_SIZEi, VSIZE,
-                    pPicture->astMosaicRect[i].ulHeight >> bInterlaced);
-
-            /* CAP_0_DCEM_RECT_OFFSETi_ARRAY_BASE */
-            BVDC_P_CAP_GET_REG_DATA_I(i, CAP_0_DCEM_RECT_OFFSETi_ARRAY_BASE) =
-                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, X_OFFSET,
-                    pPicture->astMosaicRect[i].lLeft) |
-                BCHP_FIELD_DATA(CAP_0_DCEM_RECT_OFFSETi, Y_OFFSET,
-                    pPicture->astMosaicRect[i].lTop >> bInterlaced);
-        }
     }
     else
     {
         /* CAP_0_DCEM_RECT_ID */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_ID) = (
+        hCapture->stRegs.ulDcemRectId = (
             BCHP_FIELD_DATA(CAP_0_DCEM_RECT_ID, REC_CURR_ID, 0));
 
         /* CAP_0_DCEM_RECT_ENABLE_MASK */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_ENABLE_MASK) = 0;
+        hCapture->stRegs.ulDcemRectMask = 0;
 
         /* CAP_0_DCEM_RECT_CTRL */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_RECT_CTRL) = (
+        hCapture->stRegs.ulDcemRectCtrl = (
             BCHP_FIELD_ENUM(CAP_0_DCEM_RECT_CTRL, RECT_ENABLE, DISABLE));
     }
 
@@ -948,35 +964,36 @@ static BERR_Code BVDC_P_Capture_GetMosaicRectAddr_isr
       const BVDC_P_PictureNodePtr      pPicture,
       uint32_t                         ulMosaicIdx,
       uint32_t                         ulPitch,
-      BAVC_Polarity                    eCapturePolarity,
-      uint32_t                        *pulStartAddr,
-      uint32_t                        *pulStartAddr_R )
+      BMMA_DeviceOffset               *pullStartAddr,
+      BMMA_DeviceOffset               *pullStartAddr_R )
 {
-    uint32_t      ulStartAddr, ulStartAddr_R;
+    BMMA_DeviceOffset      ullStartAddr, ullStartAddr_R;
     unsigned int  uiByteOffset;
+    BAVC_Polarity   eCapturePolarity;
 
     BSTD_UNUSED(hCapture);
 
-    BDBG_ASSERT(pulStartAddr);
-    BDBG_ASSERT(pulStartAddr_R);
+    BDBG_ASSERT(pullStartAddr);
+    BDBG_ASSERT(pullStartAddr_R);
 
-    ulStartAddr = *pulStartAddr;
-    ulStartAddr_R = *pulStartAddr_R;
+    eCapturePolarity = hCapture->eCapturePolarity;
+    ullStartAddr = *pullStartAddr;
+    ullStartAddr_R = *pullStartAddr_R;
 
     /* MosaicMode: calculate the starting address of sub-window capture; */
     BPXL_GetBytesPerNPixels_isr(pPicture->ePixelFormat,
         pPicture->astMosaicRect[ulMosaicIdx].lLeft,
         &uiByteOffset);
 
-    ulStartAddr += ulPitch * (pPicture->astMosaicRect[ulMosaicIdx].lTop >>
+    ullStartAddr += ulPitch * (pPicture->astMosaicRect[ulMosaicIdx].lTop >>
          (eCapturePolarity != BAVC_Polarity_eFrame)) + uiByteOffset;
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_4)
-    ulStartAddr_R += ulPitch * (pPicture->astMosaicRect[ulMosaicIdx].lTop >>
+    ullStartAddr_R += ulPitch * (pPicture->astMosaicRect[ulMosaicIdx].lTop >>
          (eCapturePolarity != BAVC_Polarity_eFrame)) + uiByteOffset;
 #endif
 
-    *pulStartAddr = ulStartAddr;
-    *pulStartAddr_R = ulStartAddr_R;
+    *pullStartAddr = ullStartAddr;
+    *pullStartAddr_R = ullStartAddr_R;
 
     return BERR_SUCCESS;
 }
@@ -995,8 +1012,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
 {
     unsigned int uiPitch;
     uint32_t ulPitch, ulWidth;
-    uint32_t ulStartAddr, ulStartAddr_R = 0;
-    BAVC_Polarity eCapturePolarity;
+    BMMA_DeviceOffset ullStartAddr, ullStartAddr_R = 0;
     BVDC_P_Rect  *pCapOut, *pCapIn;
     bool bDrain = false;
     const BVDC_P_Window_Info *pUserInfo;
@@ -1027,7 +1043,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
 #endif
 
         /* CAP_0_DCEM_CFG */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_CFG) &= ~(
+        hCapture->stRegs.ulDcemCfg &= ~(
             BCHP_MASK(CAP_0_DCEM_CFG, ENABLE ) |
 #ifdef BCHP_CAP_0_DCEM_CFG_HALF_VBR_BFR_MODE_SHIFT
             BCHP_MASK(CAP_0_DCEM_CFG, HALF_VBR_BFR_MODE ) |
@@ -1035,7 +1051,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
             BCHP_MASK(CAP_0_DCEM_CFG, APPLY_QERR ) |
             BCHP_MASK(CAP_0_DCEM_CFG, FIXED_RATE ) |
             BCHP_MASK(CAP_0_DCEM_CFG, COMPRESSION ));
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_DCEM_CFG) |= (
+        hCapture->stRegs.ulDcemCfg |= (
             BCHP_FIELD_DATA(CAP_0_DCEM_CFG, ENABLE, pPicture->bEnableDcxm) |
 #ifdef BCHP_CAP_0_DCEM_CFG_HALF_VBR_BFR_MODE_SHIFT
             BCHP_FIELD_DATA(CAP_0_DCEM_CFG, HALF_VBR_BFR_MODE, bHalfSizeBufMode) |
@@ -1051,7 +1067,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     ulWidth = pPicture->bMosaicMode ?
         ((pPicture->pVfdIn->ulWidth + 1) & ~0x1) : ((pCapOut->ulWidth + 1) & ~0x1);
 
-#if (BVDC_P_SUPPORT_LPDDR4)
+#if (BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
     if(pPicture->bMosaicMode)
     {
         if(pPicture->bEnableDcxm)
@@ -1059,7 +1075,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
         else
             BPXL_GetBytesPerNPixels_isr(pPicture->ePixelFormat, ulWidth, &ulPitch);
         ulPitch += (pPicture->eCapOrientation == BFMT_Orientation_e2D)
-            ? BVDC_P_CAP_LPDDR4_GUARD_MEMORY_2D : BVDC_P_CAP_LPDDR4_GUARD_MEMORY_3D;
+            ? BVDC_P_CAP_GUARD_MEMORY_2D : BVDC_P_CAP_GUARD_MEMORY_3D;
     }
     else
     {
@@ -1071,7 +1087,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
         ulPitch = BVDC_P_ALIGN_UP(uiPitch, BVDC_P_PITCH_ALIGN);
 #endif
 
-    eCapturePolarity =
+    hCapture->eCapturePolarity =
         (BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode)
         ? pPicture->eDstPolarity : pPicture->eSrcPolarity);
 
@@ -1080,7 +1096,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     if(BFMT_IS_CUSTOM_1080P3D(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt) &&
         BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode))
     {
-        eCapturePolarity = BAVC_Polarity_eTopField;
+        hCapture->eCapturePolarity = BAVC_Polarity_eTopField;
     }
 #endif
 
@@ -1093,40 +1109,41 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
 #endif
 
     /* if source sends extra vbi pass-thru lines, we need to capture it also; */
-#if (BVDC_P_SUPPORT_LPDDR4)
+#if (BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
     if(hWindow->bSupportDcxm && pPicture->bMosaicMode)
     {
         BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn,
             &hCapture->hWindow->stCurInfo.stScalerOutput, pPicture,
-            eCapturePolarity);
+            hCapture->eCapturePolarity);
     }
     else
     {
-        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture, eCapturePolarity);
+        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture,
+            hCapture->eCapturePolarity);
     }
 #elif (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
     if(pPicture->bEnableDcxm && pPicture->bMosaicMode)
     {
         BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn,
             &hCapture->hWindow->stCurInfo.stScalerOutput, pPicture,
-            eCapturePolarity);
+            hCapture->eCapturePolarity);
     }
     else
     {
-        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture, eCapturePolarity);
+        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture, hCapture->eCapturePolarity);
     }
 #else
     {
-        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture, eCapturePolarity);
+        BVDC_P_Capture_SetPictureRect_isr(hCapture, pCapIn, pCapOut, pPicture, hCapture->eCapturePolarity);
     }
 #endif
 
-    ulStartAddr = BVDC_P_Buffer_GetDeviceOffset(pPicture);
+    ullStartAddr = BVDC_P_Buffer_GetDeviceOffset(pPicture);
 
 #if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_4)
     if(hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)
     {
-        ulStartAddr_R = BVDC_P_Buffer_GetDeviceOffset_R(pPicture);
+        ullStartAddr_R = BVDC_P_Buffer_GetDeviceOffset_R(pPicture);
     }
     else if(hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRCombined)
     {
@@ -1136,7 +1153,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
             hWindow->hCapHeap,
             hWindow->eBufferHeapIdRequest, &ulBufHeapSize);
 
-        ulStartAddr_R = ulStartAddr + ulBufHeapSize / 2;
+        ullStartAddr_R = ullStartAddr + ulBufHeapSize / 2;
     }
 #endif
 
@@ -1159,36 +1176,33 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
         {
             uint32_t  ulMosaicIdx = BVDC_P_MIN(ulRectIdx, pPicture->ulMosaicCount - 1);
 
-#if (BVDC_P_SUPPORT_LPDDR4)
+#if (BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
             if(hWindow->bSupportDcxm)
             {
                 BVDC_P_Capture_SetDcxmMosaicRect_isr(hCapture,
-                    pPicture, ulMosaicIdx, eCapturePolarity, true);
+                    pPicture, ulMosaicIdx, true);
             }
             else
             {
                 BVDC_P_Capture_GetMosaicRectAddr_isr(hCapture, pPicture,
-                    ulMosaicIdx, ulPitch, eCapturePolarity,
-                    &ulStartAddr, &ulStartAddr_R);
+                    ulMosaicIdx, ulPitch, &ullStartAddr, &ullStartAddr_R);
             }
 
 #elif (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
             if(pPicture->bEnableDcxm)
             {
                 BVDC_P_Capture_SetDcxmMosaicRect_isr(hCapture,
-                    pPicture, ulMosaicIdx, eCapturePolarity, true);
+                    pPicture, ulMosaicIdx, true);
             }
             else
             {
                 BVDC_P_Capture_GetMosaicRectAddr_isr(hCapture, pPicture,
-                    ulMosaicIdx, ulPitch, eCapturePolarity,
-                    &ulStartAddr, &ulStartAddr_R);
+                    ulMosaicIdx, ulPitch, &ullStartAddr, &ullStartAddr_R);
             }
 #else
             {
                 BVDC_P_Capture_GetMosaicRectAddr_isr(hCapture, pPicture,
-                    ulMosaicIdx, ulPitch, eCapturePolarity,
-                    &ulStartAddr, &ulStartAddr_R);
+                    ulMosaicIdx, ulPitch, &ullStartAddr, &ullStartAddr_R);
             }
 #endif
         }
@@ -1197,7 +1211,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     {
         /* this is to assure the rest of the pictures list got drained; */
         /* don't overwrite captured window; drain the source; */
-#if (!BVDC_P_SUPPORT_LPDDR4)
+#if (!BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH)
         if(!pPicture->bMosaicMode && ulRectIdx && !pPicture->bEnableDcxm)
         {
             bDrain = true;
@@ -1208,7 +1222,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
         if(pPicture->bEnableDcxm)
         {
             BVDC_P_Capture_SetDcxmMosaicRect_isr(hCapture,
-                pPicture, ulRectIdx, eCapturePolarity, false);
+                pPicture, ulRectIdx, false);
         }
 #endif
     }
@@ -1224,19 +1238,24 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
 
     if(bDrain)
     {
-        ulStartAddr   = hWindow->ulNullBufOffset;
-        ulStartAddr_R = hWindow->ulNullBufOffset;
+        uint32_t   ulBvbHSize, ulBvbVSize;
 
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_SIZE) =  (
+        ullStartAddr   = hWindow->ullNullBufOffset;
+        ullStartAddr_R = hWindow->ullNullBufOffset;
+
+        hCapture->stRegs.ulPicSize =  (
             BCHP_FIELD_DATA(CAP_0_PIC_SIZE, HSIZE, 2) |
             BCHP_FIELD_DATA(CAP_0_PIC_SIZE, VSIZE, 1));
         /* clip the top/left region of input data to have capture engine to
            generate trigger at correct timing (end of input picture); */
-        BVDC_P_CAP_GET_REG_DATA(CAP_0_PIC_OFFSET) =  (
-            BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, HSIZE,
-                BVDC_P_CAP_GET_FIELD_NAME(CAP_0_BVB_IN_SIZE, HSIZE) - 2) |
-            BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, VSIZE,
-                BVDC_P_CAP_GET_FIELD_NAME(CAP_0_BVB_IN_SIZE, VSIZE) - 1));
+        ulBvbHSize = BVDC_P_GET_FIELD(hCapture->stRegs.ulBvbInSize,
+            CAP_0_BVB_IN_SIZE, HSIZE);
+        ulBvbVSize = BVDC_P_GET_FIELD(hCapture->stRegs.ulBvbInSize,
+            CAP_0_BVB_IN_SIZE, VSIZE);
+
+        hCapture->stRegs.ulPicOffset =  (
+            BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, HSIZE, ulBvbHSize - 2) |
+            BCHP_FIELD_DATA(CAP_0_PIC_OFFSET, VSIZE, ulBvbVSize - 1));
     }
 #else
     BSTD_UNUSED(bLastPic);
@@ -1244,7 +1263,7 @@ BERR_Code BVDC_P_Capture_SetInfo_isr
     BSTD_UNUSED(bDrain);
 #endif
 
-    BVDC_P_Capture_SetBuffer_isr(hCapture, ulStartAddr, ulStartAddr_R, ulPitch);
+    BVDC_P_Capture_SetBuffer_isr(hCapture, ullStartAddr, ullStartAddr_R, ulPitch);
 
     return BERR_SUCCESS;
 }

@@ -56,17 +56,21 @@ NEXUS_Error stc_pool_init(nxserver_t server)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_TransportCapabilities xptCaps;
+#if NEXUS_HAS_VIDEO_DECODER
     NEXUS_VideoDecoderCapabilities videoCaps;
+#endif
 #if NEXUS_HAS_AUDIO
     NEXUS_AudioCapabilities audioCaps;
 #endif
     struct b_stc * pStc, * prev = NULL;
     unsigned i;
 
+#if NEXUS_HAS_VIDEO_DECODER
+    NEXUS_GetVideoDecoderCapabilities(&videoCaps);
+#endif
 #if NEXUS_HAS_AUDIO
     NEXUS_GetAudioCapabilities(&audioCaps);
 #endif
-    NEXUS_GetVideoDecoderCapabilities(&videoCaps);
     NEXUS_GetTransportCapabilities(&xptCaps);
 
     /* nxclient assumes timebase0 is reserved for display and audio. */
@@ -85,11 +89,13 @@ NEXUS_Error stc_pool_init(nxserver_t server)
          */
         pStc->caps.encode = true;
         pStc->score++;
+#if NEXUS_HAS_VIDEO_DECODER
         if (i < videoCaps.numStcs)
         {
             pStc->caps.video = true;
             pStc->score++;
         }
+#endif
 #if NEXUS_HAS_AUDIO
         if (i < audioCaps.numStcs)
         {

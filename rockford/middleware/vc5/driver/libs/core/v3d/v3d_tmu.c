@@ -8,6 +8,7 @@ All rights reserved.
 #include "v3d_align.h"
 
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 v3d_tmu_blend_type_t v3d_maybe_get_tmu_blend_type(
    v3d_tmu_type_t type, bool srgb, bool shadow, bool output_32)
@@ -544,7 +545,7 @@ bool v3d_tmu_ltype_is_cube(v3d_tmu_ltype_t ltype)
    }
 }
 
-static void split_filter(struct v3d_tmu_cfg *cfg, v3d_tmu_filter_t filter)
+static void set_filter(struct v3d_tmu_cfg *cfg, v3d_tmu_filter_t filter)
 {
    cfg->aniso_level = 0;
    switch (filter)
@@ -617,14 +618,38 @@ static void split_filter(struct v3d_tmu_cfg *cfg, v3d_tmu_filter_t filter)
    }
 }
 
-/* cfg->ltype & cfg->swapst must be set! */
-static void calc_logical_dims(struct v3d_tmu_cfg *cfg,
+static void set_wraps(struct v3d_tmu_cfg *cfg,
+   v3d_tmu_wrap_t wrap_s, v3d_tmu_wrap_t wrap_t, v3d_tmu_wrap_t wrap_r)
+{
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   if (cfg->fetch)
+   {
+      /* Fetch ignored wrap modes and just always clamped coords on 3.2 */
+      cfg->wrap_s = V3D_TMU_WRAP_CLAMP;
+      cfg->wrap_t = V3D_TMU_WRAP_CLAMP;
+      cfg->wrap_r = V3D_TMU_WRAP_CLAMP;
+      return;
+   }
+#endif
+
+   cfg->wrap_s = wrap_s;
+#if V3D_HAS_GFXH1478_FIX
+   cfg->wrap_t = (v3d_tmu_ltype_num_dims(cfg->ltype) > 1) ? wrap_t : V3D_TMU_WRAP_CLAMP;
+#else
+   cfg->wrap_t = wrap_t;
+#endif
+   cfg->wrap_r = wrap_r;
+}
+
+/* cfg->ltype must be set! */
+static void set_dims(struct v3d_tmu_cfg *cfg,
    uint32_t raw_width, uint32_t raw_height, uint32_t raw_depth)
 {
    uint32_t dims = v3d_tmu_ltype_num_dims(cfg->ltype);
-   cfg->logical_width = cfg->swapst ? raw_height : raw_width;
-   cfg->logical_height = (dims > 1) ? (cfg->swapst ? raw_width : raw_height) : 1;
-   cfg->logical_depth = (dims > 2) ? raw_depth : 1;
+   cfg->width = raw_width;
+   assert((dims > 1) || (raw_height == 1)); /* HW requires height to be set to 1 for 1D images */
+   cfg->height = raw_height;
+   cfg->depth = (dims > 2) ? raw_depth : 1;
 
    cfg->num_array_elems = v3d_tmu_ltype_is_array(cfg->ltype) ? raw_depth : 1;
    if (v3d_tmu_ltype_is_cube(cfg->ltype))
@@ -847,7 +872,7 @@ static void calc_derived_texture(struct v3d_tmu_cfg *cfg)
    v3d_tmu_calc_mip_levels(cfg->mip_levels,
          cfg->ltype, cfg->srgb, cfg->type,
          &cfg->uif_cfg, cfg->arr_str,
-         cfg->logical_width, cfg->logical_height, cfg->logical_depth,
+         cfg->width, cfg->height, cfg->depth,
          cfg->miplvls);
 
    cfg->base_addr = cfg->l0_addr - cfg->mip_levels[0].planes[0].offset;
@@ -895,8 +920,8 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       assert(!cfg->word_en[i]);
 
 #if !V3D_HAS_NEW_TMU_CFG
-   assert((cfg->cxoff + cfg->logical_cwidth) <= cfg->logical_width);
-   assert((cfg->cyoff + cfg->logical_cheight) <= cfg->logical_height);
+   assert((cfg->cxoff + cfg->cwidth) <= cfg->width);
+   assert((cfg->cyoff + cfg->cheight) <= cfg->height);
 #endif
 
    if ((cfg->ltype == V3D_TMU_LTYPE_CHILD_IMAGE) || cfg->unnorm)
@@ -904,13 +929,6 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
       /* Aniso/mipmapping not supported... */
       assert(cfg->aniso_level == 0);
       assert(!v3d_tmu_min_filt_does_mipmapping(cfg->minfilt));
-   }
-
-   if (cfg->swapst)
-   {
-      /* swapst not supported with cubemaps or 1D lookups... */
-      assert(!v3d_tmu_ltype_is_cube(cfg->ltype) &&
-         (v3d_tmu_ltype_num_dims(cfg->ltype) != 1));
    }
 
    if (cfg->gather)
@@ -966,10 +984,16 @@ static void check_config_texture(const struct v3d_tmu_cfg *cfg)
 
    if (v3d_tmu_ltype_is_cube(cfg->ltype))
    {
-      assert(cfg->logical_width == cfg->logical_height);
-      assert(!cfg->logical_flipx);
-      assert(!cfg->logical_flipy);
+      assert(cfg->width == cfg->height);
+      assert(!cfg->flipx);
+      assert(!cfg->flipy);
    }
+
+#if V3D_HAS_NEW_TMU_CFG
+   if (cfg->ltype == V3D_TMU_LTYPE_CUBE_MAP_ARRAY)
+      /* wrap_i=border does not work with cubemap arrays! */
+      assert(cfg->wrap_i != V3D_TMU_WRAP_I_BORDER);
+#endif
 
    if (cfg->tmuoff_4x)
    {
@@ -1123,8 +1147,8 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->coefficient = p2->coefficient;
       cfg->coeff_sample = p2->coeff_sample;
       cfg->gather = p2->gather;
-      cfg->logical_tex_off_s = tex_state->swapst ? p2->offsets[1] : p2->offsets[0];
-      cfg->logical_tex_off_t = tex_state->swapst ? p2->offsets[0] : p2->offsets[1];
+      cfg->tex_off_s = p2->offsets[0];
+      cfg->tex_off_t = p2->offsets[1];
       cfg->tex_off_r = p2->offsets[2];
 #if V3D_HAS_TMU_TEX_WRITE
       cfg->op = p2->op;
@@ -1137,14 +1161,13 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    if (written->slod)
       cfg->bslod = true;
 
-   cfg->logical_flipx = tex_state->swapst ? tex_state->flipy : tex_state->flipx;
-   cfg->logical_flipy = tex_state->swapst ? tex_state->flipx : tex_state->flipy;
-   cfg->swapst = tex_state->swapst;
+   cfg->flipx = tex_state->flipx;
+   cfg->flipy = tex_state->flipy;
    cfg->srgb = tex_state->srgb && (!sampler || !sampler->srgb_override);
    cfg->ahdr = tex_state->ahdr;
    cfg->l0_addr = tex_state->l0_addr;
    cfg->arr_str = tex_state->arr_str;
-   calc_logical_dims(cfg, tex_state->width, tex_state->height, tex_state->depth);
+   set_dims(cfg, tex_state->width, tex_state->height, tex_state->depth);
    cfg->type = tex_state->type;
    memcpy(cfg->swizzles, tex_state->swizzles, sizeof(cfg->swizzles));
    cfg->base_level = tex_state->base_level;
@@ -1160,14 +1183,12 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
    cfg->min_lod = cfg->max_lod = (tex_state->base_level << 8);
    if (sampler)
    {
-      split_filter(cfg, sampler->filter);
+      set_filter(cfg, sampler->filter);
       cfg->compare_func = sampler->compare_func;
       cfg->min_lod += sampler->min_lod;
       cfg->max_lod += sampler->max_lod;
       cfg->fixed_bias = sampler->fixed_bias;
-      cfg->logical_wrap_s = tex_state->swapst ? sampler->wrap_t : sampler->wrap_s;
-      cfg->logical_wrap_t = tex_state->swapst ? sampler->wrap_s : sampler->wrap_t;
-      cfg->wrap_r = sampler->wrap_r;
+      set_wraps(cfg, sampler->wrap_s, sampler->wrap_t, sampler->wrap_r);
 #if V3D_HAS_TMU_WRAP_I
       cfg->wrap_i = sampler->wrap_i;
 #endif
@@ -1180,9 +1201,7 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->compare_func = V3D_COMPARE_FUNC_LEQUAL;
       cfg->max_lod += 0xfff;
       cfg->fixed_bias = 0;
-      cfg->logical_wrap_s = V3D_TMU_WRAP_BORDER;
-      cfg->logical_wrap_t = V3D_TMU_WRAP_BORDER;
-      cfg->wrap_r = V3D_TMU_WRAP_BORDER;
+      set_wraps(cfg, V3D_TMU_WRAP_BORDER, V3D_TMU_WRAP_BORDER, V3D_TMU_WRAP_BORDER);
 #if V3D_HAS_TMU_WRAP_I
       cfg->wrap_i = V3D_TMU_WRAP_I_BORDER;
 #endif
@@ -1278,10 +1297,7 @@ static v3d_tmu_wrap_t wrap_from_cfg0(
 
 static uint32_t get_miplvls_from_dims(const struct v3d_tmu_cfg *cfg)
 {
-   return gfx_msb(gfx_umax3(
-      cfg->logical_width,
-      cfg->logical_height,
-      cfg->logical_depth)) + 1;
+   return gfx_msb(gfx_umax3(cfg->width, cfg->height, cfg->depth)) + 1;
 }
 
 void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
@@ -1307,17 +1323,19 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->srgb = p0->u.cfg0.srgb;
       cfg->pix_mask = p0->u.cfg0.pix_mask;
 
-      cfg->logical_wrap_s = wrap_from_cfg0(NULL, p1_cfg0->wrap_s);
-      cfg->logical_wrap_t = wrap_from_cfg0(&cfg->ltype, p1_cfg0->wrap_t);
-      split_filter(cfg, p1_cfg0->filter);
+      set_wraps(cfg,
+         wrap_from_cfg0(NULL, p1_cfg0->wrap_s),
+         wrap_from_cfg0(&cfg->ltype, p1_cfg0->wrap_t),
+         V3D_TMU_WRAP_REPEAT);
+      set_filter(cfg, p1_cfg0->filter);
       cfg->bslod = p1_cfg0->bslod;
       cfg->l0_addr = p1_cfg0->base;
 
       /* Must be done after cfg->ltype is set */
-      calc_logical_dims(cfg, p0->u.cfg0.width, p0->u.cfg0.height, 1);
+      set_dims(cfg, p0->u.cfg0.width, p0->u.cfg0.height, 1);
       /* Can't do child image with cfg0... */
-      cfg->logical_cwidth = cfg->logical_width;
-      cfg->logical_cheight = cfg->logical_height;
+      cfg->cwidth = cfg->width;
+      cfg->cheight = cfg->height;
 
       /* Word enables not provided; calculate defaults based on the texture type */
       switch (v3d_tmu_get_word_read_default(cfg->type, misccfg->ovrtmuout))
@@ -1349,11 +1367,9 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->bslod = p0->u.cfg1.bslod;
       cfg->coefficient = p0->u.cfg1.coefficient;
       cfg->shadow = p0->u.cfg1.shadow;
-      cfg->logical_wrap_s = ind->swapst ? p0->u.cfg1.wrap_t : p0->u.cfg1.wrap_s;
-      cfg->logical_wrap_t = ind->swapst ? p0->u.cfg1.wrap_s : p0->u.cfg1.wrap_t;
-      cfg->wrap_r = p0->u.cfg1.wrap_r;
-      cfg->logical_tex_off_s = ind->swapst ? p0->u.cfg1.tex_off_t : p0->u.cfg1.tex_off_s;
-      cfg->logical_tex_off_t = ind->swapst ? p0->u.cfg1.tex_off_s : p0->u.cfg1.tex_off_t;
+      set_wraps(cfg, p0->u.cfg1.wrap_s, p0->u.cfg1.wrap_t, p0->u.cfg1.wrap_r); /* Must be after cfg->ltype & cfg->fetch set */
+      cfg->tex_off_s = p0->u.cfg1.tex_off_s;
+      cfg->tex_off_t = p0->u.cfg1.tex_off_t;
       cfg->tex_off_r = p0->u.cfg1.tex_off_r;
       cfg->pix_mask = p0->u.cfg1.pix_mask;
 
@@ -1363,19 +1379,18 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
       cfg->word_en[3] = p1_cfg1->word3_en;
       cfg->unnorm = p1_cfg1->unnorm;
 
-      split_filter(cfg, ind->filter);
+      set_filter(cfg, ind->filter);
       border_rrra = ind->border_rrra;
       cfg->l0_addr = ind->base;
       cfg->arr_str = ind->arr_str;
-      cfg->swapst = ind->swapst; /* Must be set before calling calc_logical_dims */
-      calc_logical_dims(cfg, ind->width, ind->height, ind->depth);
+      set_dims(cfg, ind->width, ind->height, ind->depth);
       cfg->type = ind->ttype;
       cfg->srgb = ind->srgb;
       cfg->ahdr = ind->ahdr;
       cfg->compare_func = ind->compare_func;
       memcpy(cfg->swizzles, ind->swizzles, sizeof(cfg->swizzles));
-      cfg->logical_flipx = ind->swapst ? ind->flipy : ind->flipx;
-      cfg->logical_flipy = ind->swapst ? ind->flipx : ind->flipy;
+      cfg->flipx = ind->flipx;
+      cfg->flipy = ind->flipy;
       assert(ind->etcflip); /* We do not support etcflip=0 */
       bcolour[0] = (uint32_t)ind->bcolour;
       bcolour[1] = (uint32_t)(ind->bcolour >> 32);
@@ -1386,8 +1401,8 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
           * defaults max_lod to 0x100 (rather than 0) to avoid always choosing
           * magnification. */
          cfg->max_lod = 0x100;
-         cfg->logical_cwidth = ind->swapst ? ind->u.child_image.cheight : ind->u.child_image.cwidth;
-         cfg->logical_cheight = ind->swapst ? ind->u.child_image.cwidth : ind->u.child_image.cheight;
+         cfg->cwidth = ind->u.child_image.cwidth;
+         cfg->cheight = ind->u.child_image.cheight;
          cfg->cxoff = ind->u.child_image.cxoff;
          cfg->cyoff = ind->u.child_image.cyoff;
          output_type = V3D_TMU_OUTPUT_TYPE_AUTO;
@@ -1405,8 +1420,8 @@ void v3d_tmu_cfg_collect_texture(struct v3d_tmu_cfg *cfg,
          cfg->fixed_bias = ind->u.not_child_image.fixed_bias;
          cfg->base_level = ind->u.not_child_image.base_level;
          cfg->coeff_sample = ind->u.not_child_image.samp_num;
-         cfg->logical_cwidth = cfg->logical_width;
-         cfg->logical_cheight = cfg->logical_height;
+         cfg->cwidth = cfg->width;
+         cfg->cheight = cfg->height;
          output_type = misccfg->ovrtmuout ? ind->u.not_child_image.output_type : V3D_TMU_OUTPUT_TYPE_AUTO;
       }
       cfg->uif_cfg.ub_pads[0] = ind->ub_pad;

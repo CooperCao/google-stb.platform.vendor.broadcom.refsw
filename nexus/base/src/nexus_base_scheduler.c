@@ -425,6 +425,23 @@ NEXUS_P_CallbackCommon_Init(struct NEXUS_CallbackCommon *callback, NEXUS_ModuleH
     BSTD_UNUSED(lineNumber);
 }
 
+#define NEXUS_P_CALLBACK_DESC_COOKIE_VALUE 0xCA11BACC
+void
+NEXUS_CallbackDesc_Init(NEXUS_CallbackDesc *desc)
+{
+    BDBG_ASSERT(desc);
+    desc->callback = NULL;
+    desc->context = NULL;
+    desc->param = 0;
+    desc->private_cookie = NEXUS_P_CALLBACK_DESC_COOKIE_VALUE;
+    return;
+}
+NEXUS_CallbackDesc NEXUS_P_CallbackDescByValue(void)
+{
+    NEXUS_CallbackDesc desc;
+    NEXUS_CallbackDesc_Init(&desc);
+    return desc;
+}
 
 NEXUS_IsrCallbackHandle
 NEXUS_Module_IsrCallback_Create(NEXUS_ModuleHandle module,  void *interfaceHandle, const NEXUS_CallbackSettings *pSettings, const char *pFileName, unsigned lineNumber)
@@ -500,9 +517,12 @@ NEXUS_Module_IsrCallback_Destroy(NEXUS_ModuleHandle module, NEXUS_IsrCallbackHan
 }
 #define NEXUS_P_FILENAME(str) ((str)?(str):"")
 
-static void NEXUS_Module_P_Callback_Test(const NEXUS_CallbackDesc *pDesc)
+static void NEXUS_Module_P_Callback_Test(const NEXUS_CallbackDesc *pDesc, const char *debug)
 {
-    BSTD_UNUSED(pDesc);
+    if (pDesc && pDesc->private_cookie != NEXUS_P_CALLBACK_DESC_COOKIE_VALUE) {
+        BDBG_ERR(("uninitialized NEXUS_CallbackDesc from %s", debug));
+    }
+
 #if NEXUS_P_DEBUG_MODULE_LOCKS && NEXUS_P_DEBUG_CALLBACKS
     if(pDesc && pDesc->callback) {
         NEXUS_P_ThreadInfo *info = NEXUS_P_ThreadInfo_Get();
@@ -521,7 +541,7 @@ static void NEXUS_Module_P_Callback_Test(const NEXUS_CallbackDesc *pDesc)
                     }
                     if (!stack_depth) {
                         /* we have a failure */
-                        BDBG_ERR(("Detected callback handler set by the nexus code without using NEXUS_CallbackHandler (%u)", stack_depth));
+                        BDBG_ERR(("Detected callback handler %s set by the nexus code without using NEXUS_CallbackHandler (%u)", debug, stack_depth));
                         BDBG_ERR(("All callbacks handled by the nexus should use NEXUS_CallbackHandler, limited call stack follows"));
                         entry = BLIFO_READ(&info->stack);
                         while(stack_depth>0) {
@@ -535,14 +555,13 @@ static void NEXUS_Module_P_Callback_Test(const NEXUS_CallbackDesc *pDesc)
         }
     }
 #endif
-    return;
 }
 
 void
-NEXUS_Module_IsrCallback_Set(NEXUS_IsrCallbackHandle callback, const NEXUS_CallbackDesc *pDesc)
+NEXUS_Module_IsrCallback_Set(NEXUS_IsrCallbackHandle callback, const NEXUS_CallbackDesc *pDesc, const char *debug)
 {
     BDBG_OBJECT_ASSERT(callback, NEXUS_IsrCallback);
-    NEXUS_Module_P_Callback_Test(pDesc);
+    NEXUS_Module_P_Callback_Test(pDesc, debug);
     BKNI_EnterCriticalSection();
     if (pDesc) {
         callback->common.desc = *pDesc;
@@ -639,10 +658,10 @@ NEXUS_Module_TaskCallback_Destroy( NEXUS_ModuleHandle module, NEXUS_TaskCallback
 }
 
 void
-NEXUS_Module_TaskCallback_Set(NEXUS_TaskCallbackHandle callback, const NEXUS_CallbackDesc *pDesc)
+NEXUS_Module_TaskCallback_Set(NEXUS_TaskCallbackHandle callback, const NEXUS_CallbackDesc *pDesc, const char *debug)
 {
     BDBG_OBJECT_ASSERT(callback, NEXUS_TaskCallback);
-    NEXUS_Module_P_Callback_Test(pDesc);
+    NEXUS_Module_P_Callback_Test(pDesc, debug);
     NEXUS_LockModule();
     if (pDesc) {
         callback->common.desc = *pDesc;
@@ -750,10 +769,10 @@ NEXUS_P_Scheduler_IsrCallbacks(NEXUS_P_Scheduler *scheduler)
                 BKNI_LeaveCriticalSection();
 
                 callback->armed_save = false;
-                scheduler->current_callback = &callback->common;
 #if NEXUS_P_DEBUG_CALLBACKS
                 NEXUS_Time_Get(&callback->common.startTime);
 #endif
+                scheduler->current_callback = &callback->common;
                 NEXUS_UnlockModule();
                 
                 /* It's possible that NEXUS_StopCallbacks or NEXUS_IsrCallback_Destroy is run here, so retest the common flags. */
@@ -854,10 +873,10 @@ NEXUS_P_SchedulerGetRequest(NEXUS_P_Scheduler *scheduler, NEXUS_P_SchedulerReque
 
         /* ensure we get a coherent desc in case NEXUS_TaskCallback_Set is timesliced in after the NEXUS_UnlockModule(). */
         desc = callback->common.desc;
-        scheduler->current_callback = &callback->common;
 #if NEXUS_P_DEBUG_CALLBACKS
         NEXUS_Time_Get(&callback->common.startTime);
 #endif
+        scheduler->current_callback = &callback->common;
         NEXUS_UnlockModule(); /* we release our mutex, before grabbing other */
 
         /* It's possible that NEXUS_StopCallbacks or NEXUS_TaskCallback_Destroy is run here, so test the common flags. */

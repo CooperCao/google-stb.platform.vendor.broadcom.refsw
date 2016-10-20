@@ -22,7 +22,7 @@ DESC
 #include "spytool_replay.h"
 
 #ifndef EMULATED
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
 #include <GLES3/gl31.h>
 #include <GLES3/gl3ext.h>
 #include <GLES3/gl3ext_brcm.h>

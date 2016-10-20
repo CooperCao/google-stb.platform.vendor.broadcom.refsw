@@ -93,6 +93,7 @@ void TzTask::initSignalState() {
 
     signals[SIGHUP].defaultAction = Terminate;
     signals[SIGINT].defaultAction = Terminate;
+    signals[SIGQUIT].defaultAction = Terminate;
     signals[SIGPIPE].defaultAction = Terminate;
     signals[SIGALRM].defaultAction = Terminate;
     signals[SIGTERM].defaultAction = Terminate;
@@ -391,7 +392,14 @@ bool TzTask::signalDispatch() {
                 wait4(signals[sigNum].sigInfo.si_pid, &status, WNOHANG);
             }
         }
-
+        break;
+    }
+    case SIGQUIT: {
+        /* Core Dump data here*/
+        doCoreDump();
+        // Exit this process. This signal cannot be caught.
+        terminate(0, SIGQUIT);
+        return true;
         break;
     }
 

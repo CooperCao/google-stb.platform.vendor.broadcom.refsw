@@ -1,23 +1,43 @@
 /***************************************************************************
- *	   Copyright (c) 2004-2013, Broadcom Corporation
- *	   All Rights Reserved
- *	   Confidential Property of Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *	THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *	AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *	EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *
  * Module Description:
  *	 This module controls and returns the User Data coming in the stream
  * and captured by the decoder.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 #include "bstd.h"				 /* standard types */
@@ -108,12 +128,10 @@ BERR_Code BXVD_P_Userdata_QueueDestroy(QUEUE_MGR *queue, BXVD_Userdata_Settings 
    return BERR_SUCCESS;
 }
 
-BERR_Code BXVD_P_ConvertUDOff2Addr_isr(BXVD_Userdata_Handle hUserData,
-                                       unsigned long fwUserDataAddr,
-                                       unsigned long *pulUserDataAddr)
+void *BXVD_P_ConvertUDOff2Addr_isr(BXVD_Userdata_Handle hUserData,
+                                       unsigned long fwUserDataAddr)
 {
-   *pulUserDataAddr = BXVD_P_OFFSET_TO_VA(hUserData->hXvdCh, fwUserDataAddr);
-   return BERR_TRACE(BERR_SUCCESS);
+   return (void*)BXVD_P_OFFSET_TO_VA(hUserData->hXvdCh, fwUserDataAddr);
 }
 
 
@@ -124,8 +142,8 @@ BERR_Code BXVD_P_ConvertUDOff2Addr_isr(BXVD_Userdata_Handle hUserData,
  */
 BERR_Code BXVD_P_Userdata_QueueInsert_isr(QUEUE_MGR *queue,
                                           int protocol,
-                                          unsigned long ulUserDataAddr,
-                                          long          lUserDataSize,
+                                          void *userDataPtr,
+                                          unsigned long lUserDataSize,
                                           unsigned long ulFlags,
                                           unsigned long ulPulldown,
                                           unsigned long ulPTS,
@@ -171,14 +189,14 @@ BERR_Code BXVD_P_Userdata_QueueInsert_isr(QUEUE_MGR *queue,
    BKNI_Printf("lUserDataSize: %ld\n", lUserDataSize);
 #endif
 
-   if (lUserDataSize > stUDSettings.maxQueueItemSize)
+   if (lUserDataSize > (unsigned long)stUDSettings.maxQueueItemSize)
    {
 
       BDBG_WRN(("lUserSataSize(%lu) > maxQueueItemSize(%d) Truncating to maxQueueItemSize and copying with bErrorBufferOverflow set to true",
                 lUserDataSize, stUDSettings.maxQueueItemSize));
 
-      BKNI_Memcpy_isr((unsigned char *)(queue->queue_data[queue->ulWritePtr].uUserData),
-                      (void *)ulUserDataAddr,
+      BKNI_Memcpy_isr(queue->queue_data[queue->ulWritePtr].uUserData,
+                      userDataPtr,
                       stUDSettings.maxQueueItemSize);
 
       queue->ulWritePtr = queue->ulNextPtr;
@@ -187,8 +205,8 @@ BERR_Code BXVD_P_Userdata_QueueInsert_isr(QUEUE_MGR *queue,
    }
    else
    {
-      BKNI_Memcpy_isr((unsigned char *)(queue->queue_data[queue->ulWritePtr].uUserData),
-                      (void *)ulUserDataAddr,
+      BKNI_Memcpy_isr(queue->queue_data[queue->ulWritePtr].uUserData,
+                      userDataPtr,
                       lUserDataSize);
    }
 
@@ -205,7 +223,7 @@ BERR_Code BXVD_P_Userdata_QueueInsert_isr(QUEUE_MGR *queue,
  */
 static BERR_Code BXVD_P_Userdata_QueueRemove_isr(QUEUE_MGR *queue,
                                                  int *protocol,
-                                                 unsigned long *udp,
+                                                 uint8_t **udp,
                                                  unsigned long *ulFlags,
                                                  unsigned long *ulPulldown,
                                                  unsigned long *ulPTS,
@@ -230,7 +248,7 @@ static BERR_Code BXVD_P_Userdata_QueueRemove_isr(QUEUE_MGR *queue,
 
    /* Return the userdata information from the queue */
    *protocol = queue->queue_data[queue->ulReadPtr].protocol;
-   *udp = (unsigned long)queue->queue_data[queue->ulReadPtr].uUserData;
+   *udp = queue->queue_data[queue->ulReadPtr].uUserData;
    *ulFlags = queue->queue_data[queue->ulReadPtr].ulFlags;
    *ulPulldown = queue->queue_data[queue->ulReadPtr].ulPulldown;
    *ulPTS = queue->queue_data[queue->ulReadPtr].ulPTS;
@@ -263,7 +281,7 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
                                                  uint32_t uiDecodePictureId)
 {
    BERR_Code rc = BERR_SUCCESS;
-   unsigned long ulUserDataAddr;
+   void *userDataPtr;
    UD_HDR *pHdrInfo = (UD_HDR *)NULL;
 
    BDBG_ENTER(BXVD_P_Userdata_EnqueueDataPointer_isr);
@@ -316,12 +334,8 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
     * Get the protocol type and user data pointer from DM and convert it to
     * a virtual address before enqueueing.
     */
-   ulUserDataAddr = 0;
-   BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData,
-                                p_UserData,
-                                &ulUserDataAddr);
-
-   if (ulUserDataAddr == 0)
+   userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, p_UserData);
+   if (userDataPtr == NULL)
       return BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
 
 
@@ -331,17 +345,9 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
     */
    do
    {
-      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, (void *)ulUserDataAddr, sizeof(UD_HDR));
-
       /* Extract the header information */
-      pHdrInfo = (UD_HDR *)ulUserDataAddr;
-      if (pHdrInfo == NULL)
-      {
-	 BXVD_DBG_MSG(hXvdCh, ("BXVD_P_Userdata_EnqueueDataPointer: bad userdata pointer"));
-	 return BXVD_ERR_USERDATA_INVALID;
-      }
-
-      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, (void *)ulUserDataAddr, ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3));
+      pHdrInfo = (UD_HDR *)userDataPtr;
+      BMMA_FlushCache_isr(hXvdCh->hFWGenMemBlock, userDataPtr, ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3));
 
       /*
        * Enqueue the data. The uiDecodePictureId member was added for transcode
@@ -349,7 +355,7 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
        */
       rc = BXVD_P_Userdata_QueueInsert_isr(&((hXvdCh->pUserData)->queue),
                                            protocol,
-                                           ulUserDataAddr,
+                                           userDataPtr,
                                            ((sizeof(UD_HDR)+((pHdrInfo->size+3))) & ~3), /* Make sure we copy long words, endianess issue */
                                            ulFlags,
                                            ulPulldown,
@@ -365,15 +371,11 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
       }
 
       /* Get the next user data packet, if any */
-      pHdrInfo = (UD_HDR *)ulUserDataAddr;
-
       if (pHdrInfo->next)
       {
-	 BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData,
-                                      (unsigned long)pHdrInfo->next,
-                                      &ulUserDataAddr);
-	 if (ulUserDataAddr == 0)
-	    return BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
+        userDataPtr = BXVD_P_ConvertUDOff2Addr_isr(hXvdCh->pUserData, (unsigned long)pHdrInfo->next);
+        if (userDataPtr == NULL)
+            return BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
       }
 
    } while (pHdrInfo->next);
@@ -381,11 +383,7 @@ BERR_Code BXVD_P_Userdata_EnqueueDataPointer_isr(BXVD_ChannelHandle hXvdCh,
 doCallback:
 
    /* Invoke application UD read callback */
-   if (hXvdCh->pUserData->fUserdataCallback_isr)
-   {
-      hXvdCh->pUserData->fUserdataCallback_isr(hXvdCh->pUserData->pParm1,
-					       hXvdCh->pUserData->parm2);
-   }
+   hXvdCh->pUserData->fUserdataCallback_isr(hXvdCh->pUserData->pParm1, hXvdCh->pUserData->parm2);
 
    BDBG_LEAVE(BXVD_P_Userdata_EnqueueDataPointer_isr);
    return rc;
@@ -545,10 +543,10 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    uint32_t uiDecodePictureId;
    unsigned long ulFlags, ulPulldown, ulPTS;
    BERR_Code       eStatus = BERR_SUCCESS;
-   size_t	  offset;
+   unsigned offset;
    uint8_t	  *pDataBfr;
    unsigned 	  entries;
-   unsigned long   ulUserDataAddr;
+   uint8_t *userDataPtr;
 #ifdef BXVD_FLATTEN_USERDATA
    bool            bMoreUserdata;
 #endif
@@ -560,7 +558,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    BDBG_ASSERT(pUserDataInfo);
 
    protocol = 0;
-   ulUserDataAddr = 0;
+   userDataPtr = NULL;
    uiDecodePictureId = 0;
    ulFlags = ulPulldown = ulPTS = 0;
 
@@ -598,7 +596,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
    /* Get the userdata from the queue */
    if (BXVD_P_Userdata_QueueRemove_isr(&(hUserData->queue),
                                        &protocol,
-                                       &ulUserDataAddr,
+                                       &userDataPtr,
                                        &ulFlags,
                                        &ulPulldown,
                                        &ulPTS,
@@ -650,7 +648,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       pUserDataInfo->ulDecodePictureId = uiDecodePictureId;
 
       /* Get Userdata info */
-      pHdr = (UD_HDR *)ulUserDataAddr;
+      pHdr = (UD_HDR *)userDataPtr;
 
       /*
        * Parse the user data.
@@ -704,12 +702,12 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
          pUserDataInfo->eSourcePolarity = BAVC_Polarity_eFrame;
 
       /* Check the user data packet size */
-      if(offset+4 > (size_t)hUserData->sUserdataSettings.maxDataSize)
+      if(offset+4 > (unsigned)hUserData->sUserdataSettings.maxDataSize)
       {
          BDBG_WRN(("user data packet is too big %u+%u(%u)[%u]",
-                   (unsigned)offset,
+                   offset,
                    4,
-                   (unsigned)(offset+4),
+                   offset+4,
                    hUserData->sUserdataSettings.maxDataSize));
 
          eStatus = BERR_TRACE(BXVD_ERR_USERDATA_USRBFROFL);
@@ -770,12 +768,12 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
 
       /* Check the user data packet size again after header creation */
       if(offset+pHdr->size >
-         (size_t)hUserData->sUserdataSettings.maxDataSize)
+         (unsigned)hUserData->sUserdataSettings.maxDataSize)
       {
-         BDBG_WRN(("user data packet is too big %lu+%u(%lu)[%u]",
-                   (unsigned long)offset,
+         BDBG_WRN(("user data packet is too big %u+%u(%u)[%u]",
+                   offset,
                    pHdr->size,
-                   (unsigned long)(offset+pHdr->size),
+                   offset+pHdr->size,
                    hUserData->sUserdataSettings.maxDataSize));
 
          eStatus = BERR_TRACE(BXVD_ERR_USERDATA_USRBFROFL);
@@ -786,14 +784,14 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       entries = (pHdr->size+3)>>2;
 
       /* Copy segment of user data after verifying source and destination pointers */
-      if (&(pDataBfr[offset]) == NULL || (void *)(ulUserDataAddr + sizeof(BXVD_P_UserData)) == NULL)
+      if (pDataBfr == NULL || userDataPtr == NULL)
       {
 	 BDBG_WRN(("Attempt to dereference a NULL user data buffer"));
 	 eStatus = BERR_TRACE(BXVD_ERR_USERDATA_INVALID);
 	 goto consume;
       }
-      BKNI_Memcpy((void *)&(pDataBfr[offset]),
-                  (void *)(ulUserDataAddr + sizeof(BXVD_P_UserData)),
+      BKNI_Memcpy(&pDataBfr[offset],
+                  userDataPtr + sizeof(UD_HDR),
                   entries*4);
 
 #if BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE
@@ -838,7 +836,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       /* Get the userdata from the queue */
       if (BXVD_P_Userdata_QueueRemove_isr(&(hUserData->queue),
                                           &protocol,
-                                          &ulUserDataAddr,
+                                          &userDataPtr,
                                           &ulFlags,
                                           &ulPulldown,
                                           &ulPTS,
@@ -852,7 +850,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
       else
       {
          UD_HDR *tmp;
-         tmp = (UD_HDR *)ulUserDataAddr;
+         tmp = (UD_HDR *)userDataPtr;
          if (tmp->type != pHdr->type)
          {
             BDBG_MSG(("tmp->type : pHdr->type", tmp->type, pHdr->type));
@@ -883,7 +881,7 @@ BERR_Code BXVD_Userdata_Read_isr(BXVD_Userdata_Handle   hUserData,
 
       }
       else
-	 BKNI_Printf("PTS = 0x%x (%d)\n", ulPTS, ulPTS);
+	 BKNI_Printf("PTS = 0x%x (%d)\n", (unsigned)ulPTS, (unsigned)ulPTS);
       BKNI_Printf("pUserDataInfo->eUserDataType = 0x%x (%d)\n",
                   pUserDataInfo->eUserDataType,
                   pUserDataInfo->eUserDataType);

@@ -868,6 +868,7 @@ BERR_Code BXPT_Standby(
     hXpt->bStandby = true;
 #else
     BSTD_UNUSED( hXpt );
+    BSTD_UNUSED( pSettings );
 #endif /* #ifdef BCHP_PWR_RESOURCE_XPT */
 
     return BERR_SUCCESS;
@@ -1749,6 +1750,7 @@ BERR_Code BXPT_ConfigurePidChannel(
 
         Band = BXPT_PB_P_GetPbBandId( hXpt, Band );
         BDBG_MSG(( "Remapping PID channel %u PB %u to PB %u", (unsigned) PidChannelNum, OldBand, Band ));
+        BSTD_UNUSED (OldBand);
     }
 #endif
 

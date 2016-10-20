@@ -52,14 +52,20 @@ BDBG_MODULE(nexus_platform_frontend);
 
 #define NEXUS_PLATFORM_7364_SATELLITE_MTSIF_OFFSET 18
 
+#if BCHP_VER < BCHP_VER_C0
+#define NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL 1
+#endif
+
 NEXUS_Error NEXUS_Platform_InitFrontend(void)
 {
     NEXUS_Error rc = NEXUS_SUCCESS;
     NEXUS_PlatformConfiguration *pConfig = &g_NEXUS_platformHandles.config;
     NEXUS_FrontendDeviceHandle device;
     NEXUS_FrontendDeviceOpenSettings deviceOpenSettings;
+#if NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
     NEXUS_FrontendDeviceSettings deviceSettings;
     NEXUS_FrontendUserParameters userParams;
+#endif
     NEXUS_FrontendDeviceCapabilities capabilities;
     NEXUS_FrontendChannelSettings channelSettings;
     NEXUS_PlatformStatus platformStatus;
@@ -75,18 +81,22 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
     NEXUS_FrontendDevice_GetDefaultOpenSettings(&deviceOpenSettings);
 
     deviceOpenSettings.satellite.enabled = enableSatellite;
+#if NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
     deviceOpenSettings.terrestrial.enabled = true;
     deviceOpenSettings.loadAP = true;
+#endif
     deviceOpenSettings.isrNumber = 104;
 
     device = NEXUS_FrontendDevice_Open(0, &deviceOpenSettings);
 
     if (device) {
+#if NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
         NEXUS_FrontendDevice_GetDefaultSettings(&deviceSettings);
         deviceSettings.rfDaisyChain = NEXUS_RfDaisyChain_eInternalLna;
         deviceSettings.rfInput = NEXUS_TunerRfInput_eInternalLna;
         deviceSettings.enableRfLoopThrough = false;
         NEXUS_FrontendDevice_SetSettings(device, &deviceSettings);
+#endif
 
         if (enableSatellite) {
             NEXUS_FrontendDevice_GetCapabilities(device, &capabilities);
@@ -103,15 +113,17 @@ NEXUS_Error NEXUS_Platform_InitFrontend(void)
                  continue;
                 }
                 BDBG_MSG(("7364 satfe: %d:%p",i,(void *)pConfig->frontend[i]));
+#if 0
                 NEXUS_Frontend_GetUserParameters(pConfig->frontend[i], &userParams);
                 userParams.isMtsif = true;
                 userParams.param1 = userParams.isMtsif ? channelSettings.channelNumber + NEXUS_PLATFORM_7364_SATELLITE_MTSIF_OFFSET : NEXUS_InputBand_e0 + i;
                 userParams.pParam2 = 0;
                 NEXUS_Frontend_SetUserParameters(pConfig->frontend[i], &userParams);
+#endif
             }
         }
 
-#if BCHP_VER < BCHP_VER_C0
+#if NEXUS_PLATFORM_7364_ENABLE_TERRESTRIAL
         channelSettings.device = device;
         channelSettings.channelNumber = i;
         channelSettings.type = NEXUS_FrontendChannelType_eTerrestrial;

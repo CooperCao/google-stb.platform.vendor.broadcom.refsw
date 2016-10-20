@@ -509,10 +509,6 @@ bool egl_config_get_attrib(int id, EGLint attrib, EGLint *value)
          EGL_VG_COLORSPACE_LINEAR_BIT |
          EGL_VG_ALPHA_FORMAT_PRE_BIT |
          EGL_MULTISAMPLE_RESOLVE_BOX_BIT
-#ifndef ANDROID
-         /* VC5 doesn't expose a preserved swap at all - return feature parity on Android */
-         | EGL_SWAP_BEHAVIOR_PRESERVED_BIT
-#endif
          );
 #if EGL_KHR_lock_surface
       if (egl_config_is_lockable(id))

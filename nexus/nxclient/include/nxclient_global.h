@@ -341,13 +341,32 @@ typedef struct NxClient_DisplayStatus
     /* NxClient_DisplayStatus.hdmi is deprecated. Use NEXUS_HdmiOutput_Open(NEXUS_ALIAS_ID + 0) to get status
     directly from a read-only alias. */
     struct {
-        NEXUS_HdmiOutputStatus status; /* does not provide 4Kp60 preferred format status */
+        NEXUS_HdmiOutputStatus status;
         NEXUS_HdmiOutputHdcpStatus hdcp;
     } hdmi;
 } NxClient_DisplayStatus;
 
 NEXUS_Error NxClient_GetDisplayStatus(
     NxClient_DisplayStatus *pStatus
+    );
+
+typedef enum NxClientExternalAppState
+{
+    NxClientExternalAppState_eNone, /* Not running in external app mode. NxClient_Connect can work. */
+    NxClientExternalAppState_eGraphicsOnly, /* External app enabled and decode disabled, Graphics support only.
+                                       NxClient_Connect will fail. Server can switch to eDecode. */
+    NxClientExternalAppState_eDecode, /* External app enabled and decode enabled.
+                                       NxClient_Connect can work. Server can switch to eGraphicsOnly. */
+    NxClientExternalAppState_eMax
+} NxClientExternalAppState;
+
+typedef struct NxClient_Status
+{
+    NxClientExternalAppState externalAppState;
+} NxClient_Status;
+
+NEXUS_Error NxClient_GetStatus(
+    NxClient_Status *pStatus
     );
 
 /* these are only for display-based PQ settings.

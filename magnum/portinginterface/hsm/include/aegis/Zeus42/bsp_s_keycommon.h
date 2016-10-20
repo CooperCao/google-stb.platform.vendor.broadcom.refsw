@@ -107,6 +107,8 @@ typedef enum BCMD_CustomerSubMode_e
     BCMD_CustomerSubMode_eRESERVED36 = 0x24,
     BCMD_CustomerSubMode_eOTPKeyFieldProgramDataDecrypt = 0x25,
     BCMD_CustomerSubMode_eRESERVED38 = 0x26,
+    BCMD_CustomerSubMode_eRPMB = 0x27,
+    BCMD_CustomerSubMode_eReserved40  =  0x28,
     BCMD_CustomerSubMode_eMax
 } BCMD_CustomerSubMode_e;
 
@@ -155,6 +157,9 @@ typedef enum BCMD_ModuleID_e
     BCMD_ModuleID_eModuleID_31 = 31,
     BCMD_ModuleID_eWord0Boundary = 32,
     BCMD_ModuleID_eModuleID_32 = 32,
+    BCMD_ModuleID_eModuleID_33 = 33,
+    BCMD_ModuleID_eModuleID_34 = 34,
+    BCMD_ModuleID_eModuleID_35 = 35,
     BCMD_ModuleID_eMax
 
 }BCMD_ModuleID_e;
@@ -218,6 +223,7 @@ typedef enum BCMD_VKLID_e
     BCMD_VKL6 = 6,
     BCMD_VKL7 = 7,
     BCMD_VKL_KeyRam_eMax = 8,
+    BCMD_VKLID_eRPMBHmacKey = 0x14,
     BCMD_VKL_eMax
 }BCMD_VKLID_e;
 
@@ -558,6 +564,7 @@ typedef enum BCMD_GenKey_InCmd_e
     BCMD_GenKey_InCmd_eKeyLayer = (14 << 2) + 3,
     BCMD_GenKey_InCmd_eKeyTweak = (14 << 2) + 2,
     BCMD_GenKey_InCmd_eApplyKKCV  =  (14<<2)+1,
+    BCMD_GenKey_InCmd_eReserved_14_0  =  (14<<2)+0,
     BCMD_GenKey_InCmd_eKeyLadderOpera = (15 << 2) + 3,
     BCMD_GenKey_InCmd_eProcIn = (16 << 2),
     BCMD_GenKey_InCmd_eKeySize = (24 << 2) + 3,
@@ -826,5 +833,57 @@ typedef enum BCMD_KLAD_Response_OutCmdField_e
 
 
 
+
+
+
+
+typedef enum BCMD_RPMB_KEYGEN_InCmd_e
+{
+    BCMD_RPMB_KEYGEN_eKeyLadderType = (5 << 2) + 2,
+    BCMD_RPMB_KEYGEN_eVKLID     = (5 << 2) + 3,
+    BCMD_RPMB_KEYGEN_eMax
+}BCMD_RPMB_KEYGEN_InCmd_e;
+
+typedef enum BCMD_RPMB_KEYGEN_OutCmdField_e
+{
+    BCMD_RPMB_KEYGEN_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_RPMB_KEYGEN_OutCmdField_eKey    = (6 << 2) + 0,
+    BCMD_RPMB_KEYGEN_OutCmdField_eMax
+}BCMD_RPMB_KEYGEN_OutCmdField_e;
+
+
+
+typedef enum BCMD_DISABLE_RPMB_HMAC_InCmd_e
+{
+    BCMD_DISABLE_RPMB_HMAC_eMax
+}BCMD_DISABLE_RPMB_HMAC_InCmd_e;
+
+typedef enum BCMD_DISABLE_RPMB_HMAC_OutCmdField_e
+{
+    BCMD_DISABLE_RPMB_HMAC_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_DISABLE_RPMB_HMAC_OutCmdField_eMax
+}BCMD_DISABLE_RPMB_HMAC_OutCmdField_e;
+
+
+
+
+typedef enum BCMD_RPMB_ProgUseKey_InCmd_e
+{
+    BCMD_RPMB_ProgUseKey_eRandomConstant            = (5 << 2) + 0,
+    BCMD_RPMB_ProgUseKey_eDesiredRPMBUseKeyModBits  = (9 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_eCurrentRPMBUseKeyModBits  = (10 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_InCmdField_eRPMBUseKeyModBitsMask = (11 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_eSignature = (12 << 2) + 0,
+    BCMD_RPMB_ProgUseKey_InCmdField_eVKLId = (20 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_InCmdField_eKeyLayer = (21 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_InCmd_eMax
+}BCMD_RPMB_ProgUseKey_InCmd_e;
+
+
+typedef enum BCMD_RPMB_ProgUseKey_OutCmdField_e
+{
+    BCMD_RPMB_ProgUseKey_OutCmdField_eStatus = (5 << 2) + 3,
+    BCMD_RPMB_ProgUseKey_OutCmdField_eMax
+}BCMD_RPMB_ProgUseKey_OutCmdField_e;
 
 #endif

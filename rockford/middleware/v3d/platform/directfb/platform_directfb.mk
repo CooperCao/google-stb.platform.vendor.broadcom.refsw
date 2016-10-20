@@ -33,9 +33,11 @@ endif
 
 CFLAGS += \
 	-fpic -DPIC \
+	-std=c99 \
 	-I. \
 	-I$(V3D_DIR)/interface/khronos/include \
 	-DBCHP_CHIP=$(BCHP_CHIP) \
+	-D_XOPEN_SOURCE=600 \
 	-I${DIRECTFB_INSTALL_DIRECTFB_INCLUDE_DIR} \
 	-I../nexus \
 	-DDIRECTFB

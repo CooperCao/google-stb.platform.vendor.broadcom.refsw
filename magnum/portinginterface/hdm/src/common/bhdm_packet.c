@@ -144,6 +144,25 @@ BERR_Code BHDM_InitializePacketRAM(
 }
 
 
+
+void BHDM_P_EnablePacketTransmission_isr(
+   const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
+   BHDM_Packet PacketId
+)
+{
+	BREG_Handle hRegister ;
+	uint32_t Register, ulOffset ;
+
+	hRegister = hHDMI->hRegister ;
+	ulOffset = hHDMI->ulOffset ;
+
+	/* set the transmission bit */
+	Register = BREG_Read32(hRegister, BCHP_HDMI_RAM_PACKET_CONFIG + ulOffset) ;
+	Register |= 1 << (uint8_t) PacketId ;
+	BREG_Write32(hRegister, BCHP_HDMI_RAM_PACKET_CONFIG + ulOffset, Register) ;
+}
+
+
 BERR_Code BHDM_EnablePacketTransmission(
    const BHDM_Handle hHDMI,		   /* [in] HDMI handle */
    BHDM_Packet PacketId)
@@ -159,10 +178,35 @@ BERR_Code BHDM_EnablePacketTransmission(
 	hRegister = hHDMI->hRegister ;
 	ulOffset = hHDMI->ulOffset ;
 
-	/* set the transmission bit */
-	Register = BREG_Read32(hRegister, BCHP_HDMI_RAM_PACKET_CONFIG + ulOffset) ;
-	Register |= 1 << (uint8_t) PacketId ;
-	BREG_Write32(hRegister, BCHP_HDMI_RAM_PACKET_CONFIG + ulOffset, Register) ;
+	/* the following is a workaround to delay/pause the transmision of DRM packets */
+	/* some TVs will not recognize the change in DRM packets unless the DRM packets */
+	/* are turned OFF for a period of time prior to makeing a change; */
+
+	/* the HDMI 2.0 spec indicates 2s of SDR before switching modes */
+	/* the reference code will do this anyway, however some TVs still */
+	/* do not detect the change unless the DRM packet is turned off 1st */
+
+#if 1
+	/* DEBUG/workaround delay start of DRM Packet */
+
+	/* time in milleseconds to delay DRM packet transmission */
+#define BHDM_PACKET_DELAY 100
+	if (PacketId == BHDM_PACKET_eDRM_ID)
+	{
+		BDBG_MSG(("Delay PacketId %d  for %dms later...", PacketId, BHDM_PACKET_DELAY)) ;
+		rc = BTMR_StartTimer(hHDMI->TimerPacketChangeDelay,
+			BHDM_P_MILLISECOND * BHDM_PACKET_DELAY) ;
+		if (rc) {rc = BERR_TRACE(rc) ; goto done ;}
+
+		hHDMI->uiPacketRestartMask |= 1 << (uint32_t) PacketId ;
+
+		goto done ;  /* packet transmission will start later */
+	}
+#endif
+
+	BKNI_EnterCriticalSection() ;
+		BHDM_P_EnablePacketTransmission_isr(hHDMI, PacketId) ;
+	BKNI_LeaveCriticalSection() ;
 
 	/* wait until RAM Packet Status starts transmitting (RAM_PACKET_X = 0) */
 	timeoutMs = 10 ;
@@ -352,6 +396,7 @@ done:
 
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
 	Create/Set a user defined packet
@@ -418,6 +463,7 @@ BERR_Code BHDM_SetUserDefinedPacket(
 done:
 	return rc ;
 }
+#endif
 
 
 #if BHDM_CONFIG_HDMI_1_3_SUPPORT

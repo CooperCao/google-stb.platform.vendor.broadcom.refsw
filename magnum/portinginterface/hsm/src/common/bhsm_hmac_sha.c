@@ -61,7 +61,7 @@ BDBG_MODULE(BHSM);
 
 BDBG_OBJECT_ID_DECLARE( BHSM_P_Handle );
 
-static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo )
+BERR_Code BHSM_UserHmacSha ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo )
 {
     BHSM_BspMsg_h       hMsg = NULL;
     BHSM_BspMsgHeader_t header;
@@ -76,7 +76,7 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
     uint32_t            inputDataOffset;
     #define MIN_DATA_BY_DRAM (1)  /* if data length is less that this value, the data will be include *within* the BSP packet */
 
-    BDBG_ENTER( BHSM_P_UserHmacSha_impl );
+    BDBG_ENTER( BHSM_UserHmacSha );
 
     BDBG_OBJECT_ASSERT( hHsm, BHSM_P_Handle );
 
@@ -122,7 +122,7 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
     }
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eOperation,  pIo->oprMode );
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIncludeKey, pIo->keyIncMode );
-    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIsAddress, (pIo->unInputDataLen > MIN_DATA_BY_DRAM) ? 1 : 0 );
+    BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eIsAddress,  pIo->dataInplace?0:1 );
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eShaType,    pIo->shaType );
     BHSM_BspMsg_Pack8( hMsg, BCMD_HmacSha1_InCmdField_eContextId,  pIo->contextSwitch );
 
@@ -146,14 +146,25 @@ static BERR_Code BHSM_P_UserHmacSha_impl ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_
 
     BHSM_BspMsg_Pack32( hMsg, offset_DataLength, pIo->unInputDataLen );
 
-    if( pIo->unInputDataLen <= MIN_DATA_BY_DRAM ) /* include it within the BSP packet */
+    if( pIo->dataInplace )
     {
-        BHSM_BspMsg_PackArray( hMsg, offset_Data, pIo->pucInputData, pIo->unInputDataLen );
+        if( pIo->unInputDataLen > sizeof(pIo->inputData) )
+        {
+            rc = BERR_TRACE( BHSM_STATUS_INPUT_PARM_ERR );
+            goto BHSM_P_DONE_LABEL;
+        }
+
+        /* include it within the BSP packet */
+        BHSM_BspMsg_PackArray( hMsg, offset_Data, pIo->inputData, pIo->unInputDataLen );
     }
     else
     {
         rc = BMEM_Heap_ConvertAddressToOffset( hHsm->hHeap, (void*)pIo->pucInputData, &inputDataOffset );
-        if( rc != BERR_SUCCESS ) { return BERR_TRACE(rc); }
+        if( rc != BERR_SUCCESS )
+        {
+            BERR_TRACE( rc );
+            goto BHSM_P_DONE_LABEL;
+        }
 
         BHSM_BspMsg_Pack32( hMsg, offset_Data, inputDataOffset );
     }
@@ -188,115 +199,6 @@ BHSM_P_DONE_LABEL:
 
     (void)BHSM_BspMsg_Destroy( hMsg );
 
-    BDBG_LEAVE( BHSM_P_UserHmacSha_impl );
+    BDBG_LEAVE( BHSM_UserHmacSha );
     return rc;
-}
-
-/*
-    BHSM_UserHmacSha performs prepocesing on the input parameters:
-        - if a byte swap is reqeusted, or memory data is stored in is no BMEM, a
-          shadow buffer is created.
-        - if the data is greater that 8M, it is submitted in chunks of of 8M to the BSP.
-
-*/
-BERR_Code BHSM_UserHmacSha ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo )
-{
-    BERR_Code rc = BERR_SUCCESS;
-
-    #define MAX_BYTE_SWAP_BUFFER_SIZE (1024*1024)
-    #define MAX_TRANSFER_SIZE 0x800000 /* max allowed by BSP. */
-
-    /* handle a byteswap, or sysem memory. */
-    if( pIo->byteSwap || pIo->systemMemory )
-    {
-        uint8_t *pInputData = pIo->pucInputData;
-        uint32_t inputDataLength = pIo->unInputDataLen;
-        uint8_t *pBuf = NULL;
-        unsigned bufSize  = MIN( pIo->unInputDataLen, MAX_BYTE_SWAP_BUFFER_SIZE );
-        void* pCachedBufPtr = NULL; /* ACPU accessible pointer. */
-        BHSM_HMACSHA_ContinualMode_e contModeOrig = pIo->contMode;
-
-        pBuf = (uint8_t*)BMEM_AllocAligned( hHsm->hHeap, ROUND_UP_4(bufSize), 6, 0 );
-        if( pBuf == NULL ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
-
-        rc = BMEM_ConvertAddressToCached( hHsm->hHeap, pBuf, &pCachedBufPtr );
-        if( rc != BERR_SUCCESS )
-        {
-            BMEM_Free( hHsm->hHeap, pBuf );
-            return BERR_TRACE( BHSM_STATUS_MEMORY_PHYCOVERTING_ERR );
-        }
-
-        if( inputDataLength > bufSize )
-        {
-            pIo->contMode  = BHSM_HMACSHA_ContinualMode_eMoreSeg;
-        }
-
-        pIo->unInputDataLen = bufSize;
-        pIo->pucInputData = pBuf;
-
-        while( inputDataLength > bufSize )
-        {
-            BHSM_MemcpySwap( pCachedBufPtr, pInputData, bufSize, pIo->byteSwap );
-            BMEM_FlushCache( hHsm->hHeap, pCachedBufPtr, ROUND_UP_4(bufSize) );
-
-            rc = BHSM_P_UserHmacSha_impl( hHsm, pIo );
-            if( rc != BERR_SUCCESS )
-            {
-                BMEM_Free ( hHsm->hHeap, pBuf );
-                return BERR_TRACE(rc);
-            }
-
-            pInputData += bufSize;
-            inputDataLength -= bufSize;
-        }
-
-        pIo->unInputDataLen = inputDataLength;
-        pIo->contMode = contModeOrig;
-
-        BHSM_MemcpySwap( pCachedBufPtr, pInputData, pIo->unInputDataLen, pIo->byteSwap );
-        BMEM_FlushCache( hHsm->hHeap, pCachedBufPtr, ROUND_UP_4(bufSize) );
-
-        rc = BHSM_P_UserHmacSha_impl( hHsm, pIo );
-        if( rc != BERR_SUCCESS )
-        {
-            BMEM_Free ( hHsm->hHeap, pBuf );
-            return BERR_TRACE(rc);
-        }
-
-        BMEM_Free ( hHsm->hHeap, pBuf );
-        return BERR_SUCCESS;
-    }
-
-    /* The BSP can only handle 8Mbytes at a time. Here, larger data blocks are split. */
-    if( pIo->unInputDataLen > MAX_TRANSFER_SIZE )
-    {
-        uint32_t inputDataLength = pIo->unInputDataLen;
-        BHSM_HMACSHA_ContinualMode_e contModeOrig = pIo->contMode;
-
-        pIo->unInputDataLen = MAX_TRANSFER_SIZE;
-        pIo->contMode   = BHSM_HMACSHA_ContinualMode_eMoreSeg;
-
-        do
-        {
-            BMEM_FlushCache( hHsm->hHeap, pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
-            rc = BHSM_P_UserHmacSha_impl( hHsm, pIo );
-            if( rc != BERR_SUCCESS ){ return BERR_TRACE(rc); }
-
-            inputDataLength -= MAX_TRANSFER_SIZE;
-            pIo->pucInputData += MAX_TRANSFER_SIZE;
-
-        }while( inputDataLength > MAX_TRANSFER_SIZE );
-
-        pIo->unInputDataLen = inputDataLength;
-        pIo->contMode = contModeOrig;
-
-        BMEM_FlushCache( hHsm->hHeap, pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
-        rc = BHSM_P_UserHmacSha_impl( hHsm, pIo );
-        if( rc != BERR_SUCCESS ){ return BERR_TRACE(rc); }
-
-        return BERR_SUCCESS;
-    }
-
-    BMEM_FlushCache( hHsm->hHeap, pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
-    return BHSM_P_UserHmacSha_impl( hHsm, pIo );
 }

@@ -15,6 +15,7 @@ client side API
 #include "interface/khronos/include/EGL/eglext.h"
 #include "interface/khronos/common/khrn_int_common.h"
 #include "interface/khronos/common/khrn_int_image.h"
+#include "vcfw/rtos/abstract/rtos_abstract_mem.h"
 #include <stdlib.h> // for size_t
 
 /* Per-platform types are defined in here. Most platforms can be supported
@@ -214,7 +215,13 @@ extern bool khrn_platform_decode_native(EGLClientBuffer buffer,
                                         uint32_t *offset,
                                         void **p);
 
+extern MEM_HANDLE_T khrn_platform_image_new(EGLClientBuffer buffer, EGLenum target, EGLint *error);
+extern MEM_HANDLE_T khrn_platform_image_wrap(EGLClientBuffer buffer);
+
 extern EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id);
+
+extern void khrn_platform_inc_refcnt(EGLClientBuffer buffer);
+extern void khrn_platform_dec_refcnt(EGLClientBuffer buffer);
 
 extern uint32_t khrn_platform_get_window_position(EGLNativeWindowType win);
 

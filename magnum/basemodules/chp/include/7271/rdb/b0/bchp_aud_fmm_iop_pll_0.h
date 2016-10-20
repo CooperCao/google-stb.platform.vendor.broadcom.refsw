@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,33 +70,33 @@
 /***************************************************************************
  *AUD_FMM_IOP_PLL_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_PLL_0_MACRO             0x20cb0d00 /* [RW] Audio PLL Sample Rate Macro Select */
-#define BCHP_AUD_FMM_IOP_PLL_0_CONTROL_0         0x20cb0d04 /* [RW] Audio PLL Controls */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_NDIV         0x20cb0d08 /* [RW] Audio PLL User Ndiv Settings */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_CTLBUS_HI    0x20cb0d0c /* [RW] Audio PLL User Control Word HI */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_CTLBUS_LO    0x20cb0d10 /* [RW] Audio PLL User Control Word LO */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch0     0x20cb0d20 /* [RW] Audio PLL User MDiv Settings Ch0 */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch1     0x20cb0d24 /* [RW] Audio PLL User MDiv Settings Ch1 */
-#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch2     0x20cb0d28 /* [RW] Audio PLL User MDiv Settings Ch2 */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_NDIV       0x20cb0d40 /* [RO] Audio PLL Active Ndiv Controls */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_HI  0x20cb0d44 /* [RO] Audio PLL Active Control Word HI */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_LO  0x20cb0d48 /* [RO] Audio PLL Active Control Word LO */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch0   0x20cb0d50 /* [RO] Audio PLL Active Divider Settings Ch0 */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch1   0x20cb0d54 /* [RO] Audio PLL Active Divider Settings Ch1 */
-#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch2   0x20cb0d58 /* [RO] Audio PLL Active Divider Settings Ch2 */
-#define BCHP_AUD_FMM_IOP_PLL_0_BG_PWRON          0x20cb0d60 /* [RW] Audio PLL Bandgap Power on */
-#define BCHP_AUD_FMM_IOP_PLL_0_PDIV              0x20cb0d64 /* [RW] Audio PLL Pre multiplier */
-#define BCHP_AUD_FMM_IOP_PLL_0_GAIN              0x20cb0d68 /* [RW] Audio PLL GAIN */
-#define BCHP_AUD_FMM_IOP_PLL_0_LDO_CTRL          0x20cb0d6c /* [RW] Audio PLL Ldo voltage control */
-#define BCHP_AUD_FMM_IOP_PLL_0_LDO_PWRON         0x20cb0d70 /* [RW] Audio PLL LDO Power on */
-#define BCHP_AUD_FMM_IOP_PLL_0_LOCK_STATUS       0x20cb0d74 /* [RO] Audio PLL Lock Status */
-#define BCHP_AUD_FMM_IOP_PLL_0_PWRON             0x20cb0d78 /* [RW] Audio PLL Poweron */
-#define BCHP_AUD_FMM_IOP_PLL_0_RESET             0x20cb0d7c /* [RW] Audio PLL Resets */
-#define BCHP_AUD_FMM_IOP_PLL_0_SSC_MODE_CONTROL_HIGH 0x20cb0d80 /* [RW] Audio PLL Higher bits of Spread Spectrum mode control */
-#define BCHP_AUD_FMM_IOP_PLL_0_SSC_MODE_CONTROL_LOW 0x20cb0d84 /* [RW] Audio PLL Lower bits of Spread Spectrum mode control */
-#define BCHP_AUD_FMM_IOP_PLL_0_TEST_STATUS       0x20cb0d88 /* [RO] Audio PLL Test Status */
-#define BCHP_AUD_FMM_IOP_PLL_0_ISOLATION         0x20cb0d8c /* [RW] Audio PLL Isolation Control */
-#define BCHP_AUD_FMM_IOP_PLL_0_CTRL_WRAPPER_CONTROL 0x20cb0d90 /* [RW] Audio PLL Control Wrapper */
+#define BCHP_AUD_FMM_IOP_PLL_0_MACRO             0x20cb0d00 /* [RW][32] Audio PLL Sample Rate Macro Select */
+#define BCHP_AUD_FMM_IOP_PLL_0_CONTROL_0         0x20cb0d04 /* [RW][32] Audio PLL Controls */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_NDIV         0x20cb0d08 /* [RW][32] Audio PLL User Ndiv Settings */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_CTLBUS_HI    0x20cb0d0c /* [RW][32] Audio PLL User Control Word HI */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_CTLBUS_LO    0x20cb0d10 /* [RW][32] Audio PLL User Control Word LO */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch0     0x20cb0d20 /* [RW][32] Audio PLL User MDiv Settings Ch0 */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch1     0x20cb0d24 /* [RW][32] Audio PLL User MDiv Settings Ch1 */
+#define BCHP_AUD_FMM_IOP_PLL_0_USER_MDIV_Ch2     0x20cb0d28 /* [RW][32] Audio PLL User MDiv Settings Ch2 */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_NDIV       0x20cb0d40 /* [RO][32] Audio PLL Active Ndiv Controls */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_HI  0x20cb0d44 /* [RO][32] Audio PLL Active Control Word HI */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_CTLBUS_LO  0x20cb0d48 /* [RO][32] Audio PLL Active Control Word LO */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch0   0x20cb0d50 /* [RO][32] Audio PLL Active Divider Settings Ch0 */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch1   0x20cb0d54 /* [RO][32] Audio PLL Active Divider Settings Ch1 */
+#define BCHP_AUD_FMM_IOP_PLL_0_ACTIVE_MDIV_Ch2   0x20cb0d58 /* [RO][32] Audio PLL Active Divider Settings Ch2 */
+#define BCHP_AUD_FMM_IOP_PLL_0_BG_PWRON          0x20cb0d60 /* [RW][32] Audio PLL Bandgap Power on */
+#define BCHP_AUD_FMM_IOP_PLL_0_PDIV              0x20cb0d64 /* [RW][32] Audio PLL Pre multiplier */
+#define BCHP_AUD_FMM_IOP_PLL_0_GAIN              0x20cb0d68 /* [RW][32] Audio PLL GAIN */
+#define BCHP_AUD_FMM_IOP_PLL_0_LDO_CTRL          0x20cb0d6c /* [RW][32] Audio PLL Ldo voltage control */
+#define BCHP_AUD_FMM_IOP_PLL_0_LDO_PWRON         0x20cb0d70 /* [RW][32] Audio PLL LDO Power on */
+#define BCHP_AUD_FMM_IOP_PLL_0_LOCK_STATUS       0x20cb0d74 /* [RO][32] Audio PLL Lock Status */
+#define BCHP_AUD_FMM_IOP_PLL_0_PWRON             0x20cb0d78 /* [RW][32] Audio PLL Poweron */
+#define BCHP_AUD_FMM_IOP_PLL_0_RESET             0x20cb0d7c /* [RW][32] Audio PLL Resets */
+#define BCHP_AUD_FMM_IOP_PLL_0_SSC_MODE_CONTROL_HIGH 0x20cb0d80 /* [RW][32] Audio PLL Higher bits of Spread Spectrum mode control */
+#define BCHP_AUD_FMM_IOP_PLL_0_SSC_MODE_CONTROL_LOW 0x20cb0d84 /* [RW][32] Audio PLL Lower bits of Spread Spectrum mode control */
+#define BCHP_AUD_FMM_IOP_PLL_0_TEST_STATUS       0x20cb0d88 /* [RO][32] Audio PLL Test Status */
+#define BCHP_AUD_FMM_IOP_PLL_0_ISOLATION         0x20cb0d8c /* [RW][32] Audio PLL Isolation Control */
+#define BCHP_AUD_FMM_IOP_PLL_0_CTRL_WRAPPER_CONTROL 0x20cb0d90 /* [RW][32] Audio PLL Control Wrapper */
 
 /***************************************************************************
  *MACRO - Audio PLL Sample Rate Macro Select

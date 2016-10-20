@@ -35,7 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * [File Description:]
+ * Module Description:
  *
  ***************************************************************************/
 
@@ -72,12 +72,12 @@ static void BXDM_PPFRD_S_AddDeltaPTS_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
+   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddDeltaPTS_isr(%d.%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               pstDeltaPTS->uiWhole,
                               pstDeltaPTS->uiFractional,
-                              hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount );
+                              hXdmPP->stDMState.stDecode.stFRDStats.uiDeltaPTSCount ));
 #endif
 
    /* Replace the old entry with the new entry */
@@ -114,11 +114,11 @@ static void BXDM_PPFRD_S_AddNumElements_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
+   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_S_AddNumElements_isr(%d)[%d]",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiNumElements,
-                              hXdmPP->stDMState.stDecode.stFRDStats.uiNumPicturesCount);
+                              hXdmPP->stDMState.stDecode.stFRDStats.uiNumPicturesCount));
 #endif
 
    /* Replace the old entry with the new entry */
@@ -149,11 +149,11 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
    uint32_t i;
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
+   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_AddPTS_isr(%d, %d)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               uiPTS,
-                              bPTSValid );
+                              bPTSValid ));
 #endif
 
    if ( true == bPTSValid )
@@ -196,19 +196,19 @@ BERR_Code BXDM_PPFRD_P_AddPTS_isr(
             }
             else
             {
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS discontinuity detected (dPTS=%d).  Ignoring deltaPTS during discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                          stDeltaPTS.uiWhole );
+                                          stDeltaPTS.uiWhole ));
             }
          }
          else
          {
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] Warning, PTS wrap/discontinuity detected (%08x -> %08x).  Ignoring deltaPTS during wrap/discontinuity.",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                           BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                           hXdmPP->stDMState.stDecode.stFRDStats.uiLastPTS,
-                                          uiPTS );
+                                          uiPTS ));
          }
       }
 
@@ -401,7 +401,7 @@ BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(
    }
 
 #if BXDM_DEBUG_LOW_PRIORITY
-   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
+   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFRD, "%x:[%02x.xxx] BXDM_PPFRD_P_GetFrameRate_isr((%d.%d)/%d = %d.%d --> %d [%d])",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                               hXdmPP->stDMState.stDecode.stFRDStats.stDeltaPTSRunningSum.uiWhole,
@@ -410,7 +410,7 @@ BERR_Code BXDM_PPFRD_P_GetFrameRate_isr(
                               stAverageDeltaPTS.uiWhole,
                               stAverageDeltaPTS.uiFractional,
                               *peFrameRate,
-                              eFrameRateDetectionMode );
+                              eFrameRateDetectionMode ));
 #endif
 
    return BERR_SUCCESS;

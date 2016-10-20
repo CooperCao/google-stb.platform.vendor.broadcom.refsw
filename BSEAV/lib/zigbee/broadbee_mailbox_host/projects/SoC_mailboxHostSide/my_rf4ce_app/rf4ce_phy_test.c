@@ -51,6 +51,7 @@
 #include "zigbee_rf4ce_registration.h"
 #include "zigbee_dbg.h"
 #define SYS_DBG_LOG_BUFFER_SIZE     256
+#define COMMAND_LINE
 
 #  define HAL_DbgLogStr(message)                                TEST_DbgLogStr(message)
 
@@ -961,7 +962,7 @@ static void phy_Test_Select_Antenna()
         printf("status : %02x\n",  conf->status);
         statusphy_Test_Select_Antenna = 1;
     }
-    req.params.antenna = RF4CE_CTRL_ANTENNA_1;
+    req.params.antenna = RF4CE_ANTENNA_TX_ANT1_RX_ANT1;
     req.callback = phy_Test_Set_TX_Power_Callback;
 
     Phy_Test_SelectAntenna_Req(&req);
@@ -1228,6 +1229,44 @@ static void My_SYS_EventNtfy(SYS_EventNotifyParams_t *event)
     }
 }
 
+static void help_screen(void)
+{
+    printf("\nUsage:  rf4ce_phy_test_app [command]\n");
+    printf("\n");
+    printf("Supported commands:\n");
+    printf("=============================================\n");
+    printf("rf4ce_Test_Get_Caps_Ex\n");
+    printf("rf4ce_Test_Get_Supported_Profiles\n");
+    printf("rf4ce_Get_NWK_Information\n");
+    printf("rf4ce_Test_Get_Num_Paired_Devices\n");
+    printf("rf4ce_Test_Get_Paired_Devices\n");
+    printf("rf4ce_Get_pairingTableEntriesMax\n");
+    printf("rf4ce_Set_TX_Power_Key_Exchange\n");
+    printf("rf4ce_Test_Subscribe_Event\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_Caps\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_Agility\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_Caps\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_TxPower\n");
+    printf("rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange\n");
+    printf("zrc1_Test_Get_Extended_Cap\n");
+    printf("phy_Test_Get_Caps\n");
+    printf("phy_Test_Set_Channel\n");
+    printf("phy_Test_Continuous_Wave_Start\n");
+    printf("phy_Test_Continuous_Wave_Stop\n");
+    printf("phy_Test_Transmit_Start\n");
+    printf("phy_Test_Transmit_Stop\n");
+    printf("phy_Test_Receive_Start\n");
+    printf("phy_Test_Receive_Stop\n");
+    printf("phy_Test_Echo_Start\n");
+    printf("phy_Test_Echo_Stop\n");
+    printf("phy_Test_Energy_Detect_Scan\n");
+    printf("phy_Test_Get_Stats\n");
+    printf("phy_Test_Reset_Stats\n");
+    printf("phy_Test_Set_TX_Power\n");
+    printf("phy_Test_Select_Antenna\n");
+    printf("=============================================\n");
+}
+
 int main(int argc, char *argv[])
 {
     struct zigbeeCallback zcb;
@@ -1235,6 +1274,16 @@ int main(int argc, char *argv[])
 #ifdef BYPASS_RPC
     extern int zigbee_init(int argc, char *argv[]);
     zigbee_init(argc, argv);
+#endif
+
+#ifdef COMMAND_LINE
+
+    if (argc == 1) {
+        help_screen();
+        return(0);
+    }
+    argc--, argv++;
+
 #endif
 
     /* Register the callback functions you are interested in.  Ones that are not filled out, won't be called back. */
@@ -1248,8 +1297,163 @@ int main(int argc, char *argv[])
 
     Zigbee_Open(&zcb, "127.0.0.1");
 
+#ifdef COMMAND_LINE
+
+    if ( argc ) {
+        printf("--%s-- argc=%d\n", *argv, argc);
+        if (strcmp (*argv, "rf4ce_Test_Get_Caps_Ex") == 0) {
+            printf("rf4ce_Test_Get_Caps_Ex\n");
+            rf4ce_Test_Get_Caps_Ex();
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_Get_Supported_Profiles") == 0) {
+            printf("rf4ce_Test_Get_Supported_Profiles\n");
+            rf4ce_Test_Get_Supported_Profiles();
+        }
+
+        if (strcmp (*argv, "rf4ce_Get_NWK_Information") == 0) {
+            printf("rf4ce_Get_NWK_Information\n");
+            rf4ce_Get_NWK_Information();
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_Get_Num_Paired_Devices") == 0) {
+            printf("rf4ce_Test_Get_Num_Paired_Devices\n");
+            printf("%d device(s) has been paired\n", rf4ce_Test_Get_Num_Paired_Devices());
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_Get_Paired_Devices") == 0) {
+            printf("rf4ce_Test_Get_Paired_Devices\n");
+            rf4ce_Test_Get_Paired_Devices();
+        }
+
+        if (strcmp (*argv, "rf4ce_Get_pairingTableEntriesMax") == 0) {
+            printf("rf4ce_Get_pairingTableEntriesMax\n");
+            printf("Max Pairing Table Entries : %d\n", rf4ce_Get_pairingTableEntriesMax());
+        }
+
+        if (strcmp (*argv, "rf4ce_Set_TX_Power_Key_Exchange") == 0) {
+            printf("rf4ce_Set_TX_Power_Key_Exchange\n");
+            rf4ce_Set_TX_Power_Key_Exchange(10);
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_Subscribe_Event") == 0) {
+            printf("rf4ce_Test_Subscribe_Event\n");
+            rf4ce_Test_Subscribe_Event();
+        }
+
+        if (strcmp (*argv, "zrc1_Test_Get_Extended_Cap") == 0) {
+            printf("zrc1_Test_Get_Extended_Cap\n");
+            RF4CEZRCInputCapsEx cap;
+            cap.version = RF4CE_ZRC_INPUT_CAP_V0;
+            cap.capabilitySize = sizeof(RF4CEZRCInputCapsV0);
+            zrc1_Test_Get_Extended_Cap(&cap);
+        }
+
+        if (strcmp (*argv, "phy_Test_Get_Caps") == 0) {
+            printf("phy_Test_Get_Caps\n");
+            phy_Test_Get_Caps();
+        }
+
+        if (strcmp (*argv, "phy_Test_Set_Channel") == 0) {
+            printf("phy_Test_Set_Channel\n");
+            phy_Test_Set_Channel();
+        }
+
+        if (strcmp (*argv, "phy_Test_Continuous_Wave_Start") == 0) {
+            printf("phy_Test_Continuous_Wave_Start\n");
+            phy_Test_Continuous_Wave_Start();
+        }
+
+        if (strcmp (*argv, "phy_Test_Continuous_Wave_Stop") == 0) {
+            printf("phy_Test_Continuous_Wave_Stop\n");
+            phy_Test_Continuous_Wave_Stop();
+        }
+
+        if (strcmp (*argv, "phy_Test_Transmit_Start") == 0) {
+            printf("phy_Test_Transmit_Start\n");
+            phy_Test_Transmit_Start();
+        }
+
+        if (strcmp (*argv, "phy_Test_Transmit_Stop") == 0) {
+            printf("phy_Test_Transmit_Stop\n");
+            phy_Test_Transmit_Stop();
+        }
+
+        if (strcmp (*argv, "phy_Test_Receive_Start") == 0) {
+            printf("phy_Test_Receive_Start\n");
+            phy_Test_Receive_Start();
+        }
+
+        if (strcmp (*argv, "phy_Test_Receive_Stop") == 0) {
+            printf("phy_Test_Receive_Stop\n");
+            phy_Test_Receive_Stop();
+        }
+
+        if (strcmp (*argv, "phy_Test_Echo_Start") == 0) {
+            printf("phy_Test_Echo_Start\n");
+            phy_Test_Echo_Start();
+        }
+
+        if (strcmp (*argv, "phy_Test_Echo_Stop") == 0) {
+            printf("phy_Test_Echo_Stop\n");
+            phy_Test_Echo_Stop();
+        }
+
+        if (strcmp (*argv, "phy_Test_Energy_Detect_Scan") == 0) {
+            printf("phy_Test_Energy_Detect_Scan\n");
+            phy_Test_Energy_Detect_Scan();
+        }
+
+        if (strcmp (*argv, "phy_Test_Get_Stats") == 0) {
+            printf("phy_Test_Get_Stats\n");
+            phy_Test_Get_Stats();
+        }
+
+        if (strcmp (*argv, "phy_Test_Reset_Stats") == 0) {
+            printf("phy_Test_Reset_Stats\n");
+            phy_Test_Reset_Stats();
+        }
+
+        if (strcmp (*argv, "phy_Test_Set_TX_Power") == 0) {
+            printf("phy_Test_Set_TX_Power\n");
+            phy_Test_Set_TX_Power(10);
+        }
+
+        if (strcmp (*argv, "phy_Test_Select_Antenna") == 0) {
+            printf("phy_Test_Select_Antenna\n");
+            phy_Test_Select_Antenna();
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_RF4CE_Get_Diag_Caps") == 0) {
+            printf("rf4ce_Test_RF4CE_Get_Diag_Caps\n");
+            rf4ce_Test_RF4CE_Get_Diag_Caps();
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_RF4CE_Get_Diag_Agility") == 0) {
+            printf("rf4ce_Test_RF4CE_Get_Diag_Agility\n");
+            rf4ce_Test_RF4CE_Get_Diag_Agility();
+        }
+
+        if (strcmp (*argv, "zrc1_Test_Get_Extended_Cap") == 0) {
+            printf("rf4ce_Test_RF4CE_Get_Diag_Caps\n");
+            rf4ce_Test_RF4CE_Get_Diag_LinkQuality(0);
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_RF4CE_Get_Diag_TxPower") == 0) {
+            printf("rf4ce_Test_RF4CE_Get_Diag_TxPower\n");
+            rf4ce_Test_RF4CE_Get_Diag_TxPower();
+        }
+
+        if (strcmp (*argv, "rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange") == 0) {
+            printf("rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange\n");
+            rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange();
+        }
+    }
+
+#else
+
     printf("\nPress any key to perform phy test\n");
-#if 0
+
     printf("rf4ce_Test_Get_Caps_Ex\n");
     getchar();
     rf4ce_Test_Get_Caps_Ex();
@@ -1276,7 +1480,7 @@ int main(int argc, char *argv[])
 
     printf("rf4ce_Set_TX_Power_Key_Exchange\n");
     getchar();
-    //rf4ce_Set_TX_Power_Key_Exchange(10);
+    rf4ce_Set_TX_Power_Key_Exchange(10);
     printf("rf4ce_Test_Subscribe_Event\n");
     getchar();
     rf4ce_Test_Subscribe_Event();
@@ -1287,7 +1491,7 @@ int main(int argc, char *argv[])
     cap.version = RF4CE_ZRC_INPUT_CAP_V0;
     cap.capabilitySize = sizeof(RF4CEZRCInputCapsV0);
     zrc1_Test_Get_Extended_Cap(&cap);
-#endif
+
     printf("Phy test\n");
     getchar();
     phy_Test_Get_Caps();
@@ -1295,22 +1499,11 @@ int main(int argc, char *argv[])
     phy_Test_Continuous_Wave_Start();
     phy_Test_Continuous_Wave_Stop();
     phy_Test_Transmit_Start();
-    getchar();
     phy_Test_Transmit_Stop();
-    getchar();
-    printf("Receive start\n");
     phy_Test_Receive_Start();
-    getchar();
-    printf("Receive stop\n");
     phy_Test_Receive_Stop();
-    getchar();
-    printf("phy_Test_Echo_Start ... \n");
     phy_Test_Echo_Start();
-    getchar();
-    printf("phy_Test_Echo_Stop ... \n");
     phy_Test_Echo_Stop();
-    getchar();
-    printf("phy_Test_Echo_Stop ... \n");
     phy_Test_Energy_Detect_Scan();
     phy_Test_Get_Stats();
     phy_Test_Reset_Stats();
@@ -1322,6 +1515,8 @@ int main(int argc, char *argv[])
     rf4ce_Test_RF4CE_Get_Diag_TxPower();
     rf4ce_Test_RF4CE_Get_Diag_TxPower_KeyExchange();
     printf("PHY_TEST_APP:  closing...\n");
+
+#endif
 
     Zigbee_Close();
 

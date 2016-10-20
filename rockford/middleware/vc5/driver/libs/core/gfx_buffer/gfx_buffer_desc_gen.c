@@ -186,7 +186,15 @@ static void adjust_lfmt_and_padding(
          }
       }
       else
-         swizzling = choose_swizzling_for_tex(bd, *padded_w_in_blocks, *padded_h_in_blocks); /* Use texture rules */
+      {
+         switch (gfx_lfmt_get_dims(lfmt))
+         {
+         case GFX_LFMT_DIMS_1D:  swizzling = GFX_LFMT_SWIZZLING_RSO; break;
+         case GFX_LFMT_DIMS_2D:
+         case GFX_LFMT_DIMS_3D:  swizzling = choose_swizzling_for_tex(bd, *padded_w_in_blocks, *padded_h_in_blocks); break; /* Use texture rules */
+         default: unreachable();
+         }
+      }
    }
    else if (swizzling_provided)
       swizzling = provided_swizzling;
@@ -194,17 +202,7 @@ static void adjust_lfmt_and_padding(
       swizzling = GFX_LFMT_SWIZZLING_RSO;
 
    /* Figure out padded dims & adjust UIF XOR-ness */
-   switch (gfx_lfmt_collapse_uif_family(swizzling))
-   {
-   case GFX_LFMT_SWIZZLING_RSO:
-      if (usage & GFX_BUFFER_USAGE_V3D_TEXTURE)
-         *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_1d);
-      break;
-   case GFX_LFMT_SWIZZLING_LT:
-      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_2d);
-      *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, bd->ut_h_in_blocks_2d);
-      break;
-   case GFX_LFMT_SWIZZLING_UIF:
+   if (gfx_lfmt_is_uif_family((GFX_LFMT_T)swizzling))
    {
       *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling));
       bool single_col = *padded_w_in_blocks <= gfx_lfmt_ucol_w_in_blocks_2d(bd, swizzling);
@@ -234,16 +232,22 @@ static void adjust_lfmt_and_padding(
           * single UIF column -- XOR mode only affects odd columns, so it's
           * pointless to enable unless there's more than one column. */
          swizzling = gfx_lfmt_to_uif_xor_family(swizzling);
-
-      break;
    }
+   else if (gfx_lfmt_is_sand_family((GFX_LFMT_T)swizzling))
+      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_sandcol_w_in_blocks_2d(bd, swizzling));
+   else switch (swizzling)
+   {
+   case GFX_LFMT_SWIZZLING_RSO:
+      if (usage & GFX_BUFFER_USAGE_V3D_TEXTURE)
+         *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_1d);
+      break;
+   case GFX_LFMT_SWIZZLING_LT:
+      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, bd->ut_w_in_blocks_2d);
+      *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, bd->ut_h_in_blocks_2d);
+      break;
    case GFX_LFMT_SWIZZLING_UBLINEAR:
       *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_ub_w_in_blocks_2d(bd, swizzling));
       *padded_h_in_blocks = gfx_uround_up_p2(*padded_h_in_blocks, gfx_lfmt_ub_h_in_blocks_2d(bd, swizzling));
-      break;
-   case GFX_LFMT_SWIZZLING_SAND_128:
-   case GFX_LFMT_SWIZZLING_SAND_256:
-      *padded_w_in_blocks = gfx_uround_up_p2(*padded_w_in_blocks, gfx_lfmt_sandcol_w_in_blocks_2d(bd, swizzling));
       break;
    default:
       unreachable();
@@ -373,9 +377,6 @@ void gfx_buffer_desc_gen_with_ml0_cfg(
    if (usage & GFX_BUFFER_USAGE_V3D_TLB_RAW)
       assert(dims == 2);
 #endif
-   if (usage & GFX_BUFFER_USAGE_V3D_TLB)
-      assert(dims >= 2);
-
    assert(num_mip_levels > 0);
    assert(num_mip_levels <= GFX_BUFFER_MAX_MIP_LEVELS);
 #if !V3D_HAS_NEW_TLB_CFG

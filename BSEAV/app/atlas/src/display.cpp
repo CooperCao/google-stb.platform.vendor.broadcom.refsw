@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -486,7 +486,7 @@ CDisplayVbiData CDisplay::getVbiSettings()
     NEXUS_DisplayVbiSettings displayVbiSettings;
 
     NEXUS_Display_GetVbiSettings(getDisplay(), &displayVbiSettings);
-    settings.bClosedCaptions = displayVbiSettings.closedCaptionEnabled;
+    settings.bClosedCaptions = _vbiSettings.bClosedCaptions;
     settings.bTeletext       = displayVbiSettings.teletextEnabled;
     settings.bWss            = displayVbiSettings.wssEnabled;
     settings.bCgms           = displayVbiSettings.cgmsEnabled;
@@ -847,12 +847,12 @@ eRet CDisplay::updateVideoWindowGeometry()
     setUpdateMode(false);
 
     /* pip swap does not acually swap the underlying video windows.  the windows
-       are kept the same but the content that passes to each video window is swapped.
-       most of atlas operates on the assumption that the video windows actually
-       change, but this function, which resizes the actual video windows, must
-       be aware of the fact that the main/pip video windows do not change
-       position.  because of this, we will use winTypeFull and winTypePip to
-       represent the actual underlaying window types for main and pip. */
+     * are kept the same but the content that passes to each video window is swapped.
+     * most of atlas operates on the assumption that the video windows actually
+     * change, but this function, which resizes the actual video windows, must
+     * be aware of the fact that the main/pip video windows do not change
+     * position.  because of this, we will use winTypeFull and winTypePip to
+     * represent the actual underlaying window types for main and pip. */
     eWindowType winTypeFull = _pModel->getFullScreenWindowType();
     eWindowType winTypePip  = _pModel->getPipScreenWindowType();
     if (true == _pModel->getPipSwapState())

@@ -44,6 +44,9 @@ enum
     UAPPD_MSG_FILE_WRITE,
     UAPPD_MSG_FILE_READ,
 
+    /* cmd/rpy initiated by Client */
+    UAPPD_MSG_UAPP_COREDUMP,
+
     UAPPD_MSG_LAST
 };
 
@@ -152,6 +155,21 @@ struct uappd_msg_file_read_rpy
 {
     uint32_t cookie;
     char path[UAPPD_PATH_LEN_MAX];
+    int retVal;
+};
+
+struct uappd_msg_uapp_coredump_cmd
+{
+    uint32_t cookie;
+    char name[UAPPD_NAME_LEN_MAX];
+    uint32_t paddr;
+    uint32_t bytes;
+};
+
+struct uappd_msg_uapp_coredump_rpy
+{
+    uint32_t cookie;
+    char name[UAPPD_NAME_LEN_MAX];
     int retVal;
 };
 

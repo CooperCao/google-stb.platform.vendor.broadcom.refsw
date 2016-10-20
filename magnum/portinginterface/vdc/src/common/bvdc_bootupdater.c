@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -72,7 +72,6 @@ BERR_Code BVDC_Open
 {
     BVDC_P_Context *pVdc = NULL;
     BERR_Code eStatus = BERR_SUCCESS;
-    BTMR_Settings sTmrSettings;
     uint32_t i;
 
     /* The handle will be NULL if create fails. */
@@ -162,11 +161,10 @@ BERR_Code BVDC_P_Source_Create
       BVDC_P_Resource_Handle           hResource,
       bool                             b3dSrc )
 {
-    uint32_t i;
-    BRDC_SlotId eSlotId;
     BVDC_P_SourceContext *pSource;
     BERR_Code eStatus = BERR_SUCCESS;
 
+    BSTD_UNUSED(hResource);
     BDBG_ENTER(BVDC_P_Source_Create);
     BDBG_ASSERT(phSource);
     BDBG_OBJECT_ASSERT(hVdc, BVDC_VDC);
@@ -213,13 +211,9 @@ void BVDC_P_Source_Init
     ( BVDC_Source_Handle               hSource,
       const BVDC_Source_Settings      *pDefSettings )
 {
-    uint32_t i;
-    const BFMT_VideoInfo *pDefFmt;
     BVDC_P_Source_Info *pNewInfo;
     BVDC_P_Source_Info *pCurInfo;
     BVDC_P_Source_IsrInfo *pIsrInfo;
-    bool bGfxSrc = false;
-    bool bMtgSrc = false;
 
     BDBG_ENTER(BVDC_P_Source_Init);
     BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
@@ -227,7 +221,6 @@ void BVDC_P_Source_Init
     /* Which heap to use? */
     hSource->hHeap = ((pDefSettings) && (pDefSettings->hHeap))
         ? pDefSettings->hHeap : hSource->hVdc->hBufferHeap;
-    bGfxSrc = true;
 
     /* New/Cur/Isr Info */
     pNewInfo = &hSource->stNewInfo;
@@ -327,9 +320,8 @@ void BVDC_P_Source_UpdateSrcState_isr
     /* get isr set info */
     if(BVDC_P_IS_DIRTY(&hSource->stIsrInfo.stDirty))
     {
-        BVDC_P_Source_DirtyBits *pIsrDirty, *pCurDirty;
+        BVDC_P_Source_DirtyBits *pIsrDirty;
 
-        pCurDirty = &hSource->stCurInfo.stDirty;
         pIsrDirty = &hSource->stIsrInfo.stDirty;
 
         /* inform next ApplyChanges to copy activated isr setting into new info */
@@ -473,6 +465,8 @@ BERR_Code BVDC_P_Window_GetPrivHandle
     BVDC_Window_Handle  hWindow;
     BVDC_P_WindowId  eWindowId;
 
+    BSTD_UNUSED (eWinId);
+    BSTD_UNUSED (eSrcId);
     eWindowId = (BVDC_CompositorId_eCompositor1 == hCompositor->eId)?
         BVDC_P_WindowId_eComp1_G0 : BVDC_P_WindowId_eComp0_G0;
     hWindow = hCompositor->ahWindow[eWindowId];
@@ -504,8 +498,9 @@ BERR_Code BVDC_P_Window_Create
     BVDC_P_WindowContext *pWindow;
     BVDC_P_WindowId      eWindowId;
     uint32_t ulBoxWinId;
-    BBOX_Vdc_Capabilities *pBoxVdc;
 
+    BSTD_UNUSED (eSrcId);
+    BSTD_UNUSED (eWinId);
     BDBG_ENTER(BVDC_P_Window_Create);
     BDBG_ASSERT(phWindow);
 
@@ -544,9 +539,9 @@ BERR_Code BVDC_P_Window_Create
     pWindow->hCompositor  = hCompositor;
 
     /* Check if BOX has specific deinterlacer allocation */
-    pBoxVdc = &hCompositor->hVdc->stBoxConfig.stVdc;
     ulBoxWinId = BVDC_P_GetBoxWindowId_isrsafe(eWindowId);
     BDBG_ASSERT(ulBoxWinId < BBOX_VDC_WINDOW_COUNT_PER_DISPLAY);
+    BSTD_UNUSED (ulBoxWinId);
 
 
     /* (6) create a DestroyDone event. */
@@ -580,14 +575,7 @@ void BVDC_P_Window_Init
 {
     BVDC_P_Window_Info *pNewInfo;
     BVDC_P_Window_Info *pCurInfo;
-    BVDC_P_Window_DirtyBits *pNewDirty;
     /* coverity[result_independent_of_operands: FALSE] */
-    uint32_t ulCxIntBits;
-    uint32_t ulCxFractBits;
-    BBOX_Vdc_Capabilities *pBoxVdc;
-    uint32_t ulBoxWinId;
-    BVDC_DisplayId eDisplayId = hWindow->hCompositor->hDisplay->eId;
-    BVDC_P_WindowId eWindowId = hWindow->eId;
 
     BDBG_ENTER(BVDC_P_Window_Init);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -837,9 +825,6 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
     ( BVDC_Window_Handle               hWindow )
 {
     BVDC_P_Window_Info *pNewInfo;
-    BVDC_P_Window_Info *pCurInfo;
-    BVDC_P_Window_DirtyBits *pNewDirty;
-    bool  bWindowStateChanged = false;
 
     BDBG_ENTER(BVDC_P_Window_ApplyChanges_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -849,8 +834,6 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
 
     /* To reduce the amount of typing */
     pNewInfo  = &hWindow->stNewInfo;
-    pCurInfo  = &hWindow->stCurInfo;
-    pNewDirty = &pNewInfo->stDirty;
 
     /* Update to take in new changes. */
     if(BVDC_P_WIN_IS_GFX_WINDOW(hWindow->eId))
@@ -869,7 +852,6 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
         hWindow->eState = BVDC_P_State_eActive;
 
         /* this flags a window is being created; */
-        bWindowStateChanged = true;
 
         BVDC_P_Source_ConnectWindow_isr(hWindow->stNewInfo.hSource, hWindow);
     }
@@ -919,6 +901,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
     BVDC_Compositor_Handle hCompositor;
     BVDC_P_State  eReaderState;
 
+    BSTD_UNUSED (bBuildCanvasCtrl);
     BDBG_ENTER(BVDC_P_Window_BuildReaderRul_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->stCurInfo.hSource, BVDC_SRC);
@@ -948,7 +931,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if((BVDC_P_State_eActive == eReaderState) &&
            ((hCompositor->hDisplay->bAlignAdjusting && !hCompositor->hDisplay->stCurInfo.stAlignCfg.bKeepBvnConnected)||
 
-            (0==hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ulAddress) || /* no valid sur */
+            (0==hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress) || /* no valid sur */
 
             (!hWindow->stCurInfo.bVisible)))  /* muted by user */
         {
@@ -968,7 +951,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
             BVDC_P_WIN_WRITE_TO_RUL(CMP_0_V0_SURFACE_CTRL, pList->pulCurrent);
         }
 
-        if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ulAddress)
+        if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress)
         {
             BVDC_P_GfxFeeder_BuildRul_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
                 &(hWindow->stCurInfo.hSource->stCurInfo), pList, eNextFieldId, eReaderState);
@@ -995,6 +978,7 @@ void BVDC_P_Window_BuildRul_isr
       bool                             bBuildReader,
       bool                             bBuildCanvasCtrl )
 {
+    BSTD_UNUSED (bBuildWriter);
     BDBG_ENTER(BVDC_P_Window_BuildRul_isr);
 
     /* Note: When building RUL, hardware highly recommend that we build from
@@ -1035,10 +1019,10 @@ void BVDC_P_Compositor_WindowsReader_isr
     uint32_t                  ulVSize, ulHSize;
     BVDC_DisplayTg            eMasterTg;
     bool                      bDTg;
-    bool                      bBgCsc = false;
 
     const BFMT_VideoInfo     *pFmtInfo;
 
+    BSTD_UNUSED (pList);
     BDBG_OBJECT_ASSERT(hCompositor, BVDC_CMP);
 
     /* hack to disable xvYCC CMP output and always load non xvYCC Matrix C */
@@ -1073,12 +1057,10 @@ void BVDC_P_Csc_ApplyYCbCrColor
       uint32_t                         ulColor1,
       uint32_t                         ulColor2 )
 {
-    /*
     BSTD_UNUSED(pCscCoeffs);
     BSTD_UNUSED(ulColor0);
     BSTD_UNUSED(ulColor1);
     BSTD_UNUSED(ulColor2);
-    */
 }
 
 void BVDC_P_Csc_FromMatrixDvo_isr
@@ -1087,12 +1069,10 @@ void BVDC_P_Csc_FromMatrixDvo_isr
       uint32_t                         ulShift,
       bool                             bRgb )
 {
-    /*
     BSTD_UNUSED(pCsc);
     BSTD_UNUSED(pl32_Matrix);
     BSTD_UNUSED(ulShift);
     BSTD_UNUSED(bRgb);
-    */
 }
 
 void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
@@ -1104,7 +1084,6 @@ void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
       int32_t                          lOffsetB,
       BVDC_P_CscCoeffs                *pCscCoeffs )
 {
-    /*
     BSTD_UNUSED(lAttenuationR);
     BSTD_UNUSED(lAttenuationG);
     BSTD_UNUSED(lAttenuationB);
@@ -1112,7 +1091,6 @@ void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
     BSTD_UNUSED(lOffsetG);
     BSTD_UNUSED(lOffsetB);
     BSTD_UNUSED(pCscCoeffs);
-    */
 }
 
 /***************************************************************************
@@ -1121,10 +1099,13 @@ void BVDC_P_Csc_DvoApplyAttenuationRGB_isr
 void BVDC_P_Source_CleanupSlots_isr
 ( BVDC_Source_Handle               hSource )
 {
+    BSTD_UNUSED (hSource);
 }
 
 void BVDC_P_Csc_Print_isr
     ( const BVDC_P_CscCoeffs          *pCscCoeffs )
-{}
+{
+    BSTD_UNUSED (pCscCoeffs);
+}
 
 /* End of File */

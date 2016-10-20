@@ -342,7 +342,7 @@ BERR_Code BVC5_SetPerfCounting(
          BDBG_ASSERT(c == psPerf->uiActiveBwCounters);
 
          /* update the counters, but only if the core is on - otherwise they'll get set at next power on */
-         BVC5_P_RestorePerfCounters(hVC5, 0);
+         BVC5_P_RestorePerfCounters(hVC5, 0, /*bWriteSelectorsAndEnables=*/true);
       }
       else
          err = BERR_NOT_AVAILABLE;
@@ -598,6 +598,7 @@ uint32_t BVC5_GetPerfCounterData(
    BVC5_P_PerfCounters  *psPerf;
    uint32_t             ret = 0;
    uint32_t             i;
+   uint32_t             uiCoreIndex = 0;
 
    BDBG_ENTER(BVC5_GetPerfCounterData);
 
@@ -683,6 +684,9 @@ uint32_t BVC5_GetPerfCounterData(
 
    if (uiResetCounts)
    {
+      /* Reset the PCTR registers to 0 */
+      BVC5_P_RestorePerfCounters(hVC5, uiCoreIndex, /*bWriteSelectorsAndEnables=*/false);
+
       /* TODO multi core */
       BKNI_Memset(psPerf->uiPCTRShadows, 0, sizeof(psPerf->uiPCTRShadows));
       psPerf->uiMemBwCntShadow = 0;

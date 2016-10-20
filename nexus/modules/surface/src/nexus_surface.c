@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2014 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "nexus_surface_module.h"
@@ -530,7 +522,7 @@ NEXUS_StripedSurfaceHandle NEXUS_StripedSurface_Create( const NEXUS_StripedSurfa
         /* find the luma/chroma stripe surface parameters (stripeWidth, NMBY_M/R) */
         /* assume luma/chroma stripe parameters are the same */
         NEXUS_Heap_GetStatus(pSettings->lumaHeap, &s);
-        BCHP_GetMemoryInfo(g_pCoreHandles->reg, &memInfo);
+        BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memInfo);
         picCfg.stripedWidth = memInfo.memc[s.memcIndex].ulStripeWidth;
         mbMultiplier = memInfo.memc[s.memcIndex].ulMbMultiplier;
         mbRemainder  = memInfo.memc[s.memcIndex].ulMbRemainder;

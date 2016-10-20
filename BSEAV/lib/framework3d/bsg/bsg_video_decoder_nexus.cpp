@@ -982,6 +982,7 @@ private:
             NEXUS_Surface_Flush(CrSurf);
             NEXUS_Surface_Flush(CbSurf);
 
+            // This is creating YCrCb buffer (matching Android YV12 format)
             memcpy(dstMem.buffer, Y8Mem.buffer, Y8Mem.bufferSize);
             memcpy((uint8_t*)dstMem.buffer + Y8Mem.bufferSize, CrMem.buffer, CrMem.bufferSize);
             memcpy((uint8_t*)dstMem.buffer + Y8Mem.bufferSize + CrMem.bufferSize, CbMem.buffer, CbMem.bufferSize);

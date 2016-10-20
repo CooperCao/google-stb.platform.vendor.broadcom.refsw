@@ -1,7 +1,7 @@
 /******************************************************************************
-*    (c)2011-2013 Broadcom Corporation
+* Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-* This program is the proprietary software of Broadcom Corporation and/or its licensors,
+* This program is the proprietary software of Broadcom and/or its licensors,
 * and may only be used, duplicated, modified or distributed pursuant to the terms and
 * conditions of a separate, written license agreement executed between you and Broadcom
 * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
 * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 * ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * Module Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
 *
 *****************************************************************************/
 #ifndef _BSAT_45308_PRIV_H_
@@ -60,5 +52,8 @@
 
 #define BSAT_ADC_FREQ_KHZ        4968000 /* this must match BWFE_DEF_FS_ADC_KHZ */
 #define BSAT_DEFAULT_SAMPLE_FREQ ((BSAT_ADC_FREQ_KHZ>>5)*1000)
+
+#define BSAT_CHIP_FAMILY_DEFAULT   0
+#define BSAT_CHIP_FAMILY_GYPSUM_A0 1
 
 #endif /* _BSAT_45308_PRIV_H_ */

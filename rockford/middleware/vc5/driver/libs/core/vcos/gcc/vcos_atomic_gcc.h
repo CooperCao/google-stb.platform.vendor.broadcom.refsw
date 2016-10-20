@@ -24,7 +24,7 @@ static inline void vcos_atomic_thread_fence(vcos_memory_order_t memorder)
    __atomic_thread_fence(memorder);
 }
 
-#define VCOS_ATOMIC_DEFINITIONS(name,T)\
+#define VCOS_ATOMIC_DEFINITIONS_BOOL(name,T)\
 static inline T vcos_atomic_load_##name(const volatile T* ptr, vcos_memory_order_t memorder)\
 {\
    return __atomic_load_n(ptr, memorder);\
@@ -34,7 +34,28 @@ static inline void vcos_atomic_store_##name(volatile T* ptr, T val, vcos_memory_
    __atomic_store_n(ptr, val, memorder);\
 }
 
-VCOS_ATOMIC_DEFINITIONS(bool, bool);
+#define VCOS_ATOMIC_DEFINITIONS(name,T)\
+VCOS_ATOMIC_DEFINITIONS_BOOL(name,T)\
+static inline bool vcos_atomic_compare_exchange_weak_##name(\
+   volatile T* ptr,\
+   T* expected,\
+   T desired,\
+   vcos_memory_order_t succ,\
+   vcos_memory_order_t fail)\
+{\
+   return __atomic_compare_exchange_n(ptr, expected, desired, true, succ, fail);\
+}\
+static inline T vcos_atomic_fetch_add_##name(volatile T* ptr, T val, vcos_memory_order_t memorder)\
+{\
+   return __atomic_fetch_add(ptr, val, memorder);\
+}\
+\
+static inline T vcos_atomic_fetch_sub_##name(volatile T* ptr, T val, vcos_memory_order_t memorder)\
+{\
+   return __atomic_fetch_sub(ptr, val, memorder);\
+}
+
+VCOS_ATOMIC_DEFINITIONS_BOOL(bool, bool);
 VCOS_ATOMIC_DEFINITIONS(int8, int8_t);
 VCOS_ATOMIC_DEFINITIONS(int16, int16_t);
 VCOS_ATOMIC_DEFINITIONS(int32, int32_t);

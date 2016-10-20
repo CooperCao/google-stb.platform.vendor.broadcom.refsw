@@ -69,6 +69,8 @@ public:
     static bool toUser(void *userPtr, const void *kernelPtr, const size_t size);
 
     static void dispatch();
+    static TzMem::VirtAddr mapToKernel(const void *userPtr, size_t size, int *numPages);
+    static void unmap(TzMem::VirtAddr va, int numPages);
 
 private:
     static bool strFromUser(const char *userStr, char *kernelStr, const size_t maxLen, bool *truncated);
@@ -79,12 +81,10 @@ private:
     static TzMem::PhysAddr userMemPhysAddr(const void *userPtr);
 
     static TzMem::VirtAddr mapToKernelNormal(const void *userPtr, size_t size, int *numPages);
-    static TzMem::VirtAddr mapToKernel(const void *userPtr, size_t size, int *numPages);
     static TzMem::VirtAddr mapStrToKernel(const char *userPtr, size_t maxLen, int *numPages, int *strLen, bool *truncated);
     static TzMem::VirtAddr mapPtrArrayToKernel(const char **userPtr, size_t maxLen, int *numPages, int *strLen);
 
     static void unmapNormal(TzMem::VirtAddr va, int numPages);
-    static void unmap(TzMem::VirtAddr va, int numPages);
 
 private:
     static void doSetTidAddress(TzTask *currTask);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -782,7 +782,7 @@ char bwin_p_get_char(const char *text, bwin_char *ch)
     switch(bytes_per_char){
     default:
     case 1:
-        *ch = (uint32_t)text[0];
+        *ch = (uint32_t)text[0]&0x7F;
         break;
     case 2:
         *ch = ((uint32_t)text[0]&0x1F)<<6 | ((uint32_t)text[1]&0x3F);
@@ -791,12 +791,11 @@ char bwin_p_get_char(const char *text, bwin_char *ch)
         *ch = ((uint32_t)text[0]&0xF)<<12 | ((uint32_t)text[1]&0x3F)<<6 | ((uint32_t)text[2]&0x3F);
         break;
     case 4:
-        *ch = ((uint32_t)text[0]&0x3)<<18 | ((uint32_t)text[1]&0x3F)<<12 | ((uint32_t)text[1]&0x3F)<<6 | ((uint32_t)text[3]&0x3F);
+        *ch = ((uint32_t)text[0]&0x3)<<18 | ((uint32_t)text[1]&0x3F)<<12 | ((uint32_t)text[2]&0x3F)<<6 | ((uint32_t)text[3]&0x3F);
         break;
     }
 
     return bytes_per_char;
-
 }
 
 int bwin_draw_text(bwin_t window, bwin_font_t font,
@@ -816,15 +815,15 @@ int bwin_draw_text(bwin_t window, bwin_font_t font,
 
     for (i=0;i<len;) {
         bwin_font_glyph *glyph;
-    char bytes_per_char;
-    bwin_char ch;
+        char bytes_per_char;
+        bwin_char ch;
 
         /* If this char is already past the cliprect, be done */
         if (x >= (int)cliprect->width + cliprect->x ||
             y >= (int)cliprect->height + cliprect->y)
             break;
 
-    bytes_per_char = bwin_p_get_char((text+i), &ch);
+        bytes_per_char = bwin_p_get_char((text+i), &ch);
 
         glyph = bwin_p_get_glyph(font, ch);
         if (!glyph)

@@ -316,7 +316,7 @@ void NEXUS_HdmiInput_HdcpGetDefaultSettings(
     pSettings->repeater = hdcpDefaultSettings.bRepeater ;
     pSettings->maxDepthSupported = hdcpDefaultSettings.uiMaxLevels ;
     pSettings->maxDeviceCountSupported = hdcpDefaultSettings.uiMaxDevices ;
-
+    NEXUS_CallbackDesc_Init(&pSettings->hdcpRxChanged) ;
 }
 
 

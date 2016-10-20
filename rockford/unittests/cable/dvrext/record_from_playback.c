@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2013-2015 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
   *****************************************************************************/
 
 #include "nexus_platform.h"
@@ -273,10 +265,10 @@ void app_create_patpmt(
     {
             case NEXUS_AudioCodec_eMpeg:         audStreamType = 0x4; break;
             case NEXUS_AudioCodec_eMp3:          audStreamType = 0x4; break;
-            case NEXUS_AudioCodec_eAac    :      audStreamType = 0xf; break; /* ADTS */
-            case NEXUS_AudioCodec_eAacPlus:      audStreamType = 0x11; break;/* LOAS */
-            /* MP2TS doesn't allow 14496-3 AAC+ADTS; here is placeholder to test AAC-HE before LOAS encode is supported; */
-            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0x11; break;
+            case NEXUS_AudioCodec_eAacAdts:      audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacPlusAdts:  audStreamType = 0xf; break; /* ADTS */
+            case NEXUS_AudioCodec_eAacLoas:      audStreamType = 0x11; break;/* LOAS */
+            case NEXUS_AudioCodec_eAacPlusLoas:  audStreamType = 0x11; break;/* LOAS */
             case NEXUS_AudioCodec_eAc3:          audStreamType = 0x81; break;
             default:
                 BDBG_ERR(("Audio encoder codec %d is not supported!\n", audioCodec));

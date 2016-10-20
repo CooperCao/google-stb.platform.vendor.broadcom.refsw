@@ -7,274 +7,246 @@ All rights reserved.
  */
 /* EGL ENUMS WITH DUPLICATE VALUES */
 
-//EnumValCase(EGL_FALSE, 0);                                // =  0
-//EnumValCase(EGL_NO_CONTEXT, 0);                           // =  0
-//EnumValCase(EGL_NO_DISPLAY, 0);                           // =  0
-//EnumValCase(EGL_NO_SURFACE, 0);                           // =  0
-//EnumValCase(EGL_DEFAULT_DISPLAY, 0);                      // =  0
-//EnumValCase(EGL_NO_SYNC, 0);                              // =  0
-//EnumValCase(EGL_NO_IMAGE, 0);                             // =  0
-//EnumValCase(EGL_NO_IMAGE_KHR, 0);                         // =  0
-//EnumValCase(EGL_WINDOW_BIT, 4);                           // =  4
-//EnumValCase(EGL_OPENGL_ES2_BIT, 4);                       // =  4
-//EnumValCase(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR, 4); // =  4
-//EnumValCase(EGL_PBUFFER_BIT, 1);                          // =  1
-//EnumValCase(EGL_TRUE, 1);                                 // =  1
-//EnumValCase(EGL_OPENGL_ES_BIT, 1);                        // =  1
-//EnumValCase(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT, 1);      // =  1
-//EnumValCase(EGL_SYNC_FLUSH_COMMANDS_BIT, 1);              // =  1
-//EnumValCase(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, 1);         // =  1
-//EnumValCase(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR, 1);  // =  1
-//EnumValCase(EGL_PIXMAP_BIT, 2);                           // =  2
-//EnumValCase(EGL_OPENVG_BIT, 2);                           // =  2
-//EnumValCase(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT, 2);// =  2
-//EnumValCase(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR, 2);// =  2
-//EnumValCase(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR, 2);// =  2
-//EnumValCase(EGL_COLORSPACE, 12423);                       // =  12423
-//EnumValCase(EGL_VG_COLORSPACE, 12423);                    // =  12423
-//EnumValCase(EGL_ALPHA_FORMAT, 12424);                     // =  12424
-//EnumValCase(EGL_VG_ALPHA_FORMAT, 12424);                  // =  12424
-//EnumValCase(EGL_COLORSPACE_sRGB, 12425);                  // =  12425
-//EnumValCase(EGL_VG_COLORSPACE_sRGB, 12425);               // =  12425
-//EnumValCase(EGL_GL_COLORSPACE_SRGB, 12425);               // =  12425
-//EnumValCase(EGL_GL_COLORSPACE_SRGB_KHR, 12425);           // =  12425
-//EnumValCase(EGL_COLORSPACE_LINEAR, 12426);                // =  12426
-//EnumValCase(EGL_VG_COLORSPACE_LINEAR, 12426);             // =  12426
-//EnumValCase(EGL_GL_COLORSPACE_LINEAR, 12426);             // =  12426
-//EnumValCase(EGL_GL_COLORSPACE_LINEAR_KHR, 12426);         // =  12426
-//EnumValCase(EGL_ALPHA_FORMAT_NONPRE, 12427);              // =  12427
-//EnumValCase(EGL_VG_ALPHA_FORMAT_NONPRE, 12427);           // =  12427
-//EnumValCase(EGL_ALPHA_FORMAT_PRE, 12428);                 // =  12428
-//EnumValCase(EGL_VG_ALPHA_FORMAT_PRE, 12428);              // =  12428
-//EnumValCase(EGL_CONTEXT_CLIENT_VERSION, 12440);           // =  12440
-//EnumValCase(EGL_CONTEXT_MAJOR_VERSION, 12440);            // =  12440
-//EnumValCase(EGL_CONTEXT_MAJOR_VERSION_KHR, 12440);        // =  12440
-//EnumValCase(EGL_VG_ALPHA_FORMAT_PRE_BIT, 64);             // =  64
-//EnumValCase(EGL_OPENGL_ES3_BIT, 64);                      // =  64
-//EnumValCase(EGL_OPENGL_ES3_BIT_KHR, 64);                  // =  64
-//EnumValCase(EGL_PLATFORM_X11_KHR, 12757);                 // =  12757
-//EnumValCase(EGL_PLATFORM_X11_EXT, 12757);                 // =  12757
-//EnumValCase(EGL_PLATFORM_X11_SCREEN_KHR, 12758);          // =  12758
-//EnumValCase(EGL_PLATFORM_X11_SCREEN_EXT, 12758);          // =  12758
-//EnumValCase(EGL_DONT_CARE, -1);                           // =  -1
-//EnumValCase(EGL_UNKNOWN, -1);                             // =  -1
-//EnumValCase(EGL_NO_NATIVE_FENCE_FD_ANDROID, -1);          // =  -1
+EnumValCase(    0, "AMBIGUOUS_ENUM(0, EGL_FALSE, EGL_NO_CONTEXT, EGL_NO_DISPLAY, EGL_NO_SURFACE, EGL_DEFAULT_DISPLAY, EGL_NO_SYNC, EGL_NO_IMAGE, EGL_NO_IMAGE_KHR)");
+EnumValCase(    4, "AMBIGUOUS_ENUM(4, EGL_WINDOW_BIT, EGL_OPENGL_ES2_BIT, EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR)");
+EnumValCase(    1, "AMBIGUOUS_ENUM(1, EGL_PBUFFER_BIT, EGL_TRUE, EGL_OPENGL_ES_BIT, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT, EGL_SYNC_FLUSH_COMMANDS_BIT, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR)");
+EnumValCase(    2, "AMBIGUOUS_ENUM(2, EGL_PIXMAP_BIT, EGL_OPENVG_BIT, EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT, EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR, EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR)");
+EnumValCase(12423, "AMBIGUOUS_ENUM(12423, EGL_COLORSPACE, EGL_VG_COLORSPACE)");
+EnumValCase(12424, "AMBIGUOUS_ENUM(12424, EGL_ALPHA_FORMAT, EGL_VG_ALPHA_FORMAT)");
+EnumValCase(12425, "AMBIGUOUS_ENUM(12425, EGL_COLORSPACE_sRGB, EGL_VG_COLORSPACE_sRGB, EGL_GL_COLORSPACE_SRGB, EGL_GL_COLORSPACE_SRGB_KHR)");
+EnumValCase(12426, "AMBIGUOUS_ENUM(12426, EGL_COLORSPACE_LINEAR, EGL_VG_COLORSPACE_LINEAR, EGL_GL_COLORSPACE_LINEAR, EGL_GL_COLORSPACE_LINEAR_KHR)");
+EnumValCase(12427, "AMBIGUOUS_ENUM(12427, EGL_ALPHA_FORMAT_NONPRE, EGL_VG_ALPHA_FORMAT_NONPRE)");
+EnumValCase(12428, "AMBIGUOUS_ENUM(12428, EGL_ALPHA_FORMAT_PRE, EGL_VG_ALPHA_FORMAT_PRE)");
+EnumValCase(12440, "AMBIGUOUS_ENUM(12440, EGL_CONTEXT_CLIENT_VERSION, EGL_CONTEXT_MAJOR_VERSION, EGL_CONTEXT_MAJOR_VERSION_KHR)");
+EnumValCase(12757, "AMBIGUOUS_ENUM(12757, EGL_PLATFORM_X11_KHR, EGL_PLATFORM_X11_EXT, EGL_WAYLAND_BUFFER_WL)");
+EnumValCase(12758, "AMBIGUOUS_ENUM(12758, EGL_PLATFORM_X11_SCREEN_KHR, EGL_PLATFORM_X11_SCREEN_EXT, EGL_WAYLAND_PLANE_WL)");
+EnumValCase(   64, "AMBIGUOUS_ENUM(64, EGL_VG_ALPHA_FORMAT_PRE_BIT, EGL_OPENGL_ES3_BIT, EGL_OPENGL_ES3_BIT_KHR)");
+EnumValCase(12760, "AMBIGUOUS_ENUM(12760, EGL_PLATFORM_WAYLAND_KHR, EGL_PLATFORM_WAYLAND_EXT, EGL_TEXTURE_Y_UV_WL)");
+EnumValCase(   -1, "AMBIGUOUS_ENUM(-1, EGL_DONT_CARE, EGL_UNKNOWN, EGL_NO_NATIVE_FENCE_FD_ANDROID)");
 /* END EGL ENUMS WITH DUPLICATE VALUES */
 
-  EnumValCase(EGL_ALPHA_SIZE, 12321);
-  EnumValCase(EGL_BAD_ACCESS, 12290);
-  EnumValCase(EGL_BAD_ALLOC, 12291);
-  EnumValCase(EGL_BAD_ATTRIBUTE, 12292);
-  EnumValCase(EGL_BAD_CONFIG, 12293);
-  EnumValCase(EGL_BAD_CONTEXT, 12294);
-  EnumValCase(EGL_BAD_CURRENT_SURFACE, 12295);
-  EnumValCase(EGL_BAD_DISPLAY, 12296);
-  EnumValCase(EGL_BAD_MATCH, 12297);
-  EnumValCase(EGL_BAD_NATIVE_PIXMAP, 12298);
-  EnumValCase(EGL_BAD_NATIVE_WINDOW, 12299);
-  EnumValCase(EGL_BAD_PARAMETER, 12300);
-  EnumValCase(EGL_BAD_SURFACE, 12301);
-  EnumValCase(EGL_BLUE_SIZE, 12322);
-  EnumValCase(EGL_BUFFER_SIZE, 12320);
-  EnumValCase(EGL_CONFIG_CAVEAT, 12327);
-  EnumValCase(EGL_CONFIG_ID, 12328);
-  EnumValCase(EGL_CORE_NATIVE_ENGINE, 12379);
-  EnumValCase(EGL_DEPTH_SIZE, 12325);
-//EnumValCase(EGL_DONT_CARE, -1);                           // Duplicate value
-  EnumValCase(EGL_DRAW, 12377);
-  EnumValCase(EGL_EXTENSIONS, 12373);
-//EnumValCase(EGL_FALSE, 0);                                // Duplicate value
-  EnumValCase(EGL_GREEN_SIZE, 12323);
-  EnumValCase(EGL_HEIGHT, 12374);
-  EnumValCase(EGL_LARGEST_PBUFFER, 12376);
-  EnumValCase(EGL_LEVEL, 12329);
-  EnumValCase(EGL_MAX_PBUFFER_HEIGHT, 12330);
-  EnumValCase(EGL_MAX_PBUFFER_PIXELS, 12331);
-  EnumValCase(EGL_MAX_PBUFFER_WIDTH, 12332);
-  EnumValCase(EGL_NATIVE_RENDERABLE, 12333);
-  EnumValCase(EGL_NATIVE_VISUAL_ID, 12334);
-  EnumValCase(EGL_NATIVE_VISUAL_TYPE, 12335);
-  EnumValCase(EGL_NONE, 12344);
-  EnumValCase(EGL_NON_CONFORMANT_CONFIG, 12369);
-  EnumValCase(EGL_NOT_INITIALIZED, 12289);
-//EnumValCase(EGL_NO_CONTEXT, 0);                           // Duplicate value
-//EnumValCase(EGL_NO_DISPLAY, 0);                           // Duplicate value
-//EnumValCase(EGL_NO_SURFACE, 0);                           // Duplicate value
-//EnumValCase(EGL_PBUFFER_BIT, 1);                          // Duplicate value
-//EnumValCase(EGL_PIXMAP_BIT, 2);                           // Duplicate value
-  EnumValCase(EGL_READ, 12378);
-  EnumValCase(EGL_RED_SIZE, 12324);
-  EnumValCase(EGL_SAMPLES, 12337);
-  EnumValCase(EGL_SAMPLE_BUFFERS, 12338);
-  EnumValCase(EGL_SLOW_CONFIG, 12368);
-  EnumValCase(EGL_STENCIL_SIZE, 12326);
-  EnumValCase(EGL_SUCCESS, 12288);
-  EnumValCase(EGL_SURFACE_TYPE, 12339);
-  EnumValCase(EGL_TRANSPARENT_BLUE_VALUE, 12341);
-  EnumValCase(EGL_TRANSPARENT_GREEN_VALUE, 12342);
-  EnumValCase(EGL_TRANSPARENT_RED_VALUE, 12343);
-  EnumValCase(EGL_TRANSPARENT_RGB, 12370);
-  EnumValCase(EGL_TRANSPARENT_TYPE, 12340);
-//EnumValCase(EGL_TRUE, 1);                                 // Duplicate value
-  EnumValCase(EGL_VENDOR, 12371);
-  EnumValCase(EGL_VERSION, 12372);
-  EnumValCase(EGL_WIDTH, 12375);
-//EnumValCase(EGL_WINDOW_BIT, 4);                           // Duplicate value
-  EnumValCase(EGL_BACK_BUFFER, 12420);
-  EnumValCase(EGL_BIND_TO_TEXTURE_RGB, 12345);
-  EnumValCase(EGL_BIND_TO_TEXTURE_RGBA, 12346);
-  EnumValCase(EGL_CONTEXT_LOST, 12302);
-  EnumValCase(EGL_MIN_SWAP_INTERVAL, 12347);
-  EnumValCase(EGL_MAX_SWAP_INTERVAL, 12348);
-  EnumValCase(EGL_MIPMAP_TEXTURE, 12418);
-  EnumValCase(EGL_MIPMAP_LEVEL, 12419);
-  EnumValCase(EGL_NO_TEXTURE, 12380);
-  EnumValCase(EGL_TEXTURE_2D, 12383);
-  EnumValCase(EGL_TEXTURE_FORMAT, 12416);
-  EnumValCase(EGL_TEXTURE_RGB, 12381);
-  EnumValCase(EGL_TEXTURE_RGBA, 12382);
-  EnumValCase(EGL_TEXTURE_TARGET, 12417);
-//EnumValCase(EGL_ALPHA_FORMAT, 12424);                     // Duplicate value
-//EnumValCase(EGL_ALPHA_FORMAT_NONPRE, 12427);              // Duplicate value
-//EnumValCase(EGL_ALPHA_FORMAT_PRE, 12428);                 // Duplicate value
-  EnumValCase(EGL_ALPHA_MASK_SIZE, 12350);
-  EnumValCase(EGL_BUFFER_PRESERVED, 12436);
-  EnumValCase(EGL_BUFFER_DESTROYED, 12437);
-  EnumValCase(EGL_CLIENT_APIS, 12429);
-//EnumValCase(EGL_COLORSPACE, 12423);                       // Duplicate value
-//EnumValCase(EGL_COLORSPACE_sRGB, 12425);                  // Duplicate value
-//EnumValCase(EGL_COLORSPACE_LINEAR, 12426);                // Duplicate value
-  EnumValCase(EGL_COLOR_BUFFER_TYPE, 12351);
-  EnumValCase(EGL_CONTEXT_CLIENT_TYPE, 12439);
-  EnumValCase(EGL_DISPLAY_SCALING, 10000);
-  EnumValCase(EGL_HORIZONTAL_RESOLUTION, 12432);
-  EnumValCase(EGL_LUMINANCE_BUFFER, 12431);
-  EnumValCase(EGL_LUMINANCE_SIZE, 12349);
-//EnumValCase(EGL_OPENGL_ES_BIT, 1);                        // Duplicate value
-//EnumValCase(EGL_OPENVG_BIT, 2);                           // Duplicate value
-  EnumValCase(EGL_OPENGL_ES_API, 12448);
-  EnumValCase(EGL_OPENVG_API, 12449);
-  EnumValCase(EGL_OPENVG_IMAGE, 12438);
-  EnumValCase(EGL_PIXEL_ASPECT_RATIO, 12434);
-  EnumValCase(EGL_RENDERABLE_TYPE, 12352);
-  EnumValCase(EGL_RENDER_BUFFER, 12422);
-  EnumValCase(EGL_RGB_BUFFER, 12430);
-  EnumValCase(EGL_SINGLE_BUFFER, 12421);
-  EnumValCase(EGL_SWAP_BEHAVIOR, 12435);
-//EnumValCase(EGL_UNKNOWN, -1);                             // Duplicate value
-  EnumValCase(EGL_VERTICAL_RESOLUTION, 12433);
-  EnumValCase(EGL_CONFORMANT, 12354);
-//EnumValCase(EGL_CONTEXT_CLIENT_VERSION, 12440);           // Duplicate value
-  EnumValCase(EGL_MATCH_NATIVE_PIXMAP, 12353);
-//EnumValCase(EGL_OPENGL_ES2_BIT, 4);                       // Duplicate value
-//EnumValCase(EGL_VG_ALPHA_FORMAT, 12424);                  // Duplicate value
-//EnumValCase(EGL_VG_ALPHA_FORMAT_NONPRE, 12427);           // Duplicate value
-//EnumValCase(EGL_VG_ALPHA_FORMAT_PRE, 12428);              // Duplicate value
-//EnumValCase(EGL_VG_ALPHA_FORMAT_PRE_BIT, 64);             // Duplicate value
-//EnumValCase(EGL_VG_COLORSPACE, 12423);                    // Duplicate value
-//EnumValCase(EGL_VG_COLORSPACE_sRGB, 12425);               // Duplicate value
-//EnumValCase(EGL_VG_COLORSPACE_LINEAR, 12426);             // Duplicate value
-  EnumValCase(EGL_VG_COLORSPACE_LINEAR_BIT, 32);
-//EnumValCase(EGL_DEFAULT_DISPLAY, 0);                      // Duplicate value
-  EnumValCase(EGL_MULTISAMPLE_RESOLVE_BOX_BIT, 512);
-  EnumValCase(EGL_MULTISAMPLE_RESOLVE, 12441);
-  EnumValCase(EGL_MULTISAMPLE_RESOLVE_DEFAULT, 12442);
-  EnumValCase(EGL_MULTISAMPLE_RESOLVE_BOX, 12443);
-  EnumValCase(EGL_OPENGL_API, 12450);
-  EnumValCase(EGL_OPENGL_BIT, 8);
-  EnumValCase(EGL_SWAP_BEHAVIOR_PRESERVED_BIT, 1024);
-//EnumValCase(EGL_CONTEXT_MAJOR_VERSION, 12440);            // Duplicate value
-  EnumValCase(EGL_CONTEXT_MINOR_VERSION, 12539);
-  EnumValCase(EGL_CONTEXT_OPENGL_PROFILE_MASK, 12541);
-  EnumValCase(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY, 12733);
-  EnumValCase(EGL_NO_RESET_NOTIFICATION, 12734);
-  EnumValCase(EGL_LOSE_CONTEXT_ON_RESET, 12735);
-//EnumValCase(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT, 1);      // Duplicate value
-//EnumValCase(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT, 2);// Duplicate value
-  EnumValCase(EGL_CONTEXT_OPENGL_DEBUG, 12720);
-  EnumValCase(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE, 12721);
-  EnumValCase(EGL_CONTEXT_OPENGL_ROBUST_ACCESS, 12722);
-//EnumValCase(EGL_OPENGL_ES3_BIT, 64);                      // Duplicate value
-  EnumValCase(EGL_CL_EVENT_HANDLE, 12444);
-  EnumValCase(EGL_SYNC_CL_EVENT, 12542);
-  EnumValCase(EGL_SYNC_CL_EVENT_COMPLETE, 12543);
-  EnumValCase(EGL_SYNC_PRIOR_COMMANDS_COMPLETE, 12528);
-  EnumValCase(EGL_SYNC_TYPE, 12535);
-  EnumValCase(EGL_SYNC_STATUS, 12529);
-  EnumValCase(EGL_SYNC_CONDITION, 12536);
-  EnumValCase(EGL_SIGNALED, 12530);
-  EnumValCase(EGL_UNSIGNALED, 12531);
-//EnumValCase(EGL_SYNC_FLUSH_COMMANDS_BIT, 1);              // Duplicate value
-  EnumValCase(EGL_TIMEOUT_EXPIRED, 12533);
-  EnumValCase(EGL_CONDITION_SATISFIED, 12534);
-//EnumValCase(EGL_NO_SYNC, 0);                              // Duplicate value
-  EnumValCase(EGL_SYNC_FENCE, 12537);
-  EnumValCase(EGL_GL_COLORSPACE, 12445);
-//EnumValCase(EGL_GL_COLORSPACE_SRGB, 12425);               // Duplicate value
-//EnumValCase(EGL_GL_COLORSPACE_LINEAR, 12426);             // Duplicate value
-  EnumValCase(EGL_GL_RENDERBUFFER, 12473);
-  EnumValCase(EGL_GL_TEXTURE_2D, 12465);
-  EnumValCase(EGL_GL_TEXTURE_LEVEL, 12476);
-  EnumValCase(EGL_GL_TEXTURE_3D, 12466);
-  EnumValCase(EGL_GL_TEXTURE_ZOFFSET, 12477);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X, 12467);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X, 12468);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y, 12469);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 12470);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z, 12471);
-  EnumValCase(EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 12472);
-  EnumValCase(EGL_IMAGE_PRESERVED, 12498);
-//EnumValCase(EGL_NO_IMAGE, 0);                             // Duplicate value
-//EnumValCase(EGL_CONTEXT_MAJOR_VERSION_KHR, 12440);        // Duplicate value
-  EnumValCase(EGL_CONTEXT_FLAGS_KHR, 12540);
-//EnumValCase(EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, 1);         // Duplicate value
-//EnumValCase(EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR, 2);// Duplicate value
-//EnumValCase(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR, 4); // Duplicate value
-//EnumValCase(EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR, 1);  // Duplicate value
-//EnumValCase(EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR, 2);// Duplicate value
-//EnumValCase(EGL_OPENGL_ES3_BIT_KHR, 64);                  // Duplicate value
-//EnumValCase(EGL_GL_COLORSPACE_SRGB_KHR, 12425);           // Duplicate value
-//EnumValCase(EGL_GL_COLORSPACE_LINEAR_KHR, 12426);         // Duplicate value
-  EnumValCase(EGL_NATIVE_PIXMAP_KHR, 12464);
-//EnumValCase(EGL_NO_IMAGE_KHR, 0);                         // Duplicate value
-  EnumValCase(EGL_PLATFORM_ANDROID_KHR, 12609);
-//EnumValCase(EGL_PLATFORM_X11_KHR, 12757);                 // Duplicate value
-//EnumValCase(EGL_PLATFORM_X11_SCREEN_KHR, 12758);          // Duplicate value
-  EnumValCase(EGL_FRAMEBUFFER_TARGET_ANDROID, 12615);
-  EnumValCase(EGL_NATIVE_BUFFER_ANDROID, 12608);
-  EnumValCase(EGL_SYNC_NATIVE_FENCE_ANDROID, 12612);
-  EnumValCase(EGL_SYNC_NATIVE_FENCE_FD_ANDROID, 12613);
-  EnumValCase(EGL_SYNC_NATIVE_FENCE_SIGNALED_ANDROID, 12614);
-//EnumValCase(EGL_NO_NATIVE_FENCE_FD_ANDROID, -1);          // Duplicate value
-  EnumValCase(EGL_RECORDABLE_ANDROID, 12610);
-  EnumValCase(EGL_ACQUIRE_EVENTS_BRCM, 13264);
-  EnumValCase(EGL_RELEASE_EVENTS_BRCM, 13265);
-  EnumValCase(EGL_START_EVENTS_BRCM, 13266);
-  EnumValCase(EGL_STOP_EVENTS_BRCM, 13267);
-  EnumValCase(EGL_NUM_EVENT_TRACKS_BRCM, 13268);
-  EnumValCase(EGL_NUM_EVENTS_BRCM, 13269);
-  EnumValCase(EGL_MAX_EVENT_STRING_LEN_BRCM, 13270);
-  EnumValCase(EGL_GL_FRAMEBUFFER_BRCM, 28857);
-  EnumValCase(EGL_GL_FRAMEBUFFER_TARGET_BRCM, 28858);
-  EnumValCase(EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM, 28859);
-  EnumValCase(EGL_GL_FRAMEBUFFER_CONVERT_TO_COLOR_BRCM, 28860);
-  EnumValCase(EGL_GL_FRAMEBUFFER_CONVERT_TO_UIF, 28861);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_SET_MODE_BRCM, 12896);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_CHANGED_REGION_BRCM, 12897);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM, 12898);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_ALWAYS_BRCM, 12899);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_EXPLICIT_BRCM, 12900);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_LOCK_BRCM, 12901);
-  EnumValCase(EGL_IMAGE_UPDATE_CONTROL_UNLOCK_BRCM, 12902);
-  EnumValCase(EGL_ACQUIRE_COUNTERS_BRCM, 13248);
-  EnumValCase(EGL_RELEASE_COUNTERS_BRCM, 13249);
-  EnumValCase(EGL_START_COUNTERS_BRCM, 13250);
-  EnumValCase(EGL_STOP_COUNTERS_BRCM, 13251);
-  EnumValCase(EGL_NUM_COUNTER_GROUPS_BRCM, 13252);
-  EnumValCase(EGL_MAX_COUNTER_STRING_LEN_BRCM, 13253);
-  EnumValCase(EGL_PLATFORM_NEXUS_BRCM, 13040);
-  EnumValCase(EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT, 12479);
-  EnumValCase(EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT, 12600);
-//EnumValCase(EGL_PLATFORM_X11_EXT, 12757);                 // Duplicate value
-//EnumValCase(EGL_PLATFORM_X11_SCREEN_EXT, 12758);          // Duplicate value
-  EnumValCase(EGL_PROTECTED_CONTENT_EXT, 12992);
+  EnumValCase(12321, "EGL_ALPHA_SIZE");
+  EnumValCase(12290, "EGL_BAD_ACCESS");
+  EnumValCase(12291, "EGL_BAD_ALLOC");
+  EnumValCase(12292, "EGL_BAD_ATTRIBUTE");
+  EnumValCase(12293, "EGL_BAD_CONFIG");
+  EnumValCase(12294, "EGL_BAD_CONTEXT");
+  EnumValCase(12295, "EGL_BAD_CURRENT_SURFACE");
+  EnumValCase(12296, "EGL_BAD_DISPLAY");
+  EnumValCase(12297, "EGL_BAD_MATCH");
+  EnumValCase(12298, "EGL_BAD_NATIVE_PIXMAP");
+  EnumValCase(12299, "EGL_BAD_NATIVE_WINDOW");
+  EnumValCase(12300, "EGL_BAD_PARAMETER");
+  EnumValCase(12301, "EGL_BAD_SURFACE");
+  EnumValCase(12322, "EGL_BLUE_SIZE");
+  EnumValCase(12320, "EGL_BUFFER_SIZE");
+  EnumValCase(12327, "EGL_CONFIG_CAVEAT");
+  EnumValCase(12328, "EGL_CONFIG_ID");
+  EnumValCase(12379, "EGL_CORE_NATIVE_ENGINE");
+  EnumValCase(12325, "EGL_DEPTH_SIZE");
+//EnumValCase(   -1, "EGL_DONT_CARE");                      // Duplicate value
+  EnumValCase(12377, "EGL_DRAW");
+  EnumValCase(12373, "EGL_EXTENSIONS");
+//EnumValCase(    0, "EGL_FALSE");                          // Duplicate value
+  EnumValCase(12323, "EGL_GREEN_SIZE");
+  EnumValCase(12374, "EGL_HEIGHT");
+  EnumValCase(12376, "EGL_LARGEST_PBUFFER");
+  EnumValCase(12329, "EGL_LEVEL");
+  EnumValCase(12330, "EGL_MAX_PBUFFER_HEIGHT");
+  EnumValCase(12331, "EGL_MAX_PBUFFER_PIXELS");
+  EnumValCase(12332, "EGL_MAX_PBUFFER_WIDTH");
+  EnumValCase(12333, "EGL_NATIVE_RENDERABLE");
+  EnumValCase(12334, "EGL_NATIVE_VISUAL_ID");
+  EnumValCase(12335, "EGL_NATIVE_VISUAL_TYPE");
+  EnumValCase(12344, "EGL_NONE");
+  EnumValCase(12369, "EGL_NON_CONFORMANT_CONFIG");
+  EnumValCase(12289, "EGL_NOT_INITIALIZED");
+//EnumValCase(    0, "EGL_NO_CONTEXT");                     // Duplicate value
+//EnumValCase(    0, "EGL_NO_DISPLAY");                     // Duplicate value
+//EnumValCase(    0, "EGL_NO_SURFACE");                     // Duplicate value
+//EnumValCase(    1, "EGL_PBUFFER_BIT");                    // Duplicate value
+//EnumValCase(    2, "EGL_PIXMAP_BIT");                     // Duplicate value
+  EnumValCase(12378, "EGL_READ");
+  EnumValCase(12324, "EGL_RED_SIZE");
+  EnumValCase(12337, "EGL_SAMPLES");
+  EnumValCase(12338, "EGL_SAMPLE_BUFFERS");
+  EnumValCase(12368, "EGL_SLOW_CONFIG");
+  EnumValCase(12326, "EGL_STENCIL_SIZE");
+  EnumValCase(12288, "EGL_SUCCESS");
+  EnumValCase(12339, "EGL_SURFACE_TYPE");
+  EnumValCase(12341, "EGL_TRANSPARENT_BLUE_VALUE");
+  EnumValCase(12342, "EGL_TRANSPARENT_GREEN_VALUE");
+  EnumValCase(12343, "EGL_TRANSPARENT_RED_VALUE");
+  EnumValCase(12370, "EGL_TRANSPARENT_RGB");
+  EnumValCase(12340, "EGL_TRANSPARENT_TYPE");
+//EnumValCase(    1, "EGL_TRUE");                           // Duplicate value
+  EnumValCase(12371, "EGL_VENDOR");
+  EnumValCase(12372, "EGL_VERSION");
+  EnumValCase(12375, "EGL_WIDTH");
+//EnumValCase(    4, "EGL_WINDOW_BIT");                     // Duplicate value
+  EnumValCase(12420, "EGL_BACK_BUFFER");
+  EnumValCase(12345, "EGL_BIND_TO_TEXTURE_RGB");
+  EnumValCase(12346, "EGL_BIND_TO_TEXTURE_RGBA");
+  EnumValCase(12302, "EGL_CONTEXT_LOST");
+  EnumValCase(12347, "EGL_MIN_SWAP_INTERVAL");
+  EnumValCase(12348, "EGL_MAX_SWAP_INTERVAL");
+  EnumValCase(12418, "EGL_MIPMAP_TEXTURE");
+  EnumValCase(12419, "EGL_MIPMAP_LEVEL");
+  EnumValCase(12380, "EGL_NO_TEXTURE");
+  EnumValCase(12383, "EGL_TEXTURE_2D");
+  EnumValCase(12416, "EGL_TEXTURE_FORMAT");
+  EnumValCase(12381, "EGL_TEXTURE_RGB");
+  EnumValCase(12382, "EGL_TEXTURE_RGBA");
+  EnumValCase(12417, "EGL_TEXTURE_TARGET");
+//EnumValCase(12424, "EGL_ALPHA_FORMAT");                   // Duplicate value
+//EnumValCase(12427, "EGL_ALPHA_FORMAT_NONPRE");            // Duplicate value
+//EnumValCase(12428, "EGL_ALPHA_FORMAT_PRE");               // Duplicate value
+  EnumValCase(12350, "EGL_ALPHA_MASK_SIZE");
+  EnumValCase(12436, "EGL_BUFFER_PRESERVED");
+  EnumValCase(12437, "EGL_BUFFER_DESTROYED");
+  EnumValCase(12429, "EGL_CLIENT_APIS");
+//EnumValCase(12423, "EGL_COLORSPACE");                     // Duplicate value
+//EnumValCase(12425, "EGL_COLORSPACE_sRGB");                // Duplicate value
+//EnumValCase(12426, "EGL_COLORSPACE_LINEAR");              // Duplicate value
+  EnumValCase(12351, "EGL_COLOR_BUFFER_TYPE");
+  EnumValCase(12439, "EGL_CONTEXT_CLIENT_TYPE");
+  EnumValCase(10000, "EGL_DISPLAY_SCALING");
+  EnumValCase(12432, "EGL_HORIZONTAL_RESOLUTION");
+  EnumValCase(12431, "EGL_LUMINANCE_BUFFER");
+  EnumValCase(12349, "EGL_LUMINANCE_SIZE");
+//EnumValCase(    1, "EGL_OPENGL_ES_BIT");                  // Duplicate value
+//EnumValCase(    2, "EGL_OPENVG_BIT");                     // Duplicate value
+  EnumValCase(12448, "EGL_OPENGL_ES_API");
+  EnumValCase(12449, "EGL_OPENVG_API");
+  EnumValCase(12438, "EGL_OPENVG_IMAGE");
+  EnumValCase(12434, "EGL_PIXEL_ASPECT_RATIO");
+  EnumValCase(12352, "EGL_RENDERABLE_TYPE");
+  EnumValCase(12422, "EGL_RENDER_BUFFER");
+  EnumValCase(12430, "EGL_RGB_BUFFER");
+  EnumValCase(12421, "EGL_SINGLE_BUFFER");
+  EnumValCase(12435, "EGL_SWAP_BEHAVIOR");
+//EnumValCase(   -1, "EGL_UNKNOWN");                        // Duplicate value
+  EnumValCase(12433, "EGL_VERTICAL_RESOLUTION");
+  EnumValCase(12354, "EGL_CONFORMANT");
+//EnumValCase(12440, "EGL_CONTEXT_CLIENT_VERSION");         // Duplicate value
+  EnumValCase(12353, "EGL_MATCH_NATIVE_PIXMAP");
+//EnumValCase(    4, "EGL_OPENGL_ES2_BIT");                 // Duplicate value
+//EnumValCase(12424, "EGL_VG_ALPHA_FORMAT");                // Duplicate value
+//EnumValCase(12427, "EGL_VG_ALPHA_FORMAT_NONPRE");         // Duplicate value
+//EnumValCase(12428, "EGL_VG_ALPHA_FORMAT_PRE");            // Duplicate value
+//EnumValCase(   64, "EGL_VG_ALPHA_FORMAT_PRE_BIT");        // Duplicate value
+//EnumValCase(12423, "EGL_VG_COLORSPACE");                  // Duplicate value
+//EnumValCase(12425, "EGL_VG_COLORSPACE_sRGB");             // Duplicate value
+//EnumValCase(12426, "EGL_VG_COLORSPACE_LINEAR");           // Duplicate value
+  EnumValCase(   32, "EGL_VG_COLORSPACE_LINEAR_BIT");
+//EnumValCase(    0, "EGL_DEFAULT_DISPLAY");                // Duplicate value
+  EnumValCase(  512, "EGL_MULTISAMPLE_RESOLVE_BOX_BIT");
+  EnumValCase(12441, "EGL_MULTISAMPLE_RESOLVE");
+  EnumValCase(12442, "EGL_MULTISAMPLE_RESOLVE_DEFAULT");
+  EnumValCase(12443, "EGL_MULTISAMPLE_RESOLVE_BOX");
+  EnumValCase(12450, "EGL_OPENGL_API");
+  EnumValCase(    8, "EGL_OPENGL_BIT");
+  EnumValCase( 1024, "EGL_SWAP_BEHAVIOR_PRESERVED_BIT");
+//EnumValCase(12440, "EGL_CONTEXT_MAJOR_VERSION");          // Duplicate value
+  EnumValCase(12539, "EGL_CONTEXT_MINOR_VERSION");
+  EnumValCase(12541, "EGL_CONTEXT_OPENGL_PROFILE_MASK");
+  EnumValCase(12733, "EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY");
+  EnumValCase(12734, "EGL_NO_RESET_NOTIFICATION");
+  EnumValCase(12735, "EGL_LOSE_CONTEXT_ON_RESET");
+//EnumValCase(    1, "EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT");// Duplicate value
+//EnumValCase(    2, "EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT");// Duplicate value
+  EnumValCase(12720, "EGL_CONTEXT_OPENGL_DEBUG");
+  EnumValCase(12721, "EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE");
+  EnumValCase(12722, "EGL_CONTEXT_OPENGL_ROBUST_ACCESS");
+//EnumValCase(   64, "EGL_OPENGL_ES3_BIT");                 // Duplicate value
+  EnumValCase(12444, "EGL_CL_EVENT_HANDLE");
+  EnumValCase(12542, "EGL_SYNC_CL_EVENT");
+  EnumValCase(12543, "EGL_SYNC_CL_EVENT_COMPLETE");
+  EnumValCase(12528, "EGL_SYNC_PRIOR_COMMANDS_COMPLETE");
+  EnumValCase(12535, "EGL_SYNC_TYPE");
+  EnumValCase(12529, "EGL_SYNC_STATUS");
+  EnumValCase(12536, "EGL_SYNC_CONDITION");
+  EnumValCase(12530, "EGL_SIGNALED");
+  EnumValCase(12531, "EGL_UNSIGNALED");
+//EnumValCase(    1, "EGL_SYNC_FLUSH_COMMANDS_BIT");        // Duplicate value
+  EnumValCase(12533, "EGL_TIMEOUT_EXPIRED");
+  EnumValCase(12534, "EGL_CONDITION_SATISFIED");
+//EnumValCase(    0, "EGL_NO_SYNC");                        // Duplicate value
+  EnumValCase(12537, "EGL_SYNC_FENCE");
+  EnumValCase(12445, "EGL_GL_COLORSPACE");
+//EnumValCase(12425, "EGL_GL_COLORSPACE_SRGB");             // Duplicate value
+//EnumValCase(12426, "EGL_GL_COLORSPACE_LINEAR");           // Duplicate value
+  EnumValCase(12473, "EGL_GL_RENDERBUFFER");
+  EnumValCase(12465, "EGL_GL_TEXTURE_2D");
+  EnumValCase(12476, "EGL_GL_TEXTURE_LEVEL");
+  EnumValCase(12466, "EGL_GL_TEXTURE_3D");
+  EnumValCase(12477, "EGL_GL_TEXTURE_ZOFFSET");
+  EnumValCase(12467, "EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_X");
+  EnumValCase(12468, "EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_X");
+  EnumValCase(12469, "EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Y");
+  EnumValCase(12470, "EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Y");
+  EnumValCase(12471, "EGL_GL_TEXTURE_CUBE_MAP_POSITIVE_Z");
+  EnumValCase(12472, "EGL_GL_TEXTURE_CUBE_MAP_NEGATIVE_Z");
+  EnumValCase(12498, "EGL_IMAGE_PRESERVED");
+//EnumValCase(    0, "EGL_NO_IMAGE");                       // Duplicate value
+//EnumValCase(12440, "EGL_CONTEXT_MAJOR_VERSION_KHR");      // Duplicate value
+  EnumValCase(12540, "EGL_CONTEXT_FLAGS_KHR");
+//EnumValCase(    1, "EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR");   // Duplicate value
+//EnumValCase(    2, "EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR");// Duplicate value
+//EnumValCase(    4, "EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR");// Duplicate value
+//EnumValCase(    1, "EGL_CONTEXT_OPENGL_CORE_PROFILE_BIT_KHR");// Duplicate value
+//EnumValCase(    2, "EGL_CONTEXT_OPENGL_COMPATIBILITY_PROFILE_BIT_KHR");// Duplicate value
+//EnumValCase(   64, "EGL_OPENGL_ES3_BIT_KHR");             // Duplicate value
+//EnumValCase(12425, "EGL_GL_COLORSPACE_SRGB_KHR");         // Duplicate value
+//EnumValCase(12426, "EGL_GL_COLORSPACE_LINEAR_KHR");       // Duplicate value
+  EnumValCase(12464, "EGL_NATIVE_PIXMAP_KHR");
+//EnumValCase(    0, "EGL_NO_IMAGE_KHR");                   // Duplicate value
+  EnumValCase(12609, "EGL_PLATFORM_ANDROID_KHR");
+//EnumValCase(12760, "EGL_PLATFORM_WAYLAND_KHR");           // Duplicate value
+//EnumValCase(12757, "EGL_PLATFORM_X11_KHR");               // Duplicate value
+//EnumValCase(12758, "EGL_PLATFORM_X11_SCREEN_KHR");        // Duplicate value
+  EnumValCase(12615, "EGL_FRAMEBUFFER_TARGET_ANDROID");
+  EnumValCase(12608, "EGL_NATIVE_BUFFER_ANDROID");
+  EnumValCase(12612, "EGL_SYNC_NATIVE_FENCE_ANDROID");
+  EnumValCase(12613, "EGL_SYNC_NATIVE_FENCE_FD_ANDROID");
+  EnumValCase(12614, "EGL_SYNC_NATIVE_FENCE_SIGNALED_ANDROID");
+//EnumValCase(   -1, "EGL_NO_NATIVE_FENCE_FD_ANDROID");     // Duplicate value
+  EnumValCase(12610, "EGL_RECORDABLE_ANDROID");
+  EnumValCase(13264, "EGL_ACQUIRE_EVENTS_BRCM");
+  EnumValCase(13265, "EGL_RELEASE_EVENTS_BRCM");
+  EnumValCase(13266, "EGL_START_EVENTS_BRCM");
+  EnumValCase(13267, "EGL_STOP_EVENTS_BRCM");
+  EnumValCase(13268, "EGL_NUM_EVENT_TRACKS_BRCM");
+  EnumValCase(13269, "EGL_NUM_EVENTS_BRCM");
+  EnumValCase(13270, "EGL_MAX_EVENT_STRING_LEN_BRCM");
+  EnumValCase(28857, "EGL_GL_FRAMEBUFFER_BRCM");
+  EnumValCase(28858, "EGL_GL_FRAMEBUFFER_TARGET_BRCM");
+  EnumValCase(28859, "EGL_GL_FRAMEBUFFER_ATTACHMENT_BRCM");
+  EnumValCase(28860, "EGL_GL_FRAMEBUFFER_CONVERT_TO_COLOR_BRCM");
+  EnumValCase(28861, "EGL_GL_FRAMEBUFFER_CONVERT_TO_UIF");
+  EnumValCase(12896, "EGL_IMAGE_UPDATE_CONTROL_SET_MODE_BRCM");
+  EnumValCase(12897, "EGL_IMAGE_UPDATE_CONTROL_CHANGED_REGION_BRCM");
+  EnumValCase(12898, "EGL_IMAGE_UPDATE_CONTROL_SET_LOCK_STATE_BRCM");
+  EnumValCase(12899, "EGL_IMAGE_UPDATE_CONTROL_ALWAYS_BRCM");
+  EnumValCase(12900, "EGL_IMAGE_UPDATE_CONTROL_EXPLICIT_BRCM");
+  EnumValCase(12901, "EGL_IMAGE_UPDATE_CONTROL_LOCK_BRCM");
+  EnumValCase(12902, "EGL_IMAGE_UPDATE_CONTROL_UNLOCK_BRCM");
+  EnumValCase(13248, "EGL_ACQUIRE_COUNTERS_BRCM");
+  EnumValCase(13249, "EGL_RELEASE_COUNTERS_BRCM");
+  EnumValCase(13250, "EGL_START_COUNTERS_BRCM");
+  EnumValCase(13251, "EGL_STOP_COUNTERS_BRCM");
+  EnumValCase(13252, "EGL_NUM_COUNTER_GROUPS_BRCM");
+  EnumValCase(13253, "EGL_MAX_COUNTER_STRING_LEN_BRCM");
+  EnumValCase(13040, "EGL_PLATFORM_NEXUS_BRCM");
+  EnumValCase(12479, "EGL_CONTEXT_OPENGL_ROBUST_ACCESS_EXT");
+  EnumValCase(12600, "EGL_CONTEXT_OPENGL_RESET_NOTIFICATION_STRATEGY_EXT");
+//EnumValCase(12760, "EGL_PLATFORM_WAYLAND_EXT");           // Duplicate value
+//EnumValCase(12757, "EGL_PLATFORM_X11_EXT");               // Duplicate value
+//EnumValCase(12758, "EGL_PLATFORM_X11_SCREEN_EXT");        // Duplicate value
+  EnumValCase(12992, "EGL_PROTECTED_CONTENT_EXT");
+//EnumValCase(12757, "EGL_WAYLAND_BUFFER_WL");              // Duplicate value
+//EnumValCase(12758, "EGL_WAYLAND_PLANE_WL");               // Duplicate value
+  EnumValCase(12763, "EGL_WAYLAND_Y_INVERTED_WL");
+  EnumValCase(12759, "EGL_TEXTURE_Y_U_V_WL");
+//EnumValCase(12760, "EGL_TEXTURE_Y_UV_WL");                // Duplicate value
+  EnumValCase(12761, "EGL_TEXTURE_Y_XUXV_WL");

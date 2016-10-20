@@ -46,8 +46,7 @@ static TokenSeq *skip_white(TokenSeq *s)
 
 static TokenSeq *seq_next(TokenSeq *s)
 {
-   s = s->next;
-   return skip_white(s);
+   return skip_white(s->next);
 }
 
 static void check_seq(TokenSeq *s)
@@ -82,7 +81,8 @@ static TokenSeq *expect_comma(TokenSeq *s)
    return s;
 }
 
-// eval==false is used for C-style short-circuiting: In this case undefined identifiers are allowed (if not needed due to short-circuiting), but we must do the full recursion to check syntax.
+// !eval is used for short-circuiting. The syntax is checked but undefined
+// identifiers are ignored. The return value is undefined and will be ignored
 static int eval_11(TokenSeq *s, TokenSeq **rem, bool eval);
 
 static void parse_to_rparen(TokenSeq *s, TokenSeq **rem)
@@ -109,10 +109,8 @@ static int eval_1(TokenSeq *s, TokenSeq **rem, bool eval)
 
    switch (s->token->type) {
    case PPNUMBER:
-   {
-      s->token = glsl_lex_ppnumber(s->token);
+      s->token->type = glsl_lex_ppnumber(s->token->data.s, &s->token->data.v);
       return eval_1(s, rem, eval);
-   }
    case INTCONSTANT:
    case UINTCONSTANT:
    {
@@ -135,14 +133,9 @@ static int eval_1(TokenSeq *s, TokenSeq **rem, bool eval)
          check_seq(s);
 
          if(s->token->type==IDENTIFIER && !glsl_macrolist_find(directive_macros, s->token))
-         {
             glsl_compile_error(ERROR_PREPROCESSOR, 4, g_LineNumber, NULL);
-            return 0;
-         }
-         else {
-            int res = eval_11(s, rem, eval);
-            return res;
-         }
+
+         return eval_11(s, rem, eval);
       }
       else
       {

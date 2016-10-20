@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,299 +70,299 @@
 /***************************************************************************
  *CMP_0 - Video Compositor 0 Registers
  ***************************************************************************/
-#define BCHP_CMP_0_REVISION                      0x20645800 /* [RO] Compositor Revision ID */
-#define BCHP_CMP_0_HW_CONFIGURATION              0x20645804 /* [RO] Compositor HW Configuration */
-#define BCHP_CMP_0_CANVAS_CTRL                   0x20645808 /* [XRW] Canvas control */
-#define BCHP_CMP_0_CANVAS_SIZE                   0x2064580c /* [RW] Canvas Vertical and Horizontal Size */
-#define BCHP_CMP_0_BG_COLOR                      0x20645810 /* [RW] Background color register */
-#define BCHP_CMP_0_BLEND_0_CTRL                  0x20645814 /* [RW] Blending Control for First stage Blender */
-#define BCHP_CMP_0_BLEND_1_CTRL                  0x20645818 /* [RW] Blending Control for Second stage Blender */
-#define BCHP_CMP_0_BLEND_2_CTRL                  0x2064581c /* [RW] Blending Control for Third stage Blender */
-#define BCHP_CMP_0_CMP_CTRL                      0x20645828 /* [RW] Compositor Control */
-#define BCHP_CMP_0_COLOR_CLIP_CTRL               0x2064582c /* [RW] Color Clip Block Control */
-#define BCHP_CMP_0_CB_LUMA_SLOPE                 0x20645830 /* [RW] Color Clip Legal Space Cb_Luma Slope */
-#define BCHP_CMP_0_CR_LUMA_SLOPE                 0x20645834 /* [RW] Color Clip Legal Space Cr_Luma Slope */
-#define BCHP_CMP_0_CB_CR_SLOPE_JOINT             0x20645838 /* [RW] Color Clip Legal Space Cr_Luma Slope */
-#define BCHP_CMP_0_COLOR_CLIP_COUNT              0x2064583c /* [RO] Color Clip Count */
-#define BCHP_CMP_0_CMP_OUT_CTRL                  0x20645840 /* [RW] Compositor Output Control */
-#define BCHP_CMP_0_CRC_CTRL                      0x20645844 /* [RW] BVN CRC Control Register */
-#define BCHP_CMP_0_CRC_Y_STATUS                  0x20645848 /* [RO] BVN CRC Luma Status Register */
-#define BCHP_CMP_0_CRC_CB_STATUS                 0x2064584c /* [RO] BVN CRC Chroma(Cb) Status Register */
-#define BCHP_CMP_0_CRC_CR_STATUS                 0x20645850 /* [RO] BVN CRC Chroma(Cr) Status Register */
-#define BCHP_CMP_0_READBACK_POSITION             0x20645854 /* [RW] Compositor Position For CMP Output Readback */
-#define BCHP_CMP_0_READBACK_VALUE                0x20645858 /* [RO] Compositor Readback Y Value at Specified Position */
-#define BCHP_CMP_0_CSC_DEMO_SETTING              0x20645860 /* [RW] Compositor Color Space Converter Demo Setting */
-#define BCHP_CMP_0_SCRATCH_REGISTER              0x20645864 /* [RW] Compositor Scratch Register */
-#define BCHP_CMP_0_TEST_REGISTER                 0x2064586c /* [RW] Compositor Test Register */
-#define BCHP_CMP_0_TEST_REGISTER1                0x20645870 /* [RO] Compositor Test Register1 */
-#define BCHP_CMP_0_CMP_STATUS_CLEAR              0x20645880 /* [WO] CMP Status Clear */
-#define BCHP_CMP_0_CMP_STATUS                    0x20645884 /* [RO] CMP Status */
-#define BCHP_CMP_0_G0_SURFACE_SIZE               0x20645980 /* [RW] Graphics Surface 0 Vertical and Horizontal Size */
-#define BCHP_CMP_0_G0_SURFACE_OFFSET             0x20645984 /* [RW] Graphics Surface 0 Vertical and Horizontal Offset */
-#define BCHP_CMP_0_G0_DISPLAY_SIZE               0x20645988 /* [RW] Graphics Surface 0 Display Vertical and Horizontal Size1 */
-#define BCHP_CMP_0_G0_CANVAS_OFFSET              0x2064598c /* [RW] Graphics Surface 0 Canvas Vertical and Horizontal Offset */
-#define BCHP_CMP_0_G0_CANVAS_X_OFFSET_R          0x20645990 /* [RW] Graphics Surface 0 Canvas Horizontal Offset For Right or Under Window in 3D mode */
-#define BCHP_CMP_0_G0_SURFACE_CTRL               0x20645994 /* [RW] Graphics Surface 0 Control */
-#define BCHP_CMP_0_G0_BVB_IN_STATUS_CLEAR        0x20645998 /* [WO] Graphics Surface 0 BVB Input Status Clear */
-#define BCHP_CMP_0_G0_BVB_IN_STATUS              0x2064599c /* [RO] Graphics Surface 0 BVB Input Status */
-#define BCHP_CMP_0_V0_SURFACE_SIZE               0x20645a00 /* [RW] Video Surface 0 Vertical and Horizontal Size */
-#define BCHP_CMP_0_V0_SURFACE_OFFSET             0x20645a04 /* [RW] Video Surface 0 Vertical and Horizontal Offset */
-#define BCHP_CMP_0_V0_DISPLAY_SIZE               0x20645a08 /* [RW] Video Surface 0 Display Vertical and Horizontal Size */
-#define BCHP_CMP_0_V0_CANVAS_OFFSET              0x20645a0c /* [RW] Video Surface 0 Canvas Vertical and Horizontal Offset */
-#define BCHP_CMP_0_V0_CANVAS_X_OFFSET_R          0x20645a10 /* [RW] Video Surface 0 Canvas Horizontal Offset For Right or Under Window in 3D mode */
-#define BCHP_CMP_0_V0_SURFACE_CTRL               0x20645a14 /* [RW] Video Surface 0 Control */
-#define BCHP_CMP_0_V0_BVB_IN_STATUS_CLEAR        0x20645a18 /* [WO] Video Surface 0 BVB Input Status Clear */
-#define BCHP_CMP_0_V0_BVB_IN_STATUS              0x20645a1c /* [RO] Video Surface 0 BVB Input Status */
-#define BCHP_CMP_0_V0_CONST_COLOR                0x20645a20 /* [RW] Video Surface 0 Constant Color Register */
-#define BCHP_CMP_0_V0_CB_KEYING                  0x20645a24 /* [RW] Video Surface 0 Chroma (Blue) Key */
-#define BCHP_CMP_0_V0_CR_KEYING                  0x20645a28 /* [RW] Video Surface 0 Chroma (Red) Key */
-#define BCHP_CMP_0_V0_LUMA_KEYING                0x20645a2c /* [RW] Video Surface 0 Luma Key */
-#define BCHP_CMP_0_V0_RECT_CSC_INDEX_0           0x20645a30 /* [RW] Video Surface 0 rectangle CSC index 0 */
-#define BCHP_CMP_0_V0_RECT_CSC_INDEX_1           0x20645a34 /* [RW] Video Surface 0 rectangle CSC index 1 */
-#define BCHP_CMP_0_V0_RECT_COLOR                 0x20645a38 /* [RW] Video Surface 0 Rectangle Function Color Register */
-#define BCHP_CMP_0_V0_RECT_TOP_CTRL              0x20645a3c /* [RW] Video Surface 0 Top Level Rectangle Control for Mosaic or See Through. */
-#define BCHP_CMP_0_V0_RECT_ENABLE_MASK           0x20645a40 /* [RW] Video Surface 0 Rectangle Function Enable Mask */
-#define BCHP_CMP_0_V0_NL_CSC_CTRL                0x20645ad0 /* [RW] Video Surface 0 Nonconstant Luminance CSC Control (NOT available, replaced by HDR) */
-#define BCHP_CMP_0_V0_REV_CCA_CTRL               0x20645ad4 /* [RW] Video Surface 0 Reverse CCA Control (NOT available, replaced by HDR) */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_LSHF           0x20645d00 /* [RW] Video Surface 0 Color Matrix C R0 coefficient left shift */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C00            0x20645d04 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c00 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C01            0x20645d08 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c01 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C02            0x20645d0c /* [RW] Video Surface 0 Color Matrix C R0 coefficient c02 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C03            0x20645d10 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c03 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C10            0x20645d14 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c10 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C11            0x20645d18 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c11 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C12            0x20645d1c /* [RW] Video Surface 0 Color Matrix C R0 coefficient c12 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C13            0x20645d20 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c13 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C20            0x20645d24 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c20 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C21            0x20645d28 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c21 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C22            0x20645d2c /* [RW] Video Surface 0 Color Matrix C R0 coefficient c22 */
-#define BCHP_CMP_0_V0_R0_MC_COEFF_C23            0x20645d30 /* [RW] Video Surface 0 Color Matrix C R0 coefficient c23 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_LSHF           0x20645d34 /* [RW] Video Surface 0 Color Matrix C R1 coefficient left shift */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C00            0x20645d38 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c00 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C01            0x20645d3c /* [RW] Video Surface 0 Color Matrix C R1 coefficient c01 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C02            0x20645d40 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c02 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C03            0x20645d44 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c03 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C10            0x20645d48 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c10 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C11            0x20645d4c /* [RW] Video Surface 0 Color Matrix C R1 coefficient c11 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C12            0x20645d50 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c12 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C13            0x20645d54 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c13 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C20            0x20645d58 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c20 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C21            0x20645d5c /* [RW] Video Surface 0 Color Matrix C R1 coefficient c21 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C22            0x20645d60 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c22 */
-#define BCHP_CMP_0_V0_R1_MC_COEFF_C23            0x20645d64 /* [RW] Video Surface 0 Color Matrix C R1 coefficient c23 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_LSHF           0x20645d68 /* [RW] Video Surface 0 Color Matrix C R2 coefficient left shift */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C00            0x20645d6c /* [RW] Video Surface 0 Color Matrix C R2 coefficient c00 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C01            0x20645d70 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c01 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C02            0x20645d74 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c02 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C03            0x20645d78 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c03 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C10            0x20645d7c /* [RW] Video Surface 0 Color Matrix C R2 coefficient c10 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C11            0x20645d80 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c11 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C12            0x20645d84 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c12 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C13            0x20645d88 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c13 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C20            0x20645d8c /* [RW] Video Surface 0 Color Matrix C R2 coefficient c20 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C21            0x20645d90 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c21 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C22            0x20645d94 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c22 */
-#define BCHP_CMP_0_V0_R2_MC_COEFF_C23            0x20645d98 /* [RW] Video Surface 0 Color Matrix C R2 coefficient c23 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_LSHF           0x20645d9c /* [RW] Video Surface 0 Color Matrix C R3 coefficient left shift */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C00            0x20645da0 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c00 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C01            0x20645da4 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c01 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C02            0x20645da8 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c02 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C03            0x20645dac /* [RW] Video Surface 0 Color Matrix C R3 coefficient c03 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C10            0x20645db0 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c10 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C11            0x20645db4 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c11 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C12            0x20645db8 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c12 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C13            0x20645dbc /* [RW] Video Surface 0 Color Matrix C R3 coefficient c13 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C20            0x20645dc0 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c20 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C21            0x20645dc4 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c21 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C22            0x20645dc8 /* [RW] Video Surface 0 Color Matrix C R3 coefficient c22 */
-#define BCHP_CMP_0_V0_R3_MC_COEFF_C23            0x20645dcc /* [RW] Video Surface 0 Color Matrix C R3 coefficient c23 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_LSHF           0x20645dd0 /* [RW] Video Surface 0 Color Matrix C R4 coefficient left shift */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C00            0x20645dd4 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c00 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C01            0x20645dd8 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c01 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C02            0x20645ddc /* [RW] Video Surface 0 Color Matrix C R4 coefficient c02 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C03            0x20645de0 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c03 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C10            0x20645de4 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c10 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C11            0x20645de8 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c11 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C12            0x20645dec /* [RW] Video Surface 0 Color Matrix C R4 coefficient c12 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C13            0x20645df0 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c13 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C20            0x20645df4 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c20 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C21            0x20645df8 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c21 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C22            0x20645dfc /* [RW] Video Surface 0 Color Matrix C R4 coefficient c22 */
-#define BCHP_CMP_0_V0_R4_MC_COEFF_C23            0x20645e00 /* [RW] Video Surface 0 Color Matrix C R4 coefficient c23 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_LSHF           0x20645e04 /* [RW] Video Surface 0 Color Matrix C R5 coefficient left shift */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C00            0x20645e08 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c00 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C01            0x20645e0c /* [RW] Video Surface 0 Color Matrix C R5 coefficient c01 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C02            0x20645e10 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c02 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C03            0x20645e14 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c03 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C10            0x20645e18 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c10 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C11            0x20645e1c /* [RW] Video Surface 0 Color Matrix C R5 coefficient c11 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C12            0x20645e20 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c12 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C13            0x20645e24 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c13 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C20            0x20645e28 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c20 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C21            0x20645e2c /* [RW] Video Surface 0 Color Matrix C R5 coefficient c21 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C22            0x20645e30 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c22 */
-#define BCHP_CMP_0_V0_R5_MC_COEFF_C23            0x20645e34 /* [RW] Video Surface 0 Color Matrix C R5 coefficient c23 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_LSHF           0x20645e38 /* [RW] Video Surface 0 Color Matrix C R6 coefficient left shift */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C00            0x20645e3c /* [RW] Video Surface 0 Color Matrix C R6 coefficient c00 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C01            0x20645e40 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c01 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C02            0x20645e44 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c02 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C03            0x20645e48 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c03 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C10            0x20645e4c /* [RW] Video Surface 0 Color Matrix C R6 coefficient c10 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C11            0x20645e50 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c11 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C12            0x20645e54 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c12 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C13            0x20645e58 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c13 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C20            0x20645e5c /* [RW] Video Surface 0 Color Matrix C R6 coefficient c20 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C21            0x20645e60 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c21 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C22            0x20645e64 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c22 */
-#define BCHP_CMP_0_V0_R6_MC_COEFF_C23            0x20645e68 /* [RW] Video Surface 0 Color Matrix C R6 coefficient c23 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_LSHF           0x20645e6c /* [RW] Video Surface 0 Color Matrix C R7 coefficient left shift */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C00            0x20645e70 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c00 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C01            0x20645e74 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c01 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C02            0x20645e78 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c02 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C03            0x20645e7c /* [RW] Video Surface 0 Color Matrix C R7 coefficient c03 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C10            0x20645e80 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c10 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C11            0x20645e84 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c11 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C12            0x20645e88 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c12 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C13            0x20645e8c /* [RW] Video Surface 0 Color Matrix C R7 coefficient c13 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C20            0x20645e90 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c20 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C21            0x20645e94 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c21 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C22            0x20645e98 /* [RW] Video Surface 0 Color Matrix C R7 coefficient c22 */
-#define BCHP_CMP_0_V0_R7_MC_COEFF_C23            0x20645e9c /* [RW] Video Surface 0 Color Matrix C R7 coefficient c23 */
-#define BCHP_CMP_0_V0_CSC_DITHER_CTRL            0x20645ea0 /* [RW] Video Surface 0 Color Matrix C Dither CTRL */
-#define BCHP_CMP_0_V0_CSC_DITHER_LFSR_INIT       0x20645ea4 /* [RW] Video Surface 0 Color Matrix C Dither LFSR Init value and control */
-#define BCHP_CMP_0_V0_CSC_DITHER_LFSR_CTRL       0x20645ea8 /* [RW] Video Surface 0 Color Matrix C Dither LFSR control */
-#define BCHP_CMP_0_V0_IN_DITHER_422_CTRL         0x20645eac /* [RW] Video Surface 0 In Dither CTRL (10 to 8 bits conversion) */
-#define BCHP_CMP_0_V0_IN_DITHER_LFSR_INIT        0x20645eb0 /* [RW] Video Surface 0 Input Dither LFSR Init value and control (10 to 8 bits conversion) */
-#define BCHP_CMP_0_V0_IN_DITHER_LFSR_CTRL        0x20645eb4 /* [RW] Video Surface 0 Input Dither LFSR control (10 to 8 bits conversion) */
-#define BCHP_CMP_0_V1_SURFACE_SIZE               0x20645f00 /* [RW] Video Surface 1 Vertical and Horizontal Size */
-#define BCHP_CMP_0_V1_SURFACE_OFFSET             0x20645f04 /* [RW] Video Surface 1 Vertical and Horizontal Offset */
-#define BCHP_CMP_0_V1_DISPLAY_SIZE               0x20645f08 /* [RW] Video Surface 1 Display Vertical and Horizontal Size */
-#define BCHP_CMP_0_V1_CANVAS_OFFSET              0x20645f0c /* [RW] Video Surface 1 Canvas Vertical and Horizontal Offset */
-#define BCHP_CMP_0_V1_CANVAS_X_OFFSET_R          0x20645f10 /* [RW] Video Surface 1 Canvas Horizontal Offset For Right or Under Window in 3D mode */
-#define BCHP_CMP_0_V1_SURFACE_CTRL               0x20645f14 /* [RW] Video Surface 1 Control */
-#define BCHP_CMP_0_V1_BVB_IN_STATUS_CLEAR        0x20645f18 /* [WO] Video Surface 1 BVB Input Status Clear */
-#define BCHP_CMP_0_V1_BVB_IN_STATUS              0x20645f1c /* [RO] Video Surface 1 BVB Input Status */
-#define BCHP_CMP_0_V1_CONST_COLOR                0x20645f20 /* [RW] Video Surface 1 Constant Color Register */
-#define BCHP_CMP_0_V1_CB_KEYING                  0x20645f24 /* [RW] Video Surface 1 Chroma (Blue) Key */
-#define BCHP_CMP_0_V1_CR_KEYING                  0x20645f28 /* [RW] Video Surface 1 Chroma (Red) Key */
-#define BCHP_CMP_0_V1_LUMA_KEYING                0x20645f2c /* [RW] Video Surface 1 Luma Key */
-#define BCHP_CMP_0_V1_RECT_CSC_INDEX_0           0x20645f30 /* [RW] Video Surface 1 rectangle CSC index 0 */
-#define BCHP_CMP_0_V1_RECT_CSC_INDEX_1           0x20645f34 /* [RW] Video Surface 1 rectangle CSC index 1 */
-#define BCHP_CMP_0_V1_RECT_COLOR                 0x20645f38 /* [RW] Video Surface 1 Rectangle Function Color Register */
-#define BCHP_CMP_0_V1_RECT_TOP_CTRL              0x20645f3c /* [RW] Video Surface 1 Top Level Rectangle Control for Mosaic or See Through. */
-#define BCHP_CMP_0_V1_RECT_ENABLE_MASK           0x20645f40 /* [RW] Video Surface 1 Rectangle Function Enable Mask */
-#define BCHP_CMP_0_V1_NL_CSC_CTRL                0x20645fd0 /* [RW] Video Surface 1 Nonconstant Luminance CSC Control (NOT available, replaced by HDR) */
-#define BCHP_CMP_0_V1_REV_CCA_CTRL               0x20645fd4 /* [RW] Video Surface 1 Reverse CCA Control (NOT available, replaced by HDR) */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_LSHF           0x20646200 /* [RW] Video Surface 1 Color Matrix C R0 coefficient left shift */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C00            0x20646204 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c00 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C01            0x20646208 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c01 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C02            0x2064620c /* [RW] Video Surface 1 Color Matrix C R0 coefficient c02 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C03            0x20646210 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c03 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C10            0x20646214 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c10 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C11            0x20646218 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c11 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C12            0x2064621c /* [RW] Video Surface 1 Color Matrix C R0 coefficient c12 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C13            0x20646220 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c13 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C20            0x20646224 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c20 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C21            0x20646228 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c21 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C22            0x2064622c /* [RW] Video Surface 1 Color Matrix C R0 coefficient c22 */
-#define BCHP_CMP_0_V1_R0_MC_COEFF_C23            0x20646230 /* [RW] Video Surface 1 Color Matrix C R0 coefficient c23 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_LSHF           0x20646234 /* [RW] Video Surface 1 Color Matrix C R1 coefficient left shift */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C00            0x20646238 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c00 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C01            0x2064623c /* [RW] Video Surface 1 Color Matrix C R1 coefficient c01 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C02            0x20646240 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c02 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C03            0x20646244 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c03 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C10            0x20646248 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c10 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C11            0x2064624c /* [RW] Video Surface 1 Color Matrix C R1 coefficient c11 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C12            0x20646250 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c12 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C13            0x20646254 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c13 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C20            0x20646258 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c20 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C21            0x2064625c /* [RW] Video Surface 1 Color Matrix C R1 coefficient c21 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C22            0x20646260 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c22 */
-#define BCHP_CMP_0_V1_R1_MC_COEFF_C23            0x20646264 /* [RW] Video Surface 1 Color Matrix C R1 coefficient c23 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_LSHF           0x20646268 /* [RW] Video Surface 1 Color Matrix C R2 coefficient left shift */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C00            0x2064626c /* [RW] Video Surface 1 Color Matrix C R2 coefficient c00 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C01            0x20646270 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c01 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C02            0x20646274 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c02 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C03            0x20646278 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c03 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C10            0x2064627c /* [RW] Video Surface 1 Color Matrix C R2 coefficient c10 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C11            0x20646280 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c11 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C12            0x20646284 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c12 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C13            0x20646288 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c13 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C20            0x2064628c /* [RW] Video Surface 1 Color Matrix C R2 coefficient c20 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C21            0x20646290 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c21 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C22            0x20646294 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c22 */
-#define BCHP_CMP_0_V1_R2_MC_COEFF_C23            0x20646298 /* [RW] Video Surface 1 Color Matrix C R2 coefficient c23 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_LSHF           0x2064629c /* [RW] Video Surface 1 Color Matrix C R3 coefficient left shift */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C00            0x206462a0 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c00 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C01            0x206462a4 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c01 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C02            0x206462a8 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c02 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C03            0x206462ac /* [RW] Video Surface 1 Color Matrix C R3 coefficient c03 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C10            0x206462b0 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c10 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C11            0x206462b4 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c11 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C12            0x206462b8 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c12 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C13            0x206462bc /* [RW] Video Surface 1 Color Matrix C R3 coefficient c13 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C20            0x206462c0 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c20 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C21            0x206462c4 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c21 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C22            0x206462c8 /* [RW] Video Surface 1 Color Matrix C R3 coefficient c22 */
-#define BCHP_CMP_0_V1_R3_MC_COEFF_C23            0x206462cc /* [RW] Video Surface 1 Color Matrix C R3 coefficient c23 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_LSHF           0x206462d0 /* [RW] Video Surface 1 Color Matrix C R4 coefficient left shift */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C00            0x206462d4 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c00 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C01            0x206462d8 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c01 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C02            0x206462dc /* [RW] Video Surface 1 Color Matrix C R4 coefficient c02 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C03            0x206462e0 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c03 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C10            0x206462e4 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c10 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C11            0x206462e8 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c11 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C12            0x206462ec /* [RW] Video Surface 1 Color Matrix C R4 coefficient c12 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C13            0x206462f0 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c13 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C20            0x206462f4 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c20 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C21            0x206462f8 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c21 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C22            0x206462fc /* [RW] Video Surface 1 Color Matrix C R4 coefficient c22 */
-#define BCHP_CMP_0_V1_R4_MC_COEFF_C23            0x20646300 /* [RW] Video Surface 1 Color Matrix C R4 coefficient c23 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_LSHF           0x20646304 /* [RW] Video Surface 1 Color Matrix C R5 coefficient left shift */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C00            0x20646308 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c00 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C01            0x2064630c /* [RW] Video Surface 1 Color Matrix C R5 coefficient c01 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C02            0x20646310 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c02 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C03            0x20646314 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c03 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C10            0x20646318 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c10 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C11            0x2064631c /* [RW] Video Surface 1 Color Matrix C R5 coefficient c11 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C12            0x20646320 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c12 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C13            0x20646324 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c13 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C20            0x20646328 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c20 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C21            0x2064632c /* [RW] Video Surface 1 Color Matrix C R5 coefficient c21 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C22            0x20646330 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c22 */
-#define BCHP_CMP_0_V1_R5_MC_COEFF_C23            0x20646334 /* [RW] Video Surface 1 Color Matrix C R5 coefficient c23 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_LSHF           0x20646338 /* [RW] Video Surface 1 Color Matrix C R6 coefficient left shift */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C00            0x2064633c /* [RW] Video Surface 1 Color Matrix C R6 coefficient c00 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C01            0x20646340 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c01 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C02            0x20646344 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c02 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C03            0x20646348 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c03 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C10            0x2064634c /* [RW] Video Surface 1 Color Matrix C R6 coefficient c10 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C11            0x20646350 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c11 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C12            0x20646354 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c12 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C13            0x20646358 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c13 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C20            0x2064635c /* [RW] Video Surface 1 Color Matrix C R6 coefficient c20 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C21            0x20646360 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c21 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C22            0x20646364 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c22 */
-#define BCHP_CMP_0_V1_R6_MC_COEFF_C23            0x20646368 /* [RW] Video Surface 1 Color Matrix C R6 coefficient c23 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_LSHF           0x2064636c /* [RW] Video Surface 1 Color Matrix C R7 coefficient left shift */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C00            0x20646370 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c00 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C01            0x20646374 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c01 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C02            0x20646378 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c02 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C03            0x2064637c /* [RW] Video Surface 1 Color Matrix C R7 coefficient c03 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C10            0x20646380 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c10 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C11            0x20646384 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c11 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C12            0x20646388 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c12 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C13            0x2064638c /* [RW] Video Surface 1 Color Matrix C R7 coefficient c13 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C20            0x20646390 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c20 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C21            0x20646394 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c21 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C22            0x20646398 /* [RW] Video Surface 1 Color Matrix C R7 coefficient c22 */
-#define BCHP_CMP_0_V1_R7_MC_COEFF_C23            0x2064639c /* [RW] Video Surface 1 Color Matrix C R7 coefficient c23 */
-#define BCHP_CMP_0_V1_CSC_DITHER_CTRL            0x206463a0 /* [RW] Video Surface 1 Color Matrix C Dither CTRL */
-#define BCHP_CMP_0_V1_CSC_DITHER_LFSR_INIT       0x206463a4 /* [RW] Video Surface 1 Color Matrix C Dither LFSR Init value and control */
-#define BCHP_CMP_0_V1_CSC_DITHER_LFSR_CTRL       0x206463a8 /* [RW] Video Surface 1 Color Matrix C Dither LFSR control */
-#define BCHP_CMP_0_V1_IN_DITHER_422_CTRL         0x206463ac /* [RW] Video Surface 1 In Dither CTRL (10 to 8 bits conversion) */
-#define BCHP_CMP_0_V1_IN_DITHER_LFSR_INIT        0x206463b0 /* [RW] Video Surface 1 Input Dither LFSR Init value and control (10 to 8 bits conversion) */
-#define BCHP_CMP_0_V1_IN_DITHER_LFSR_CTRL        0x206463b4 /* [RW] Video Surface 1 Input Dither LFSR control (10 to 8 bits conversion) */
+#define BCHP_CMP_0_REVISION                      0x20645800 /* [RO][32] Compositor Revision ID */
+#define BCHP_CMP_0_HW_CONFIGURATION              0x20645804 /* [RO][32] Compositor HW Configuration */
+#define BCHP_CMP_0_CANVAS_CTRL                   0x20645808 /* [XRW][32] Canvas control */
+#define BCHP_CMP_0_CANVAS_SIZE                   0x2064580c /* [RW][32] Canvas Vertical and Horizontal Size */
+#define BCHP_CMP_0_BG_COLOR                      0x20645810 /* [RW][32] Background color register */
+#define BCHP_CMP_0_BLEND_0_CTRL                  0x20645814 /* [RW][32] Blending Control for First stage Blender */
+#define BCHP_CMP_0_BLEND_1_CTRL                  0x20645818 /* [RW][32] Blending Control for Second stage Blender */
+#define BCHP_CMP_0_BLEND_2_CTRL                  0x2064581c /* [RW][32] Blending Control for Third stage Blender */
+#define BCHP_CMP_0_CMP_CTRL                      0x20645828 /* [RW][32] Compositor Control */
+#define BCHP_CMP_0_COLOR_CLIP_CTRL               0x2064582c /* [RW][32] Color Clip Block Control */
+#define BCHP_CMP_0_CB_LUMA_SLOPE                 0x20645830 /* [RW][32] Color Clip Legal Space Cb_Luma Slope */
+#define BCHP_CMP_0_CR_LUMA_SLOPE                 0x20645834 /* [RW][32] Color Clip Legal Space Cr_Luma Slope */
+#define BCHP_CMP_0_CB_CR_SLOPE_JOINT             0x20645838 /* [RW][32] Color Clip Legal Space Cr_Luma Slope */
+#define BCHP_CMP_0_COLOR_CLIP_COUNT              0x2064583c /* [RO][32] Color Clip Count */
+#define BCHP_CMP_0_CMP_OUT_CTRL                  0x20645840 /* [RW][32] Compositor Output Control */
+#define BCHP_CMP_0_CRC_CTRL                      0x20645844 /* [RW][32] BVN CRC Control Register */
+#define BCHP_CMP_0_CRC_Y_STATUS                  0x20645848 /* [RO][32] BVN CRC Luma Status Register */
+#define BCHP_CMP_0_CRC_CB_STATUS                 0x2064584c /* [RO][32] BVN CRC Chroma(Cb) Status Register */
+#define BCHP_CMP_0_CRC_CR_STATUS                 0x20645850 /* [RO][32] BVN CRC Chroma(Cr) Status Register */
+#define BCHP_CMP_0_READBACK_POSITION             0x20645854 /* [RW][32] Compositor Position For CMP Output Readback */
+#define BCHP_CMP_0_READBACK_VALUE                0x20645858 /* [RO][64] Compositor Readback Y Value at Specified Position */
+#define BCHP_CMP_0_CSC_DEMO_SETTING              0x20645860 /* [RW][32] Compositor Color Space Converter Demo Setting */
+#define BCHP_CMP_0_SCRATCH_REGISTER              0x20645864 /* [RW][32] Compositor Scratch Register */
+#define BCHP_CMP_0_TEST_REGISTER                 0x2064586c /* [RW][32] Compositor Test Register */
+#define BCHP_CMP_0_TEST_REGISTER1                0x20645870 /* [RO][32] Compositor Test Register1 */
+#define BCHP_CMP_0_CMP_STATUS_CLEAR              0x20645880 /* [WO][32] CMP Status Clear */
+#define BCHP_CMP_0_CMP_STATUS                    0x20645884 /* [RO][32] CMP Status */
+#define BCHP_CMP_0_G0_SURFACE_SIZE               0x20645980 /* [RW][32] Graphics Surface 0 Vertical and Horizontal Size */
+#define BCHP_CMP_0_G0_SURFACE_OFFSET             0x20645984 /* [RW][32] Graphics Surface 0 Vertical and Horizontal Offset */
+#define BCHP_CMP_0_G0_DISPLAY_SIZE               0x20645988 /* [RW][32] Graphics Surface 0 Display Vertical and Horizontal Size1 */
+#define BCHP_CMP_0_G0_CANVAS_OFFSET              0x2064598c /* [RW][32] Graphics Surface 0 Canvas Vertical and Horizontal Offset */
+#define BCHP_CMP_0_G0_CANVAS_X_OFFSET_R          0x20645990 /* [RW][32] Graphics Surface 0 Canvas Horizontal Offset For Right or Under Window in 3D mode */
+#define BCHP_CMP_0_G0_SURFACE_CTRL               0x20645994 /* [RW][32] Graphics Surface 0 Control */
+#define BCHP_CMP_0_G0_BVB_IN_STATUS_CLEAR        0x20645998 /* [WO][32] Graphics Surface 0 BVB Input Status Clear */
+#define BCHP_CMP_0_G0_BVB_IN_STATUS              0x2064599c /* [RO][32] Graphics Surface 0 BVB Input Status */
+#define BCHP_CMP_0_V0_SURFACE_SIZE               0x20645a00 /* [RW][32] Video Surface 0 Vertical and Horizontal Size */
+#define BCHP_CMP_0_V0_SURFACE_OFFSET             0x20645a04 /* [RW][32] Video Surface 0 Vertical and Horizontal Offset */
+#define BCHP_CMP_0_V0_DISPLAY_SIZE               0x20645a08 /* [RW][32] Video Surface 0 Display Vertical and Horizontal Size */
+#define BCHP_CMP_0_V0_CANVAS_OFFSET              0x20645a0c /* [RW][32] Video Surface 0 Canvas Vertical and Horizontal Offset */
+#define BCHP_CMP_0_V0_CANVAS_X_OFFSET_R          0x20645a10 /* [RW][32] Video Surface 0 Canvas Horizontal Offset For Right or Under Window in 3D mode */
+#define BCHP_CMP_0_V0_SURFACE_CTRL               0x20645a14 /* [RW][32] Video Surface 0 Control */
+#define BCHP_CMP_0_V0_BVB_IN_STATUS_CLEAR        0x20645a18 /* [WO][32] Video Surface 0 BVB Input Status Clear */
+#define BCHP_CMP_0_V0_BVB_IN_STATUS              0x20645a1c /* [RO][32] Video Surface 0 BVB Input Status */
+#define BCHP_CMP_0_V0_CONST_COLOR                0x20645a20 /* [RW][32] Video Surface 0 Constant Color Register */
+#define BCHP_CMP_0_V0_CB_KEYING                  0x20645a24 /* [RW][32] Video Surface 0 Chroma (Blue) Key */
+#define BCHP_CMP_0_V0_CR_KEYING                  0x20645a28 /* [RW][32] Video Surface 0 Chroma (Red) Key */
+#define BCHP_CMP_0_V0_LUMA_KEYING                0x20645a2c /* [RW][32] Video Surface 0 Luma Key */
+#define BCHP_CMP_0_V0_RECT_CSC_INDEX_0           0x20645a30 /* [RW][32] Video Surface 0 rectangle CSC index 0 */
+#define BCHP_CMP_0_V0_RECT_CSC_INDEX_1           0x20645a34 /* [RW][32] Video Surface 0 rectangle CSC index 1 */
+#define BCHP_CMP_0_V0_RECT_COLOR                 0x20645a38 /* [RW][32] Video Surface 0 Rectangle Function Color Register */
+#define BCHP_CMP_0_V0_RECT_TOP_CTRL              0x20645a3c /* [RW][32] Video Surface 0 Top Level Rectangle Control for Mosaic or See Through. */
+#define BCHP_CMP_0_V0_RECT_ENABLE_MASK           0x20645a40 /* [RW][32] Video Surface 0 Rectangle Function Enable Mask */
+#define BCHP_CMP_0_V0_NL_CSC_CTRL                0x20645ad0 /* [RW][32] Video Surface 0 Nonconstant Luminance CSC Control (NOT available, replaced by HDR) */
+#define BCHP_CMP_0_V0_REV_CCA_CTRL               0x20645ad4 /* [RW][32] Video Surface 0 Reverse CCA Control (NOT available, replaced by HDR) */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_LSHF           0x20645d00 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient left shift */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C00            0x20645d04 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c00 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C01            0x20645d08 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c01 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C02            0x20645d0c /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c02 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C03            0x20645d10 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c03 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C10            0x20645d14 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c10 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C11            0x20645d18 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c11 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C12            0x20645d1c /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c12 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C13            0x20645d20 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c13 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C20            0x20645d24 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c20 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C21            0x20645d28 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c21 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C22            0x20645d2c /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c22 */
+#define BCHP_CMP_0_V0_R0_MC_COEFF_C23            0x20645d30 /* [RW][32] Video Surface 0 Color Matrix C R0 coefficient c23 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_LSHF           0x20645d34 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient left shift */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C00            0x20645d38 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c00 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C01            0x20645d3c /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c01 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C02            0x20645d40 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c02 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C03            0x20645d44 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c03 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C10            0x20645d48 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c10 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C11            0x20645d4c /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c11 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C12            0x20645d50 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c12 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C13            0x20645d54 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c13 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C20            0x20645d58 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c20 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C21            0x20645d5c /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c21 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C22            0x20645d60 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c22 */
+#define BCHP_CMP_0_V0_R1_MC_COEFF_C23            0x20645d64 /* [RW][32] Video Surface 0 Color Matrix C R1 coefficient c23 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_LSHF           0x20645d68 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient left shift */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C00            0x20645d6c /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c00 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C01            0x20645d70 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c01 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C02            0x20645d74 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c02 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C03            0x20645d78 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c03 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C10            0x20645d7c /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c10 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C11            0x20645d80 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c11 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C12            0x20645d84 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c12 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C13            0x20645d88 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c13 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C20            0x20645d8c /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c20 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C21            0x20645d90 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c21 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C22            0x20645d94 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c22 */
+#define BCHP_CMP_0_V0_R2_MC_COEFF_C23            0x20645d98 /* [RW][32] Video Surface 0 Color Matrix C R2 coefficient c23 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_LSHF           0x20645d9c /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient left shift */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C00            0x20645da0 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c00 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C01            0x20645da4 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c01 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C02            0x20645da8 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c02 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C03            0x20645dac /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c03 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C10            0x20645db0 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c10 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C11            0x20645db4 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c11 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C12            0x20645db8 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c12 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C13            0x20645dbc /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c13 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C20            0x20645dc0 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c20 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C21            0x20645dc4 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c21 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C22            0x20645dc8 /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c22 */
+#define BCHP_CMP_0_V0_R3_MC_COEFF_C23            0x20645dcc /* [RW][32] Video Surface 0 Color Matrix C R3 coefficient c23 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_LSHF           0x20645dd0 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient left shift */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C00            0x20645dd4 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c00 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C01            0x20645dd8 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c01 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C02            0x20645ddc /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c02 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C03            0x20645de0 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c03 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C10            0x20645de4 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c10 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C11            0x20645de8 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c11 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C12            0x20645dec /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c12 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C13            0x20645df0 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c13 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C20            0x20645df4 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c20 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C21            0x20645df8 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c21 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C22            0x20645dfc /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c22 */
+#define BCHP_CMP_0_V0_R4_MC_COEFF_C23            0x20645e00 /* [RW][32] Video Surface 0 Color Matrix C R4 coefficient c23 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_LSHF           0x20645e04 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient left shift */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C00            0x20645e08 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c00 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C01            0x20645e0c /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c01 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C02            0x20645e10 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c02 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C03            0x20645e14 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c03 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C10            0x20645e18 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c10 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C11            0x20645e1c /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c11 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C12            0x20645e20 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c12 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C13            0x20645e24 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c13 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C20            0x20645e28 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c20 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C21            0x20645e2c /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c21 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C22            0x20645e30 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c22 */
+#define BCHP_CMP_0_V0_R5_MC_COEFF_C23            0x20645e34 /* [RW][32] Video Surface 0 Color Matrix C R5 coefficient c23 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_LSHF           0x20645e38 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient left shift */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C00            0x20645e3c /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c00 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C01            0x20645e40 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c01 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C02            0x20645e44 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c02 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C03            0x20645e48 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c03 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C10            0x20645e4c /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c10 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C11            0x20645e50 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c11 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C12            0x20645e54 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c12 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C13            0x20645e58 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c13 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C20            0x20645e5c /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c20 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C21            0x20645e60 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c21 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C22            0x20645e64 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c22 */
+#define BCHP_CMP_0_V0_R6_MC_COEFF_C23            0x20645e68 /* [RW][32] Video Surface 0 Color Matrix C R6 coefficient c23 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_LSHF           0x20645e6c /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient left shift */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C00            0x20645e70 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c00 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C01            0x20645e74 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c01 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C02            0x20645e78 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c02 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C03            0x20645e7c /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c03 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C10            0x20645e80 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c10 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C11            0x20645e84 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c11 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C12            0x20645e88 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c12 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C13            0x20645e8c /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c13 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C20            0x20645e90 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c20 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C21            0x20645e94 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c21 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C22            0x20645e98 /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c22 */
+#define BCHP_CMP_0_V0_R7_MC_COEFF_C23            0x20645e9c /* [RW][32] Video Surface 0 Color Matrix C R7 coefficient c23 */
+#define BCHP_CMP_0_V0_CSC_DITHER_CTRL            0x20645ea0 /* [RW][32] Video Surface 0 Color Matrix C Dither CTRL */
+#define BCHP_CMP_0_V0_CSC_DITHER_LFSR_INIT       0x20645ea4 /* [RW][32] Video Surface 0 Color Matrix C Dither LFSR Init value and control */
+#define BCHP_CMP_0_V0_CSC_DITHER_LFSR_CTRL       0x20645ea8 /* [RW][32] Video Surface 0 Color Matrix C Dither LFSR control */
+#define BCHP_CMP_0_V0_IN_DITHER_422_CTRL         0x20645eac /* [RW][32] Video Surface 0 In Dither CTRL (10 to 8 bits conversion) */
+#define BCHP_CMP_0_V0_IN_DITHER_LFSR_INIT        0x20645eb0 /* [RW][32] Video Surface 0 Input Dither LFSR Init value and control (10 to 8 bits conversion) */
+#define BCHP_CMP_0_V0_IN_DITHER_LFSR_CTRL        0x20645eb4 /* [RW][32] Video Surface 0 Input Dither LFSR control (10 to 8 bits conversion) */
+#define BCHP_CMP_0_V1_SURFACE_SIZE               0x20645f00 /* [RW][32] Video Surface 1 Vertical and Horizontal Size */
+#define BCHP_CMP_0_V1_SURFACE_OFFSET             0x20645f04 /* [RW][32] Video Surface 1 Vertical and Horizontal Offset */
+#define BCHP_CMP_0_V1_DISPLAY_SIZE               0x20645f08 /* [RW][32] Video Surface 1 Display Vertical and Horizontal Size */
+#define BCHP_CMP_0_V1_CANVAS_OFFSET              0x20645f0c /* [RW][32] Video Surface 1 Canvas Vertical and Horizontal Offset */
+#define BCHP_CMP_0_V1_CANVAS_X_OFFSET_R          0x20645f10 /* [RW][32] Video Surface 1 Canvas Horizontal Offset For Right or Under Window in 3D mode */
+#define BCHP_CMP_0_V1_SURFACE_CTRL               0x20645f14 /* [RW][32] Video Surface 1 Control */
+#define BCHP_CMP_0_V1_BVB_IN_STATUS_CLEAR        0x20645f18 /* [WO][32] Video Surface 1 BVB Input Status Clear */
+#define BCHP_CMP_0_V1_BVB_IN_STATUS              0x20645f1c /* [RO][32] Video Surface 1 BVB Input Status */
+#define BCHP_CMP_0_V1_CONST_COLOR                0x20645f20 /* [RW][32] Video Surface 1 Constant Color Register */
+#define BCHP_CMP_0_V1_CB_KEYING                  0x20645f24 /* [RW][32] Video Surface 1 Chroma (Blue) Key */
+#define BCHP_CMP_0_V1_CR_KEYING                  0x20645f28 /* [RW][32] Video Surface 1 Chroma (Red) Key */
+#define BCHP_CMP_0_V1_LUMA_KEYING                0x20645f2c /* [RW][32] Video Surface 1 Luma Key */
+#define BCHP_CMP_0_V1_RECT_CSC_INDEX_0           0x20645f30 /* [RW][32] Video Surface 1 rectangle CSC index 0 */
+#define BCHP_CMP_0_V1_RECT_CSC_INDEX_1           0x20645f34 /* [RW][32] Video Surface 1 rectangle CSC index 1 */
+#define BCHP_CMP_0_V1_RECT_COLOR                 0x20645f38 /* [RW][32] Video Surface 1 Rectangle Function Color Register */
+#define BCHP_CMP_0_V1_RECT_TOP_CTRL              0x20645f3c /* [RW][32] Video Surface 1 Top Level Rectangle Control for Mosaic or See Through. */
+#define BCHP_CMP_0_V1_RECT_ENABLE_MASK           0x20645f40 /* [RW][32] Video Surface 1 Rectangle Function Enable Mask */
+#define BCHP_CMP_0_V1_NL_CSC_CTRL                0x20645fd0 /* [RW][32] Video Surface 1 Nonconstant Luminance CSC Control (NOT available, replaced by HDR) */
+#define BCHP_CMP_0_V1_REV_CCA_CTRL               0x20645fd4 /* [RW][32] Video Surface 1 Reverse CCA Control (NOT available, replaced by HDR) */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_LSHF           0x20646200 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient left shift */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C00            0x20646204 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c00 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C01            0x20646208 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c01 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C02            0x2064620c /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c02 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C03            0x20646210 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c03 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C10            0x20646214 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c10 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C11            0x20646218 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c11 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C12            0x2064621c /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c12 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C13            0x20646220 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c13 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C20            0x20646224 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c20 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C21            0x20646228 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c21 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C22            0x2064622c /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c22 */
+#define BCHP_CMP_0_V1_R0_MC_COEFF_C23            0x20646230 /* [RW][32] Video Surface 1 Color Matrix C R0 coefficient c23 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_LSHF           0x20646234 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient left shift */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C00            0x20646238 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c00 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C01            0x2064623c /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c01 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C02            0x20646240 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c02 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C03            0x20646244 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c03 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C10            0x20646248 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c10 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C11            0x2064624c /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c11 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C12            0x20646250 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c12 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C13            0x20646254 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c13 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C20            0x20646258 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c20 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C21            0x2064625c /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c21 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C22            0x20646260 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c22 */
+#define BCHP_CMP_0_V1_R1_MC_COEFF_C23            0x20646264 /* [RW][32] Video Surface 1 Color Matrix C R1 coefficient c23 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_LSHF           0x20646268 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient left shift */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C00            0x2064626c /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c00 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C01            0x20646270 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c01 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C02            0x20646274 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c02 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C03            0x20646278 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c03 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C10            0x2064627c /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c10 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C11            0x20646280 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c11 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C12            0x20646284 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c12 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C13            0x20646288 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c13 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C20            0x2064628c /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c20 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C21            0x20646290 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c21 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C22            0x20646294 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c22 */
+#define BCHP_CMP_0_V1_R2_MC_COEFF_C23            0x20646298 /* [RW][32] Video Surface 1 Color Matrix C R2 coefficient c23 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_LSHF           0x2064629c /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient left shift */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C00            0x206462a0 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c00 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C01            0x206462a4 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c01 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C02            0x206462a8 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c02 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C03            0x206462ac /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c03 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C10            0x206462b0 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c10 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C11            0x206462b4 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c11 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C12            0x206462b8 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c12 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C13            0x206462bc /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c13 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C20            0x206462c0 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c20 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C21            0x206462c4 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c21 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C22            0x206462c8 /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c22 */
+#define BCHP_CMP_0_V1_R3_MC_COEFF_C23            0x206462cc /* [RW][32] Video Surface 1 Color Matrix C R3 coefficient c23 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_LSHF           0x206462d0 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient left shift */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C00            0x206462d4 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c00 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C01            0x206462d8 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c01 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C02            0x206462dc /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c02 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C03            0x206462e0 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c03 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C10            0x206462e4 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c10 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C11            0x206462e8 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c11 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C12            0x206462ec /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c12 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C13            0x206462f0 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c13 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C20            0x206462f4 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c20 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C21            0x206462f8 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c21 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C22            0x206462fc /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c22 */
+#define BCHP_CMP_0_V1_R4_MC_COEFF_C23            0x20646300 /* [RW][32] Video Surface 1 Color Matrix C R4 coefficient c23 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_LSHF           0x20646304 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient left shift */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C00            0x20646308 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c00 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C01            0x2064630c /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c01 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C02            0x20646310 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c02 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C03            0x20646314 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c03 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C10            0x20646318 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c10 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C11            0x2064631c /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c11 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C12            0x20646320 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c12 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C13            0x20646324 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c13 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C20            0x20646328 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c20 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C21            0x2064632c /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c21 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C22            0x20646330 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c22 */
+#define BCHP_CMP_0_V1_R5_MC_COEFF_C23            0x20646334 /* [RW][32] Video Surface 1 Color Matrix C R5 coefficient c23 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_LSHF           0x20646338 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient left shift */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C00            0x2064633c /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c00 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C01            0x20646340 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c01 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C02            0x20646344 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c02 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C03            0x20646348 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c03 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C10            0x2064634c /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c10 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C11            0x20646350 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c11 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C12            0x20646354 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c12 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C13            0x20646358 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c13 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C20            0x2064635c /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c20 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C21            0x20646360 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c21 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C22            0x20646364 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c22 */
+#define BCHP_CMP_0_V1_R6_MC_COEFF_C23            0x20646368 /* [RW][32] Video Surface 1 Color Matrix C R6 coefficient c23 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_LSHF           0x2064636c /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient left shift */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C00            0x20646370 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c00 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C01            0x20646374 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c01 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C02            0x20646378 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c02 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C03            0x2064637c /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c03 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C10            0x20646380 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c10 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C11            0x20646384 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c11 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C12            0x20646388 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c12 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C13            0x2064638c /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c13 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C20            0x20646390 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c20 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C21            0x20646394 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c21 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C22            0x20646398 /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c22 */
+#define BCHP_CMP_0_V1_R7_MC_COEFF_C23            0x2064639c /* [RW][32] Video Surface 1 Color Matrix C R7 coefficient c23 */
+#define BCHP_CMP_0_V1_CSC_DITHER_CTRL            0x206463a0 /* [RW][32] Video Surface 1 Color Matrix C Dither CTRL */
+#define BCHP_CMP_0_V1_CSC_DITHER_LFSR_INIT       0x206463a4 /* [RW][32] Video Surface 1 Color Matrix C Dither LFSR Init value and control */
+#define BCHP_CMP_0_V1_CSC_DITHER_LFSR_CTRL       0x206463a8 /* [RW][32] Video Surface 1 Color Matrix C Dither LFSR control */
+#define BCHP_CMP_0_V1_IN_DITHER_422_CTRL         0x206463ac /* [RW][32] Video Surface 1 In Dither CTRL (10 to 8 bits conversion) */
+#define BCHP_CMP_0_V1_IN_DITHER_LFSR_INIT        0x206463b0 /* [RW][32] Video Surface 1 Input Dither LFSR Init value and control (10 to 8 bits conversion) */
+#define BCHP_CMP_0_V1_IN_DITHER_LFSR_CTRL        0x206463b4 /* [RW][32] Video Surface 1 Input Dither LFSR control (10 to 8 bits conversion) */
 
 /***************************************************************************
  *REVISION - Compositor Revision ID
@@ -1038,19 +1038,19 @@
  *READBACK_VALUE - Compositor Readback Y Value at Specified Position
  ***************************************************************************/
 /* CMP_0 :: READBACK_VALUE :: reserved0 [63:36] */
-#define BCHP_CMP_0_READBACK_VALUE_reserved0_MASK                   0xfffffff000000000
+#define BCHP_CMP_0_READBACK_VALUE_reserved0_MASK                   BCHP_UINT64_C(0xfffffff0, 0x00000000)
 #define BCHP_CMP_0_READBACK_VALUE_reserved0_SHIFT                  36
 
 /* CMP_0 :: READBACK_VALUE :: CMP_VALUE_Y [35:24] */
-#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_Y_MASK                 0x0000000fff000000
+#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_Y_MASK                 BCHP_UINT64_C(0x0000000f, 0xff000000)
 #define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_Y_SHIFT                24
 
 /* CMP_0 :: READBACK_VALUE :: CMP_VALUE_CB [23:12] */
-#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CB_MASK                0x0000000000fff000
+#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CB_MASK                BCHP_UINT64_C(0x00000000, 0x00fff000)
 #define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CB_SHIFT               12
 
 /* CMP_0 :: READBACK_VALUE :: CMP_VALUE_CR [11:00] */
-#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CR_MASK                0x0000000000000fff
+#define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CR_MASK                BCHP_UINT64_C(0x00000000, 0x00000fff)
 #define BCHP_CMP_0_READBACK_VALUE_CMP_VALUE_CR_SHIFT               0
 
 /***************************************************************************

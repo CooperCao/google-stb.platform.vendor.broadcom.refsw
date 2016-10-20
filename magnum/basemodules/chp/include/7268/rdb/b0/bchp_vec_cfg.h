@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,101 +70,101 @@
 /***************************************************************************
  *VEC_CFG - Top-Level Controls
  ***************************************************************************/
-#define BCHP_VEC_CFG_REVISION_ID                 0x206e7400 /* [RO] Revision ID Register for Video Encoder */
-#define BCHP_VEC_CFG_TP_CTRL                     0x206e7404 /* [RW] Test port control Register for Video Encoder */
-#define BCHP_VEC_CFG_ITU656_TEST_SEL_0           0x206e7408 /* [RW] ITU656 test control register for path 0 */
-#define BCHP_VEC_CFG_RAM_TEST_CTRL_CBAR          0x206e740c /* [RW] RAM test control for CBAR RAM */
-#define BCHP_VEC_CFG_RAM_TEST_CTRL_IT_0          0x206e7410 /* [RW] RAM test control for IT_0 RAM */
-#define BCHP_VEC_CFG_RAM_TEST_CTRL_IT_1          0x206e7414 /* [RW] RAM test control for IT_1 RAM */
-#define BCHP_VEC_CFG_RAM_TEST_CTRL_DTRAM_0       0x206e7418 /* [RW] RAM test control for DTRAM_0 RAM */
-#define BCHP_VEC_CFG_CLK_GATING_OVERRIDE         0x206e741c /* [RW] Clock Gating Override register */
-#define BCHP_VEC_CFG_SCB_DRAM_MAPPING            0x206e7420 /* [RW] Option for SCB word swapping register */
-#define BCHP_VEC_CFG_TRIGGER_DEBUG_0             0x206e7424 /* [RO] trigger debug 0 register */
-#define BCHP_VEC_CFG_TRIGGER_DEBUG_1             0x206e7428 /* [RO] trigger debug 1 register */
-#define BCHP_VEC_CFG_TRIGGER_DEBUG_TPG           0x206e742c /* [RO] trigger debug TPG register */
-#define BCHP_VEC_CFG_VF_0_SOURCE                 0x206e7430 /* [RW] Source Select Register for VF_0 */
-#define BCHP_VEC_CFG_SECAM_0_SOURCE              0x206e7434 /* [RW] Source Select Register for SECAM_0 */
-#define BCHP_VEC_CFG_SDSRC_0_SOURCE              0x206e7438 /* [RW] Source Select Register for SDSRC_0 */
-#define BCHP_VEC_CFG_IT_0_SOURCE                 0x206e743c /* [RW] Source Select Register for IT_0 */
-#define BCHP_VEC_CFG_IT_1_SOURCE                 0x206e7440 /* [RW] Source Select Register for IT_1 */
-#define BCHP_VEC_CFG_STC_FLAG_EN_SOURCE_0        0x206e7444 /* [RW] STC flag enable Register for S_0 */
-#define BCHP_VEC_CFG_STC_FLAG_EN_SOURCE_1        0x206e7448 /* [RW] STC flag enable Register for S_1 */
-#define BCHP_VEC_CFG_STC_FLAG_EN_BP_SOURCE_0     0x206e744c /* [RW] STC flag enable Register for BP_0 */
-#define BCHP_VEC_CFG_DVI_DTG_0_SOURCE            0x206e7450 /* [RW] Source Select Register for DVI_DTG_0 */
-#define BCHP_VEC_CFG_ITU656_DTG_0_SOURCE         0x206e7454 /* [RW] Source Select Register for ITU656_DTG_0 */
-#define BCHP_VEC_CFG_STG_0_SOURCE                0x206e7458 /* [RW] Source Select Register for STG_0 */
-#define BCHP_VEC_CFG_DECIM_0_SOURCE              0x206e745c /* [RW] Source Select Register for DECIM_0 */
-#define BCHP_VEC_CFG_BYPASS_FIFO_INPUT_SEL       0x206e7460 /* [RW] Select source for Bypass FIFO */
-#define BCHP_VEC_CFG_VIP_0_SOURCE                0x206e7464 /* [RW] Source Select Register for VIP_0 */
-#define BCHP_VEC_CFG_DVI_DTG_0_BP_SOURCE         0x206e7468 /* [RW] Source Select Register for DVI_DTG_0 */
-#define BCHP_VEC_CFG_DVI_DTG_0_BP_ASSOC          0x206e746c /* [RW] BP Association Register for DVI_DTG_0 */
-#define BCHP_VEC_CFG_DVI_DVF_0_SOURCE            0x206e7470 /* [RW] Source Select Register for DVI_DVF_0 */
-#define BCHP_VEC_CFG_TRIGGER_SEL_0               0x206e7474 /* [RW] Trigger Select Register for source S_0 */
-#define BCHP_VEC_CFG_TRIGGER_SEL_1               0x206e7478 /* [RW] Trigger Select Register for source S_1 */
-#define BCHP_VEC_CFG_TRIGGER_SEL_TPG_0           0x206e747c /* [RW] Trigger Select Register for Pattern generator TPG_0 */
-#define BCHP_VEC_CFG_CFG_EOP_MODE                0x206e7480 /* [RW] VEC EOP Mode Control */
-#define BCHP_VEC_CFG_SOURCE_ENABLE_CONTROL_0     0x206e7484 /* [RW] VEC Source Enable Mode Control Register for source S_0 */
-#define BCHP_VEC_CFG_SOURCE_ENABLE_0             0x206e7488 /* [RW] VEC Source Enable Register for source S_0 */
-#define BCHP_VEC_CFG_SOURCE_ENABLE_CONTROL_1     0x206e748c /* [RW] VEC Source Enable Mode Control Register for source S_1 */
-#define BCHP_VEC_CFG_SOURCE_ENABLE_1             0x206e7490 /* [RW] VEC Source Enable Register for source S_1 */
-#define BCHP_VEC_CFG_BP_SOURCE_ENABLE_CONTROL_0  0x206e7494 /* [RW] VEC BP Source Enable Mode Control Register for source BP_0 */
-#define BCHP_VEC_CFG_BP_SOURCE_ENABLE_0          0x206e7498 /* [RW] VEC BP Source Enable Register for source BP_0 */
-#define BCHP_VEC_CFG_BVN_INPUT_MONITOR_SRC       0x206e749c /* [RW] Register to Select Input Data coming in from BVN onto the Monitor */
-#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH0  0x206e74a0 /* [RO] Register to Monitor Input Data On channel 0 coming in from BVN */
-#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH1  0x206e74a4 /* [RO] Register to Monitor Input Data On channel 1 coming in from BVN */
-#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH2  0x206e74a8 /* [RO] Register to Monitor Input Data On channel 2 coming in from BVN */
-#define BCHP_VEC_CFG_BVN_INPUT_SYNC_MONITOR      0x206e74ac /* [RO] Register to Monitor Picture and Line Sync Coming in from BVN */
-#define BCHP_VEC_CFG_CLR_BVN_INPUT_SYNC_MONITOR  0x206e74b0 /* [RW] Register to Picture and Line Sync Monitor Register */
-#define BCHP_VEC_CFG_STG_DITHER_CONTROL          0x206e74b4 /* [RW] STG input Dither Control */
-#define BCHP_VEC_CFG_STG_DITHER_LFSR             0x206e74b8 /* [RW] STG input Dither LFSR Control */
-#define BCHP_VEC_CFG_STG_DITHER_LFSR_INIT        0x206e74bc /* [RW] STG input Dither LFSR Init value and control */
-#define BCHP_VEC_CFG_ITU656_DITHER_CONTROL       0x206e74c0 /* [RW] ITU656 input Dither Control */
-#define BCHP_VEC_CFG_ITU656_DITHER_LFSR          0x206e74c4 /* [RW] ITU656 input Dither LFSR Control */
-#define BCHP_VEC_CFG_ITU656_DITHER_LFSR_INIT     0x206e74c8 /* [RW] ITU656 input Dither LFSR Init value and control */
-#define BCHP_VEC_CFG_ANA_DITHER_CONTROL          0x206e74cc /* [RW] analog input Dither Control */
-#define BCHP_VEC_CFG_ANA_DITHER_LFSR             0x206e74d0 /* [RW] analog input Dither LFSR Control */
-#define BCHP_VEC_CFG_ANA_DITHER_LFSR_INIT        0x206e74d4 /* [RW] analog input Dither LFSR Init value and control */
-#define BCHP_VEC_CFG_SW_INIT_IT_0                0x206e74d8 /* [RW] Software Init register for IT_0 */
-#define BCHP_VEC_CFG_SW_INIT_IT_1                0x206e74dc /* [RW] Software Init register for IT_1 */
-#define BCHP_VEC_CFG_SW_INIT_VF_0                0x206e74e0 /* [RW] Software Init register for VF_0 */
-#define BCHP_VEC_CFG_SW_INIT_SECAM_0             0x206e74e4 /* [RW] Software Init register for SECAM_0 */
-#define BCHP_VEC_CFG_SW_INIT_SDSRC_0             0x206e74e8 /* [RW] Software Init register for SDSRC_0 */
-#define BCHP_VEC_CFG_SW_INIT_ANA_MISC            0x206e74ec /* [RW] Software Init register for ANA_MISC */
-#define BCHP_VEC_CFG_SW_INIT_VEC_MISC            0x206e74f0 /* [RW] Software Init register for VEC MISC */
-#define BCHP_VEC_CFG_SW_INIT_TPG_0               0x206e74f4 /* [RW] Software Init register for TPG_0 */
-#define BCHP_VEC_CFG_SW_INIT_STG_0               0x206e74f8 /* [RW] Software Init register for STG_0 */
-#define BCHP_VEC_CFG_SW_INIT_MISC                0x206e74fc /* [RW] Software Init register for MISC */
-#define BCHP_VEC_CFG_SW_INIT_CABLE_DETECT_0      0x206e7500 /* [RW] Software Init register for CABLE_DETECT_0 */
-#define BCHP_VEC_CFG_SW_INIT_DECIM_0             0x206e7504 /* [RW] Software Init register for DECIM_0 */
-#define BCHP_VEC_CFG_SW_INIT_BP_FIFO_0           0x206e7508 /* [RW] Software Init register for BP_FIFO_0 */
-#define BCHP_VEC_CFG_SW_INIT_BP_TPG_0            0x206e750c /* [RW] Software Init register for BP_TPG_0 */
-#define BCHP_VEC_CFG_SW_INIT_BP_TPG_RM_0         0x206e7510 /* [RW] Software Init register for BP_TPG_RM_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_DTG_0           0x206e7514 /* [RW] Software Init register for DVI DTG_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_CFC_0           0x206e7518 /* [RW] Software Init register for DVI CFC_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_DVF_0           0x206e751c /* [RW] Software Init register for DVI DVF_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_FC_0            0x206e7520 /* [RW] Software Init register for DVI FC_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_MISC_0          0x206e7524 /* [RW] Software Init register for DVI MISC_0 */
-#define BCHP_VEC_CFG_SW_INIT_DVI_MISC_1          0x206e7528 /* [RW] Software Init register for DVI MISC_1 */
-#define BCHP_VEC_CFG_SW_INIT_ITU656_DTG_0        0x206e752c /* [RW] Software Init register for ITU656 DTG_0 */
-#define BCHP_VEC_CFG_SW_INIT_ITU656_CSC_0        0x206e7530 /* [RW] Software Init register for 656 CSC_0 */
-#define BCHP_VEC_CFG_SW_INIT_ITU656_DVF_0        0x206e7534 /* [RW] Software Init register for 656 DVF_0 */
-#define BCHP_VEC_CFG_SW_INIT_ITU656_FORMATTER_0  0x206e7538 /* [RW] Software Init register for 656 Formatter 0 */
-#define BCHP_VEC_CFG_SW_INIT_CCE_0               0x206e753c /* [RW] Software Init register for CCE_0 */
-#define BCHP_VEC_CFG_SW_INIT_WSE_0               0x206e7540 /* [RW] Software Init register for WSE_0 */
-#define BCHP_VEC_CFG_SW_INIT_CGMSAE_0            0x206e7544 /* [RW] Software Init register for CGMSAE_0 */
-#define BCHP_VEC_CFG_SW_INIT_TTE_0               0x206e7548 /* [RW] Software Init register for TTE_0 */
-#define BCHP_VEC_CFG_SW_INIT_GSE_0               0x206e754c /* [RW] Software Init register for GSE_0 */
-#define BCHP_VEC_CFG_SW_INIT_AMOLE_0             0x206e7550 /* [RW] Software Init register for AMOLE_0 */
-#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_0          0x206e7554 /* [RW] Software Init register for PASSTHRU_0 */
-#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_1          0x206e7558 /* [RW] Software Init register for PASSTHRU_1 */
-#define BCHP_VEC_CFG_SW_INIT_CCE_ANCIL_0         0x206e755c /* [RW] Software Init register for CCE_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_WSE_ANCIL_0         0x206e7560 /* [RW] Software Init register for WSE_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_TTE_ANCIL_0         0x206e7564 /* [RW] Software Init register for TTE_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_GSE_ANCIL_0         0x206e7568 /* [RW] Software Init register for GSE_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_AMOLE_ANCIL_0       0x206e756c /* [RW] Software Init register for AMOLE_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_ANCI656_ANCIL_0     0x206e7570 /* [RW] Software Init register for ANCI656_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_ANCIL_0    0x206e7574 /* [RW] Software Init register for PASSTHRU_ANCIL_0 */
-#define BCHP_VEC_CFG_SW_INIT_VBI_MISC            0x206e7578 /* [RW] Software Init register for VBI_MISC */
+#define BCHP_VEC_CFG_REVISION_ID                 0x206e7400 /* [RO][32] Revision ID Register for Video Encoder */
+#define BCHP_VEC_CFG_TP_CTRL                     0x206e7404 /* [RW][32] Test port control Register for Video Encoder */
+#define BCHP_VEC_CFG_ITU656_TEST_SEL_0           0x206e7408 /* [RW][32] ITU656 test control register for path 0 */
+#define BCHP_VEC_CFG_RAM_TEST_CTRL_CBAR          0x206e740c /* [RW][32] RAM test control for CBAR RAM */
+#define BCHP_VEC_CFG_RAM_TEST_CTRL_IT_0          0x206e7410 /* [RW][32] RAM test control for IT_0 RAM */
+#define BCHP_VEC_CFG_RAM_TEST_CTRL_IT_1          0x206e7414 /* [RW][32] RAM test control for IT_1 RAM */
+#define BCHP_VEC_CFG_RAM_TEST_CTRL_DTRAM_0       0x206e7418 /* [RW][32] RAM test control for DTRAM_0 RAM */
+#define BCHP_VEC_CFG_CLK_GATING_OVERRIDE         0x206e741c /* [RW][32] Clock Gating Override register */
+#define BCHP_VEC_CFG_SCB_DRAM_MAPPING            0x206e7420 /* [RW][32] Option for SCB word swapping register */
+#define BCHP_VEC_CFG_TRIGGER_DEBUG_0             0x206e7424 /* [RO][32] trigger debug 0 register */
+#define BCHP_VEC_CFG_TRIGGER_DEBUG_1             0x206e7428 /* [RO][32] trigger debug 1 register */
+#define BCHP_VEC_CFG_TRIGGER_DEBUG_TPG           0x206e742c /* [RO][32] trigger debug TPG register */
+#define BCHP_VEC_CFG_VF_0_SOURCE                 0x206e7430 /* [RW][32] Source Select Register for VF_0 */
+#define BCHP_VEC_CFG_SECAM_0_SOURCE              0x206e7434 /* [RW][32] Source Select Register for SECAM_0 */
+#define BCHP_VEC_CFG_SDSRC_0_SOURCE              0x206e7438 /* [RW][32] Source Select Register for SDSRC_0 */
+#define BCHP_VEC_CFG_IT_0_SOURCE                 0x206e743c /* [RW][32] Source Select Register for IT_0 */
+#define BCHP_VEC_CFG_IT_1_SOURCE                 0x206e7440 /* [RW][32] Source Select Register for IT_1 */
+#define BCHP_VEC_CFG_STC_FLAG_EN_SOURCE_0        0x206e7444 /* [RW][32] STC flag enable Register for S_0 */
+#define BCHP_VEC_CFG_STC_FLAG_EN_SOURCE_1        0x206e7448 /* [RW][32] STC flag enable Register for S_1 */
+#define BCHP_VEC_CFG_STC_FLAG_EN_BP_SOURCE_0     0x206e744c /* [RW][32] STC flag enable Register for BP_0 */
+#define BCHP_VEC_CFG_DVI_DTG_0_SOURCE            0x206e7450 /* [RW][32] Source Select Register for DVI_DTG_0 */
+#define BCHP_VEC_CFG_ITU656_DTG_0_SOURCE         0x206e7454 /* [RW][32] Source Select Register for ITU656_DTG_0 */
+#define BCHP_VEC_CFG_STG_0_SOURCE                0x206e7458 /* [RW][32] Source Select Register for STG_0 */
+#define BCHP_VEC_CFG_DECIM_0_SOURCE              0x206e745c /* [RW][32] Source Select Register for DECIM_0 */
+#define BCHP_VEC_CFG_BYPASS_FIFO_INPUT_SEL       0x206e7460 /* [RW][32] Select source for Bypass FIFO */
+#define BCHP_VEC_CFG_VIP_0_SOURCE                0x206e7464 /* [RW][32] Source Select Register for VIP_0 */
+#define BCHP_VEC_CFG_DVI_DTG_0_BP_SOURCE         0x206e7468 /* [RW][32] Source Select Register for DVI_DTG_0 */
+#define BCHP_VEC_CFG_DVI_DTG_0_BP_ASSOC          0x206e746c /* [RW][32] BP Association Register for DVI_DTG_0 */
+#define BCHP_VEC_CFG_DVI_DVF_0_SOURCE            0x206e7470 /* [RW][32] Source Select Register for DVI_DVF_0 */
+#define BCHP_VEC_CFG_TRIGGER_SEL_0               0x206e7474 /* [RW][32] Trigger Select Register for source S_0 */
+#define BCHP_VEC_CFG_TRIGGER_SEL_1               0x206e7478 /* [RW][32] Trigger Select Register for source S_1 */
+#define BCHP_VEC_CFG_TRIGGER_SEL_TPG_0           0x206e747c /* [RW][32] Trigger Select Register for Pattern generator TPG_0 */
+#define BCHP_VEC_CFG_CFG_EOP_MODE                0x206e7480 /* [RW][32] VEC EOP Mode Control */
+#define BCHP_VEC_CFG_SOURCE_ENABLE_CONTROL_0     0x206e7484 /* [RW][32] VEC Source Enable Mode Control Register for source S_0 */
+#define BCHP_VEC_CFG_SOURCE_ENABLE_0             0x206e7488 /* [RW][32] VEC Source Enable Register for source S_0 */
+#define BCHP_VEC_CFG_SOURCE_ENABLE_CONTROL_1     0x206e748c /* [RW][32] VEC Source Enable Mode Control Register for source S_1 */
+#define BCHP_VEC_CFG_SOURCE_ENABLE_1             0x206e7490 /* [RW][32] VEC Source Enable Register for source S_1 */
+#define BCHP_VEC_CFG_BP_SOURCE_ENABLE_CONTROL_0  0x206e7494 /* [RW][32] VEC BP Source Enable Mode Control Register for source BP_0 */
+#define BCHP_VEC_CFG_BP_SOURCE_ENABLE_0          0x206e7498 /* [RW][32] VEC BP Source Enable Register for source BP_0 */
+#define BCHP_VEC_CFG_BVN_INPUT_MONITOR_SRC       0x206e749c /* [RW][32] Register to Select Input Data coming in from BVN onto the Monitor */
+#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH0  0x206e74a0 /* [RO][32] Register to Monitor Input Data On channel 0 coming in from BVN */
+#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH1  0x206e74a4 /* [RO][32] Register to Monitor Input Data On channel 1 coming in from BVN */
+#define BCHP_VEC_CFG_BVN_INPUT_DATA_MONITOR_CH2  0x206e74a8 /* [RO][32] Register to Monitor Input Data On channel 2 coming in from BVN */
+#define BCHP_VEC_CFG_BVN_INPUT_SYNC_MONITOR      0x206e74ac /* [RO][32] Register to Monitor Picture and Line Sync Coming in from BVN */
+#define BCHP_VEC_CFG_CLR_BVN_INPUT_SYNC_MONITOR  0x206e74b0 /* [RW][32] Register to Picture and Line Sync Monitor Register */
+#define BCHP_VEC_CFG_STG_DITHER_CONTROL          0x206e74b4 /* [RW][32] STG input Dither Control */
+#define BCHP_VEC_CFG_STG_DITHER_LFSR             0x206e74b8 /* [RW][32] STG input Dither LFSR Control */
+#define BCHP_VEC_CFG_STG_DITHER_LFSR_INIT        0x206e74bc /* [RW][32] STG input Dither LFSR Init value and control */
+#define BCHP_VEC_CFG_ITU656_DITHER_CONTROL       0x206e74c0 /* [RW][32] ITU656 input Dither Control */
+#define BCHP_VEC_CFG_ITU656_DITHER_LFSR          0x206e74c4 /* [RW][32] ITU656 input Dither LFSR Control */
+#define BCHP_VEC_CFG_ITU656_DITHER_LFSR_INIT     0x206e74c8 /* [RW][32] ITU656 input Dither LFSR Init value and control */
+#define BCHP_VEC_CFG_ANA_DITHER_CONTROL          0x206e74cc /* [RW][32] analog input Dither Control */
+#define BCHP_VEC_CFG_ANA_DITHER_LFSR             0x206e74d0 /* [RW][32] analog input Dither LFSR Control */
+#define BCHP_VEC_CFG_ANA_DITHER_LFSR_INIT        0x206e74d4 /* [RW][32] analog input Dither LFSR Init value and control */
+#define BCHP_VEC_CFG_SW_INIT_IT_0                0x206e74d8 /* [RW][32] Software Init register for IT_0 */
+#define BCHP_VEC_CFG_SW_INIT_IT_1                0x206e74dc /* [RW][32] Software Init register for IT_1 */
+#define BCHP_VEC_CFG_SW_INIT_VF_0                0x206e74e0 /* [RW][32] Software Init register for VF_0 */
+#define BCHP_VEC_CFG_SW_INIT_SECAM_0             0x206e74e4 /* [RW][32] Software Init register for SECAM_0 */
+#define BCHP_VEC_CFG_SW_INIT_SDSRC_0             0x206e74e8 /* [RW][32] Software Init register for SDSRC_0 */
+#define BCHP_VEC_CFG_SW_INIT_ANA_MISC            0x206e74ec /* [RW][32] Software Init register for ANA_MISC */
+#define BCHP_VEC_CFG_SW_INIT_VEC_MISC            0x206e74f0 /* [RW][32] Software Init register for VEC MISC */
+#define BCHP_VEC_CFG_SW_INIT_TPG_0               0x206e74f4 /* [RW][32] Software Init register for TPG_0 */
+#define BCHP_VEC_CFG_SW_INIT_STG_0               0x206e74f8 /* [RW][32] Software Init register for STG_0 */
+#define BCHP_VEC_CFG_SW_INIT_MISC                0x206e74fc /* [RW][32] Software Init register for MISC */
+#define BCHP_VEC_CFG_SW_INIT_CABLE_DETECT_0      0x206e7500 /* [RW][32] Software Init register for CABLE_DETECT_0 */
+#define BCHP_VEC_CFG_SW_INIT_DECIM_0             0x206e7504 /* [RW][32] Software Init register for DECIM_0 */
+#define BCHP_VEC_CFG_SW_INIT_BP_FIFO_0           0x206e7508 /* [RW][32] Software Init register for BP_FIFO_0 */
+#define BCHP_VEC_CFG_SW_INIT_BP_TPG_0            0x206e750c /* [RW][32] Software Init register for BP_TPG_0 */
+#define BCHP_VEC_CFG_SW_INIT_BP_TPG_RM_0         0x206e7510 /* [RW][32] Software Init register for BP_TPG_RM_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_DTG_0           0x206e7514 /* [RW][32] Software Init register for DVI DTG_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_CFC_0           0x206e7518 /* [RW][32] Software Init register for DVI CFC_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_DVF_0           0x206e751c /* [RW][32] Software Init register for DVI DVF_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_FC_0            0x206e7520 /* [RW][32] Software Init register for DVI FC_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_MISC_0          0x206e7524 /* [RW][32] Software Init register for DVI MISC_0 */
+#define BCHP_VEC_CFG_SW_INIT_DVI_MISC_1          0x206e7528 /* [RW][32] Software Init register for DVI MISC_1 */
+#define BCHP_VEC_CFG_SW_INIT_ITU656_DTG_0        0x206e752c /* [RW][32] Software Init register for ITU656 DTG_0 */
+#define BCHP_VEC_CFG_SW_INIT_ITU656_CSC_0        0x206e7530 /* [RW][32] Software Init register for 656 CSC_0 */
+#define BCHP_VEC_CFG_SW_INIT_ITU656_DVF_0        0x206e7534 /* [RW][32] Software Init register for 656 DVF_0 */
+#define BCHP_VEC_CFG_SW_INIT_ITU656_FORMATTER_0  0x206e7538 /* [RW][32] Software Init register for 656 Formatter 0 */
+#define BCHP_VEC_CFG_SW_INIT_CCE_0               0x206e753c /* [RW][32] Software Init register for CCE_0 */
+#define BCHP_VEC_CFG_SW_INIT_WSE_0               0x206e7540 /* [RW][32] Software Init register for WSE_0 */
+#define BCHP_VEC_CFG_SW_INIT_CGMSAE_0            0x206e7544 /* [RW][32] Software Init register for CGMSAE_0 */
+#define BCHP_VEC_CFG_SW_INIT_TTE_0               0x206e7548 /* [RW][32] Software Init register for TTE_0 */
+#define BCHP_VEC_CFG_SW_INIT_GSE_0               0x206e754c /* [RW][32] Software Init register for GSE_0 */
+#define BCHP_VEC_CFG_SW_INIT_AMOLE_0             0x206e7550 /* [RW][32] Software Init register for AMOLE_0 */
+#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_0          0x206e7554 /* [RW][32] Software Init register for PASSTHRU_0 */
+#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_1          0x206e7558 /* [RW][32] Software Init register for PASSTHRU_1 */
+#define BCHP_VEC_CFG_SW_INIT_CCE_ANCIL_0         0x206e755c /* [RW][32] Software Init register for CCE_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_WSE_ANCIL_0         0x206e7560 /* [RW][32] Software Init register for WSE_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_TTE_ANCIL_0         0x206e7564 /* [RW][32] Software Init register for TTE_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_GSE_ANCIL_0         0x206e7568 /* [RW][32] Software Init register for GSE_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_AMOLE_ANCIL_0       0x206e756c /* [RW][32] Software Init register for AMOLE_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_ANCI656_ANCIL_0     0x206e7570 /* [RW][32] Software Init register for ANCI656_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_PASSTHRU_ANCIL_0    0x206e7574 /* [RW][32] Software Init register for PASSTHRU_ANCIL_0 */
+#define BCHP_VEC_CFG_SW_INIT_VBI_MISC            0x206e7578 /* [RW][32] Software Init register for VBI_MISC */
 
 /***************************************************************************
  *REVISION_ID - Revision ID Register for Video Encoder

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -40,10 +40,15 @@
 
 #include "nexus_types.h"
 #include "nexus_playpump.h"
+#include "nexus_recpump.h"
+#include "nexus_pid_channel.h"
 
 #ifdef __cplusplus
 extern "C"{
 #endif
+
+/* 53 packets per frame, at 192 bytes each (4 bytes of pacing timetamps, followed by 188 bytes of MPEG transport */
+#define NEXUS_TSMF_FRAME_SIZE_BYTES   (53 * 192)
 
 /*
 Summary:
@@ -124,12 +129,19 @@ typedef struct NEXUS_TsmfSettings
 
     /* semi-automatic mode settings */
     uint32_t slotMapLo; /* Lower 32 bits (LSBs) of the 52-bit TSMF Slot Map vector */
-    uint32_t slotMapHi; /* Upper 21 bits of the 53-bit Slot Map vector for TSMF Demultiplex */
+    uint32_t slotMapHi; /* Upper 20 bits of the 52-bit Slot Map vector for TSMF Demultiplex */
 } NEXUS_TsmfSettings;
 
 typedef struct NEXUS_TsmfOpenSettings
 {
-    unsigned unused;
+    /* Required for soft TSMF. Otherwise, these should be left NULL. */
+    struct
+    {
+       bool enabled;                /* Parse TSMF streams in software. If enabled, NEXUS_TsmfType is ignored. */
+       unsigned playpumpIndex;      /* Default to NEXUS_ANY_ID. */
+       unsigned parserbandIndex;    /* Default to NEXUS_ANY_ID. */
+       unsigned recpumpIndex;       /* Default to NEXUS_ANY_ID. */
+    } soft;
 } NEXUS_TsmfOpenSettings;
 
 /*
@@ -184,6 +196,15 @@ NEXUS_Error NEXUS_Tsmf_SetSettings(
     const NEXUS_TsmfSettings *pSettings
     );
 
+/*
+Summary:
+Open a PID channel to obtain the output of soft TSMF parsing.
+*/
+NEXUS_PidChannelHandle NEXUS_Tsmf_OpenPidChannel( /* attr{destructor=NEXUS_PidChannel_Close} */
+    NEXUS_TsmfHandle tsmf,
+    unsigned pid,
+    const NEXUS_PlaypumpOpenPidChannelSettings *pSettings /* attr{null_allowed=y} may be NULL for default settings */
+    );
 
 #ifdef __cplusplus
 }

@@ -23,6 +23,7 @@ implemented. You can replace this with your own custom version if preferred.
 #include "memory_nexus_priv.h"
 #include "packet_rgba.h"
 #include "packet_yv12.h"
+#include "autoclif.h"
 
 /* Turn on to log memory access pattern to text file from 3D driver */
 /*#define LOG_MEMORY_PATTERN*/
@@ -63,9 +64,51 @@ static FILE *sLogFile = NULL;
 
 #define UNUSED(X) X
 
+
+static NEXUS_MemoryBlockHandle MemAllocMMA(void *context, size_t numBytes, uint32_t alignment, bool secure)
+{
+   NXPL_MemoryData               *data = (NXPL_MemoryData*)context;
+   NEXUS_MemoryBlockHandle       allocedBlock;
+   NEXUS_HeapHandle              heap = secure ? data->heapMapSecure.heap : data->heapMap.heap;
+   UNUSED(alignment);
+   allocedBlock = NEXUS_MemoryBlock_Allocate(heap, numBytes, 4096/*alignment*/, NULL);
+   if (!allocedBlock)
+   {
+      int growRC = NEXUS_SUCCESS;
+      while (allocedBlock == NULL && growRC == NEXUS_SUCCESS)
+      {
+         uint32_t numGrowBlocks = 1;
+
+         if (numBytes > data->heapGrow)
+            numGrowBlocks = numBytes / data->heapGrow + 1;
+
+#ifdef NXCLIENT_SUPPORT
+         growRC = NxClient_GrowHeap(NXCLIENT_DYNAMIC_HEAP);
+#else
+         growRC = NEXUS_Platform_GrowHeap(heap, numGrowBlocks * data->heapGrow);
+#endif
+         if (growRC == NEXUS_SUCCESS)
+            allocedBlock = NEXUS_MemoryBlock_Allocate(heap, numBytes, 4096/*alignment*/, NULL);
+         else
+         {
+            printf("Unable to GROW heap\n");
+            break;
+         }
+      }
+   }
+
+#ifdef LOG_MEMORY_PATTERN
+   if (sLogFile)
+      fprintf(sLogFile, "A %u %u = %u\n", numBytes, alignment, (uint32_t)allocedBlock);
+#endif
+   return (void *)allocedBlock;
+}
+
+
 /*****************************************************************************
  * Memory interface
  *****************************************************************************/
+
 /* Allocate aligned device memory, and return the cached address, or NULL on failure.*/
 static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool secure)
 {
@@ -73,39 +116,8 @@ static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool s
 
    if (data->useMMA)
    {
-      NEXUS_MemoryBlockHandle       allocedBlock;
-      NEXUS_HeapHandle              heap = secure ? data->heapMapSecure.heap : data->heapMap.heap;
-      allocedBlock = NEXUS_MemoryBlock_Allocate(heap, numBytes, 4096/*alignment*/, NULL);
-      if (!allocedBlock)
-      {
-         int growRC = NEXUS_SUCCESS;
-         while (allocedBlock == NULL && growRC == NEXUS_SUCCESS)
-         {
-            uint32_t numGrowBlocks = 1;
-
-            if (numBytes > data->heapGrow)
-               numGrowBlocks = numBytes / data->heapGrow + 1;
-
-#ifdef NXCLIENT_SUPPORT
-            growRC = NxClient_GrowHeap(NXCLIENT_DYNAMIC_HEAP);
-#else
-            growRC = NEXUS_Platform_GrowHeap(heap, numGrowBlocks * data->heapGrow);
-#endif
-            if (growRC == NEXUS_SUCCESS)
-               allocedBlock = NEXUS_MemoryBlock_Allocate(heap, numBytes, 4096/*alignment*/, NULL);
-            else
-            {
-               printf("Unable to GROW heap\n");
-               break;
-            }
-         }
-      }
-
-#ifdef LOG_MEMORY_PATTERN
-      if (sLogFile)
-         fprintf(sLogFile, "A %u %u = %u\n", numBytes, alignment, (uint32_t)allocedBlock);
-#endif
-      return (void *)allocedBlock;
+      void *res = (void *)MemAllocMMA(context, numBytes, alignment, secure);
+      return res;
    }
    else
    {
@@ -139,6 +151,7 @@ static void *MemAlloc(void *context, size_t numBytes, uint32_t alignment, bool s
          printf("largest free block = %d\n", status.largestFreeBlock);
 #endif
       }
+
       return allocedOffset;
    }
 }
@@ -282,7 +295,7 @@ static uint32_t MemGetInfo(void *context, BEGL_MemInfoType type)
 #if NEXUS_HAS_GRAPHICS2D
 static void completeCallback(void *pParam, int iParam)
 {
-   BSTD_UNUSED(iParam);
+   UNUSED(iParam);
    BKNI_SetEvent(pParam);
 }
 
@@ -375,7 +388,7 @@ static unsigned long long memparse(const char *ptr, char **retptr)
 {
    char *endptr;
    char mod;
-   BSTD_UNUSED(retptr);
+   UNUSED(retptr);
 
    unsigned long long ret = strtoull(ptr, &endptr, 0);
    mod = toupper(*endptr);
@@ -389,6 +402,53 @@ static unsigned long long memparse(const char *ptr, char **retptr)
 
    return ret;
 }
+
+#if NEXUS_HAS_GRAPHICS2D
+static NEXUS_Graphics2DHandle open_gfx(NXPL_MemoryData *data, bool secure)
+{
+   NEXUS_Graphics2DOpenSettings graphics2dOpenSettings;
+   NEXUS_Graphics2D_GetDefaultOpenSettings(&graphics2dOpenSettings);
+   graphics2dOpenSettings.secure = secure;
+   NEXUS_Graphics2DHandle gfx = NEXUS_Graphics2D_Open(NEXUS_NUM_2D_ENGINES - 1, &graphics2dOpenSettings);
+
+   if (gfx)
+   {
+      NEXUS_Graphics2DSettings gfxSettings;
+      NEXUS_Graphics2D_GetSettings(gfx, &gfxSettings);
+      gfxSettings.checkpointCallback.callback = completeCallback;
+      gfxSettings.checkpointCallback.context = data->checkpointEvent;
+      gfxSettings.packetSpaceAvailable.callback = completeCallback;
+      gfxSettings.packetSpaceAvailable.context = data->packetSpaceAvailableEvent;
+      NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
+   }
+   return gfx;
+}
+
+static void close_gfx(NEXUS_Graphics2DHandle gfx)
+{
+   if (gfx)
+      NEXUS_Graphics2D_Close(gfx);
+}
+
+static NEXUS_MemoryBlockHandle alloc_scratch(NXPL_MemoryData *data, NEXUS_Addr *offset)
+{
+   /* created as a 2k x strip height with 16bpp as a temp scratch space */
+   NEXUS_MemoryBlockHandle res = MemAllocMMA(data,
+      2048 * STRIP_HEIGHT * 2, 4096/*alignment*/, false);
+   NEXUS_MemoryBlock_LockOffset(res, offset);
+   return res;
+}
+
+static void free_scratch(NEXUS_MemoryBlockHandle block, NEXUS_Addr offset)
+{
+   if (block)
+   {
+      if (offset)
+         NEXUS_MemoryBlock_UnlockOffset(block);
+      NEXUS_MemoryBlock_Free(block);
+   }
+}
+#endif
 
 __attribute__((visibility("default")))
 BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
@@ -412,9 +472,6 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
          char val[PROPERTY_VALUE_MAX];
 #else
          char *val;
-#endif
-#if NEXUS_HAS_GRAPHICS2D
-         NEXUS_Graphics2DSettings gfxSettings;
 #endif
 #ifndef SINGLE_PROCESS
          NEXUS_ClientConfiguration clientConfig;
@@ -471,6 +528,15 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
          mem->MemCopy2d = MemCopy2d;
 #endif
 
+         /* autoclif interfaces (internal use only) */
+         mem->DebugAutoclifAddrToPtr = MemDebugAutoclifAddrToPtr;
+         mem->DebugAutoclifPtrToAddr = MemDebugAutoclifPtrToAddr;
+         mem->DebugAutoclifGetClifFilename = MemDebugAutoclifGetClifFilename;
+         mem->DebugAutoclifReset = MemDebugAutoclifReset;
+         data->translationTable = NULL;
+         data->filecnt = 0;
+         data->memInterface = mem;
+
 #ifndef SINGLE_PROCESS
          NEXUS_Platform_GetClientConfiguration(&clientConfig);
 
@@ -515,18 +581,11 @@ BEGL_MemoryInterface *NXPL_CreateMemInterface(BEGL_HWInterface *hwIface)
 #ifndef NDEBUG
          printf("NXPL : Open DMA %d\n", NEXUS_NUM_2D_ENGINES - 1);
 #endif
-         data->gfx = NEXUS_Graphics2D_Open(NEXUS_NUM_2D_ENGINES - 1, NULL);
-         NEXUS_Graphics2D_GetSettings(data->gfx, &gfxSettings);
-         gfxSettings.checkpointCallback.callback = completeCallback;
-         gfxSettings.checkpointCallback.context = data->checkpointEvent;
-         gfxSettings.packetSpaceAvailable.callback = completeCallback;
-         gfxSettings.packetSpaceAvailable.context = data->packetSpaceAvailableEvent;
-         NEXUS_Graphics2D_SetSettings(data->gfx, &gfxSettings);
+         data->gfx = open_gfx(data, false);
+         data->gfxSecure = open_gfx(data, true);
 
-         /* created as a 2k x strip height with 16bpp as a temp scratch space */
-         data->yuvScratch = NEXUS_MemoryBlock_Allocate(data->heapMap.heap,
-            2048 * STRIP_HEIGHT * 2, 4096/*alignment*/, NULL);
-         NEXUS_MemoryBlock_LockOffset(data->yuvScratch, &data->yuvScratchPhys);
+         data->yuvScratch = alloc_scratch(data, &data->yuvScratchPhys);
+         data->yuvScratchSecure = alloc_scratch(data, &data->yuvScratchPhysSecure);
 #endif
       }
       else
@@ -556,13 +615,11 @@ void NXPL_DestroyMemInterface(BEGL_MemoryInterface *mem)
          if (data->packetSpaceAvailableEvent)
             BKNI_DestroyEvent(data->packetSpaceAvailableEvent);
 
-         if (data->gfx)
-            NEXUS_Graphics2D_Close(data->gfx);
+         close_gfx(data->gfx);
+         close_gfx(data->gfxSecure);
 
-         if (data->yuvScratchPhys)
-            NEXUS_MemoryBlock_UnlockOffset(data->yuvScratch);
-         if (data->yuvScratch)
-            NEXUS_MemoryBlock_Free(data->yuvScratch);
+         free_scratch(data->yuvScratch, data->yuvScratchPhys);
+         free_scratch(data->yuvScratchSecure, data->yuvScratchPhysSecure);
 #endif
 
          free(mem->context);

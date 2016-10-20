@@ -97,18 +97,6 @@ ifeq ($(NEXUS_USE_3390_VMS),y)
     endif
 endif
 
-ifeq ($(NEXUS_USE_7439_SV),y)
-# # Recommended to use 7449 but 7439 SV flag will work
-    NEXUS_SYSTEM_CABLE ?= y
-    NEXUS_FRONTEND_3128 := y
-endif
-
-ifeq ($(NEXUS_USE_7449_SV),y)
-# Recommended to use 7449 but 7439 SV flag will work
-    NEXUS_SYSTEM_CABLE ?= y
-    NEXUS_FRONTEND_3128 := y
-endif
-
 # 3128 flag covers a variety of tuners from 312x to 314x
 ifeq ($(NEXUS_FRONTEND_3128),y)
     ifeq ($(NEXUS_FRONTEND_312x_VER),)

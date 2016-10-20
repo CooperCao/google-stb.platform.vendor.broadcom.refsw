@@ -103,19 +103,59 @@ static void ShaderSource(GLuint shader, const char *src)
 GLProgram::GLProgram() :
    m_vert(0),
    m_frag(0),
+   m_tessc(0),
+   m_tesse(0),
+   m_geom(0),
    m_prog(0)
 {
 }
 
-GLProgram::GLProgram(const string &vert, const string &frag, const std::vector<std::string> &defines) :
+GLProgram::GLProgram(
+   const string &vert,
+   const string &frag,
+   const std::vector<std::string> &defines) :
    m_vert(0),
    m_frag(0),
+   m_tessc(0),
+   m_tesse(0),
+   m_geom(0),
    m_prog(0)
 {
-   SetPrograms(vert, frag, defines);
+   SetPrograms(vert, frag, "", "", "", defines);
 }
 
-void GLProgram::SetPrograms(const string &vert, const string &frag, const std::vector<std::string> &defines)
+GLProgram::GLProgram(
+   const string &vert,
+   const string &frag,
+   const string &tc,
+   const string &te,
+   const string &geom,
+   const std::vector<std::string> &defines) :
+   m_vert(0),
+   m_frag(0),
+   m_tessc(0),
+   m_tesse(0),
+   m_geom(0),
+   m_prog(0)
+{
+   SetPrograms(vert, frag, tc, te, geom, defines);
+}
+
+void GLProgram::SetPrograms(
+   const string &vert,
+   const string &frag,
+   const std::vector<std::string> &defines)
+{
+   SetPrograms(vert, frag, "", "", "", defines);
+}
+
+void GLProgram::SetPrograms(
+   const string &vert,
+   const string &frag,
+   const string &tc,
+   const string &te,
+   const string &geom,
+   const std::vector<std::string> &defines)
 {
    try
    {
@@ -132,6 +172,32 @@ void GLProgram::SetPrograms(const string &vert, const string &frag, const std::v
       if (m_vert == 0 || m_frag == 0)
          BSG_THROW("Could not create shaders");
 
+#ifdef BSG_USE_ES32
+      if (tc.empty() != te.empty())
+         BSG_THROW("Must have both tessellation control and evaluation shaders, or neither");
+
+      if (!tc.empty())
+      {
+         m_tessc = glCreateShader(GL_TESS_CONTROL_SHADER);
+         glAttachShader(m_prog, m_tessc);
+
+         m_tesse = glCreateShader(GL_TESS_EVALUATION_SHADER);
+         glAttachShader(m_prog, m_tesse);
+
+         if (m_tessc == 0 || m_tesse == 0)
+            BSG_THROW("Could not create shaders");
+      }
+
+      if (!geom.empty())
+      {
+         m_geom = glCreateShader(GL_GEOMETRY_SHADER);
+         glAttachShader(m_prog, m_geom);
+
+         if (m_geom == 0)
+            BSG_THROW("Could not create shaders");
+      }
+#endif
+
       string defs;
       for (uint32_t i = 0; i < defines.size(); i++)
          defs += string("#define ") + defines[i] + "\n";
@@ -141,6 +207,23 @@ void GLProgram::SetPrograms(const string &vert, const string &frag, const std::v
 
       CompileShader(m_vert);
       CompileShader(m_frag);
+
+#ifdef BSG_USE_ES32
+      if (!tc.empty())
+      {
+         ShaderSource(m_tessc, (defs + tc).c_str());
+         ShaderSource(m_tesse, (defs + te).c_str());
+
+         CompileShader(m_tessc);
+         CompileShader(m_tesse);
+      }
+
+      if (!geom.empty())
+      {
+         ShaderSource(m_geom, (defs + geom).c_str());
+         CompileShader(m_geom);
+      }
+#endif
 
       LinkProgram(m_prog);
    }

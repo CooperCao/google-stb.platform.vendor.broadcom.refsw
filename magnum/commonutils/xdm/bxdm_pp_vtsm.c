@@ -105,10 +105,10 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
            )
       )
    {
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Exiting trick mode transition (stc: %x)",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Exiting trick mode transition (stc: %x)",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 pLocalState->uiAdjustedStc );
+                                 pLocalState->uiAdjustedStc ));
       hXdmPP->stDMState.stDecode.stVTSM.bTrickModeTransition = false;
    }
 
@@ -144,9 +144,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
    if ( !hXdmPP->stDMState.stChannel.stSelectedPicture.bValidated )
    {
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] vPTS invalidated: startup",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] vPTS invalidated: startup",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
    }
 
    /* Handle decoder trick modes */
@@ -251,9 +251,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
              */
             hXdmPP->stDMState.stChannel.bPostFlushDecode = false;
 
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] clear bPostFlushDecode due to frame advance",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] clear bPostFlushDecode due to frame advance",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
          }
 
       }
@@ -264,9 +264,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eField:
             /* We're doing a FIELD advance, so we need to increment
              * the vSTC by one field time, which is deltaPTS */
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Field",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Field",
                                           hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
 
             /* SW7425-1264: if the "physical" STC is running in reverse, interpolate the
              * virtual STC in reverse as well. */
@@ -298,9 +298,9 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eFrame:
             /* We're doing a FRAME advance, so we need to set the
              * vSTC to the vPTS of the NEXT PPB */
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame",
                                        hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
             hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC = hXdmPP->stDMState.stChannel.stSelectedPicture.stPicParms.stTSM.stStatic.stPTSOfNextPPB[BXDM_PictureProvider_P_PTSIndex_eVirtual];
 
             /* We need to account for the current field inversion
@@ -336,10 +336,10 @@ void BXDM_PPVTSM_P_VirtualStcIncrement_isr(
          case BXDM_PictureProvider_FrameAdvanceMode_eFrameByField:
             /* We're doing a FRAME advance by fields, so we need to do
              * field advances until we get to the next frame */
-            BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame by Field[%d]",
+            BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Frame Advance: Frame by Field[%d]",
                                       hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                       BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                      hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount );
+                                      hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount ));
 
             if ( hXdmPP->stDMConfig.uiFrameAdvanceByFieldCount > 0 )
             {
@@ -415,11 +415,11 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
       )
    {
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: TSM result: %d",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: TSM result: %d",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                pstPrevPicture->stPicParms.stTSM.stDynamic.eTsmResult );
+                                pstPrevPicture->stPicParms.stTSM.stDynamic.eTsmResult ));
    }
 
    /* We interpolate the vPTS from the previous PPB */
@@ -442,12 +442,12 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
        * indicate that the vPTS has been initialized */
       hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized= true;
 
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS TSM mode: vPTS:%08x includes jitter offset of %08x",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS TSM mode: vPTS:%08x includes jitter offset of %08x",
                                 hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                 BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                                 stVirtualPTSOfNextPPB.uiWhole,
-                                pstPicture->stPicParms.stTSM.stStatic.iPTSJitterCorrection );
+                                pstPicture->stPicParms.stTSM.stStatic.iPTSJitterCorrection ));
    }
    else
    {
@@ -519,11 +519,11 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                                          ( pstSelectedPicture->stPicParms.stTSM.stStatic.stPTSDelta.uiFractional ? 1 : 0 ) ) )
             {
                hXdmPP->stDMState.stDecode.stVTSM.bVirtualPTSInitialized = false;
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: skew Detected, i.e. the DQ ran dry uiStcPtsDifference:%08x)",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] vPTS invalidated: skew Detected, i.e. the DQ ran dry uiStcPtsDifference:%08x)",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                         uiStcPtsDifference );
+                                         uiStcPtsDifference ));
             }
          }
 
@@ -564,12 +564,12 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                /* The amount added doesn't matter. */
                stVirtualPTSTemp.uiWhole += 10;
 
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS for 1st picture with system paused: vStc:%08x vPTS:%08x",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS for 1st picture with system paused: vStc:%08x vPTS:%08x",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
                                          hXdmPP->stDMState.stDecode.stVTSM.stVirtualSTC.uiWhole,
-                                         stVirtualPTSTemp.uiWhole );
+                                         stVirtualPTSTemp.uiWhole ));
             }
             else
             {
@@ -605,7 +605,7 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                uiVsyncOffset = ( BXDM_PictureProvider_DisplayMode_eVirtualTSM == pLocalState->eDisplayMode ) ? 10 : 0;
                stVirtualPTSTemp.uiWhole -= uiVsyncOffset;
 
-               BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS : vPTS:%08x = vStc:%08x - PTSOffset:%08x - fieldInv:%08x - uiVsyncOffset:%d + uiSoftwarePCROffset:%d",
+               BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.%03x] initialize vPTS : vPTS:%08x = vStc:%08x - PTSOffset:%08x - fieldInv:%08x - uiVsyncOffset:%d + uiSoftwarePCROffset:%d",
                                          hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                          BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                          pstPicture->stPicParms.uiPPBIndex & 0xFFF,
@@ -614,7 +614,7 @@ void BXDM_PPVTSM_P_VirtualPtsInterpolate_isr(
                                          uiPtsOffset,
                                          hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole,
                                          uiVsyncOffset,
-                                         hXdmPP->stDMConfig.uiSoftwarePCROffset );
+                                         hXdmPP->stDMConfig.uiSoftwarePCROffset ));
 
             }
 
@@ -714,9 +714,9 @@ void BXDM_PPVTSM_P_ClipTimeTrickModeTransitionHandler_isr(
 {
    BSTD_UNUSED(pLocalState);
 
-   BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
+   BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eVTSM, "%x:[%02x.xxx] Entering trick mode transition (stc: %x)",
                               hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                               BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                              pLocalState->uiAdjustedStc );
+                              pLocalState->uiAdjustedStc ));
    hXdmPP->stDMState.stDecode.stVTSM.bTrickModeTransition = true;
 }

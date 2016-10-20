@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2012-2015 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 #include "mstring.h"
@@ -224,9 +216,6 @@ long MString::toLong() const {
             return strtol(_s, NULL, 8);
         }
         else {
-            unsigned long ul;
-            if((ul=strtoul(_s,NULL,10))&(1<<31))    /* unsigned */
-                return(ul);
             return strtol(_s, NULL, 10);
         }
     }
@@ -259,10 +248,10 @@ char MString::toChar() const {
 }
 
 int MString::toInt() const {
-    if (sizeof(int) == sizeof(long))
-        return (int)toLong();
-    else
+    if (sizeof(int) == sizeof(short))
         return (int)toShort();
+    else
+        return (int)toLong();
 }
 
 float MString::toFloat() const {

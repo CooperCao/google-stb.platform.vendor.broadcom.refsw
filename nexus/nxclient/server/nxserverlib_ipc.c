@@ -132,6 +132,23 @@ static void nxserver_client_destroy(struct ipc_server *server, struct nxclient_i
     return;
 }
 
+struct nxclient_ipc *nxserverlib_create_local_ipcstub(nxclient_t client)
+{
+    struct nxclient_ipc *ipcclient = BKNI_Malloc(sizeof(*ipcclient));
+    if (!ipcclient) {
+        BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        return NULL;
+    }
+    BKNI_Memset(ipcclient, 0, sizeof(*ipcclient));
+    ipcclient->client = client;
+    return ipcclient;
+}
+
+void nxserverlib_destroy_local_ipcstub(struct nxclient_ipc *client)
+{
+    BKNI_Free(client);
+}
+
 static struct ipc_thread_context {
     struct ipc_server *server;
     nxclient_ipc_thread id;

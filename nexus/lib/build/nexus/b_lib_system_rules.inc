@@ -215,7 +215,7 @@ $(B_LIB_OBJ_DIR)/%.$(B_LIB_OBJ_SUFFIX): %.cpp
 	$(Q_)$(CXX) $(CDEP_FLAG) $(filter-out $(B_LIB_C_ONLY_FLAGS),$(B_LIB_CFLAGS)) $(B_LIB_CPPFLAGS) -c $< -o $@
 
 clean:
-	$(RM) -rf $(B_LIB_INSTALL_DIR)/$(notdir $(B_LIB_SHARED_LIB)) $(B_LIB_INSTALL_DIR)/$(notdir $(B_LIB_STATIC_LIB)) $(B_LIB_OBJ_DIR)/*
+	$(Q_)$(RM) -rf $(B_LIB_INSTALL_DIR)/$(notdir $(B_LIB_SHARED_LIB)) $(B_LIB_INSTALL_DIR)/$(notdir $(B_LIB_STATIC_LIB)) $(B_LIB_OBJ_DIR)/*
 
 # Include dependencies
 B_LIB_DEP_FILES := $(wildcard $(B_LIB_OBJ_DIR)/*.d)

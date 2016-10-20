@@ -63,7 +63,29 @@ typedef struct
     BSAGElib_Crypto_KeyType_e            keyType; /* Odd/Even/OddAndEven/Clear */
 } KeyLoader_KeySlotConfigSettings;
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+typedef struct
+{
+    BSAGElib_Crypto_Algorithm_e          keyladderAlg;
+    BSAGElib_Crypto_KeyLadderLevel_e     keyladderDepth;
+    BSAGElib_Crypto_KeyType_e            keyType; /* Odd/Even/OddAndEven/Clear */
+    uint8_t                              procInForKey3[16];
+    uint8_t                              procInForKey4[16];
+    uint8_t                              procInForKey5[16];
+    uint32_t                             keyLength; /* Key length in bytes */
+    uint32_t                             ivLength;  /* IV length in bytes. Set to 0 when IV is not required by algorithm. */
+    uint8_t                              iv[16];
 
+} KeyLoader_WrappedKeySettings;
+
+typedef struct
+{
+    BSAGElib_Crypto_KeyType_e            keyType;   /* Odd/Even/OddAndEven/Clear */
+    uint32_t                             ivLength;  /* IV length in bytes        */
+    uint8_t                              iv[16];
+
+} KeyLoader_UpdateIvSettings;
+#else
 typedef struct
 {
     BSAGElib_Crypto_Algorithm_e          keyladderAlg;
@@ -89,5 +111,6 @@ typedef struct
     uint8_t                              iv[16];
 
 } KeyLoader_UpdateIvSettings;
+#endif
 
 #endif /*KEY_LOADER_TL_TYPES_H__*/

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *HEVD_PCACHE_2_0
  ***************************************************************************/
-#define BCHP_HEVD_PCACHE_2_0_MODE0               0x20046800 /* [RW] REG_PCACHE_MODE0 */
-#define BCHP_HEVD_PCACHE_2_0_MODE1               0x20046804 /* [RW] REG_PCACHE_MODE1 */
-#define BCHP_HEVD_PCACHE_2_0_CTRL                0x20046808 /* [RW] REG_PCACHE_CTRL */
-#define BCHP_HEVD_PCACHE_2_0_HIT_COUNT           0x2004680c /* [RO] REG_PCACHE_HIT_COUNT */
-#define BCHP_HEVD_PCACHE_2_0_MISS_COUNT          0x20046810 /* [RO] REG_PCACHE_MISS_COUNT */
-#define BCHP_HEVD_PCACHE_2_0_MISS1_COUNT         0x20046814 /* [RO] REG_PCACHE_MISS1_COUNT */
-#define BCHP_HEVD_PCACHE_2_0_BLOCK_FLAGS         0x20046818 /* [RO] REG_PCACHE_BLOCK_FLAGS */
-#define BCHP_HEVD_PCACHE_2_0_DATA                0x2004681c /* [RO] REG_PCACHE_DATA */
-#define BCHP_HEVD_PCACHE_2_0_TAG_CONTENTS        0x20046820 /* [RO] REG_PCACHE_TAG_CONTENTS */
-#define BCHP_HEVD_PCACHE_2_0_FLAG_SELECT         0x20046824 /* [RW] REG_PCACHE_FLAG_SELECT */
-#define BCHP_HEVD_PCACHE_2_0_DEBUG_CTRL          0x20046828 /* [RW] REG_PCACHE_DEBUG_CTRL */
-#define BCHP_HEVD_PCACHE_2_0_LFSR_DATA           0x2004682c /* [RW] REG_PCACHE_LFSR_DATA */
-#define BCHP_HEVD_PCACHE_2_0_PFRI_CTRL           0x20046830 /* [RW] REG_PCACHE_PFRI_CTRL */
-#define BCHP_HEVD_PCACHE_2_0_PFRI_DEBUG          0x20046834 /* [RO] REG_PCACHE_PFRI_DEBUG */
-#define BCHP_HEVD_PCACHE_2_0_GROUP_COUNT         0x20046838 /* [RO] REG_PCACHE_GROUP_COUNT */
-#define BCHP_HEVD_PCACHE_2_0_PICS_REFERENCED     0x2004683c /* [RW] REG_PCACHE_PICS_REFERENCED */
+#define BCHP_HEVD_PCACHE_2_0_MODE0               0x20046800 /* [RW][32] REG_PCACHE_MODE0 */
+#define BCHP_HEVD_PCACHE_2_0_MODE1               0x20046804 /* [RW][32] REG_PCACHE_MODE1 */
+#define BCHP_HEVD_PCACHE_2_0_CTRL                0x20046808 /* [RW][32] REG_PCACHE_CTRL */
+#define BCHP_HEVD_PCACHE_2_0_HIT_COUNT           0x2004680c /* [RO][32] REG_PCACHE_HIT_COUNT */
+#define BCHP_HEVD_PCACHE_2_0_MISS_COUNT          0x20046810 /* [RO][32] REG_PCACHE_MISS_COUNT */
+#define BCHP_HEVD_PCACHE_2_0_MISS1_COUNT         0x20046814 /* [RO][32] REG_PCACHE_MISS1_COUNT */
+#define BCHP_HEVD_PCACHE_2_0_BLOCK_FLAGS         0x20046818 /* [RO][32] REG_PCACHE_BLOCK_FLAGS */
+#define BCHP_HEVD_PCACHE_2_0_DATA                0x2004681c /* [RO][32] REG_PCACHE_DATA */
+#define BCHP_HEVD_PCACHE_2_0_TAG_CONTENTS        0x20046820 /* [RO][32] REG_PCACHE_TAG_CONTENTS */
+#define BCHP_HEVD_PCACHE_2_0_FLAG_SELECT         0x20046824 /* [RW][32] REG_PCACHE_FLAG_SELECT */
+#define BCHP_HEVD_PCACHE_2_0_DEBUG_CTRL          0x20046828 /* [RW][32] REG_PCACHE_DEBUG_CTRL */
+#define BCHP_HEVD_PCACHE_2_0_LFSR_DATA           0x2004682c /* [RW][32] REG_PCACHE_LFSR_DATA */
+#define BCHP_HEVD_PCACHE_2_0_PFRI_CTRL           0x20046830 /* [RW][32] REG_PCACHE_PFRI_CTRL */
+#define BCHP_HEVD_PCACHE_2_0_PFRI_DEBUG          0x20046834 /* [RO][32] REG_PCACHE_PFRI_DEBUG */
+#define BCHP_HEVD_PCACHE_2_0_GROUP_COUNT         0x20046838 /* [RO][32] REG_PCACHE_GROUP_COUNT */
+#define BCHP_HEVD_PCACHE_2_0_PICS_REFERENCED     0x2004683c /* [RW][32] REG_PCACHE_PICS_REFERENCED */
 
 #endif /* #ifndef BCHP_HEVD_PCACHE_2_0_H__ */
 

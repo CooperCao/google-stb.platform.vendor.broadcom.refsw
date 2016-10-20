@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -57,7 +57,6 @@ class CTsb;
 class CDisplay;
 class CGraphics;
 class CStc;
-class CMixer;
 class CVideoDecode;
 class CStillDecode;
 class CThumb;
@@ -141,9 +140,6 @@ public:
     void                                 addStc(CStc * pStc, eWindowType windowType = eWindowType_Main ) { _pStc[windowType] = pStc; }
     void                                 removeStc(eWindowType windowType = eWindowType_Main) { _pStc[windowType] = NULL; }
     CStc *                               getStc(eWindowType windowType = eWindowType_Max) { return((eWindowType_Max == windowType) ? _pStc[_fullScreenWindowType] : _pStc[windowType]); }
-    void                                 addMixer(CMixer * pMixer) { _pMixer = pMixer; }
-    void                                 removeMixer(CMixer * pMixer) { BSTD_UNUSED(pMixer); _pMixer = NULL; }
-    CMixer *                             getMixer(void) { return(_pMixer); }
     void                                 addVideoDecode(CVideoDecode * pVideoDecode) { _pVideoDecode = pVideoDecode; }
     void                                 removeVideoDecode(CVideoDecode * pVideoDecode) { BSTD_UNUSED(pVideoDecode); _pVideoDecode = NULL; }
     CVideoDecode *                       getVideoDecode(void) { return(_pVideoDecode); }
@@ -274,7 +270,6 @@ protected:
     MList<CDisplay>                      _displayList;
     CGraphics *                          _pGraphics;
     eWindowType                          _fullScreenWindowType;
-    CMixer *                             _pMixer;
     CVideoDecode *                       _pVideoDecode;
     CStillDecode *                       _pStillDecode;
     CThumb *                             _pThumbExtractor;

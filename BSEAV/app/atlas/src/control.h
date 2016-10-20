@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -76,6 +76,7 @@ public:
     virtual eRet    setVolume(int32_t level);
     virtual bool    getMute(void);
     virtual eRet    setMute(bool muted);
+    virtual eRet    applyVbiSettings(uint32_t nDisplayIndex = 1);
     virtual eRet    showPip(bool bShow = true);
     virtual eRet    swapPip(void);
     virtual eRet    connectDecoders(
@@ -113,35 +114,35 @@ public:
     eRet            channelUp(void);
     eRet            channelDown(void);
 #if RF4CE_SUPPORT
-    eRet            displayRf4ceRemotes(void);
-    eRet            addRf4ceRemote(const char *remote_name);
-    eRet            removeRf4ceRemote(int pairingRefNum);
+    eRet displayRf4ceRemotes(void);
+    eRet addRf4ceRemote(const char * remote_name);
+    eRet removeRf4ceRemote(int pairingRefNum);
 #endif
-    eRet            tenKey(eKey key);
-    eRet            playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
-    eRet            playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
-    eRet            playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
-    eRet            recordStart(CRecordData * pRecordData = NULL);
-    eRet            recordStop(CChannel * pChannel = NULL);
-    eRet            encodeStart(const char * fileName = NULL, const char * path = NULL);
-    eRet            encodeStop(CChannel * pChannel = NULL);
-    eRet            setAudioProgram(uint16_t pid);
-    eRet            setAudioProcessing(eAudioProcessing audioProcessing);
-    eRet            setSpdifInput(eSpdifInput spdifInput);
-    eRet            setHdmiAudioInput(eHdmiAudioInput hdmiInput);
-    eRet            setAudioDownmix(eAudioDownmix audioDownmix);
-    eRet            setAudioDualMono(eAudioDualMono audioDualMono);
-    eRet            setDolbyDRC(eDolbyDRC dolbyDRC);
-    eRet            setDolbyDialogNorm(bool dolbyDialogNorm);
-    eRet            setColorSpace(NEXUS_ColorSpace colorSpace);
-    eRet            setBoxDetect(bool bBoxDetect);
-    eRet            setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
-    eRet            setAutoVideoFormat(bool bAutoVideoFormat);
-    eRet            setWindowGeometry(void);
-    eRet            showWindowType(eWindowType windowType, bool bShow = true);
-    void            setModel(CModel * pModel)                { _pModel = pModel; }
-    void            setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
-    CChannelMgr *   getChannelMgr(void)                      { return(_pChannelMgr); }
+    eRet          tenKey(eKey key);
+    eRet          playbackStart(const char * fileName, const char * indexName, const char * path, eWindowType windowType = eWindowType_Max);
+    eRet          playbackStart(CVideo * pVideo, eWindowType windowType = eWindowType_Max);
+    eRet          playbackStop(const char * MediaName = NULL, eWindowType windowType = eWindowType_Max, bool bTuneLast = true);
+    eRet          recordStart(CRecordData * pRecordData = NULL);
+    eRet          recordStop(CChannel * pChannel = NULL);
+    eRet          encodeStart(const char * fileName = NULL, const char * path = NULL);
+    eRet          encodeStop(CChannel * pChannel = NULL);
+    eRet          setAudioProgram(uint16_t pid);
+    eRet          setAudioProcessing(eAudioProcessing audioProcessing);
+    eRet          setSpdifInput(eSpdifInput spdifInput);
+    eRet          setHdmiAudioInput(eHdmiAudioInput hdmiInput);
+    eRet          setAudioDownmix(eAudioDownmix audioDownmix);
+    eRet          setAudioDualMono(eAudioDualMono audioDualMono);
+    eRet          setDolbyDRC(eDolbyDRC dolbyDRC);
+    eRet          setDolbyDialogNorm(bool dolbyDialogNorm);
+    eRet          setColorSpace(NEXUS_ColorSpace colorSpace);
+    eRet          setBoxDetect(bool bBoxDetect);
+    eRet          setAspectRatio(NEXUS_DisplayAspectRatio aspectRatio);
+    eRet          setAutoVideoFormat(bool bAutoVideoFormat);
+    eRet          setWindowGeometry(void);
+    eRet          showWindowType(eWindowType windowType, bool bShow = true);
+    void          setModel(CModel * pModel)                { _pModel = pModel; }
+    void          setChannelMgr(CChannelMgr * pChannelMgr) { _pChannelMgr = pChannelMgr; }
+    CChannelMgr * getChannelMgr(void)                      { return(_pChannelMgr); }
 #if DVR_LIB_SUPPORT
     void      setDvrMgr(CDvrMgr * pDvrMgr) { _pDvrMgr = pDvrMgr; }
     CDvrMgr * getDvrMgr(void)              { return(_pDvrMgr); }

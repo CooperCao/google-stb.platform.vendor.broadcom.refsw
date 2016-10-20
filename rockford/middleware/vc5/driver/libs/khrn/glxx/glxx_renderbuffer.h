@@ -21,6 +21,10 @@ typedef struct GLXX_RENDERBUFFER_ {
    uint32_t name;
    KHRN_IMAGE_T   *image;        // floating KHRN_IMAGE_T
    glxx_ms_mode   ms_mode;
+
+   unsigned width_pixels;
+   unsigned height_pixels;
+
    char           *debug_label;
 
    /*

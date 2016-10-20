@@ -85,7 +85,7 @@ IDecryptor* DecryptorFactory::CreateDecryptor(DrmType type)
 
 void DecryptorFactory::DestroyDecryptor(IDecryptor* decryptor)
 {
-    LOGD(("%s: decryptor=%p", __FUNCTION__, decryptor));
+    LOGD(("%s: decryptor=%p", __FUNCTION__, (void*)decryptor));
     if (decryptor == NULL) {
         LOGE(("%s: decryptor is NULL", __FUNCTION__));
         return;

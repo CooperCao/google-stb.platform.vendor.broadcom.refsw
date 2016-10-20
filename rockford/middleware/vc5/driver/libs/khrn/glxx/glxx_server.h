@@ -46,6 +46,7 @@ OpenGL ES 1.1 and 2.0 server-side state structure declaration.
 #include "../egl/egl_context_gl.h"
 
 #include "libs/util/profile/profile.h"
+#include "glxx_tf.h"
 
 enum glxx_default_fb_type
 {
@@ -229,14 +230,6 @@ typedef struct {
    GLfloat distance_attenuation[3];
 } GL11_POINT_PARAMS_T;
 
-
-
-// Transform feedback is a private struct
-struct GLXX_TRANSFORM_FEEDBACK_T_;
-
-// TODO: Just include it here?
-struct GL20_PROGRAM_T_;
-
 typedef struct {
    GL11_CACHE_KEY_T shaderkey;
 
@@ -315,19 +308,6 @@ typedef struct {
    } changed;
 } GL11_STATE_T;
 
-typedef struct GLXX_TRANSFORM_FEEDBACK_T_
-{
-   int32_t                       name;
-   uint32_t                      flags;
-   GLenum                        primitive_mode;
-   GLXX_BUFFER_BINDING_T         generic_buffer_binding;
-   GLXX_INDEXED_BINDING_POINT_T  binding_points[V3D_MAX_TF_BUFFERS]; // Table 6.24 buffer binding, start, size
-   struct GL20_PROGRAM_T_        *program;                           // Program used by the tf
-   struct GLXX_PIPELINE_T_       *pipeline;                          // Pipeline used by the tf
-   uint32_t                      stream_position[V3D_MAX_TF_BUFFERS];
-   char                          *debug_label;
-} GLXX_TRANSFORM_FEEDBACK_T;
-
 typedef struct
 {
    khrn_render_state_set_t blend_color;
@@ -357,14 +337,45 @@ struct glxx_context_fences
                                         will depend on this fence; */
 };
 
+typedef enum
+{
+   GLXX_BLEND_EQN_ADD     = V3D_BLEND_EQN_ADD,
+   GLXX_BLEND_EQN_SUB     = V3D_BLEND_EQN_SUB,
+   GLXX_BLEND_EQN_RSUB    = V3D_BLEND_EQN_RSUB,
+   GLXX_BLEND_EQN_MIN     = V3D_BLEND_EQN_MIN,
+   GLXX_BLEND_EQN_MAX     = V3D_BLEND_EQN_MAX,
+   GLXX_BLEND_EQN_MUL     = V3D_BLEND_EQN_MUL,
+   GLXX_BLEND_EQN_SCREEN  = V3D_BLEND_EQN_SCREEN,
+   GLXX_BLEND_EQN_DARKEN  = V3D_BLEND_EQN_DARKEN,
+   GLXX_BLEND_EQN_LIGHTEN = V3D_BLEND_EQN_LIGHTEN,
+   GLXX_BLEND_EQN_INVALID = V3D_BLEND_EQN_INVALID,
+
+   GLXX_ADV_BLEND_EQN_BIT              = 0x20,
+   GLXX_ADV_BLEND_EQN_MULTIPLY         = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_MULTIPLY,
+   GLXX_ADV_BLEND_EQN_SCREEN           = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_SCREEN,
+   GLXX_ADV_BLEND_EQN_OVERLAY          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_OVERLAY,
+   GLXX_ADV_BLEND_EQN_DARKEN           = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_DARKEN,
+   GLXX_ADV_BLEND_EQN_LIGHTEN          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_LIGHTEN,
+   GLXX_ADV_BLEND_EQN_COLORDODGE       = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_COLORDODGE,
+   GLXX_ADV_BLEND_EQN_COLORBURN        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_COLORBURN,
+   GLXX_ADV_BLEND_EQN_HARDLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HARDLIGHT,
+   GLXX_ADV_BLEND_EQN_SOFTLIGHT        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_SOFTLIGHT,
+   GLXX_ADV_BLEND_EQN_DIFFERENCE       = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_DIFFERENCE,
+   GLXX_ADV_BLEND_EQN_EXCLUSION        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_EXCLUSION,
+   GLXX_ADV_BLEND_EQN_HSL_HUE          = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_HUE,
+   GLXX_ADV_BLEND_EQN_HSL_SATURATION   = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_SATURATION,
+   GLXX_ADV_BLEND_EQN_HSL_COLOR        = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_COLOR,
+   GLXX_ADV_BLEND_EQN_HSL_LUMINOSITY   = GLXX_ADV_BLEND_EQN_BIT + GLXX_ADV_BLEND_HSL_LUMINOSITY
+} glxx_blend_eqn_t;
+
 typedef struct
 {
-   v3d_blend_eqn_t color_eqn;
-   v3d_blend_eqn_t alpha_eqn;
-   v3d_blend_mul_t src_rgb;
-   v3d_blend_mul_t dst_rgb;
-   v3d_blend_mul_t src_alpha;
-   v3d_blend_mul_t dst_alpha;
+   glxx_blend_eqn_t color_eqn;
+   glxx_blend_eqn_t alpha_eqn;
+   v3d_blend_mul_t  src_rgb;
+   v3d_blend_mul_t  dst_rgb;
+   v3d_blend_mul_t  src_alpha;
+   v3d_blend_mul_t  dst_alpha;
 } glxx_blend_cfg;
 
 struct GLXX_SERVER_STATE_T_
@@ -382,17 +393,18 @@ struct GLXX_SERVER_STATE_T_
       uint32_t backend;
    } statebits;
 
-   GLXX_HW_RENDER_STATE_T *current_render_state;   // If rs changes reissue frame-starting instructions
-   glxx_compute_render_state* compute_render_state;
+   GLXX_HW_RENDER_STATE_T    *current_render_state;   // If rs changes reissue frame-starting instructions
+   glxx_compute_render_state *compute_render_state;
 
    struct {
 #if V3D_HAS_PER_RT_BLEND
-      uint32_t rt_enables; /* Bit i for RT i */
-      glxx_blend_cfg rt_cfgs[GLXX_MAX_RENDER_TARGETS];
+      uint32_t             rt_enables; /* Bit i for RT i */
+      glxx_blend_cfg       rt_cfgs[GLXX_MAX_RENDER_TARGETS];
 #else
       bool enable;
-      glxx_blend_cfg cfg;
+      glxx_blend_cfg       cfg;
 #endif
+      bool advanced_coherent; // For state query only. No functional effect.
    } blend;
 
    /* RT i red/green/blue/alpha enable at bit 4*i + 0/1/2/3 */
@@ -459,7 +471,9 @@ struct GLXX_SERVER_STATE_T_
    GLenum depth_func;
    bool depth_mask;
 
-   GLfloat line_width;  /* Always > 0, default == 1 */
+   float line_width;  /* Always > 0, default == 1 */
+
+   float sample_shading_fraction;
 
    GLenum front_face;
 
@@ -513,6 +527,7 @@ struct GLXX_SERVER_STATE_T_
       bool dither;
       bool stencil_test;
       bool depth_test;
+      bool sample_shading;
 
       // ES 3.0 only
       bool primitive_restart;    // Table 6.3: PRIMITIVE_RESTART_FIXED_INDEX
@@ -563,7 +578,7 @@ struct GLXX_SERVER_STATE_T_
       } back;
    } stencil_op;
 
-   GLfloat blend_color[4];
+   float blend_color[4];
 
    //gl 1.1 specific parts
    //  elements affecting programmable pipeline
@@ -598,10 +613,9 @@ struct GLXX_SERVER_STATE_T_
    {
       struct glxx_queries_of_type
       {
-         enum glxx_query_type type;
-         GLXX_QUERY_T *active; /* this can be NULL or based on query->target,
-                                 any_samples_passed or
-                                 any_samples_passed_conservative */
+         GLXX_QUERY_T *active; /* active query, on this context, for this type of
+                                  query; NULL if there is no active query for
+                                  this type, on this context */
 
          KHRN_TIMELINE_T timeline;
       } queries[GLXX_Q_COUNT];
@@ -613,11 +627,13 @@ struct GLXX_SERVER_STATE_T_
 
    // Transform feedback objects
    struct {
-      struct GLXX_TRANSFORM_FEEDBACK_T_ *default_obj;
+      bool in_use;
+      GLXX_TRANSFORM_FEEDBACK_T *bound; /* bound transform feedback object,
+                                                 == default_tf by default
+                                                 or if the user calls BindTranformFeedback(0) */
+      GLXX_TRANSFORM_FEEDBACK_T *default_tf;
       uint32_t          next;
-      struct GLXX_TRANSFORM_FEEDBACK_T_ *binding;    // TRANSFORM_FEEDBACK_BINDING Table 6.5
       KHRN_MAP_T        objects;
-      bool              in_use;     // true when we have transform feedback active and not paused
    } transform_feedback;
 
    // Vertex array objects
@@ -635,8 +651,7 @@ struct GLXX_SERVER_STATE_T_
       KHRN_MAP_T                 objects;
    } pipelines;
 
-   struct
-   {
+   struct {
       bool              counters_acquired;
    } perf_counters;
 
@@ -794,7 +809,7 @@ extern void glxx_get_buffer_pointerv(GLenum target, GLenum pname, GLvoid ** para
 
 extern GLboolean glxx_unmap_buffer(GLXX_SERVER_STATE_T *state, GLenum target);
 
-extern bool glxx_server_active_queries_install(GLXX_SERVER_STATE_T *state,
+extern bool glxx_server_queries_install(GLXX_SERVER_STATE_T *state,
       GLXX_HW_RENDER_STATE_T *rs);
 
 //! Set dirty flags for any state that needs to be flushed again to this render-state
@@ -809,5 +824,9 @@ extern void glxx_server_detach_surfaces(GLXX_SERVER_STATE_T *state);
 
 // Program object
 extern struct GL20_PROGRAM_T_ *glxx_server_get_active_program(GLXX_SERVER_STATE_T *state);
+
+// Query blend propeties
+extern bool glxx_advanced_blend_eqn_set(const GLXX_SERVER_STATE_T *state);
+extern uint32_t glxx_advanced_blend_eqn(const GLXX_SERVER_STATE_T *state);
 
 #endif

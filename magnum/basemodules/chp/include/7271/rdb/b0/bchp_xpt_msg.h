@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,47 +70,47 @@
 /***************************************************************************
  *XPT_MSG
  ***************************************************************************/
-#define BCHP_XPT_MSG_MSG_CTRL1                   0x20a30000 /* [RW] Global Message Processing Control Register 1 */
-#define BCHP_XPT_MSG_PSI_CTRL1                   0x20a30004 /* [RW] Global PSI Processing Control Register 1 */
-#define BCHP_XPT_MSG_PES_CTRL1                   0x20a30008 /* [RW] Global PES Processing Control Register 1 */
-#define BCHP_XPT_MSG_DMA_BUFFER_INIT             0x20a3000c /* [RW] DMA Controller Buffer Init */
-#define BCHP_XPT_MSG_PHY_ADDR_LO                 0x20a30028 /* [RW] SAM Singlecast (Physical) Address LSBs Register */
-#define BCHP_XPT_MSG_PHY_ADDR_HI                 0x20a3002c /* [RW] SAM Singlecast (Physical) Address MSBs Register */
-#define BCHP_XPT_MSG_NET_ADDR0_LO                0x20a30030 /* [RW] SAM Type-0 Network Address LSBs Register */
-#define BCHP_XPT_MSG_NET_ADDR0_HI                0x20a30034 /* [RW] SAM Type-0 Network Address MSBs Register */
-#define BCHP_XPT_MSG_NET_ADDR1_LO                0x20a30038 /* [RW] SAM Type-1 Network Address LSBs Register */
-#define BCHP_XPT_MSG_NET_ADDR1_HI                0x20a3003c /* [RW] SAM Type-1 Network Address MSBs Register */
-#define BCHP_XPT_MSG_M40_ADDR0_LO                0x20a30040 /* [RW] SAM Type-0 Multicast 40 Address LSBs Register */
-#define BCHP_XPT_MSG_M40_ADDR0_HI                0x20a30044 /* [RW] SAM Type-0 Multicast 40 Address MSBs and Mode Register */
-#define BCHP_XPT_MSG_M40_ADDR1_LO                0x20a30048 /* [RW] SAM Type-1 Multicast 40 Address LSBs Register */
-#define BCHP_XPT_MSG_M40_ADDR1_HI                0x20a3004c /* [RW] SAM Type-1 Multicast 40 Address MSBs and Mode Register */
-#define BCHP_XPT_MSG_M24_ADDR                    0x20a30050 /* [RW] SAM Multicast 24 Address Register (MPEG Only) */
-#define BCHP_XPT_MSG_ID_REJECT                   0x20a30054 /* [RW] SAM PSI Filter Table ID Reject Limits Register (MPEG Only) */
-#define BCHP_XPT_MSG_C_MATCH0                    0x20a30060 /* [RW] CAP Filtering C_MATCH0 Address Register (DIRECTV Only) */
-#define BCHP_XPT_MSG_C_MATCH1                    0x20a30064 /* [RW] CAP Filtering C_MATCH1 Address Register (DIRECTV Only) */
-#define BCHP_XPT_MSG_C_MATCH2                    0x20a30068 /* [RW] CAP Filtering C_MATCH2 Address Register (DIRECTV Only) */
-#define BCHP_XPT_MSG_C_MATCH3                    0x20a3006c /* [RW] CAP Filtering C_MATCH3 Address Register (DIRECTV Only) */
-#define BCHP_XPT_MSG_C_MATCH4                    0x20a30070 /* [RW] CAP Filtering C_MATCH4 Address Register (DIRECTV Only) */
-#define BCHP_XPT_MSG_BUF_DAT_AVAIL_00_31         0x20a30080 /* [RO] Per DMA Message Buffer Data Available Status for DMA message buffers 00-31 Register */
-#define BCHP_XPT_MSG_BUF_DAT_AVAIL_32_63         0x20a30084 /* [RO] Per DMA Message Buffer Data Available Status for DMA message buffers 32-63 Register */
-#define BCHP_XPT_MSG_BUF_DAT_AVAIL_64_95         0x20a30088 /* [RO] Per DMA Message Buffer Data Available Status for DMA message buffers 64-95 Register */
-#define BCHP_XPT_MSG_BUF_DAT_AVAIL_96_127        0x20a3008c /* [RO] Per DMA Message Buffer Data Available Status for DMA message buffers 96-127 Register */
-#define BCHP_XPT_MSG_BUF_ERR_00_31               0x20a30130 /* [RW] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 00-31 Register */
-#define BCHP_XPT_MSG_BUF_ERR_32_63               0x20a30134 /* [RW] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 32-63 Register */
-#define BCHP_XPT_MSG_BUF_ERR_64_95               0x20a30138 /* [RW] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 64-95 Register */
-#define BCHP_XPT_MSG_BUF_ERR_96_127              0x20a3013c /* [RW] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 96-127 Register */
-#define BCHP_XPT_MSG_BUF_ERR_SNIFFER             0x20a30150 /* [RW] Message Processing DMA Message Buffer Error Sniffer Register */
-#define BCHP_XPT_MSG_MSG_EVENT_CNT_CTRL          0x20a30154 /* [RW] Message Event Count Control Register */
-#define BCHP_XPT_MSG_MSG_START_CNT               0x20a30158 /* [RO] Message Start Count Register */
-#define BCHP_XPT_MSG_MSG_END_CNT                 0x20a3015c /* [RO] Message End Count Register */
-#define BCHP_XPT_MSG_MSG_FILTER_FAIL_CNT         0x20a30160 /* [RO] Message Filter Fail Count Register */
-#define BCHP_XPT_MSG_MSG_ERR_CK_FAIL_CNT         0x20a30164 /* [RO] Message Error Check Fail Count Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_0                 0x20a3ca00 /* [RO] Message Debug Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_1                 0x20a3ca04 /* [RO] Message Debug Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_2                 0x20a3ca08 /* [RO] Message Debug Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_CTRL              0x20a3ca0c /* [RW] Message Debug Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_3                 0x20a3ca10 /* [RO] Message Debug Register */
-#define BCHP_XPT_MSG_MSG_DEBUG_4                 0x20a3ca14 /* [RO] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_CTRL1                   0x20a30000 /* [RW][32] Global Message Processing Control Register 1 */
+#define BCHP_XPT_MSG_PSI_CTRL1                   0x20a30004 /* [RW][32] Global PSI Processing Control Register 1 */
+#define BCHP_XPT_MSG_PES_CTRL1                   0x20a30008 /* [RW][32] Global PES Processing Control Register 1 */
+#define BCHP_XPT_MSG_DMA_BUFFER_INIT             0x20a3000c /* [RW][32] DMA Controller Buffer Init */
+#define BCHP_XPT_MSG_PHY_ADDR_LO                 0x20a30028 /* [RW][32] SAM Singlecast (Physical) Address LSBs Register */
+#define BCHP_XPT_MSG_PHY_ADDR_HI                 0x20a3002c /* [RW][32] SAM Singlecast (Physical) Address MSBs Register */
+#define BCHP_XPT_MSG_NET_ADDR0_LO                0x20a30030 /* [RW][32] SAM Type-0 Network Address LSBs Register */
+#define BCHP_XPT_MSG_NET_ADDR0_HI                0x20a30034 /* [RW][32] SAM Type-0 Network Address MSBs Register */
+#define BCHP_XPT_MSG_NET_ADDR1_LO                0x20a30038 /* [RW][32] SAM Type-1 Network Address LSBs Register */
+#define BCHP_XPT_MSG_NET_ADDR1_HI                0x20a3003c /* [RW][32] SAM Type-1 Network Address MSBs Register */
+#define BCHP_XPT_MSG_M40_ADDR0_LO                0x20a30040 /* [RW][32] SAM Type-0 Multicast 40 Address LSBs Register */
+#define BCHP_XPT_MSG_M40_ADDR0_HI                0x20a30044 /* [RW][32] SAM Type-0 Multicast 40 Address MSBs and Mode Register */
+#define BCHP_XPT_MSG_M40_ADDR1_LO                0x20a30048 /* [RW][32] SAM Type-1 Multicast 40 Address LSBs Register */
+#define BCHP_XPT_MSG_M40_ADDR1_HI                0x20a3004c /* [RW][32] SAM Type-1 Multicast 40 Address MSBs and Mode Register */
+#define BCHP_XPT_MSG_M24_ADDR                    0x20a30050 /* [RW][32] SAM Multicast 24 Address Register (MPEG Only) */
+#define BCHP_XPT_MSG_ID_REJECT                   0x20a30054 /* [RW][32] SAM PSI Filter Table ID Reject Limits Register (MPEG Only) */
+#define BCHP_XPT_MSG_C_MATCH0                    0x20a30060 /* [RW][32] CAP Filtering C_MATCH0 Address Register (DIRECTV Only) */
+#define BCHP_XPT_MSG_C_MATCH1                    0x20a30064 /* [RW][32] CAP Filtering C_MATCH1 Address Register (DIRECTV Only) */
+#define BCHP_XPT_MSG_C_MATCH2                    0x20a30068 /* [RW][32] CAP Filtering C_MATCH2 Address Register (DIRECTV Only) */
+#define BCHP_XPT_MSG_C_MATCH3                    0x20a3006c /* [RW][32] CAP Filtering C_MATCH3 Address Register (DIRECTV Only) */
+#define BCHP_XPT_MSG_C_MATCH4                    0x20a30070 /* [RW][32] CAP Filtering C_MATCH4 Address Register (DIRECTV Only) */
+#define BCHP_XPT_MSG_BUF_DAT_AVAIL_00_31         0x20a30080 /* [RO][32] Per DMA Message Buffer Data Available Status for DMA message buffers 00-31 Register */
+#define BCHP_XPT_MSG_BUF_DAT_AVAIL_32_63         0x20a30084 /* [RO][32] Per DMA Message Buffer Data Available Status for DMA message buffers 32-63 Register */
+#define BCHP_XPT_MSG_BUF_DAT_AVAIL_64_95         0x20a30088 /* [RO][32] Per DMA Message Buffer Data Available Status for DMA message buffers 64-95 Register */
+#define BCHP_XPT_MSG_BUF_DAT_AVAIL_96_127        0x20a3008c /* [RO][32] Per DMA Message Buffer Data Available Status for DMA message buffers 96-127 Register */
+#define BCHP_XPT_MSG_BUF_ERR_00_31               0x20a30130 /* [RW][32] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 00-31 Register */
+#define BCHP_XPT_MSG_BUF_ERR_32_63               0x20a30134 /* [RW][32] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 32-63 Register */
+#define BCHP_XPT_MSG_BUF_ERR_64_95               0x20a30138 /* [RW][32] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 64-95 Register */
+#define BCHP_XPT_MSG_BUF_ERR_96_127              0x20a3013c /* [RW][32] Per DMA Message Buffer Data-Error Status for DMA Message Buffers 96-127 Register */
+#define BCHP_XPT_MSG_BUF_ERR_SNIFFER             0x20a30150 /* [RW][32] Message Processing DMA Message Buffer Error Sniffer Register */
+#define BCHP_XPT_MSG_MSG_EVENT_CNT_CTRL          0x20a30154 /* [RW][32] Message Event Count Control Register */
+#define BCHP_XPT_MSG_MSG_START_CNT               0x20a30158 /* [RO][32] Message Start Count Register */
+#define BCHP_XPT_MSG_MSG_END_CNT                 0x20a3015c /* [RO][32] Message End Count Register */
+#define BCHP_XPT_MSG_MSG_FILTER_FAIL_CNT         0x20a30160 /* [RO][32] Message Filter Fail Count Register */
+#define BCHP_XPT_MSG_MSG_ERR_CK_FAIL_CNT         0x20a30164 /* [RO][32] Message Error Check Fail Count Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_0                 0x20a3ca00 /* [RO][32] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_1                 0x20a3ca04 /* [RO][32] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_2                 0x20a3ca08 /* [RO][32] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_CTRL              0x20a3ca0c /* [RW][32] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_3                 0x20a3ca10 /* [RO][32] Message Debug Register */
+#define BCHP_XPT_MSG_MSG_DEBUG_4                 0x20a3ca14 /* [RO][32] Message Debug Register */
 
 /***************************************************************************
  *MSG_CTRL1 - Global Message Processing Control Register 1

@@ -119,13 +119,14 @@ public:
     virtual void close(void);
     virtual void handleLockCallback(void);
 
-    eRet                     tune(NEXUS_FrontendQamSettings settings);
+    eRet                     tune(NEXUS_FrontendQamSettings * settings);
     void                     unTune(bool bFullUnTune = false);
     void                     getProperties(MStringHash * pProperties, bool bClear = true);
     NEXUS_FrontendLockStatus isLocked(void);
     NEXUS_FrontendQamMode    getDefaultMode(void);
     uint32_t                 getDefaultSymbolRateMin(NEXUS_FrontendQamMode mode);
     uint32_t                 getDefaultSymbolRateMax(NEXUS_FrontendQamMode mode);
+    eRet                     scanFrequencies(uint16_t * pMajor, uint16_t * pNumFreqToScan, uint16_t * pNumFreqScanned);
 
 protected:
     ENUM_TO_MSTRING_DECLARE(modeToString, NEXUS_FrontendQamMode)

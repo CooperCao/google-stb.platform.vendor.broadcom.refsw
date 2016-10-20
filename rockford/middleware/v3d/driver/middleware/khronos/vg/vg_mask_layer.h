@@ -25,7 +25,7 @@ extern void vg_mask_layer_bprint_from_stem(
    MEM_HANDLE_T handle,
    int32_t width, int32_t height);
 
-extern void vg_mask_layer_bprint_term(void *, uint32_t);
+extern void vg_mask_layer_bprint_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_mask_layer_bprint(MEM_HANDLE_T handle)
 {
@@ -46,7 +46,7 @@ typedef struct {
 
 extern bool vg_mask_layer_from_bprint(MEM_HANDLE_T handle);
 
-extern void vg_mask_layer_term(void *, uint32_t);
+extern void vg_mask_layer_term(MEM_HANDLE_T handle);
 
 static INLINE bool vg_is_mask_layer(MEM_HANDLE_T handle)
 {

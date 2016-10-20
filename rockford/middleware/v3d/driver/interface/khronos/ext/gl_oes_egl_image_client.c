@@ -12,14 +12,10 @@ Client-side implementation of the GL_OES_EGL_image extension.
 #define GL_GLEXT_PROTOTYPES /* we want the prototypes so the compiler will check that the signatures match */
 
 #include "interface/khronos/common/khrn_client_mangle.h"
-
 #include "interface/khronos/common/khrn_int_common.h"
-
 #include "interface/khronos/glxx/glxx_client.h"
-
 #include "interface/khronos/glxx/glxx_int_impl.h"
 #include "interface/khronos/glxx/gl20_int_impl.h"
-
 #include "interface/khronos/include/GLES2/gl2.h"
 #include "interface/khronos/include/GLES2/gl2ext.h"
 

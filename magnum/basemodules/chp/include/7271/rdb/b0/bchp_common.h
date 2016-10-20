@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Jul 15 14:40:23 2016
- *                 Full Compile MD5 Checksum  a61c3e77c3e4762495be1e815ba7b1be
+ * Date:           Generated on               Mon Sep 12 16:49:43 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               ebfb721f4d0dacb1abc72ab93bc4f8f3
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -74,6 +74,10 @@
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
 #define BCHP_REGISTER_END                                  0x2190ae04 /* WLAN_DOT11_SLAVE is last */
 #define BCHP_REGISTER_SIZE                                 0x00642b81 /* Number of registers */
+#define BCHP_REGISTER_HAS_16_BIT                                    1 /* Has 16-bit wide register */
+#define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
+#define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */
+#define BCHP_UINT64_C(hi, lo)             (((uint64_t)hi)<<32 | (lo)) /* C89 64-bit literal */
 
 /****************************************************************************
  * Core instance register start address.
@@ -2780,8 +2784,12 @@
 /***************************************************************************
  *EOP_ID_256 - EOP_ID
  ***************************************************************************/
-/* RDC :: EOP_ID_256 :: eop_id [255:00] */
-#define BCHP_RDC_EOP_ID_256_eop_id_MASK                            0x000000000000000000000000000000000000000000000000ffffffffffffffff
+/* RDC :: EOP_ID_256 :: reserved0 [31:08] */
+#define BCHP_RDC_EOP_ID_256_reserved0_MASK                         0xffffff00
+#define BCHP_RDC_EOP_ID_256_reserved0_SHIFT                        8
+
+/* RDC :: EOP_ID_256 :: eop_id [07:00] */
+#define BCHP_RDC_EOP_ID_256_eop_id_MASK                            0x000000ff
 #define BCHP_RDC_EOP_ID_256_eop_id_SHIFT                           0
 #define BCHP_RDC_EOP_ID_256_eop_id_vnet_f_scl_0                    0
 #define BCHP_RDC_EOP_ID_256_eop_id_vnet_f_scl_1                    1

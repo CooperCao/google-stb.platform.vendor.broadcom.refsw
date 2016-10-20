@@ -416,33 +416,38 @@ BERR_Code BHDR_HDCP_P_EnableSerialKeyRam_isr(
 	const bool enable
 )
 {
-	uint32_t Register, ulOffset;
+	uint32_t Register ;
 	BREG_Handle hRegister;
+	uint8_t major, minor ;
 
 	BDBG_ENTER(BHDR_HDCP_P_EnableSerialKeyRam_isr);
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle);
 
-#if BHDR_CONFIG_DISABLE_KEY_RAM_SERIAL
 	hRegister = hHDR->hRegister;
-	ulOffset = hHDR->ulOffset;
+
+	Register = BREG_Read32(hRegister, BCHP_DVP_HR_CORE_REV) ;
+	major = BCHP_GET_FIELD_DATA(Register, DVP_HR_CORE_REV, MAJOR_REV_NUMBER) ;
+	minor = BCHP_GET_FIELD_DATA(Register, DVP_HR_CORE_REV, MINOR_REV_NUMBER) ;
+
+	BDBG_MSG(("hw ver. %d.%d;  SERIALIZER ENABLE (%s):  RAM_SERIAL_DISABLE= %d",
+		major, minor, enable ? "Yes" : "No", !enable)) ;
 
 	/**************************************
 	This is a SW work around for an issue in HW core where the RAM_SERIAL_DISABLE
 	has to be set during HDCP2.x Rx mode of operation. This does not affect the Tx but only
 	the Rx. Associate JIRA -CRDVP-674
 	***************************************/
-	/* disable serial HDCP Key RAM loading */
-	Register = BREG_Read32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1 + ulOffset);
-		Register &= ~ BCHP_MASK(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE) ;
-		Register |= BCHP_FIELD_DATA(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE, enable?0:1) ;
-	BREG_Write32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1 + ulOffset, Register);
 
-#else
-	BSTD_UNUSED(Register);
-	BSTD_UNUSED(hRegister);
-	BSTD_UNUSED(ulOffset);
-	BSTD_UNUSED(enable);
-#endif
+	if (((major == 9) && (minor == 0))
+	|| (major < 9))
+	{
+		/* disable serial HDCP Key RAM loading */
+		BDBG_MSG(("Enable software workaround...")) ;
+		Register = BREG_Read32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1) ;
+			Register &= ~ BCHP_MASK(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE) ;
+			Register |= BCHP_FIELD_DATA(DVP_HR_KEY_RAM_CTRL_1, RAM_SERIAL_DISABLE, enable?0:1) ;
+		BREG_Write32(hRegister, BCHP_DVP_HR_KEY_RAM_CTRL_1, Register);
+	}
 
 	BDBG_LEAVE(BHDR_HDCP_P_EnableSerialKeyRam_isr);
 	return BERR_SUCCESS;

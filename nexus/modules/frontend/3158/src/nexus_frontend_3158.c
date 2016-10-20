@@ -1323,12 +1323,54 @@ static NEXUS_Error NEXUS_Frontend_P_3158_TuneQam(void *handle, const NEXUS_Front
             rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
             break;
         }
+        ibParam.enableNullPackets = pSettings->enableNullPackets;
+        if( pSettings->annex == NEXUS_FrontendQamAnnex_eC ){
+            if( (pSettings->symbolRate != 5274000) && (pSettings->symbolRate != 5307000))
+                BDBG_WRN((" Symbol rate for Annex-C is incorrect."));
+        }
     } else {
         rc = BERR_TRACE(BERR_NOT_SUPPORTED); goto done;
     }
 
     NEXUS_IsrCallback_Set(pDevice->lockAppCallback[pChannel->chn_num], &(pSettings->lockCallback));
     NEXUS_IsrCallback_Set(pDevice->asyncStatusAppCallback[pChannel->chn_num], &(pSettings->asyncStatusReadyCallback));
+
+    /* Scan Parameters */
+    if((pSettings->acquisitionMode == NEXUS_FrontendQamAcquisitionMode_eScan) || (pSettings->acquisitionMode == NEXUS_FrontendQamAcquisitionMode_eAuto)){
+        BADS_ChannelScanSettings scanParam;
+        BKNI_Memset(&scanParam, 0, sizeof(scanParam));
+        scanParam.QM = true;
+        scanParam.TO = true;
+        if( pSettings->spectrumMode == NEXUS_FrontendQamSpectrumMode_eAuto) scanParam.AI = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e16]) scanParam.A16 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e32]) scanParam.A32= true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e64]) scanParam.A64 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e128]) scanParam.A128 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e256]) scanParam.A256 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e512]) scanParam.A512 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eA][NEXUS_FrontendQamMode_e1024]) scanParam.A1024 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e64]) scanParam.B64 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e256]) scanParam.B256 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eB][NEXUS_FrontendQamMode_e1024]) scanParam.B1024 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eC][NEXUS_FrontendQamMode_e64]) scanParam.A64 = true;
+        if(pSettings->scan.mode[NEXUS_FrontendQamAnnex_eC][NEXUS_FrontendQamMode_e256]) scanParam.A256 = true;
+        if(pSettings->scan.frequencyOffset){
+            scanParam.CO = true;
+            scanParam.carrierSearch = pSettings->scan.frequencyOffset/256;
+        }
+        scanParam.upperBaudSearch = pSettings->scan.upperBaudSearch;
+        scanParam.lowerBaudSearch = pSettings->scan.lowerBaudSearch;
+
+        rc = BADS_SetScanParam(pDevice->ads_chn[pChannel->chn_num], &scanParam );
+        if(rc){rc = BERR_TRACE(rc); goto done;}
+    }
+
+    if(pSettings->acquisitionMode == NEXUS_FrontendQamAcquisitionMode_eScan) {
+        ibParam.tuneAcquire = true;
+    }
+    else{
+        ibParam.tuneAcquire = false;
+    }
 
     ibParam.frequency = pSettings->frequency;
     ibParam.symbolRate = pSettings->symbolRate;

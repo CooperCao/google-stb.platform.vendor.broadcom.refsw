@@ -20,6 +20,7 @@ LOCAL_C_INCLUDES := \
 	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/khronos/include/ \
 	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/pthreads/ \
 	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/generic/ \
+	$(ROCKFORD_TOP)/middleware/vc5/tools/gpumon_hook \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/default_android \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/android \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/common

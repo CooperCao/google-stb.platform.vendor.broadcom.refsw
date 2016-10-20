@@ -91,17 +91,11 @@ BERR_Code BVBI_P_MCC_Enc_Program (
     uint32_t ulGainDelayReg = 0;
     uint32_t ulGain = 0;
     uint32_t ulDelayCount = 0;
-#if defined(BVBI_P_CCE_VER2)
     uint32_t ulScteBaseReg = 0;
     uint32_t ulLineTop = 0;
     uint32_t ulLineBot = 0;
-#endif
 
     BDBG_ENTER(BVBI_P_MCC_Enc_Program);
-
-#if !defined(BVBI_P_CCE_VER2)
-    BSTD_UNUSED (bArib480p);
-#endif
 
     /* Figure out which encoder core to use */
     ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
@@ -149,7 +143,6 @@ BERR_Code BVBI_P_MCC_Enc_Program (
             ulGain = 0x4A;
             ulDelayCount = 0xD;
         }
-#if defined(BVBI_P_CCE_VER2)
         else
         {
             ulLineTop = 8;
@@ -160,7 +153,6 @@ BERR_Code BVBI_P_MCC_Enc_Program (
                 --ulLineBot;
             }
         }
-#endif
         break;
 
     case BFMT_VideoFmt_ePAL_B:
@@ -185,11 +177,9 @@ BERR_Code BVBI_P_MCC_Enc_Program (
             ulGain = 0x46;
             ulDelayCount = 0x01;
         }
-#if defined(BVBI_P_CCE_VER2)
         /* SCTE line origin */
         ulLineTop = 5;
         ulLineBot = 318;
-#endif
         break;
 
     default:
@@ -217,7 +207,6 @@ BERR_Code BVBI_P_MCC_Enc_Program (
             hReg, BCHP_CCE_0_Gain_Delay + ulCoreOffset, ulGainDelayReg );
     }
 
-#if defined(BVBI_P_CCE_VER2)
     /* Write the SCTE base lines register */
     ulScteBaseReg = BREG_Read32 (
         hReg, BCHP_CCE_0_SCTE_Base_Lines + ulCoreOffset );
@@ -229,17 +218,13 @@ BERR_Code BVBI_P_MCC_Enc_Program (
         BCHP_FIELD_DATA ( CCE_0_SCTE_Base_Lines, LINE_BOT, ulLineBot)   );
     BREG_Write32 (
         hReg, BCHP_CCE_0_SCTE_Base_Lines +ulCoreOffset, ulScteBaseReg );
-#endif
 
     /* program the control register with non-format specific values */
     ulControlReg = BREG_Read32 ( hReg, BCHP_CCE_0_Control + ulCoreOffset );
     ulControlReg &= ~(
         BCHP_MASK      (CCE_0_Control, reserved0                           )|
         BCHP_MASK      (CCE_0_Control, reserved_for_eco1                   )|
-#if defined(BVBI_P_CCE_VER2)
         BCHP_MASK      (CCE_0_Control, SCTE_MODE                           )|
-#endif
-        /* set parity bits so we provide the parity */
         BCHP_MASK      (CCE_0_Control, TOP_FLD_PARITY                      )|
         BCHP_MASK      (CCE_0_Control, BOT_FLD_PARITY                      )|
         BCHP_MASK      (CCE_0_Control, TOP_FLD_STAT                        )|
@@ -255,10 +240,7 @@ BERR_Code BVBI_P_MCC_Enc_Program (
     ulControlReg |= (
         BCHP_FIELD_DATA(CCE_0_Control, reserved0,             0            )|
         BCHP_FIELD_DATA(CCE_0_Control, reserved_for_eco1,     0            )|
-#if defined(BVBI_P_CCE_VER2)
         BCHP_FIELD_ENUM( CCE_0_Control, SCTE_MODE,            SCTE_ON      )|
-#endif
-        /* set parity bits so we provide the parity */
         BCHP_FIELD_ENUM(CCE_0_Control, TOP_FLD_PARITY,        AUTOMATIC    )|
         BCHP_FIELD_ENUM(CCE_0_Control, BOT_FLD_PARITY,        AUTOMATIC    )|
         BCHP_FIELD_DATA(CCE_0_Control, TOP_FLD_STAT,          0            )|
@@ -325,9 +307,7 @@ uint32_t BVBI_P_MCC_Encode_Data_isr (
 #else
     BSTD_UNUSED (bPR18010_bad_line_number);
 #endif
-#if defined(BVBI_P_CCE_VER2)
     BSTD_UNUSED (bArib480p);
-#endif
 
     /* Get register offset */
     ulCoreOffset = P_GetCoreOffset_isr (is656, hwCoreIndex);
@@ -351,20 +331,6 @@ uint32_t BVBI_P_MCC_Encode_Data_isr (
     /* PAL-M always seems to cause problems */
     if (eVideoFormat == BFMT_VideoFmt_ePAL_M)
         lineMask >>= 3;
-
-/* Old CCE core does not have the line base register bitfield */
-#if !defined(BVBI_P_CCE_VER2)
-    if (bArib480p)
-    {
-        if ((eVideoFormat == BFMT_VideoFmt_eNTSC)   ||
-            (eVideoFormat == BFMT_VideoFmt_eNTSC_J) ||
-            (eVideoFormat == BFMT_VideoFmt_e720x482_NTSC) ||
-            (eVideoFormat == BFMT_VideoFmt_e720x482_NTSC_J))
-        {
-            lineMask >>= 1;
-        }
-    }
-#endif
 
     /* Loop over possible video lines */
     for (iLine = 0 ; iLine < 16 ; ++iLine)
@@ -402,12 +368,6 @@ uint32_t BVBI_P_MCC_Encode_Data_isr (
                         (sizeof(uint32_t) * ucRegNum);
             }
             ++numSet;
-
-#if !defined(BVBI_P_CCE_VER2)
-            /* Sanity check */
-            if (numSet > 6)
-                break;
-#endif
         }
 
         /* Advance */
@@ -428,21 +388,8 @@ uint32_t BVBI_P_MCC_Encode_Data_isr (
             lineMask >>= 1;
     }
 #endif
-#if !defined(BVBI_P_CCE_VER2)
-    if (bArib480p)
-    {
-        if ((eVideoFormat == BFMT_VideoFmt_eNTSC)   ||
-            (eVideoFormat == BFMT_VideoFmt_eNTSC_J) ||
-            (eVideoFormat == BFMT_VideoFmt_e720x482_NTSC) ||
-            (eVideoFormat == BFMT_VideoFmt_e720x482_NTSC_J))
-        {
-            lineMask >>= 1;
-        }
-    }
-#endif
 
     /* Finally, set active lines register. */
-#if defined(BVBI_P_CCE_VER2) /** { **/
     switch (polarity)
     {
     case BAVC_Polarity_eTopField:
@@ -469,29 +416,6 @@ uint32_t BVBI_P_MCC_Encode_Data_isr (
             break;
     }
     BREG_Write32 ( hReg, ulLinesRegAddr, ulLinesReg );
-#else /** } !BVBI_P_CCE_VER2 { **/
-    ulLinesRegAddr = BCHP_CCE_0_Active_Lines + ulCoreOffset;
-    ulLinesReg =
-        BREG_Read32 ( hReg,  ulLinesRegAddr );
-    switch (polarity)
-    {
-    case BAVC_Polarity_eTopField:
-        ulLinesReg &= ~BCHP_MASK       ( CCE_0_Active_Lines, TOP_ACTIVE);
-        ulLinesReg |=  BCHP_FIELD_DATA ( CCE_0_Active_Lines, TOP_ACTIVE,
-                                         lineMask );
-            break;
-    case BAVC_Polarity_eBotField:
-        ulLinesReg &= ~BCHP_MASK       ( CCE_0_Active_Lines, BOT_ACTIVE);
-        ulLinesReg |=  BCHP_FIELD_DATA ( CCE_0_Active_Lines, BOT_ACTIVE,
-                                         lineMask );
-            break;
-        default:
-            BDBG_LEAVE(BVBI_P_MCC_Encode_Data_isr);
-            return (uint32_t)(-1);
-            break;
-    }
-    BREG_Write32 ( hReg, ulLinesRegAddr, ulLinesReg );
-#endif /** } BVBI_P_CCE_VER2 **/
 
     BDBG_LEAVE(BVBI_P_MCC_Encode_Data_isr);
     return ulErrInfo;

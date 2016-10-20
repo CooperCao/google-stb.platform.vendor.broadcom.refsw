@@ -89,7 +89,7 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
     rc = iface->next(image, 0, &data, 8);
     if (rc != BERR_SUCCESS)
     {
-      BDBG_ERR(("\nError in fetching next chunk in Image Interface\n"));
+      BDBG_ERR(("Error in fetching next chunk in Image Interface"));
       iface->close(image);
       return BERR_TRACE(rc);
     }
@@ -119,7 +119,7 @@ BERR_Code BDSP_Raaga_P_CopyFWImageToMem(
       rc = iface->next(image, ui32Count, &data, ui32ChunkLen);
       if (rc != BERR_SUCCESS)
       {
-          BDBG_ERR(("\nError in fetching next chunk in Image Interface\n"));;
+          BDBG_ERR(("Error in fetching next chunk in Image Interface"));;
           iface->close(image);
           return BERR_TRACE(rc);
       }

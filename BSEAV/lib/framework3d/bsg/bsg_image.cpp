@@ -79,6 +79,12 @@ GLenum Image::InternalFormat(eFormat f)
    case eL8       : fmt = GL_LUMINANCE;            break;
    case eA8       : fmt = GL_ALPHA;                break;
    case eLA88     : fmt = GL_LUMINANCE_ALPHA;      break;
+   case eR16F     : fmt = GL_R16F;                 break;
+   case eR16I     : fmt = GL_R16I;                 break;
+   case eR16UI    : fmt = GL_R16UI;                break;
+   case eRG16F    : fmt = GL_RG16F;                break;
+   case eRG16I    : fmt = GL_RG16I;                break;
+   case eRG16UI   : fmt = GL_RG16UI;               break;
    case eRGBA16F  : fmt = GL_RGBA16F;              break;
    case eRGBA16I  : fmt = GL_RGBA16I;              break;
    case eRGBA16UI : fmt = GL_RGBA16UI;             break;
@@ -127,6 +133,12 @@ GLenum Image::Format(eFormat f)
    case eNONE     : break;
 
 #ifdef BSG_USE_ES3
+   case eR16F     : fmt = GL_RED;               break;
+   case eR16I     : fmt = GL_RED_INTEGER;       break;
+   case eR16UI    : fmt = GL_RED_INTEGER;       break;
+   case eRG16F    : fmt = GL_RG;                break;
+   case eRG16I    : fmt = GL_RG_INTEGER;        break;
+   case eRG16UI   : fmt = GL_RG_INTEGER;        break;
    case eRGBA16F  : fmt = GL_RGBA;              break;
    case eRGBA32F  : fmt = GL_RGBA;              break;
    case eRGBA16I  : fmt = GL_RGBA_INTEGER;      break;
@@ -159,6 +171,12 @@ GLenum Image::Type(Image::eFormat f)
    case eNONE     : break;
 
 #ifdef BSG_USE_ES3
+   case eR16F     : type = GL_HALF_FLOAT;             break;
+   case eR16I     : type = GL_SHORT;                  break;
+   case eR16UI    : type = GL_UNSIGNED_SHORT;         break;
+   case eRG16F    : type = GL_HALF_FLOAT;             break;
+   case eRG16I    : type = GL_SHORT;                  break;
+   case eRG16UI   : type = GL_UNSIGNED_SHORT;         break;
    case eRGBA16F  : type = GL_HALF_FLOAT;             break;
    case eRGBA16I  : type = GL_SHORT;                  break;
    case eRGBA16UI : type = GL_UNSIGNED_SHORT;         break;
@@ -191,6 +209,12 @@ uint32_t Image::Sizeof(eFormat f)
    case eNONE     : break;
 
 #ifdef BSG_USE_ES3
+   case eR16F     : size = 16;      break;
+   case eR16I     : size = 16;      break;
+   case eR16UI    : size = 16;      break;
+   case eRG16F    : size = 32;      break;
+   case eRG16I    : size = 32;      break;
+   case eRG16UI   : size = 32;      break;
    case eRGBA16F  : size = 64;      break;
    case eRGBA16I  : size = 64;      break;
    case eRGBA16UI : size = 64;      break;

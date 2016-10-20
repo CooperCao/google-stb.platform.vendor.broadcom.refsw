@@ -498,6 +498,34 @@ BSAGElib_P_CloseClient(
         BSAGElib_iUnlockSage;
     }
 
+    /* Uninit modules. */
+    {
+        BSAGElib_RpcRemoteHandle nextRemote = BLST_S_FIRST(&hSAGElibClient->remotes);
+        for (;;)
+        {
+            BSAGElib_RpcRemoteHandle remote = nextRemote;
+            if (remote == NULL) {
+                break;
+            }
+            nextRemote = BLST_S_NEXT(remote, link);
+
+            if (remote == hSAGElib->hStandbyRemote) {
+                continue;
+            }
+
+            /* moduleId is 0 means it is not a module */
+            if (remote->moduleId == 0) {
+                /* handle in the next loop */
+                continue;
+            }
+
+            BSAGElib_P_Rpc_RemoveRemote(remote);
+            BDBG_ERR(("%s: leaked module hSAGElib=%p hSAGElibClient=%p remote=%p. Forcing uninit.",
+                      __FUNCTION__, (void *)hSAGElib, (void *)hSAGElibClient, (void *)remote));
+        }
+    }
+
+    /* Collect all the rest (platforms) */
     for (;;)
     {
         BSAGElib_RpcRemoteHandle remote = BLST_S_FIRST(&hSAGElibClient->remotes);

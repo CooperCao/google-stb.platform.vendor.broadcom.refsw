@@ -63,9 +63,12 @@ typedef struct NEXUS_SimpleStcChannelEncoderStatus
 typedef struct NEXUS_SimpleStcChannelDecoderStatus
 {
     bool connected; /* is the server decoder resource connected */
-    bool started; /* is the server decoder resource started */
     bool primer; /* is this a primer channel (which doesn't have a server decoder resource, but still needs a valid stc channel with autoConfigTimebase = false */
-    int stcIndex; /* server preferred stc index */
+    struct
+    {
+        int index; /* server preferred stc index */
+        bool active; /* decoder is currently using stc -> can't reopen it or change its index */
+    } stc;
     NEXUS_SimpleStcChannelEncoderStatus encoder;
     bool hdDviInput;
     bool mainWindow;

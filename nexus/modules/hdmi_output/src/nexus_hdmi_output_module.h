@@ -170,7 +170,6 @@ typedef struct NEXUS_HdmiOutput
     NEXUS_TaskCallbackHandle hdcpFailureCallback;
     NEXUS_TaskCallbackHandle hdcpStateChangedCallback;
     NEXUS_TaskCallbackHandle hdcpSuccessCallback;
-    NEXUS_TaskCallbackHandle hdcpReceiverIdListReadyCallback;
     NEXUS_TaskCallbackHandle hotplugCallback;
     NEXUS_TaskCallbackHandle mhlStandbyCallback;
     NEXUS_TaskCallbackHandle rxStatusCallback;

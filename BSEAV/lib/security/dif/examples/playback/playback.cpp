@@ -203,23 +203,23 @@ AppContext::~AppContext()
     for (int i = 0; i < MAX_MOSAICS; i++) {
         if(parser[i]) {
             delete parser[i];
-            LOGW(("Destroying parser %p", parser[i]));
+            LOGW(("Destroying parser %p", (void*)parser[i]));
         }
 
         if (fp_mp4[i]) fclose(fp_mp4[i]);
 
         if (decryptor[i] != NULL) {
-            LOGW(("Destroying decryptor %p", decryptor[i]));
+            LOGW(("Destroying decryptor %p", (void*)decryptor[i]));
             DecryptorFactory::DestroyDecryptor(decryptor[i]);
         }
 
         if (videoStreamer[i] != NULL) {
-            LOGW(("Destroying videoStreamer %p", videoStreamer[i]));
+            LOGW(("Destroying videoStreamer %p", (void*)videoStreamer[i]));
             StreamerFactory::DestroyStreamer(videoStreamer[i]);
         }
 
         if (audioStreamer[i] != NULL) {
-            LOGW(("Destroying audioStreamer %p", audioStreamer[i]));
+            LOGW(("Destroying audioStreamer %p", (void*)audioStreamer[i]));
             StreamerFactory::DestroyStreamer(audioStreamer[i]);
         }
 
@@ -1041,7 +1041,7 @@ void playback_loop()
 {
     mp4_parse_frag_info frag_info;
     void *decoder_data;
-    size_t decoder_len;
+    uint32_t decoder_len;
 
     int done_count = 0;
     for (;;) {

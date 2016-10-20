@@ -103,6 +103,8 @@ int main(int argc, char **argv)
             pinNumber,
             gpioStatus.value,
             gpioStatus.interruptPending);
+
+        NEXUS_Gpio_ClearInterrupt(pin);
     }
 
     NEXUS_Platform_Uninit();

@@ -1,24 +1,39 @@
 ############################################################
-#     Copyright (c) 2003-2013, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# $brcm_Workfile: $
-# $brcm_Revision: $
-# $brcm_Date: $
+# Except as expressly set forth in the Authorized License,
 #
-# Module Description:
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
 #
-# Revision History:
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
 #
-# Created: 01/09/2007 by Jon Garrett
-#
-# $brcm_Log: $
-#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 ############################################################
 
 #
@@ -42,40 +57,14 @@ BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/common/bhdcplib_hdcpkeys.c
 
 ########## HDCP 2.2 ####################
 ifeq ($(SAGE_SUPPORT),y)
-	##########################################################
-	##### 65nm and 40nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
-	##########################################################
-	ifeq ($(filter $(BCHP_CHIP), 7325 7335 7400 7405 7125 7340 7342 7408 7420 7468 7550 7422 7425 7429 7435 7231 7358 7344 7346 7360 7362 73625 7552 7640 7584 75845 7563 75635 7543 7228 74295 73465), $(BCHP_CHIP))
+	##################################################
+	##### SAGE PLATFORMS WITHOUT HDCP2.x SUPPORT  ####
+	##################################################
+	ifeq ($(filter $(BCHP_CHIP), 7435), $(BCHP_CHIP))
 		### No DEFINES ####
 
-	#####################################################
-	##### old 28nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
-	#####################################################
-	else ifeq ($(findstring $(BCHP_CHIP), 7445), $(BCHP_CHIP))
-		ifeq ($(findstring $(BCHP_VER), c0 C0 ), $(BCHP_VER))
-			### No DEFINES ####
-		else
-			BHDCPLIB_DEFINES += BHDCPLIB_HAS_SAGE
-			include $(MAGNUM)/syslib/sagelib/bsagelib_public.inc
-			BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/common/bhdcplib_hdcp2x.c
-		endif
-
-
-	#####################################################
-	##### old 28nm PLATFORMS WITHOUT HDCP2.x SUPPORT ####
-	#####################################################
-	else ifeq ($(findstring $(BCHP_CHIP), 7366 7145 7439), $(BCHP_CHIP))
-		ifeq ($(findstring $(BCHP_VER), a0 A0 ), $(BCHP_VER))
-			### No DEFINES ####
-		else
-			BHDCPLIB_DEFINES += BHDCPLIB_HAS_SAGE
-			include $(MAGNUM)/syslib/sagelib/bsagelib_public.inc
-			BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/common/bhdcplib_hdcp2x.c
-		endif
-
-
 	##################################################
-	##### new 28nm PLATFORMS WITH HDCP2.x SUPPORT ####
+	##### SAGE PLATFORMS WITH HDCP2.x SUPPORT     ####
 	##################################################
 	else
 		BHDCPLIB_DEFINES += BHDCPLIB_HAS_SAGE
@@ -87,30 +76,7 @@ endif
 
 # HDCP Option
 ifneq ($(BHDCPLIB_HDCP_SUPPORT),)
-
-	############## 65nm platforms #################
-	ifeq ($(filter $(BCHP_CHIP), 7125 7208 7325 7335 7336 7340 7342 7400 7405 7408 7420 7468 7550 7572 7580), $(BCHP_CHIP))
-
-		######## non-BSP platforms ###########
-		ifeq ($(filter $(BCHP_CHIP), 7550 7572 7580 7408), $(BCHP_CHIP))
-		BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/core65nm/nonbsp/bhdcplib_keyloader.c
-		endif
-
-		######## non-ASKM platforms ###########
-		ifeq ($(filter $(BCHP_CHIP), 7325 7335 7336 7400 7405), $(BCHP_CHIP))
-		BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/core65nm/nonaskm/bhdcplib_keyloader.c
-		endif
-
-		######## ASKM platforms ###########
-		ifeq ($(filter $(BCHP_CHIP), 7125 7208 7340 7342 7420 7468 ), $(BCHP_CHIP))
-		BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/core65nm/askm/bhdcplib_keyloader.c
-		endif
-
-	else
-
-	############# 40nm platforms ################
-	BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/core40nm/bhdcplib_keyloader.c
-	endif
+BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/core40nm/bhdcplib_keyloader.c
 else
 BHDCPLIB_SOURCES += $(MAGNUM)/syslib/hdcplib/src/common/bhdcplib_keyloader_stub.c
 endif

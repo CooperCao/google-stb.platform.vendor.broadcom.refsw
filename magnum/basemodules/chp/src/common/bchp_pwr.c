@@ -1,48 +1,47 @@
 /******************************************************************************
- *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  This program is the proprietary software of Broadcom and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- *  Except as expressly set forth in the Authorized License,
+ * Except as expressly set forth in the Authorized License,
  *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- ******************************************************************************/
-
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "bchp_pwr.h"
 #ifdef BCHP_PWR_HAS_RESOURCES
 #include "bchp_pwr_resources_priv.h"
 #endif
-
+#include "bchp_reset_common.h"
 
 /* This file contains generic implementation of public APIs */
 
@@ -153,13 +152,13 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
     *pHandle = pDev;
     return BERR_SUCCESS;
 #else
-    BDBG_WRN(("\n"));
+    BDBG_WRN((" "));
     BDBG_WRN(("****************************************"));
     BDBG_WRN(("****************************************"));
     BDBG_WRN(("** BCHP_PWR POWER MANAGEMENT DISABLED **"));
     BDBG_WRN(("****************************************"));
     BDBG_WRN(("****************************************"));
-    BDBG_WRN(("\n"));
+    BDBG_WRN((" "));
 #if !defined(EMULATION)
     /* turn on power for everything and never touch it again. this guarantees an initial power state similar to a chip-reset */
     chp->pwrManager = pDev;
@@ -248,6 +247,10 @@ void BCHP_PWR_P_Init(BCHP_Handle handle)
         refcnt[idx] = handle->pwrManager->privRefcnt[idx];
     }
 
+    /* At this point all clocks should be acquired. So we can reset cores */
+#ifdef BCHP_RESET_COMMON
+    BCHP_Cmn_ResetMagnumCores(handle);
+#endif
 
 #ifdef BCHP_PWR_RESOURCE_SECURE_ACCESS
     resource = BCHP_PWR_P_GetResourceHandle(BCHP_PWR_RESOURCE_SECURE_ACCESS);
@@ -321,6 +324,12 @@ void BCHP_PWR_P_InitOn(BCHP_Handle handle)
         resource = BCHP_PWR_P_ResourceList[i];
         (void)BCHP_PWR_P_AcquireResource(handle, resource, true);
     }
+
+    /* At this point all clocks should be acquired. So we can reset cores */
+#ifdef BCHP_RESET_COMMON
+    BCHP_Cmn_ResetMagnumCores(handle);
+#endif
+
     return;
 #else
     BSTD_UNUSED(handle);
@@ -725,6 +734,7 @@ BERR_Code BCHP_PWR_AcquireResource(BCHP_Handle handle, BCHP_PWR_ResourceId resou
         BDBG_ERR(("Acquire resource %#x (%s) failed. refcnt %u", resource->id, resource->name, refcnt));
         handle->pwrManager->pubRefcnt[idx]--;
     }
+    BSTD_UNUSED (refcnt);
 
     BKNI_ReleaseMutex(handle->pwrManager->lock);
     return rc;
@@ -883,6 +893,8 @@ BERR_Code BCHP_PWR_Standby(BCHP_Handle handle, const BCHP_PWR_StandbySettings *p
     BSTD_UNUSED(pSettings);
     i = idx = 0;
 
+    BKNI_AcquireMutex(handle->pwrManager->lock);
+
     /* prints which clocks are still alive */
     for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
         resource = BCHP_PWR_P_ResourceList[i];
@@ -892,6 +904,8 @@ BERR_Code BCHP_PWR_Standby(BCHP_Handle handle, const BCHP_PWR_StandbySettings *p
             BDBG_MSG(("Standby: clock %s still active", resource->name));
         }
     }
+
+    BKNI_ReleaseMutex(handle->pwrManager->lock);
 
     return BERR_SUCCESS;
 #else
@@ -917,10 +931,30 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     /* save the current state, because we have to muck with it a little */
     refcnt = BKNI_Malloc(sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
     if (!refcnt) {
-        BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        (void)BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
         return;
     }
+
+    BKNI_AcquireMutex(handle->pwrManager->lock);
+
     BKNI_Memcpy(refcnt, handle->pwrManager->privRefcnt, sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
+
+    /* Secure nodes may need to be restored */
+#ifdef BCHP_PWR_RESOURCE_SECURE_ACCESS
+    for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
+        resource = BCHP_PWR_P_ResourceList[i];
+        BDBG_ASSERT(resource->type != BCHP_PWR_P_ResourceType_eNonLeaf);
+        idx = BCHP_PWR_P_GetInternalIndex(resource->id);
+        if(handle->pwrManager->secureCtrl[idx]) {
+            if(resource->type == BCHP_PWR_P_ResourceType_eLeaf || resource->type == BCHP_PWR_P_ResourceType_eNonLeafHw) {
+                /* Does it matter if we don't traverse the tree and blindly power On? */
+                if (refcnt[idx]>0) {
+                    BCHP_PWR_P_HW_Control(handle, resource, true);
+                }
+            }
+        }
+    }
+#endif
 
     for (i=BCHP_PWR_P_NUM_NONLEAFS; i<BCHP_PWR_P_NUM_ALLNODES; i++) {
         resource = BCHP_PWR_P_ResourceList[i];
@@ -944,6 +978,8 @@ void BCHP_PWR_Resume(BCHP_Handle handle)
     /* this is an important sanity check */
     i = BKNI_Memcmp(refcnt, handle->pwrManager->privRefcnt, sizeof(unsigned)*BCHP_PWR_P_NUM_ALLNODES);
     BDBG_ASSERT(i==0);
+
+    BKNI_ReleaseMutex(handle->pwrManager->lock);
 
     BKNI_Free(refcnt);
     BDBG_MSG(("BCHP_PWR_Resume:<"));
@@ -1197,14 +1233,18 @@ BERR_Code BCHP_PWR_Open(BCHP_PWR_Handle *pHandle, BCHP_Handle chp)
 {
 
     BSTD_UNUSED(pHandle);
-    BSTD_UNUSED(chp);
-    BDBG_WRN(("\n"));
+
+    BDBG_WRN((" "));
     BDBG_WRN(("*******************************************"));
     BDBG_WRN(("*******************************************"));
     BDBG_WRN(("** BCHP_PWR POWER MANAGEMENT DISABLED !!!**"));
     BDBG_WRN(("*******************************************"));
     BDBG_WRN(("*******************************************"));
-    BDBG_WRN(("\n"));
+    BDBG_WRN((" "));
+
+#ifdef BCHP_RESET_COMMON
+    BCHP_Cmn_ResetMagnumCores(chp);
+#endif
 
     return BERR_SUCCESS;
 }

@@ -53,6 +53,10 @@
 #define BXVD_P_DBGLOG_ITEM_SIZE        (4)
 #define BXVD_P_DBGLOG_INITIAL_INDEX    (2)
 
+#if  BXVD_P_CORE_40BIT_ADDRESSIBLE
+#define BXVD_P_FW_40BIT_API 1
+#endif
+
 /*
 Summary:
 This is the basic format of all command issued to the AVC
@@ -150,7 +154,9 @@ typedef struct
    uint32_t  stripe_width; /* 0=>64, 1=>128 */
    uint32_t  stripe_height;
    uint32_t  bvnf_intr_context_base;
+#if !BXVD_P_FW_40BIT_API
    uint32_t  host_L2_intr_set;
+#endif
    uint32_t  chip_prod_revision;
    uint32_t  rave_context_reg_size;
    uint32_t  rave_cx_hold_clr_status;
@@ -182,6 +188,7 @@ typedef struct
 
 #define BXVD_P_AVD_DECODE_RES_4K 0x100
 
+#if !BXVD_P_FW_40BIT_API
 typedef struct
 {
    uint32_t  command; /* 0x73760002 */
@@ -210,6 +217,38 @@ typedef struct
    uint32_t  chroma_block_size;
 } BXVD_Cmd_ChannelOpen;
 
+#else
+typedef struct
+{
+   uint32_t  command; /* 0x73760002 */
+   uint32_t  channel_number;
+   uint32_t  max_resolution_enum;
+   uint32_t  still_picture_mode;
+   uint32_t  context_memory_base;
+   uint32_t  context_memory_base_hi;
+   uint32_t  context_memory_size;
+   uint32_t  video_memory_base;
+   uint32_t  video_memory_base_hi;
+   uint32_t  chroma_memory_base;
+   uint32_t  chroma_memory_base_hi;
+   uint32_t  chroma_block_size;
+   uint32_t  video_block_size;
+   uint32_t  video_block_count;
+   uint32_t  cabac_memory_base;
+   uint32_t  cabac_memory_base_hi;
+   uint32_t  cabac_memory_size;
+   uint32_t  cabac_wl_base;
+   uint32_t  cabac_wl_base_hi;
+   uint32_t  cabac_wl_size;
+   uint32_t  direct_mode_storage_base;
+   uint32_t  direct_mode_storage_base_hi;
+   uint32_t  direct_mode_storage_size;
+   uint32_t  il_wl_base;
+   uint32_t  il_wl_base_hi;
+   uint32_t  il_wl_size;
+} BXVD_Cmd_ChannelOpen;
+
+#endif
 
 #if BXVD_P_FW_HIM_API
 
@@ -321,9 +360,11 @@ typedef struct
    uint32_t  command; /* 0x73760005 */
    uint32_t  protocol;
    uint32_t  channel_mode; /* See VDEC_CHANNEL_MODES defined above */
+#if BXVD_P_FW_40BIT_API
+   uint32_t  channel_mode_ext;
+#endif
    uint32_t  vec_index;
    uint32_t  channel_number;
-
    uint32_t  rave_ctxt_base;
    uint32_t  rave_ctxt_base_ext;
 } BXVD_Cmd_ChannelStart;
@@ -385,6 +426,9 @@ typedef struct
    unsigned int  command;  /* 0x73760008 */
    unsigned int  logStart;
    unsigned int  dbglog_memory_base; /* 4 byte aligned memory address */
+#if BXVD_P_FW_40BIT_API
+   unsigned int  dbglog_memory_base_hi; /* 4 byte aligned memory address */
+#endif
    unsigned int  dbglog_memory_size; /* Size in bytes */
 
 } BXVD_Cmd_DbgLogControl;

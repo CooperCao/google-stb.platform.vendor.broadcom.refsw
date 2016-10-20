@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -79,25 +79,28 @@ public:
     {
         addWaitNotification(waitId);
     }
+
     virtual ~CLuaEvent() {}
 
     virtual void * getDataPtr(void) { return(NULL); }
 
-    eNotification getId(void)                                     { return(_id); }
-    int           getWaitTimeout(void)                            { return(_waitTimeout); }
-    void          setTimedOut(bool bTimedOut)                     { _bTimedOut = bTimedOut; }
-    bool          isTimedOut(void)                                { return(_bTimedOut); }
-    int           getNumReturnVals(void)                          { return(_numReturnVals); }
-    void          setNumReturnVals(int numReturnVals)             { _numReturnVals = numReturnVals; }
+    eNotification getId(void)                         { return(_id); }
+    int           getWaitTimeout(void)                { return(_waitTimeout); }
+    void          setTimedOut(bool bTimedOut)         { _bTimedOut = bTimedOut; }
+    bool          isTimedOut(void)                    { return(_bTimedOut); }
+    int           getNumReturnVals(void)              { return(_numReturnVals); }
+    void          setNumReturnVals(int numReturnVals) { _numReturnVals = numReturnVals; }
     eNotification getWaitId(int index = 0)
     {
         eNotification * pNotification = _waitIdList[index];
+
         return((NULL != pNotification) ? *pNotification : eNotify_Invalid);
     }
 
-    void          addWaitNotification(eNotification notification)
+    void addWaitNotification(eNotification notification)
     {
         eNotification * pNotify = new eNotification;
+
         BDBG_ASSERT(NULL != pNotify);
 
         *pNotify = notification;
@@ -116,7 +119,7 @@ public:
         return((pNotify != NULL) ? *pNotify : eNotify_Invalid);
     }
 
-    void operator = (CLuaEvent &other)
+    void operator =(CLuaEvent &other)
     {
         eNotification otherNotification = eNotify_Invalid;
 
@@ -139,7 +142,7 @@ public:
 
             _waitIdList.add(pNew);
         }
-    }
+    } /* = */
 
 protected:
     eNotification            _id;

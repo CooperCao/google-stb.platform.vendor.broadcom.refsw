@@ -1,54 +1,40 @@
-/***************************************************************************
-*     (c)2004-2009 Broadcom Corporation
-*  
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
-*  and may only be used, duplicated, modified or distributed pursuant to the terms and
-*  conditions of a separate, written license agreement executed between you and Broadcom
-*  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
-*  no license (express or implied), right to use, or waiver of any kind with respect to the
-*  Software, and Broadcom expressly reserves all rights in and to the Software and all
-*  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-*  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-*  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
-*   
-*  Except as expressly set forth in the Authorized License,
-*   
-*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
-*  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
-*  and to use this information only in connection with your use of Broadcom integrated circuit products.
-*   
-*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
-*  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
-*  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
-*  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
-*  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
-*  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
-*  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
-*  USE OR PERFORMANCE OF THE SOFTWARE.
-*  
-*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
-*  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
-*  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
-*  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
-*  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
-*  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
-*  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
-*  ANY LIMITED REMEDY.
-* 
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: DvbCi
-*    Specific APIs related DVB Common Interface
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
-***************************************************************************/
-
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_dvb_ci_module.h"
 
 BDBG_MODULE(nexus_dvb_ci_cis);
@@ -94,7 +80,7 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
 
     for ( i = 0;; )
     {
-        BDBG_MSG(("CIS Parsing - offset 0x%x\n", i));
+        BDBG_MSG(("CIS Parsing - offset 0x%x", i));
         tuple = ((uint8_t *)handle->pBaseAddress)[i];
         i+=2;
         link = ((uint8_t *)handle->pBaseAddress)[i];
@@ -147,7 +133,7 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
             }
             BDBG_MSG(("Additional Info: '%s'", handle->additionalInfo));
             break;
-            
+
         case TPL_CONFIG:
         {
             uint8_t rmsz, rasz, last;
@@ -218,7 +204,7 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
             fs = handle->pBaseAddress[i];
             BDBG_MSG(("CISTPL_CFTABLE_ENTRY: TPCE_FS %x, i= 0x%x", fs, i));
 
-	     val = fs & 0x03;
+            val = fs & 0x03;
             switch (val)
             {
             case 0x02: /* VCC and VPP PD. */
@@ -233,21 +219,21 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
                             INCREMENT_INDEX(i,2,nextLink);
                         INCREMENT_INDEX(i,2,nextLink);
                     }
-					
-	         if (val == 0x02) /* handle VPP */
-	         {
+
+                if (val == 0x02) /* handle VPP */
+                {
                     INCREMENT_INDEX(i,2,nextLink);  /* points to Vpp PD par sel */
                     pdParSel = handle->pBaseAddress[i];
-		      BDBG_MSG(("CISTPL_CFTABLE_ENTRY: VPP TPCE_PD Par Sel %x", pdParSel));
-		      if (pdParSel & 1)
-		      {
-                        INCREMENT_INDEX(i,2,nextLink); 
+                    BDBG_MSG(("CISTPL_CFTABLE_ENTRY: VPP TPCE_PD Par Sel %x", pdParSel));
+                    if (pdParSel & 1)
+                    {
+                        INCREMENT_INDEX(i,2,nextLink);
                         normv = handle->pBaseAddress[i];
-			   if ((normv & 0x07) == 5)
+                        if ((normv & 0x07) == 5)
                         {
-				if (normv & 0x80)
+                            if (normv & 0x80)
                                 INCREMENT_INDEX(i,2,nextLink);
-				
+
                             /* exponent is 1V. */
                             normv >>= 3;
                             normv &= 0x0f;
@@ -257,7 +243,7 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
                                 handle->vpp5v = false;
                             }
                         }
-		      }
+                    }
                     for (j=1; j<8; j++)
                         if ((1<<j) & pdParSel)
                         {
@@ -265,30 +251,30 @@ NEXUS_Error NEXUS_DvbCi_P_ReadCis(NEXUS_DvbCiHandle handle)
                                 INCREMENT_INDEX(i,2,nextLink);
                             INCREMENT_INDEX(i,2,nextLink);
                         }
-	         }
+                }
                 break;
-                
+
             default:
                 BDBG_WRN(("CISTPL_CFTABLE_ENTRY: NO TPCE_PD for VPP, use 5V for Vpp by default."));
                 break;
             }
             if (fs & 0x04) /* timing */
-		 INCREMENT_INDEX(i,2,nextLink); 
+                INCREMENT_INDEX(i,2,nextLink);
 
             if (fs & 0x08) /* IO Space */
             {
-		 INCREMENT_INDEX(i,2,nextLink); 
-		 val = handle->pBaseAddress[i];
-		 if (val & 0x80) INCREMENT_INDEX(i,2,nextLink); 
+                INCREMENT_INDEX(i,2,nextLink);
+                val = handle->pBaseAddress[i];
+                if (val & 0x80) INCREMENT_INDEX(i,2,nextLink);
             }
-	     if (fs & 0x10) /* TPCE_IR */
+            if (fs & 0x10) /* TPCE_IR */
             {
-		 INCREMENT_INDEX(i,2,nextLink); 
-		 val = handle->pBaseAddress[i];
-		 BDBG_MSG(("CISTPL_CFTABLE_ENTRY: TPCE_IR %x", val));
-               handle->interruptsSupported = (val & (1<<5))?true:false; /* Bit 5 of TPCE_IR indicates interrupt support */
-               BDBG_WRN(("InterruptsSupported %d", handle->interruptsSupported));
-            }		 
+                INCREMENT_INDEX(i,2,nextLink);
+                val = handle->pBaseAddress[i];
+                BDBG_MSG(("CISTPL_CFTABLE_ENTRY: TPCE_IR %x", val));
+                handle->interruptsSupported = (val & (1<<5))?true:false; /* Bit 5 of TPCE_IR indicates interrupt support */
+                BDBG_WRN(("InterruptsSupported %d", handle->interruptsSupported));
+            }
         }
         break;
         case TPL_NO_LINK:

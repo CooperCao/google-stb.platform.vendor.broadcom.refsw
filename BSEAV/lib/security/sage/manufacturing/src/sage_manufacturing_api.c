@@ -344,6 +344,10 @@ int SAGE_Manufacturing_BinFile_ParseAndDisplay(uint8_t* pBinData, uint32_t binFi
         {
             *validationCommand |= VALIDATION_COMMAND_ValidateEcc;
         }
+        else if(!strcmp(pString, "DTCP-IP"))
+        {
+            *validationCommand |= VALIDATION_COMMAND_ValidateDtcpIp;
+        }
         BDBG_LOG(("\t\t>>>> %s (0x%08x)\n", pString, current_drm_type));
     }
 
@@ -367,6 +371,10 @@ int SAGE_Manufacturing_VerifyDrmBinFileType(uint8_t* pBinData, int validationCom
         if((validationCommand & VALIDATION_COMMAND_ValidateEcc) & 0xF)
         {
             BDBG_LOG(("\t*** ECC keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
+        }
+        if((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF)
+        {
+            BDBG_LOG(("\t*** DTCP-IP keys detected, validation will proceed. Ignoring otp_key flag (if specified)...***"));
         }
         BDBG_LOG(("\n\n"));
         return DRM_BIN_FILE_TYPE_3;
@@ -457,6 +465,14 @@ int SAGE_Manufacturing_ValidateDRM(int *pStatus, int validationCommand)
             *pStatus = 0;
         else {
             BDBG_ERR(("\tError validating ECC (return value: %u)!!!", (container->basicOut[2] & ECC_MASK)));
+            *pStatus = -1;
+        }
+    }
+    if ((validationCommand & VALIDATION_COMMAND_ValidateDtcpIp) & 0xF) {
+        if (((container->basicOut[2] & DTCP_IP_MASK) >> 3 == OPERATION_SUCCESSFULLY_OCCURRED) && validationErrorFlag != -1)
+            *pStatus = 0;
+        else {
+            BDBG_ERR(("\tError validating DTCP-IP (return value: %u)!!!", (container->basicOut[2] & DTCP_IP_MASK)));
             *pStatus = -1;
         }
     }

@@ -1,44 +1,40 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
-
 #include "bxpt_capabilities.h"
 #include "bxpt_playback.h"
 #include "bxpt_priv.h"
@@ -778,18 +774,20 @@ void BXPT_Dma_P_OverflowCallback_isr(void *pParam1, int parm2)
     if (reg==0) {
         BDBG_ERR(("%p:%u: overflow: unknown reason", vdma, dma->channelNum));
     }
+    BSTD_UNUSED(vdma);
 
     {
         /* print the last offset that we initiated WAKE against, and the HW status.
            if the HW woke properly and processed the descriptors, the offset will match the HW status
            since overflow likely occurs without completion ISR, check on ctx->pp, not !ctx->pp */
         BXPT_Dma_ContextHandle ctx = dma->lastQueuedCtx;
-        BDBG_ERR(("WDMA last wake " BDBG_UINT64_FMT ", NDA %08x, CDA %08x\n", BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)),
+        BDBG_ERR(("WDMA last wake " BDBG_UINT64_FMT ", NDA %08x, CDA %08x", BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)),
             BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_NEXT_DESC_ADDR + dma->wdmaRamOffset),
             BREG_Read32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset)));
         BDBG_ERR(("MCPB last wake " BDBG_UINT64_FMT ", cur %08x, NDA %08x", BDBG_UINT64_ARG(FIRST_MCPB_DESC_OFFSET(ctx)),
             BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_CURR_DESC_ADDRESS + dma->mcpbRegOffset),
             BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_NEXT_DESC_ADDRESS + dma->mcpbRegOffset)));
+        BSTD_UNUSED(ctx);
     }
 
     #if 0
@@ -980,7 +978,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
         if ((heapInfo0.ulOffset >= 0x40000000 && heapInfo1.ulOffset >= 0x40000000) ||
             (heapInfo0.ulOffset < 0x40000000 && heapInfo1.ulOffset < 0x40000000))
         {
-            BDBG_WRN(("BXPT_Dma_OpenChannel: %u: mem offsets in same SCB: %#x %#x\n", dma->channelNum, heapInfo0.ulOffset, heapInfo1.ulOffset));
+            BDBG_WRN(("BXPT_Dma_OpenChannel: %u: mem offsets in same SCB: %#x %#x", dma->channelNum, heapInfo0.ulOffset, heapInfo1.ulOffset));
         }
         dma->mem1 = pSettings->memExtra;
     }
@@ -1100,8 +1098,8 @@ BERR_Code BXPT_Dma_P_OpenChannel(
 
     runVersion = BXPT_Dma_P_IncrementRunVersion_isrsafe(dma);
     BDBG_MSG(("BXPT_Dma_OpenChannel: %u: RUN_VERSION %u", channelNum, runVersion));
-#else
     BSTD_UNUSED(runVersion);
+#else
     reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, RUN_VERSION, 0);
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset, reg);
@@ -1115,6 +1113,7 @@ BERR_Code BXPT_Dma_P_OpenChannel(
     reg = BREG_Read32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset);
     BCHP_SET_FIELD_DATA(reg, XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL, DRAM_REQ_SIZE, dramReqSize);
     BREG_Write32(dma->reg, BCHP_XPT_MEMDMA_MCPB_CH0_DMA_DATA_CONTROL + dma->mcpbRegOffset, reg);
+    BSTD_UNUSED(dramReqSize);
 
     /* coverity[dead_error_line: FALSE] */
     if (isSageCh && hInt==NULL) {
@@ -1758,6 +1757,7 @@ BXPT_Dma_Context_P_Start_isr(BXPT_Dma_Handle dma, BXPT_Dma_ContextHandle ctx)
 
             runVersion = BXPT_Dma_P_IncrementRunVersion_isrsafe(dma);
             BDBG_MSG(("" BDBG_UINT64_FMT " RUN_VERSION %u", BDBG_UINT64_ARG(CTX_ID(ctx)), runVersion));
+            BSTD_UNUSED(runVersion);
         }
 
         BREG_Write32(dma->reg, BCHP_XPT_WDMA_CH0_COMPLETED_DESC_ADDRESS + dma->wdmaRamOffset, 0);
@@ -2566,7 +2566,7 @@ void BXPT_Dma_Context_P_DescCheckWdma(BXPT_Dma_ContextHandle ctx, unsigned idx, 
 void BXPT_Dma_Context_P_BlockSettingsDump(BXPT_Dma_ContextHandle ctx, const BXPT_Dma_ContextBlockSettings *pSettings)
 {
     BSTD_UNUSED(ctx);
-    BKNI_Printf("" BDBG_UINT64_FMT " -> " BDBG_UINT64_FMT " (size %#x:%u). flags: %u%u%u%u\n", BDBG_UINT64_ARG(pSettings->src), BDBG_UINT64_ARG(pSettings->dst), pSettings->size, pSettings->size,
+    BKNI_Printf("" BDBG_UINT64_FMT " -> " BDBG_UINT64_FMT " (size %#x:%u). flags: %u%u%u%u", BDBG_UINT64_ARG(pSettings->src), BDBG_UINT64_ARG(pSettings->dst), pSettings->size, pSettings->size,
         pSettings->resetCrypto, pSettings->sgScramStart, pSettings->sgScramEnd, pSettings->securityBtp);
 }
 
@@ -2589,10 +2589,10 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
     #define PRINT_SIMPLE 1
 
     BKNI_Printf("dma %2u: %s started %u, completed %u, run %u\n", dma->channelNum, "              ", dma->cntStarted, dma->cntCompleted, dma->cntRun);
-    BKNI_Printf("ctx " BDBG_UINT64_FMT ": %s: started %u, completed %u, run %u. pp %u, lpp %u\n", BDBG_UINT64_ARG(CTX_ID(ctx)), link_only ? "LINK ":"START",
+    BKNI_Printf("ctx " BDBG_UINT64_FMT ": %s: started %u, completed %u, run %u. pp %u, lpp %u", BDBG_UINT64_ARG(CTX_ID(ctx)), link_only ? "LINK ":"START",
         ctx->cntStarted, ctx->cntCompleted, ctx->cntRun, ctx->pp, ctx->lpp);
-    BKNI_Printf("  MCPB offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x\n", ctx->firstMcpbDescOffset[0], ctx->firstMcpbDescOffset[1], ctx->firstMcpbDescCached[0], ctx->firstMcpbDescCached[1]);
-    BKNI_Printf("  WDMA offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x\n", ctx->firstWdmaDescOffset[0], ctx->firstWdmaDescOffset[1], ctx->firstWdmaDescCached[0], ctx->firstWdmaDescCached[1]);
+    BKNI_Printf("  MCPB offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x", ctx->firstMcpbDescOffset[0], ctx->firstMcpbDescOffset[1], ctx->firstMcpbDescCached[0], ctx->firstMcpbDescCached[1]);
+    BKNI_Printf("  WDMA offset " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT ", cached %#x:%#x", ctx->firstWdmaDescOffset[0], ctx->firstWdmaDescOffset[1], ctx->firstWdmaDescCached[0], ctx->firstWdmaDescCached[1]);
 
     for (p=0; p<2; p++) {
         /* don't print the other ping/pong that we're not interested in */
@@ -2608,10 +2608,10 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
         for (i=0; i<numBlocksMcpb; i++, desc+=BXPT_DMA_MCPB_DESC_WORDS, descOffset+=BXPT_DMA_MCPB_DESC_SIZE) {
             if (link_only && i<numBlocksMcpb-1) { continue; }
 #if PRINT_SIMPLE
-            BKNI_Printf("MCPB desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x %08x %08x %08x %08x\n",
+            BKNI_Printf("MCPB desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x %08x %08x %08x %08x",
                 i, BDBG_UINT64_ARG(descOffset), desc[0], desc[1], desc[2], desc[3], desc[4], desc[5], desc[6], desc[7]);
 #else
-            BKNI_Printf("MCPB %s[%2u:" BDBG_UINT64_FMT ":%s] %08x %08x %08x %08x %08x %08x %08x %08x\n",
+            BKNI_Printf("MCPB %s[%2u:" BDBG_UINT64_FMT ":%s] %08x %08x %08x %08x %08x %08x %08x %08x",
                 !link_only ? "desc" : "link",
                 i, BDBG_UINT64_ARG(descOffset), p==0?"ping":"pong",
                 desc[0], desc[1], desc[2], desc[3], desc[4], desc[5], desc[6], desc[7]);
@@ -2627,10 +2627,10 @@ void BXPT_Dma_Context_P_DescDump(BXPT_Dma_ContextHandle ctx, bool link_only, boo
         for (i=0; i<numBlocksWdma; i++, desc+=BXPT_DMA_WDMA_DESC_WORDS, descOffset+=BXPT_DMA_WDMA_DESC_SIZE) {
             if (link_only && i<numBlocksWdma-1) { continue; }
 #if PRINT_SIMPLE
-            BKNI_Printf("WDMA desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x\n",
+            BKNI_Printf("WDMA desc%2u:" BDBG_UINT64_FMT ": %08x %08x %08x %08x",
                 i, BDBG_UINT64_ARG(descOffset), desc[0], desc[1], desc[2], desc[3]);
 #else
-            BKNI_Printf("WDMA %s[%2u:" BDBG_UINT64_FMT ":%s] %08x %08x %08x %08x\n",
+            BKNI_Printf("WDMA %s[%2u:" BDBG_UINT64_FMT ":%s] %08x %08x %08x %08x",
                 !link_only ? "desc" : "link",
                 i, BDBG_UINT64_ARG(descOffset), p==0?"ping":"pong",
                 desc[0], desc[1], desc[2], desc[3]);
@@ -2685,8 +2685,8 @@ void BXPT_Dma_P_StatusDump(BXPT_Dma_Handle dma)
 
     /* print out activeCtx's and their WDMA desc ranges */
     for (ctx=BLST_SQ_FIRST(&dma->activeCtxList); ctx; ctx=BLST_SQ_NEXT(ctx, activeNode)) {
-        BKNI_Printf("  ctx " BDBG_UINT64_FMT " MCPB_DESC " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(CTX_ID(ctx)), BDBG_UINT64_ARG(FIRST_MCPB_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_MCPB_DESC_OFFSET(ctx)));
-        BKNI_Printf("  ctx " BDBG_UINT64_FMT " WDMA_DESC " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "\n", BDBG_UINT64_ARG(CTX_ID(ctx)), BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_WDMA_DESC_OFFSET(ctx)));
+        BKNI_Printf("  ctx " BDBG_UINT64_FMT " MCPB_DESC " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", BDBG_UINT64_ARG(CTX_ID(ctx)), BDBG_UINT64_ARG(FIRST_MCPB_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_MCPB_DESC_OFFSET(ctx)));
+        BKNI_Printf("  ctx " BDBG_UINT64_FMT " WDMA_DESC " BDBG_UINT64_FMT ":" BDBG_UINT64_FMT "", BDBG_UINT64_ARG(CTX_ID(ctx)), BDBG_UINT64_ARG(FIRST_WDMA_DESC_OFFSET(ctx)), BDBG_UINT64_ARG(LAST_WDMA_DESC_OFFSET(ctx)));
     }
 }
 
@@ -3140,7 +3140,7 @@ void BXPT_Dma_P_RegDumpAll(BXPT_Dma_Handle dma)
     BXPT_Dma_P_RegDumpWdmaRams(dma);
     BXPT_Dma_P_RegDumpOthers(dma);
 
-    BKNI_Printf("CH%u: last_queued_ctx=" BDBG_UINT64_FMT "\n", dma->channelNum, CTX_ID(dma->lastQueuedCtx));
+    BKNI_Printf("CH%u: last_queued_ctx=" BDBG_UINT64_FMT "", dma->channelNum, CTX_ID(dma->lastQueuedCtx));
 
     for (context=BLST_S_FIRST(&dma->ctxList); context; context=BLST_S_NEXT(context, ctxNode)) {
         BXPT_Dma_Context_P_DescDump(context, false, false);
@@ -3155,7 +3155,7 @@ void BXPT_Dma_P_RegDumpPidTable(BXPT_Dma_Handle dma)
     uint32_t PID_TABLE_ADDR, SPID_TABLE_ADDR, SPID_EXT_TABLE_ADDR, PID_TABLE_VAL, SPID_TABLE_VAL, SPID_EXT_TABLE_VAL;
 
     for (ctx=BLST_S_FIRST(&dma->ctxList); ctx; ctx=BLST_S_NEXT(ctx, ctxNode)) {
-        BKNI_Printf("[context " BDBG_UINT64_FMT "]\n", BDBG_UINT64_ARG(CTX_ID(ctx)));
+        BKNI_Printf("[context " BDBG_UINT64_FMT "]", BDBG_UINT64_ARG(CTX_ID(ctx)));
         pidChannelNum = ctx->settings.pidChannelNum;
         PID_TABLE_ADDR      = BCHP_XPT_FE_PID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum;
         SPID_TABLE_ADDR     = BCHP_XPT_FE_SPID_TABLE_i_ARRAY_BASE + 4 * pidChannelNum;

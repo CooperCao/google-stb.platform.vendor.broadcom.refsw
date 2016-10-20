@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,56 +70,56 @@
 /***************************************************************************
  *VNET_F - Video Network Switch Front Registers
  ***************************************************************************/
-#define BCHP_VNET_F_REVISION                     0x20622000 /* [RO] Frontend Video Network Switch Revision ID */
-#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG0        0x20622004 /* [CFG] Output Port Delay Register0 */
-#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG1        0x20622008 /* [CFG] Output Port Delay Register1 */
-#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG2        0x2062200c /* [CFG] Output Port Delay Register2 */
-#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG3        0x20622010 /* [CFG] Output Port Delay Register3 */
-#define BCHP_VNET_F_INPUT_STATUS_LO              0x20622014 /* [RO] Input Error Status Lo */
-#define BCHP_VNET_F_INPUT_STATUS_CLEAR_LO        0x20622018 /* [WO] Input Status Clear Lo */
-#define BCHP_VNET_F_MFD_0_ENABLE                 0x20622020 /* [RW] MFD_0 Enable */
-#define BCHP_VNET_F_MFD_1_ENABLE                 0x20622024 /* [RW] MFD_1 Enable */
-#define BCHP_VNET_F_VFD_0_ENABLE                 0x20622028 /* [RW] VFD_0 Enable */
-#define BCHP_VNET_F_VFD_1_ENABLE                 0x2062202c /* [RW] VFD_1 Enable */
-#define BCHP_VNET_F_DVI_0_ENABLE                 0x20622030 /* [RW] DVI_0 Enable */
-#define BCHP_VNET_F_LPB_0_ENABLE                 0x20622034 /* [RW] LPB_0 Enable */
-#define BCHP_VNET_F_LPB_1_ENABLE                 0x20622038 /* [RW] LPB_1 Enable */
-#define BCHP_VNET_F_LPB_2_ENABLE                 0x2062203c /* [RW] LPB_2 Enable */
-#define BCHP_VNET_F_LPB_3_ENABLE                 0x20622040 /* [RW] LPB_3 Enable */
-#define BCHP_VNET_F_LPB_4_ENABLE                 0x20622044 /* [RW] LPB_4 Enable */
-#define BCHP_VNET_F_LPB_5_ENABLE                 0x20622048 /* [RW] LPB_5 Enable */
-#define BCHP_VNET_F_LPB_6_ENABLE                 0x2062204c /* [RW] LPB_6 Enable */
-#define BCHP_VNET_F_LPB_7_ENABLE                 0x20622050 /* [RW] LPB_7 Enable */
-#define BCHP_VNET_F_LPB_8_ENABLE                 0x20622054 /* [RW] LPB_8 Enable */
-#define BCHP_VNET_F_SCL_0_SRC                    0x20622058 /* [CFG] Video Scaler_0 Source Select */
-#define BCHP_VNET_F_SCL_1_SRC                    0x2062205c /* [CFG] Video Scaler_1 Source Select */
-#define BCHP_VNET_F_XSRC_0_SRC                   0x20622060 /* [CFG] Video XSRC_0 Source Select */
-#define BCHP_VNET_F_XSRC_1_SRC                   0x20622064 /* [CFG] Video XSRC_1 Source Select */
-#define BCHP_VNET_F_XSRC_2_SRC                   0x20622068 /* [CFG] Video XSRC_2 Source Select */
-#define BCHP_VNET_F_MVP_0_SRC                    0x2062206c /* [CFG] Video De-interlacer_0 Source Select */
-#define BCHP_VNET_F_MVP_1_SRC                    0x20622070 /* [CFG] Video De-interlacer_1 Source Select */
-#define BCHP_VNET_F_DNR_0_SRC                    0x20622074 /* [CFG] Video Digital-Noise-Reduction_0 Source Select */
-#define BCHP_VNET_F_DNR_1_SRC                    0x20622078 /* [CFG] Video Digital-Noise-Reduction_1 Source Select */
-#define BCHP_VNET_F_VFC_0_SRC                    0x2062207c /* [CFG] Video VFC_0 Source Select */
-#define BCHP_VNET_F_ITM_0_SRC                    0x20622080 /* [CFG] Video ITM_0 Source Select */
-#define BCHP_VNET_F_FCH_0_SRC                    0x20622084 /* [CFG] Video Free_Channel_0 Source Select */
-#define BCHP_VNET_F_FCH_1_SRC                    0x20622088 /* [CFG] Video Free-Channel_1 Source Select */
-#define BCHP_VNET_F_FCH_2_SRC                    0x2062208c /* [CFG] Video Free-Channel_2 Source Select */
-#define BCHP_VNET_F_FCH_3_SRC                    0x20622090 /* [CFG] Video Free-Channel_3 Source Select */
-#define BCHP_VNET_F_LBOX_0_SRC                   0x20622094 /* [CFG] Video Letter-Box-Detector_0 Source Select */
-#define BCHP_VNET_F_DRAIN_0_SRC                  0x20622098 /* [CFG] Input-Drainer_0 Source Select */
-#define BCHP_VNET_F_DRAIN_1_SRC                  0x2062209c /* [CFG] Input-Drainer_1 Source Select */
-#define BCHP_VNET_F_DRAIN_0_PIC_SIZE_CNT         0x206220a0 /* [RO] Input-Drainer_0 Pic Size Counter */
-#define BCHP_VNET_F_DRAIN_0_DEBUG_CTRL           0x206220a4 /* [CFG] Input-Drainer_0 Debug Control */
-#define BCHP_VNET_F_DRAIN_0_ERR_STATUS           0x206220a8 /* [RW] Input-Drainer_0 Error Status */
-#define BCHP_VNET_F_DRAIN_0_SEQ_ERR_LOG          0x206220ac /* [RO] Input-Drainer_0 Sequence Error Log */
-#define BCHP_VNET_F_DRAIN_1_PIC_SIZE_CNT         0x206220b0 /* [RO] Input-Drainer_1 Pic Size Counter */
-#define BCHP_VNET_F_DRAIN_1_DEBUG_CTRL           0x206220b4 /* [CFG] Input-Drainer_1 Debug Control */
-#define BCHP_VNET_F_DRAIN_1_ERR_STATUS           0x206220b8 /* [RW] Input-Drainer_1 Error Status */
-#define BCHP_VNET_F_DRAIN_1_SEQ_ERR_LOG          0x206220bc /* [RO] Input-Drainer_1 Sequence Error Log */
-#define BCHP_VNET_F_INPUT_READY_STATUS_LO        0x206221c0 /* [RO] Input Device Ready Status Lo */
-#define BCHP_VNET_F_INPUT_ACCEPT_STATUS_LO       0x206221c4 /* [RO] Input Device Accept Status Lo */
-#define BCHP_VNET_F_SCRATCH_REGISTER             0x206221fc /* [CFG] Frontend Video Network Switch Scratch Register */
+#define BCHP_VNET_F_REVISION                     0x20622000 /* [RO][32] Frontend Video Network Switch Revision ID */
+#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG0        0x20622004 /* [CFG][32] Output Port Delay Register0 */
+#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG1        0x20622008 /* [CFG][32] Output Port Delay Register1 */
+#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG2        0x2062200c /* [CFG][32] Output Port Delay Register2 */
+#define BCHP_VNET_F_OUTPUT_EOP_DELAY_CFG3        0x20622010 /* [CFG][32] Output Port Delay Register3 */
+#define BCHP_VNET_F_INPUT_STATUS_LO              0x20622014 /* [RO][32] Input Error Status Lo */
+#define BCHP_VNET_F_INPUT_STATUS_CLEAR_LO        0x20622018 /* [WO][32] Input Status Clear Lo */
+#define BCHP_VNET_F_MFD_0_ENABLE                 0x20622020 /* [RW][32] MFD_0 Enable */
+#define BCHP_VNET_F_MFD_1_ENABLE                 0x20622024 /* [RW][32] MFD_1 Enable */
+#define BCHP_VNET_F_VFD_0_ENABLE                 0x20622028 /* [RW][32] VFD_0 Enable */
+#define BCHP_VNET_F_VFD_1_ENABLE                 0x2062202c /* [RW][32] VFD_1 Enable */
+#define BCHP_VNET_F_DVI_0_ENABLE                 0x20622030 /* [RW][32] DVI_0 Enable */
+#define BCHP_VNET_F_LPB_0_ENABLE                 0x20622034 /* [RW][32] LPB_0 Enable */
+#define BCHP_VNET_F_LPB_1_ENABLE                 0x20622038 /* [RW][32] LPB_1 Enable */
+#define BCHP_VNET_F_LPB_2_ENABLE                 0x2062203c /* [RW][32] LPB_2 Enable */
+#define BCHP_VNET_F_LPB_3_ENABLE                 0x20622040 /* [RW][32] LPB_3 Enable */
+#define BCHP_VNET_F_LPB_4_ENABLE                 0x20622044 /* [RW][32] LPB_4 Enable */
+#define BCHP_VNET_F_LPB_5_ENABLE                 0x20622048 /* [RW][32] LPB_5 Enable */
+#define BCHP_VNET_F_LPB_6_ENABLE                 0x2062204c /* [RW][32] LPB_6 Enable */
+#define BCHP_VNET_F_LPB_7_ENABLE                 0x20622050 /* [RW][32] LPB_7 Enable */
+#define BCHP_VNET_F_LPB_8_ENABLE                 0x20622054 /* [RW][32] LPB_8 Enable */
+#define BCHP_VNET_F_SCL_0_SRC                    0x20622058 /* [CFG][32] Video Scaler_0 Source Select */
+#define BCHP_VNET_F_SCL_1_SRC                    0x2062205c /* [CFG][32] Video Scaler_1 Source Select */
+#define BCHP_VNET_F_XSRC_0_SRC                   0x20622060 /* [CFG][32] Video XSRC_0 Source Select */
+#define BCHP_VNET_F_XSRC_1_SRC                   0x20622064 /* [CFG][32] Video XSRC_1 Source Select */
+#define BCHP_VNET_F_XSRC_2_SRC                   0x20622068 /* [CFG][32] Video XSRC_2 Source Select */
+#define BCHP_VNET_F_MVP_0_SRC                    0x2062206c /* [CFG][32] Video De-interlacer_0 Source Select */
+#define BCHP_VNET_F_MVP_1_SRC                    0x20622070 /* [CFG][32] Video De-interlacer_1 Source Select */
+#define BCHP_VNET_F_DNR_0_SRC                    0x20622074 /* [CFG][32] Video Digital-Noise-Reduction_0 Source Select */
+#define BCHP_VNET_F_DNR_1_SRC                    0x20622078 /* [CFG][32] Video Digital-Noise-Reduction_1 Source Select */
+#define BCHP_VNET_F_VFC_0_SRC                    0x2062207c /* [CFG][32] Video VFC_0 Source Select */
+#define BCHP_VNET_F_ITM_0_SRC                    0x20622080 /* [CFG][32] Video ITM_0 Source Select */
+#define BCHP_VNET_F_FCH_0_SRC                    0x20622084 /* [CFG][32] Video Free_Channel_0 Source Select */
+#define BCHP_VNET_F_FCH_1_SRC                    0x20622088 /* [CFG][32] Video Free-Channel_1 Source Select */
+#define BCHP_VNET_F_FCH_2_SRC                    0x2062208c /* [CFG][32] Video Free-Channel_2 Source Select */
+#define BCHP_VNET_F_FCH_3_SRC                    0x20622090 /* [CFG][32] Video Free-Channel_3 Source Select */
+#define BCHP_VNET_F_LBOX_0_SRC                   0x20622094 /* [CFG][32] Video Letter-Box-Detector_0 Source Select */
+#define BCHP_VNET_F_DRAIN_0_SRC                  0x20622098 /* [CFG][32] Input-Drainer_0 Source Select */
+#define BCHP_VNET_F_DRAIN_1_SRC                  0x2062209c /* [CFG][32] Input-Drainer_1 Source Select */
+#define BCHP_VNET_F_DRAIN_0_PIC_SIZE_CNT         0x206220a0 /* [RO][32] Input-Drainer_0 Pic Size Counter */
+#define BCHP_VNET_F_DRAIN_0_DEBUG_CTRL           0x206220a4 /* [CFG][32] Input-Drainer_0 Debug Control */
+#define BCHP_VNET_F_DRAIN_0_ERR_STATUS           0x206220a8 /* [RW][32] Input-Drainer_0 Error Status */
+#define BCHP_VNET_F_DRAIN_0_SEQ_ERR_LOG          0x206220ac /* [RO][32] Input-Drainer_0 Sequence Error Log */
+#define BCHP_VNET_F_DRAIN_1_PIC_SIZE_CNT         0x206220b0 /* [RO][32] Input-Drainer_1 Pic Size Counter */
+#define BCHP_VNET_F_DRAIN_1_DEBUG_CTRL           0x206220b4 /* [CFG][32] Input-Drainer_1 Debug Control */
+#define BCHP_VNET_F_DRAIN_1_ERR_STATUS           0x206220b8 /* [RW][32] Input-Drainer_1 Error Status */
+#define BCHP_VNET_F_DRAIN_1_SEQ_ERR_LOG          0x206220bc /* [RO][32] Input-Drainer_1 Sequence Error Log */
+#define BCHP_VNET_F_INPUT_READY_STATUS_LO        0x206221c0 /* [RO][32] Input Device Ready Status Lo */
+#define BCHP_VNET_F_INPUT_ACCEPT_STATUS_LO       0x206221c4 /* [RO][32] Input Device Accept Status Lo */
+#define BCHP_VNET_F_SCRATCH_REGISTER             0x206221fc /* [CFG][32] Frontend Video Network Switch Scratch Register */
 
 /***************************************************************************
  *REVISION - Frontend Video Network Switch Revision ID

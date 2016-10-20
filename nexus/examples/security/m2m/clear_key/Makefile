@@ -11,10 +11,6 @@
 # HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
 # NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-# THE SOURCE CODE CONTAINS BROADCOM HIGHLY CONFIDENTIAL
-# INFORMATION AND MUST BE HANDLED AS AGREED UPON IN THE
-# HIGHLY CONFIDENTIAL SOFTWARE LICENSE AGREEMENT (HC-SLA).
-#
 # Except as expressly set forth in the Authorized License,
 #
 # 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
@@ -71,7 +67,8 @@ THEAPPS = \
     m2m_aesecb_timestamp \
     m2m_clearkey_record \
     m2m_clearkey_playback \
-    m2m_aesctr
+    m2m_aesctr \
+    m2m_aesctr_variable_transfer_size
 
 
 #    m2m_aescbc_encdec

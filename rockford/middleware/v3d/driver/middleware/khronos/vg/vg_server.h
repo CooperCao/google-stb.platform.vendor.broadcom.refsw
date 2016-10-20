@@ -63,7 +63,7 @@ typedef struct {
    VG_SET_T objects;
 } VG_SERVER_SHARED_STATE_T;
 
-extern void vg_server_shared_state_term(void *p, uint32_t);
+extern void vg_server_shared_state_term(MEM_HANDLE_T handle);
 extern MEM_HANDLE_T vg_server_shared_state_alloc(void);
 
 /******************************************************************************
@@ -259,7 +259,7 @@ typedef struct {
    uint64_t pid;
 } VG_SERVER_STATE_T;
 
-extern void vg_server_state_term(void *p, uint32_t);
+extern void vg_server_state_term(MEM_HANDLE_T handle);
 extern MEM_HANDLE_T vg_server_state_alloc(MEM_HANDLE_T shared_state, uint64_t pid);
 
 static INLINE MEM_HANDLE_T vg_get_server_state_handle(void)

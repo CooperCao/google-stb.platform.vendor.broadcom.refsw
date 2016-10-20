@@ -251,9 +251,11 @@ static NEXUS_SecureVideo nxserver_p_svpstr(const char *svpstr)
 static int nxserverlib_apply_memconfig_str(NEXUS_PlatformSettings *pPlatformSettings, NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *memconfig_str, unsigned memconfig_str_total)
 {
     unsigned i;
+    BSTD_UNUSED(pPlatformSettings);
     for (i=0;i<memconfig_str_total;i++) {
         unsigned index, numMosaics, maxWidth, maxHeight;
         char svpstr[32];
+        BSTD_UNUSED(numMosaics);
         if (0) {
         }
 #if NEXUS_HAS_VIDEO_DECODER
@@ -450,7 +452,7 @@ static int find_unused_heap(const NEXUS_PlatformSettings *pPlatformSettings)
     return -1;
 }
 
-static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings, const char * const *heap_str, unsigned heap_str_total, struct nxserver_settings *settings)
+static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings, const NEXUS_MemoryConfigurationSettings *pMemConfigSettings, const char * const *heap_str, unsigned heap_str_total, struct nxserver_settings *settings)
 {
     unsigned i;
     for (i=0;i<heap_str_total;i++) {
@@ -522,25 +524,14 @@ static int nxserverlib_apply_heap_str(NEXUS_PlatformSettings *pPlatformSettings,
 #endif
         }
         else if (!strcmp(name,"securegfx")) {
-            int index = -1;
-            unsigned memcIndex=0;
-            /* For now, assume we use the highest defined secure graphics heap */
-#if defined NEXUS_MEMC2_SECURE_GRAPHICS_HEAP
-            index = NEXUS_MEMC2_SECURE_GRAPHICS_HEAP;
-            memcIndex = 2;
-#elif defined NEXUS_MEMC1_SECURE_GRAPHICS_HEAP
-            index = NEXUS_MEMC1_SECURE_GRAPHICS_HEAP;
-            memcIndex = 1;
-#elif defined NEXUS_MEMC0_SECURE_GRAPHICS_HEAP
-            index = NEXUS_MEMC0_SECURE_GRAPHICS_HEAP;
-            memcIndex = 0;
-#endif
-            if (index != -1) {
-                BDBG_LOG(("creating securegfx heap[%d] on MEMC%u for %dMB", index, memcIndex, size/MB));
-                pPlatformSettings->heap[index].size = size;
-                pPlatformSettings->heap[index].memcIndex = memcIndex;
-                pPlatformSettings->heap[index].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
-                pPlatformSettings->heap[index].memoryType = NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED|NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_SECURE;
+            NEXUS_PlatformConfigCapabilities cap;
+            NEXUS_GetPlatformConfigCapabilities(pPlatformSettings, pMemConfigSettings, &cap);
+            if (cap.secureGraphics[0].valid) {
+                BDBG_LOG(("creating securegfx heap[%d] on MEMC%u for %dMB", cap.secureGraphics[0].heapIndex, cap.secureGraphics[0].memcIndex, size/MB));
+                pPlatformSettings->heap[cap.secureGraphics[0].heapIndex].size = size;
+                pPlatformSettings->heap[cap.secureGraphics[0].heapIndex].memcIndex = cap.secureGraphics[0].memcIndex;
+                pPlatformSettings->heap[cap.secureGraphics[0].heapIndex].heapType = NEXUS_HEAP_TYPE_SECURE_GRAPHICS;
+                pPlatformSettings->heap[cap.secureGraphics[0].heapIndex].memoryType = NEXUS_MEMORY_TYPE_ONDEMAND_MAPPED|NEXUS_MEMORY_TYPE_MANAGED|NEXUS_MEMORY_TYPE_SECURE;
                 /* TODO: allow securegfx to GFD1. for now, apply "-sd off" */
                 parse_session_settings(&settings->session[0], "hd");
             }
@@ -1075,13 +1066,6 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     unsigned i;
     int rc;
 
-    /* modify default init settings with cmdline params */
-    rc = nxserverlib_apply_heap_str(pPlatformSettings, cmdline_settings->heap.str, cmdline_settings->heap.total, settings);
-    if (rc) {
-        print_usage();
-        return -1;
-    }
-
 #if NEXUS_HAS_TRANSPORT
     nxserverlib_apply_transport_settings(pPlatformSettings, cmdline_settings->maxDataRate, cmdline_settings->remux);
 #endif
@@ -1158,6 +1142,12 @@ int nxserver_modify_platform_settings(struct nxserver_settings *settings, const 
     }
 
     rc = nxserverlib_apply_memconfig_str(pPlatformSettings, pMemConfigSettings, cmdline_settings->memconfig.str, cmdline_settings->memconfig.total);
+    if (rc) {
+        print_usage();
+        return -1;
+    }
+
+    rc = nxserverlib_apply_heap_str(pPlatformSettings, pMemConfigSettings, cmdline_settings->heap.str, cmdline_settings->heap.total, settings);
     if (rc) {
         print_usage();
         return -1;

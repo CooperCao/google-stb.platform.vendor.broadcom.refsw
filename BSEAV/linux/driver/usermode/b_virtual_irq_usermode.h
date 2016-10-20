@@ -41,10 +41,8 @@
 #ifndef B_VIRTUAL_IRQ_USERMODE_H
 #define B_VIRTUAL_IRQ_USERMODE_H 1
 
-/* this function expects the caller to acquire the irq spinlock */
-static void b_virtual_irq_enable_irqs(void);
 /* these two functions expect the caller *not* to acquire the irq spinlock */
-static void b_virtual_irq_reenable_irqs(void);
+static void b_virtual_irq_reset_irqs(void);
 static void b_virtual_irq_test(void);
 
 #endif /* B_VIRTUAL_IRQ_USERMODE_H */

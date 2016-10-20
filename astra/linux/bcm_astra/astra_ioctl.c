@@ -45,6 +45,7 @@ static int astra_ioctl_file_open(struct file *file, void *arg);
 static int astra_ioctl_file_close(struct file *file, void *arg);
 static int astra_ioctl_file_write(struct file *file, void *arg);
 static int astra_ioctl_file_read(struct file *file, void *arg);
+static int astra_ioctl_uapp_coredump(struct file *file,void *arg);
 
 /* short-hand to get ioctl offset */
 #define IOCTL_OFFSET(name)      (ASTRA_IOCTL_##name - ASTRA_IOCTL_FIRST)
@@ -83,6 +84,7 @@ int __init _astra_ioctl_module_init(void)
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_CLOSE  )] = astra_ioctl_file_close;
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_WRITE  )] = astra_ioctl_file_write;
     pIoctlMod->handlers[IOCTL_OFFSET(FILE_READ   )] = astra_ioctl_file_read;
+	pIoctlMod->handlers[IOCTL_OFFSET(UAPP_COREDUMP)] = astra_ioctl_uapp_coredump;
 
     LOGI("Astra ioctl module initialized");
     return 0;
@@ -1110,6 +1112,48 @@ static int astra_ioctl_file_read(struct file *file, void *arg)
         (void *)arg,
         &fileReadData,
         sizeof(fileReadData));
+
+    if (err) {
+        LOGE("Failed to access astra ioctl arguments");
+        return -EFAULT;
+    };
+
+    return 0;
+}
+
+static int astra_ioctl_uapp_coredump(struct file *file,void *arg)
+{
+    struct astra_ioctl_uapp_coredump_data uappCoredumpData;
+    struct astra_uapp *pUapp;
+    int err = 0;
+
+    err = copy_from_user(
+        &uappCoredumpData,
+        (void *)arg,
+        sizeof(uappCoredumpData));
+
+    if (err) {
+        LOGE("Failed to access astra ioctl arguments");
+        return -EFAULT;
+    };
+
+    pUapp = (struct astra_uapp *)uappCoredumpData.hUapp;
+
+    if (!pUapp) {
+        LOGE("Invalid args in astra ioctl userapp close cmd");
+        uappCoredumpData.retVal = -EINVAL;
+        goto RETURN;
+    }
+
+    _astra_uapp_coredump(pUapp);
+
+    uappCoredumpData.retVal = 0;
+
+RETURN:
+    err = copy_to_user(
+        (void *)arg,
+        &uappCoredumpData,
+        sizeof(uappCoredumpData));
 
     if (err) {
         LOGE("Failed to access astra ioctl arguments");

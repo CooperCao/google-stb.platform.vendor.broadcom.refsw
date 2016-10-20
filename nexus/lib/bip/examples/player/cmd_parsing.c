@@ -90,6 +90,8 @@ static void printUsage(
     printf(
             "  -disablePrecisionLipsync     #   1=disable(default for low-latency mode), 0=enable Precise Sync, see NEXUS_SyncChannelSettings.enablePrecisionLipsync \n"
             "  -stcSyncMode                 #   0=disable, 1, 2, 3=Enabled, see NEXUS_SimpleStcChannelSettings.sync for mode details, default is picked by NEXUS SimpleStc Channel \n"
+            "  -disableTsm                  #   Disable TSM\n"
+            "  -enableAudioPrimer           #   If set, BIP Player's audio priming feature is enabled which enables quick language switching for SAP\n"
           );
     exit(0);
 } /* printUsage */
@@ -227,6 +229,14 @@ BIP_Status parseOptions(
         else if ( !strcmp(argv[i], "-stcSyncMode") )
         {
             pAppCtx->stcSyncMode = strtoul(argv[++i], NULL, 0);
+        }
+        else if ( !strcmp(argv[i], "-disableTsm") )
+        {
+            pAppCtx->disableTsm =  true;
+        }
+        else if ( !strcmp(argv[i], "-enableAudioPrimer") )
+        {
+            pAppCtx->enableAudioPrimer =  true;
         }
         else
         {
@@ -460,7 +470,7 @@ BIP_Status runTimeCmdParsing(
         BIP_String_StrcpyCharN( pAppCtx->hLanguage, (buffer+4), (pEnd-pStart) );
         pCmdOptions->cmd = PlayerCmd_ePlayLanguageSpecificTrack;
 
-        BDBG_MSG((" New language is  ---------------->|%s| ", BIP_String_GetString(pAppCtx->hUrl)));
+        BDBG_MSG((" New language is  ---------------->|%s| ", BIP_String_GetString(pAppCtx->hLanguage)));
     }
     else if (strstr(buffer, "bsmod(") == buffer)
     {

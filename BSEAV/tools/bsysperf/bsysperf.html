@@ -67,9 +67,10 @@
     <table border=0 style="border-collapse:collapse; border:1px solid white;" >
         <tr>
             <td width=150 ><input type=checkbox id=checkboxcpus onclick="MyClick(event);" checked >CPU Utilization</td>
+            <td width=80  ><input type=checkbox id=checkboxDvfsControl onclick="MyClick(event);" >DVFS</td>
             <td width=120 ><input type=checkbox id=checkboxmemory onclick="MyClick(event);" >Memory</td>
-            <td width=150 ><input type=checkbox id=checkboxnets onclick="MyClick(event);" checked >Network Stats</td>
-            <td width=100 ><input type=checkbox id=checkboxwifi onclick="MyClick(event);" >WiFi</td>
+            <td width=130 ><input type=checkbox id=checkboxnets onclick="MyClick(event);" checked >Network Stats</td>
+            <td width=80  ><input type=checkbox id=checkboxwifi onclick="MyClick(event);" >WiFi</td>
             <td width=120 ><input type=checkbox id=checkboxirqs onclick="MyClick(event);" checked >IRQ Counts</td>
             <td width=140 ><input type=checkbox id=checkboxprofiling onclick="MyClick(event);" >Profiling</td>
             <td width=150 ><input type=checkbox id=checkboxPerfFlame onclick="MyClick(event);" >Flame Graph</td>
@@ -83,13 +84,19 @@
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
+<tr id=row_DvfsControl style="visibility:display;" ><th align=left valign=top id=DvfsControl colspan=2 >DVFS goes here</th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
 <tr id=row_memory style="visibility:display;" ><th align=left valign=top id=MEMORY colspan=2 ></th></tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
 
 <tr id=row_net_stats style="visibility:display;" ><td colspan=2 ><table border=0 style="border-collapse:collapse;" >
     <tr><th align=left valign=top id=NETSTATS  ></th></tr>
-    <tr id=row_iperf_client_server ><th align=left valign=top id=iperfInit ></th></tr></table></td>
+    <tr id=row_netgfx_all style="visibility:hidden;" ><th align=left valign=top id=th_netgfx ></th></tr>
+    <tr id=row_iperf_client_server ><th align=left valign=top id=iperfInit ></th></tr>
+    </table></td>
 </tr>
 
 <!---------------------------------------------------------------------------------------------------------------------------------------------------------------->

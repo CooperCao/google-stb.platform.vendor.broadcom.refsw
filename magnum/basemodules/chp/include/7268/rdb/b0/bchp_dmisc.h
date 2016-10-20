@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,11 +70,11 @@
 /***************************************************************************
  *DMISC - BVN Deinterlace Control Registers
  ***************************************************************************/
-#define BCHP_DMISC_SW_INIT                       0x20680000 /* [CFG] BVN Deinterlace Soft Init */
-#define BCHP_DMISC_BVND_CLOCK_CTRL               0x20680004 /* [CFG] BVN Deinterlace clock control register */
-#define BCHP_DMISC_BVND_PDA_OUT_STATUS           0x20680008 /* [RO] BVN Deinterlace PDA Out Status */
-#define BCHP_DMISC_BVND_PDA_PWR_UP_STATUS        0x2068000c /* [RO] BVN Deinterlace PDA Power Up Status */
-#define BCHP_DMISC_SCRATCH_0                     0x2068001c /* [CFG] Scratch Register */
+#define BCHP_DMISC_SW_INIT                       0x20680000 /* [CFG][32] BVN Deinterlace Soft Init */
+#define BCHP_DMISC_BVND_CLOCK_CTRL               0x20680004 /* [CFG][32] BVN Deinterlace clock control register */
+#define BCHP_DMISC_BVND_PDA_OUT_STATUS           0x20680008 /* [RO][32] BVN Deinterlace PDA Out Status */
+#define BCHP_DMISC_BVND_PDA_PWR_UP_STATUS        0x2068000c /* [RO][32] BVN Deinterlace PDA Power Up Status */
+#define BCHP_DMISC_SCRATCH_0                     0x2068001c /* [CFG][32] Scratch Register */
 
 /***************************************************************************
  *SW_INIT - BVN Deinterlace Soft Init

@@ -259,7 +259,7 @@ BERR_Code BHAB_45308_P_InitAp(
 #ifdef BHAB_VERIFY_DOWNLOAD
                if (BHAB_45308_VerifyMemory(h, fwAddr, pDataBuf, n))
                   break;
-               BDBG_ERR(("data read back does not match\n"));
+               BDBG_ERR(("data read back does not match"));
 #else
                break;
 #endif
@@ -324,7 +324,7 @@ BERR_Code BHAB_45308_P_InitAp(
 #ifdef BHAB_VERIFY_DOWNLOAD
                   if (BHAB_45308_VerifyMemory(h, fwAddr + chunk*chunk_size, pImage, n))
                      break;
-                  BDBG_ERR(("data read back does not match\n"));
+                  BDBG_ERR(("data read back does not match"));
 #else
                   break;
 #endif
@@ -386,7 +386,7 @@ BERR_Code BHAB_45308_P_InitAp(
    }
    if ((val32 & BHAB_45308_HIRQ0_INIT_DONE) == 0)
    {
-      BDBG_ERR(("AP initialization timeout\n"));
+      BDBG_ERR(("AP initialization timeout"));
       BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
    }
 #else
@@ -396,7 +396,7 @@ BERR_Code BHAB_45308_P_InitAp(
       BHAB_CHK_RETCODE(BHAB_45308_P_ReadRbus(h, BCHP_LEAP_HOST_L2_STATUS0, &val32, 1));
       if ((val32 & BHAB_45308_HIRQ0_INIT_DONE) == 0)
       {
-         BDBG_ERR(("AP initialization timeout\n"));
+         BDBG_ERR(("AP initialization timeout"));
          BERR_TRACE(retCode = BHAB_ERR_AP_NOT_INIT);
          goto done;
       }
@@ -972,7 +972,13 @@ BERR_Code BHAB_45308_P_SendHabCommand(
 BERR_Code BHAB_45308_P_Reset(BHAB_Handle h)
 {
    BERR_Code retCode = BERR_SUCCESS;
-   uint32_t ctrl, val32, i;
+   uint32_t ctrl, val32, i, gp_save[50];
+
+   /* retain certain GP registers across LEAP resets */
+   for (i = 28; i < 50; i++)
+   {
+      BHAB_CHK_RETCODE(BHAB_45308_P_ReadRegister(h, BCHP_LEAP_CTRL_GP0 + (i<<2), &gp_save[i-28]));
+   }
 
    /* reset LEAP/CPU */
    BHAB_CHK_RETCODE(BHAB_45308_P_ReadRegister(h, BCHP_LEAP_CTRL_CTRL, &ctrl));
@@ -989,9 +995,11 @@ BERR_Code BHAB_45308_P_Reset(BHAB_Handle h)
    BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_CTRL_SW_SPARE2, &val32));
    BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_CTRL_SW_SPARE3, &val32));
    BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_CTRL_HAB_CNTR_CLR, &val32));
-   for (i = 0; i < 64; i++)
+
+   /* restore GP registers */
+   for (i = 28; i < 50; i++)
    {
-      BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_CTRL_GP0 + (i<<2), &val32));
+      BHAB_CHK_RETCODE(BHAB_45308_P_WriteRegister(h, BCHP_LEAP_CTRL_GP0 + (i<<2), &gp_save[i-28]));
    }
 
    /* set up the L1 interrupt for the LEAP */

@@ -124,7 +124,7 @@ Input:
 Returns:
 	The error code specified is returned without modification.
 ****************************************************************************/
-#if BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #ifdef B_REFSW_DEBUG_COMPACT_ERR
 #define BERR_TRACE(code) (BDBG_P_PrintError_inline_isrsafe(BSTD_FILE, BSTD_LINE, code))
 #else

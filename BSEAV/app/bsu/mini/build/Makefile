@@ -1,5 +1,5 @@
 ###############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
 # This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -70,7 +70,7 @@ include ../../../../../nexus/build/os/ucos/os_tools.inc
 
 # OFFICIAL RELEASE VERSION
 BOLT_DIR_NAME = bolt_v1.19
-CFE_DIR_NAME = CFE_16_2
+CFE_DIR_NAME = CFE_16_3
 
 NEXUS_DIR = $(shell cd "../../../../../nexus" && ${PWD})
 BSEAV_DIR = $(shell cd "../../../../../BSEAV" && ${PWD})
@@ -104,14 +104,14 @@ USE_LOCAL_PRINTF = 1
 # MIPS_BSU_HEAP_ADDR = 0x53000000
 # MIPS_BSU_HEAP_SIZE = 208*1024*1024
 
-ifeq ($(filter $(NEXUS_PLATFORM),97268 97364 97439), $(NEXUS_PLATFORM))
+#ifeq ($(filter $(NEXUS_PLATFORM),97268 97364 97439), $(NEXUS_PLATFORM))
 # Extra heap need for MoCA
-MIPS_BSU_HEAP_ADDR = 0x09200000
-MIPS_BSU_HEAP_SIZE = 0x06e00000
-else
+#MIPS_BSU_HEAP_ADDR = 0x09200000
+#MIPS_BSU_HEAP_SIZE = 0x06e00000
+#else
 MIPS_BSU_HEAP_ADDR = 0
 MIPS_BSU_HEAP_SIZE = 0
-endif
+#endif
 
 # Enable memory test, if MIPS_BSU_HEAP_SIZE is non-zero.
 MIPS_BSU_HEAP_TEST = 0
@@ -119,6 +119,12 @@ MIPS_BSU_HEAP_TEST = 0
 #########
 #### Figure out processor
 #########
+
+# Newest plat scripts set B_REFSW_ARCH to mipsel-linux.  Need the following, to fix MIPS builds
+ifeq ($(B_REFSW_ARCH),mipsel-linux)
+    B_REFSW_ARCH=sde
+    export B_REFSW_ARCH
+endif
 
 ifeq ($(B_REFSW_ARCH), arm-linux)
     ifeq ($(TOOLCHAIN_PATH),)
@@ -260,7 +266,7 @@ else
         ifeq ($(filter $(NEXUS_PLATFORM),97019 97125 97205 97228 97230 97231 97335 97340 97342 97362 973625 97405 97408 97466 97563 975635 97584 975845), $(NEXUS_PLATFORM))
             CPU = bmips4380
         else
-            ifeq ($(filter $(NEXUS_PLATFORM),97241 93380vms 97344 97346 97410 97420 97422 97425 97428 97429 97435), $(NEXUS_PLATFORM))
+            ifeq ($(filter $(NEXUS_PLATFORM),97241 972415 93380vms 97344 97346 973465 97410 97420 97422 97425 97428 974285 97429 974295 97435), $(NEXUS_PLATFORM))
                 CPU = bmips5000
             else
                 ifeq ($(NEXUS_PLATFORM),97325)
@@ -322,26 +328,49 @@ CFLAGS += \
 export NEXUS_EXTRA_CFLAGS += -D_LIB_NO_MACROS_
 
 BSU_OBJECTS += \
-    int1.o \
     bsu.o \
     bsu_prompt.o \
-    bsu_stdlib.o \
-    bsu_string.o \
-    bsu_string2.o
-CFLAGS += -I$(ROCKFORD_DIR)/bsp/common/lib/bootloader
+    int1.o
 
-ifeq ($(USE_LOCAL_PRINTF),1)
-    BSU_OBJECTS += \
-        console.o \
-        dev_16550_uart.o \
-        bsu_stdio.o
-        BCHP_VER_LOWERCASE = $(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')
-        CFLAGS += -DUSE_LOCAL_PRINTF=1 -DCFG_ARCH_ARM -DARM_V7 -I$(BOLT_DIR)/gen/$(BCHP_CHIP)$(BCHP_VER_LOWERCASE)
+ifeq ($(NEWLIB),)
+    ifeq ($(B_REFSW_ARCH), arm-linux)
+        BSU_OBJECTS += \
+            bsu_stdlib.o \
+            bsu_string.o \
+            bsu_string2.o
+        CFLAGS += -I$(ROCKFORD_DIR)/bsp/common/lib/bootloader
+
+        ifeq ($(USE_LOCAL_PRINTF),1)
+            BSU_OBJECTS += \
+                console.o \
+                dev_16550_uart.o \
+                bsu_stdio.o
+                BCHP_VER_LOWERCASE = $(shell awk 'BEGIN{print tolower("$(BCHP_VER)")}')
+                CFLAGS += -DUSE_LOCAL_PRINTF=1 -DCFG_ARCH_ARM -DARM_V7 -I$(BOLT_DIR)/gen/$(BCHP_CHIP)$(BCHP_VER_LOWERCASE)
+        else
+            CFLAGS += -DUSE_LOCAL_PRINTF=0
+        endif
+    else
+        ifeq ($(MIPS_SDE_STDLIB),1)
+            CFLAGS += -DMIPS_SDE_STDLIB
+        else
+            BSU_OBJECTS += \
+                bsu_stdlib.o \
+                bsu_string.o \
+                bsu_string2.o
+            CFLAGS += -I$(ROCKFORD_DIR)/bsp/common/lib/bootloader
+        endif
+    endif
 else
-    CFLAGS += -DUSE_LOCAL_PRINTF=0
+    CFLAGS += \
+        export NEXUS_EXTRA_CFLAGS += -DNEWLIB
 endif
 
-ASM_SRC += init.s vectors.s
+ifeq ($(B_REFSW_ARCH), arm-linux)
+    ASM_SRC += init.s vectors.s
+else
+    ASM_SRC += reset_noos.s cpuctrl.s
+endif
 
 BSU_LIB_DIR = $(ROCKFORD_DIR)/bsp/$(BSU_ODIR)
 BSU_LIB_NAME = libbsu_$(ENDIAN_SUFFIX).a
@@ -388,12 +417,41 @@ ifeq ($(BUILD_QAM_SUPPORT),1)
         -DBSU_QAM_SUPPORT
 endif
 
-VPATH += \
-    $(BSEAV_DIR)/app/bsu/mini/build/arm
+ifeq ($(B_REFSW_ARCH), arm-linux)
+    VPATH += \
+        $(BSEAV_DIR)/app/bsu/mini/build/arm
 
-BSU_OBJECTS += \
-    lib.o \
-    uart.o
+    BSU_OBJECTS += \
+        lib.o \
+        uart.o
+else
+    ifeq ($(CPU),bmips5000)
+        ASM_SRC += tlb_r5k.s cache_lib_5xxx.s
+    else
+        ifeq ($(CPU),bmips4380)
+            ASM_SRC += tlb_4380.s cache_lib_4380.s
+        else
+            ifeq ($(CPU),bmips3300)
+                ASM_SRC += tlb_3300.s cache_lib_3300.s
+            else
+                $(warning unknown CPU)
+            endif
+        endif
+    endif
+
+    BSU_OBJECTS += \
+        boot.o
+
+    # Extra for linking with SDE libc library
+    ifeq ($(MIPS_SDE_STDLIB),1)
+        CFLAGS += -DMIPS_SDE_STDLIB
+        BSU_OBJECTS += \
+            queue.o \
+            sbd.o \
+            serial.o \
+            termio.o
+    endif
+endif
 
 ifneq ($(MIPS_BSU_HEAP_SIZE),0)
     ifeq ($(B_REFSW_ARCH), arm-linux)

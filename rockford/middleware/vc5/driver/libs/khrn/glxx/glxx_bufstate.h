@@ -206,6 +206,11 @@ static inline bool glxx_bufstate_need_load(glxx_bufstate_t state)
           (state == GLXX_BUFSTATE_MEM_RW_INVALIDATED);
 }
 
+static inline bool glxx_bufstate_might_need_load(glxx_bufstate_t state)
+{
+   return (state == GLXX_BUFSTATE_MEM) || glxx_bufstate_need_load(state);
+}
+
 static inline bool glxx_bufstate_need_store(glxx_bufstate_t state)
 {
    return (state == GLXX_BUFSTATE_CLEAR) ||

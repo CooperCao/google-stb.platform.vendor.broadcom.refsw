@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,496 +70,496 @@
 /***************************************************************************
  *HDMI_RX_0 - HDMI Receiver Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_RX_0_CORE_REV                  0x206f2000 /* [RW] HDMI Core Revision Number */
-#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CFG_1   0x206f2004 /* [RW] HDMI Receiver Digital Front End Configuration Register */
-#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CFG_2   0x206f2008 /* [RW] HDMI Receiver Digital Front End Configuration Register */
-#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CTL     0x206f200c /* [RW] HDMI Receiver Digital Front End Control Register */
-#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_TST_CFG 0x206f2010 /* [RW] HDMI Receiver Digital Front End Test Configuration Register */
-#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_TST_MON 0x206f2014 /* [RO] HDMI Receiver Digital Front End Test Monitor Register */
-#define BCHP_HDMI_RX_0_LFSR_INIT_CH_0            0x206f2018 /* [RW] HDMI Receiver Descrambler LFSR 0 Initial Value Register */
-#define BCHP_HDMI_RX_0_LFSR_INIT_CH_1            0x206f201c /* [RW] HDMI Receiver Descrambler LFSR 1 Initial Value Register */
-#define BCHP_HDMI_RX_0_LFSR_INIT_CH_2            0x206f2020 /* [RW] HDMI Receiver Descrambler LFSR 2 Initial Value Register */
-#define BCHP_HDMI_RX_0_LFSR_CONTROL              0x206f2024 /* [RW] HDMI Receiver Descrambler LFSR Control Register */
-#define BCHP_HDMI_RX_0_CTL_UNSCRAMBLED_CFG_0     0x206f2028 /* [RW] HDMI Receiver TMDS Unscrambled Output for Control 0,1,2 */
-#define BCHP_HDMI_RX_0_CTL_UNSCRAMBLED_CFG_1     0x206f202c /* [RW] HDMI Receiver TMDS Unscrambled Output for Control 3 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_0     0x206f2030 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 0,1,2 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_1     0x206f2034 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 3,4,5 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_2     0x206f2038 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 6,7,8 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_3     0x206f203c /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 9,10,11 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_4     0x206f2040 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 12,13,14 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_5     0x206f2044 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 15,16,17 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_6     0x206f2048 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 18,19,20 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_7     0x206f204c /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 21,22,23 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_8     0x206f2050 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 24,25,26 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_9     0x206f2054 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 27,28,29 */
-#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_10    0x206f2058 /* [RW] HDMI Receiver Descrambler Control Period Code for SCV 30,31 */
-#define BCHP_HDMI_RX_0_VIDEO_GUARD_BAND_8B_CODE  0x206f205c /* [RW] HDMI Video Guard Band Code */
-#define BCHP_HDMI_RX_0_ISLAND_GUARD_BAND_8B_CODE 0x206f2060 /* [RW] HDMI Island Guard Band Code */
-#define BCHP_HDMI_RX_0_CHANNEL_ALIGNMENT_MONITOR 0x206f2064 /* [RO] Channel alignment monitor */
-#define BCHP_HDMI_RX_0_UNSCRAMBLED_CONTROL_LENGTH 0x206f2068 /* [RO] Unscrambled control character length received */
-#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_0   0x206f206c /* [RW] Descrambler check configuration 0 */
-#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_1   0x206f2070 /* [RW] Descrambler check configuration 1 */
-#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_2   0x206f2074 /* [RW] Descrambler check configuration 2 */
-#define BCHP_HDMI_RX_0_HDCP_BKSV_0               0x206f2078 /* [RW] HDCP BKSV value to be written to the I<sup><small>2</sup></small>C register space */
-#define BCHP_HDMI_RX_0_HDCP_BKSV_1               0x206f207c /* [RW] HDCP BKSV value to be written to the I<sup><small>2</sup></small>C register space */
-#define BCHP_HDMI_RX_0_HDCP_CONFIG               0x206f2080 /* [RW] HDCP Configuration Settings */
-#define BCHP_HDMI_RX_0_HDCP_KSV_FIFO_0           0x206f2084 /* [RW] First of 2 registers used to load the KSV FIFO For HDCP Repeater Applications */
-#define BCHP_HDMI_RX_0_HDCP_KSV_FIFO_1           0x206f2088 /* [RW] Second of 2 registers used to load the KSV FIFO For HDCP Repeater Applications */
-#define BCHP_HDMI_RX_0_HDCP_RX_KSV_FIFO_VIEW_0   0x206f208c /* [RO] KSV FIFO Readback register 0 */
-#define BCHP_HDMI_RX_0_HDCP_RX_KSV_FIFO_VIEW_1   0x206f2090 /* [RO] KSV FIFO Readback register 1 */
-#define BCHP_HDMI_RX_0_HDCP_RX_REPEATER_CTL      0x206f2094 /* [RO] HDCP Repeater Control Register */
-#define BCHP_HDMI_RX_0_HDCP_KEY_0                0x206f2098 /* [RW] Key Load Register for HDCP authentication testing */
-#define BCHP_HDMI_RX_0_HDCP_KEY_1                0x206f209c /* [RW] Key Load Register for HDCP authentication testing */
-#define BCHP_HDMI_RX_0_HDCP_DEBUG                0x206f20a0 /* [RW] HDCP Debug Registers */
-#define BCHP_HDMI_RX_0_HDCP_STATUS               0x206f20a4 /* [RO] HDCP Status information */
-#define BCHP_HDMI_RX_0_MISC_CONTROL              0x206f20a8 /* [RW] Miscellaneous General Control Bits for the HDMI Rx Core */
-#define BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2    0x206f20ac /* [RW] HDCP I<sup><small>2</sup></small>C Configuration */
-#define BCHP_HDMI_RX_0_HDCP_I2C_PEEK_POKE        0x206f20b0 /* [RW] HDCP I<sup><small>2</sup></small>C Initialization and Monitoring */
-#define BCHP_HDMI_RX_0_HDCP_I2C_TRANSACTION_MONITOR 0x206f20b4 /* [RO] Debug visibility into HDCP I<sup><small>2</sup></small>C transactions */
-#define BCHP_HDMI_RX_0_HDCP_MON_BKSV_0           0x206f20b8 /* [RO] Debug visibility into HDCP receiver KSV 31:0 */
-#define BCHP_HDMI_RX_0_HDCP_MON_BKSV_1           0x206f20bc /* [RO] Debug visibility into HDCP receiver KSV 39:32 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RI_PJ            0x206f20c0 /* [RO] Debug visibility into HDCP link verification RI and PJ values */
-#define BCHP_HDMI_RX_0_HDCP_MON_AKSV_0           0x206f20c4 /* [RO] Debug visibility into HDCP transmitter KSV 31:0 */
-#define BCHP_HDMI_RX_0_HDCP_MON_AKSV_1           0x206f20c8 /* [RO] Debug visibility into HDCP transmitter KSV 39:32 */
-#define BCHP_HDMI_RX_0_HDCP_MON_AINFO            0x206f20cc /* [RO] Debug visibility into HDCP transmitter AINFO */
-#define BCHP_HDMI_RX_0_HDCP_MON_AN_0             0x206f20d0 /* [RO] Debug visibility into HDCP transmitter session random number - AN 31:0 */
-#define BCHP_HDMI_RX_0_HDCP_MON_AN_1             0x206f20d4 /* [RO] Debug visibility into HDCP transmitter session random number - AN 63:32 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_0           0x206f20d8 /* [RO] Debug visibility into HDCP Verification Value Bits 31:0 - H0 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_1           0x206f20dc /* [RO] Debug visibility into HDCP Verification Value Bits 63:32 - H1 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_2           0x206f20e0 /* [RO] Debug visibility into HDCP Verification Value Bits 95:64 - H2 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_3           0x206f20e4 /* [RO] Debug visibility into HDCP Verification Value Bits 127:96 - H3 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_4           0x206f20e8 /* [RO] Debug visibility into HDCP Verification Value Bits 159:128 - H4 */
-#define BCHP_HDMI_RX_0_HDCP_MON_RX_BSTATUS__BCAPS 0x206f20ec /* [RO] Debug visibility into HDCP Bcaps and Bstatus */
-#define BCHP_HDMI_RX_0_SCDC_I2C_TRANSACTION_MONITOR 0x206f20f0 /* [RO] Debug visibility into SCDC I<sup><small>2</sup></small>C transactions */
-#define BCHP_HDMI_RX_0_SCDC_CFG_1                0x206f20f4 /* [RW] SCDC Configuration Register */
-#define BCHP_HDMI_RX_0_SCDC_CFG_2                0x206f20f8 /* [RW] SCDC Configuration Register for test features */
-#define BCHP_HDMI_RX_0_SCDC_CFG_3                0x206f20fc /* [RW] SCDC Configuration Register for test features */
-#define BCHP_HDMI_RX_0_SCDC_CFG_4                0x206f2100 /* [RW] SCDC Configuration Register for test features */
-#define BCHP_HDMI_RX_0_SCDC_CFG_5                0x206f2104 /* [RW] SCDC Configuration Register for test features */
-#define BCHP_HDMI_RX_0_SCDC_CFG_STATUS           0x206f2108 /* [RO] SCDC Config Status Register */
-#define BCHP_HDMI_RX_0_SCDC_STATUS               0x206f210c /* [RO] SCDC Status Register */
-#define BCHP_HDMI_RX_0_SCDC_ERR_DET_STATUS_1     0x206f2110 /* [RO] SCDC Error Detection Status Register 1 */
-#define BCHP_HDMI_RX_0_SCDC_ERR_DET_STATUS_2     0x206f2114 /* [RO] SCDC Error Detection Status Register 2 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_1   0x206f2118 /* [RW] SCDC Manufacturer Specific Register 1 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_2   0x206f211c /* [RW] SCDC Manufacturer Specific Register 2 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_3   0x206f2120 /* [RW] SCDC Manufacturer Specific Register 3 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_4   0x206f2124 /* [RW] SCDC Manufacturer Specific Register 4 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_5   0x206f2128 /* [RW] SCDC Manufacturer Specific Register 5 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_6   0x206f212c /* [RW] SCDC Manufacturer Specific Register 6 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_7   0x206f2130 /* [RW] SCDC Manufacturer Specific Register 7 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_8   0x206f2134 /* [RW] SCDC Manufacturer Specific Register 8 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_9   0x206f2138 /* [RW] SCDC Manufacturer Specific Register 9 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_10  0x206f213c /* [RW] SCDC Manufacturer Specific Register 10 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_11  0x206f2140 /* [RW] SCDC Manufacturer Specific Register 11 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_12  0x206f2144 /* [RW] SCDC Manufacturer Specific Register 12 */
-#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_13  0x206f2148 /* [RW] SCDC Manufacturer Specific Register 13 */
-#define BCHP_HDMI_RX_0_BCH_ECC_CFG               0x206f214c /* [RW] Data Island Error Correction Control Register */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_STATUS   0x206f2150 /* [RO] Monitor which Packets Updated */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CONTROL  0x206f2154 /* [RW] Control the Packet RAM */
-#define BCHP_HDMI_RX_0_RAM_PACKET_UPDATE_CONFIG  0x206f2158 /* [RW] Enable the  PACKET_UPDATE */
-#define BCHP_HDMI_RX_0_RAM_PACKET_IRQ_ENABLE     0x206f215c /* [RW] Enable the  PACKET_UPDATE Interrupt */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_SELECT   0x206f2160 /* [RW] Control Register for Packet Stop Sync Selection */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_0 0x206f2164 /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_1 0x206f2168 /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_2 0x206f216c /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_3 0x206f2170 /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_4 0x206f2174 /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_5 0x206f2178 /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_6 0x206f217c /* [RW] Control register for Packet Stop Detect Circuit */
-#define BCHP_HDMI_RX_0_ENABLE_PACKET_STOP_DETECT 0x206f2180 /* [RW] Control register to enable the Packet Stop Detection Circuit for each type of packet */
-#define BCHP_HDMI_RX_0_PACKET_STOP_DETECT_STATUS 0x206f2184 /* [RO] Status of Packet Stop Detection Circuit */
-#define BCHP_HDMI_RX_0_PACKET_STOP_CLEAR_DETECT  0x206f2188 /* [RW] Control to Clear the Stop Detected Bits */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_AUDIO_CTS 0x206f218c /* [RO] HDMI Cyclic Time Stamp */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_AUDIO_N  0x206f2190 /* [RO] HDMI N Value for Computing the Cyclic Time Stamp */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CHN_STAT_3_0 0x206f2194 /* [RO] Packet Processor: Audio Channel Status Bits 31:0 */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CHN_STAT_7_4 0x206f2198 /* [RO] Packet Processor: Audio Channel Status Bits 63:32 */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CFG      0x206f219c /* [RW] Packet Processor Configuration register */
-#define BCHP_HDMI_RX_0_PKT_ACR_CFG_1             0x206f21a0 /* [RW] Audio Packet Clock Recovery PKT_ACR_CFG_1 */
-#define BCHP_HDMI_RX_0_PKT_ACR_CFG_2             0x206f21a4 /* [RW] Audio Packet Clock Recovery PKT_ACR_CFG_2 */
-#define BCHP_HDMI_RX_0_PKT_ACR_CFG_3             0x206f21a8 /* [RW] Audio Packet Clock Recovery PKT_ACR_CFG_3 */
-#define BCHP_HDMI_RX_0_PKT_ACR_CFG_4             0x206f21ac /* [RW] Audio Packet Clock Recovery PKT_ACR_CFG_4 */
-#define BCHP_HDMI_RX_0_PKT_ACR_CFG_5             0x206f21b0 /* [RW] Audio Packet Clock Recovery PKT_ACR_CFG_5 */
-#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_0          0x206f21b4 /* [RO] Audio Packet Clock Recovery PKT_ACR_STATUS_0 */
-#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_1          0x206f21b8 /* [RO] Audio Packet Clock Recovery PKT_ACR_STATUS_1 */
-#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_2          0x206f21bc /* [RO] Audio Packet Clock Recovery PKT_ACR_STATUS_2 */
-#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_3          0x206f21c0 /* [RO] Audio Packet Clock Recovery PKT_ACR_STATUS_3 */
-#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT 0x206f21c4 /* [RW] Packet Processor: Configure MAI Bus output format word */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_0        0x206f21c8 /* [RW] Ram Packet Type Definitions for 0 - 3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_1        0x206f21cc /* [RW] Ram Packet Type Definitions for 4 - 7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_2        0x206f21d0 /* [RW] Ram Packet Type Definitions for 8 - 11 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_3        0x206f21d4 /* [RW] Ram Packet Type Definitions for 12 - 15 <FONT COLOR=red>NOTE: 2 NEW, packet 13 is not read only any more</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_4        0x206f21d8 /* [RW] Ram Packet Type Definitions for 16 - 19 <FONT COLOR=red>NOTE: 4 NEW</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_5        0x206f21dc /* [RW] Ram Packet Type Definitions for 20 - 23 <FONT COLOR=red>NOTE: 4 NEW</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_6        0x206f21e0 /* [RW] Ram Packet Type Definitions for 24 - 27 <FONT COLOR=red>NOTE: 4 NEW packet 27 replaces packet 13's functionality</FONT> */
-#define BCHP_HDMI_RX_0_PERT_STATUS               0x206f21e4 /* [RO] General PERT Status Information */
-#define BCHP_HDMI_RX_0_PERT_CONFIG               0x206f21e8 /* [RW] PERT Configuration Register */
-#define BCHP_HDMI_RX_0_PERT_LFSR_FEEDBACK_ENABLE 0x206f21ec /* [RW] PERT LFSR Feedback Mask Register */
-#define BCHP_HDMI_RX_0_PERT_BIT_TEST_ENABLE      0x206f21f0 /* [RW] PERT Test Bit Selection Register */
-#define BCHP_HDMI_RX_0_PERT_DATA                 0x206f21f4 /* [RW] PERT Constant data Register */
-#define BCHP_HDMI_RX_0_PERT_PIXEL_COUNT          0x206f21f8 /* [RO] PERT Pixel Count Register */
-#define BCHP_HDMI_RX_0_PERT_PIXEL_ERROR_COUNT    0x206f21fc /* [RO] PERT Pixel Error Count Register */
-#define BCHP_HDMI_RX_0_PERT_RED_PIXEL_ERROR_COUNT 0x206f2200 /* [RO] PERT Red Pixel Error Count Register */
-#define BCHP_HDMI_RX_0_PERT_GREEN_PIXEL_ERROR_COUNT 0x206f2204 /* [RO] PERT Green Pixel Error Count  Register */
-#define BCHP_HDMI_RX_0_PERT_BLUE_PIXEL_ERROR_COUNT 0x206f2208 /* [RO] PERT Blue Pixel Error Count  Register */
-#define BCHP_HDMI_RX_0_PRBS_CH_0                 0x206f220c /* [RO] PRBS Channel 0 Pixel Count */
-#define BCHP_HDMI_RX_0_PRBS_CH_1                 0x206f2210 /* [RO] PRBS Channel 1 Pixel Count */
-#define BCHP_HDMI_RX_0_PRBS_CH_2                 0x206f2214 /* [RO] PRBS Channel 2 Pixel Count */
-#define BCHP_HDMI_RX_0_PRBS_CH_0_STATUS          0x206f2218 /* [RO] PRBS Channel 0 Status */
-#define BCHP_HDMI_RX_0_PRBS_CH_1_STATUS          0x206f221c /* [RO] PRBS Channel 1 Status */
-#define BCHP_HDMI_RX_0_PRBS_CH_2_STATUS          0x206f2220 /* [RO] PRBS Channel 2 Status */
-#define BCHP_HDMI_RX_0_EVENT_STATS_CONFIG        0x206f2224 /* [RW] Configure which events are available for counting */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_00     0x206f2228 /* [RW] Enable Event Counter 0 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_01     0x206f222c /* [RW] Enable Event Counter 0 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_10     0x206f2230 /* [RW] Enable Event Counter 1 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_11     0x206f2234 /* [RW] Enable Event Counter 1 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_20     0x206f2238 /* [RW] Enable Event Counter 2 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_21     0x206f223c /* [RW] Enable Event Counter 2 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_30     0x206f2240 /* [RW] Enable Event Counter 3 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_31     0x206f2244 /* [RW] Enable Event Counter 3 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_40     0x206f2248 /* [RW] Enable Event Counter 4 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_41     0x206f224c /* [RW] Enable Event Counter 4 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_50     0x206f2250 /* [RW] Enable Event Counter 5 Bits */
-#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_51     0x206f2254 /* [RW] Enable Event Counter 5 Bits */
-#define BCHP_HDMI_RX_0_EVENT_COUNTER_0_1_COUNT   0x206f2258 /* [RO] Counters 0 and 1 to Monitor Events for Test and Debug */
-#define BCHP_HDMI_RX_0_EVENT_COUNTER_2_3_COUNT   0x206f225c /* [RO] Counters 2 and 3 to Monitor Events for Test and Debug */
-#define BCHP_HDMI_RX_0_EVENT_COUNTER_4_5_COUNT   0x206f2260 /* [RO] Counters 4 and 5 to Monitor Events for Test and Debug */
-#define BCHP_HDMI_RX_0_SYS_CLK_CNTR              0x206f2264 /* [RO] Count system clocks to provide a test time base. */
-#define BCHP_HDMI_RX_0_ERROR_INTERRUPT_STATUS    0x206f2268 /* [RO] Used to determine which error triggered the error interrupt */
-#define BCHP_HDMI_RX_0_MISC_STATUS               0x206f226c /* [RO] Miscellaneous Status Info about the HDMI RX Core */
-#define BCHP_HDMI_RX_0_TEST_PORT_CONFIGURATION   0x206f2270 /* [RW] Configure which data is output on the test port */
-#define BCHP_HDMI_RX_0_FORMAT_DET_CFG            0x206f2274 /* [RW] Video Format Detection Circuit Configuration Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_STATUS  0x206f2278 /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_STATUS_1 0x206f227c /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_CLEAR   0x206f2280 /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_CLEAR_1 0x206f2284 /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_1              0x206f2288 /* [RO] VID_FORMAT_1  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_2              0x206f228c /* [RO] VID_FORMAT_2  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_3              0x206f2290 /* [RO] VID_FORMAT_3  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_4              0x206f2294 /* [RO] VID_FORMAT_4  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_5              0x206f2298 /* [RO] VID_FORMAT_5  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_6              0x206f229c /* [RO] VID_FORMAT_6  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_7              0x206f22a0 /* [RO] VID_FORMAT_7  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_8              0x206f22a4 /* [RO] VID_FORMAT_8  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_9              0x206f22a8 /* [RO] VID_FORMAT_9  Register */
-#define BCHP_HDMI_RX_0_FORMAT_DET_10             0x206f22ac /* [RO] VID_FORMAT_10  Register */
-#define BCHP_HDMI_RX_0_HSYNC_CNT                 0x206f22b0 /* [RO] HSYNC_CNT  Register */
-#define BCHP_HDMI_RX_0_VSYNC_CNT_FIELD0          0x206f22b4 /* [RO] VSYNC_CNT_FIELD0  Register */
-#define BCHP_HDMI_RX_0_VSYNC_CNT_FIELD1          0x206f22b8 /* [RO] VSYNC_CNT_FIELD1  Register */
-#define BCHP_HDMI_RX_0_VSYNC_PIX_FIELD0          0x206f22bc /* [RO] VSYNC_PIX_FIELD0  Register */
-#define BCHP_HDMI_RX_0_VSYNC_PIX_FIELD1          0x206f22c0 /* [RO] VSYNC_PIX_FIELD1  Register */
-#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_1    0x206f22c4 /* [RW] FORMAT_THRESHOLD_CFG_1 - Min Vsync Count */
-#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_2    0x206f22c8 /* [RW] FORMAT_THRESHOLD_CFG_2 - Max Vsync Count */
-#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_3    0x206f22cc /* [RW] FORMAT_THRESHOLD_CFG_3 - Set Min and Max Hsync Count */
-#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_4    0x206f22d0 /* [RW] FORMAT_THRESHOLD_CFG_4 - Set Min and Max Ver. Active Line Count */
-#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_5    0x206f22d4 /* [RW] FORMAT_THRESHOLD_CFG_5 - Set Min and Max Hor. Active Pixel Count */
-#define BCHP_HDMI_RX_0_PCTR_CLEAN_CLEAR_ERRORS   0x206f22d8 /* [RW] PCTR_CLEAN_CLEAR_ERRORS - Control to Clear Status Errors */
-#define BCHP_HDMI_RX_0_PCTR_ERROR_STATUS         0x206f22dc /* [RO] PCTR_ERROR_STATUS - Status of DVP Format Threshold Monitor Circuit */
-#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_CFG_1    0x206f22e0 /* [RW] Configuration For HDMI 1.3 features */
-#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_CFG_2    0x206f22e4 /* [RW] Configuration For HDMI 1.3 features */
-#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_STATUS_1 0x206f22e8 /* [RO] Status For HDMI 1.3 features */
-#define BCHP_HDMI_RX_0_I2C_FREQ_DETECTION_STATUS1 0x206f22ec /* [RO] I2C_FREQ_DETECTION_STATUS1 */
-#define BCHP_HDMI_RX_0_I2C_FREQ_DETECTION_STATUS2 0x206f22f0 /* [RO] I2C_FREQ_DETECTION_STATUS2 */
-#define BCHP_HDMI_RX_0_SCDC_I2C_FREQ_DETECTION_STATUS1 0x206f22f4 /* [RO] SCDC_I2C_FREQ_DETECTION_STATUS1 */
-#define BCHP_HDMI_RX_0_SCDC_I2C_FREQ_DETECTION_STATUS2 0x206f22f8 /* [RO] SCDC_I2C_FREQ_DETECTION_STATUS2 */
-#define BCHP_HDMI_RX_0_AUDIO_CHANNEL_MAP         0x206f22fc /* [RW] AUDIO_CHANNEL_MAP */
-#define BCHP_HDMI_RX_0_CH_REPLACE_ZEROS          0x206f2300 /* [RW] CH_REPLACE_ZEROS */
-#define BCHP_HDMI_RX_0_AUDIO_PACKET_TYPE         0x206f2304 /* [RW] AUDIO_PACKET_TYPE */
-#define BCHP_HDMI_RX_0_AUDIO_TEST_DATA           0x206f2308 /* [RW] AUDIO_TEST_DATA */
-#define BCHP_HDMI_RX_0_AUDIO_TEST_CONFIG         0x206f230c /* [RW] AUDIO_TEST_CONFIG */
-#define BCHP_HDMI_RX_0_ACR_ERROR                 0x206f2310 /* [RW] ACR_ERROR */
-#define BCHP_HDMI_RX_0_AUDIO_CHANNEL_STATUS_CONFIG 0x206f2314 /* [RW] AUDIO_CHANNEL_STATUS_CONFIG */
-#define BCHP_HDMI_RX_0_AUDIO_MUTE_CFG            0x206f2318 /* [RW] AUDIO_MUTE_CFG */
-#define BCHP_HDMI_RX_0_VIDEO_MUTE_CFG            0x206f231c /* [RW] VIDEO_MUTE_CFG */
-#define BCHP_HDMI_RX_0_VIDEO_MUTE_STATUS         0x206f2320 /* [RO] VIDEO_MUTE_STATUS */
-#define BCHP_HDMI_RX_0_VIDEO_MUTE_STATUS_CLEAR   0x206f2324 /* [RW] VIDEO_MUTE_STATUS_CLEAR */
-#define BCHP_HDMI_RX_0_AUDIO_PASSTHRU_CONFIG     0x206f2328 /* [RW] AUDIO_PASSTHRU_CONFIG */
-#define BCHP_HDMI_RX_0_AUDIO_PASSTHRU_CNT_STATUS 0x206f232c /* [RO] AUDIO_PASSTHRU_CNT_STATUS */
-#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_EVENT_CONFIG 0x206f2330 /* [RW] AUDIO_MUTE_PASSTHRU_EVENT_CONFIG */
-#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_STATUS 0x206f2334 /* [RO] AUDIO_MUTE_PASSTHRU_STATUS */
-#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_CLEAR 0x206f2338 /* [RW] AUDIO_MUTE_PASSTHRU_CLEAR */
-#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_EVENT_CONFIG 0x206f233c /* [RW] AVMUTE_PASSTHRU_EVENT_CONFIG */
-#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_STATUS    0x206f2340 /* [RO] AVMUTE_PASSTHRU_STATUS */
-#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_CLEAR     0x206f2344 /* [RW] AVMUTE_PASSTHRU_CLEAR */
-#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_EVENT_CONFIG 0x206f2348 /* [RW] TMDS_SHUTOFF_PASSTHRU_EVENT_CONFIG */
-#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_STATUS 0x206f234c /* [RO] TMDS_SHUTOFF_PASSTHRU_STATUS */
-#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_CLEAR 0x206f2350 /* [RW] TMDS_SHUTOFF_PASSTHRU_CLEAR */
-#define BCHP_HDMI_RX_0_ATR_CONFIG                0x206f2354 /* [RW] ATR_CONFIG */
-#define BCHP_HDMI_RX_0_ATR_TEST_CTS              0x206f2358 /* [RW] ATR_TEST_CTS */
-#define BCHP_HDMI_RX_0_ATR_TEST_N                0x206f235c /* [RW] ATR_TEST_N */
-#define BCHP_HDMI_RX_0_MASK_PACKET_AUDIO_MUTE    0x206f2360 /* [RW] MASK_PACKET_AUDIO_MUTE */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_HEADER       0x206f2364 /* [RW] <FONT COLOR=D08000>RAM Packet 0, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_0_LOW 0x206f2368 /* [RW] RAM Packet 0, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_0_HIGH 0x206f236c /* [RW] RAM Packet 0, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_1_LOW 0x206f2370 /* [RW] RAM Packet 0, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_1_HIGH 0x206f2374 /* [RW] RAM Packet 0, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_2_LOW 0x206f2378 /* [RW] RAM Packet 0, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_2_HIGH 0x206f237c /* [RW] RAM Packet 0, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_3_LOW 0x206f2380 /* [RW] RAM Packet 0, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_3_HIGH 0x206f2384 /* [RW] RAM Packet 0, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_HEADER       0x206f2388 /* [RW] <FONT COLOR=D08000>RAM Packet 1, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_0_LOW 0x206f238c /* [RW] RAM Packet 1, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_0_HIGH 0x206f2390 /* [RW] RAM Packet 1, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_1_LOW 0x206f2394 /* [RW] RAM Packet 1, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_1_HIGH 0x206f2398 /* [RW] RAM Packet 1, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_2_LOW 0x206f239c /* [RW] RAM Packet 1, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_2_HIGH 0x206f23a0 /* [RW] RAM Packet 1, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_3_LOW 0x206f23a4 /* [RW] RAM Packet 1, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_3_HIGH 0x206f23a8 /* [RW] RAM Packet 1, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_HEADER       0x206f23ac /* [RW] <FONT COLOR=D08000>RAM Packet 2, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_0_LOW 0x206f23b0 /* [RW] RAM Packet 2, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_0_HIGH 0x206f23b4 /* [RW] RAM Packet 2, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_1_LOW 0x206f23b8 /* [RW] RAM Packet 2, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_1_HIGH 0x206f23bc /* [RW] RAM Packet 2, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_2_LOW 0x206f23c0 /* [RW] RAM Packet 2, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_2_HIGH 0x206f23c4 /* [RW] RAM Packet 2, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_3_LOW 0x206f23c8 /* [RW] RAM Packet 2, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_3_HIGH 0x206f23cc /* [RW] RAM Packet 2, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_HEADER       0x206f23d0 /* [RW] <FONT COLOR=D08000>RAM Packet 3, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_0_LOW 0x206f23d4 /* [RW] RAM Packet 3, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_0_HIGH 0x206f23d8 /* [RW] RAM Packet 3, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_1_LOW 0x206f23dc /* [RW] RAM Packet 3, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_1_HIGH 0x206f23e0 /* [RW] RAM Packet 3, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_2_LOW 0x206f23e4 /* [RW] RAM Packet 3, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_2_HIGH 0x206f23e8 /* [RW] RAM Packet 3, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_3_LOW 0x206f23ec /* [RW] RAM Packet 3, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_3_HIGH 0x206f23f0 /* [RW] RAM Packet 3, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_HEADER       0x206f23f4 /* [RW] <FONT COLOR=D08000>RAM Packet 4, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_0_LOW 0x206f23f8 /* [RW] RAM Packet 4, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_0_HIGH 0x206f23fc /* [RW] RAM Packet 4, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_1_LOW 0x206f2400 /* [RW] RAM Packet 4, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_1_HIGH 0x206f2404 /* [RW] RAM Packet 4, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_2_LOW 0x206f2408 /* [RW] RAM Packet 4, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_2_HIGH 0x206f240c /* [RW] RAM Packet 4, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_3_LOW 0x206f2410 /* [RW] RAM Packet 4, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_3_HIGH 0x206f2414 /* [RW] RAM Packet 4, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_HEADER       0x206f2418 /* [RW] <FONT COLOR=D08000>RAM Packet 5, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_0_LOW 0x206f241c /* [RW] RAM Packet 5, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_0_HIGH 0x206f2420 /* [RW] RAM Packet 5, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_1_LOW 0x206f2424 /* [RW] RAM Packet 5, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_1_HIGH 0x206f2428 /* [RW] RAM Packet 5, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_2_LOW 0x206f242c /* [RW] RAM Packet 5, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_2_HIGH 0x206f2430 /* [RW] RAM Packet 5, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_3_LOW 0x206f2434 /* [RW] RAM Packet 5, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_3_HIGH 0x206f2438 /* [RW] RAM Packet 5, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_HEADER       0x206f243c /* [RW] <FONT COLOR=D08000>RAM Packet 6, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_0_LOW 0x206f2440 /* [RW] RAM Packet 6, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_0_HIGH 0x206f2444 /* [RW] RAM Packet 6, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_1_LOW 0x206f2448 /* [RW] RAM Packet 6, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_1_HIGH 0x206f244c /* [RW] RAM Packet 6, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_2_LOW 0x206f2450 /* [RW] RAM Packet 6, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_2_HIGH 0x206f2454 /* [RW] RAM Packet 6, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_3_LOW 0x206f2458 /* [RW] RAM Packet 6, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_3_HIGH 0x206f245c /* [RW] RAM Packet 6, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_HEADER       0x206f2460 /* [RW] <FONT COLOR=D08000>RAM Packet 7, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_0_LOW 0x206f2464 /* [RW] RAM Packet 7, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_0_HIGH 0x206f2468 /* [RW] RAM Packet 7, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_1_LOW 0x206f246c /* [RW] RAM Packet 7, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_1_HIGH 0x206f2470 /* [RW] RAM Packet 7, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_2_LOW 0x206f2474 /* [RW] RAM Packet 7, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_2_HIGH 0x206f2478 /* [RW] RAM Packet 7, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_3_LOW 0x206f247c /* [RW] RAM Packet 7, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_3_HIGH 0x206f2480 /* [RW] RAM Packet 7, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_HEADER       0x206f2484 /* [RW] <FONT COLOR=D08000>RAM Packet 8, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_0_LOW 0x206f2488 /* [RW] RAM Packet 8, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_0_HIGH 0x206f248c /* [RW] RAM Packet 8, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_1_LOW 0x206f2490 /* [RW] RAM Packet 8, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_1_HIGH 0x206f2494 /* [RW] RAM Packet 8, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_2_LOW 0x206f2498 /* [RW] RAM Packet 8, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_2_HIGH 0x206f249c /* [RW] RAM Packet 8, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_3_LOW 0x206f24a0 /* [RW] RAM Packet 8, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_3_HIGH 0x206f24a4 /* [RW] RAM Packet 8, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_HEADER       0x206f24a8 /* [RW] <FONT COLOR=D08000>RAM Packet 9, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_0_LOW 0x206f24ac /* [RW] RAM Packet 9, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_0_HIGH 0x206f24b0 /* [RW] RAM Packet 9, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_1_LOW 0x206f24b4 /* [RW] RAM Packet 9, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_1_HIGH 0x206f24b8 /* [RW] RAM Packet 9, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_2_LOW 0x206f24bc /* [RW] RAM Packet 9, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_2_HIGH 0x206f24c0 /* [RW] RAM Packet 9, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_3_LOW 0x206f24c4 /* [RW] RAM Packet 9, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_3_HIGH 0x206f24c8 /* [RW] RAM Packet 9, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_HEADER      0x206f24cc /* [RW] <FONT COLOR=D08000>RAM Packet 10, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_0_LOW 0x206f24d0 /* [RW] RAM Packet 10, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_0_HIGH 0x206f24d4 /* [RW] RAM Packet 10, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_1_LOW 0x206f24d8 /* [RW] RAM Packet 10, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_1_HIGH 0x206f24dc /* [RW] RAM Packet 10, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_2_LOW 0x206f24e0 /* [RW] RAM Packet 10, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_2_HIGH 0x206f24e4 /* [RW] RAM Packet 10, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_3_LOW 0x206f24e8 /* [RW] RAM Packet 10, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_3_HIGH 0x206f24ec /* [RW] RAM Packet 10, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_HEADER      0x206f24f0 /* [RW] <FONT COLOR=D08000>RAM Packet 11, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_0_LOW 0x206f24f4 /* [RW] RAM Packet 11, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_0_HIGH 0x206f24f8 /* [RW] RAM Packet 11, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_1_LOW 0x206f24fc /* [RW] RAM Packet 11, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_1_HIGH 0x206f2500 /* [RW] RAM Packet 11, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_2_LOW 0x206f2504 /* [RW] RAM Packet 11, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_2_HIGH 0x206f2508 /* [RW] RAM Packet 11, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_3_LOW 0x206f250c /* [RW] RAM Packet 11, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_3_HIGH 0x206f2510 /* [RW] RAM Packet 11, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_HEADER      0x206f2514 /* [RW] <FONT COLOR=D08000>RAM Packet 12, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_0_LOW 0x206f2518 /* [RW] RAM Packet 12, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_0_HIGH 0x206f251c /* [RW] RAM Packet 12, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_1_LOW 0x206f2520 /* [RW] RAM Packet 12, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_1_HIGH 0x206f2524 /* [RW] RAM Packet 12, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_2_LOW 0x206f2528 /* [RW] RAM Packet 12, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_2_HIGH 0x206f252c /* [RW] RAM Packet 12, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_3_LOW 0x206f2530 /* [RW] RAM Packet 12, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_3_HIGH 0x206f2534 /* [RW] RAM Packet 12, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_HEADER      0x206f2538 /* [RW] <FONT COLOR=D08000>RAM Packet 13, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_0_LOW 0x206f253c /* [RW] RAM Packet 13, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_0_HIGH 0x206f2540 /* [RW] RAM Packet 13, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_1_LOW 0x206f2544 /* [RW] RAM Packet 13, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_1_HIGH 0x206f2548 /* [RW] RAM Packet 13, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_2_LOW 0x206f254c /* [RW] RAM Packet 13, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_2_HIGH 0x206f2550 /* [RW] RAM Packet 13, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_3_LOW 0x206f2554 /* [RW] RAM Packet 13, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_3_HIGH 0x206f2558 /* [RW] RAM Packet 13, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_HEADER      0x206f255c /* [RW] <FONT COLOR=D08000>RAM Packet 14, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_0_LOW 0x206f2560 /* [RW] RAM Packet 14, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_0_HIGH 0x206f2564 /* [RW] RAM Packet 14, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_1_LOW 0x206f2568 /* [RW] RAM Packet 14, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_1_HIGH 0x206f256c /* [RW] RAM Packet 14, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_2_LOW 0x206f2570 /* [RW] RAM Packet 14, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_2_HIGH 0x206f2574 /* [RW] RAM Packet 14, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_3_LOW 0x206f2578 /* [RW] RAM Packet 14, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_3_HIGH 0x206f257c /* [RW] RAM Packet 14, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_HEADER      0x206f2580 /* [RW] <FONT COLOR=D08000>RAM Packet 15, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_0_LOW 0x206f2584 /* [RW] RAM Packet 15, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_0_HIGH 0x206f2588 /* [RW] RAM Packet 15, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_1_LOW 0x206f258c /* [RW] RAM Packet 15, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_1_HIGH 0x206f2590 /* [RW] RAM Packet 15, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_2_LOW 0x206f2594 /* [RW] RAM Packet 15, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_2_HIGH 0x206f2598 /* [RW] RAM Packet 15, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_3_LOW 0x206f259c /* [RW] RAM Packet 15, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_3_HIGH 0x206f25a0 /* [RW] RAM Packet 15, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_HEADER      0x206f25a4 /* [RW] <FONT COLOR=D08000>RAM Packet 16, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_0_LOW 0x206f25a8 /* [RW] RAM Packet 16, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_0_HIGH 0x206f25ac /* [RW] RAM Packet 16, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_1_LOW 0x206f25b0 /* [RW] RAM Packet 16, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_1_HIGH 0x206f25b4 /* [RW] RAM Packet 16, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_2_LOW 0x206f25b8 /* [RW] RAM Packet 16, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_2_HIGH 0x206f25bc /* [RW] RAM Packet 16, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_3_LOW 0x206f25c0 /* [RW] RAM Packet 16, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_3_HIGH 0x206f25c4 /* [RW] RAM Packet 16, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_HEADER      0x206f25c8 /* [RW] <FONT COLOR=D08000>RAM Packet 17, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_0_LOW 0x206f25cc /* [RW] RAM Packet 17, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_0_HIGH 0x206f25d0 /* [RW] RAM Packet 17, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_1_LOW 0x206f25d4 /* [RW] RAM Packet 17, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_1_HIGH 0x206f25d8 /* [RW] RAM Packet 17, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_2_LOW 0x206f25dc /* [RW] RAM Packet 17, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_2_HIGH 0x206f25e0 /* [RW] RAM Packet 17, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_3_LOW 0x206f25e4 /* [RW] RAM Packet 17, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_3_HIGH 0x206f25e8 /* [RW] RAM Packet 17, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_HEADER      0x206f25ec /* [RW] <FONT COLOR=D08000>RAM Packet 18, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_0_LOW 0x206f25f0 /* [RW] RAM Packet 18, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_0_HIGH 0x206f25f4 /* [RW] RAM Packet 18, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_1_LOW 0x206f25f8 /* [RW] RAM Packet 18, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_1_HIGH 0x206f25fc /* [RW] RAM Packet 18, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_2_LOW 0x206f2600 /* [RW] RAM Packet 18, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_2_HIGH 0x206f2604 /* [RW] RAM Packet 18, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_3_LOW 0x206f2608 /* [RW] RAM Packet 18, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_3_HIGH 0x206f260c /* [RW] RAM Packet 18, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_HEADER      0x206f2610 /* [RW] <FONT COLOR=D08000>RAM Packet 19, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_0_LOW 0x206f2614 /* [RW] RAM Packet 19, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_0_HIGH 0x206f2618 /* [RW] RAM Packet 19, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_1_LOW 0x206f261c /* [RW] RAM Packet 19, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_1_HIGH 0x206f2620 /* [RW] RAM Packet 19, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_2_LOW 0x206f2624 /* [RW] RAM Packet 19, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_2_HIGH 0x206f2628 /* [RW] RAM Packet 19, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_3_LOW 0x206f262c /* [RW] RAM Packet 19, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_3_HIGH 0x206f2630 /* [RW] RAM Packet 19, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_HEADER      0x206f2634 /* [RW] <FONT COLOR=D08000>RAM Packet 20, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_0_LOW 0x206f2638 /* [RW] RAM Packet 20, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_0_HIGH 0x206f263c /* [RW] RAM Packet 20, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_1_LOW 0x206f2640 /* [RW] RAM Packet 20, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_1_HIGH 0x206f2644 /* [RW] RAM Packet 20, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_2_LOW 0x206f2648 /* [RW] RAM Packet 20, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_2_HIGH 0x206f264c /* [RW] RAM Packet 20, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_3_LOW 0x206f2650 /* [RW] RAM Packet 20, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_3_HIGH 0x206f2654 /* [RW] RAM Packet 20, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_HEADER      0x206f2658 /* [RW] <FONT COLOR=D08000>RAM Packet 21, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_0_LOW 0x206f265c /* [RW] RAM Packet 21, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_0_HIGH 0x206f2660 /* [RW] RAM Packet 21, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_1_LOW 0x206f2664 /* [RW] RAM Packet 21, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_1_HIGH 0x206f2668 /* [RW] RAM Packet 21, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_2_LOW 0x206f266c /* [RW] RAM Packet 21, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_2_HIGH 0x206f2670 /* [RW] RAM Packet 21, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_3_LOW 0x206f2674 /* [RW] RAM Packet 21, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_3_HIGH 0x206f2678 /* [RW] RAM Packet 21, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_HEADER      0x206f267c /* [RW] <FONT COLOR=D08000>RAM Packet 22, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_0_LOW 0x206f2680 /* [RW] RAM Packet 22, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_0_HIGH 0x206f2684 /* [RW] RAM Packet 22, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_1_LOW 0x206f2688 /* [RW] RAM Packet 22, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_1_HIGH 0x206f268c /* [RW] RAM Packet 22, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_2_LOW 0x206f2690 /* [RW] RAM Packet 22, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_2_HIGH 0x206f2694 /* [RW] RAM Packet 22, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_3_LOW 0x206f2698 /* [RW] RAM Packet 22, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_3_HIGH 0x206f269c /* [RW] RAM Packet 22, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_HEADER      0x206f26a0 /* [RW] <FONT COLOR=D08000>RAM Packet 23, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_0_LOW 0x206f26a4 /* [RW] RAM Packet 23, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_0_HIGH 0x206f26a8 /* [RW] RAM Packet 23, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_1_LOW 0x206f26ac /* [RW] RAM Packet 23, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_1_HIGH 0x206f26b0 /* [RW] RAM Packet 23, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_2_LOW 0x206f26b4 /* [RW] RAM Packet 23, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_2_HIGH 0x206f26b8 /* [RW] RAM Packet 23, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_3_LOW 0x206f26bc /* [RW] RAM Packet 23, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_3_HIGH 0x206f26c0 /* [RW] RAM Packet 23, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_HEADER      0x206f26c4 /* [RW] <FONT COLOR=D08000>RAM Packet 24, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_0_LOW 0x206f26c8 /* [RW] RAM Packet 24, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_0_HIGH 0x206f26cc /* [RW] RAM Packet 24, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_1_LOW 0x206f26d0 /* [RW] RAM Packet 24, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_1_HIGH 0x206f26d4 /* [RW] RAM Packet 24, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_2_LOW 0x206f26d8 /* [RW] RAM Packet 24, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_2_HIGH 0x206f26dc /* [RW] RAM Packet 24, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_3_LOW 0x206f26e0 /* [RW] RAM Packet 24, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_3_HIGH 0x206f26e4 /* [RW] RAM Packet 24, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_HEADER      0x206f26e8 /* [RW] <FONT COLOR=D08000>RAM Packet 25, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_0_LOW 0x206f26ec /* [RW] RAM Packet 25, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_0_HIGH 0x206f26f0 /* [RW] RAM Packet 25, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_1_LOW 0x206f26f4 /* [RW] RAM Packet 25, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_1_HIGH 0x206f26f8 /* [RW] RAM Packet 25, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_2_LOW 0x206f26fc /* [RW] RAM Packet 25, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_2_HIGH 0x206f2700 /* [RW] RAM Packet 25, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_3_LOW 0x206f2704 /* [RW] RAM Packet 25, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_3_HIGH 0x206f2708 /* [RW] RAM Packet 25, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_HEADER      0x206f270c /* [RW] <FONT COLOR=D08000>RAM Packet 26, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_0_LOW 0x206f2710 /* [RW] RAM Packet 26, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_0_HIGH 0x206f2714 /* [RW] RAM Packet 26, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_1_LOW 0x206f2718 /* [RW] RAM Packet 26, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_1_HIGH 0x206f271c /* [RW] RAM Packet 26, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_2_LOW 0x206f2720 /* [RW] RAM Packet 26, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_2_HIGH 0x206f2724 /* [RW] RAM Packet 26, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_3_LOW 0x206f2728 /* [RW] RAM Packet 26, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_3_HIGH 0x206f272c /* [RW] RAM Packet 26, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_HEADER      0x206f2730 /* [RW] <FONT COLOR=D08000>RAM Packet 27, Header</FONT> */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_0_LOW 0x206f2734 /* [RW] RAM Packet 27, Subpacket 0, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_0_HIGH 0x206f2738 /* [RW] RAM Packet 27, Subpacket 0, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_1_LOW 0x206f273c /* [RW] RAM Packet 27, Subpacket 1, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_1_HIGH 0x206f2740 /* [RW] RAM Packet 27, Subpacket 1, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_2_LOW 0x206f2744 /* [RW] RAM Packet 27, Subpacket 2, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_2_HIGH 0x206f2748 /* [RW] RAM Packet 27, Subpacket 2, bytes 4-7 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_3_LOW 0x206f274c /* [RW] RAM Packet 27, Subpacket 3, bytes 0-3 */
-#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_3_HIGH 0x206f2750 /* [RW] RAM Packet 27, Subpacket 3, bytes 4-7 */
-#define BCHP_HDMI_RX_0_CRC_CHECK_CFG_0           0x206f2754 /* [RW] CRC Checker Configuration 0 */
-#define BCHP_HDMI_RX_0_CRC_CHECK_CFG_1           0x206f2758 /* [RW] Checker Configuration 1 */
-#define BCHP_HDMI_RX_0_CRC_CHECK_CTL             0x206f275c /* [RW] CRC Checker Control */
-#define BCHP_HDMI_RX_0_CRC_CHECK_STATUS_0        0x206f2760 /* [RO] CRC Checker Status 0 */
-#define BCHP_HDMI_RX_0_CRC_CHECK_STATUS_1        0x206f2764 /* [RO] CRC Checker Status 1 */
-#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CFG_0       0x206f2768 /* [RW] CRC Checker Configuration 0 */
-#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CFG_1       0x206f276c /* [RW] Checker Configuration 1 */
-#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CTL         0x206f2770 /* [RW] CRC Checker Control */
-#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_STATUS_0    0x206f2774 /* [RO] CRC Checker Status 0 */
-#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_STATUS_1    0x206f2778 /* [RO] CRC Checker Status 1 */
-#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CFG_0      0x206f277c /* [RW] CRC Checker Configuration 0 */
-#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CFG_1      0x206f2780 /* [RW] Checker Configuration 1 */
-#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CTL        0x206f2784 /* [RW] CRC Checker Control */
-#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_STATUS_0   0x206f2788 /* [RO] CRC Checker Status 0 */
-#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_STATUS_1   0x206f278c /* [RO] CRC Checker Status 1 */
-#define BCHP_HDMI_RX_0_CHAR_ERR_DET_CTL          0x206f2790 /* [RW] Character Error Detection Control */
-#define BCHP_HDMI_RX_0_CHAR_ERR_DET_STATUS       0x206f2794 /* [RO] Character Error Detection Status */
-#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_0 0x206f2798 /* [RO] Character Error Detection Status */
-#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_1 0x206f279c /* [RO] Character Error Detection Status */
-#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_2 0x206f27a0 /* [RO] Character Error Detection Status */
-#define BCHP_HDMI_RX_0_SPARE_REGISTER_BITS       0x206f27fc /* [RW] Spare Bits For ECO's */
+#define BCHP_HDMI_RX_0_CORE_REV                  0x206f2000 /* [RW][32] HDMI Core Revision Number */
+#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CFG_1   0x206f2004 /* [RW][32] HDMI Receiver Digital Front End Configuration Register */
+#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CFG_2   0x206f2008 /* [RW][32] HDMI Receiver Digital Front End Configuration Register */
+#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_CTL     0x206f200c /* [RW][32] HDMI Receiver Digital Front End Control Register */
+#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_TST_CFG 0x206f2010 /* [RW][32] HDMI Receiver Digital Front End Test Configuration Register */
+#define BCHP_HDMI_RX_0_DIGITAL_FRONT_END_TST_MON 0x206f2014 /* [RO][32] HDMI Receiver Digital Front End Test Monitor Register */
+#define BCHP_HDMI_RX_0_LFSR_INIT_CH_0            0x206f2018 /* [RW][32] HDMI Receiver Descrambler LFSR 0 Initial Value Register */
+#define BCHP_HDMI_RX_0_LFSR_INIT_CH_1            0x206f201c /* [RW][32] HDMI Receiver Descrambler LFSR 1 Initial Value Register */
+#define BCHP_HDMI_RX_0_LFSR_INIT_CH_2            0x206f2020 /* [RW][32] HDMI Receiver Descrambler LFSR 2 Initial Value Register */
+#define BCHP_HDMI_RX_0_LFSR_CONTROL              0x206f2024 /* [RW][32] HDMI Receiver Descrambler LFSR Control Register */
+#define BCHP_HDMI_RX_0_CTL_UNSCRAMBLED_CFG_0     0x206f2028 /* [RW][32] HDMI Receiver TMDS Unscrambled Output for Control 0,1,2 */
+#define BCHP_HDMI_RX_0_CTL_UNSCRAMBLED_CFG_1     0x206f202c /* [RW][32] HDMI Receiver TMDS Unscrambled Output for Control 3 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_0     0x206f2030 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 0,1,2 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_1     0x206f2034 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 3,4,5 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_2     0x206f2038 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 6,7,8 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_3     0x206f203c /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 9,10,11 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_4     0x206f2040 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 12,13,14 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_5     0x206f2044 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 15,16,17 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_6     0x206f2048 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 18,19,20 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_7     0x206f204c /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 21,22,23 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_8     0x206f2050 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 24,25,26 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_9     0x206f2054 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 27,28,29 */
+#define BCHP_HDMI_RX_0_CTL_DESCRAMBLER_CFG_10    0x206f2058 /* [RW][32] HDMI Receiver Descrambler Control Period Code for SCV 30,31 */
+#define BCHP_HDMI_RX_0_VIDEO_GUARD_BAND_8B_CODE  0x206f205c /* [RW][32] HDMI Video Guard Band Code */
+#define BCHP_HDMI_RX_0_ISLAND_GUARD_BAND_8B_CODE 0x206f2060 /* [RW][32] HDMI Island Guard Band Code */
+#define BCHP_HDMI_RX_0_CHANNEL_ALIGNMENT_MONITOR 0x206f2064 /* [RO][32] Channel alignment monitor */
+#define BCHP_HDMI_RX_0_UNSCRAMBLED_CONTROL_LENGTH 0x206f2068 /* [RO][32] Unscrambled control character length received */
+#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_0   0x206f206c /* [RW][32] Descrambler check configuration 0 */
+#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_1   0x206f2070 /* [RW][32] Descrambler check configuration 1 */
+#define BCHP_HDMI_RX_0_DESCRAMBLER_CHECK_CFG_2   0x206f2074 /* [RW][32] Descrambler check configuration 2 */
+#define BCHP_HDMI_RX_0_HDCP_BKSV_0               0x206f2078 /* [RW][32] HDCP BKSV value to be written to the I<sup><small>2</sup></small>C register space */
+#define BCHP_HDMI_RX_0_HDCP_BKSV_1               0x206f207c /* [RW][32] HDCP BKSV value to be written to the I<sup><small>2</sup></small>C register space */
+#define BCHP_HDMI_RX_0_HDCP_CONFIG               0x206f2080 /* [RW][32] HDCP Configuration Settings */
+#define BCHP_HDMI_RX_0_HDCP_KSV_FIFO_0           0x206f2084 /* [RW][32] First of 2 registers used to load the KSV FIFO For HDCP Repeater Applications */
+#define BCHP_HDMI_RX_0_HDCP_KSV_FIFO_1           0x206f2088 /* [RW][32] Second of 2 registers used to load the KSV FIFO For HDCP Repeater Applications */
+#define BCHP_HDMI_RX_0_HDCP_RX_KSV_FIFO_VIEW_0   0x206f208c /* [RO][32] KSV FIFO Readback register 0 */
+#define BCHP_HDMI_RX_0_HDCP_RX_KSV_FIFO_VIEW_1   0x206f2090 /* [RO][32] KSV FIFO Readback register 1 */
+#define BCHP_HDMI_RX_0_HDCP_RX_REPEATER_CTL      0x206f2094 /* [RO][32] HDCP Repeater Control Register */
+#define BCHP_HDMI_RX_0_HDCP_KEY_0                0x206f2098 /* [RW][32] Key Load Register for HDCP authentication testing */
+#define BCHP_HDMI_RX_0_HDCP_KEY_1                0x206f209c /* [RW][32] Key Load Register for HDCP authentication testing */
+#define BCHP_HDMI_RX_0_HDCP_DEBUG                0x206f20a0 /* [RW][32] HDCP Debug Registers */
+#define BCHP_HDMI_RX_0_HDCP_STATUS               0x206f20a4 /* [RO][32] HDCP Status information */
+#define BCHP_HDMI_RX_0_MISC_CONTROL              0x206f20a8 /* [RW][32] Miscellaneous General Control Bits for the HDMI Rx Core */
+#define BCHP_HDMI_RX_0_HDCP_RX_I2C_MISC_CFG_2    0x206f20ac /* [RW][32] HDCP I<sup><small>2</sup></small>C Configuration */
+#define BCHP_HDMI_RX_0_HDCP_I2C_PEEK_POKE        0x206f20b0 /* [RW][32] HDCP I<sup><small>2</sup></small>C Initialization and Monitoring */
+#define BCHP_HDMI_RX_0_HDCP_I2C_TRANSACTION_MONITOR 0x206f20b4 /* [RO][32] Debug visibility into HDCP I<sup><small>2</sup></small>C transactions */
+#define BCHP_HDMI_RX_0_HDCP_MON_BKSV_0           0x206f20b8 /* [RO][32] Debug visibility into HDCP receiver KSV 31:0 */
+#define BCHP_HDMI_RX_0_HDCP_MON_BKSV_1           0x206f20bc /* [RO][32] Debug visibility into HDCP receiver KSV 39:32 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RI_PJ            0x206f20c0 /* [RO][32] Debug visibility into HDCP link verification RI and PJ values */
+#define BCHP_HDMI_RX_0_HDCP_MON_AKSV_0           0x206f20c4 /* [RO][32] Debug visibility into HDCP transmitter KSV 31:0 */
+#define BCHP_HDMI_RX_0_HDCP_MON_AKSV_1           0x206f20c8 /* [RO][32] Debug visibility into HDCP transmitter KSV 39:32 */
+#define BCHP_HDMI_RX_0_HDCP_MON_AINFO            0x206f20cc /* [RO][32] Debug visibility into HDCP transmitter AINFO */
+#define BCHP_HDMI_RX_0_HDCP_MON_AN_0             0x206f20d0 /* [RO][32] Debug visibility into HDCP transmitter session random number - AN 31:0 */
+#define BCHP_HDMI_RX_0_HDCP_MON_AN_1             0x206f20d4 /* [RO][32] Debug visibility into HDCP transmitter session random number - AN 63:32 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_0           0x206f20d8 /* [RO][32] Debug visibility into HDCP Verification Value Bits 31:0 - H0 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_1           0x206f20dc /* [RO][32] Debug visibility into HDCP Verification Value Bits 63:32 - H1 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_2           0x206f20e0 /* [RO][32] Debug visibility into HDCP Verification Value Bits 95:64 - H2 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_3           0x206f20e4 /* [RO][32] Debug visibility into HDCP Verification Value Bits 127:96 - H3 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_V_4           0x206f20e8 /* [RO][32] Debug visibility into HDCP Verification Value Bits 159:128 - H4 */
+#define BCHP_HDMI_RX_0_HDCP_MON_RX_BSTATUS__BCAPS 0x206f20ec /* [RO][32] Debug visibility into HDCP Bcaps and Bstatus */
+#define BCHP_HDMI_RX_0_SCDC_I2C_TRANSACTION_MONITOR 0x206f20f0 /* [RO][32] Debug visibility into SCDC I<sup><small>2</sup></small>C transactions */
+#define BCHP_HDMI_RX_0_SCDC_CFG_1                0x206f20f4 /* [RW][32] SCDC Configuration Register */
+#define BCHP_HDMI_RX_0_SCDC_CFG_2                0x206f20f8 /* [RW][32] SCDC Configuration Register for test features */
+#define BCHP_HDMI_RX_0_SCDC_CFG_3                0x206f20fc /* [RW][32] SCDC Configuration Register for test features */
+#define BCHP_HDMI_RX_0_SCDC_CFG_4                0x206f2100 /* [RW][32] SCDC Configuration Register for test features */
+#define BCHP_HDMI_RX_0_SCDC_CFG_5                0x206f2104 /* [RW][32] SCDC Configuration Register for test features */
+#define BCHP_HDMI_RX_0_SCDC_CFG_STATUS           0x206f2108 /* [RO][32] SCDC Config Status Register */
+#define BCHP_HDMI_RX_0_SCDC_STATUS               0x206f210c /* [RO][32] SCDC Status Register */
+#define BCHP_HDMI_RX_0_SCDC_ERR_DET_STATUS_1     0x206f2110 /* [RO][32] SCDC Error Detection Status Register 1 */
+#define BCHP_HDMI_RX_0_SCDC_ERR_DET_STATUS_2     0x206f2114 /* [RO][32] SCDC Error Detection Status Register 2 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_1   0x206f2118 /* [RW][32] SCDC Manufacturer Specific Register 1 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_2   0x206f211c /* [RW][32] SCDC Manufacturer Specific Register 2 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_3   0x206f2120 /* [RW][32] SCDC Manufacturer Specific Register 3 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_4   0x206f2124 /* [RW][32] SCDC Manufacturer Specific Register 4 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_5   0x206f2128 /* [RW][32] SCDC Manufacturer Specific Register 5 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_6   0x206f212c /* [RW][32] SCDC Manufacturer Specific Register 6 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_7   0x206f2130 /* [RW][32] SCDC Manufacturer Specific Register 7 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_8   0x206f2134 /* [RW][32] SCDC Manufacturer Specific Register 8 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_9   0x206f2138 /* [RW][32] SCDC Manufacturer Specific Register 9 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_10  0x206f213c /* [RW][32] SCDC Manufacturer Specific Register 10 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_11  0x206f2140 /* [RW][32] SCDC Manufacturer Specific Register 11 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_12  0x206f2144 /* [RW][32] SCDC Manufacturer Specific Register 12 */
+#define BCHP_HDMI_RX_0_SCDC_MANUFACTURER_CFG_13  0x206f2148 /* [RW][32] SCDC Manufacturer Specific Register 13 */
+#define BCHP_HDMI_RX_0_BCH_ECC_CFG               0x206f214c /* [RW][32] Data Island Error Correction Control Register */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_STATUS   0x206f2150 /* [RO][32] Monitor which Packets Updated */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CONTROL  0x206f2154 /* [RW][32] Control the Packet RAM */
+#define BCHP_HDMI_RX_0_RAM_PACKET_UPDATE_CONFIG  0x206f2158 /* [RW][32] Enable the  PACKET_UPDATE */
+#define BCHP_HDMI_RX_0_RAM_PACKET_IRQ_ENABLE     0x206f215c /* [RW][32] Enable the  PACKET_UPDATE Interrupt */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_SELECT   0x206f2160 /* [RW][32] Control Register for Packet Stop Sync Selection */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_0 0x206f2164 /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_1 0x206f2168 /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_2 0x206f216c /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_3 0x206f2170 /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_4 0x206f2174 /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_5 0x206f2178 /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_SYNC_COUNT_CONTROL_6 0x206f217c /* [RW][32] Control register for Packet Stop Detect Circuit */
+#define BCHP_HDMI_RX_0_ENABLE_PACKET_STOP_DETECT 0x206f2180 /* [RW][32] Control register to enable the Packet Stop Detection Circuit for each type of packet */
+#define BCHP_HDMI_RX_0_PACKET_STOP_DETECT_STATUS 0x206f2184 /* [RO][32] Status of Packet Stop Detection Circuit */
+#define BCHP_HDMI_RX_0_PACKET_STOP_CLEAR_DETECT  0x206f2188 /* [RW][32] Control to Clear the Stop Detected Bits */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_AUDIO_CTS 0x206f218c /* [RO][32] HDMI Cyclic Time Stamp */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_AUDIO_N  0x206f2190 /* [RO][32] HDMI N Value for Computing the Cyclic Time Stamp */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CHN_STAT_3_0 0x206f2194 /* [RO][32] Packet Processor: Audio Channel Status Bits 31:0 */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CHN_STAT_7_4 0x206f2198 /* [RO][32] Packet Processor: Audio Channel Status Bits 63:32 */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_CFG      0x206f219c /* [RW][32] Packet Processor Configuration register */
+#define BCHP_HDMI_RX_0_PKT_ACR_CFG_1             0x206f21a0 /* [RW][32] Audio Packet Clock Recovery PKT_ACR_CFG_1 */
+#define BCHP_HDMI_RX_0_PKT_ACR_CFG_2             0x206f21a4 /* [RW][32] Audio Packet Clock Recovery PKT_ACR_CFG_2 */
+#define BCHP_HDMI_RX_0_PKT_ACR_CFG_3             0x206f21a8 /* [RW][32] Audio Packet Clock Recovery PKT_ACR_CFG_3 */
+#define BCHP_HDMI_RX_0_PKT_ACR_CFG_4             0x206f21ac /* [RW][32] Audio Packet Clock Recovery PKT_ACR_CFG_4 */
+#define BCHP_HDMI_RX_0_PKT_ACR_CFG_5             0x206f21b0 /* [RW][32] Audio Packet Clock Recovery PKT_ACR_CFG_5 */
+#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_0          0x206f21b4 /* [RO][32] Audio Packet Clock Recovery PKT_ACR_STATUS_0 */
+#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_1          0x206f21b8 /* [RO][32] Audio Packet Clock Recovery PKT_ACR_STATUS_1 */
+#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_2          0x206f21bc /* [RO][32] Audio Packet Clock Recovery PKT_ACR_STATUS_2 */
+#define BCHP_HDMI_RX_0_PKT_ACR_STATUS_3          0x206f21c0 /* [RO][32] Audio Packet Clock Recovery PKT_ACR_STATUS_3 */
+#define BCHP_HDMI_RX_0_PACKET_PROCESSOR_MAI_FORMAT 0x206f21c4 /* [RW][32] Packet Processor: Configure MAI Bus output format word */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_0        0x206f21c8 /* [RW][32] Ram Packet Type Definitions for 0 - 3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_1        0x206f21cc /* [RW][32] Ram Packet Type Definitions for 4 - 7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_2        0x206f21d0 /* [RW][32] Ram Packet Type Definitions for 8 - 11 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_3        0x206f21d4 /* [RW][32] Ram Packet Type Definitions for 12 - 15 <FONT COLOR=red>NOTE: 2 NEW, packet 13 is not read only any more</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_4        0x206f21d8 /* [RW][32] Ram Packet Type Definitions for 16 - 19 <FONT COLOR=red>NOTE: 4 NEW</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_5        0x206f21dc /* [RW][32] Ram Packet Type Definitions for 20 - 23 <FONT COLOR=red>NOTE: 4 NEW</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_TYPES_6        0x206f21e0 /* [RW][32] Ram Packet Type Definitions for 24 - 27 <FONT COLOR=red>NOTE: 4 NEW packet 27 replaces packet 13's functionality</FONT> */
+#define BCHP_HDMI_RX_0_PERT_STATUS               0x206f21e4 /* [RO][32] General PERT Status Information */
+#define BCHP_HDMI_RX_0_PERT_CONFIG               0x206f21e8 /* [RW][32] PERT Configuration Register */
+#define BCHP_HDMI_RX_0_PERT_LFSR_FEEDBACK_ENABLE 0x206f21ec /* [RW][32] PERT LFSR Feedback Mask Register */
+#define BCHP_HDMI_RX_0_PERT_BIT_TEST_ENABLE      0x206f21f0 /* [RW][32] PERT Test Bit Selection Register */
+#define BCHP_HDMI_RX_0_PERT_DATA                 0x206f21f4 /* [RW][32] PERT Constant data Register */
+#define BCHP_HDMI_RX_0_PERT_PIXEL_COUNT          0x206f21f8 /* [RO][32] PERT Pixel Count Register */
+#define BCHP_HDMI_RX_0_PERT_PIXEL_ERROR_COUNT    0x206f21fc /* [RO][32] PERT Pixel Error Count Register */
+#define BCHP_HDMI_RX_0_PERT_RED_PIXEL_ERROR_COUNT 0x206f2200 /* [RO][32] PERT Red Pixel Error Count Register */
+#define BCHP_HDMI_RX_0_PERT_GREEN_PIXEL_ERROR_COUNT 0x206f2204 /* [RO][32] PERT Green Pixel Error Count  Register */
+#define BCHP_HDMI_RX_0_PERT_BLUE_PIXEL_ERROR_COUNT 0x206f2208 /* [RO][32] PERT Blue Pixel Error Count  Register */
+#define BCHP_HDMI_RX_0_PRBS_CH_0                 0x206f220c /* [RO][32] PRBS Channel 0 Pixel Count */
+#define BCHP_HDMI_RX_0_PRBS_CH_1                 0x206f2210 /* [RO][32] PRBS Channel 1 Pixel Count */
+#define BCHP_HDMI_RX_0_PRBS_CH_2                 0x206f2214 /* [RO][32] PRBS Channel 2 Pixel Count */
+#define BCHP_HDMI_RX_0_PRBS_CH_0_STATUS          0x206f2218 /* [RO][32] PRBS Channel 0 Status */
+#define BCHP_HDMI_RX_0_PRBS_CH_1_STATUS          0x206f221c /* [RO][32] PRBS Channel 1 Status */
+#define BCHP_HDMI_RX_0_PRBS_CH_2_STATUS          0x206f2220 /* [RO][32] PRBS Channel 2 Status */
+#define BCHP_HDMI_RX_0_EVENT_STATS_CONFIG        0x206f2224 /* [RW][32] Configure which events are available for counting */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_00     0x206f2228 /* [RW][32] Enable Event Counter 0 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_01     0x206f222c /* [RW][32] Enable Event Counter 0 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_10     0x206f2230 /* [RW][32] Enable Event Counter 1 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_11     0x206f2234 /* [RW][32] Enable Event Counter 1 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_20     0x206f2238 /* [RW][32] Enable Event Counter 2 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_21     0x206f223c /* [RW][32] Enable Event Counter 2 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_30     0x206f2240 /* [RW][32] Enable Event Counter 3 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_31     0x206f2244 /* [RW][32] Enable Event Counter 3 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_40     0x206f2248 /* [RW][32] Enable Event Counter 4 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_41     0x206f224c /* [RW][32] Enable Event Counter 4 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_50     0x206f2250 /* [RW][32] Enable Event Counter 5 Bits */
+#define BCHP_HDMI_RX_0_EVENT_STATS_ENABLE_51     0x206f2254 /* [RW][32] Enable Event Counter 5 Bits */
+#define BCHP_HDMI_RX_0_EVENT_COUNTER_0_1_COUNT   0x206f2258 /* [RO][32] Counters 0 and 1 to Monitor Events for Test and Debug */
+#define BCHP_HDMI_RX_0_EVENT_COUNTER_2_3_COUNT   0x206f225c /* [RO][32] Counters 2 and 3 to Monitor Events for Test and Debug */
+#define BCHP_HDMI_RX_0_EVENT_COUNTER_4_5_COUNT   0x206f2260 /* [RO][32] Counters 4 and 5 to Monitor Events for Test and Debug */
+#define BCHP_HDMI_RX_0_SYS_CLK_CNTR              0x206f2264 /* [RO][32] Count system clocks to provide a test time base. */
+#define BCHP_HDMI_RX_0_ERROR_INTERRUPT_STATUS    0x206f2268 /* [RO][32] Used to determine which error triggered the error interrupt */
+#define BCHP_HDMI_RX_0_MISC_STATUS               0x206f226c /* [RO][32] Miscellaneous Status Info about the HDMI RX Core */
+#define BCHP_HDMI_RX_0_TEST_PORT_CONFIGURATION   0x206f2270 /* [RW][32] Configure which data is output on the test port */
+#define BCHP_HDMI_RX_0_FORMAT_DET_CFG            0x206f2274 /* [RW][32] Video Format Detection Circuit Configuration Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_STATUS  0x206f2278 /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_STATUS_1 0x206f227c /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_CLEAR   0x206f2280 /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_UPDATE_CLEAR_1 0x206f2284 /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_1              0x206f2288 /* [RO][32] VID_FORMAT_1  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_2              0x206f228c /* [RO][32] VID_FORMAT_2  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_3              0x206f2290 /* [RO][32] VID_FORMAT_3  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_4              0x206f2294 /* [RO][32] VID_FORMAT_4  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_5              0x206f2298 /* [RO][32] VID_FORMAT_5  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_6              0x206f229c /* [RO][32] VID_FORMAT_6  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_7              0x206f22a0 /* [RO][32] VID_FORMAT_7  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_8              0x206f22a4 /* [RO][32] VID_FORMAT_8  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_9              0x206f22a8 /* [RO][32] VID_FORMAT_9  Register */
+#define BCHP_HDMI_RX_0_FORMAT_DET_10             0x206f22ac /* [RO][32] VID_FORMAT_10  Register */
+#define BCHP_HDMI_RX_0_HSYNC_CNT                 0x206f22b0 /* [RO][32] HSYNC_CNT  Register */
+#define BCHP_HDMI_RX_0_VSYNC_CNT_FIELD0          0x206f22b4 /* [RO][32] VSYNC_CNT_FIELD0  Register */
+#define BCHP_HDMI_RX_0_VSYNC_CNT_FIELD1          0x206f22b8 /* [RO][32] VSYNC_CNT_FIELD1  Register */
+#define BCHP_HDMI_RX_0_VSYNC_PIX_FIELD0          0x206f22bc /* [RO][32] VSYNC_PIX_FIELD0  Register */
+#define BCHP_HDMI_RX_0_VSYNC_PIX_FIELD1          0x206f22c0 /* [RO][32] VSYNC_PIX_FIELD1  Register */
+#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_1    0x206f22c4 /* [RW][32] FORMAT_THRESHOLD_CFG_1 - Min Vsync Count */
+#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_2    0x206f22c8 /* [RW][32] FORMAT_THRESHOLD_CFG_2 - Max Vsync Count */
+#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_3    0x206f22cc /* [RW][32] FORMAT_THRESHOLD_CFG_3 - Set Min and Max Hsync Count */
+#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_4    0x206f22d0 /* [RW][32] FORMAT_THRESHOLD_CFG_4 - Set Min and Max Ver. Active Line Count */
+#define BCHP_HDMI_RX_0_FORMAT_THRESHOLD_CFG_5    0x206f22d4 /* [RW][32] FORMAT_THRESHOLD_CFG_5 - Set Min and Max Hor. Active Pixel Count */
+#define BCHP_HDMI_RX_0_PCTR_CLEAN_CLEAR_ERRORS   0x206f22d8 /* [RW][32] PCTR_CLEAN_CLEAR_ERRORS - Control to Clear Status Errors */
+#define BCHP_HDMI_RX_0_PCTR_ERROR_STATUS         0x206f22dc /* [RO][32] PCTR_ERROR_STATUS - Status of DVP Format Threshold Monitor Circuit */
+#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_CFG_1    0x206f22e0 /* [RW][32] Configuration For HDMI 1.3 features */
+#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_CFG_2    0x206f22e4 /* [RW][32] Configuration For HDMI 1.3 features */
+#define BCHP_HDMI_RX_0_HDMI_13_FEATURES_STATUS_1 0x206f22e8 /* [RO][32] Status For HDMI 1.3 features */
+#define BCHP_HDMI_RX_0_I2C_FREQ_DETECTION_STATUS1 0x206f22ec /* [RO][32] I2C_FREQ_DETECTION_STATUS1 */
+#define BCHP_HDMI_RX_0_I2C_FREQ_DETECTION_STATUS2 0x206f22f0 /* [RO][32] I2C_FREQ_DETECTION_STATUS2 */
+#define BCHP_HDMI_RX_0_SCDC_I2C_FREQ_DETECTION_STATUS1 0x206f22f4 /* [RO][32] SCDC_I2C_FREQ_DETECTION_STATUS1 */
+#define BCHP_HDMI_RX_0_SCDC_I2C_FREQ_DETECTION_STATUS2 0x206f22f8 /* [RO][32] SCDC_I2C_FREQ_DETECTION_STATUS2 */
+#define BCHP_HDMI_RX_0_AUDIO_CHANNEL_MAP         0x206f22fc /* [RW][32] AUDIO_CHANNEL_MAP */
+#define BCHP_HDMI_RX_0_CH_REPLACE_ZEROS          0x206f2300 /* [RW][32] CH_REPLACE_ZEROS */
+#define BCHP_HDMI_RX_0_AUDIO_PACKET_TYPE         0x206f2304 /* [RW][32] AUDIO_PACKET_TYPE */
+#define BCHP_HDMI_RX_0_AUDIO_TEST_DATA           0x206f2308 /* [RW][32] AUDIO_TEST_DATA */
+#define BCHP_HDMI_RX_0_AUDIO_TEST_CONFIG         0x206f230c /* [RW][32] AUDIO_TEST_CONFIG */
+#define BCHP_HDMI_RX_0_ACR_ERROR                 0x206f2310 /* [RW][32] ACR_ERROR */
+#define BCHP_HDMI_RX_0_AUDIO_CHANNEL_STATUS_CONFIG 0x206f2314 /* [RW][32] AUDIO_CHANNEL_STATUS_CONFIG */
+#define BCHP_HDMI_RX_0_AUDIO_MUTE_CFG            0x206f2318 /* [RW][32] AUDIO_MUTE_CFG */
+#define BCHP_HDMI_RX_0_VIDEO_MUTE_CFG            0x206f231c /* [RW][32] VIDEO_MUTE_CFG */
+#define BCHP_HDMI_RX_0_VIDEO_MUTE_STATUS         0x206f2320 /* [RO][32] VIDEO_MUTE_STATUS */
+#define BCHP_HDMI_RX_0_VIDEO_MUTE_STATUS_CLEAR   0x206f2324 /* [RW][32] VIDEO_MUTE_STATUS_CLEAR */
+#define BCHP_HDMI_RX_0_AUDIO_PASSTHRU_CONFIG     0x206f2328 /* [RW][32] AUDIO_PASSTHRU_CONFIG */
+#define BCHP_HDMI_RX_0_AUDIO_PASSTHRU_CNT_STATUS 0x206f232c /* [RO][32] AUDIO_PASSTHRU_CNT_STATUS */
+#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_EVENT_CONFIG 0x206f2330 /* [RW][32] AUDIO_MUTE_PASSTHRU_EVENT_CONFIG */
+#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_STATUS 0x206f2334 /* [RO][32] AUDIO_MUTE_PASSTHRU_STATUS */
+#define BCHP_HDMI_RX_0_AUDIO_MUTE_PASSTHRU_CLEAR 0x206f2338 /* [RW][32] AUDIO_MUTE_PASSTHRU_CLEAR */
+#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_EVENT_CONFIG 0x206f233c /* [RW][32] AVMUTE_PASSTHRU_EVENT_CONFIG */
+#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_STATUS    0x206f2340 /* [RO][32] AVMUTE_PASSTHRU_STATUS */
+#define BCHP_HDMI_RX_0_AVMUTE_PASSTHRU_CLEAR     0x206f2344 /* [RW][32] AVMUTE_PASSTHRU_CLEAR */
+#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_EVENT_CONFIG 0x206f2348 /* [RW][32] TMDS_SHUTOFF_PASSTHRU_EVENT_CONFIG */
+#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_STATUS 0x206f234c /* [RO][32] TMDS_SHUTOFF_PASSTHRU_STATUS */
+#define BCHP_HDMI_RX_0_TMDS_SHUTOFF_PASSTHRU_CLEAR 0x206f2350 /* [RW][32] TMDS_SHUTOFF_PASSTHRU_CLEAR */
+#define BCHP_HDMI_RX_0_ATR_CONFIG                0x206f2354 /* [RW][32] ATR_CONFIG */
+#define BCHP_HDMI_RX_0_ATR_TEST_CTS              0x206f2358 /* [RW][32] ATR_TEST_CTS */
+#define BCHP_HDMI_RX_0_ATR_TEST_N                0x206f235c /* [RW][32] ATR_TEST_N */
+#define BCHP_HDMI_RX_0_MASK_PACKET_AUDIO_MUTE    0x206f2360 /* [RW][32] MASK_PACKET_AUDIO_MUTE */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_HEADER       0x206f2364 /* [RW][32] <FONT COLOR=D08000>RAM Packet 0, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_0_LOW 0x206f2368 /* [RW][32] RAM Packet 0, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_0_HIGH 0x206f236c /* [RW][32] RAM Packet 0, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_1_LOW 0x206f2370 /* [RW][32] RAM Packet 0, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_1_HIGH 0x206f2374 /* [RW][32] RAM Packet 0, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_2_LOW 0x206f2378 /* [RW][32] RAM Packet 0, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_2_HIGH 0x206f237c /* [RW][32] RAM Packet 0, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_3_LOW 0x206f2380 /* [RW][32] RAM Packet 0, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_0_SUBPACKET_3_HIGH 0x206f2384 /* [RW][32] RAM Packet 0, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_HEADER       0x206f2388 /* [RW][32] <FONT COLOR=D08000>RAM Packet 1, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_0_LOW 0x206f238c /* [RW][32] RAM Packet 1, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_0_HIGH 0x206f2390 /* [RW][32] RAM Packet 1, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_1_LOW 0x206f2394 /* [RW][32] RAM Packet 1, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_1_HIGH 0x206f2398 /* [RW][32] RAM Packet 1, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_2_LOW 0x206f239c /* [RW][32] RAM Packet 1, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_2_HIGH 0x206f23a0 /* [RW][32] RAM Packet 1, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_3_LOW 0x206f23a4 /* [RW][32] RAM Packet 1, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_1_SUBPACKET_3_HIGH 0x206f23a8 /* [RW][32] RAM Packet 1, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_HEADER       0x206f23ac /* [RW][32] <FONT COLOR=D08000>RAM Packet 2, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_0_LOW 0x206f23b0 /* [RW][32] RAM Packet 2, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_0_HIGH 0x206f23b4 /* [RW][32] RAM Packet 2, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_1_LOW 0x206f23b8 /* [RW][32] RAM Packet 2, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_1_HIGH 0x206f23bc /* [RW][32] RAM Packet 2, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_2_LOW 0x206f23c0 /* [RW][32] RAM Packet 2, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_2_HIGH 0x206f23c4 /* [RW][32] RAM Packet 2, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_3_LOW 0x206f23c8 /* [RW][32] RAM Packet 2, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_2_SUBPACKET_3_HIGH 0x206f23cc /* [RW][32] RAM Packet 2, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_HEADER       0x206f23d0 /* [RW][32] <FONT COLOR=D08000>RAM Packet 3, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_0_LOW 0x206f23d4 /* [RW][32] RAM Packet 3, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_0_HIGH 0x206f23d8 /* [RW][32] RAM Packet 3, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_1_LOW 0x206f23dc /* [RW][32] RAM Packet 3, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_1_HIGH 0x206f23e0 /* [RW][32] RAM Packet 3, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_2_LOW 0x206f23e4 /* [RW][32] RAM Packet 3, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_2_HIGH 0x206f23e8 /* [RW][32] RAM Packet 3, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_3_LOW 0x206f23ec /* [RW][32] RAM Packet 3, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_3_SUBPACKET_3_HIGH 0x206f23f0 /* [RW][32] RAM Packet 3, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_HEADER       0x206f23f4 /* [RW][32] <FONT COLOR=D08000>RAM Packet 4, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_0_LOW 0x206f23f8 /* [RW][32] RAM Packet 4, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_0_HIGH 0x206f23fc /* [RW][32] RAM Packet 4, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_1_LOW 0x206f2400 /* [RW][32] RAM Packet 4, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_1_HIGH 0x206f2404 /* [RW][32] RAM Packet 4, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_2_LOW 0x206f2408 /* [RW][32] RAM Packet 4, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_2_HIGH 0x206f240c /* [RW][32] RAM Packet 4, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_3_LOW 0x206f2410 /* [RW][32] RAM Packet 4, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_4_SUBPACKET_3_HIGH 0x206f2414 /* [RW][32] RAM Packet 4, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_HEADER       0x206f2418 /* [RW][32] <FONT COLOR=D08000>RAM Packet 5, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_0_LOW 0x206f241c /* [RW][32] RAM Packet 5, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_0_HIGH 0x206f2420 /* [RW][32] RAM Packet 5, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_1_LOW 0x206f2424 /* [RW][32] RAM Packet 5, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_1_HIGH 0x206f2428 /* [RW][32] RAM Packet 5, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_2_LOW 0x206f242c /* [RW][32] RAM Packet 5, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_2_HIGH 0x206f2430 /* [RW][32] RAM Packet 5, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_3_LOW 0x206f2434 /* [RW][32] RAM Packet 5, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_5_SUBPACKET_3_HIGH 0x206f2438 /* [RW][32] RAM Packet 5, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_HEADER       0x206f243c /* [RW][32] <FONT COLOR=D08000>RAM Packet 6, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_0_LOW 0x206f2440 /* [RW][32] RAM Packet 6, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_0_HIGH 0x206f2444 /* [RW][32] RAM Packet 6, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_1_LOW 0x206f2448 /* [RW][32] RAM Packet 6, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_1_HIGH 0x206f244c /* [RW][32] RAM Packet 6, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_2_LOW 0x206f2450 /* [RW][32] RAM Packet 6, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_2_HIGH 0x206f2454 /* [RW][32] RAM Packet 6, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_3_LOW 0x206f2458 /* [RW][32] RAM Packet 6, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_6_SUBPACKET_3_HIGH 0x206f245c /* [RW][32] RAM Packet 6, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_HEADER       0x206f2460 /* [RW][32] <FONT COLOR=D08000>RAM Packet 7, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_0_LOW 0x206f2464 /* [RW][32] RAM Packet 7, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_0_HIGH 0x206f2468 /* [RW][32] RAM Packet 7, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_1_LOW 0x206f246c /* [RW][32] RAM Packet 7, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_1_HIGH 0x206f2470 /* [RW][32] RAM Packet 7, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_2_LOW 0x206f2474 /* [RW][32] RAM Packet 7, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_2_HIGH 0x206f2478 /* [RW][32] RAM Packet 7, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_3_LOW 0x206f247c /* [RW][32] RAM Packet 7, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_7_SUBPACKET_3_HIGH 0x206f2480 /* [RW][32] RAM Packet 7, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_HEADER       0x206f2484 /* [RW][32] <FONT COLOR=D08000>RAM Packet 8, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_0_LOW 0x206f2488 /* [RW][32] RAM Packet 8, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_0_HIGH 0x206f248c /* [RW][32] RAM Packet 8, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_1_LOW 0x206f2490 /* [RW][32] RAM Packet 8, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_1_HIGH 0x206f2494 /* [RW][32] RAM Packet 8, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_2_LOW 0x206f2498 /* [RW][32] RAM Packet 8, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_2_HIGH 0x206f249c /* [RW][32] RAM Packet 8, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_3_LOW 0x206f24a0 /* [RW][32] RAM Packet 8, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_8_SUBPACKET_3_HIGH 0x206f24a4 /* [RW][32] RAM Packet 8, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_HEADER       0x206f24a8 /* [RW][32] <FONT COLOR=D08000>RAM Packet 9, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_0_LOW 0x206f24ac /* [RW][32] RAM Packet 9, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_0_HIGH 0x206f24b0 /* [RW][32] RAM Packet 9, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_1_LOW 0x206f24b4 /* [RW][32] RAM Packet 9, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_1_HIGH 0x206f24b8 /* [RW][32] RAM Packet 9, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_2_LOW 0x206f24bc /* [RW][32] RAM Packet 9, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_2_HIGH 0x206f24c0 /* [RW][32] RAM Packet 9, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_3_LOW 0x206f24c4 /* [RW][32] RAM Packet 9, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_9_SUBPACKET_3_HIGH 0x206f24c8 /* [RW][32] RAM Packet 9, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_HEADER      0x206f24cc /* [RW][32] <FONT COLOR=D08000>RAM Packet 10, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_0_LOW 0x206f24d0 /* [RW][32] RAM Packet 10, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_0_HIGH 0x206f24d4 /* [RW][32] RAM Packet 10, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_1_LOW 0x206f24d8 /* [RW][32] RAM Packet 10, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_1_HIGH 0x206f24dc /* [RW][32] RAM Packet 10, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_2_LOW 0x206f24e0 /* [RW][32] RAM Packet 10, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_2_HIGH 0x206f24e4 /* [RW][32] RAM Packet 10, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_3_LOW 0x206f24e8 /* [RW][32] RAM Packet 10, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_10_SUBPACKET_3_HIGH 0x206f24ec /* [RW][32] RAM Packet 10, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_HEADER      0x206f24f0 /* [RW][32] <FONT COLOR=D08000>RAM Packet 11, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_0_LOW 0x206f24f4 /* [RW][32] RAM Packet 11, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_0_HIGH 0x206f24f8 /* [RW][32] RAM Packet 11, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_1_LOW 0x206f24fc /* [RW][32] RAM Packet 11, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_1_HIGH 0x206f2500 /* [RW][32] RAM Packet 11, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_2_LOW 0x206f2504 /* [RW][32] RAM Packet 11, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_2_HIGH 0x206f2508 /* [RW][32] RAM Packet 11, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_3_LOW 0x206f250c /* [RW][32] RAM Packet 11, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_11_SUBPACKET_3_HIGH 0x206f2510 /* [RW][32] RAM Packet 11, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_HEADER      0x206f2514 /* [RW][32] <FONT COLOR=D08000>RAM Packet 12, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_0_LOW 0x206f2518 /* [RW][32] RAM Packet 12, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_0_HIGH 0x206f251c /* [RW][32] RAM Packet 12, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_1_LOW 0x206f2520 /* [RW][32] RAM Packet 12, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_1_HIGH 0x206f2524 /* [RW][32] RAM Packet 12, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_2_LOW 0x206f2528 /* [RW][32] RAM Packet 12, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_2_HIGH 0x206f252c /* [RW][32] RAM Packet 12, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_3_LOW 0x206f2530 /* [RW][32] RAM Packet 12, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_12_SUBPACKET_3_HIGH 0x206f2534 /* [RW][32] RAM Packet 12, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_HEADER      0x206f2538 /* [RW][32] <FONT COLOR=D08000>RAM Packet 13, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_0_LOW 0x206f253c /* [RW][32] RAM Packet 13, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_0_HIGH 0x206f2540 /* [RW][32] RAM Packet 13, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_1_LOW 0x206f2544 /* [RW][32] RAM Packet 13, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_1_HIGH 0x206f2548 /* [RW][32] RAM Packet 13, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_2_LOW 0x206f254c /* [RW][32] RAM Packet 13, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_2_HIGH 0x206f2550 /* [RW][32] RAM Packet 13, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_3_LOW 0x206f2554 /* [RW][32] RAM Packet 13, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_13_SUBPACKET_3_HIGH 0x206f2558 /* [RW][32] RAM Packet 13, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_HEADER      0x206f255c /* [RW][32] <FONT COLOR=D08000>RAM Packet 14, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_0_LOW 0x206f2560 /* [RW][32] RAM Packet 14, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_0_HIGH 0x206f2564 /* [RW][32] RAM Packet 14, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_1_LOW 0x206f2568 /* [RW][32] RAM Packet 14, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_1_HIGH 0x206f256c /* [RW][32] RAM Packet 14, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_2_LOW 0x206f2570 /* [RW][32] RAM Packet 14, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_2_HIGH 0x206f2574 /* [RW][32] RAM Packet 14, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_3_LOW 0x206f2578 /* [RW][32] RAM Packet 14, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_14_SUBPACKET_3_HIGH 0x206f257c /* [RW][32] RAM Packet 14, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_HEADER      0x206f2580 /* [RW][32] <FONT COLOR=D08000>RAM Packet 15, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_0_LOW 0x206f2584 /* [RW][32] RAM Packet 15, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_0_HIGH 0x206f2588 /* [RW][32] RAM Packet 15, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_1_LOW 0x206f258c /* [RW][32] RAM Packet 15, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_1_HIGH 0x206f2590 /* [RW][32] RAM Packet 15, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_2_LOW 0x206f2594 /* [RW][32] RAM Packet 15, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_2_HIGH 0x206f2598 /* [RW][32] RAM Packet 15, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_3_LOW 0x206f259c /* [RW][32] RAM Packet 15, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_15_SUBPACKET_3_HIGH 0x206f25a0 /* [RW][32] RAM Packet 15, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_HEADER      0x206f25a4 /* [RW][32] <FONT COLOR=D08000>RAM Packet 16, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_0_LOW 0x206f25a8 /* [RW][32] RAM Packet 16, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_0_HIGH 0x206f25ac /* [RW][32] RAM Packet 16, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_1_LOW 0x206f25b0 /* [RW][32] RAM Packet 16, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_1_HIGH 0x206f25b4 /* [RW][32] RAM Packet 16, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_2_LOW 0x206f25b8 /* [RW][32] RAM Packet 16, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_2_HIGH 0x206f25bc /* [RW][32] RAM Packet 16, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_3_LOW 0x206f25c0 /* [RW][32] RAM Packet 16, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_16_SUBPACKET_3_HIGH 0x206f25c4 /* [RW][32] RAM Packet 16, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_HEADER      0x206f25c8 /* [RW][32] <FONT COLOR=D08000>RAM Packet 17, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_0_LOW 0x206f25cc /* [RW][32] RAM Packet 17, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_0_HIGH 0x206f25d0 /* [RW][32] RAM Packet 17, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_1_LOW 0x206f25d4 /* [RW][32] RAM Packet 17, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_1_HIGH 0x206f25d8 /* [RW][32] RAM Packet 17, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_2_LOW 0x206f25dc /* [RW][32] RAM Packet 17, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_2_HIGH 0x206f25e0 /* [RW][32] RAM Packet 17, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_3_LOW 0x206f25e4 /* [RW][32] RAM Packet 17, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_17_SUBPACKET_3_HIGH 0x206f25e8 /* [RW][32] RAM Packet 17, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_HEADER      0x206f25ec /* [RW][32] <FONT COLOR=D08000>RAM Packet 18, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_0_LOW 0x206f25f0 /* [RW][32] RAM Packet 18, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_0_HIGH 0x206f25f4 /* [RW][32] RAM Packet 18, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_1_LOW 0x206f25f8 /* [RW][32] RAM Packet 18, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_1_HIGH 0x206f25fc /* [RW][32] RAM Packet 18, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_2_LOW 0x206f2600 /* [RW][32] RAM Packet 18, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_2_HIGH 0x206f2604 /* [RW][32] RAM Packet 18, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_3_LOW 0x206f2608 /* [RW][32] RAM Packet 18, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_18_SUBPACKET_3_HIGH 0x206f260c /* [RW][32] RAM Packet 18, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_HEADER      0x206f2610 /* [RW][32] <FONT COLOR=D08000>RAM Packet 19, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_0_LOW 0x206f2614 /* [RW][32] RAM Packet 19, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_0_HIGH 0x206f2618 /* [RW][32] RAM Packet 19, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_1_LOW 0x206f261c /* [RW][32] RAM Packet 19, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_1_HIGH 0x206f2620 /* [RW][32] RAM Packet 19, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_2_LOW 0x206f2624 /* [RW][32] RAM Packet 19, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_2_HIGH 0x206f2628 /* [RW][32] RAM Packet 19, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_3_LOW 0x206f262c /* [RW][32] RAM Packet 19, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_19_SUBPACKET_3_HIGH 0x206f2630 /* [RW][32] RAM Packet 19, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_HEADER      0x206f2634 /* [RW][32] <FONT COLOR=D08000>RAM Packet 20, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_0_LOW 0x206f2638 /* [RW][32] RAM Packet 20, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_0_HIGH 0x206f263c /* [RW][32] RAM Packet 20, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_1_LOW 0x206f2640 /* [RW][32] RAM Packet 20, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_1_HIGH 0x206f2644 /* [RW][32] RAM Packet 20, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_2_LOW 0x206f2648 /* [RW][32] RAM Packet 20, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_2_HIGH 0x206f264c /* [RW][32] RAM Packet 20, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_3_LOW 0x206f2650 /* [RW][32] RAM Packet 20, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_20_SUBPACKET_3_HIGH 0x206f2654 /* [RW][32] RAM Packet 20, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_HEADER      0x206f2658 /* [RW][32] <FONT COLOR=D08000>RAM Packet 21, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_0_LOW 0x206f265c /* [RW][32] RAM Packet 21, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_0_HIGH 0x206f2660 /* [RW][32] RAM Packet 21, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_1_LOW 0x206f2664 /* [RW][32] RAM Packet 21, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_1_HIGH 0x206f2668 /* [RW][32] RAM Packet 21, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_2_LOW 0x206f266c /* [RW][32] RAM Packet 21, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_2_HIGH 0x206f2670 /* [RW][32] RAM Packet 21, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_3_LOW 0x206f2674 /* [RW][32] RAM Packet 21, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_21_SUBPACKET_3_HIGH 0x206f2678 /* [RW][32] RAM Packet 21, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_HEADER      0x206f267c /* [RW][32] <FONT COLOR=D08000>RAM Packet 22, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_0_LOW 0x206f2680 /* [RW][32] RAM Packet 22, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_0_HIGH 0x206f2684 /* [RW][32] RAM Packet 22, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_1_LOW 0x206f2688 /* [RW][32] RAM Packet 22, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_1_HIGH 0x206f268c /* [RW][32] RAM Packet 22, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_2_LOW 0x206f2690 /* [RW][32] RAM Packet 22, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_2_HIGH 0x206f2694 /* [RW][32] RAM Packet 22, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_3_LOW 0x206f2698 /* [RW][32] RAM Packet 22, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_22_SUBPACKET_3_HIGH 0x206f269c /* [RW][32] RAM Packet 22, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_HEADER      0x206f26a0 /* [RW][32] <FONT COLOR=D08000>RAM Packet 23, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_0_LOW 0x206f26a4 /* [RW][32] RAM Packet 23, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_0_HIGH 0x206f26a8 /* [RW][32] RAM Packet 23, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_1_LOW 0x206f26ac /* [RW][32] RAM Packet 23, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_1_HIGH 0x206f26b0 /* [RW][32] RAM Packet 23, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_2_LOW 0x206f26b4 /* [RW][32] RAM Packet 23, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_2_HIGH 0x206f26b8 /* [RW][32] RAM Packet 23, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_3_LOW 0x206f26bc /* [RW][32] RAM Packet 23, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_23_SUBPACKET_3_HIGH 0x206f26c0 /* [RW][32] RAM Packet 23, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_HEADER      0x206f26c4 /* [RW][32] <FONT COLOR=D08000>RAM Packet 24, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_0_LOW 0x206f26c8 /* [RW][32] RAM Packet 24, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_0_HIGH 0x206f26cc /* [RW][32] RAM Packet 24, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_1_LOW 0x206f26d0 /* [RW][32] RAM Packet 24, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_1_HIGH 0x206f26d4 /* [RW][32] RAM Packet 24, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_2_LOW 0x206f26d8 /* [RW][32] RAM Packet 24, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_2_HIGH 0x206f26dc /* [RW][32] RAM Packet 24, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_3_LOW 0x206f26e0 /* [RW][32] RAM Packet 24, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_24_SUBPACKET_3_HIGH 0x206f26e4 /* [RW][32] RAM Packet 24, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_HEADER      0x206f26e8 /* [RW][32] <FONT COLOR=D08000>RAM Packet 25, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_0_LOW 0x206f26ec /* [RW][32] RAM Packet 25, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_0_HIGH 0x206f26f0 /* [RW][32] RAM Packet 25, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_1_LOW 0x206f26f4 /* [RW][32] RAM Packet 25, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_1_HIGH 0x206f26f8 /* [RW][32] RAM Packet 25, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_2_LOW 0x206f26fc /* [RW][32] RAM Packet 25, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_2_HIGH 0x206f2700 /* [RW][32] RAM Packet 25, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_3_LOW 0x206f2704 /* [RW][32] RAM Packet 25, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_25_SUBPACKET_3_HIGH 0x206f2708 /* [RW][32] RAM Packet 25, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_HEADER      0x206f270c /* [RW][32] <FONT COLOR=D08000>RAM Packet 26, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_0_LOW 0x206f2710 /* [RW][32] RAM Packet 26, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_0_HIGH 0x206f2714 /* [RW][32] RAM Packet 26, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_1_LOW 0x206f2718 /* [RW][32] RAM Packet 26, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_1_HIGH 0x206f271c /* [RW][32] RAM Packet 26, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_2_LOW 0x206f2720 /* [RW][32] RAM Packet 26, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_2_HIGH 0x206f2724 /* [RW][32] RAM Packet 26, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_3_LOW 0x206f2728 /* [RW][32] RAM Packet 26, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_26_SUBPACKET_3_HIGH 0x206f272c /* [RW][32] RAM Packet 26, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_HEADER      0x206f2730 /* [RW][32] <FONT COLOR=D08000>RAM Packet 27, Header</FONT> */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_0_LOW 0x206f2734 /* [RW][32] RAM Packet 27, Subpacket 0, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_0_HIGH 0x206f2738 /* [RW][32] RAM Packet 27, Subpacket 0, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_1_LOW 0x206f273c /* [RW][32] RAM Packet 27, Subpacket 1, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_1_HIGH 0x206f2740 /* [RW][32] RAM Packet 27, Subpacket 1, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_2_LOW 0x206f2744 /* [RW][32] RAM Packet 27, Subpacket 2, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_2_HIGH 0x206f2748 /* [RW][32] RAM Packet 27, Subpacket 2, bytes 4-7 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_3_LOW 0x206f274c /* [RW][32] RAM Packet 27, Subpacket 3, bytes 0-3 */
+#define BCHP_HDMI_RX_0_RAM_PACKET_27_SUBPACKET_3_HIGH 0x206f2750 /* [RW][32] RAM Packet 27, Subpacket 3, bytes 4-7 */
+#define BCHP_HDMI_RX_0_CRC_CHECK_CFG_0           0x206f2754 /* [RW][32] CRC Checker Configuration 0 */
+#define BCHP_HDMI_RX_0_CRC_CHECK_CFG_1           0x206f2758 /* [RW][32] Checker Configuration 1 */
+#define BCHP_HDMI_RX_0_CRC_CHECK_CTL             0x206f275c /* [RW][32] CRC Checker Control */
+#define BCHP_HDMI_RX_0_CRC_CHECK_STATUS_0        0x206f2760 /* [RO][32] CRC Checker Status 0 */
+#define BCHP_HDMI_RX_0_CRC_CHECK_STATUS_1        0x206f2764 /* [RO][32] CRC Checker Status 1 */
+#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CFG_0       0x206f2768 /* [RW][32] CRC Checker Configuration 0 */
+#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CFG_1       0x206f276c /* [RW][32] Checker Configuration 1 */
+#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_CTL         0x206f2770 /* [RW][32] CRC Checker Control */
+#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_STATUS_0    0x206f2774 /* [RO][32] CRC Checker Status 0 */
+#define BCHP_HDMI_RX_0_CRC_PIX_CHECK_STATUS_1    0x206f2778 /* [RO][32] CRC Checker Status 1 */
+#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CFG_0      0x206f277c /* [RW][32] CRC Checker Configuration 0 */
+#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CFG_1      0x206f2780 /* [RW][32] Checker Configuration 1 */
+#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_CTL        0x206f2784 /* [RW][32] CRC Checker Control */
+#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_STATUS_0   0x206f2788 /* [RO][32] CRC Checker Status 0 */
+#define BCHP_HDMI_RX_0_CRC_TMDS_CHECK_STATUS_1   0x206f278c /* [RO][32] CRC Checker Status 1 */
+#define BCHP_HDMI_RX_0_CHAR_ERR_DET_CTL          0x206f2790 /* [RW][32] Character Error Detection Control */
+#define BCHP_HDMI_RX_0_CHAR_ERR_DET_STATUS       0x206f2794 /* [RO][32] Character Error Detection Status */
+#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_0 0x206f2798 /* [RO][32] Character Error Detection Status */
+#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_1 0x206f279c /* [RO][32] Character Error Detection Status */
+#define BCHP_HDMI_RX_0_CHAR_ERR_DET_COUNT_STATUS_2 0x206f27a0 /* [RO][32] Character Error Detection Status */
+#define BCHP_HDMI_RX_0_SPARE_REGISTER_BITS       0x206f27fc /* [RW][32] Spare Bits For ECO's */
 
 /***************************************************************************
  *CORE_REV - HDMI Core Revision Number

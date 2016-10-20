@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,50 +70,50 @@
 /***************************************************************************
  *HDMI_RX_FE_0 - HDMI Receiver Front End Control Registers
  ***************************************************************************/
-#define BCHP_HDMI_RX_FE_0_RESET_CONTROL          0x206f1000 /* [RW] Software Resets for HDMI Reciever Core */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_3           0x206f1004 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_WATCHDOG_CONFIG        0x206f1008 /* [RW] Watchdog configuration */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_2           0x206f100c /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_1           0x206f1010 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_0           0x206f1014 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_PLL_CTRL_2             0x206f1018 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_PLL_CTRL_1             0x206f101c /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_PLL_CTRL_0             0x206f1020 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_3         0x206f1024 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_2         0x206f1028 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_1         0x206f102c /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_0         0x206f1030 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_RCAL_CTRL_0            0x206f1034 /* [RW] Analog Configuration Register */
-#define BCHP_HDMI_RX_FE_0_PHY_CLOCK_CONFIG       0x206f1038 /* [RW] Phy Clock Configuration Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CALIBRATION_1   0x206f103c /* [RW] Analog Calibration Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CALIBRATION_2   0x206f1040 /* [RW] Analog Calibration Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_0        0x206f1044 /* [RO] Analog Status Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_1        0x206f1048 /* [RO] Analog Status Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_2        0x206f104c /* [RO] Analog Status Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_3        0x206f1050 /* [RO] Analog Status Register */
-#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_4        0x206f1054 /* [RO] Analog Status Register */
-#define BCHP_HDMI_RX_FE_0_EQ_CTRL_0              0x206f1058 /* [RW] Peak Filter level setting */
-#define BCHP_HDMI_RX_FE_0_OC_CTRL_0              0x206f105c /* [RW] Offset Cancellation setting */
-#define BCHP_HDMI_RX_FE_0_ANALOG_CTL             0x206f1060 /* [RW] AnalogControl */
-#define BCHP_HDMI_RX_FE_0_INPUT_FIFO_STATUS      0x206f1064 /* [RO] Monitor current address in the input FIFO */
-#define BCHP_HDMI_RX_FE_0_HDMI_RX_PHY_RESET_AND_POWER_CFG_1 0x206f1068 /* [RW] Config registers for reset controller circuit */
-#define BCHP_HDMI_RX_FE_0_HDMI_CHANNEL_MAPPING_CONTROL 0x206f106c /* [RW] Mapping controls for HDMI channels */
-#define BCHP_HDMI_RX_FE_0_PIX_CLK_EST_CTL        0x206f1070 /* [RW] Pixel Clock Frequency Estimation Control Register */
-#define BCHP_HDMI_RX_FE_0_CLOCK_STOPPED_CTL      0x206f1074 /* [RW] Pixel Clock Stopped Threshold */
-#define BCHP_HDMI_RX_FE_0_PIX_CLK_CNT            0x206f1078 /* [RO] Pixel Clock Count */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_0_CLK_CNT      0x206f107c /* [RO] Channel 0 Clock Count */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_1_CLK_CNT      0x206f1080 /* [RO] Channel 1 Clock Count */
-#define BCHP_HDMI_RX_FE_0_CHANNEL_2_CLK_CNT      0x206f1084 /* [RO] Channel 2 Clock Count */
-#define BCHP_HDMI_RX_FE_0_CLK_CNT_STATUS         0x206f1088 /* [RO] Clock Count Status */
-#define BCHP_HDMI_RX_FE_0_HOTPLUG_STATUS         0x206f108c /* [RO] Hotplug Status */
-#define BCHP_HDMI_RX_FE_0_HOTPLUG_CONTROL        0x206f1090 /* [RW] Hotplug Control */
-#define BCHP_HDMI_RX_FE_0_COMPARE_COUNT_CONTROL  0x206f1094 /* [RW] Compare Count */
-#define BCHP_HDMI_RX_FE_0_COMPARE_COUNT_STATUS   0x206f1098 /* [RO] Compare Count */
-#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_CONFIG_1 0x206f109c /* [RW] PLL Calibration configuration 1 */
-#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_CONFIG_2 0x206f10a0 /* [RW] PLL Calibration configuration 1 */
-#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_STATUS_1 0x206f10a4 /* [RO] PLL Calibration status 1 */
-#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_STATUS_2 0x206f10a8 /* [RO] PLL Calibration status 2 */
-#define BCHP_HDMI_RX_FE_0_SPARE_REGISTER_BITS_1  0x206f11fc /* [RW] SPARE_REG    Register */
+#define BCHP_HDMI_RX_FE_0_RESET_CONTROL          0x206f1000 /* [RW][32] Software Resets for HDMI Reciever Core */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_3           0x206f1004 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_WATCHDOG_CONFIG        0x206f1008 /* [RW][32] Watchdog configuration */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_2           0x206f100c /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_1           0x206f1010 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CFG_0           0x206f1014 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_PLL_CTRL_2             0x206f1018 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_PLL_CTRL_1             0x206f101c /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_PLL_CTRL_0             0x206f1020 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_3         0x206f1024 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_2         0x206f1028 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_1         0x206f102c /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_CTRL_0         0x206f1030 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_RCAL_CTRL_0            0x206f1034 /* [RW][32] Analog Configuration Register */
+#define BCHP_HDMI_RX_FE_0_PHY_CLOCK_CONFIG       0x206f1038 /* [RW][32] Phy Clock Configuration Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CALIBRATION_1   0x206f103c /* [RW][32] Analog Calibration Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CALIBRATION_2   0x206f1040 /* [RW][32] Analog Calibration Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_0        0x206f1044 /* [RO][32] Analog Status Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_1        0x206f1048 /* [RO][32] Analog Status Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_2        0x206f104c /* [RO][32] Analog Status Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_3        0x206f1050 /* [RO][32] Analog Status Register */
+#define BCHP_HDMI_RX_FE_0_ANALOG_STATUS_4        0x206f1054 /* [RO][32] Analog Status Register */
+#define BCHP_HDMI_RX_FE_0_EQ_CTRL_0              0x206f1058 /* [RW][32] Peak Filter level setting */
+#define BCHP_HDMI_RX_FE_0_OC_CTRL_0              0x206f105c /* [RW][32] Offset Cancellation setting */
+#define BCHP_HDMI_RX_FE_0_ANALOG_CTL             0x206f1060 /* [RW][32] AnalogControl */
+#define BCHP_HDMI_RX_FE_0_INPUT_FIFO_STATUS      0x206f1064 /* [RO][32] Monitor current address in the input FIFO */
+#define BCHP_HDMI_RX_FE_0_HDMI_RX_PHY_RESET_AND_POWER_CFG_1 0x206f1068 /* [RW][32] Config registers for reset controller circuit */
+#define BCHP_HDMI_RX_FE_0_HDMI_CHANNEL_MAPPING_CONTROL 0x206f106c /* [RW][32] Mapping controls for HDMI channels */
+#define BCHP_HDMI_RX_FE_0_PIX_CLK_EST_CTL        0x206f1070 /* [RW][32] Pixel Clock Frequency Estimation Control Register */
+#define BCHP_HDMI_RX_FE_0_CLOCK_STOPPED_CTL      0x206f1074 /* [RW][32] Pixel Clock Stopped Threshold */
+#define BCHP_HDMI_RX_FE_0_PIX_CLK_CNT            0x206f1078 /* [RO][32] Pixel Clock Count */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_0_CLK_CNT      0x206f107c /* [RO][32] Channel 0 Clock Count */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_1_CLK_CNT      0x206f1080 /* [RO][32] Channel 1 Clock Count */
+#define BCHP_HDMI_RX_FE_0_CHANNEL_2_CLK_CNT      0x206f1084 /* [RO][32] Channel 2 Clock Count */
+#define BCHP_HDMI_RX_FE_0_CLK_CNT_STATUS         0x206f1088 /* [RO][32] Clock Count Status */
+#define BCHP_HDMI_RX_FE_0_HOTPLUG_STATUS         0x206f108c /* [RO][32] Hotplug Status */
+#define BCHP_HDMI_RX_FE_0_HOTPLUG_CONTROL        0x206f1090 /* [RW][32] Hotplug Control */
+#define BCHP_HDMI_RX_FE_0_COMPARE_COUNT_CONTROL  0x206f1094 /* [RW][32] Compare Count */
+#define BCHP_HDMI_RX_FE_0_COMPARE_COUNT_STATUS   0x206f1098 /* [RO][32] Compare Count */
+#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_CONFIG_1 0x206f109c /* [RW][32] PLL Calibration configuration 1 */
+#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_CONFIG_2 0x206f10a0 /* [RW][32] PLL Calibration configuration 1 */
+#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_STATUS_1 0x206f10a4 /* [RO][32] PLL Calibration status 1 */
+#define BCHP_HDMI_RX_FE_0_PLL_CALIBRATION_STATUS_2 0x206f10a8 /* [RO][32] PLL Calibration status 2 */
+#define BCHP_HDMI_RX_FE_0_SPARE_REGISTER_BITS_1  0x206f11fc /* [RW][32] SPARE_REG    Register */
 
 /***************************************************************************
  *RESET_CONTROL - Software Resets for HDMI Reciever Core

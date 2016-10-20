@@ -905,7 +905,7 @@ static void *bmemperf_sata_usb_thread(
             }
         } /* end for each device name */
 
-        free( contents );
+        Bsysperf_Free( contents );
 
         Bmemperf_Server_LockMutex( &gSataUsbMutex );
         /* for each I/O device */

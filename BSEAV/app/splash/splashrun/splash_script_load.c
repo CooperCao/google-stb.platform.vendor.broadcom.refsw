@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -35,6 +35,7 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  ******************************************************************************/
+
 #include "splash_script_load.h"
 
 #include "splash_magnum.h"
@@ -55,28 +56,28 @@ static int s_highSlot = -1;
 #define REMEMBER_CHUNK 256
 static unsigned int s_numPointers = 0;
 static unsigned int s_maxPointers = 0;
-static uint32_t** s_Pointers = NULL;
-static void RememberPointer (uint32_t* pointer)
+static BMMA_Block_Handle* s_Pointers = NULL;
+static void RememberPointer (BMMA_Block_Handle pointer)
 {
 	if (s_numPointers == s_maxPointers)
 	{
 		unsigned int new_length = s_maxPointers + REMEMBER_CHUNK;
-		uint32_t** new_array =
-			(uint32_t**)BKNI_Malloc ((new_length) * sizeof (uint32_t*));
+		BMMA_Block_Handle* new_array = (BMMA_Block_Handle*)BKNI_Malloc (
+                    (new_length) * sizeof (BMMA_Block_Handle*));
 		BDBG_ASSERT(new_array);
 		BKNI_Memcpy (
 			(void*)new_array, (void*)s_Pointers,
-			sizeof(uint32_t*) * s_maxPointers);
+			sizeof(BMMA_Block_Handle) * s_maxPointers);
 		s_maxPointers = new_length;
 		s_Pointers = new_array;
 	}
 	s_Pointers[s_numPointers++] = pointer;
 }
-static void FreePointers (BMEM_Handle hHeap)
+static void FreePointers (BMMA_Heap_Handle hHeap)
 {
 	unsigned int index;
 	for (index = 0 ; index < s_numPointers ; ++index)
-		BMEM_Free (hHeap, (void*)s_Pointers[index]);
+		BMMA_Free ((void*)s_Pointers[index]);
 	BKNI_Free ((void*)s_Pointers);
 	s_Pointers = NULL;
 	s_numPointers = 0;
@@ -94,7 +95,7 @@ static void FreePointers (BMEM_Handle hHeap)
 static void InitializeSlot
 (
     BREG_Handle       hRegister,
-    BMEM_Handle       hHeap,
+    BMMA_Heap_Handle  hHeap,
     int               iSlotIndex,
     uint32_t          ulTriggerSelect,
     uint32_t         *pListCount,
@@ -109,8 +110,9 @@ static void InitializeSlot
     uint32_t        *pulCurr;
     uint32_t         ulSlotOffset = 4 * iSlotIndex * sizeof(uint32_t);
     int              iRUL;
-	uint32_t        *apulAlloced[30];
-	uint32_t        *apulCached[30];
+    BMMA_Block_Handle mmaBlock[30];
+    void*             mmaSwAccess[30];
+    BMMA_DeviceOffset mmaHwAccess[30];
     BERR_Code        rc;
 
     BDBG_MSG(("InitializeSlot : iSlotIndex:%d ulTriggerSelect:%d pListCount:%p pulList:%p iListCount:%d",
@@ -128,13 +130,14 @@ static void InitializeSlot
 
         /* RUL passed inspection */
         /* allocate aligned memory (add 6 more elements for extra entries -- see below) */
-        apulAlloced[iRUL] = (uint32_t *) BMEM_AllocAligned(hHeap,
-            sizeof(uint32_t) * (iNumEntries + 6), 5, 0);
-		RememberPointer (apulAlloced[iRUL]);
-		BMEM_Heap_ConvertAddressToCached(hHeap, (void *)apulAlloced[iRUL], (void **)&apulCached[iRUL]);
+        mmaBlock[iRUL] = BMMA_Alloc(
+            hHeap, sizeof(uint32_t) * (iNumEntries + 6), 32, NULL);
+        RememberPointer (mmaBlock[iRUL]);
+        mmaSwAccess[iRUL] = BMMA_Lock(mmaBlock[iRUL]);
+        mmaHwAccess[iRUL] = BMMA_LockOffset(mmaBlock[iRUL]);
 
         /* copy list into memory */
-        BKNI_Memcpy(apulCached[iRUL], pulList + pListCount[i],
+        BKNI_Memcpy(mmaSwAccess[iRUL], pulList + pListCount[i],
             sizeof(uint32_t) * iNumEntries);
 
 		/* there is previous RUL in list? */
@@ -144,21 +147,17 @@ static void InitializeSlot
              * can also be done ahead of time if the memory address is fixed. */
 
             /* get pointer to the current end of the list */
-            pulCurr = apulCached[iRUL-1] + iPrvNumEntries;
+            pulCurr = (uint32_t*)(mmaSwAccess[iRUL-1]) + iPrvNumEntries;
 
-            BDBG_MSG(("********* pulCurr = %p, apulAlloced[%d] = %p i=%d, iPrvNumEntries=%d",
-                (void*)pulCurr, iRUL-1, (void*)apulAlloced[iRUL-1],i, iPrvNumEntries));
+            BDBG_MSG(("********* pulCurr = %p, mmaSwAccess[%d] = %p i=%d, iPrvNumEntries=%d",
+                (void*)pulCurr, iRUL-1, mmaSwAccess[iRUL-1],i, iPrvNumEntries));
 
             /* write command to install new RUL address into slot after the
                previous list is complete  */
-            rc = BMEM_ConvertAddressToOffset(hHeap,
-                (void*)apulAlloced[iRUL], &ulAddrOffset);
-            if(rc)
-                BDBG_ERR(("Error Converting %d", rc));
             *pulCurr++ = BCHP_FIELD_ENUM(RDC_RUL, opcode, REG_WRITE_IMM) ;
             *pulCurr++ = BRDC_REGISTER(BCHP_RDC_desc_0_addr) + ulSlotOffset;
             *pulCurr++ =
-                BCHP_FIELD_DATA(RDC_desc_0_addr, addr, ulAddrOffset);
+                BCHP_FIELD_DATA(RDC_desc_0_addr, addr, mmaHwAccess[iRUL]);
 
             /* are we going to add more entries for this list (not the last list)? */
             iCount = (i != iListCount - 1) ? (iNumEntries+6) : iNumEntries ;
@@ -179,7 +178,9 @@ static void InitializeSlot
                 BCHP_FIELD_DATA(RDC_desc_0_config, done,           1);
 
             /* flush previous RUL: we just appended cmd to it to link the current RUL start addr */
-            BMEM_Heap_FlushCache(hHeap, apulCached[iRUL-1], sizeof(uint32_t)*(iPrvNumEntries+6));
+            BMMA_FlushCache(
+                mmaBlock[iRUL-1], mmaSwAccess[iRUL-1],
+                sizeof(uint32_t)*(iPrvNumEntries+6));
 
             /* Remember this slot */
             if (iSlotIndex > s_highSlot) s_highSlot = iSlotIndex;
@@ -190,7 +191,9 @@ static void InitializeSlot
     }
 
 	/* flush the last RUL */
-	BMEM_Heap_FlushCache(hHeap, apulCached[iRUL-1], sizeof(uint32_t)*(iPrvNumEntries+6));
+	BMMA_FlushCache(
+            mmaBlock[iRUL-1], mmaSwAccess[iRUL-1],
+            sizeof(uint32_t)*(iPrvNumEntries+6));
 
     /*****************************
      * Setup the initial RDC slot with the first list.
@@ -221,13 +224,8 @@ static void InitializeSlot
         ulValue);
 
     /* put first entry into slot */
-    rc = BMEM_ConvertAddressToOffset(hHeap,
-        (void*)apulAlloced[0], &ulAddrOffset);
-    if(rc)
-        BDBG_ERR(("Error Converting %d", rc));
-
-    BREG_Write32(hRegister, BCHP_RDC_desc_0_addr + ulSlotOffset,
-        ulAddrOffset);
+    BREG_WriteAddr(hRegister, BCHP_RDC_desc_0_addr + ulSlotOffset,
+        mmaHwAccess[0]);
 
 	/* Remember this slot */
 	if (iSlotIndex > s_highSlot) s_highSlot = iSlotIndex;
@@ -291,7 +289,7 @@ BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo, SplashData* pSplashData)
             /* Initialize slot for RUL list n */
             InitializeSlot(
                 hRegister,
-                pSplashBufInfo->hRulMem,
+                pSplashBufInfo->hRulMma,
                 pSplashData->pTrigMap[iTriggerIndex].SlotNum,
                 pSplashData->pTrigMap[iTriggerIndex].TriggerHwNum,
                 pSplashData->pTrigMap[iTriggerIndex].aListCountArray,
@@ -348,7 +346,7 @@ void splash_bvn_uninit(BREG_Handle hRegister, SplashBufInfo *pSplashBufInfo)
 	BKNI_Sleep (500);
 
 	/* Now the RULs can be freed, because RDC is no longer reading them. */
-	FreePointers (pSplashBufInfo->hRulMem);
+	FreePointers (pSplashBufInfo->hRulMma);
 }
 
 /* End of File */

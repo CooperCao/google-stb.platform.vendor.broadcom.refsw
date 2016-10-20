@@ -21,17 +21,32 @@ implemented. You can replace this with your own custom version if preferred.
 #include <string.h>
 #include <stdio.h>
 
+static const BM2MC_PACKET_Blend copyColor = { BM2MC_PACKET_BlendFactor_eSourceColor, BM2MC_PACKET_BlendFactor_eOne, false,
+                                              BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
+                                              BM2MC_PACKET_BlendFactor_eZero };
+static const BM2MC_PACKET_Blend copyAlpha = { BM2MC_PACKET_BlendFactor_eSourceAlpha, BM2MC_PACKET_BlendFactor_eOne, false,
+                                              BM2MC_PACKET_BlendFactor_eZero, BM2MC_PACKET_BlendFactor_eZero, false,
+                                              BM2MC_PACKET_BlendFactor_eZero };
+
 void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
 {
-   if ((params->height * params->stride) > (296 * 1024))
+   if ((params->height * params->stride) > (296 * 1024) || params->secure)
    {
       void *pkt_buffer, *next;
       size_t pkt_size;
       NEXUS_Error rc;
 
+      NEXUS_Graphics2DHandle gfx = params->secure ? data->gfxSecure : data->gfx;
+
       while (1)
       {
-         rc = NEXUS_Graphics2D_GetPacketBuffer(data->gfx, &pkt_buffer, &pkt_size, 1024);
+         unsigned int packet_size =
+            sizeof(BM2MC_PACKET_PacketSourceFeeders) +
+            sizeof(BM2MC_PACKET_PacketOutputFeeder) +
+            sizeof(BM2MC_PACKET_PacketBlend) +
+            sizeof(BM2MC_PACKET_PacketCopyBlit);
+
+         rc = NEXUS_Graphics2D_GetPacketBuffer(gfx, &pkt_buffer, &pkt_size, packet_size);
          BDBG_ASSERT(!rc);
          if (!pkt_size) {
             rc = BERR_OS_ERROR;
@@ -52,7 +67,7 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
          BM2MC_PACKET_PacketOutputFeeder *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, OutputFeeder, false);
          pPacket->plane.address = params->dstOffset;
-         pPacket->plane.pitch = params->stride;
+         pPacket->plane.pitch = params->dstStride;
          pPacket->plane.format = BM2MC_PACKET_PixelFormat_eA8_R8_G8_B8;
          pPacket->plane.width = params->width;
          pPacket->plane.height = params->height;
@@ -71,6 +86,15 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
       }
 
       {
+         BM2MC_PACKET_PacketBlend *pPacket = next;
+         BM2MC_PACKET_INIT(pPacket, Blend, false);
+         pPacket->color_blend = copyColor;
+         pPacket->alpha_blend = copyAlpha;
+         pPacket->color = 0;
+         next = ++pPacket;
+      }
+
+      {
          BM2MC_PACKET_PacketCopyBlit *pPacket = next;
          BM2MC_PACKET_INIT(pPacket, CopyBlit, true);
          pPacket->src_rect.x = 0;
@@ -82,10 +106,10 @@ void memCopy2d_rgba(NXPL_MemoryData *data, BEGL_MemCopy2d *params)
          next = ++pPacket;
       }
 
-      rc = NEXUS_Graphics2D_PacketWriteComplete(data->gfx, (uint8_t*)next - (uint8_t*)pkt_buffer);
+      rc = NEXUS_Graphics2D_PacketWriteComplete(gfx, (uint8_t*)next - (uint8_t*)pkt_buffer);
       BDBG_ASSERT(!rc);
 
-      rc = NEXUS_Graphics2D_Checkpoint(data->gfx, NULL);
+      rc = NEXUS_Graphics2D_Checkpoint(gfx, NULL);
       if (rc == NEXUS_GRAPHICS2D_QUEUED)
       {
          rc = BERR_OS_ERROR;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *TNT_CMP_0_V0 - Transient Adjustment Block in Video Compositor 0/Video Intra Surface 0
  ***************************************************************************/
-#define BCHP_TNT_CMP_0_V0_REVISION_ID            0x20647800 /* [RO] Revision ID */
-#define BCHP_TNT_CMP_0_V0_HW_CONFIGURATION       0x20647804 /* [RO] TN2T HW Configuration */
-#define BCHP_TNT_CMP_0_V0_DEMO_SETTING           0x20647814 /* [RW] Visual Effects Demo Setting */
-#define BCHP_TNT_CMP_0_V0_TOP_CONTROL            0x20647818 /* [RW] Top Control */
-#define BCHP_TNT_CMP_0_V0_SCRATCH_0              0x2064781c /* [RW] Scratch Register */
-#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_GOFF_LOW  0x20647858 /* [RW] Luma Peaking Input Coring Low Band Gain Offsets */
-#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_GOFF_HIGH 0x2064785c /* [RW] Luma Peaking Input Coring High Band Gain Offsets */
-#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_THR_LOW   0x20647860 /* [RW] Luma Peaking Input Coring Low Band Thresholds */
-#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_THR_HIGH  0x20647870 /* [RW] Luma Peaking Input Coring High Band Thresholds */
-#define BCHP_TNT_CMP_0_V0_LPEAK_OUT_CORE         0x20647880 /* [RW] Luma Peaking Output Coring Control */
-#define BCHP_TNT_CMP_0_V0_LPEAK_CLIP_AVOID       0x20647884 /* [RW] Luma Peaking Clip Avoidance Control */
-#define BCHP_TNT_CMP_0_V0_LTI_CONTROL            0x20647888 /* [RW] LTI Control (Gain/Core/Avoid/Etc) */
-#define BCHP_TNT_CMP_0_V0_LTI_FILTER             0x2064788c /* [RW] LTI Filter Control */
-#define BCHP_TNT_CMP_0_V0_LTI_INCORE_THR         0x20647890 /* [RW] LTI Input Coring Thresholds */
-#define BCHP_TNT_CMP_0_V0_LTI_INCORE_GOFF        0x206478a0 /* [RW] LTI Input Coring Gain Offsets */
-#define BCHP_TNT_CMP_0_V0_CTI_H                  0x206478a4 /* [RW] CTI Horizontal Filter Controls */
+#define BCHP_TNT_CMP_0_V0_REVISION_ID            0x20647800 /* [RO][32] Revision ID */
+#define BCHP_TNT_CMP_0_V0_HW_CONFIGURATION       0x20647804 /* [RO][32] TN2T HW Configuration */
+#define BCHP_TNT_CMP_0_V0_DEMO_SETTING           0x20647814 /* [RW][32] Visual Effects Demo Setting */
+#define BCHP_TNT_CMP_0_V0_TOP_CONTROL            0x20647818 /* [RW][32] Top Control */
+#define BCHP_TNT_CMP_0_V0_SCRATCH_0              0x2064781c /* [RW][32] Scratch Register */
+#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_GOFF_LOW  0x20647858 /* [RW][32] Luma Peaking Input Coring Low Band Gain Offsets */
+#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_GOFF_HIGH 0x2064785c /* [RW][32] Luma Peaking Input Coring High Band Gain Offsets */
+#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_THR_LOW   0x20647860 /* [RW][32] Luma Peaking Input Coring Low Band Thresholds */
+#define BCHP_TNT_CMP_0_V0_LPEAK_INCORE_THR_HIGH  0x20647870 /* [RW][32] Luma Peaking Input Coring High Band Thresholds */
+#define BCHP_TNT_CMP_0_V0_LPEAK_OUT_CORE         0x20647880 /* [RW][32] Luma Peaking Output Coring Control */
+#define BCHP_TNT_CMP_0_V0_LPEAK_CLIP_AVOID       0x20647884 /* [RW][32] Luma Peaking Clip Avoidance Control */
+#define BCHP_TNT_CMP_0_V0_LTI_CONTROL            0x20647888 /* [RW][32] LTI Control (Gain/Core/Avoid/Etc) */
+#define BCHP_TNT_CMP_0_V0_LTI_FILTER             0x2064788c /* [RW][32] LTI Filter Control */
+#define BCHP_TNT_CMP_0_V0_LTI_INCORE_THR         0x20647890 /* [RW][32] LTI Input Coring Thresholds */
+#define BCHP_TNT_CMP_0_V0_LTI_INCORE_GOFF        0x206478a0 /* [RW][32] LTI Input Coring Gain Offsets */
+#define BCHP_TNT_CMP_0_V0_CTI_H                  0x206478a4 /* [RW][32] CTI Horizontal Filter Controls */
 
 /***************************************************************************
  *REVISION_ID - Revision ID

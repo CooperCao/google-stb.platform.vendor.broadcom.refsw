@@ -51,7 +51,6 @@ BDBG_OBJECT_ID(BDSP_Task);
 BDBG_OBJECT_ID(BDSP_Stage);
 BDBG_OBJECT_ID(BDSP_InterTaskBuffer);
 BDBG_OBJECT_ID(BDSP_ExternalInterrupt);
-BDBG_OBJECT_ID(BDSP_RdbRegister);
 BDBG_OBJECT_ID(BDSP_Queue);
 
 void BDSP_P_InitDevice(

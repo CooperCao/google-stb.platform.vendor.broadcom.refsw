@@ -77,10 +77,10 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	/* if no HDR support; then there is explicit SDR support only */
 	/* do not send any DRM Packet */
 	if ((pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eSDR)
-	&& (!hHDMI->AttachedEDID.HdrDB.valid))
+	&&  (!hHDMI->AttachedEDID.HdrDB.valid))
 	{
 		BHDM_DisablePacketTransmission(hHDMI, BHDM_PACKET_eDRM_ID) ;
-		BDBG_MSG(("Rx Does not support HDR; no DRM packet sent")) ;
+		BDBG_WRN(("Rx Does not support HDR; no DRM packet sent")) ;
 		goto done ;
 	}
 
@@ -98,81 +98,112 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 	hHDMI->PacketBytes[1] = pstDRMInfoFrame->eEOTF ;
 	hHDMI->PacketBytes[2] = pstDRMInfoFrame->eDescriptorId ;
 
-	if (pstDRMInfoFrame->eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
+	/* make sure all packet data is set to 0 */
+	if (pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eSDR
+	|| pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eHLG)
 	{
-		hHDMI->PacketBytes[3] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0x00FF) ;
-		hHDMI->PacketBytes[4] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[5] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0x00FF) ;
-		hHDMI->PacketBytes[6] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0xFF00) >> 8) ;
-
-
-		hHDMI->PacketBytes[7] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0x00FF) ;
-		hHDMI->PacketBytes[8] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[9] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0x00FF) ;
-		hHDMI->PacketBytes[10] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0xFF00) >> 8) ;
-
-
-		hHDMI->PacketBytes[11] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0x00FF) ;
-		hHDMI->PacketBytes[12] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[13] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0x00FF) ;
-		hHDMI->PacketBytes[14] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[15] =
-			(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.X & 0x00FF) ;
-		hHDMI->PacketBytes[16] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.X & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[17] =
-			(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.Y & 0x00FF) ;
-		hHDMI->PacketBytes[18] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.Y & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[19] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0x00FF) ;
-		hHDMI->PacketBytes[20] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[21] =
-			(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0x00FF) ;
-		hHDMI->PacketBytes[22] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[23] =
-			(uint8_t) (pstDRMInfoFrame->Type1.MaxContentLightLevel & 0x00FF) ;
-		hHDMI->PacketBytes[24] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.MaxContentLightLevel & 0xFF00) >> 8) ;
-
-		hHDMI->PacketBytes[25] =
-			(uint8_t) (pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0x00FF) ;
-		hHDMI->PacketBytes[26] =
-			(uint8_t) ((pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0xFF00) >> 8) ;
-
-		PacketLength  = 26 ;
+		uint8_t i ;
+		for (i = 1 ; i < BAVC_HDMI_PACKET_DATA_LENGTH ; i++ )
+		{
+#if BDBG_DEBUG_BUILD
+			if (hHDMI->PacketBytes[i] != 0)
+			{
+				BDBG_WRN(("Non zero packet data at PacketBytes[%d] = %d....",
+					i, hHDMI->PacketBytes[i])) ;
+			}
+#endif
+			hHDMI->PacketBytes[i] = 0 ;
+		}
+		PacketLength = 26 ;
 	}
+	else if (pstDRMInfoFrame->eEOTF == BAVC_HDMI_DRM_EOTF_eSMPTE_ST_2084) /* HDR10 */
+	{
+		if (pstDRMInfoFrame->eDescriptorId == BAVC_HDMI_DRM_DescriptorId_eType1)
+		{
+			hHDMI->PacketBytes[3] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0x00FF) ;
+			hHDMI->PacketBytes[4] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].X & 0xFF00) >> 8) ;
 
+			hHDMI->PacketBytes[5] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0x00FF) ;
+			hHDMI->PacketBytes[6] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[0].Y & 0xFF00) >> 8) ;
+
+
+			hHDMI->PacketBytes[7] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0x00FF) ;
+			hHDMI->PacketBytes[8] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].X & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[9] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0x00FF) ;
+			hHDMI->PacketBytes[10] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[1].Y & 0xFF00) >> 8) ;
+
+
+			hHDMI->PacketBytes[11] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0x00FF) ;
+			hHDMI->PacketBytes[12] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].X & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[13] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0x00FF) ;
+			hHDMI->PacketBytes[14] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayPrimaries[2].Y & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[15] =
+				(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.X & 0x00FF) ;
+			hHDMI->PacketBytes[16] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.X & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[17] =
+				(uint8_t) (pstDRMInfoFrame->Type1.WhitePoint.Y & 0x00FF) ;
+			hHDMI->PacketBytes[18] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.WhitePoint.Y & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[19] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0x00FF) ;
+			hHDMI->PacketBytes[20] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Max & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[21] =
+				(uint8_t) (pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0x00FF) ;
+			hHDMI->PacketBytes[22] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.DisplayMasteringLuminance.Min & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[23] =
+				(uint8_t) (pstDRMInfoFrame->Type1.MaxContentLightLevel & 0x00FF) ;
+			hHDMI->PacketBytes[24] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.MaxContentLightLevel & 0xFF00) >> 8) ;
+
+			hHDMI->PacketBytes[25] =
+				(uint8_t) (pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0x00FF) ;
+			hHDMI->PacketBytes[26] =
+				(uint8_t) ((pstDRMInfoFrame->Type1.MaxFrameAverageLightLevel & 0xFF00) >> 8) ;
+
+			PacketLength  = 26 ;
+		}
+		else
+		{
+			BDBG_ERR(("Unsupported Descriptor Type Id: %d",
+				pstDRMInfoFrame->eDescriptorId)) ;
+		}
+	}
+	else
+	{
+		BDBG_ERR(("Unsupported EOTF: %d", pstDRMInfoFrame->eEOTF)) ;
+	}
 
 
 	BHDM_CHECK_RC(rc, BHDM_P_WritePacket(
 		hHDMI, PhysicalHdmiRamPacketId,
 		PacketType, PacketVersion, PacketLength, hHDMI->PacketBytes)) ;
 
+	/* Keep a copy of the  new DRM packet */
 	BKNI_Memcpy(&hHDMI->DeviceSettings.stDRMInfoFrame, pstDRMInfoFrame,
 		sizeof(BAVC_HDMI_DRMInfoFrame)) ;
+
 
 	BDBG_MSG(("------------------- NEW  DRM INFOFRAME ------------------")) ;
 	BDBG_MSG(("Tx%d: Packet Type: 0x%02x  Version %d  Length: %d", hHDMI->eCoreId,
@@ -195,6 +226,7 @@ BERR_Code BHDM_SetDRMInfoFramePacket(
 				i, hHDMI->PacketBytes[i])) ;
 		}
 	}
+
 
 done:
 	return rc ;

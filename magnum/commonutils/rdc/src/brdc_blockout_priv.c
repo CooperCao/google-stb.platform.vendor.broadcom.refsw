@@ -174,8 +174,7 @@ static bool BRDC_P_PopulateRevisedRul_isr
         uint32_t ulNumImmData;
 
         if ((pstRulEntry->ulOpcode == BRDC_OP_IMMS_TO_REGS_OPCODE) ||
-            (pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE) ||
-            (pstRulEntry->ulOpcode == BRDC_OP_REG_TO_REGS_OPCODE))
+            (pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE))
         {
             for (i=0; i<ulNumRegRangesBlocked; i++)
             {
@@ -189,8 +188,7 @@ static bool BRDC_P_PopulateRevisedRul_isr
                     *(*pulRevisedRulAddr) = ulOpcode;
                     (*pulRevisedRulAddr)++;
 
-                    if ((pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE) ||
-                        (pstRulEntry->ulOpcode == BRDC_OP_REG_TO_REGS_OPCODE))
+                    if ((pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE))
                     {
                         *(*pulRevisedRulAddr) = BRDC_REGISTER(ulSrcReg);
                         (*pulRevisedRulAddr)++;
@@ -260,8 +258,7 @@ static bool BRDC_P_PopulateRevisedRul_isr
                 *(*pulRevisedRulAddr) = ulOpcode;
                 (*pulRevisedRulAddr)++;
 
-                if ((pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE) ||
-                        (pstRulEntry->ulOpcode == BRDC_OP_REG_TO_REGS_OPCODE))
+                if ((pstRulEntry->ulOpcode == BRDC_OP_REGS_TO_REGS_OPCODE))
                 {
                     *(*pulRevisedRulAddr) = BRDC_REGISTER(ulSrcReg);
                     (*pulRevisedRulAddr)++;
@@ -306,6 +303,25 @@ static bool BRDC_P_PopulateRevisedRul_isr
     return bBlockOut;
 }
 
+
+#if(!BRDC_P_SUPPORT_HW_BLOCKOUT)
+bool BRDC_P_IsRdcBlockOutEnabled_isr
+    ( BRDC_Handle           hRdc )
+{
+    uint32_t i;
+    bool bEnabled = false;
+
+    /* Find a register block that is enabled for block out */
+    for(i=0; i<BRDC_MAX_RDC_BLOCKOUT_LIST_COUNT; i++)
+    {
+        if ((hRdc->astBlockOut[i].bEnable == true) && (hRdc->bRdcBlockOutEnabled))
+        {
+            bEnabled = true;
+            break;
+        }
+    }
+    return bEnabled;
+}
 
 /* Searches a list and looks for the specified register blocks. If found, create a new list that
    excludes these registers and replace the list with the new one. */
@@ -391,16 +407,8 @@ BERR_Code BRDC_P_ParseAndReplaceRul_isr
                     stRulEntry.ulArg = aulArgs[1];
                     bReg2RegWrite = true;
                     break;
-                case BRDC_OP_REGS_TO_REG_OPCODE:
-                    stRulEntry.ulReadSize = aulArgs[1];
-                    bReg2RegWrite = true;
-                    break;
                 case BRDC_OP_REGS_TO_REGS_OPCODE:
                     stRulEntry.ulReadSize = stRulEntry.ulWriteSize = aulArgs[1];
-                    bReg2RegWrite = true;
-                    break;
-                case BRDC_OP_REG_TO_REGS_OPCODE:
-                    stRulEntry.ulWriteSize = aulArgs[1];
                     bReg2RegWrite = true;
                     break;
                 default:
@@ -503,6 +511,7 @@ BERR_Code BRDC_P_ParseAndReplaceRul_isr
 done:
     return err;
 }
+#endif
 
 BERR_Code BRDC_P_ValidateBlockOutRegisters
     ( const BRDC_BlockOut *pstBlockOut,
@@ -575,24 +584,6 @@ BERR_Code BRDC_P_RdcBlockOutDestroy
     hRdc->bRdcBlockOutEnabled = false;
 
     return err;
-}
-
-bool BRDC_P_IsRdcBlockOutEnabled_isr
-    ( BRDC_Handle           hRdc )
-{
-    uint32_t i;
-    bool bEnabled = false;
-
-    /* Find a register block that is enabled for block out */
-    for(i=0; i<BRDC_MAX_RDC_BLOCKOUT_LIST_COUNT; i++)
-    {
-        if ((hRdc->astBlockOut[i].bEnable == true) && (hRdc->bRdcBlockOutEnabled))
-        {
-            bEnabled = true;
-            break;
-        }
-    }
-    return bEnabled;
 }
 
 /* End of file */

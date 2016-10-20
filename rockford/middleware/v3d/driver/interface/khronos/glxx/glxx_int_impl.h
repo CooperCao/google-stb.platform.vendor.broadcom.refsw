@@ -83,10 +83,6 @@ extern void glintGetCoreRevision_impl(GLsizei bufSize, GLubyte *revisionStr);
 /*                                 EXT extension functions                               */
 /*****************************************************************************************/
 extern void glDiscardFramebufferEXT_impl(GLenum target, GLsizei numAttachments, const GLenum *attachments);
-extern void glxx_RenderbufferStorageMultisampleEXT_impl(GLenum target, GLsizei samples,
-   GLenum internalformat, GLsizei width, GLsizei height, bool secure);
-extern void glxx_FramebufferTexture2DMultisampleEXT_impl(GLenum target, GLenum attachment,
-   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool secure);
 
 /*****************************************************************************************/
 /*                                 OES extension functions                               */
@@ -107,14 +103,16 @@ extern GLboolean glIsRenderbuffer_impl(GLuint renderbuffer);
 extern void glBindRenderbuffer_impl(GLenum target, GLuint renderbuffer);
 extern void glDeleteRenderbuffers_impl(GLsizei n, const GLuint *renderbuffers);
 extern void glGenRenderbuffers_impl(GLsizei n, GLuint *renderbuffers);
-extern void glRenderbufferStorage_impl(GLenum target, GLenum internalformat, GLsizei width, GLsizei height, bool secure);
+extern void glRenderbufferStorageMultisample_impl(GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height, bool secure);
 extern int glGetRenderbufferParameteriv_impl(GLenum target, GLenum pname, GLint* params);
 extern GLboolean glIsFramebuffer_impl(GLuint framebuffer);
 extern void glBindFramebuffer_impl(GLenum target, GLuint framebuffer);
 extern void glDeleteFramebuffers_impl(GLsizei n, const GLuint *framebuffers);
 extern void glGenFramebuffers_impl(GLsizei n, GLuint *framebuffers);
 extern GLenum glCheckFramebufferStatus_impl(GLenum target);
-extern void glFramebufferTexture2D_impl(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
+extern void glFramebufferTexture2DMultisample_impl(GLenum target, GLenum attachment,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool secure);
 extern void glFramebufferRenderbuffer_impl(GLenum target, GLenum attachment, GLenum renderbuffertarget, GLuint renderbuffer);
 extern int glGetFramebufferAttachmentParameteriv_impl(GLenum target, GLenum attachment, GLenum pname, GLint *params);
 extern void glGenerateMipmap_impl(GLenum target);

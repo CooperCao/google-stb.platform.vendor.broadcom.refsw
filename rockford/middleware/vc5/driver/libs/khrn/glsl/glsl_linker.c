@@ -19,7 +19,6 @@ FILE DESCRIPTION
 #include "glsl_compiler.h"
 #include "glsl_ast_print.h"
 #include "glsl_map.h"
-#include "glsl_globals.h"
 #include "glsl_symbols.h"
 #include "glsl_dataflow.h"
 #include "glsl_shader_interfaces.h"
@@ -1281,12 +1280,12 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
          const char *rbr = strrchr(name, ']');
          const char *lbr = strrchr(name, '[');
          if (!rbr || !lbr)
-            glsl_compile_error(ERROR_LINKER, 9, LINE_NUMBER_UNDEFINED, "%s not a vertex output", source->tf_varyings[i]);
+            glsl_compile_error(ERROR_LINKER, 9, -1, "%s not a vertex output", source->tf_varyings[i]);
 
          char *endptr;
          int offset = strtol(lbr + 1, &endptr, 10);
          if (endptr != rbr)
-            glsl_compile_error(ERROR_LINKER, 9, LINE_NUMBER_UNDEFINED, "Malformed array suffix %s", lbr);
+            glsl_compile_error(ERROR_LINKER, 9, -1, "Malformed array suffix %s", lbr);
 
          /* XXX It's important that no errors are thrown while the memory is held. Otherwise we need safemem alternatives */
          char *reduced_name = strdup(name);
@@ -1298,15 +1297,15 @@ static void validate_tf_varyings(const GLSL_PROGRAM_SOURCE_T *source, ShaderInte
          free(reduced_name);
 
          if (v == NULL)
-            glsl_compile_error(ERROR_LINKER, 9, LINE_NUMBER_UNDEFINED, "%s not a vertex output", source->tf_varyings[i]);
+            glsl_compile_error(ERROR_LINKER, 9, -1, "%s not a vertex output", source->tf_varyings[i]);
 
          if (v->type->flavour != SYMBOL_ARRAY_TYPE || offset < 0 || (unsigned)offset > v->type->u.array_type.member_count)
-            glsl_compile_error(ERROR_LINKER, 9, LINE_NUMBER_UNDEFINED, "Array suffix out of bounds %d", offset);
+            glsl_compile_error(ERROR_LINKER, 9, -1, "Array suffix out of bounds %d", offset);
       }
 
       for (unsigned j=i+1; j<source->num_tf_varyings; j++) {
          if (strcmp(source->tf_varyings[i], source->tf_varyings[j]) == 0)
-            glsl_compile_error(ERROR_LINKER, 9, LINE_NUMBER_UNDEFINED, "%s specified twice", source->tf_varyings[i]);
+            glsl_compile_error(ERROR_LINKER, 9, -1, "%s specified twice", source->tf_varyings[i]);
       }
    }
    glsl_safemem_free(resources);
@@ -1684,6 +1683,16 @@ static bool stages_valid(CompiledShader **sh, bool separable) {
    return any_stage_valid && tess_valid && (separable || vf_valid);
 }
 
+static void validate_tess_geom_match(enum tess_mode tes_mode, bool tes_points, enum gs_in_type gs_mode) {
+   if (tes_points && gs_mode != GS_IN_POINTS)
+      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'points' mode in geometry shader");
+
+   if (tes_mode == TESS_ISOLINES && gs_mode != GS_IN_LINES)
+      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'lines' mode in geometry shader");
+   else if (gs_mode != GS_IN_TRIANGLES)
+      glsl_compile_error(ERROR_LINKER, 6, -1, "Tessellation mode requires 'triangles' mode in geometry shader");
+}
+
 GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE_T *source, bool separable)
 {
    GLSL_PROGRAM_T  *program = glsl_program_create();
@@ -1757,6 +1766,11 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
          glsl_compile_error(ERROR_LINKER, 5, -1, "Buffer variables are not allowed in the vertex pipeline");
    }
 
+   if (sh[SHADER_TESS_EVALUATION] && sh[SHADER_GEOMETRY]) {
+      CompiledShader *te = sh[SHADER_TESS_EVALUATION], *gs = sh[SHADER_GEOMETRY];
+      validate_tess_geom_match(te->tess_mode, te->tess_point_mode, gs->gs_in);
+   }
+
    IR_PROGRAM_T *ir = program->ir;
 
    /* The intention is that language rules get checked above, then we process
@@ -1775,6 +1789,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
 
    if (sh[SHADER_GEOMETRY] != NULL) {
       CompiledShader *gs = sh[SHADER_GEOMETRY];
+      ir->gs_in  = gs->gs_in;
       ir->gs_out = gs->gs_out;
       ir->gs_n_invocations = gs->gs_n_invocations;
       ir->gs_max_vertices  = gs->gs_max_vertices;
@@ -1830,6 +1845,7 @@ GLSL_PROGRAM_T *glsl_link_program(CompiledShader **sh, const GLSL_PROGRAM_SOURCE
          ir->stage[SHADER_FRAGMENT].link_map->outs[DF_FNODE_SAMPLE_MASK] = sample_mask->ids[0];
 
       ir->early_fragment_tests = fsh->early_fragment_tests;
+      ir->abq = fsh->abq;
    }
 
    /* Pack varyings. */

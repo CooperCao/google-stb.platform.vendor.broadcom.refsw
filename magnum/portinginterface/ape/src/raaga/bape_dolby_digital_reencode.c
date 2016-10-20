@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -933,6 +933,11 @@ static void BAPE_DolbyDigitalReencode_P_ApplyAc4DecoderSettings(
         ddreSettings->stereoMode = BAPE_DolbyDigitalReencodeStereoMode_eLoRo;
         break;
     }
+
+    ddreSettings->drcScaleHi = pSettings->drcScaleHi;
+    ddreSettings->drcScaleLow = pSettings->drcScaleLow;
+    ddreSettings->drcScaleHiDownmix = pSettings->drcScaleHi;
+    ddreSettings->drcScaleLowDownmix = pSettings->drcScaleLow;
 }
 
 #if BDSP_MS12_SUPPORT
@@ -1416,7 +1421,7 @@ static void BAPE_DolbyDigitalReencode_P_InputSampleRateChange_isr(struct BAPE_Pa
     for ( i = 0; i < pNode->numConnectors; i++ )
     {
         BAPE_FMT_Descriptor format;
-        BAPE_Connector_P_GetFormat(&pNode->connectors[i], &format);
+        BAPE_Connector_P_GetFormat_isrsafe(&pNode->connectors[i], &format);
         if (format.type == BAPE_DataType_eIec61937x4)
         {
             BAPE_Connector_P_SetSampleRate_isr(&pNode->connectors[i], 192000);

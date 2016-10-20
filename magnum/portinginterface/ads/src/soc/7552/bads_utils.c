@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2005-2013 Broadcom Corporation
- *  
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -9,43 +9,32 @@
  *  Software, and Broadcom expressly reserves all rights in and to the Software and all
  *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.  
- *   
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
  *  Except as expressly set forth in the Authorized License,
- *   
+ *
  *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
  *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *   
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS" 
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR 
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO 
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES 
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE, 
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION 
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF 
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  *  USE OR PERFORMANCE OF THE SOFTWARE.
- *  
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS 
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR 
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR 
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF 
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT 
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE 
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF 
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
- * 
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ ******************************************************************************/
 #include "bstd.h"
 #include "bmth.h"
 #include "bkni.h"
@@ -85,7 +74,7 @@ const uint32_t SPUR_TBL_u32[SPUR_TBL_SIZE] =
 #include "btnr_global_clk.h"
 #endif
 /*registers needed for the functions in this file*/
-#include "bchp_ds.h" 
+#include "bchp_ds.h"
 #include "bads_priv.h"
 
 #ifndef LEAP_BASED_CODE
@@ -95,7 +84,7 @@ BDBG_MODULE(bads_utils);
 #include "bads_coef.h"
 #include "bads_utils.h"
 /***********************************************************************************************
-* BADS_Range_Check()	 This routine checks that parameters from the PI/BBS are in range         
+* BADS_Range_Check()	 This routine checks that parameters from the PI/BBS are in range
 ************************************************************************************************/
 BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 {
@@ -110,8 +99,8 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	 ************************************************************************************************/
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.Acquire_After_Tune_te)
 	{
-		case 	BADS_Acquire_Params_eDisable:
-		case 	BADS_Acquire_Params_eEnable:
+		case BADS_Acquire_Params_eDisable:
+		case BADS_Acquire_Params_eEnable:
 		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.Acquire_After_Tune = %d", hChn->pChnAcqParam->BADS_Acquire_Params.Acquire_After_Tune_te));
 		break;
 		default :
@@ -122,10 +111,10 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te)
 	{
-		case 	BADS_Acquire_Params_AcqType_eAuto:
-		case 	BADS_Acquire_Params_AcqType_eFast:
-		case 	BADS_Acquire_Params_AcqType_eSlow:
-		case 	BADS_Acquire_Params_AcqType_eScan:
+		case BADS_Acquire_Params_AcqType_eAuto:
+		case BADS_Acquire_Params_AcqType_eFast:
+		case BADS_Acquire_Params_AcqType_eSlow:
+		case BADS_Acquire_Params_AcqType_eScan:
 		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te= %d", hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te));
 		break;
 		default :
@@ -136,8 +125,8 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.Auto_te)
 	{
-		case 	BADS_Acquire_Params_eDisable:
-		case 	BADS_Acquire_Params_eEnable:
+		case BADS_Acquire_Params_eDisable:
+		case BADS_Acquire_Params_eEnable:
 		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.Auto_te = %d", hChn->pChnAcqParam->BADS_Acquire_Params.Auto_te));
 		break;
 		default :
@@ -148,8 +137,8 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.IS_te)
 	{
-		case 	BADS_Acquire_Params_eDisable:
-		case 	BADS_Acquire_Params_eEnable:
+		case BADS_Acquire_Params_eDisable:
+		case BADS_Acquire_Params_eEnable:
 		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.IS_te = %d", hChn->pChnAcqParam->BADS_Acquire_Params.IS_te));
 		break;
 		default :
@@ -161,14 +150,14 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	/*check only right combinations are sent 64/256/1024 for AnnexB, 16/32/64/128/256 for AnnexA*/
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.Annex_te)
 	{
-		case 	BADS_Acquire_Params_Annex_eAnnexA : 
+		case BADS_Acquire_Params_Annex_eAnnexA :
 			switch(hChn->pChnAcqParam->BADS_Acquire_Params.Qam_Mode_te)
 			{
-				case 	BADS_Acquire_Params_BPS_eQam16	 : 
-				case 	BADS_Acquire_Params_BPS_eQam32	 :
-				case 	BADS_Acquire_Params_BPS_eQam64	 :
-				case 	BADS_Acquire_Params_BPS_eQam128	 :
-				case 	BADS_Acquire_Params_BPS_eQam256	 :
+				case BADS_Acquire_Params_BPS_eQam16	 :
+				case BADS_Acquire_Params_BPS_eQam32	 :
+				case BADS_Acquire_Params_BPS_eQam64	 :
+				case BADS_Acquire_Params_BPS_eQam128	 :
+				case BADS_Acquire_Params_BPS_eQam256	 :
                 /*SW3128-257: Add Q1024A directed support but not scan support*/
 				case	BADS_Acquire_Params_BPS_eQam1024 :
 				break;
@@ -176,12 +165,12 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
 		break;
-		case 	BADS_Acquire_Params_Annex_eAnnexB : 
+		case BADS_Acquire_Params_Annex_eAnnexB :
 			switch(hChn->pChnAcqParam->BADS_Acquire_Params.Qam_Mode_te)
 			{
-				case 	BADS_Acquire_Params_BPS_eQam64	:
-				case 	BADS_Acquire_Params_BPS_eQam256	:
-				case 	BADS_Acquire_Params_BPS_eQam1024	:
+				case BADS_Acquire_Params_BPS_eQam64	:
+				case BADS_Acquire_Params_BPS_eQam256	:
+				case BADS_Acquire_Params_BPS_eQam1024	:
 				break;
 				default: BDBG_ERR(("Unsupported QAM and FEC combination"));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -196,7 +185,7 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	/*Check the ranges for the hChn->pChnAcqParam->BADS_Acquire_Params structure */
 	if (hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32 <= MAX_CARRIER_RANGE/256)
 	{
-		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32 = %d", hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32*256)); 
+		BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32 = %d", hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32*256));
 	}
 	else
 	{
@@ -211,7 +200,7 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 		if ((hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32 >= MIN_BAUD_RATE) &&
 				(hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32 <= MAX_BAUD_RATE))
 		{
-			BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32 = %d", hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32)); 
+			BDBG_MSG(("hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32 = %d", hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32));
 		}
 		else
 		{
@@ -230,8 +219,8 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	{
 		switch(hChn->pChnAcqParam->BADS_Scan_Params.AI_te)
 		{
-			case 	BADS_Scan_Params_eDisable:
-			case 	BADS_Scan_Params_eEnable:
+			case BADS_Scan_Params_eDisable:
+			case BADS_Scan_Params_eEnable:
 			BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.AI_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.AI_te));
 			break;
 			default :
@@ -242,8 +231,8 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 
 		switch(hChn->pChnAcqParam->BADS_Scan_Params.QM_te)
 		{
-			case 	BADS_Scan_Params_eDisable:
-			case 	BADS_Scan_Params_eEnable:
+			case BADS_Scan_Params_eDisable:
+			case BADS_Scan_Params_eEnable:
 			BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.QM_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.QM_te));
 			break;
 			default :
@@ -251,11 +240,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 			BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.QM_te));
 			RetCode_u32 = BERR_INVALID_PARAMETER;
 		}
-	
+
 		switch(hChn->pChnAcqParam->BADS_Scan_Params.CO_te)
 		{
-			case 	BADS_Scan_Params_eDisable:
-			case 	BADS_Scan_Params_eEnable:
+			case BADS_Scan_Params_eDisable:
+			case BADS_Scan_Params_eEnable:
 			BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.CO_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.CO_te));
 			break;
 			default :
@@ -263,11 +252,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 			BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.CO_te));
 			RetCode_u32 = BERR_INVALID_PARAMETER;
 		}
-	
+
 		switch(hChn->pChnAcqParam->BADS_Scan_Params.TO_te)
 		{
-			case 	BADS_Scan_Params_eDisable:
-			case 	BADS_Scan_Params_eEnable:
+			case BADS_Scan_Params_eDisable:
+			case BADS_Scan_Params_eEnable:
 			BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.TO_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.TO_te));
 			break;
 			default :
@@ -275,38 +264,38 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 			BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.TO_te));
 			RetCode_u32 = BERR_INVALID_PARAMETER;
 		}
-	
+
 		/*Check only if QM is enabled*/
 		if (hChn->pChnAcqParam->BADS_Scan_Params.QM_te == BADS_Scan_Params_eEnable)
 		{
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.B1024_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.B1024_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.B1024_te));
 				break;
 				default :
 				BDBG_ERR(("hChn->pChnAcqParam->BADS_Scan_Params.B1024_te OUT OF RANGE"));
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.B1024_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
-			}	
-			
+			}
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.B256_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.B256_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.B256_te));
 				break;
 				default :
 				BDBG_ERR(("hChn->pChnAcqParam->BADS_Scan_Params.B256_te OUT OF RANGE"));
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.B256_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
-			}	
-			
+			}
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.B64_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.B64_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.B64_te));
 				break;
 				default :
@@ -314,47 +303,47 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.B64_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
-	
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A1024_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				/*case 	BADS_Scan_Params_eEnable:*/  /*SW3128-257: Add Q1024A directed support but not scan support*/
+				case BADS_Scan_Params_eDisable:
+				/*case BADS_Scan_Params_eEnable:*/  /*SW3128-257: Add Q1024A directed support but not scan support*/
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A1024_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A1024_te));
 				break;
 				default :
 				BDBG_ERR(("hChn->pChnAcqParam->BADS_Scan_Params.A1024_te OUT OF RANGE"));
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A1024_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
-			}	
-		
+			}
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A512_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				/*case 	BADS_Scan_Params_eEnable:*/  /*SW3128-257: Add Q1024A directed support but not scan support*/
+				case BADS_Scan_Params_eDisable:
+				/*case BADS_Scan_Params_eEnable:*/  /*SW3128-257: Add Q1024A directed support but not scan support*/
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A512_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A512_te));
 				break;
 				default :
 				BDBG_ERR(("hChn->pChnAcqParam->BADS_Scan_Params.A512_te OUT OF RANGE"));
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A512_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
-			}	
-		
+			}
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A256_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A256_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A256_te));
 				break;
 				default :
 				BDBG_ERR(("hChn->pChnAcqParam->BADS_Scan_Params.A256_te OUT OF RANGE"));
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A256_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
-			}	
-			
+			}
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A128_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A128_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A128_te));
 				break;
 				default :
@@ -362,11 +351,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A128_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
-	
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A64_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A64_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A64_te));
 				break;
 				default :
@@ -374,11 +363,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A64_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
-		
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A32_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A32_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A32_te));
 				break;
 				default :
@@ -386,11 +375,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				BDBG_ERR(("Value Received is %d",hChn->pChnAcqParam->BADS_Scan_Params.A32_te));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
-	
+
 			switch(hChn->pChnAcqParam->BADS_Scan_Params.A16_te)
 			{
-				case 	BADS_Scan_Params_eDisable:
-				case 	BADS_Scan_Params_eEnable:
+				case BADS_Scan_Params_eDisable:
+				case BADS_Scan_Params_eEnable:
 				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.A16_te = %d", hChn->pChnAcqParam->BADS_Scan_Params.A16_te));
 				break;
 				default :
@@ -399,13 +388,13 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
 		}
-				
+
 		/*Check only if CO is enabled*/
 		if (hChn->pChnAcqParam->BADS_Scan_Params.CO_te == BADS_Scan_Params_eEnable)
 		{
-			if (hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32 <= MAX_CARRIER_SCAN/256) 
+			if (hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32 <= MAX_CARRIER_SCAN/256)
 			{
-				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32 = %d", hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32*256)); 
+				BDBG_MSG(("hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32 = %d", hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32*256));
 			}
 			else
 			{
@@ -414,7 +403,7 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 			}
 		}
-	
+
 		/*Check only if TO is enabled*/
 		if (hChn->pChnAcqParam->BADS_Scan_Params.TO_te == BADS_Scan_Params_eEnable)
 		{
@@ -440,11 +429,11 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	/*In addition to range checking, assign the local param structure since it is used in LUT's locally*/
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.Annex_te)
 	{
-		case 	BADS_Acquire_Params_Annex_eAnnexA : 
-			hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexA; 
+		case BADS_Acquire_Params_Annex_eAnnexA :
+			hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexA;
 			BDBG_MSG(("FEC is AnnexA"));
 			break;
-		case 	BADS_Acquire_Params_Annex_eAnnexB : 
+		case BADS_Acquire_Params_Annex_eAnnexB :
 			hChn->pChnAcqParam->BADS_Local_Params.Annex_te = BADS_Local_Params_Annex_eAnnexB;
 			BDBG_MSG(("FEC is AnnexB"));
 			break;
@@ -460,31 +449,31 @@ BERR_Code BADS_P_Range_Check(BADS_3x7x_ChannelHandle hChn)
 	/*In addition to range checking, assign the local param structure since it is used in LUT's locally*/
 	switch(hChn->pChnAcqParam->BADS_Acquire_Params.Qam_Mode_te)
 	{
-		case 	BADS_Acquire_Params_BPS_eQam16	: 
-			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam16; 
+		case BADS_Acquire_Params_BPS_eQam16	:
+			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam16;
 			BDBG_MSG(("Qam_Mode is Qam16"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam32	: 
-			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam32; 
+		case BADS_Acquire_Params_BPS_eQam32	:
+			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam32;
 			BDBG_MSG(("Qam_Mode is Qam32"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam64	: 
+		case BADS_Acquire_Params_BPS_eQam64	:
 			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam64;
-			BDBG_MSG(("Qam_Mode is Qam64"));			
+			BDBG_MSG(("Qam_Mode is Qam64"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam128	: 
+		case BADS_Acquire_Params_BPS_eQam128	:
 			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam128;
 			BDBG_MSG(("Qam_Mode is Qam128"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam256	: 
-			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam256; 
+		case BADS_Acquire_Params_BPS_eQam256	:
+			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam256;
 			BDBG_MSG(("Qam_Mode is Qam256"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam512	: 
+		case BADS_Acquire_Params_BPS_eQam512	:
 			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam512;
 			BDBG_MSG(("Qam_Mode is Qam512"));
 			break;
-		case 	BADS_Acquire_Params_BPS_eQam1024: 
+		case BADS_Acquire_Params_BPS_eQam1024:
 			hChn->pChnAcqParam->BADS_Local_Params.QAM_te = BADS_Local_Params_QAM_eQam1024;
 			BDBG_MSG(("Qam_Mode is Qam1024"));
 			break;
@@ -506,11 +495,11 @@ something_bad_happened:
 	return RetCode_u32;
 }
 
-/******************************************************************************************** 
- *BADS_P_Set_CFL_Frequency() determines the value to program in the front mixer	                 
- *Calculate the Carrier Loop Frequency Control Word a 16 bit 2's complement number          
- *The NCO value depends on the F_HS_u32 and CFL_Frequency 
- *CFLFOS = 2^14*CFL_Frequency/F_HS_u32: F_HS_u32 is F_HS 
+/********************************************************************************************
+ *BADS_P_Set_CFL_Frequency() determines the value to program in the front mixer
+ *Calculate the Carrier Loop Frequency Control Word a 16 bit 2's complement number
+ *The NCO value depends on the F_HS_u32 and CFL_Frequency
+ *CFLFOS = 2^14*CFL_Frequency/F_HS_u32: F_HS_u32 is F_HS
  *F_HS_u32 CAN NOT be 0: CFL_Frequency_i32 CAN NOT be negative full scale, -POWER_2_31
  *CALCULATION MUST FIT WITHIN [-POWER_2_15 to POWER_2_15_M1]
  ********************************************************************************************/
@@ -520,11 +509,11 @@ BERR_Code BADS_P_Set_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 	bool IsNegative_b = false;
 	uint32_t ReadReg_u32, Result_Hi_u32, Result_Lo_u32;
 	int32_t TempValue_i32;
-	
+
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (F_HS_u32 == 0) 
+	if (F_HS_u32 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Set_CFL_Frequency()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -537,9 +526,9 @@ BERR_Code BADS_P_Set_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 	TempValue_i32 -= 1;
 #if (ADS_INTERNAL_ERROR_CHECKING > 1)
 	/*detect negative full scale*/
-	if (CFL_Frequency_i32 == TempValue_i32) 
+	if (CFL_Frequency_i32 == TempValue_i32)
 	{
-		BDBG_ERR(("ERROR2 in BADS_P_Set_CFL_Frequency()\n"));
+		BDBG_ERR(("ERROR2 in BADS_P_Set_CFL_Frequency()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
 		goto something_bad_happened; /*goto bottom of function to leave early with error*/
 	}
@@ -555,7 +544,7 @@ BERR_Code BADS_P_Set_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 	{
 		ReadReg_u32 = (uint32_t)CFL_Frequency_i32;
 	}
-	
+
 	/* 2^14*CFL_Frequency_u32/F_HS_u32 */
 	BMTH_HILO_32TO64_Mul(POWER2_14, ReadReg_u32, &Result_Hi_u32, &Result_Lo_u32);
 	BMTH_HILO_64TO64_Div32(Result_Hi_u32, Result_Lo_u32, F_HS_u32, &Result_Hi_u32, &Result_Lo_u32);
@@ -566,10 +555,10 @@ BERR_Code BADS_P_Set_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 	if ((Result_Hi_u32 != 0) || (Result_Lo_u32 > POWER2_15) || ((IsNegative_b == false) && (Result_Lo_u32 == POWER2_15)))
 	{
 		BDBG_ERR(("ERROR3 in BADS_P_Set_CFL_Frequency()"));
-		RetCode_u32 = BERR_INVALID_PARAMETER;	
+		RetCode_u32 = BERR_INVALID_PARAMETER;
 		goto something_bad_happened; /*goto bottom of function to leave early with error*/
 	}
-#endif	
+#endif
 
 	/*If result should be negative, take twos complement of output, Mask to 16 bits, program FCW*/
 	Result_Lo_u32 = (IsNegative_b == true) ? (Twos_Complement32(Result_Lo_u32) & 0x0000FFFF) : (Result_Lo_u32 & 0x0000FFFF);
@@ -583,9 +572,9 @@ something_bad_happened:
 	return RetCode_u32;
 }
 
-/**************************************************************************************************** 
- *BADS_P_Set_TL_Frequency() determines the value to program in the VID	                             
- *Calculate the Timing Loop Frequency Control Word a 24 bit unsigned number that can be no larger than 0x80000000                   
+/****************************************************************************************************
+ *BADS_P_Set_TL_Frequency() determines the value to program in the VID
+ *Calculate the Timing Loop Frequency Control Word a 24 bit unsigned number that can be no larger than 0x80000000
  *TLFOS = (4*BaudRate/F_1S_u32)*2^23  or TLFOS = (2^25*BaudRate/F_1S_u32): F_1S_u32 is F_1S
  *F_1S_u32 CAN NOT be 0
  *CALCULATION MUST FIT WITHIN [0 to POWER_2_23]
@@ -594,11 +583,11 @@ BERR_Code BADS_P_Set_TL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u3
 {
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	uint32_t Result_Hi_u32, Result_Lo_u32;
-	
+
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (F_1S_u32 == 0) 
+	if (F_1S_u32 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Set_TL_Frequency()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -615,13 +604,13 @@ BERR_Code BADS_P_Set_TL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u3
 	if ((Result_Hi_u32 != 0) || (Result_Lo_u32 > POWER2_23))
 	{
 		BDBG_ERR(("ERROR3 in BADS_P_Set_TL_Frequency()"));
-		RetCode_u32 = BERR_INVALID_PARAMETER;	
+		RetCode_u32 = BERR_INVALID_PARAMETER;
 		goto something_bad_happened; /*goto bottom of function to leave early with error*/
 	}
 #endif
 
 	/*Program the Timing Loop Frequency Control Word*/
-	BREG_Write32(hChn->hRegister, BCHP_DS_TLFOS, Result_Lo_u32);	
+	BREG_Write32(hChn->hRegister, BCHP_DS_TLFOS, Result_Lo_u32);
 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
@@ -632,8 +621,8 @@ something_bad_happened:
 }
 
 /****************************************************************************************
- *BADS_P_Get_CFL_Frequency() determines the Frequency in the front mixer                    
- *IF = F_HS_u32*CFLFOS/2^14: F_HS_u32 is F_HS 
+ *BADS_P_Get_CFL_Frequency() determines the Frequency in the front mixer
+ *IF = F_HS_u32*CFLFOS/2^14: F_HS_u32 is F_HS
  *F_HS_u32 CAN NOT be 0
  *CALCULATION MUST FIT WITHIN [-POWER2_31 to POWER_2_31_M1]
  ****************************************************************************************/
@@ -648,7 +637,7 @@ BERR_Code BADS_P_Get_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (POWER2_14 == 0) 
+	if (POWER2_14 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_CFL_Frequency()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -678,7 +667,7 @@ BERR_Code BADS_P_Get_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 	if ((Result_Hi_u32 != 0) || ((RegIsNegative_b == true) && (Result_Lo_u32 > TempValue_u32)) || ((RegIsNegative_b == false) && (Result_Lo_u32 >= TempValue_u32)))
 	{
 		BDBG_ERR(("ERROR3 in BADS_P_Get_CFL_Frequency()"));
-		RetCode_u32 = BERR_INVALID_PARAMETER;	
+		RetCode_u32 = BERR_INVALID_PARAMETER;
 		goto something_bad_happened; /*goto bottom of function to leave early with error*/
 	}
 #endif
@@ -690,19 +679,19 @@ BERR_Code BADS_P_Get_CFL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	
+#endif
 
 	return RetCode_u32;
 }
 
-/**************************************************************************************** 
- *BADS_P_Get_TL_Frequency() determines the symbol rate in the VID                            
- *BaudRate = TLFOS*F_1S_u32/2^25: F_1S_u32 = F_1S	
+/****************************************************************************************
+ *BADS_P_Get_TL_Frequency() determines the symbol rate in the VID
+ *BaudRate = TLFOS*F_1S_u32/2^25: F_1S_u32 = F_1S
  *F_1S_u32 CAN NOT be 0
  *CALCULATION WILL FIT WITHIN [0 to POWER_2_32_M1]
  ****************************************************************************************/
 BERR_Code BADS_P_Get_TL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u32, uint32_t *TL_Frequency_pu32)
-{	
+{
 
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	uint32_t ReadReg_u32;
@@ -711,7 +700,7 @@ BERR_Code BADS_P_Get_TL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u3
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (POWER2_25 == 0) 
+	if (POWER2_25 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_TL_Frequency()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -724,28 +713,28 @@ BERR_Code BADS_P_Get_TL_Frequency(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u3
 
 	/*clamp to POWER2_23*/
 	if (ReadReg_u32 > 0x00800000)
-	{	
+	{
 		ReadReg_u32 = 0x00800000;
 		BDBG_ERR(("ERROR2 in BADS_P_Get_TL_Frequency()"));
 	}
 
 	BMTH_HILO_32TO64_Mul(ReadReg_u32, F_1S_u32, &Result_Hi_u32, &Result_Lo_u32);
 	BMTH_HILO_64TO64_Div32(Result_Hi_u32, Result_Lo_u32, POWER2_25, &Result_Hi_u32, &Result_Lo_u32);
-	
+
 	/*set return value*/
 	*TL_Frequency_pu32 = Result_Lo_u32;
 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	
+#endif
 
-	return RetCode_u32;	
+	return RetCode_u32;
 }
 
 /***************************************************************************************
- *BADS_P_Get_CFL_Error() determines the Front Loop Frequency Error               
- *IF = F_HS_u32*CFLI/2^34     
+ *BADS_P_Get_CFL_Error() determines the Front Loop Frequency Error
+ *IF = F_HS_u32*CFLI/2^34
  *POWER2_31 CAN NOT be 0
  *CALCULATION WILL FIT WITHIN [-POWER_2_31 to POWER_2_31_M1]
  ***************************************************************************************/
@@ -763,7 +752,7 @@ BERR_Code BADS_P_Get_CFL_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u32, 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (TempValue_u32 == 0) 
+	if (TempValue_u32 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_CFL_Error()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -791,22 +780,22 @@ BERR_Code BADS_P_Get_CFL_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_HS_u32, 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	
+#endif
 
 	return RetCode_u32;
 }
 
-/**************************************************************************************** 
- *BADS_P_Get_VID_Error() determines the VID Timing Error                                                                       
- *For QAM (with loop filter output gain set to 1.0) the offset in Hertz is:             
- *       (1/8)*(TLI/2^31)*F1s in Hertz                                                 
- *For QAM (with loop filter output gain set to 2^-6) the offset in Hertz is:            
- *       (1/512)*(TLI/2^31)*F1s in Hertz 
+/****************************************************************************************
+ *BADS_P_Get_VID_Error() determines the VID Timing Error
+ *For QAM (with loop filter output gain set to 1.0) the offset in Hertz is:
+ *       (1/8)*(TLI/2^31)*F1s in Hertz
+ *For QAM (with loop filter output gain set to 2^-6) the offset in Hertz is:
+ *       (1/512)*(TLI/2^31)*F1s in Hertz
  *POWER2_31 CAN NOT be 0
  *CALCULATION WILL FIT WITHIN [-POWER_2_31 to POWER_2_31_M1]
  ****************************************************************************************/
-BERR_Code BADS_P_Get_VID_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u32, int32_t *VID_Error_pi32)	
-{	
+BERR_Code BADS_P_Get_VID_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u32, int32_t *VID_Error_pi32)
+{
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	bool  RegIsNegative_b = false;
 	uint32_t ReadReg_u32, TL_Gain_u32;
@@ -819,7 +808,7 @@ BERR_Code BADS_P_Get_VID_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u32, 
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (TempValue_u32 == 0) 
+	if (TempValue_u32 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_VID_Error()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -847,17 +836,17 @@ BERR_Code BADS_P_Get_VID_Error(BADS_3x7x_ChannelHandle hChn, uint32_t F_1S_u32, 
 	Result_Lo_u32 = (RegIsNegative_b == true) ? Twos_Complement32(Result_Lo_u32) : Result_Lo_u32;
 
 	*VID_Error_pi32 = (int32_t)Result_Lo_u32;
-	
+
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	
+#endif
 
 	return RetCode_u32;
 }
 
-/**************************************************************************************** 
- *BADS_P_Get_CPL_Error() determines the Phase Loop Frequency Error                                                                  
+/****************************************************************************************
+ *BADS_P_Get_CPL_Error() determines the Phase Loop Frequency Error
  *phase error is Symbol_Rate_u32*CPLI/2^30
  *POWER2_30 CAN NOT be 0
  *CALCULATION WILL FIT WITHIN [-POWER_2_31 to POWER_2_31_M1]
@@ -872,7 +861,7 @@ BERR_Code BADS_P_Get_CPL_Error(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rat
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (POWER2_30 == 0) 
+	if (POWER2_30 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_CPL_Error()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -900,15 +889,15 @@ BERR_Code BADS_P_Get_CPL_Error(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rat
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	
+#endif
 
 	return RetCode_u32;
 }
 
 
-/**************************************************************************************** 
- *BADS_P_Get_TimingScan_Advanced_FFT() Perform the FFT timing scan search returning the baud rate 
- *The function will return a 0 if the peak is too small or outside of a window defined by  
+/****************************************************************************************
+ *BADS_P_Get_TimingScan_Advanced_FFT() Perform the FFT timing scan search returning the baud rate
+ *The function will return a 0 if the peak is too small or outside of a window defined by
  *hChn->pChnAcqParam->BADS_Internal_Params.Timing_Scan_Threshold_u32,
  *Upper window bound and Lower window bound
  *POWER2_11 CAN NOT be 0
@@ -918,7 +907,7 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 {
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	uint8_t	  NumFFTs_u8;
-	uint16_t  Bin_u16; 
+	uint16_t  Bin_u16;
 	int16_t   Bin_Check1_i16 = 0, Bin_Check2_i16 = 0, Bin_Check3_i16 = 0; /*initialization is for compiler warning*/
 	int16_t   DiffA_i16, DiffB_i16, DiffC_i16;
 	uint32_t  Peak_u32;
@@ -927,7 +916,7 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (POWER2_11 == 0) 
+	if (POWER2_11 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_TimingScan_Advanced_FFT()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -937,7 +926,7 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 
 #if (ADS_INTERNAL_ERROR_CHECKING > 1)
 	/*detect out of range NUM_TIMING_FFTS*/
-	if ((NUM_TIMING_FFTS < 1) || (NUM_TIMING_FFTS > 3)) 
+	if ((NUM_TIMING_FFTS < 1) || (NUM_TIMING_FFTS > 3))
 	{
 		BDBG_ERR(("ERROR2 in BADS_P_Get_TimingScan_Advanced_FFT()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -959,7 +948,7 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 		BREG_Write32(hChn->hRegister, BCHP_DS_FFT_PDETW, 0x0090C6F4);   /*Upper window bound at 2316, Lower window bound at 1780 */
  #endif
 		BREG_Write32(hChn->hRegister, BCHP_DS_FFT_CTL, 0x00080C42);     /*default + Nyquist Prefilter Data: Stop: Channel Scan (CHSCN) Mode */
- 
+
 /**************************************************************************************************************************************
  *Since the FFT interrupt is broke, we will use the sample clock counter which is counting at 30 MHz
  *EqFFT counts for a 4K FFT size if [4096/(2*Fb) + 4096*2*13/270000000]*30000000 or FFTcounts = [2^11/Fb + 2^13*13/(2^7*3^3*5^7)]*(2^7*3*5^7)
@@ -978,25 +967,25 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 	BREG_WriteField(hChn->hRegister, DS_FFT_CTL, START, 1);        /*start FFT*/
 	BREG_Write32(hChn->hRegister, BCHP_DS_FSCNT1, Result_Lo_u32);  /*Start FS COunter*/
 	/*Interrupt happens*/
-	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, TIMING_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/	
-	if (RetCode_u32  != BERR_SUCCESS) 
+	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, TIMING_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/
+	if (RetCode_u32  != BERR_SUCCESS)
 		{
-		    BDBG_ERR(("CHSCN TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_TimingScan_Advanced_FFT() 0x%08X\n", RetCode_u32));
+		    BDBG_ERR(("CHSCN TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_TimingScan_Advanced_FFT() 0x%08X", RetCode_u32));
 			RetCode_u32 = BERR_TIMEOUT;
 			goto something_bad_happened; /*goto bottom of function to leave early with error*/
 		}
 	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMSET2,  BCHP_DS_IRQCLR2_FSCNT1_ICLR_MASK);
 #else
-	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);	
+	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);
 	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);
 
 	BKNI_ResetEvent(hChn->hFftEvent);
 	BREG_WriteField(hChn->hRegister, DS_FFT_CTL, START, 1);        /*start*/
 	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, TIMING_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/
  #if (ADS_INTERNAL_ERROR_CHECKING > 0)
-		if (RetCode_u32  != BERR_SUCCESS) 
+		if (RetCode_u32  != BERR_SUCCESS)
 		{
-		    BDBG_ERR(("CHSCN TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_TimingScan_Advanced_FFT() 0x%08X\n", RetCode_u32));
+		    BDBG_ERR(("CHSCN TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_TimingScan_Advanced_FFT() 0x%08X", RetCode_u32));
 			RetCode_u32 = BERR_TIMEOUT;
 			goto something_bad_happened; /*goto bottom of function to leave early with error*/
 		}
@@ -1021,7 +1010,7 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 
 		/*Check if the absolute value of the bin differences are within 1 or if the NUM_TIMING_FFTS = 1 to leave loop successfully*/
 		/*NumFFTs_u8 will become NUM_TIMING_FFTS+1*/
-		if ((DiffA_i16 <=1) || (DiffB_i16 <=1) || (DiffC_i16 <=1) || (NUM_TIMING_FFTS == 1)) 
+		if ((DiffA_i16 <=1) || (DiffB_i16 <=1) || (DiffC_i16 <=1) || (NUM_TIMING_FFTS == 1))
 		{
 			NumFFTs_u8 = NUM_TIMING_FFTS;
 		}
@@ -1047,16 +1036,16 @@ BERR_Code BADS_P_Get_TimingScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint3
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	 
-    
+#endif
+
   return RetCode_u32;
 
 }
 
-/**************************************************************************************** 
+/****************************************************************************************
  *BADS_P_Get_CarrierScan_Advanced_FFT() Perform the FFT carrier scan search returning the carrier offset
- *The function will return a 0 if the peak is too small or outside of a window defined by  
- *hChn->pChnAcqParam->BADS_Internal_Params.BBS_Carrier_Scan_Threshold 
+ *The function will return a 0 if the peak is too small or outside of a window defined by
+ *hChn->pChnAcqParam->BADS_Internal_Params.BBS_Carrier_Scan_Threshold
  *The timing loop must be locked for this function to return good results
  *POWER2_14 CAN NOT be 0
  *CALCULATION WILL FIT WITHIN [-POWER_2_31 to POWER_2_31_M1]
@@ -1065,7 +1054,7 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 {
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
 	uint8_t	  NumFFTs_u8;
-	uint16_t  Bin_u16; 
+	uint16_t  Bin_u16;
 	int16_t   Bin_Check1_i16 = 0, Bin_Check2_i16 = 0, Bin_Check3_i16 = 0; /*initialization is for compiler warning*/
 	int16_t   DiffA_i16, DiffB_i16, DiffC_i16;
 	uint32_t  Peak_u32;
@@ -1075,7 +1064,7 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 	/*Check the functions input variables*/
 	/*Check that divisor will not be 0*/
-	if (POWER2_14 == 0) 
+	if (POWER2_14 == 0)
 	{
 		BDBG_ERR(("ERROR1 in BADS_P_Get_CarrierScan_Advanced_FFT()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -1085,7 +1074,7 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 
 #if (ADS_INTERNAL_ERROR_CHECKING > 1)
 	/*detect out of range NUM_CARRIER_FFTS*/
-	if ((NUM_CARRIER_FFTS < 1) || (NUM_CARRIER_FFTS > 3)) 
+	if ((NUM_CARRIER_FFTS < 1) || (NUM_CARRIER_FFTS > 3))
 	{
 		BDBG_ERR(("ERROR2 in BADS_P_Get_CarrierScan_Advanced_FFT()"));
 		RetCode_u32 = BERR_INVALID_PARAMETER;
@@ -1128,26 +1117,26 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 	BREG_Write32(hChn->hRegister, BCHP_DS_FSCNT1, Result_Lo_u32);  /*Start FS Counter*/
 
 	/*Interrupt happens*/
-	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, CARRIER_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/	
-	if (RetCode_u32  != BERR_SUCCESS) 
+	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, CARRIER_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/
+	if (RetCode_u32  != BERR_SUCCESS)
 		{
-		    BDBG_ERR(("FCA TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_CarrierScan_Advanced_FFT() 0x%08X\n", RetCode_u32));
+		    BDBG_ERR(("FCA TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_CarrierScan_Advanced_FFT() 0x%08X", RetCode_u32));
 			RetCode_u32 = BERR_TIMEOUT;
 			goto something_bad_happened; /*goto bottom of function to leave early with error*/
 		}
 	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMSET2,  BCHP_DS_IRQCLR2_FSCNT1_ICLR_MASK);
 	BREG_Write32(hChn->hRegister, BCHP_DS_FSCNT1, 0);
 #else
-	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);	
+	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);
 	BREG_Write32(hChn->hRegister, BCHP_DS_IRQMCLR2, BCHP_DS_IRQMCLR2_FFT_IMCLR_MASK);
 
 	BKNI_ResetEvent(hChn->hFftEvent);
 	BREG_WriteField(hChn->hRegister, DS_FFT_CTL, START, 1);        /*start*/
 	RetCode_u32 = BKNI_WaitForEvent(hChn->hFftEvent, CARRIER_SCAN_FFT_TIMEOUT); /*set interrupt timeout*/
  #if (ADS_INTERNAL_ERROR_CHECKING > 0)
-		if (RetCode_u32  != BERR_SUCCESS) 
+		if (RetCode_u32  != BERR_SUCCESS)
 		{
-		    BDBG_ERR(("FCA TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_CarrierScan_Advanced_FFT() 0x%08X\n", RetCode_u32));
+		    BDBG_ERR(("FCA TIMEOUT EVENT or OS ERR waiting in BADS_P_Get_CarrierScan_Advanced_FFT() 0x%08X", RetCode_u32));
 			RetCode_u32 = BERR_TIMEOUT;
 			goto something_bad_happened; /*goto bottom of function to leave early with error*/
 		}
@@ -1175,7 +1164,7 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 
 		/*Check if the absolute value of the bin differences are within 1 or if the NUM_CARRIER_FFTS = 1 to leave loop successfully*/
 		/*NumFFTs_u8 will become NUM_CARRIER_FFTS+1*/
-		if ((DiffA_i16 <=1) || (DiffB_i16 <=1) || (DiffC_i16 <=1) || (NUM_TIMING_FFTS == 1)) 
+		if ((DiffA_i16 <=1) || (DiffB_i16 <=1) || (DiffC_i16 <=1) || (NUM_TIMING_FFTS == 1))
 		{
 			NumFFTs_u8 = NUM_CARRIER_FFTS;
 		}
@@ -1185,7 +1174,7 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 	BREG_WriteField(hChn->hRegister, DS_FFT_CTL, START, 0);        /*stop*/
 	BREG_WriteField(hChn->hRegister, DS_FFT_CTL, MODE, 0);         /*FFT function is off*/
 
-	/*Calculate the carrier offset*/ 
+	/*Calculate the carrier offset*/
 	BMTH_HILO_32TO64_Mul(Symbol_Rate, (uint32_t)Bin_Check1_i16, &Result_Hi_u32, &Result_Lo_u32);
 	BMTH_HILO_64TO64_Div32(Result_Hi_u32, Result_Lo_u32, POWER2_14, &Result_Hi_u32, &Result_Lo_u32);
 
@@ -1208,52 +1197,52 @@ BERR_Code BADS_P_Get_CarrierScan_Advanced_FFT(BADS_3x7x_ChannelHandle hChn, uint
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	 
-    
+#endif
+
   return RetCode_u32;
 }
 
 /********************************************************************************************
-*Function to program the FEC                                          
+*Function to program the FEC
 ********************************************************************************************/
-void BADS_P_ProgramFEC(BADS_3x7x_ChannelHandle hChn)	
+void BADS_P_ProgramFEC(BADS_3x7x_ChannelHandle hChn)
 {
 	if (hChn->pChnAcqParam->BADS_Local_Params.Annex_te == BADS_Local_Params_Annex_eAnnexA)
 	{
-		BREG_Write32(hChn->hRegister, BCHP_DS_FECU, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECU); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_FECU, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECU);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECM, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECM);
-		BREG_Write32(hChn->hRegister, BCHP_DS_FECL, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECL); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_FECL, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECL);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECOUT_NCON, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECOUT_NCON);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECOUT_NCODL, AnnexA_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECOUT_NCODL);
-		BREG_Write32(hChn->hRegister, BCHP_DS_BND, 0x08000000); 
-		BREG_Write32(hChn->hRegister, BCHP_DS_BND_THR, 0x00072B02); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_BND, 0x08000000);
+		BREG_Write32(hChn->hRegister, BCHP_DS_BND_THR, 0x00072B02);
 	}
 	else
 	{
-		BREG_Write32(hChn->hRegister, BCHP_DS_FECU, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECU); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_FECU, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECU);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECM, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECM);
-		BREG_Write32(hChn->hRegister, BCHP_DS_FECL, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECL); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_FECL, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECL);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECOUT_NCON, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECOUT_NCON);
 		BREG_Write32(hChn->hRegister, BCHP_DS_FECOUT_NCODL, AnnexB_FEC_TBL_struct[hChn->pChnAcqParam->BADS_Local_Params.QAM_te].DS_FECOUT_NCODL);
-		BREG_Write32(hChn->hRegister, BCHP_DS_BND, 0x04000000); 
+		BREG_Write32(hChn->hRegister, BCHP_DS_BND, 0x04000000);
 		BREG_Write32(hChn->hRegister, BCHP_DS_BND_THR, 0x00000000);
 	}
 }
 
 /********************************************************************************************
-*BADS_P_AcquisitionPercentageTest          
+*BADS_P_AcquisitionPercentageTest
 *This is a test routine to see the number of succesfull acquiaitions by acquiring,
 *checking the lock status then telling the AP we are unlocked, Auto Acquire must be enabled
 ********************************************************************************************/
-void BADS_P_AcquisitionPercentageTest(BADS_3x7x_ChannelHandle hChn)	
+void BADS_P_AcquisitionPercentageTest(BADS_3x7x_ChannelHandle hChn)
 {
 	uint32_t ReadReg_u32;
 	uint16_t UpperSpare_u16, LowerSpare_u16;
 
 	/*Use upper 2 bytes for how many acquisitions to run, lower 2 bytes for number of successes*/
-	ReadReg_u32 = BREG_Read32(hChn->hRegister, BCHP_DS_SPARE);	
+	ReadReg_u32 = BREG_Read32(hChn->hRegister, BCHP_DS_SPARE);
 	UpperSpare_u16 = (ReadReg_u32>>16) & 0x0000FFFF;
-	LowerSpare_u16 = ReadReg_u32 & 0x0000FFFF;	
+	LowerSpare_u16 = ReadReg_u32 & 0x0000FFFF;
 
 	if	(UpperSpare_u16 != 0)
 	{
@@ -1273,17 +1262,17 @@ void BADS_P_AcquisitionPercentageTest(BADS_3x7x_ChannelHandle hChn)
 
 	/*Write back to chip*/
 	ReadReg_u32 = ((UpperSpare_u16<<16) & 0xFFFF0000) | (LowerSpare_u16 & 0x0000FFFF);
-	BREG_Write32(hChn->hRegister, BCHP_DS_SPARE, ReadReg_u32);	
+	BREG_Write32(hChn->hRegister, BCHP_DS_SPARE, ReadReg_u32);
 }
 
 /**********************************************************************************************************************
-*Set_BADS_P_Set_CWC_Auto, this places the CWC cancellers according to the frequencies in the SPUR_TBL_u32[] in global_clk.h  
+*Set_BADS_P_Set_CWC_Auto, this places the CWC cancellers according to the frequencies in the SPUR_TBL_u32[] in global_clk.h
 *CALCULATION MUST FIT WITHIN [-POWER_2_23 to POWER_2_23_M1]
 **********************************************************************************************************************/
 BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate_u32, int32_t CWC_Offset_Freq_i32, uint8_t *CWC_LengthResult_pu8)
 {
 	BERR_Code RetCode_u32 = BERR_SUCCESS;
-	
+
 	uint8_t spur_cnt_u8, CWC_Length_u8;
 	int32_t Fin_Hz_i32[4];
 	int32_t upper_spur_i32, lower_spur_i32, Wrap_i32;
@@ -1295,7 +1284,7 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 	uint32_t Result_Hi_u32, Result_Lo_u32;
 #endif
 
-	/*Initial values*/	
+	/*Initial values*/
 	CWC_Length_u8 = 0;
 	Fin_Hz_i32[0] = 0;
 	Fin_Hz_i32[1] = 0;
@@ -1313,17 +1302,17 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 		/*The divide by 2 clips the range for the (int32_t)Symbol_Rate_u32 while casting to an integer to [0, 2^31-1]*/
 		if ((CWC_Offset_Freq_i32 > POWER2_31_M1 - (int32_t)Symbol_Rate_Div2_u32) || (CWC_Offset_Freq_i32 < (TempValue_i32  + (int32_t)Symbol_Rate_Div2_u32)))
 		{
-			BDBG_ERR(("ERROR: CWC INPUT OVERFLOW IN BADS_P_Set_CWC_Auto()\n"));
+			BDBG_ERR(("ERROR: CWC INPUT OVERFLOW IN BADS_P_Set_CWC_Auto()"));
 			RetCode_u32 = BERR_INVALID_PARAMETER;
 			goto something_bad_happened; /*goto bottom of function to leave early with error*/
 		}
 
-#endif	
+#endif
 
 	/*Define the boundary to be Baud Rate + 18% for excess BW*/
 	upper_spur_i32 = (CWC_Offset_Freq_i32 + (int32_t)Symbol_Rate_Div2_u32 + (((int32_t)Symbol_Rate_Div2_u32)*18)/100);
 	lower_spur_i32 = (CWC_Offset_Freq_i32 - (int32_t)Symbol_Rate_Div2_u32 - (((int32_t)Symbol_Rate_Div2_u32)*18)/100);
-	
+
 	/*Check for special case of spurs at -1.75 MHz for AnnexB, this is the Tak special*/
 	if (hChn->pChnAcqParam->BADS_Internal_Params.Video_Carrier_Annex_B_te == BADS_Internal_Params_eEnable)
 	{
@@ -1343,7 +1332,7 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 		{
 #if (ADS_INTERNAL_ERROR_CHECKING > 1)
 			/*Check that there are not more than 4 tones to cancel since there are only 4 CWC's*/
-			BDBG_ERR(("ERROR: CWC SPUR COUNT OUT OF RANGE IN BADS_P_Set_CWC_Auto()\n"));
+			BDBG_ERR(("ERROR: CWC SPUR COUNT OUT OF RANGE IN BADS_P_Set_CWC_Auto()"));
 			/*REMOVED FOR NOW SINCE THIS COULD TRIGGER IN THE FIELD SO CLAMP THE LENGTH FOR NOW*/
 			/*THIS WILL RESULT IN A TABLE ENTRIES BEING IGNORED OF IT IS OVER 4 CWC's*/
 			/*RetCode_u32 = BERR_INVALID_PARAMETER;*/
@@ -1370,12 +1359,12 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 					/*check that [-POWER2_31 <= ((int32_t)SPUR_TBL_u32[spur_cnt_u8] - CWC_Offset_Freq_i32) < POWER2_31]*/
 					if ((SPUR_TBL_u32[spur_cnt_u8] > POWER2_31_M1) || (CWC_Offset_Freq_i32 < (TempValue_i32 + (int32_t)SPUR_TBL_u32[spur_cnt_u8])))
 					{
-						BDBG_ERR(("ERROR: CWC CALCULATION OVERFLOW IN BADS_P_Set_CWC_Auto()\n"));
+						BDBG_ERR(("ERROR: CWC CALCULATION OVERFLOW IN BADS_P_Set_CWC_Auto()"));
 						RetCode_u32 = BERR_INVALID_PARAMETER;
 						goto something_bad_happened; /*goto bottom of function to leave early with error*/
 					}
 
-#endif	
+#endif
 
 					/*Check if we are in the upper bandedge, lower bandedge or neither bandedge*/
 					if (((int32_t)SPUR_TBL_u32[spur_cnt_u8] - CWC_Offset_Freq_i32 ) > (int32_t)Symbol_Rate_Div2_u32)
@@ -1401,7 +1390,7 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 			if ((Fin_Hz_i32[CWC_Length_u8] > POWER2_23_M1) || (Fin_Hz_i32[CWC_Length_u8] < -POWER2_23))
 			{
 #if (ADS_INTERNAL_ERROR_CHECKING > 2)
-				BDBG_ERR(("ERROR: CWC RESULT OUT OF RANGE IN BADS_P_Set_CWC_Auto()\n"));
+				BDBG_ERR(("ERROR: CWC RESULT OUT OF RANGE IN BADS_P_Set_CWC_Auto()"));
 				RetCode_u32 = BERR_INVALID_PARAMETER;
 				goto something_bad_happened; /*goto bottom of function to leave early with error*/
 #endif
@@ -1424,7 +1413,7 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 			IsNegative_b = true;
 			Fin_Hz_i32[Index_u8] = -1*Fin_Hz_i32[Index_u8];
 		}
- 		
+
 		/*All values will be in range*/
 		BMTH_HILO_32TO64_Mul(POWER2_27, (uint32_t)Fin_Hz_i32[Index_u8], &Result_Hi_u32, &Result_Lo_u32);
 		BMTH_HILO_64TO64_Div32(Result_Hi_u32, Result_Lo_u32, Symbol_Rate_Div2_u32, &Result_Hi_u32, &Result_Lo_u32);
@@ -1441,15 +1430,15 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 			default: BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS4, FOFFSET4,Result_Lo_u32);
 		}
 	}
-#else 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN1, FIN1_HZ, (uint32_t)Fin_Hz_i32[0]);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN2, FIN2_HZ, (uint32_t)Fin_Hz_i32[1]);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN3, FIN3_HZ, (uint32_t)Fin_Hz_i32[2]);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN4, FIN4_HZ, (uint32_t)Fin_Hz_i32[3]);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS1, FOFFSET1, 0);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS2, FOFFSET2, 0);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS3, FOFFSET3, 0);		 
-	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS4, FOFFSET4, 0);	
+#else
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN1, FIN1_HZ, (uint32_t)Fin_Hz_i32[0]);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN2, FIN2_HZ, (uint32_t)Fin_Hz_i32[1]);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN3, FIN3_HZ, (uint32_t)Fin_Hz_i32[2]);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FIN4, FIN4_HZ, (uint32_t)Fin_Hz_i32[3]);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS1, FOFFSET1, 0);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS2, FOFFSET2, 0);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS3, FOFFSET3, 0);
+	BREG_WriteField(hChn->hRegister, DS_EQ_CWC_FOFS4, FOFFSET4, 0);
 #endif
 
 	*CWC_LengthResult_pu8 = CWC_Length_u8;
@@ -1457,8 +1446,8 @@ BERR_Code BADS_P_Set_CWC_Auto(BADS_3x7x_ChannelHandle hChn, uint32_t Symbol_Rate
 #if (ADS_INTERNAL_ERROR_CHECKING > 0)
 /*goto label to return error code if something bad happened above*/
 something_bad_happened:
-#endif	 
-    
+#endif
+
   return RetCode_u32;
 
 }
@@ -1488,7 +1477,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 			{
 				hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32 = hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32;
 			}
-			else 
+			else
 			{
 				hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32 = (hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam64) ? Q64_ANNEXB_SYMBOL_RATE : Q256_Q1024_ANNEXB_SYMBOL_RATE;
 			}
@@ -1505,7 +1494,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 			hChn->pChnAcqParam->BADS_Local_Params.Carrier_Search_u32 = 256*hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32;
 		}
 
-		/*Check if the QAM Search is enabled in the Scan params*/ 
+		/*Check if the QAM Search is enabled in the Scan params*/
 		if (hChn->pChnAcqParam->BADS_Scan_Params.QM_te == BADS_Scan_Params_eEnable)
 		{
 			 /*SW3128-257: Add Q1024A directed support but not scan support*/
@@ -1536,7 +1525,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 		/*Check if the Spectrum Search is enabled in the Scan params, set initial spectrum polarity*/
 		hChn->pChnAcqParam->BADS_Local_Params.IS_b =	(hChn->pChnAcqParam->BADS_Acquire_Params.IS_te == BADS_Acquire_Params_eEnable) ? true : false;
 		hChn->pChnAcqParam->BADS_Local_Params.Flip_Spectrum_b = (hChn->pChnAcqParam->BADS_Scan_Params.AI_te == BADS_Scan_Params_eEnable) ? true : false;
- 	}
+	}
 	else
 	{
 		/*Set the acquisition Type*/
@@ -1548,7 +1537,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 		{
 			hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32 = hChn->pChnAcqParam->BADS_Acquire_Params.AnnexA_Sym_Rate_u32;
 		}
-		else 
+		else
 		{
 			hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32 = (hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam64) ? Q64_ANNEXB_SYMBOL_RATE : Q256_Q1024_ANNEXB_SYMBOL_RATE;
 		}
@@ -1557,7 +1546,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 		/*Set the Carrier Search*/
 		hChn->pChnAcqParam->BADS_Local_Params.Carrier_Search_u32 = 256*hChn->pChnAcqParam->BADS_Acquire_Params.Carrier_Range_u32;
 
-		/*Set the QAM Mode*/  
+		/*Set the QAM Mode*/
 		/*SW3128-257: Add Q1024A directed support but not scan support*/
 		hChn->pChnAcqParam->BADS_Local_Params.Q256A_b  =  ((hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam256) && (hChn->pChnAcqParam->BADS_Local_Params.Annex_te == BADS_Local_Params_Annex_eAnnexA)) ? true : false;
 		hChn->pChnAcqParam->BADS_Local_Params.Q256B_b  =  ((hChn->pChnAcqParam->BADS_Local_Params.QAM_te == BADS_Local_Params_QAM_eQam256) && (hChn->pChnAcqParam->BADS_Local_Params.Annex_te == BADS_Local_Params_Annex_eAnnexB)) ? true : false;
@@ -1585,7 +1574,7 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 		{
 			/*set for slow/scan acquire*/
 			hChn->pChnAcqParam->BADS_Local_Params.AcqType_te = BADS_Local_Params_AcqType_eSlowAcquireScan;
-		
+
 			/*Check if the Timing Search is enabled in the Scan params and if so set to the larger value of acquire Baud Rate and scan Upper_Baud_Search*/
 			if ((hChn->pChnAcqParam->BADS_Scan_Params.TO_te == BADS_Scan_Params_eEnable) && (hChn->pChnAcqParam->BADS_Scan_Params.Upper_Baud_Search_u32 > hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32))
 			{
@@ -1601,11 +1590,11 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 			{
 				hChn->pChnAcqParam->BADS_Local_Params.Carrier_Search_u32 = 256*hChn->pChnAcqParam->BADS_Scan_Params.Carrier_Search_u32;
 			}
-		
-			/*Check if the QAM Mode Search is enabled in the Scan params and if so set to the union of acquire and search QAM settings*/ 
+
+			/*Check if the QAM Mode Search is enabled in the Scan params and if so set to the union of acquire and search QAM settings*/
 			if (hChn->pChnAcqParam->BADS_Scan_Params.QM_te == BADS_Scan_Params_eEnable)
 			{
-     			/*SW3128-257: Add Q1024A directed support but not scan support*/
+				/*SW3128-257: Add Q1024A directed support but not scan support*/
 				hChn->pChnAcqParam->BADS_Local_Params.Q256A_b  = hChn->pChnAcqParam->BADS_Local_Params.Q256A_b  || ((hChn->pChnAcqParam->BADS_Scan_Params.A256_te  == BADS_Scan_Params_eEnable) ? true : false);
 				hChn->pChnAcqParam->BADS_Local_Params.Q256B_b  = hChn->pChnAcqParam->BADS_Local_Params.Q256B_b  || ((hChn->pChnAcqParam->BADS_Scan_Params.B256_te  == BADS_Scan_Params_eEnable) ? true : false);
 				hChn->pChnAcqParam->BADS_Local_Params.Q64A_b   = hChn->pChnAcqParam->BADS_Local_Params.Q64A_b   || ((hChn->pChnAcqParam->BADS_Scan_Params.A64_te   == BADS_Scan_Params_eEnable) ? true : false);
@@ -1625,18 +1614,18 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 		}
 	}
 
-									
+
 	/*Debug print*/
-	if (PRINT_DEBUG==1) 
+	if (PRINT_DEBUG==1)
 	{
 		if (hChn->pChnLockStatus->ReAck_Count_u32 == 1)
 		{
-			BDBG_ERR((" *******************************************************************************************************************************************\n"));
+			BDBG_ERR((" *******************************************************************************************************************************************"));
 		}
 		if (hChn->pChnLockStatus->ReAck_Count_u32 < 9)
 		{
 			/*SW3128-257: Add Q1024A directed support but not scan support*/
-			BDBG_ERR((" ReAck= %d AcqType= %d UBS= %d LBS= %d CS= %d SI= %d AI= %d Q256A= %d Q256B= %d Q64A= %d Q64B= %d Q128A= %d Q32A= %d Q16A= %d, Q1024A= %d, Q1024B= %d\n",
+			BDBG_ERR((" ReAck= %d AcqType= %d UBS= %d LBS= %d CS= %d SI= %d AI= %d Q256A= %d Q256B= %d Q64A= %d Q64B= %d Q128A= %d Q32A= %d Q16A= %d, Q1024A= %d, Q1024B= %d",
 								hChn->pChnLockStatus->ReAck_Count_u32,
 								hChn->pChnAcqParam->BADS_Local_Params.AcqType_te,
 								hChn->pChnAcqParam->BADS_Local_Params.Upper_Baud_Search_u32,
@@ -1648,9 +1637,9 @@ void BADS_P_Get_AcquisitionScan_Settings(BADS_3x7x_ChannelHandle hChn)
 								hChn->pChnAcqParam->BADS_Local_Params.Q256B_b,
 								hChn->pChnAcqParam->BADS_Local_Params.Q64A_b,
 								hChn->pChnAcqParam->BADS_Local_Params.Q64B_b,
-								hChn->pChnAcqParam->BADS_Local_Params.Q128A_b, 
-								hChn->pChnAcqParam->BADS_Local_Params.Q32A_b,   
-								hChn->pChnAcqParam->BADS_Local_Params.Q16A_b,   
+								hChn->pChnAcqParam->BADS_Local_Params.Q128A_b,
+								hChn->pChnAcqParam->BADS_Local_Params.Q32A_b,
+								hChn->pChnAcqParam->BADS_Local_Params.Q16A_b,
 								hChn->pChnAcqParam->BADS_Local_Params.Q1024A_b,
 								hChn->pChnAcqParam->BADS_Local_Params.Q1024B_b
 								));
@@ -1690,7 +1679,7 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
         hChn->pChnScanStatus->Auto_te = (hChn->pChnAcqParam->BADS_Acquire_Params.Auto_te == BADS_Acquire_Params_eEnable) ? BADS_3x7x_ChnScanStatus_eEnable : BADS_3x7x_ChnScanStatus_eDisable;
 
         /* Feedback of Acquire Parameters (AcqType) */
-        switch ( hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te ) 
+        switch ( hChn->pChnAcqParam->BADS_Acquire_Params.AcqType_te )
         {
             case BADS_Acquire_Params_AcqType_eAuto : hChn->pChnScanStatus->AcqType_te =  BADS_3x7x_ChnScanStatus_AcqType_eAuto; break;
             case BADS_Acquire_Params_AcqType_eFast : hChn->pChnScanStatus->AcqType_te =  BADS_3x7x_ChnScanStatus_AcqType_eFast; break;
@@ -1712,13 +1701,13 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
 		}
 
 		switch (hChn->pChnAcqParam->BADS_Local_Params.FECSpectrum_te)
-		{                                                                              
+		{
 			case BADS_Local_Params_FECSpectrum_eNotInverted:           hChn->pChnScanStatus->Spectrum_te = BADS_3x7x_ChnScanStatus_Spectrum_eNormal;  break;
 			case BADS_Local_Params_FECSpectrum_eInverted:              hChn->pChnScanStatus->Spectrum_te = BADS_3x7x_ChnScanStatus_Spectrum_eNormal;  break;
 			case BADS_Local_Params_FECSpectrum_eNotInvertedAutoInvert: hChn->pChnScanStatus->Spectrum_te = BADS_3x7x_ChnScanStatus_Spectrum_eFlipped; break;
 			case BADS_Local_Params_FECSpectrum_eInvertedAutoInvert:    hChn->pChnScanStatus->Spectrum_te = BADS_3x7x_ChnScanStatus_Spectrum_eFlipped; break;
 			default : BDBG_ERR(("ERROR!!! UNSUPPORTED OR UNDEFINED FECSpectrum")); break;
-		}	
+		}
 
 		switch (QamIndex_u8)
 		{
@@ -1730,7 +1719,7 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
 			case 5: hChn->pChnScanStatus->BPS_te =	BADS_3x7x_ChnScanStatus_BPS_eQam1024; break;
 			default : BDBG_ERR(("INVALID QamTry_b Value")); break;
 		}
-	
+
 		hChn->pChnScanStatus->AB_te = (FECIndex_u8 == 0) ? BADS_3x7x_ChnScanStatus_Annex_eAnnexA : BADS_3x7x_ChnScanStatus_Annex_eAnnexB;
 
 		if (FECIndex_u8 == 0)
@@ -1738,7 +1727,7 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
 			hChn->pChnScanStatus->Interleaver_te = BADS_3x7x_ChnScanStatus_Interleaver_eI12_J17;
 		}
 		else
-		{      
+		{
 			switch (BREG_ReadField(hChn->hRegister, DS_FEC, IDS))
 			{
 				case 0:  hChn->pChnScanStatus->Interleaver_te = BADS_3x7x_ChnScanStatus_Interleaver_eI128_J1; break;
@@ -1754,9 +1743,9 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
 				case 13: hChn->pChnScanStatus->Interleaver_te = BADS_3x7x_ChnScanStatus_Interleaver_eI2_J64;  break;
 				case 15: hChn->pChnScanStatus->Interleaver_te = BADS_3x7x_ChnScanStatus_Interleaver_eI1_J128; break;
 				default: hChn->pChnScanStatus->Interleaver_te = BADS_3x7x_ChnScanStatus_Interleaver_eUnsupported; break;
-			}		
+			}
 		}
-		
+
 		if (hChn->pChnAcqParam->BADS_Internal_Params.Callback_Enable_te == BADS_Internal_Params_eEnable)
 		{
 			hChn->pChnScanStatus->RF_Offset_i32 = CarrierOffset_i32 + Carrier_Error_i32;
@@ -1765,15 +1754,15 @@ void BADS_P_Set_ScanStatus_Params(BADS_3x7x_ChannelHandle hChn, uint8_t QamIndex
 		{
 			hChn->pChnScanStatus->RF_Offset_i32 = 0;
 		}
-		
+
 		hChn->pChnScanStatus->Symbol_Rate_u32 = Symbol_Rate_u32;
 	}
 }
 
 /********************************************************************************************
-*BADS_P_ADS_SLEEP() This is used to allow early exit from acquisition by checking before each delay                                          
+*BADS_P_ADS_SLEEP() This is used to allow early exit from acquisition by checking before each delay
 ********************************************************************************************/
-bool BADS_P_ADS_SLEEP(BADS_3x7x_ChannelHandle hChn, unsigned int Delay)	
+bool BADS_P_ADS_SLEEP(BADS_3x7x_ChannelHandle hChn, unsigned int Delay)
 {
     static const uint8_t uShift = 5; /* 32 msec increments */
     volatile uint32_t uRemainderDelay = 0;
@@ -1783,18 +1772,18 @@ bool BADS_P_ADS_SLEEP(BADS_3x7x_ChannelHandle hChn, unsigned int Delay)
     /* Divide delay by 32 msec */
     uIncrementalDelay = (Delay >> uShift);
     uRemainderDelay = Delay - (uIncrementalDelay<<uShift);
-    if ( uRemainderDelay > Delay ) 
+    if ( uRemainderDelay > Delay )
     {
         uRemainderDelay = 0;
     }
-    
+
     /* BDBG_MSG(("BADS_P_ADS_SLEEP: D: 0x%06X, I: 0x%06X, R: 0x%06X", Delay, uIncrementalDelay , uRemainderDelay)); */
 
     /* Delay loop */
-    while ( (0 != uIncrementalDelay) || (0 != uRemainderDelay) ) 
+    while ( (0 != uIncrementalDelay) || (0 != uRemainderDelay) )
     {
         /* Terminate on early exit */
-        if ( hChn->pChnAcqParam->BADS_Local_Params.EarlyExit ) 
+        if ( hChn->pChnAcqParam->BADS_Local_Params.EarlyExit )
         {
 #if FALSE /* Debug only */
             BDBG_MSG(("**** EARLY EXIT Ads Chn %d ****", hChn->chnNo));
@@ -1805,7 +1794,7 @@ bool BADS_P_ADS_SLEEP(BADS_3x7x_ChannelHandle hChn, unsigned int Delay)
             break;
         }
         /* Delay using incremental delay count (Delay/32) */
-        if ( uIncrementalDelay ) 
+        if ( uIncrementalDelay )
         {
             BKNI_Sleep((1<<uShift));
             --uIncrementalDelay;
@@ -1813,7 +1802,7 @@ bool BADS_P_ADS_SLEEP(BADS_3x7x_ChannelHandle hChn, unsigned int Delay)
             continue;
         }
         /* Final/last Delay (Delay MOD uIncrementalDelay) */
-        if ( 0 != uRemainderDelay ) 
+        if ( 0 != uRemainderDelay )
         {
             BKNI_Sleep(uRemainderDelay);
             /* Stop while-loop*/

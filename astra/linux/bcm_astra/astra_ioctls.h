@@ -80,6 +80,8 @@ enum {
     ASTRA_IOCTL_FILE_READ,
     ASTRA_IOCTL_FILE_WRITE,
 
+    ASTRA_IOCTL_UAPP_COREDUMP,
+
     ASTRA_IOCTL_LAST
 };
 
@@ -232,6 +234,14 @@ struct astra_ioctl_file_read_data {
     int retVal;
 
     astra_kfile_handle hFile;
+    astra_paddr_t paddr;
+    size_t bytes;
+};
+
+struct astra_ioctl_uapp_coredump_data {
+    int retVal;
+
+    astra_kuapp_handle hUapp;
     astra_paddr_t paddr;
     size_t bytes;
 };

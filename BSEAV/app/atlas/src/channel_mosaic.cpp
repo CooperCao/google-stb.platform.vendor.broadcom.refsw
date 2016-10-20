@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -66,10 +66,10 @@ error:
 
 CChannel * CChannelMosaic::createCopy(CChannel * pChannel)
 {
-    CChannelMosaic * pChannelMosaic  = (CChannelMosaic *)pChannel;
-    CChannel       * pMosaic         = NULL;
-    CChannelMosaic * pChNew          = NULL;
-    eRet             ret             = eRet_Ok;
+    CChannelMosaic * pChannelMosaic = (CChannelMosaic *)pChannel;
+    CChannel *       pMosaic        = NULL;
+    CChannelMosaic * pChNew         = NULL;
+    eRet             ret            = eRet_Ok;
 
     pChNew = new CChannelMosaic(*(CChannelMosaic *)pChannel);
     CHECK_PTR_ERROR_GOTO("unable to allocate CChannelMosaic", pChNew, ret, eRet_OutOfMemory, error);
@@ -83,7 +83,7 @@ CChannel * CChannelMosaic::createCopy(CChannel * pChannel)
 
 error:
     return(pChNew);
-}
+} /* createCopy */
 
 eRet CChannelMosaic::registerObserver(
         CObserver *   pObserver,
@@ -188,7 +188,7 @@ void CChannelMosaic::updateDescription()
 
     _strDescription = "";
 
-    //addMetadata("Filename", _strFilename);
+    /* addMetadata("Filename", _strFilename); */
 }
 
 eRet CChannelMosaic::tune(
@@ -198,8 +198,8 @@ eRet CChannelMosaic::tune(
         uint16_t  index
         )
 {
-    eRet ret = eRet_Ok;
-    CChannel * pMosaic  = NULL;
+    eRet       ret        = eRet_Ok;
+    CChannel * pMosaic    = NULL;
     uint32_t   windowType = eWindowType_Mosaic1;
 
     for (pMosaic = _mosaicList.first(); pMosaic; pMosaic = _mosaicList.next())
@@ -228,7 +228,7 @@ eRet CChannelMosaic::unTune(
         bool      bCheckInTuner
         )
 {
-    eRet ret = eRet_Ok;
+    eRet       ret     = eRet_Ok;
     CChannel * pMosaic = NULL;
 
     BSTD_UNUSED(bFullUnTune);
@@ -257,7 +257,7 @@ bool CChannelMosaic::operator ==(CChannel &other)
     bMatch = CChannel::operator ==(other);
     if (true == bMatch)
     {
-        CChannel * pChannel = NULL;
+        CChannel * pChannel      = NULL;
         CChannel * pChannelOther = NULL;
 
         for (pChannel = _mosaicList.first(), pChannelOther = pOtherMosaic->getMosaicList()->first();
@@ -287,7 +287,7 @@ error:
 
 bool CChannelMosaic::isTunerRequired()
 {
-    CChannel * pMosaic = NULL;
+    CChannel * pMosaic        = NULL;
     bool       bTunerRequired = false;
 
     for (pMosaic = _mosaicList.first(); pMosaic; pMosaic = _mosaicList.next())
@@ -296,7 +296,7 @@ bool CChannelMosaic::isTunerRequired()
     }
 
     /* since we've calculated whether a tuner is required, might as well
-       update our base class member variable */
+     * update our base class member variable */
     _bTunerRequired = bTunerRequired;
 
     return(bTunerRequired);

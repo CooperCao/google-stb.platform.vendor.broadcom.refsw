@@ -124,6 +124,9 @@ private:
     static void ufileReadProc(
         struct tzioc_msg_hdr *pHdr);
 
+    static void uappCoreDumpProc(
+        struct tzioc_msg_hdr *pHdr);
+
     static int ufileAdd(UserFile *pUfile);
     static int ufileRmv(UserFile *pUfile);
 

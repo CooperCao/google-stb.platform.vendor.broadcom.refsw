@@ -1,42 +1,39 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #ifndef BDSP_COMMON_CIT_PRIV_H_
 #define BDSP_COMMON_CIT_PRIV_H_
@@ -46,8 +43,6 @@
 /***************************************/
 /*   CIT GENERATION CODE DEFINES       */
 /***************************************/
-#define BDSP_CIT_P_ENABLE_FORK_MATRIXING
-#define ANALYZE_IO_CFG
 
 #define SIZEOF(x)   ( sizeof(x) )
 
@@ -68,6 +63,12 @@
 
 #define BDSP_CIT_P_PRESENT                          ((uint32_t)(1))
 #define BDSP_CIT_P_ABSENT                           ((uint32_t)(0))
+
+typedef enum BDSP_P_IO_BufferType{
+    BDSP_P_IO_BufferType_IO = 0,
+    BDSP_P_IO_BufferType_IOGen,
+    BDSP_P_IO_BufferType_Invalid = 0x7FFFFFFF
+}BDSP_P_IO_BufferType;
 
 /*********************************************************************
 Summary:
@@ -129,10 +130,22 @@ uint32_t BDSP_P_FillSamplingFrequencyMapLut(
                 BDSP_CIT_P_sAlgoModePresent *psAlgoModePresent
             );
 
+void BDSP_P_Analyse_CIT_PrintBufferAddrSize(BDSP_AF_P_sDRAM_BUFFER Buffer,
+                uint32_t count);
+
+void BDSP_P_Analyse_CIT_PrintBufferAddr(BDSP_AF_P_sDRAM_CIRCULAR_BUFFER *psCircBuff,
+                BDSP_AF_P_BufferType eBufferType);
+
+void BDSP_P_Analyse_CIT_BuffCfgStruct(void *pBuffer,
+                BDSP_P_IO_BufferType eIOBufftype);
+
 extern const char BuffTypeEnum2Char[BDSP_AF_P_BufferType_eLAST][MAX_CHAR_LENGTH];
 extern const char PortDatatType[BDSP_AF_P_DistinctOpType_eMax][MAX_CHAR_LENGTH];
 extern const char PortValidType[BDSP_AF_P_ValidInvalid_eMax][MAX_CHAR_LENGTH];
 extern const char DisableEnable[2][MAX_CHAR_LENGTH];
 extern const char GlobalTimeBase [2][MAX_CHAR_LENGTH];
-
+extern const char ContextType[BDSP_ContextType_eMax+1][MAX_CHAR_LENGTH];
+extern const char SchedulingMode[BDSP_TaskSchedulingMode_eMax+1][MAX_CHAR_LENGTH];
+extern const char SchedulingType[BDSP_TaskRealtimeMode_eMax+1][MAX_CHAR_LENGTH];
+extern const char DelayMode[BDSP_AudioTaskDelayMode_eMax+1][MAX_CHAR_LENGTH];
 #endif /*BDSP_COMMON_CIT_PRIV_H_*/

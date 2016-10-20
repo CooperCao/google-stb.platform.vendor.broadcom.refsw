@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:01 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:23 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,62 +70,62 @@
 /***************************************************************************
  *MDI_FCN_1 - MADR Field Control Block Registers
  ***************************************************************************/
-#define BCHP_MDI_FCN_1_FIELD_STATE_FIFO_STATUS_0 0x20692c00 /* [RO] Field State FIFO Status 0 */
-#define BCHP_MDI_FCN_1_FIELD_STATE_FIFO_STATUS_1 0x20692c04 /* [RO] Field State FIFO Status 1 */
-#define BCHP_MDI_FCN_1_OBTS_STATUS               0x20692c08 /* [RO] OBTS Status */
-#define BCHP_MDI_FCN_1_IT_STATISTICS_STORE_STATUS 0x20692c0c /* [RO] Inverse Telecine Statistics Store Status */
-#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_0_CORRELATION_COUNTER 0x20692c10 /* [RO] Inverse Telecine Phase 0 Correlation Counter */
-#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_1_CORRELATION_COUNTER 0x20692c14 /* [RO] Inverse Telecine Phase 1 Correlation Counter */
-#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_2_CORRELATION_COUNTER 0x20692c18 /* [RO] Inverse Telecine Phase 2 Correlation Counter */
-#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_3_CORRELATION_COUNTER 0x20692c1c /* [RO] Inverse Telecine Phase 3 Correlation Counter */
-#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_4_CORRELATION_COUNTER 0x20692c20 /* [RO] Inverse Telecine Phase 4 Correlation Counter */
-#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_0        0x20692c24 /* [RO] Inverse Telecine Histogram Bin 0 */
-#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_1        0x20692c28 /* [RO] Inverse Telecine Histogram Bin 1 */
-#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_2        0x20692c2c /* [RO] Inverse Telecine Histogram Bin 2 */
-#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_3        0x20692c30 /* [RO] Inverse Telecine Histogram Bin 3 */
-#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_4        0x20692c34 /* [RO] Inverse Telecine Histogram Bin 4 */
-#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_0 0x20692c38 /* [RO] Inverse Telecine Frame Unexpected Motion 0 */
-#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_1 0x20692c3c /* [RO] Inverse Telecine Frame Unexpected Motion 1 */
-#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_2 0x20692c40 /* [RO] Inverse Telecine Frame Unexpected Motion 2 */
-#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_3 0x20692c44 /* [RO] Inverse Telecine Frame Unexpected Motion 3 */
-#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_4 0x20692c48 /* [RO] Inverse Telecine Frame Unexpected Motion 4 */
-#define BCHP_MDI_FCN_1_DEBUG_IT_REV22_PHASE_0_COUNTER 0x20692c4c /* [RO] Inverse Telecine Reverse 2:2 Phase 0 Correlation Counter */
-#define BCHP_MDI_FCN_1_DEBUG_IT_REV22_PHASE_1_COUNTER 0x20692c50 /* [RO] Inverse Telecine Reverse 2:2 Phase 1 Correlation Counter */
-#define BCHP_MDI_FCN_1_IT_PCC_LUMA_BWD           0x20692c54 /* [RO] Inverse Telecine Polarity-Change Luma BWD Count */
-#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_0 0x20692c60 /* [RW] Current Field Control set 0 */
-#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_1 0x20692c64 /* [RW] Current Field Control set 1 */
-#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_2 0x20692c68 /* [RW] Current Field Control set 2 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_0 0x20692c70 /* [RW] Inverse Telecine Field Phase Calculation Control Set 0 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_1 0x20692c74 /* [RW] Inverse Telecine Field Phase Calculation Control Set 1 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_2 0x20692c78 /* [RW] Inverse Telecine Field Phase Calculation Control Set 2 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_3 0x20692c7c /* [RW] Inverse Telecine Field Phase Calculation Control Set 3 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_4 0x20692c80 /* [RW] Inverse Telecine Field Phase Calculation Control Set 4 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_5 0x20692c84 /* [RW] Inverse Telecine Field Phase Calculation Control Set 5 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_8 0x20692c88 /* [RW] Inverse Telecine Field Phase Calculation Control Set 8 */
-#define BCHP_MDI_FCN_1_IT_OUTPUT_CONTROL         0x20692c8c /* [RW] Inverse Telecine Output Control */
-#define BCHP_MDI_FCN_1_OBTS_DECAY                0x20692c90 /* [RW] OBTS Decay */
-#define BCHP_MDI_FCN_1_OBTS_HOLDOFF              0x20692c94 /* [RW] OBTS Hold Off */
-#define BCHP_MDI_FCN_1_OBTS_MAX_HOLDOFF          0x20692c98 /* [RW] OBTS Maximum Hold Off */
-#define BCHP_MDI_FCN_1_OBTS_CONTROL              0x20692c9c /* [RW] OBTS Control */
-#define BCHP_MDI_FCN_1_MODE_CONTROL_0            0x20692ca0 /* [RW] Operation Mode Set 0 */
-#define BCHP_MDI_FCN_1_MODE_CONTROL_1            0x20692ca4 /* [RW] Operation Mode Set 1 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_9 0x20692cb0 /* [RW] Inverse Telecine Field Phase Calculation Control Set 9 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_10 0x20692cb4 /* [RW] Inverse Telecine Field Phase Calculation Control Set 10 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_11 0x20692cbc /* [RW] Inverse Telecine Field Phase Calculation Control Set 11 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_12 0x20692cc0 /* [RW] Inverse Telecine Field Phase Calculation Control Set 12 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_13 0x20692cc4 /* [RW] Inverse Telecine Field Phase Calculation Control Set 13 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_14 0x20692cc8 /* [RW] Inverse Telecine Field Phase Calculation Control Set 14 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_15 0x20692ccc /* [RW] Inverse Telecine Field Phase Calculation Control Set 15 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_16 0x20692cd0 /* [RW] Inverse Telecine Field Phase Calculation Control Set 16 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_17 0x20692cd4 /* [RW] Inverse Telecine Field Phase Calculation Control Set 17 */
-#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_18 0x20692cd8 /* [RW] Inverse Telecine Field Phase Calculation Control Set 18 */
-#define BCHP_MDI_FCN_1_IT_BAD_WEAVE_CONTROL_0    0x20692cdc /* [RW] Bad Weave Control Set 0 */
-#define BCHP_MDI_FCN_1_IT_BAD_WEAVE_CONTROL_1    0x20692ce0 /* [RW] Bad Weave Control Set 1 */
-#define BCHP_MDI_FCN_1_IT_LG_PCC_COUNT           0x20692cf0 /* [RO] Inverse Large PCC Counter */
-#define BCHP_MDI_FCN_1_IT_FEATHER_COUNT          0x20692cf4 /* [RO] Inverse Feather Detection Counter */
-#define BCHP_MDI_FCN_1_IT_TICKER_COUNT           0x20692cf8 /* [RO] Inverse Ticker Detection Counter */
-#define BCHP_MDI_FCN_1_IT_STAIR_COUNT            0x20692cfc /* [RO] Inverse Stair Detection Counter */
-#define BCHP_MDI_FCN_1_SCRATCH_0                 0x20692dfc /* [RW] Scratch register 0 */
+#define BCHP_MDI_FCN_1_FIELD_STATE_FIFO_STATUS_0 0x20692c00 /* [RO][32] Field State FIFO Status 0 */
+#define BCHP_MDI_FCN_1_FIELD_STATE_FIFO_STATUS_1 0x20692c04 /* [RO][32] Field State FIFO Status 1 */
+#define BCHP_MDI_FCN_1_OBTS_STATUS               0x20692c08 /* [RO][32] OBTS Status */
+#define BCHP_MDI_FCN_1_IT_STATISTICS_STORE_STATUS 0x20692c0c /* [RO][32] Inverse Telecine Statistics Store Status */
+#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_0_CORRELATION_COUNTER 0x20692c10 /* [RO][32] Inverse Telecine Phase 0 Correlation Counter */
+#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_1_CORRELATION_COUNTER 0x20692c14 /* [RO][32] Inverse Telecine Phase 1 Correlation Counter */
+#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_2_CORRELATION_COUNTER 0x20692c18 /* [RO][32] Inverse Telecine Phase 2 Correlation Counter */
+#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_3_CORRELATION_COUNTER 0x20692c1c /* [RO][32] Inverse Telecine Phase 3 Correlation Counter */
+#define BCHP_MDI_FCN_1_DEBUG_IT_PHASE_4_CORRELATION_COUNTER 0x20692c20 /* [RO][32] Inverse Telecine Phase 4 Correlation Counter */
+#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_0        0x20692c24 /* [RO][32] Inverse Telecine Histogram Bin 0 */
+#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_1        0x20692c28 /* [RO][32] Inverse Telecine Histogram Bin 1 */
+#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_2        0x20692c2c /* [RO][32] Inverse Telecine Histogram Bin 2 */
+#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_3        0x20692c30 /* [RO][32] Inverse Telecine Histogram Bin 3 */
+#define BCHP_MDI_FCN_1_IT_HISTOGRAM_BIN_4        0x20692c34 /* [RO][32] Inverse Telecine Histogram Bin 4 */
+#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_0 0x20692c38 /* [RO][32] Inverse Telecine Frame Unexpected Motion 0 */
+#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_1 0x20692c3c /* [RO][32] Inverse Telecine Frame Unexpected Motion 1 */
+#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_2 0x20692c40 /* [RO][32] Inverse Telecine Frame Unexpected Motion 2 */
+#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_3 0x20692c44 /* [RO][32] Inverse Telecine Frame Unexpected Motion 3 */
+#define BCHP_MDI_FCN_1_IT_FRAME_UNEXPECTED_MOTION_4 0x20692c48 /* [RO][32] Inverse Telecine Frame Unexpected Motion 4 */
+#define BCHP_MDI_FCN_1_DEBUG_IT_REV22_PHASE_0_COUNTER 0x20692c4c /* [RO][32] Inverse Telecine Reverse 2:2 Phase 0 Correlation Counter */
+#define BCHP_MDI_FCN_1_DEBUG_IT_REV22_PHASE_1_COUNTER 0x20692c50 /* [RO][32] Inverse Telecine Reverse 2:2 Phase 1 Correlation Counter */
+#define BCHP_MDI_FCN_1_IT_PCC_LUMA_BWD           0x20692c54 /* [RO][32] Inverse Telecine Polarity-Change Luma BWD Count */
+#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_0 0x20692c60 /* [RW][32] Current Field Control set 0 */
+#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_1 0x20692c64 /* [RW][32] Current Field Control set 1 */
+#define BCHP_MDI_FCN_1_DEBUG_CURRENT_FIELD_CONTROL_2 0x20692c68 /* [RW][32] Current Field Control set 2 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_0 0x20692c70 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 0 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_1 0x20692c74 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 1 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_2 0x20692c78 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 2 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_3 0x20692c7c /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 3 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_4 0x20692c80 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 4 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_5 0x20692c84 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 5 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_8 0x20692c88 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 8 */
+#define BCHP_MDI_FCN_1_IT_OUTPUT_CONTROL         0x20692c8c /* [RW][32] Inverse Telecine Output Control */
+#define BCHP_MDI_FCN_1_OBTS_DECAY                0x20692c90 /* [RW][32] OBTS Decay */
+#define BCHP_MDI_FCN_1_OBTS_HOLDOFF              0x20692c94 /* [RW][32] OBTS Hold Off */
+#define BCHP_MDI_FCN_1_OBTS_MAX_HOLDOFF          0x20692c98 /* [RW][32] OBTS Maximum Hold Off */
+#define BCHP_MDI_FCN_1_OBTS_CONTROL              0x20692c9c /* [RW][32] OBTS Control */
+#define BCHP_MDI_FCN_1_MODE_CONTROL_0            0x20692ca0 /* [RW][32] Operation Mode Set 0 */
+#define BCHP_MDI_FCN_1_MODE_CONTROL_1            0x20692ca4 /* [RW][32] Operation Mode Set 1 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_9 0x20692cb0 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 9 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_10 0x20692cb4 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 10 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_11 0x20692cbc /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 11 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_12 0x20692cc0 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 12 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_13 0x20692cc4 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 13 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_14 0x20692cc8 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 14 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_15 0x20692ccc /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 15 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_16 0x20692cd0 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 16 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_17 0x20692cd4 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 17 */
+#define BCHP_MDI_FCN_1_IT_FIELD_PHASE_CALC_CONTROL_18 0x20692cd8 /* [RW][32] Inverse Telecine Field Phase Calculation Control Set 18 */
+#define BCHP_MDI_FCN_1_IT_BAD_WEAVE_CONTROL_0    0x20692cdc /* [RW][32] Bad Weave Control Set 0 */
+#define BCHP_MDI_FCN_1_IT_BAD_WEAVE_CONTROL_1    0x20692ce0 /* [RW][32] Bad Weave Control Set 1 */
+#define BCHP_MDI_FCN_1_IT_LG_PCC_COUNT           0x20692cf0 /* [RO][32] Inverse Large PCC Counter */
+#define BCHP_MDI_FCN_1_IT_FEATHER_COUNT          0x20692cf4 /* [RO][32] Inverse Feather Detection Counter */
+#define BCHP_MDI_FCN_1_IT_TICKER_COUNT           0x20692cf8 /* [RO][32] Inverse Ticker Detection Counter */
+#define BCHP_MDI_FCN_1_IT_STAIR_COUNT            0x20692cfc /* [RO][32] Inverse Stair Detection Counter */
+#define BCHP_MDI_FCN_1_SCRATCH_0                 0x20692dfc /* [RW][32] Scratch register 0 */
 
 #endif /* #ifndef BCHP_MDI_FCN_1_H__ */
 

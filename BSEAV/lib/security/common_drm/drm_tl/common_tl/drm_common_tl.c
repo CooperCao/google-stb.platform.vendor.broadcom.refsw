@@ -115,6 +115,7 @@ DRM_Common_TL_Initialize( DrmCommonInit_t *pCommonTLSettings)
         goto ErrorExit;
     }
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
     if(pCommonTLSettings->ta_bin_file_path != NULL){
 
         rc = DRM_Common_P_TA_Install(pCommonTLSettings->ta_bin_file_path);
@@ -132,6 +133,7 @@ DRM_Common_TL_Initialize( DrmCommonInit_t *pCommonTLSettings)
         /* Set to Success as we support pre-loaded common drm TA */
         rc = Drm_Success;
     }
+#endif
 
     if(platformHandle == NULL) {
         sage_rc = SRAI_Platform_Open(BSAGE_PLATFORM_ID_COMMONDRM, &platform_status, &platformHandle);

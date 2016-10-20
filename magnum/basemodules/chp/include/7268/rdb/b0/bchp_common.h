@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:32:53 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:18 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -72,8 +72,12 @@
  ***************************************************************************/
 #define BCHP_PHYSICAL_OFFSET                               0xd0000000
 #define BCHP_REGISTER_START                                0x20000000 /* HEVD_OL_CPU_REGS_0 is first */
-#define BCHP_REGISTER_END                                  0x21220850 /* SFE_GR is last */
-#define BCHP_REGISTER_SIZE                                 0x00488214 /* Number of registers */
+#define BCHP_REGISTER_END                                  0x2120c000 /* V3D_QPUDBG_0 is last */
+#define BCHP_REGISTER_SIZE                                 0x00483000 /* Number of registers */
+#define BCHP_REGISTER_HAS_16_BIT                                    0 /* Has 16-bit wide register */
+#define BCHP_REGISTER_HAS_32_BIT                                    1 /* Has 32-bit wide register */
+#define BCHP_REGISTER_HAS_64_BIT                                    1 /* Has 64-bit wide register */
+#define BCHP_UINT64_C(hi, lo)             (((uint64_t)hi)<<32 | (lo)) /* C89 64-bit literal */
 
 /****************************************************************************
  * Core instance register start address.
@@ -740,6 +744,8 @@
 #define BCHP_AVS_PMB_S_022_REG_END                         0x204d85a4
 #define BCHP_AVS_PMB_S_023_REG_START                       0x204d85c0
 #define BCHP_AVS_PMB_S_023_REG_END                         0x204d85e4
+#define BCHP_AVS_PMB_S_024_REG_START                       0x204d8600
+#define BCHP_AVS_PMB_S_024_REG_END                         0x204d8624
 #define BCHP_AVS_PMB_REGISTERS_REG_START                   0x204da000
 #define BCHP_AVS_PMB_REGISTERS_REG_END                     0x204da008
 #define BCHP_CLKGEN_REG_START                              0x204e0000
@@ -1728,14 +1734,6 @@
 #define BCHP_V3D_ERR_0_REG_END                             0x21208f20
 #define BCHP_V3D_QPUDBG_0_REG_START                        0x2120a000
 #define BCHP_V3D_QPUDBG_0_REG_END                          0x2120bffc
-#define BCHP_SFE_CORE0_REG_START                           0x21220000
-#define BCHP_SFE_CORE0_REG_END                             0x212201cc
-#define BCHP_SFE_CORE1_REG_START                           0x21220400
-#define BCHP_SFE_CORE1_REG_END                             0x212205cc
-#define BCHP_SFE_INTR2_REG_START                           0x21220800
-#define BCHP_SFE_INTR2_REG_END                             0x2122082c
-#define BCHP_SFE_GR_REG_START                              0x21220840
-#define BCHP_SFE_GR_REG_END                                0x2122084c
 
 
 /***************************************************************************

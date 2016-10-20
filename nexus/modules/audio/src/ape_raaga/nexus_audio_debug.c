@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -17,8 +17,8 @@
  * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
  * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
  * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
  * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
  * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
@@ -26,7 +26,7 @@
  * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
  * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
  * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
  * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
  * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -352,8 +352,8 @@ void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
 {
     NEXUS_AudioInputHandle downstreamObject;
     NEXUS_AudioOutputHandle audioOutput;
-    downstreamObject = NEXUS_AudioInput_P_LocateDownstream(input);
-    if ( downstreamObject )
+    downstreamObject = NEXUS_AudioInput_P_LocateDownstream(input, NULL);
+    while ( downstreamObject )
     {
         switch (downstreamObject->objectType)
         {
@@ -384,6 +384,7 @@ void NEXUS_AudioDebug_P_ConfigPrint(NEXUS_AudioInputHandle input, int level)
                 NEXUS_AudioDebug_P_ConfigPrint(downstreamObject,level+1);
                 break;
         }
+        downstreamObject = NEXUS_AudioInput_P_LocateDownstream(input, downstreamObject);
     }
 
     audioOutput = NEXUS_AudioInput_P_LocateOutput(input, NULL);
@@ -467,6 +468,13 @@ uint32_t NEXUS_AudioDebug_NumChannels(
                 count += (status->codecStatus.ac3.lfe?1:0);
             }
             break;
+        case BAVC_AudioCompressionStd_eAc4:
+            count = NEXUS_AudioDebug_BAPE_ChannelModeToInt(status->codecStatus.ac4.channelMode);
+            if (count != 0)
+            {
+                count += (status->codecStatus.ac4.lfe?1:0);
+            }
+            break;
         case BAVC_AudioCompressionStd_eDts:
         case BAVC_AudioCompressionStd_eDtshd:
         case BAVC_AudioCompressionStd_eDtsLegacy:
@@ -512,6 +520,7 @@ uint32_t NEXUS_AudioDebug_NumChannels(
         case BAVC_AudioCompressionStd_eCook:
             return (status->codecStatus.cook.stereo?2:1);
         case BAVC_AudioCompressionStd_eAls:
+        case BAVC_AudioCompressionStd_eAlsLoas:
             count = NEXUS_AudioDebug_BAPE_ChannelModeToInt(status->codecStatus.als.channelMode);
             break;
         default:
@@ -534,6 +543,8 @@ uint32_t NEXUS_AudioDebug_InputSampleRate(
         case BAVC_AudioCompressionStd_eAc3:
         case BAVC_AudioCompressionStd_eAc3Plus:
             return status->codecStatus.ac3.samplingFrequency;
+        case BAVC_AudioCompressionStd_eAc4:
+            return status->codecStatus.ac4.samplingFrequency;
         case BAVC_AudioCompressionStd_eDts:
         case BAVC_AudioCompressionStd_eDtshd:
         case BAVC_AudioCompressionStd_eDtsLegacy:
@@ -542,16 +553,18 @@ uint32_t NEXUS_AudioDebug_InputSampleRate(
             return status->codecStatus.pcmWav.samplingFrequency;
         case BAVC_AudioCompressionStd_eAmrNb:
         case BAVC_AudioCompressionStd_eAmrWb:
-            return 80000; /* Always 8k */
+            return 8000; /* Always 8k */
         case BAVC_AudioCompressionStd_eDra:
             return status->codecStatus.dra.samplingFrequency;
         case BAVC_AudioCompressionStd_eCook:
             return status->codecStatus.cook.samplingFrequency;
         case BAVC_AudioCompressionStd_eAls:
+        case BAVC_AudioCompressionStd_eAlsLoas:
             return status->codecStatus.als.samplingFrequency;
         default:
             return 0;
     }
+
 }
 
 const char * NEXUS_AudioDebug_ChannelModeToString(

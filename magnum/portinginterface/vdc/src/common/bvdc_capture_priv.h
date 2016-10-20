@@ -52,6 +52,7 @@ extern "C" {
 /***************************************************************************
  * Private defines
  ***************************************************************************/
+#if 0
 /* 3560, 7401A, 7400A:
  * no BVB_IN_SIZE. PIC_OFFSET seperate from PIC_SIZE -> RX_CTRL block
  */
@@ -68,6 +69,8 @@ extern "C" {
  * Dither support added.
  */
 #define BVDC_P_CAP_VER_3                      (3)
+#endif
+
 /* 7422:
  * 3D support added.
  */
@@ -91,66 +94,20 @@ extern "C" {
  */
 #define BVDC_P_CAP_VER_8                      (8)
 
+/* New pitch setting for mosaic */
+#define BVDC_P_CAP_SUPPORT_NEW_MEMORY_PITCH   \
+     (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_8)
+
 /***************************************************************************
  * Private register cracking macros
  ***************************************************************************/
-#define BVDC_P_CAP_GET_REG_IDX(reg) \
-    ((BCHP##_##reg - BCHP_CAP_0_REG_START) / sizeof(uint32_t))
-
-/* Get/Set reg data */
-#define BVDC_P_CAP_GET_REG_DATA(reg) \
-    (hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg)])
-#define BVDC_P_CAP_SET_REG_DATA(reg, data) \
-    (BVDC_P_CAP_GET_REG_DATA(reg) = (uint32_t)(data))
-
-#define BVDC_P_CAP_GET_REG_DATA_I(idx, reg) \
-    (hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(reg) + (idx)])
-
-/* Get field */
-#define BVDC_P_CAP_GET_FIELD_NAME(reg, field) \
-    (BVDC_P_GET_FIELD(BVDC_P_CAP_GET_REG_DATA(reg), reg, field))
-
-/* Compare field */
-#define BVDC_P_CAP_COMPARE_FIELD_DATA(reg, field, data) \
-    (BVDC_P_COMPARE_FIELD_DATA(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, (data)))
-#define BVDC_P_CAP_COMPARE_FIELD_NAME(reg, field, name) \
-    (BVDC_P_COMPARE_FIELD_NAME(BVDC_P_CAP_GET_REG_DATA(reg), reg, field, name))
-
 /* This macro does a write into RUL (write, addr, data). 3 dwords. */
-#define BVDC_P_CAP_WRITE_TO_RUL(reg, addr_ptr) \
+#define BVDC_P_CAP_WRITE_TO_RUL(reg, addr_ptr, data) \
 { \
     *addr_ptr++ = BRDC_OP_IMM_TO_REG(); \
     *addr_ptr++ = BRDC_REGISTER(BCHP##_##reg + hCapture->ulRegOffset); \
-    *addr_ptr++ = BVDC_P_CAP_GET_REG_DATA(reg); \
+    *addr_ptr++ = data; \
 }
-
-/* This macro does a block write into RUL */
-#define BVDC_P_CAP_BLOCK_WRITE_TO_RUL(from, to, pulCurrent) \
-do { \
-    uint32_t ulBlockSize = \
-        BVDC_P_REGS_ENTRIES(from, to);\
-    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( ulBlockSize ); \
-    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
-    BKNI_Memcpy((void*)pulCurrent, \
-        (void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
-        ulBlockSize * sizeof(uint32_t)); \
-    pulCurrent += ulBlockSize; \
-} while(0)
-
-/* This macro does a block write into RUL */
-#define BVDC_P_CAP_RECT_BLOCK_WRITE_TO_RUL(from, cnt, pulCurrent) \
-do { \
-    *pulCurrent++ = BRDC_OP_IMMS_TO_REGS( cnt ); \
-    *pulCurrent++ = BRDC_REGISTER(BCHP##_##from + hCapture->ulRegOffset); \
-    BKNI_Memcpy((void*)pulCurrent, \
-        (void*)&(hCapture->aulRegs[BVDC_P_CAP_GET_REG_IDX(from)]), \
-        (cnt) * sizeof(uint32_t)); \
-    pulCurrent += cnt; \
-} while(0)
-
-/* number of registers in one block. */
-#define BVDC_P_CAP_REGS_COUNT      \
-    BVDC_P_REGS_ENTRIES(CAP_0_REG_START, CAP_0_REG_END)
 
 #define BVDC_P_Capture_MuxAddr(hCap)   (BCHP_VNET_B_CAP_0_SRC + (hCap)->eId * sizeof(uint32_t))
 #define BVDC_P_Capture_SetVnet_isr(hCap, ulSrcMuxValue, eVnetPatchMode) \
@@ -179,6 +136,34 @@ typedef enum BVDC_P_Capture_DataMode
 
 } BVDC_P_Capture_DataMode;
 
+typedef struct BVDC_P_CaptureRegisterSetting
+{
+    uint32_t       ulPicSize;         /* CAP_0_PIC_SIZE */
+    uint32_t       ulBvbInSize;       /* CAP_0_BVB_IN_SIZE */
+    uint32_t       ulPicOffset;       /* CAP_0_PIC_OFFSET */
+#if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_5)
+    uint32_t       ulPicOffsetR;       /* CAP_0_PIC_OFFSET_R */
+#endif
+    uint32_t       ulPitch;            /* CAP_0_PITCH */
+
+    uint32_t       ulMode;             /* CAP_0_MODE */
+    uint32_t       ulCompOrder;        /* CAP_0_COMP_ORDER or CAP_0_BYTE_ORDER */
+    uint32_t       ulTrigCtrl;         /* CAP_0_TRIG_CTRL  */
+    uint32_t       ulCtrl;             /* CAP_0_CTRL */
+
+#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM)
+    uint32_t       ulDcemCfg;          /* CAP_0_DCEM_CFG */
+    uint32_t       ulDcemRectCtrl;     /* CAP_0_DCEM_RECT_CTRL */
+    uint32_t       ulDcemRectMask;     /* CAP_0_DCEM_RECT_ENABLE_MASK */
+    uint32_t       ulDcemRectId;       /* CAP_0_DCEM_RECT_ID */
+#endif
+
+    BMMA_DeviceOffset  ullMStart;       /* CAP_0_MSTART */
+#if (BVDC_P_SUPPORT_CAP_VER >= BVDC_P_CAP_VER_4)
+    BMMA_DeviceOffset  ullMStartR;       /* CAP_0_MSTART_R */
+#endif
+
+} BVDC_P_CaptureRegisterSetting;
 
 typedef struct BVDC_P_CaptureContext
 {
@@ -197,7 +182,9 @@ typedef struct BVDC_P_CaptureContext
     BVDC_P_CaptureId               eId;
     BRDC_Trigger                   eTrig;
     uint32_t                       ulRegOffset; /* CAP_0, CAP_1, and etc. */
-    uint32_t                       aulRegs[BVDC_P_CAP_REGS_COUNT];
+
+    BVDC_P_CaptureRegisterSetting  stRegs;
+    BAVC_Polarity                  eCapturePolarity;
 
     /* A register handle.  Triggers need to be enable by host writes.
      * A memory handle to do address/offset converting. */
@@ -254,8 +241,8 @@ void BVDC_P_Capture_BuildRul_isr
 
 BERR_Code BVDC_P_Capture_SetBuffer_isr
     ( BVDC_P_Capture_Handle            hCapture,
-      uint32_t                         ulDeviceAddr,
-      uint32_t                         ulDeviceAddr_R,
+      BMMA_DeviceOffset                ullDeviceAddr,
+      BMMA_DeviceOffset                ullDeviceAddr_R,
       uint32_t                         ulPitch );
 
 BERR_Code BVDC_P_Capture_SetEnable_isr

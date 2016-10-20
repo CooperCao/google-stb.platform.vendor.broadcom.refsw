@@ -7,6 +7,7 @@ All rights reserved.
 
 #include "libs/core/v3d/v3d_common.h"
 #include "libs/core/v3d/v3d_gen.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 void gfx_lfmt_block_set_slot_bits(
    union gfx_lfmt_block_data *block,

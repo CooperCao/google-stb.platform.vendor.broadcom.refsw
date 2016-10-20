@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,20 +70,21 @@
 /***************************************************************************
  *V3D_MMU_0 - V3D MMU Control Registers (Core 0)
  ***************************************************************************/
-#define BCHP_V3D_MMU_0_CTRL                      0x21201200 /* [RW] AXI_MMU Control Register */
-#define BCHP_V3D_MMU_0_PT_PA_BASE                0x21201204 /* [RW] Page Table Physical Address Base */
-#define BCHP_V3D_MMU_0_HITS                      0x21201208 /* [RO] TLB Hits */
-#define BCHP_V3D_MMU_0_MISSES                    0x2120120c /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_0_STALLS                    0x21201210 /* [RO] TLB Misses */
-#define BCHP_V3D_MMU_0_ADDR_CAP                  0x21201214 /* [RW] Caps the Maximum virtual page that the MMU will accept */
-#define BCHP_V3D_MMU_0_SHOOT_DOWN                0x21201218 /* [RW] Shoots down specific pages from the TLB */
-#define BCHP_V3D_MMU_0_BYPASS_START              0x2120121c /* [RW] Sets the Start page of the MMU Bypass */
-#define BCHP_V3D_MMU_0_BYPASS_END                0x21201220 /* [RW] Sets the End page of the MMU Bypass */
-#define BCHP_V3D_MMU_0_DEBUG_MISC                0x21201224 /* [RW] AXI_MMU Debug Misc */
-#define BCHP_V3D_MMU_0_SECURITY                  0x21201228 /* [RW] Set individual MMU registers as secure access only */
-#define BCHP_V3D_MMU_0_VIO_ID                    0x2120122c /* [RW] Record the AXI ID of the access that causes a MMU error */
-#define BCHP_V3D_MMU_0_ILLEGAL_ADR               0x21201230 /* [RW] Substitute illegal PA addresses with an address that points to a dummy slave */
-#define BCHP_V3D_MMU_0_VIO_ADDR                  0x21201234 /* [RW] Record the AXI ADDR of the access that causes a MMU error */
+#define BCHP_V3D_MMU_0_CTRL                      0x21201200 /* [RW][32] AXI_MMU Control Register */
+#define BCHP_V3D_MMU_0_PT_PA_BASE                0x21201204 /* [RW][32] Page Table Physical Address Base */
+#define BCHP_V3D_MMU_0_HITS                      0x21201208 /* [RO][32] TLB Hits */
+#define BCHP_V3D_MMU_0_MISSES                    0x2120120c /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_0_STALLS                    0x21201210 /* [RO][32] TLB Misses */
+#define BCHP_V3D_MMU_0_ADDR_CAP                  0x21201214 /* [RW][32] Caps the Maximum virtual page that the MMU will accept */
+#define BCHP_V3D_MMU_0_SHOOT_DOWN                0x21201218 /* [RW][32] Shoots down specific pages from the TLB */
+#define BCHP_V3D_MMU_0_BYPASS_START              0x2120121c /* [RW][32] Sets the Start page of the MMU Bypass */
+#define BCHP_V3D_MMU_0_BYPASS_END                0x21201220 /* [RW][32] Sets the End page of the MMU Bypass */
+#define BCHP_V3D_MMU_0_DEBUG_MISC                0x21201224 /* [RW][32] AXI_MMU Debug Misc */
+#define BCHP_V3D_MMU_0_SECURITY                  0x21201228 /* [RW][32] Set individual MMU registers as secure access only */
+#define BCHP_V3D_MMU_0_VIO_ID                    0x2120122c /* [RW][32] Record the AXI ID of the access that causes a MMU error */
+#define BCHP_V3D_MMU_0_ILLEGAL_ADR               0x21201230 /* [RW][32] Substitute illegal PA addresses with an address that points to a dummy slave */
+#define BCHP_V3D_MMU_0_VIO_ADDR                  0x21201234 /* [RW][32] Record the AXI ADDR of the access that causes a MMU error */
+#define BCHP_V3D_MMU_0_DEBUG_INFO                0x21201238 /* [RO][32] provides useful debug values */
 
 #endif /* #ifndef BCHP_V3D_MMU_0_H__ */
 

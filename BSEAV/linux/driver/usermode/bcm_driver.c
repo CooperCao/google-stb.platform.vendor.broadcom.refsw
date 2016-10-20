@@ -96,9 +96,39 @@
 #include "linux/brcmstb/brcmstb.h"
 #elif LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
 #include "asm/brcmstb/brcmstb.h"
-#else
-#define BVIRTADDR(offset) (KSEG1 + 0x10000000 + offset)
 #endif
+
+static struct {
+    unsigned bchp_physical_offset;
+} g_breg;
+
+static uint32_t breg_read(uint32_t addr)
+{
+    uint32_t value;
+    volatile uint32_t *reg;
+    reg = ioremap_nocache(addr+g_breg.bchp_physical_offset, 4);
+    if (!reg) {
+        value = 0;
+        PERR("breg_read %x failure\n", addr);
+    }
+    else {
+        value = *reg;
+        iounmap(reg);
+    }
+    return value;
+}
+static void breg_write(uint32_t addr, uint32_t value)
+{
+    volatile uint32_t *reg;
+    reg = ioremap_nocache(addr+g_breg.bchp_physical_offset, 4);
+    if (reg) {
+        *reg = value;
+        iounmap(reg);
+    }
+    else {
+        PERR("breg_write %x failure\n", addr);
+    }
+}
 
 #define BERR_TRACE(rc) do {if (rc) PERR("error %d at line %d\n", rc, __LINE__);}while(0)
 #define BDBG_CWARNING(expr) do {if(0){int unused = 1/(expr);unused++;}} while(0)
@@ -180,7 +210,7 @@ static irqreturn_t brcm_interrupt(int irq, void *dev_id);
 #else
 static irqreturn_t brcm_interrupt(int irq, void *dev_id, struct pt_regs *regs);
 #endif
-static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask);
+static void brcm_reenable_irqs(intmgr_t *p_intmgr, const uint32_t *Mask);
 
 static unsigned vmalloc_size(unsigned required_vmalloc, uint64_t highest_installed_dram, unsigned lowest_bmem_addr);
 
@@ -305,15 +335,15 @@ static struct file_operations brcm_fops = {
 };
 
 /* sub-module support */
-static int g_virtual_irq_supported; /* bool */
-static int g_shared_gpio_supported; /* bool */
+static bool g_virtual_irq_supported;
+static bool g_shared_gpio_supported;
 static void brcm_init_submodules(void);
 static void brcm_uninit_submodules(void);
 static int brcm_open_submodules(void);
 static void brcm_close_submodules(void);
 static void brcm_virtualize_l1s(void);
 
-static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask)
+static void brcm_reenable_irqs(intmgr_t *p_intmgr, const uint32_t *Mask)
 {
     unsigned i, irq;
     unsigned long flags;
@@ -332,11 +362,11 @@ static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask)
     }
     if (g_virtual_irq_supported)
     {
-        b_virtual_irq_enable_irqs();
+        b_virtual_irq_reenable_irqs_spinlocked();
     }
     if (g_shared_gpio_supported)
     {
-        b_shared_gpio_enable_irqs();
+        b_shared_gpio_reenable_irqs_spinlocked();
     }
     spin_unlock_irqrestore(&gSpinLock, flags);
     return;
@@ -347,11 +377,14 @@ static void brcm_enable_irq(intmgr_t *p_intmgr, const uint32_t *Mask)
 Reenable all interrupts which we manage where status is cleared.
 This can happen because when cores are reset and they reset their
 status bits. */
-static void brcm_reenable_irq(intmgr_t *p_intmgr)
+static void brcm_reset_irqs(intmgr_t *p_intmgr)
 {
     int irq;
     unsigned long flags;
 
+    /* reset to insmod state */
+
+    /* normal irqs are acquired by bcmdriver on init, so re-enable these */
     for (irq = 1; irq < g_sChipConfig.maxNumIrq; ++irq)
     {
         spin_lock_irqsave(&gSpinLock, flags);
@@ -365,11 +398,11 @@ static void brcm_reenable_irq(intmgr_t *p_intmgr)
     }
     if (g_virtual_irq_supported)
     {
-        b_virtual_irq_reenable_irqs();
+        b_virtual_irq_reset_irqs();
     }
     if (g_shared_gpio_supported)
     {
-        b_shared_gpio_reenable_irqs();
+        b_shared_gpio_reset_irqs();
     }
     return;
 }
@@ -699,7 +732,7 @@ static int brcm_open(struct inode *inode, struct file *file)
 ****************************************************************/
 static int brcm_close(struct inode *inode, struct file *file)
 {
-    int final_close = 0;
+    bool final_close = false;
     unsigned long flags;
 
     if (file == g_interrupt_file) {
@@ -710,7 +743,7 @@ static int brcm_close(struct inode *inode, struct file *file)
     if (brcm_open_count > 0)
     {
         --brcm_open_count;
-        final_close = (brcm_open_count == 0) ? 1 : 0;
+        final_close = (brcm_open_count == 0) ? true : false;
     }
     spin_unlock_irqrestore(&gSpinLock, flags);
     if (final_close)
@@ -971,7 +1004,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
 
             }
             /* Re-enable any interrupts that were previously reported and handled */
-            brcm_enable_irq(&g_intmgr, intStruct.interruptmask);
+            brcm_reenable_irqs(&g_intmgr, intStruct.interruptmask);
 
             print_int_status();
 
@@ -1069,7 +1102,7 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             PERR("can't manage interrupts from two instances\n");
             return -EFAULT;
         }
-        brcm_reenable_irq(&g_intmgr);
+        brcm_reset_irqs(&g_intmgr);
         break;
 
     case BRCM_IOCTL_DEBUG_LEVEL:
@@ -1099,6 +1132,13 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
             t_bcm_linux_dd_atomic_update atomic_update_data;
             retValue = copy_from_user(&atomic_update_data, (void*)arg, sizeof(atomic_update_data));
 #if defined(CONFIG_BRCMSTB_NEXUS_API) && BRCMSTB_H_VERSION >= 5
+#if defined(CONFIG_ARM) && BRCMSTB_H_VERSION == 8
+            /* This is a workaround for an issue inside of the 4.1-1.3 kernel release which fails
+             * to handle address mappings for chips with BCHP_PHYSICAL_OFFSET of 0xD0000000. */
+            if (g_breg.bchp_physical_offset == 0xD0000000) {
+                atomic_update_data.reg &= ~0x20000000;
+            }
+#endif
             retValue = brcmstb_update32(atomic_update_data.reg, atomic_update_data.mask, atomic_update_data.value);
             if (retValue)
             {
@@ -1117,10 +1157,10 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 spin_lock_irqsave(&brcm_magnum_spinlock, flags);
 
                 /* read/modify/write */
-                value = *(volatile uint32_t*) (unsigned long)BVIRTADDR(atomic_update_data.reg);
+                value = breg_read(atomic_update_data.reg);
                 value &= ~atomic_update_data.mask;
                 value |= atomic_update_data.value;
-                *(volatile uint32_t*) (unsigned long)BVIRTADDR(atomic_update_data.reg) = value;
+                breg_write(atomic_update_data.reg, value);
                 spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
             }
 #endif
@@ -1145,10 +1185,10 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
                 if (data.set[i].reg) {
                     uint32_t value;
                     /* read/modify/write */
-                    value = *(volatile uint32_t*) (unsigned long)BVIRTADDR(data.set[i].reg);
+                    value = breg_read(data.set[i].reg);
                     value &= ~data.set[i].mask;
                     value |= data.set[i].value;
-                    *(volatile uint32_t*) (unsigned long)BVIRTADDR(data.set[i].reg) = value;
+                    breg_write(data.set[i].reg, value);
                 }
                 }
             spin_unlock_irqrestore(&brcm_magnum_spinlock, flags);
@@ -1659,6 +1699,14 @@ static int brcm_ioctl(struct inode *inode, struct file * file, unsigned int cmd,
         if (result) {BERR_TRACE(result); break;}
         break;
     }
+    case BRCM_IOCTL_SET_CHIP_INFO:
+    {
+        struct bcmdriver_chip_info chip_info;
+        result = copy_from_user(&chip_info, (void*)arg, sizeof(chip_info));
+        if (result) {BERR_TRACE(result); break;}
+        g_breg.bchp_physical_offset = chip_info.bchp_physical_offset;
+        break;
+    }
     default:
         result = -ENOSYS;
         break;
@@ -1963,7 +2011,7 @@ module_exit(__cleanup_module);
 #include "b_memory_regions.inc"
 #include "b_vmalloc.inc"
 
-static void brcm_setmask_l1(unsigned l1, unsigned disable)
+static void brcm_setmask_l1(unsigned l1, bool disable)
 {
     unsigned index = l1 / 32;
     unsigned bit = l1 % 32;
@@ -1984,7 +2032,7 @@ static void brcm_set_l1_status(unsigned l1)
     g_intmgr.status[index] |= 1 << bit;
 }
 
-static void brcm_fire_gpio_l2(int aon)
+static void brcm_fire_gpio_l2(bool aon)
 {
     if (g_virtual_irq_supported)
     {
@@ -2067,8 +2115,8 @@ static void brcm_virtualize_l1s(void)
 #else
 static void brcm_init_submodules(void)
 {
-    g_virtual_irq_supported = 0;
-    g_shared_gpio_supported = 0;
+    g_virtual_irq_supported = false;
+    g_shared_gpio_supported = false;
 }
 
 static void brcm_uninit_submodules(void) {}
@@ -2080,8 +2128,8 @@ static void brcm_virtualize_l1s(void) {}
 #define B_VIRTUAL_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&gSpinLock, flags)
 #define B_VIRTUAL_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&gSpinLock, flags)
 #define B_VIRTUAL_IRQ_GET_L1_WORD_COUNT() (g_sChipConfig.IntcSize)
-#define B_VIRTUAL_IRQ_MASK_L1(L1) brcm_setmask_l1(L1, 1)
-#define B_VIRTUAL_IRQ_UNMASK_L1(L1) brcm_setmask_l1(L1, 0)
+#define B_VIRTUAL_IRQ_MASK_L1(L1) brcm_setmask_l1(L1, true)
+#define B_VIRTUAL_IRQ_UNMASK_L1(L1) brcm_setmask_l1(L1, false)
 #define B_VIRTUAL_IRQ_SET_L1_STATUS(L1) brcm_set_l1_status(L1)
 #define B_VIRTUAL_IRQ_INC_L1(L1) (g_sChipConfig.pIntTable[(L1)+1].numInter++)
 #define B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() wake_up_interruptible(&g_WaitQueue)
@@ -2092,6 +2140,9 @@ static void brcm_virtualize_l1s(void) {}
 #define B_SHARED_GPIO_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&gSpinLock, flags)
 #include "b_shared_gpio.inc"
 #include "b_shared_gpio_usermode.inc"
+#define B_OS_IRQ_SPIN_LOCK(flags) spin_lock_irqsave(&gSpinLock, flags)
+#define B_OS_IRQ_SPIN_UNLOCK(flags) spin_unlock_irqrestore(&gSpinLock, flags)
+#include "b_os_irq.inc"
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(2,4,18)
 MODULE_LICENSE("Proprietary");

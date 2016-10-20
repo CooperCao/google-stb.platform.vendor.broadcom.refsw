@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,33 +70,33 @@
 /***************************************************************************
  *XPT_WDMA_REGS - WDMA Top Control Registers
  ***************************************************************************/
-#define BCHP_XPT_WDMA_REGS_RUN_SET_CLEAR         0x20a69000 /* [RW] Set and Clear for the RUN bit */
-#define BCHP_XPT_WDMA_REGS_WAKE_SET              0x20a69004 /* [RW] Set for the WAKE bit */
-#define BCHP_XPT_WDMA_REGS_RBUF_MODE_CONFIG      0x20a69008 /* [RW] RBUF Mode configuration */
-#define BCHP_XPT_WDMA_REGS_TIMESTAMP_MODE_CONFIG 0x20a6900c /* [RW] Timestamp Mode configuration */
-#define BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_CONFIG 0x20a69010 /* [RW] Address Mode configuration */
-#define BCHP_XPT_WDMA_REGS_LDL_MODE_CONFIG       0x20a69014 /* [RW] Local Descriptor Loading Mode configuration */
-#define BCHP_XPT_WDMA_REGS_DMQ_RESET_CMD         0x20a69018 /* [RW] Soft Reset Command for a DMQ FIFO controller */
-#define BCHP_XPT_WDMA_REGS_DMQ_PUSH_CMD          0x20a6901c /* [RW] Push Command for a DMQ FIFO controller */
-#define BCHP_XPT_WDMA_REGS_RUN_BITS_0_31         0x20a69020 /* [RO] Run bits for all channels */
-#define BCHP_XPT_WDMA_REGS_WAKE_BITS_0_31        0x20a69024 /* [RO] WAKE bits for all channels */
-#define BCHP_XPT_WDMA_REGS_RBUF_MODE_BITS_0_31   0x20a69028 /* [RO] Address Mode bits for all channels */
-#define BCHP_XPT_WDMA_REGS_TIMESTAMP_MODE_BITS_0_31 0x20a6902c /* [RO] Timestamp Mode bits for all channels */
-#define BCHP_XPT_WDMA_REGS_LDL_MODE_BITS_0_31    0x20a69030 /* [RO] Local Descriptor Load Mode bits for all channels */
-#define BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_BITS_0_31 0x20a69034 /* [RO] Address Mode bits for all channels */
-#define BCHP_XPT_WDMA_REGS_SLEEP_STATUS_0_31     0x20a69038 /* [RO] SLEEP Status for all channels */
-#define BCHP_XPT_WDMA_REGS_CONTEXT_VALID_0_31    0x20a6903c /* [RO] CONTEXT_VALID Status for channels in Indirect Address Mode */
-#define BCHP_XPT_WDMA_REGS_DATA_STALL_TIMEOUT    0x20a69040 /* [RW] Data Stall Timeout */
-#define BCHP_XPT_WDMA_REGS_SPECULATIVE_READ_ENABLE 0x20a69044 /* [RW] Speculative Read Enable */
-#define BCHP_XPT_WDMA_REGS_OUTSTANDING_READ_FLAG_0_31 0x20a69048 /* [RO] Outstanding Read Flag */
-#define BCHP_XPT_WDMA_REGS_OUTSTANDING_WRITE_FLAG_0_31 0x20a6904c /* [RO] Outstanding Write Flag */
-#define BCHP_XPT_WDMA_REGS_OUTSTANDING_READ_FLAG_CLEAR 0x20a69050 /* [RW] Clear Outstanding Read Flag */
-#define BCHP_XPT_WDMA_REGS_OUTSTANDING_WRITE_FLAG_CLEAR 0x20a69054 /* [RW] Clear Outstanding Write Flag */
-#define BCHP_XPT_WDMA_REGS_DRR_STATE             0x20a69058 /* [RO] Bits of Descriptor Read Request (DRR) State Machine in real time */
-#define BCHP_XPT_WDMA_REGS_DRC_STATE             0x20a6905c /* [RO] Bits of Descriptor Read Completion (DRC) State Machine in real time */
-#define BCHP_XPT_WDMA_REGS_DAP_STATE             0x20a69060 /* [RW] Bits of Data Processor (DAP) State Machine in real time */
-#define BCHP_XPT_WDMA_REGS_RPT_STATE             0x20a69064 /* [RO] Bits of Reporping (RPT) State Machine in real time */
-#define BCHP_XPT_WDMA_REGS_READY_ACCEPT_PROBE    0x20a69068 /* [RO] Ready / Accept signals on the ports of WDMA in real time */
+#define BCHP_XPT_WDMA_REGS_RUN_SET_CLEAR         0x20a69000 /* [RW][32] Set and Clear for the RUN bit */
+#define BCHP_XPT_WDMA_REGS_WAKE_SET              0x20a69004 /* [RW][32] Set for the WAKE bit */
+#define BCHP_XPT_WDMA_REGS_RBUF_MODE_CONFIG      0x20a69008 /* [RW][32] RBUF Mode configuration */
+#define BCHP_XPT_WDMA_REGS_TIMESTAMP_MODE_CONFIG 0x20a6900c /* [RW][32] Timestamp Mode configuration */
+#define BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_CONFIG 0x20a69010 /* [RW][32] Address Mode configuration */
+#define BCHP_XPT_WDMA_REGS_LDL_MODE_CONFIG       0x20a69014 /* [RW][32] Local Descriptor Loading Mode configuration */
+#define BCHP_XPT_WDMA_REGS_DMQ_RESET_CMD         0x20a69018 /* [RW][32] Soft Reset Command for a DMQ FIFO controller */
+#define BCHP_XPT_WDMA_REGS_DMQ_PUSH_CMD          0x20a6901c /* [RW][32] Push Command for a DMQ FIFO controller */
+#define BCHP_XPT_WDMA_REGS_RUN_BITS_0_31         0x20a69020 /* [RO][32] Run bits for all channels */
+#define BCHP_XPT_WDMA_REGS_WAKE_BITS_0_31        0x20a69024 /* [RO][32] WAKE bits for all channels */
+#define BCHP_XPT_WDMA_REGS_RBUF_MODE_BITS_0_31   0x20a69028 /* [RO][32] Address Mode bits for all channels */
+#define BCHP_XPT_WDMA_REGS_TIMESTAMP_MODE_BITS_0_31 0x20a6902c /* [RO][32] Timestamp Mode bits for all channels */
+#define BCHP_XPT_WDMA_REGS_LDL_MODE_BITS_0_31    0x20a69030 /* [RO][32] Local Descriptor Load Mode bits for all channels */
+#define BCHP_XPT_WDMA_REGS_MATCH_RUN_VERSION_BITS_0_31 0x20a69034 /* [RO][32] Address Mode bits for all channels */
+#define BCHP_XPT_WDMA_REGS_SLEEP_STATUS_0_31     0x20a69038 /* [RO][32] SLEEP Status for all channels */
+#define BCHP_XPT_WDMA_REGS_CONTEXT_VALID_0_31    0x20a6903c /* [RO][32] CONTEXT_VALID Status for channels in Indirect Address Mode */
+#define BCHP_XPT_WDMA_REGS_DATA_STALL_TIMEOUT    0x20a69040 /* [RW][32] Data Stall Timeout */
+#define BCHP_XPT_WDMA_REGS_SPECULATIVE_READ_ENABLE 0x20a69044 /* [RW][32] Speculative Read Enable */
+#define BCHP_XPT_WDMA_REGS_OUTSTANDING_READ_FLAG_0_31 0x20a69048 /* [RO][32] Outstanding Read Flag */
+#define BCHP_XPT_WDMA_REGS_OUTSTANDING_WRITE_FLAG_0_31 0x20a6904c /* [RO][32] Outstanding Write Flag */
+#define BCHP_XPT_WDMA_REGS_OUTSTANDING_READ_FLAG_CLEAR 0x20a69050 /* [RW][32] Clear Outstanding Read Flag */
+#define BCHP_XPT_WDMA_REGS_OUTSTANDING_WRITE_FLAG_CLEAR 0x20a69054 /* [RW][32] Clear Outstanding Write Flag */
+#define BCHP_XPT_WDMA_REGS_DRR_STATE             0x20a69058 /* [RO][32] Bits of Descriptor Read Request (DRR) State Machine in real time */
+#define BCHP_XPT_WDMA_REGS_DRC_STATE             0x20a6905c /* [RO][32] Bits of Descriptor Read Completion (DRC) State Machine in real time */
+#define BCHP_XPT_WDMA_REGS_DAP_STATE             0x20a69060 /* [RW][32] Bits of Data Processor (DAP) State Machine in real time */
+#define BCHP_XPT_WDMA_REGS_RPT_STATE             0x20a69064 /* [RO][32] Bits of Reporping (RPT) State Machine in real time */
+#define BCHP_XPT_WDMA_REGS_READY_ACCEPT_PROBE    0x20a69068 /* [RO][32] Ready / Accept signals on the ports of WDMA in real time */
 
 /***************************************************************************
  *RUN_SET_CLEAR - Set and Clear for the RUN bit

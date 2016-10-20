@@ -158,6 +158,7 @@ static void print_usage_common(void)
         "  -max_playback_data_rate - Set limit for playback data rate (Kbps)\n"
         "  -max_live_data_rate     - Set limit for live data rate (Kbps)\n"
         "  -ext_video_type {svc,mvc}\n"
+        "  -scan 1080p\n"
         );
 #if NEXUS_HAS_DISPLAY
     print_list_option("display_ar", g_displayAspectRatioStrs);
@@ -343,6 +344,9 @@ static int cmdline_parse_common(int offset, int argc, const char *argv[], struct
                 BDBG_ERR(("invalid -ext_video_type %s", argv[i]));
                 return -1;
             }
+        }
+        else if (!strcmp(argv[i], "-scan") && i+1<argc) {
+            opts->scanMode = !strcmp(argv[++i], "1080p") ? NEXUS_VideoDecoderScanMode_e1080p : NEXUS_VideoDecoderScanMode_eAuto;
         }
         else if (!strcmp(argv[i], "-audio_type") && i+1<argc) {
             opts->audioCodec=lookup(g_audioCodecStrs, argv[++i]);

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,14 +70,14 @@
 /***************************************************************************
  *MMISC - BVN Middle Control Registers
  ***************************************************************************/
-#define BCHP_MMISC_SW_INIT                       0x20622800 /* [CFG] BVN Middle Soft Init */
-#define BCHP_MMISC_VNET_F_CHANNEL_SW_INIT        0x2062280c /* [CFG] BVN Video Network Switch Frontend Channels Init */
-#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT        0x20622810 /* [CFG] BVN Video Network Switch Backend Channels Init */
-#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1      0x20622814 /* [CFG] BVN Video Network Switch Backend Channels Init */
-#define BCHP_MMISC_SCRATCH_0                     0x20622818 /* [CFG] Scratch Register */
-#define BCHP_MMISC_BVNM_CLOCK_CTRL               0x20622820 /* [CFG] BVN Middle clock control register */
-#define BCHP_MMISC_BVNM_PDA_OUT_STATUS           0x20622824 /* [RO] BVN Middle PDA Out Status */
-#define BCHP_MMISC_BVNM_PDA_PWR_UP_STATUS        0x20622828 /* [RO] BVN Middle PDA Power Up Status */
+#define BCHP_MMISC_SW_INIT                       0x20622800 /* [CFG][32] BVN Middle Soft Init */
+#define BCHP_MMISC_VNET_F_CHANNEL_SW_INIT        0x2062280c /* [CFG][32] BVN Video Network Switch Frontend Channels Init */
+#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT        0x20622810 /* [CFG][32] BVN Video Network Switch Backend Channels Init */
+#define BCHP_MMISC_VNET_B_CHANNEL_SW_INIT_1      0x20622814 /* [CFG][32] BVN Video Network Switch Backend Channels Init */
+#define BCHP_MMISC_SCRATCH_0                     0x20622818 /* [CFG][32] Scratch Register */
+#define BCHP_MMISC_BVNM_CLOCK_CTRL               0x20622820 /* [CFG][32] BVN Middle clock control register */
+#define BCHP_MMISC_BVNM_PDA_OUT_STATUS           0x20622824 /* [RO][32] BVN Middle PDA Out Status */
+#define BCHP_MMISC_BVNM_PDA_PWR_UP_STATUS        0x20622828 /* [RO][32] BVN Middle PDA Power Up Status */
 
 /***************************************************************************
  *SW_INIT - BVN Middle Soft Init

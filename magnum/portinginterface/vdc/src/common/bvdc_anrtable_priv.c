@@ -65,6 +65,7 @@ BDBG_MODULE(BVDC_ANR_TBL);
 #define BVDC_P_ANR_MIN_SN     20
 #define BVDC_P_ANR_MAX_SN     60
 
+#if !B_REFSW_MINIMAL
 /* K table for RF */
 static const BVDC_P_AnrKValue s_ulAnrKValueForRf[] = {
     /*ALTdMC ALTdNMC    McK0  McK1 NonMcK0 NonMcK1 FinalK0 FinalK1 bBypass*/
@@ -251,7 +252,6 @@ static const BVDC_P_AnrKValue s_ulAnrKValueForHd[] = {
     BVDC_P_MAKE_ANR(149,    149,    260,     1,    260,     1,    260,     2,  false),    /* S/N: 60 */
 };
 
-#if !B_REFSW_MINIMAL
 /***************************************************************************
  * {private}
  *

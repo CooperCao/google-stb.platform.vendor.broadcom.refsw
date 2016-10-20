@@ -870,6 +870,14 @@ static int acquire_video_window(struct b_connect *connect, bool grab)
                     rc = BERR_TRACE(NEXUS_NOT_AVAILABLE);
                     goto error;
                 }
+                if (j == 0 && index == 0) {
+                    NEXUS_VideoWindowSettings settings;
+                    /* by preferring synclock on main, if PIP is recreated first, it will be destroyed and
+                    recreated when main is created. */
+                    NEXUS_VideoWindow_GetSettings(session->display[j].window[index][0], &settings);
+                    settings.preferSyncLock = true;
+                    NEXUS_VideoWindow_SetSettings(session->display[j].window[index][0], &settings);
+                }
             }
 
             if (IS_MOSAIC(connect)) {
@@ -1389,13 +1397,15 @@ NEXUS_VideoDecoderHandle nxserver_p_get_video_decoder(struct b_connect *connect)
 }
 
 #else
-bool lacks_video(struct b_connect *connect) { return true; }
-void nxserverlib_video_disconnect_sd_display(struct b_session *session) { }
-void release_video_decoders(struct b_connect *connect) { }
-int acquire_video_decoders(struct b_connect *connect, bool grab) { return 0; }
-int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connect *connect2) { return 0; }
+bool lacks_video(struct b_connect *connect) { BSTD_UNUSED(connect); return true; }
+void release_video_decoders(struct b_connect *connect) { BSTD_UNUSED(connect); }
+int acquire_video_decoders(struct b_connect *connect, bool grab) { BSTD_UNUSED(connect); BSTD_UNUSED(grab); return 0; }
+int nxserverlib_p_swap_video_windows(struct b_connect *connect1, struct b_connect *connect2) { BSTD_UNUSED(connect1);BSTD_UNUSED(connect2);return 0; }
 void nxserverlib_p_clear_video_cache(void){ }
-void uninit_session_video(struct b_session *session) { }
-int video_init(nxserver_t server) { return 0; }
+void uninit_session_video(struct b_session *session) {BSTD_UNUSED(session);}
+int video_init(nxserver_t server) { BSTD_UNUSED(server);return 0; }
 void video_uninit(void) { }
+void nxserverlib_video_disconnect_display(nxserver_t server, NEXUS_DisplayHandle display) {BSTD_UNUSED(server);BSTD_UNUSED(display);}
+void nxserverlib_video_close_windows(struct b_session *session, unsigned local_display_index) {BSTD_UNUSED(session);BSTD_UNUSED(local_display_index);}
+int video_get_stc_index(struct b_connect *connect) {BSTD_UNUSED(connect);return 0;}
 #endif

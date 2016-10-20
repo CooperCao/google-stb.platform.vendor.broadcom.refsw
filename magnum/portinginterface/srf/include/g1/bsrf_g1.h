@@ -99,6 +99,18 @@
 #endif
 
 
+/* interrupts */
+typedef enum BSRF_g1_IntID{
+   BSRF_g1_IntID_eAttackCountOvf = 0,
+   BSRF_g1_IntID_eDecayCountOvf,
+   BSRF_g1_IntID_eFsCountOvf,
+   BSRF_g1_IntID_eWinDetect,
+   BSRF_g1_IntID_eRampActive,
+   BSRF_g1_IntID_eRampInactive,
+   BSRF_g1_MaxIntID
+} BSRF_g1_IntID;
+
+
 /***************************************************************************
 Summary:
    This function returns the default settings for g1 module.

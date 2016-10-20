@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,21 +70,21 @@
 /***************************************************************************
  *TIMER - Watchdog & Programmable Timers
  ***************************************************************************/
-#define BCHP_TIMER_TIMER_IS                      0x2040a680 /* [RW] TIMER INTERRUPT STATUS REGISTER */
-#define BCHP_TIMER_TIMER_IE0                     0x2040a684 /* [RW] TIMER CPU INTERRUPT ENABLE REGISTER */
-#define BCHP_TIMER_TIMER0_CTRL                   0x2040a688 /* [RW] TIMER0 CONTROL REGISTER */
-#define BCHP_TIMER_TIMER1_CTRL                   0x2040a68c /* [RW] TIMER1 CONTROL REGISTER */
-#define BCHP_TIMER_TIMER2_CTRL                   0x2040a690 /* [RW] TIMER2 CONTROL REGISTER */
-#define BCHP_TIMER_TIMER3_CTRL                   0x2040a694 /* [RW] TIMER3 CONTROL REGISTER */
-#define BCHP_TIMER_TIMER0_STAT                   0x2040a698 /* [RO] TIMER0 STATUS REGISTER */
-#define BCHP_TIMER_TIMER1_STAT                   0x2040a69c /* [RO] TIMER1 STATUS REGISTER */
-#define BCHP_TIMER_TIMER2_STAT                   0x2040a6a0 /* [RO] TIMER2 STATUS REGISTER */
-#define BCHP_TIMER_TIMER3_STAT                   0x2040a6a4 /* [RO] TIMER3 STATUS REGISTER */
-#define BCHP_TIMER_WDTIMEOUT                     0x2040a6a8 /* [RW] WATCHDOG TIMEOUT REGISTER */
-#define BCHP_TIMER_WDCMD                         0x2040a6ac /* [WO] WATCHDOG COMMAND REGISTER */
-#define BCHP_TIMER_WDCHIPRST_CNT                 0x2040a6b0 /* [RW] WATCHDOG CHIP RESET COUNT REGISTER */
-#define BCHP_TIMER_TIMER_IE1                     0x2040a6b8 /* [RW] TIMER PCI INTERRUPT ENABLE REGISTER */
-#define BCHP_TIMER_WDCTRL                        0x2040a6bc /* [RW] WATCHDOG CONTROL REGISTER */
+#define BCHP_TIMER_TIMER_IS                      0x2040a680 /* [RW][32] TIMER INTERRUPT STATUS REGISTER */
+#define BCHP_TIMER_TIMER_IE0                     0x2040a684 /* [RW][32] TIMER CPU INTERRUPT ENABLE REGISTER */
+#define BCHP_TIMER_TIMER0_CTRL                   0x2040a688 /* [RW][32] TIMER0 CONTROL REGISTER */
+#define BCHP_TIMER_TIMER1_CTRL                   0x2040a68c /* [RW][32] TIMER1 CONTROL REGISTER */
+#define BCHP_TIMER_TIMER2_CTRL                   0x2040a690 /* [RW][32] TIMER2 CONTROL REGISTER */
+#define BCHP_TIMER_TIMER3_CTRL                   0x2040a694 /* [RW][32] TIMER3 CONTROL REGISTER */
+#define BCHP_TIMER_TIMER0_STAT                   0x2040a698 /* [RO][32] TIMER0 STATUS REGISTER */
+#define BCHP_TIMER_TIMER1_STAT                   0x2040a69c /* [RO][32] TIMER1 STATUS REGISTER */
+#define BCHP_TIMER_TIMER2_STAT                   0x2040a6a0 /* [RO][32] TIMER2 STATUS REGISTER */
+#define BCHP_TIMER_TIMER3_STAT                   0x2040a6a4 /* [RO][32] TIMER3 STATUS REGISTER */
+#define BCHP_TIMER_WDTIMEOUT                     0x2040a6a8 /* [RW][32] WATCHDOG TIMEOUT REGISTER */
+#define BCHP_TIMER_WDCMD                         0x2040a6ac /* [WO][32] WATCHDOG COMMAND REGISTER */
+#define BCHP_TIMER_WDCHIPRST_CNT                 0x2040a6b0 /* [RW][32] WATCHDOG CHIP RESET COUNT REGISTER */
+#define BCHP_TIMER_TIMER_IE1                     0x2040a6b8 /* [RW][32] TIMER PCI INTERRUPT ENABLE REGISTER */
+#define BCHP_TIMER_WDCTRL                        0x2040a6bc /* [RW][32] WATCHDOG CONTROL REGISTER */
 
 /***************************************************************************
  *TIMER_IS - TIMER INTERRUPT STATUS REGISTER

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,3541 +70,3541 @@
 /***************************************************************************
  *XPT_RAVE - RAVE Registers
  ***************************************************************************/
-#define BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR       0x20a40000 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_READ_PTR        0x20a40004 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_BASE_PTR        0x20a40008 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_END_PTR         0x20a4000c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_VALID_PTR       0x20a40010 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_WRAPAROUND_PTR  0x20a40014 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_THRESHOLD_LEVEL 0x20a40018 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_DEPTH           0x20a4001c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX0_AV_THRESHOLDS          0x20a40020 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_WRITE_PTR       0x20a40024 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_READ_PTR        0x20a40028 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_BASE_PTR        0x20a4002c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_END_PTR         0x20a40030 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_VALID_PTR       0x20a40034 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_WRAPAROUND_PTR  0x20a40038 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL 0x20a4003c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_DEPTH           0x20a40040 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX0_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40044 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX0_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40048 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX0_REC_MISC_CONFIG        0x20a4004c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_A         0x20a40050 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_B         0x20a40054 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_C         0x20a40058 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_D         0x20a4005c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_E         0x20a40060 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_F         0x20a40064 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_G         0x20a40068 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_H         0x20a4006c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG1        0x20a40070 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2        0x20a40074 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG3        0x20a40078 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX0_AV_INTERRUPT_ENABLES   0x20a4007c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX0_AV_COMP1_CONTROL       0x20a40080 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX0_AV_COMP1_COMPARE_VAL   0x20a40084 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP1_MASK_VAL      0x20a40088 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP1_FILTER_VAL    0x20a4008c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP1_FILTER_MASK_VAL 0x20a40090 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP2_CONTROL       0x20a40094 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX0_AV_COMP2_COMPARE_VAL   0x20a40098 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP2_MASK_VAL      0x20a4009c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP2_FILTER_VAL    0x20a400a0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP2_FILTER_MASK_VAL 0x20a400a4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_COMP12_FILTER_MODE  0x20a400a8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX0_AV_PID_STREAM_ID       0x20a400ac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX0_REC_CTRL1              0x20a400b0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX0_REC_INIT_TS            0x20a400b4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX0_REC_TS_CTRL            0x20a400b8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX0_REC_TIME_CONFIG        0x20a400bc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG4        0x20a400c0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX0_PIC_CTR                0x20a400c4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX0_PIC_CTR_MODE           0x20a400c8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX0_REC_TIMER              0x20a400cc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX0_REC_STATE0             0x20a400d0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX0_REC_STATE1             0x20a400d4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX0_REC_STATE2             0x20a400d8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX0_REC_STATE2b            0x20a400dc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX0_REC_STATE3             0x20a400e0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX0_REC_COUNT              0x20a400e4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX0_PIC_INC_DEC_CTRL       0x20a400e8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX0_SC                     0x20a400ec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG5        0x20a400f0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX0_RAVE_FW_MISC_STATUS1   0x20a400f4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX0_RAVE_Reg_2             0x20a400f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_RAVE_Reg_3             0x20a400fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_CONFIG       0x20a40100 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40104 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40108 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_PCR          0x20a4010c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_ATS          0x20a40110 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_ADJ_ATS      0x20a40114 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_NEXT_PKT_ATS 0x20a40118 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX0_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4011c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX0_RAVE_Reg_4             0x20a40120 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX0_RAVE_Reg_5             0x20a40124 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_0  0x20a40128 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_1  0x20a4012c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_2  0x20a40130 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_3  0x20a40134 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_4  0x20a40138 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_5  0x20a4013c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR       0x20a40140 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_READ_PTR        0x20a40144 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_BASE_PTR        0x20a40148 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_END_PTR         0x20a4014c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_VALID_PTR       0x20a40150 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_WRAPAROUND_PTR  0x20a40154 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_THRESHOLD_LEVEL 0x20a40158 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_DEPTH           0x20a4015c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX1_AV_THRESHOLDS          0x20a40160 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_WRITE_PTR       0x20a40164 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_READ_PTR        0x20a40168 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_BASE_PTR        0x20a4016c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_END_PTR         0x20a40170 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_VALID_PTR       0x20a40174 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_WRAPAROUND_PTR  0x20a40178 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_THRESHOLD_LEVEL 0x20a4017c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_DEPTH           0x20a40180 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX1_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40184 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX1_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40188 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX1_REC_MISC_CONFIG        0x20a4018c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_A         0x20a40190 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_B         0x20a40194 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_C         0x20a40198 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_D         0x20a4019c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_E         0x20a401a0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_F         0x20a401a4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_G         0x20a401a8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_H         0x20a401ac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG1        0x20a401b0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG2        0x20a401b4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG3        0x20a401b8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX1_AV_INTERRUPT_ENABLES   0x20a401bc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX1_AV_COMP1_CONTROL       0x20a401c0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX1_AV_COMP1_COMPARE_VAL   0x20a401c4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP1_MASK_VAL      0x20a401c8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP1_FILTER_VAL    0x20a401cc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP1_FILTER_MASK_VAL 0x20a401d0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP2_CONTROL       0x20a401d4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX1_AV_COMP2_COMPARE_VAL   0x20a401d8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP2_MASK_VAL      0x20a401dc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP2_FILTER_VAL    0x20a401e0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP2_FILTER_MASK_VAL 0x20a401e4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_COMP12_FILTER_MODE  0x20a401e8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX1_AV_PID_STREAM_ID       0x20a401ec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX1_REC_CTRL1              0x20a401f0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX1_REC_INIT_TS            0x20a401f4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX1_REC_TS_CTRL            0x20a401f8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX1_REC_TIME_CONFIG        0x20a401fc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG4        0x20a40200 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX1_PIC_CTR                0x20a40204 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX1_PIC_CTR_MODE           0x20a40208 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX1_REC_TIMER              0x20a4020c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX1_REC_STATE0             0x20a40210 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX1_REC_STATE1             0x20a40214 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX1_REC_STATE2             0x20a40218 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX1_REC_STATE2b            0x20a4021c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX1_REC_STATE3             0x20a40220 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX1_REC_COUNT              0x20a40224 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX1_PIC_INC_DEC_CTRL       0x20a40228 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX1_SC                     0x20a4022c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG5        0x20a40230 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX1_RAVE_FW_MISC_STATUS1   0x20a40234 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX1_RAVE_Reg_2             0x20a40238 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_RAVE_Reg_3             0x20a4023c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_CONFIG       0x20a40240 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40244 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40248 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_PCR          0x20a4024c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_ATS          0x20a40250 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_ADJ_ATS      0x20a40254 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_NEXT_PKT_ATS 0x20a40258 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX1_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4025c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX1_RAVE_Reg_4             0x20a40260 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX1_RAVE_Reg_5             0x20a40264 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_0  0x20a40268 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_1  0x20a4026c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_2  0x20a40270 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_3  0x20a40274 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_4  0x20a40278 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_5  0x20a4027c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_WRITE_PTR       0x20a40280 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_READ_PTR        0x20a40284 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_BASE_PTR        0x20a40288 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_END_PTR         0x20a4028c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_VALID_PTR       0x20a40290 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_WRAPAROUND_PTR  0x20a40294 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_THRESHOLD_LEVEL 0x20a40298 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_DEPTH           0x20a4029c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX2_AV_THRESHOLDS          0x20a402a0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_WRITE_PTR       0x20a402a4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_READ_PTR        0x20a402a8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_BASE_PTR        0x20a402ac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_END_PTR         0x20a402b0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_VALID_PTR       0x20a402b4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_WRAPAROUND_PTR  0x20a402b8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_THRESHOLD_LEVEL 0x20a402bc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_DEPTH           0x20a402c0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX2_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a402c4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX2_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a402c8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX2_REC_MISC_CONFIG        0x20a402cc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_A         0x20a402d0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_B         0x20a402d4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_C         0x20a402d8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_D         0x20a402dc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_E         0x20a402e0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_F         0x20a402e4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_G         0x20a402e8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_H         0x20a402ec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG1        0x20a402f0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG2        0x20a402f4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG3        0x20a402f8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX2_AV_INTERRUPT_ENABLES   0x20a402fc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX2_AV_COMP1_CONTROL       0x20a40300 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX2_AV_COMP1_COMPARE_VAL   0x20a40304 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP1_MASK_VAL      0x20a40308 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP1_FILTER_VAL    0x20a4030c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP1_FILTER_MASK_VAL 0x20a40310 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP2_CONTROL       0x20a40314 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX2_AV_COMP2_COMPARE_VAL   0x20a40318 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP2_MASK_VAL      0x20a4031c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP2_FILTER_VAL    0x20a40320 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP2_FILTER_MASK_VAL 0x20a40324 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_COMP12_FILTER_MODE  0x20a40328 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX2_AV_PID_STREAM_ID       0x20a4032c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX2_REC_CTRL1              0x20a40330 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX2_REC_INIT_TS            0x20a40334 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX2_REC_TS_CTRL            0x20a40338 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX2_REC_TIME_CONFIG        0x20a4033c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG4        0x20a40340 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX2_PIC_CTR                0x20a40344 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX2_PIC_CTR_MODE           0x20a40348 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX2_REC_TIMER              0x20a4034c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX2_REC_STATE0             0x20a40350 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX2_REC_STATE1             0x20a40354 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX2_REC_STATE2             0x20a40358 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX2_REC_STATE2b            0x20a4035c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX2_REC_STATE3             0x20a40360 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX2_REC_COUNT              0x20a40364 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX2_PIC_INC_DEC_CTRL       0x20a40368 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX2_SC                     0x20a4036c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG5        0x20a40370 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX2_RAVE_FW_MISC_STATUS1   0x20a40374 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX2_RAVE_Reg_2             0x20a40378 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_RAVE_Reg_3             0x20a4037c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_CONFIG       0x20a40380 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40384 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40388 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_PCR          0x20a4038c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_ATS          0x20a40390 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_ADJ_ATS      0x20a40394 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_NEXT_PKT_ATS 0x20a40398 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX2_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4039c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX2_RAVE_Reg_4             0x20a403a0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX2_RAVE_Reg_5             0x20a403a4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_0  0x20a403a8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_1  0x20a403ac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_2  0x20a403b0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_3  0x20a403b4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_4  0x20a403b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_5  0x20a403bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_WRITE_PTR       0x20a403c0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_READ_PTR        0x20a403c4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_BASE_PTR        0x20a403c8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_END_PTR         0x20a403cc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_VALID_PTR       0x20a403d0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_WRAPAROUND_PTR  0x20a403d4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_THRESHOLD_LEVEL 0x20a403d8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_DEPTH           0x20a403dc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX3_AV_THRESHOLDS          0x20a403e0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_WRITE_PTR       0x20a403e4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_READ_PTR        0x20a403e8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_BASE_PTR        0x20a403ec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_END_PTR         0x20a403f0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_VALID_PTR       0x20a403f4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_WRAPAROUND_PTR  0x20a403f8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_THRESHOLD_LEVEL 0x20a403fc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_DEPTH           0x20a40400 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX3_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40404 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX3_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40408 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX3_REC_MISC_CONFIG        0x20a4040c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_A         0x20a40410 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_B         0x20a40414 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_C         0x20a40418 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_D         0x20a4041c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_E         0x20a40420 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_F         0x20a40424 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_G         0x20a40428 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_H         0x20a4042c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG1        0x20a40430 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG2        0x20a40434 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG3        0x20a40438 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX3_AV_INTERRUPT_ENABLES   0x20a4043c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX3_AV_COMP1_CONTROL       0x20a40440 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX3_AV_COMP1_COMPARE_VAL   0x20a40444 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP1_MASK_VAL      0x20a40448 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP1_FILTER_VAL    0x20a4044c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP1_FILTER_MASK_VAL 0x20a40450 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP2_CONTROL       0x20a40454 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX3_AV_COMP2_COMPARE_VAL   0x20a40458 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP2_MASK_VAL      0x20a4045c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP2_FILTER_VAL    0x20a40460 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP2_FILTER_MASK_VAL 0x20a40464 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_COMP12_FILTER_MODE  0x20a40468 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX3_AV_PID_STREAM_ID       0x20a4046c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX3_REC_CTRL1              0x20a40470 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX3_REC_INIT_TS            0x20a40474 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX3_REC_TS_CTRL            0x20a40478 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX3_REC_TIME_CONFIG        0x20a4047c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG4        0x20a40480 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX3_PIC_CTR                0x20a40484 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX3_PIC_CTR_MODE           0x20a40488 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX3_REC_TIMER              0x20a4048c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX3_REC_STATE0             0x20a40490 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX3_REC_STATE1             0x20a40494 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX3_REC_STATE2             0x20a40498 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX3_REC_STATE2b            0x20a4049c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX3_REC_STATE3             0x20a404a0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX3_REC_COUNT              0x20a404a4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX3_PIC_INC_DEC_CTRL       0x20a404a8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX3_SC                     0x20a404ac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG5        0x20a404b0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX3_RAVE_FW_MISC_STATUS1   0x20a404b4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX3_RAVE_Reg_2             0x20a404b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_RAVE_Reg_3             0x20a404bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_CONFIG       0x20a404c0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_OFFSET_MAGNITUDE 0x20a404c4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_OFFSET_SIGN_BIT 0x20a404c8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_PCR          0x20a404cc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_ATS          0x20a404d0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_ADJ_ATS      0x20a404d4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_NEXT_PKT_ATS 0x20a404d8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX3_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a404dc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX3_RAVE_Reg_4             0x20a404e0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX3_RAVE_Reg_5             0x20a404e4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_0  0x20a404e8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_1  0x20a404ec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_2  0x20a404f0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_3  0x20a404f4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_4  0x20a404f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_5  0x20a404fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_WRITE_PTR       0x20a40500 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_READ_PTR        0x20a40504 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_BASE_PTR        0x20a40508 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_END_PTR         0x20a4050c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_VALID_PTR       0x20a40510 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_WRAPAROUND_PTR  0x20a40514 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_THRESHOLD_LEVEL 0x20a40518 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_DEPTH           0x20a4051c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX4_AV_THRESHOLDS          0x20a40520 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_WRITE_PTR       0x20a40524 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_READ_PTR        0x20a40528 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_BASE_PTR        0x20a4052c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_END_PTR         0x20a40530 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_VALID_PTR       0x20a40534 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_WRAPAROUND_PTR  0x20a40538 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_THRESHOLD_LEVEL 0x20a4053c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_DEPTH           0x20a40540 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX4_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40544 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX4_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40548 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX4_REC_MISC_CONFIG        0x20a4054c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_A         0x20a40550 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_B         0x20a40554 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_C         0x20a40558 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_D         0x20a4055c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_E         0x20a40560 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_F         0x20a40564 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_G         0x20a40568 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_H         0x20a4056c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG1        0x20a40570 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG2        0x20a40574 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG3        0x20a40578 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX4_AV_INTERRUPT_ENABLES   0x20a4057c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX4_AV_COMP1_CONTROL       0x20a40580 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX4_AV_COMP1_COMPARE_VAL   0x20a40584 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP1_MASK_VAL      0x20a40588 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP1_FILTER_VAL    0x20a4058c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP1_FILTER_MASK_VAL 0x20a40590 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP2_CONTROL       0x20a40594 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX4_AV_COMP2_COMPARE_VAL   0x20a40598 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP2_MASK_VAL      0x20a4059c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP2_FILTER_VAL    0x20a405a0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP2_FILTER_MASK_VAL 0x20a405a4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_COMP12_FILTER_MODE  0x20a405a8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX4_AV_PID_STREAM_ID       0x20a405ac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX4_REC_CTRL1              0x20a405b0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX4_REC_INIT_TS            0x20a405b4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX4_REC_TS_CTRL            0x20a405b8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX4_REC_TIME_CONFIG        0x20a405bc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG4        0x20a405c0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX4_PIC_CTR                0x20a405c4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX4_PIC_CTR_MODE           0x20a405c8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX4_REC_TIMER              0x20a405cc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX4_REC_STATE0             0x20a405d0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX4_REC_STATE1             0x20a405d4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX4_REC_STATE2             0x20a405d8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX4_REC_STATE2b            0x20a405dc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX4_REC_STATE3             0x20a405e0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX4_REC_COUNT              0x20a405e4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX4_PIC_INC_DEC_CTRL       0x20a405e8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX4_SC                     0x20a405ec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG5        0x20a405f0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX4_RAVE_FW_MISC_STATUS1   0x20a405f4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX4_RAVE_Reg_2             0x20a405f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_RAVE_Reg_3             0x20a405fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_CONFIG       0x20a40600 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40604 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40608 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_PCR          0x20a4060c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_ATS          0x20a40610 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_ADJ_ATS      0x20a40614 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_NEXT_PKT_ATS 0x20a40618 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX4_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4061c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX4_RAVE_Reg_4             0x20a40620 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX4_RAVE_Reg_5             0x20a40624 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_0  0x20a40628 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_1  0x20a4062c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_2  0x20a40630 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_3  0x20a40634 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_4  0x20a40638 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_5  0x20a4063c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_WRITE_PTR       0x20a40640 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_READ_PTR        0x20a40644 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_BASE_PTR        0x20a40648 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_END_PTR         0x20a4064c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_VALID_PTR       0x20a40650 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_WRAPAROUND_PTR  0x20a40654 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_THRESHOLD_LEVEL 0x20a40658 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_DEPTH           0x20a4065c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX5_AV_THRESHOLDS          0x20a40660 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_WRITE_PTR       0x20a40664 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_READ_PTR        0x20a40668 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_BASE_PTR        0x20a4066c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_END_PTR         0x20a40670 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_VALID_PTR       0x20a40674 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_WRAPAROUND_PTR  0x20a40678 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_THRESHOLD_LEVEL 0x20a4067c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_DEPTH           0x20a40680 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX5_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40684 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX5_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40688 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX5_REC_MISC_CONFIG        0x20a4068c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_A         0x20a40690 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_B         0x20a40694 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_C         0x20a40698 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_D         0x20a4069c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_E         0x20a406a0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_F         0x20a406a4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_G         0x20a406a8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_H         0x20a406ac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG1        0x20a406b0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG2        0x20a406b4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG3        0x20a406b8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX5_AV_INTERRUPT_ENABLES   0x20a406bc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX5_AV_COMP1_CONTROL       0x20a406c0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX5_AV_COMP1_COMPARE_VAL   0x20a406c4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP1_MASK_VAL      0x20a406c8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP1_FILTER_VAL    0x20a406cc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP1_FILTER_MASK_VAL 0x20a406d0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP2_CONTROL       0x20a406d4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX5_AV_COMP2_COMPARE_VAL   0x20a406d8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP2_MASK_VAL      0x20a406dc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP2_FILTER_VAL    0x20a406e0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP2_FILTER_MASK_VAL 0x20a406e4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_COMP12_FILTER_MODE  0x20a406e8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX5_AV_PID_STREAM_ID       0x20a406ec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX5_REC_CTRL1              0x20a406f0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX5_REC_INIT_TS            0x20a406f4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX5_REC_TS_CTRL            0x20a406f8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX5_REC_TIME_CONFIG        0x20a406fc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG4        0x20a40700 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX5_PIC_CTR                0x20a40704 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX5_PIC_CTR_MODE           0x20a40708 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX5_REC_TIMER              0x20a4070c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX5_REC_STATE0             0x20a40710 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX5_REC_STATE1             0x20a40714 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX5_REC_STATE2             0x20a40718 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX5_REC_STATE2b            0x20a4071c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX5_REC_STATE3             0x20a40720 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX5_REC_COUNT              0x20a40724 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX5_PIC_INC_DEC_CTRL       0x20a40728 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX5_SC                     0x20a4072c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG5        0x20a40730 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX5_RAVE_FW_MISC_STATUS1   0x20a40734 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX5_RAVE_Reg_2             0x20a40738 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_RAVE_Reg_3             0x20a4073c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_CONFIG       0x20a40740 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40744 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40748 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_PCR          0x20a4074c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_ATS          0x20a40750 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_ADJ_ATS      0x20a40754 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_NEXT_PKT_ATS 0x20a40758 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX5_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4075c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX5_RAVE_Reg_4             0x20a40760 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX5_RAVE_Reg_5             0x20a40764 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_0  0x20a40768 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_1  0x20a4076c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_2  0x20a40770 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_3  0x20a40774 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_4  0x20a40778 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_5  0x20a4077c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_WRITE_PTR       0x20a40780 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_READ_PTR        0x20a40784 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_BASE_PTR        0x20a40788 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_END_PTR         0x20a4078c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_VALID_PTR       0x20a40790 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_WRAPAROUND_PTR  0x20a40794 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_THRESHOLD_LEVEL 0x20a40798 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_DEPTH           0x20a4079c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX6_AV_THRESHOLDS          0x20a407a0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_WRITE_PTR       0x20a407a4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_READ_PTR        0x20a407a8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_BASE_PTR        0x20a407ac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_END_PTR         0x20a407b0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_VALID_PTR       0x20a407b4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_WRAPAROUND_PTR  0x20a407b8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_THRESHOLD_LEVEL 0x20a407bc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_DEPTH           0x20a407c0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX6_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a407c4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX6_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a407c8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX6_REC_MISC_CONFIG        0x20a407cc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_A         0x20a407d0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_B         0x20a407d4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_C         0x20a407d8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_D         0x20a407dc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_E         0x20a407e0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_F         0x20a407e4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_G         0x20a407e8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_H         0x20a407ec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG1        0x20a407f0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG2        0x20a407f4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG3        0x20a407f8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX6_AV_INTERRUPT_ENABLES   0x20a407fc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX6_AV_COMP1_CONTROL       0x20a40800 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX6_AV_COMP1_COMPARE_VAL   0x20a40804 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP1_MASK_VAL      0x20a40808 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP1_FILTER_VAL    0x20a4080c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP1_FILTER_MASK_VAL 0x20a40810 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP2_CONTROL       0x20a40814 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX6_AV_COMP2_COMPARE_VAL   0x20a40818 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP2_MASK_VAL      0x20a4081c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP2_FILTER_VAL    0x20a40820 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP2_FILTER_MASK_VAL 0x20a40824 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_COMP12_FILTER_MODE  0x20a40828 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX6_AV_PID_STREAM_ID       0x20a4082c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX6_REC_CTRL1              0x20a40830 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX6_REC_INIT_TS            0x20a40834 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX6_REC_TS_CTRL            0x20a40838 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX6_REC_TIME_CONFIG        0x20a4083c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG4        0x20a40840 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX6_PIC_CTR                0x20a40844 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX6_PIC_CTR_MODE           0x20a40848 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX6_REC_TIMER              0x20a4084c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX6_REC_STATE0             0x20a40850 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX6_REC_STATE1             0x20a40854 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX6_REC_STATE2             0x20a40858 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX6_REC_STATE2b            0x20a4085c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX6_REC_STATE3             0x20a40860 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX6_REC_COUNT              0x20a40864 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX6_PIC_INC_DEC_CTRL       0x20a40868 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX6_SC                     0x20a4086c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG5        0x20a40870 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX6_RAVE_FW_MISC_STATUS1   0x20a40874 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX6_RAVE_Reg_2             0x20a40878 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_RAVE_Reg_3             0x20a4087c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_CONFIG       0x20a40880 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40884 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40888 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_PCR          0x20a4088c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_ATS          0x20a40890 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_ADJ_ATS      0x20a40894 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_NEXT_PKT_ATS 0x20a40898 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX6_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4089c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX6_RAVE_Reg_4             0x20a408a0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX6_RAVE_Reg_5             0x20a408a4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_0  0x20a408a8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_1  0x20a408ac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_2  0x20a408b0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_3  0x20a408b4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_4  0x20a408b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_5  0x20a408bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_WRITE_PTR       0x20a408c0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_READ_PTR        0x20a408c4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_BASE_PTR        0x20a408c8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_END_PTR         0x20a408cc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_VALID_PTR       0x20a408d0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_WRAPAROUND_PTR  0x20a408d4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_THRESHOLD_LEVEL 0x20a408d8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_DEPTH           0x20a408dc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX7_AV_THRESHOLDS          0x20a408e0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_WRITE_PTR       0x20a408e4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_READ_PTR        0x20a408e8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_BASE_PTR        0x20a408ec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_END_PTR         0x20a408f0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_VALID_PTR       0x20a408f4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_WRAPAROUND_PTR  0x20a408f8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_THRESHOLD_LEVEL 0x20a408fc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_DEPTH           0x20a40900 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX7_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40904 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX7_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40908 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX7_REC_MISC_CONFIG        0x20a4090c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_A         0x20a40910 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_B         0x20a40914 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_C         0x20a40918 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_D         0x20a4091c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_E         0x20a40920 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_F         0x20a40924 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_G         0x20a40928 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_H         0x20a4092c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG1        0x20a40930 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG2        0x20a40934 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG3        0x20a40938 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX7_AV_INTERRUPT_ENABLES   0x20a4093c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX7_AV_COMP1_CONTROL       0x20a40940 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX7_AV_COMP1_COMPARE_VAL   0x20a40944 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP1_MASK_VAL      0x20a40948 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP1_FILTER_VAL    0x20a4094c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP1_FILTER_MASK_VAL 0x20a40950 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP2_CONTROL       0x20a40954 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX7_AV_COMP2_COMPARE_VAL   0x20a40958 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP2_MASK_VAL      0x20a4095c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP2_FILTER_VAL    0x20a40960 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP2_FILTER_MASK_VAL 0x20a40964 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_COMP12_FILTER_MODE  0x20a40968 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX7_AV_PID_STREAM_ID       0x20a4096c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX7_REC_CTRL1              0x20a40970 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX7_REC_INIT_TS            0x20a40974 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX7_REC_TS_CTRL            0x20a40978 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX7_REC_TIME_CONFIG        0x20a4097c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG4        0x20a40980 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX7_PIC_CTR                0x20a40984 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX7_PIC_CTR_MODE           0x20a40988 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX7_REC_TIMER              0x20a4098c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX7_REC_STATE0             0x20a40990 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX7_REC_STATE1             0x20a40994 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX7_REC_STATE2             0x20a40998 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX7_REC_STATE2b            0x20a4099c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX7_REC_STATE3             0x20a409a0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX7_REC_COUNT              0x20a409a4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX7_PIC_INC_DEC_CTRL       0x20a409a8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX7_SC                     0x20a409ac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG5        0x20a409b0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX7_RAVE_FW_MISC_STATUS1   0x20a409b4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX7_RAVE_Reg_2             0x20a409b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_RAVE_Reg_3             0x20a409bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_CONFIG       0x20a409c0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_OFFSET_MAGNITUDE 0x20a409c4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_OFFSET_SIGN_BIT 0x20a409c8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_PCR          0x20a409cc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_ATS          0x20a409d0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_ADJ_ATS      0x20a409d4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_NEXT_PKT_ATS 0x20a409d8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX7_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a409dc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX7_RAVE_Reg_4             0x20a409e0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX7_RAVE_Reg_5             0x20a409e4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_0  0x20a409e8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_1  0x20a409ec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_2  0x20a409f0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_3  0x20a409f4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_4  0x20a409f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_5  0x20a409fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_WRITE_PTR       0x20a40a00 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_READ_PTR        0x20a40a04 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_BASE_PTR        0x20a40a08 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_END_PTR         0x20a40a0c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_VALID_PTR       0x20a40a10 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_WRAPAROUND_PTR  0x20a40a14 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_THRESHOLD_LEVEL 0x20a40a18 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_DEPTH           0x20a40a1c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX8_AV_THRESHOLDS          0x20a40a20 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_WRITE_PTR       0x20a40a24 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_READ_PTR        0x20a40a28 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_BASE_PTR        0x20a40a2c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_END_PTR         0x20a40a30 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_VALID_PTR       0x20a40a34 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_WRAPAROUND_PTR  0x20a40a38 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_THRESHOLD_LEVEL 0x20a40a3c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_DEPTH           0x20a40a40 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX8_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40a44 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX8_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40a48 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX8_REC_MISC_CONFIG        0x20a40a4c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_A         0x20a40a50 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_B         0x20a40a54 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_C         0x20a40a58 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_D         0x20a40a5c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_E         0x20a40a60 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_F         0x20a40a64 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_G         0x20a40a68 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_H         0x20a40a6c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG1        0x20a40a70 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG2        0x20a40a74 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG3        0x20a40a78 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX8_AV_INTERRUPT_ENABLES   0x20a40a7c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX8_AV_COMP1_CONTROL       0x20a40a80 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX8_AV_COMP1_COMPARE_VAL   0x20a40a84 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP1_MASK_VAL      0x20a40a88 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP1_FILTER_VAL    0x20a40a8c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP1_FILTER_MASK_VAL 0x20a40a90 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP2_CONTROL       0x20a40a94 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX8_AV_COMP2_COMPARE_VAL   0x20a40a98 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP2_MASK_VAL      0x20a40a9c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP2_FILTER_VAL    0x20a40aa0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP2_FILTER_MASK_VAL 0x20a40aa4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_COMP12_FILTER_MODE  0x20a40aa8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX8_AV_PID_STREAM_ID       0x20a40aac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX8_REC_CTRL1              0x20a40ab0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX8_REC_INIT_TS            0x20a40ab4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX8_REC_TS_CTRL            0x20a40ab8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX8_REC_TIME_CONFIG        0x20a40abc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG4        0x20a40ac0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX8_PIC_CTR                0x20a40ac4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX8_PIC_CTR_MODE           0x20a40ac8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX8_REC_TIMER              0x20a40acc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX8_REC_STATE0             0x20a40ad0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX8_REC_STATE1             0x20a40ad4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX8_REC_STATE2             0x20a40ad8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX8_REC_STATE2b            0x20a40adc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX8_REC_STATE3             0x20a40ae0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX8_REC_COUNT              0x20a40ae4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX8_PIC_INC_DEC_CTRL       0x20a40ae8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX8_SC                     0x20a40aec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG5        0x20a40af0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX8_RAVE_FW_MISC_STATUS1   0x20a40af4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX8_RAVE_Reg_2             0x20a40af8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_RAVE_Reg_3             0x20a40afc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_CONFIG       0x20a40b00 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40b04 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40b08 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_PCR          0x20a40b0c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_ATS          0x20a40b10 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_ADJ_ATS      0x20a40b14 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_NEXT_PKT_ATS 0x20a40b18 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX8_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40b1c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX8_RAVE_Reg_4             0x20a40b20 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX8_RAVE_Reg_5             0x20a40b24 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_0  0x20a40b28 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_1  0x20a40b2c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_2  0x20a40b30 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_3  0x20a40b34 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_4  0x20a40b38 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_5  0x20a40b3c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_WRITE_PTR       0x20a40b40 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_READ_PTR        0x20a40b44 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_BASE_PTR        0x20a40b48 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_END_PTR         0x20a40b4c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_VALID_PTR       0x20a40b50 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_WRAPAROUND_PTR  0x20a40b54 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_THRESHOLD_LEVEL 0x20a40b58 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_DEPTH           0x20a40b5c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX9_AV_THRESHOLDS          0x20a40b60 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_WRITE_PTR       0x20a40b64 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_READ_PTR        0x20a40b68 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_BASE_PTR        0x20a40b6c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_END_PTR         0x20a40b70 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_VALID_PTR       0x20a40b74 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_WRAPAROUND_PTR  0x20a40b78 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_THRESHOLD_LEVEL 0x20a40b7c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_DEPTH           0x20a40b80 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX9_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40b84 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX9_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40b88 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX9_REC_MISC_CONFIG        0x20a40b8c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_A         0x20a40b90 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_B         0x20a40b94 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_C         0x20a40b98 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_D         0x20a40b9c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_E         0x20a40ba0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_F         0x20a40ba4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_G         0x20a40ba8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_H         0x20a40bac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG1        0x20a40bb0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG2        0x20a40bb4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG3        0x20a40bb8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX9_AV_INTERRUPT_ENABLES   0x20a40bbc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX9_AV_COMP1_CONTROL       0x20a40bc0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX9_AV_COMP1_COMPARE_VAL   0x20a40bc4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP1_MASK_VAL      0x20a40bc8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP1_FILTER_VAL    0x20a40bcc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP1_FILTER_MASK_VAL 0x20a40bd0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP2_CONTROL       0x20a40bd4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX9_AV_COMP2_COMPARE_VAL   0x20a40bd8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP2_MASK_VAL      0x20a40bdc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP2_FILTER_VAL    0x20a40be0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP2_FILTER_MASK_VAL 0x20a40be4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_COMP12_FILTER_MODE  0x20a40be8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX9_AV_PID_STREAM_ID       0x20a40bec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX9_REC_CTRL1              0x20a40bf0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX9_REC_INIT_TS            0x20a40bf4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX9_REC_TS_CTRL            0x20a40bf8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX9_REC_TIME_CONFIG        0x20a40bfc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG4        0x20a40c00 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX9_PIC_CTR                0x20a40c04 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX9_PIC_CTR_MODE           0x20a40c08 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX9_REC_TIMER              0x20a40c0c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX9_REC_STATE0             0x20a40c10 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX9_REC_STATE1             0x20a40c14 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX9_REC_STATE2             0x20a40c18 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX9_REC_STATE2b            0x20a40c1c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX9_REC_STATE3             0x20a40c20 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX9_REC_COUNT              0x20a40c24 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX9_PIC_INC_DEC_CTRL       0x20a40c28 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX9_SC                     0x20a40c2c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG5        0x20a40c30 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX9_RAVE_FW_MISC_STATUS1   0x20a40c34 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX9_RAVE_Reg_2             0x20a40c38 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_RAVE_Reg_3             0x20a40c3c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_CONFIG       0x20a40c40 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40c44 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40c48 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_PCR          0x20a40c4c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_ATS          0x20a40c50 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_ADJ_ATS      0x20a40c54 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_NEXT_PKT_ATS 0x20a40c58 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX9_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40c5c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX9_RAVE_Reg_4             0x20a40c60 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX9_RAVE_Reg_5             0x20a40c64 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_0  0x20a40c68 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_1  0x20a40c6c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_2  0x20a40c70 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_3  0x20a40c74 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_4  0x20a40c78 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_5  0x20a40c7c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_WRITE_PTR      0x20a40c80 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_READ_PTR       0x20a40c84 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_BASE_PTR       0x20a40c88 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_END_PTR        0x20a40c8c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_VALID_PTR      0x20a40c90 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_WRAPAROUND_PTR 0x20a40c94 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_THRESHOLD_LEVEL 0x20a40c98 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_DEPTH          0x20a40c9c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX10_AV_THRESHOLDS         0x20a40ca0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_WRITE_PTR      0x20a40ca4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_READ_PTR       0x20a40ca8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_BASE_PTR       0x20a40cac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_END_PTR        0x20a40cb0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_VALID_PTR      0x20a40cb4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_WRAPAROUND_PTR 0x20a40cb8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_THRESHOLD_LEVEL 0x20a40cbc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_DEPTH          0x20a40cc0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX10_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40cc4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX10_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40cc8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX10_REC_MISC_CONFIG       0x20a40ccc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_A        0x20a40cd0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_B        0x20a40cd4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_C        0x20a40cd8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_D        0x20a40cdc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_E        0x20a40ce0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_F        0x20a40ce4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_G        0x20a40ce8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_H        0x20a40cec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG1       0x20a40cf0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG2       0x20a40cf4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG3       0x20a40cf8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX10_AV_INTERRUPT_ENABLES  0x20a40cfc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX10_AV_COMP1_CONTROL      0x20a40d00 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX10_AV_COMP1_COMPARE_VAL  0x20a40d04 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP1_MASK_VAL     0x20a40d08 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP1_FILTER_VAL   0x20a40d0c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP1_FILTER_MASK_VAL 0x20a40d10 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP2_CONTROL      0x20a40d14 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX10_AV_COMP2_COMPARE_VAL  0x20a40d18 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP2_MASK_VAL     0x20a40d1c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP2_FILTER_VAL   0x20a40d20 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP2_FILTER_MASK_VAL 0x20a40d24 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_COMP12_FILTER_MODE 0x20a40d28 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX10_AV_PID_STREAM_ID      0x20a40d2c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX10_REC_CTRL1             0x20a40d30 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX10_REC_INIT_TS           0x20a40d34 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX10_REC_TS_CTRL           0x20a40d38 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX10_REC_TIME_CONFIG       0x20a40d3c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG4       0x20a40d40 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX10_PIC_CTR               0x20a40d44 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX10_PIC_CTR_MODE          0x20a40d48 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX10_REC_TIMER             0x20a40d4c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX10_REC_STATE0            0x20a40d50 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX10_REC_STATE1            0x20a40d54 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX10_REC_STATE2            0x20a40d58 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX10_REC_STATE2b           0x20a40d5c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX10_REC_STATE3            0x20a40d60 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX10_REC_COUNT             0x20a40d64 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX10_PIC_INC_DEC_CTRL      0x20a40d68 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX10_SC                    0x20a40d6c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG5       0x20a40d70 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX10_RAVE_FW_MISC_STATUS1  0x20a40d74 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX10_RAVE_Reg_2            0x20a40d78 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_RAVE_Reg_3            0x20a40d7c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_CONFIG      0x20a40d80 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40d84 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40d88 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_PCR         0x20a40d8c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_ATS         0x20a40d90 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_ADJ_ATS     0x20a40d94 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_NEXT_PKT_ATS 0x20a40d98 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX10_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40d9c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX10_RAVE_Reg_4            0x20a40da0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX10_RAVE_Reg_5            0x20a40da4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_0 0x20a40da8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_1 0x20a40dac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_2 0x20a40db0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_3 0x20a40db4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_4 0x20a40db8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_5 0x20a40dbc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_WRITE_PTR      0x20a40dc0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_READ_PTR       0x20a40dc4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_BASE_PTR       0x20a40dc8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_END_PTR        0x20a40dcc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_VALID_PTR      0x20a40dd0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_WRAPAROUND_PTR 0x20a40dd4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_THRESHOLD_LEVEL 0x20a40dd8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_DEPTH          0x20a40ddc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX11_AV_THRESHOLDS         0x20a40de0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_WRITE_PTR      0x20a40de4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_READ_PTR       0x20a40de8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_BASE_PTR       0x20a40dec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_END_PTR        0x20a40df0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_VALID_PTR      0x20a40df4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_WRAPAROUND_PTR 0x20a40df8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_THRESHOLD_LEVEL 0x20a40dfc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_DEPTH          0x20a40e00 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX11_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40e04 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX11_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40e08 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX11_REC_MISC_CONFIG       0x20a40e0c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_A        0x20a40e10 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_B        0x20a40e14 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_C        0x20a40e18 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_D        0x20a40e1c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_E        0x20a40e20 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_F        0x20a40e24 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_G        0x20a40e28 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_H        0x20a40e2c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG1       0x20a40e30 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG2       0x20a40e34 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG3       0x20a40e38 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX11_AV_INTERRUPT_ENABLES  0x20a40e3c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX11_AV_COMP1_CONTROL      0x20a40e40 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX11_AV_COMP1_COMPARE_VAL  0x20a40e44 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP1_MASK_VAL     0x20a40e48 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP1_FILTER_VAL   0x20a40e4c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP1_FILTER_MASK_VAL 0x20a40e50 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP2_CONTROL      0x20a40e54 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX11_AV_COMP2_COMPARE_VAL  0x20a40e58 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP2_MASK_VAL     0x20a40e5c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP2_FILTER_VAL   0x20a40e60 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP2_FILTER_MASK_VAL 0x20a40e64 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_COMP12_FILTER_MODE 0x20a40e68 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX11_AV_PID_STREAM_ID      0x20a40e6c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX11_REC_CTRL1             0x20a40e70 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX11_REC_INIT_TS           0x20a40e74 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX11_REC_TS_CTRL           0x20a40e78 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX11_REC_TIME_CONFIG       0x20a40e7c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG4       0x20a40e80 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX11_PIC_CTR               0x20a40e84 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX11_PIC_CTR_MODE          0x20a40e88 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX11_REC_TIMER             0x20a40e8c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX11_REC_STATE0            0x20a40e90 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX11_REC_STATE1            0x20a40e94 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX11_REC_STATE2            0x20a40e98 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX11_REC_STATE2b           0x20a40e9c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX11_REC_STATE3            0x20a40ea0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX11_REC_COUNT             0x20a40ea4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX11_PIC_INC_DEC_CTRL      0x20a40ea8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX11_SC                    0x20a40eac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG5       0x20a40eb0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX11_RAVE_FW_MISC_STATUS1  0x20a40eb4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX11_RAVE_Reg_2            0x20a40eb8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_RAVE_Reg_3            0x20a40ebc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_CONFIG      0x20a40ec0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40ec4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40ec8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_PCR         0x20a40ecc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_ATS         0x20a40ed0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_ADJ_ATS     0x20a40ed4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_NEXT_PKT_ATS 0x20a40ed8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX11_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40edc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX11_RAVE_Reg_4            0x20a40ee0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX11_RAVE_Reg_5            0x20a40ee4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_0 0x20a40ee8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_1 0x20a40eec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_2 0x20a40ef0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_3 0x20a40ef4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_4 0x20a40ef8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_5 0x20a40efc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_WRITE_PTR      0x20a40f00 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_READ_PTR       0x20a40f04 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_BASE_PTR       0x20a40f08 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_END_PTR        0x20a40f0c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_VALID_PTR      0x20a40f10 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_WRAPAROUND_PTR 0x20a40f14 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_THRESHOLD_LEVEL 0x20a40f18 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_DEPTH          0x20a40f1c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX12_AV_THRESHOLDS         0x20a40f20 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_WRITE_PTR      0x20a40f24 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_READ_PTR       0x20a40f28 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_BASE_PTR       0x20a40f2c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_END_PTR        0x20a40f30 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_VALID_PTR      0x20a40f34 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_WRAPAROUND_PTR 0x20a40f38 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_THRESHOLD_LEVEL 0x20a40f3c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_DEPTH          0x20a40f40 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX12_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40f44 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX12_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40f48 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX12_REC_MISC_CONFIG       0x20a40f4c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_A        0x20a40f50 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_B        0x20a40f54 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_C        0x20a40f58 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_D        0x20a40f5c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_E        0x20a40f60 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_F        0x20a40f64 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_G        0x20a40f68 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_H        0x20a40f6c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG1       0x20a40f70 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG2       0x20a40f74 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG3       0x20a40f78 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX12_AV_INTERRUPT_ENABLES  0x20a40f7c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX12_AV_COMP1_CONTROL      0x20a40f80 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX12_AV_COMP1_COMPARE_VAL  0x20a40f84 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP1_MASK_VAL     0x20a40f88 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP1_FILTER_VAL   0x20a40f8c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP1_FILTER_MASK_VAL 0x20a40f90 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP2_CONTROL      0x20a40f94 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX12_AV_COMP2_COMPARE_VAL  0x20a40f98 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP2_MASK_VAL     0x20a40f9c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP2_FILTER_VAL   0x20a40fa0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP2_FILTER_MASK_VAL 0x20a40fa4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_COMP12_FILTER_MODE 0x20a40fa8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX12_AV_PID_STREAM_ID      0x20a40fac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX12_REC_CTRL1             0x20a40fb0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX12_REC_INIT_TS           0x20a40fb4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX12_REC_TS_CTRL           0x20a40fb8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX12_REC_TIME_CONFIG       0x20a40fbc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG4       0x20a40fc0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX12_PIC_CTR               0x20a40fc4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX12_PIC_CTR_MODE          0x20a40fc8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX12_REC_TIMER             0x20a40fcc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX12_REC_STATE0            0x20a40fd0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX12_REC_STATE1            0x20a40fd4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX12_REC_STATE2            0x20a40fd8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX12_REC_STATE2b           0x20a40fdc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX12_REC_STATE3            0x20a40fe0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX12_REC_COUNT             0x20a40fe4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX12_PIC_INC_DEC_CTRL      0x20a40fe8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX12_SC                    0x20a40fec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG5       0x20a40ff0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX12_RAVE_FW_MISC_STATUS1  0x20a40ff4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX12_RAVE_Reg_2            0x20a40ff8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_RAVE_Reg_3            0x20a40ffc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_CONFIG      0x20a41000 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41004 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41008 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_PCR         0x20a4100c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_ATS         0x20a41010 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_ADJ_ATS     0x20a41014 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_NEXT_PKT_ATS 0x20a41018 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX12_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4101c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX12_RAVE_Reg_4            0x20a41020 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX12_RAVE_Reg_5            0x20a41024 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_0 0x20a41028 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_1 0x20a4102c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_2 0x20a41030 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_3 0x20a41034 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_4 0x20a41038 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_5 0x20a4103c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_WRITE_PTR      0x20a41040 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_READ_PTR       0x20a41044 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_BASE_PTR       0x20a41048 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_END_PTR        0x20a4104c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_VALID_PTR      0x20a41050 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_WRAPAROUND_PTR 0x20a41054 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_THRESHOLD_LEVEL 0x20a41058 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_DEPTH          0x20a4105c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX13_AV_THRESHOLDS         0x20a41060 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_WRITE_PTR      0x20a41064 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_READ_PTR       0x20a41068 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_BASE_PTR       0x20a4106c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_END_PTR        0x20a41070 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_VALID_PTR      0x20a41074 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_WRAPAROUND_PTR 0x20a41078 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_THRESHOLD_LEVEL 0x20a4107c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_DEPTH          0x20a41080 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX13_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41084 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX13_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41088 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX13_REC_MISC_CONFIG       0x20a4108c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_A        0x20a41090 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_B        0x20a41094 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_C        0x20a41098 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_D        0x20a4109c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_E        0x20a410a0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_F        0x20a410a4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_G        0x20a410a8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_H        0x20a410ac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG1       0x20a410b0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG2       0x20a410b4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG3       0x20a410b8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX13_AV_INTERRUPT_ENABLES  0x20a410bc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX13_AV_COMP1_CONTROL      0x20a410c0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX13_AV_COMP1_COMPARE_VAL  0x20a410c4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP1_MASK_VAL     0x20a410c8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP1_FILTER_VAL   0x20a410cc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP1_FILTER_MASK_VAL 0x20a410d0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP2_CONTROL      0x20a410d4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX13_AV_COMP2_COMPARE_VAL  0x20a410d8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP2_MASK_VAL     0x20a410dc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP2_FILTER_VAL   0x20a410e0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP2_FILTER_MASK_VAL 0x20a410e4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_COMP12_FILTER_MODE 0x20a410e8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX13_AV_PID_STREAM_ID      0x20a410ec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX13_REC_CTRL1             0x20a410f0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX13_REC_INIT_TS           0x20a410f4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX13_REC_TS_CTRL           0x20a410f8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX13_REC_TIME_CONFIG       0x20a410fc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG4       0x20a41100 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX13_PIC_CTR               0x20a41104 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX13_PIC_CTR_MODE          0x20a41108 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX13_REC_TIMER             0x20a4110c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX13_REC_STATE0            0x20a41110 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX13_REC_STATE1            0x20a41114 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX13_REC_STATE2            0x20a41118 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX13_REC_STATE2b           0x20a4111c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX13_REC_STATE3            0x20a41120 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX13_REC_COUNT             0x20a41124 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX13_PIC_INC_DEC_CTRL      0x20a41128 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX13_SC                    0x20a4112c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG5       0x20a41130 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX13_RAVE_FW_MISC_STATUS1  0x20a41134 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX13_RAVE_Reg_2            0x20a41138 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_RAVE_Reg_3            0x20a4113c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_CONFIG      0x20a41140 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41144 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41148 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_PCR         0x20a4114c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_ATS         0x20a41150 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_ADJ_ATS     0x20a41154 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_NEXT_PKT_ATS 0x20a41158 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX13_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4115c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX13_RAVE_Reg_4            0x20a41160 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX13_RAVE_Reg_5            0x20a41164 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_0 0x20a41168 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_1 0x20a4116c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_2 0x20a41170 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_3 0x20a41174 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_4 0x20a41178 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_5 0x20a4117c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_WRITE_PTR      0x20a41180 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_READ_PTR       0x20a41184 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_BASE_PTR       0x20a41188 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_END_PTR        0x20a4118c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_VALID_PTR      0x20a41190 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_WRAPAROUND_PTR 0x20a41194 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_THRESHOLD_LEVEL 0x20a41198 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_DEPTH          0x20a4119c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX14_AV_THRESHOLDS         0x20a411a0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_WRITE_PTR      0x20a411a4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_READ_PTR       0x20a411a8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_BASE_PTR       0x20a411ac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_END_PTR        0x20a411b0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_VALID_PTR      0x20a411b4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_WRAPAROUND_PTR 0x20a411b8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_THRESHOLD_LEVEL 0x20a411bc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_DEPTH          0x20a411c0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX14_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a411c4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX14_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a411c8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX14_REC_MISC_CONFIG       0x20a411cc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_A        0x20a411d0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_B        0x20a411d4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_C        0x20a411d8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_D        0x20a411dc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_E        0x20a411e0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_F        0x20a411e4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_G        0x20a411e8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_H        0x20a411ec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG1       0x20a411f0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG2       0x20a411f4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG3       0x20a411f8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX14_AV_INTERRUPT_ENABLES  0x20a411fc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX14_AV_COMP1_CONTROL      0x20a41200 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX14_AV_COMP1_COMPARE_VAL  0x20a41204 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP1_MASK_VAL     0x20a41208 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP1_FILTER_VAL   0x20a4120c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP1_FILTER_MASK_VAL 0x20a41210 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP2_CONTROL      0x20a41214 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX14_AV_COMP2_COMPARE_VAL  0x20a41218 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP2_MASK_VAL     0x20a4121c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP2_FILTER_VAL   0x20a41220 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP2_FILTER_MASK_VAL 0x20a41224 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_COMP12_FILTER_MODE 0x20a41228 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX14_AV_PID_STREAM_ID      0x20a4122c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX14_REC_CTRL1             0x20a41230 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX14_REC_INIT_TS           0x20a41234 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX14_REC_TS_CTRL           0x20a41238 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX14_REC_TIME_CONFIG       0x20a4123c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG4       0x20a41240 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX14_PIC_CTR               0x20a41244 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX14_PIC_CTR_MODE          0x20a41248 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX14_REC_TIMER             0x20a4124c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX14_REC_STATE0            0x20a41250 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX14_REC_STATE1            0x20a41254 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX14_REC_STATE2            0x20a41258 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX14_REC_STATE2b           0x20a4125c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX14_REC_STATE3            0x20a41260 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX14_REC_COUNT             0x20a41264 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX14_PIC_INC_DEC_CTRL      0x20a41268 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX14_SC                    0x20a4126c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG5       0x20a41270 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX14_RAVE_FW_MISC_STATUS1  0x20a41274 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX14_RAVE_Reg_2            0x20a41278 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_RAVE_Reg_3            0x20a4127c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_CONFIG      0x20a41280 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41284 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41288 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_PCR         0x20a4128c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_ATS         0x20a41290 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_ADJ_ATS     0x20a41294 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_NEXT_PKT_ATS 0x20a41298 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX14_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4129c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX14_RAVE_Reg_4            0x20a412a0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX14_RAVE_Reg_5            0x20a412a4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_0 0x20a412a8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_1 0x20a412ac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_2 0x20a412b0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_3 0x20a412b4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_4 0x20a412b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_5 0x20a412bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_WRITE_PTR      0x20a412c0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_READ_PTR       0x20a412c4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_BASE_PTR       0x20a412c8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_END_PTR        0x20a412cc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_VALID_PTR      0x20a412d0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_WRAPAROUND_PTR 0x20a412d4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_THRESHOLD_LEVEL 0x20a412d8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_DEPTH          0x20a412dc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX15_AV_THRESHOLDS         0x20a412e0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_WRITE_PTR      0x20a412e4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_READ_PTR       0x20a412e8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_BASE_PTR       0x20a412ec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_END_PTR        0x20a412f0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_VALID_PTR      0x20a412f4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_WRAPAROUND_PTR 0x20a412f8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_THRESHOLD_LEVEL 0x20a412fc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_DEPTH          0x20a41300 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX15_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41304 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX15_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41308 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX15_REC_MISC_CONFIG       0x20a4130c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_A        0x20a41310 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_B        0x20a41314 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_C        0x20a41318 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_D        0x20a4131c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_E        0x20a41320 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_F        0x20a41324 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_G        0x20a41328 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_H        0x20a4132c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG1       0x20a41330 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG2       0x20a41334 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG3       0x20a41338 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX15_AV_INTERRUPT_ENABLES  0x20a4133c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX15_AV_COMP1_CONTROL      0x20a41340 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX15_AV_COMP1_COMPARE_VAL  0x20a41344 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP1_MASK_VAL     0x20a41348 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP1_FILTER_VAL   0x20a4134c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP1_FILTER_MASK_VAL 0x20a41350 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP2_CONTROL      0x20a41354 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX15_AV_COMP2_COMPARE_VAL  0x20a41358 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP2_MASK_VAL     0x20a4135c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP2_FILTER_VAL   0x20a41360 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP2_FILTER_MASK_VAL 0x20a41364 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_COMP12_FILTER_MODE 0x20a41368 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX15_AV_PID_STREAM_ID      0x20a4136c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX15_REC_CTRL1             0x20a41370 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX15_REC_INIT_TS           0x20a41374 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX15_REC_TS_CTRL           0x20a41378 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX15_REC_TIME_CONFIG       0x20a4137c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG4       0x20a41380 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX15_PIC_CTR               0x20a41384 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX15_PIC_CTR_MODE          0x20a41388 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX15_REC_TIMER             0x20a4138c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX15_REC_STATE0            0x20a41390 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX15_REC_STATE1            0x20a41394 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX15_REC_STATE2            0x20a41398 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX15_REC_STATE2b           0x20a4139c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX15_REC_STATE3            0x20a413a0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX15_REC_COUNT             0x20a413a4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX15_PIC_INC_DEC_CTRL      0x20a413a8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX15_SC                    0x20a413ac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG5       0x20a413b0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX15_RAVE_FW_MISC_STATUS1  0x20a413b4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX15_RAVE_Reg_2            0x20a413b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_RAVE_Reg_3            0x20a413bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_CONFIG      0x20a413c0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_OFFSET_MAGNITUDE 0x20a413c4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_OFFSET_SIGN_BIT 0x20a413c8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_PCR         0x20a413cc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_ATS         0x20a413d0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_ADJ_ATS     0x20a413d4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_NEXT_PKT_ATS 0x20a413d8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX15_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a413dc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX15_RAVE_Reg_4            0x20a413e0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX15_RAVE_Reg_5            0x20a413e4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_0 0x20a413e8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_1 0x20a413ec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_2 0x20a413f0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_3 0x20a413f4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_4 0x20a413f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_5 0x20a413fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_WRITE_PTR      0x20a41400 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_READ_PTR       0x20a41404 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_BASE_PTR       0x20a41408 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_END_PTR        0x20a4140c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_VALID_PTR      0x20a41410 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_WRAPAROUND_PTR 0x20a41414 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_THRESHOLD_LEVEL 0x20a41418 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_DEPTH          0x20a4141c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX16_AV_THRESHOLDS         0x20a41420 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_WRITE_PTR      0x20a41424 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_READ_PTR       0x20a41428 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_BASE_PTR       0x20a4142c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_END_PTR        0x20a41430 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_VALID_PTR      0x20a41434 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_WRAPAROUND_PTR 0x20a41438 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_THRESHOLD_LEVEL 0x20a4143c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_DEPTH          0x20a41440 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX16_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41444 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX16_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41448 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX16_REC_MISC_CONFIG       0x20a4144c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_A        0x20a41450 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_B        0x20a41454 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_C        0x20a41458 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_D        0x20a4145c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_E        0x20a41460 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_F        0x20a41464 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_G        0x20a41468 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_H        0x20a4146c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG1       0x20a41470 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG2       0x20a41474 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG3       0x20a41478 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX16_AV_INTERRUPT_ENABLES  0x20a4147c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX16_AV_COMP1_CONTROL      0x20a41480 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX16_AV_COMP1_COMPARE_VAL  0x20a41484 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP1_MASK_VAL     0x20a41488 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP1_FILTER_VAL   0x20a4148c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP1_FILTER_MASK_VAL 0x20a41490 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP2_CONTROL      0x20a41494 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX16_AV_COMP2_COMPARE_VAL  0x20a41498 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP2_MASK_VAL     0x20a4149c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP2_FILTER_VAL   0x20a414a0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP2_FILTER_MASK_VAL 0x20a414a4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_COMP12_FILTER_MODE 0x20a414a8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX16_AV_PID_STREAM_ID      0x20a414ac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX16_REC_CTRL1             0x20a414b0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX16_REC_INIT_TS           0x20a414b4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX16_REC_TS_CTRL           0x20a414b8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX16_REC_TIME_CONFIG       0x20a414bc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG4       0x20a414c0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX16_PIC_CTR               0x20a414c4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX16_PIC_CTR_MODE          0x20a414c8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX16_REC_TIMER             0x20a414cc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX16_REC_STATE0            0x20a414d0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX16_REC_STATE1            0x20a414d4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX16_REC_STATE2            0x20a414d8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX16_REC_STATE2b           0x20a414dc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX16_REC_STATE3            0x20a414e0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX16_REC_COUNT             0x20a414e4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX16_PIC_INC_DEC_CTRL      0x20a414e8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX16_SC                    0x20a414ec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG5       0x20a414f0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX16_RAVE_FW_MISC_STATUS1  0x20a414f4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX16_RAVE_Reg_2            0x20a414f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_RAVE_Reg_3            0x20a414fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_CONFIG      0x20a41500 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41504 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41508 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_PCR         0x20a4150c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_ATS         0x20a41510 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_ADJ_ATS     0x20a41514 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_NEXT_PKT_ATS 0x20a41518 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX16_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4151c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX16_RAVE_Reg_4            0x20a41520 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX16_RAVE_Reg_5            0x20a41524 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_0 0x20a41528 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_1 0x20a4152c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_2 0x20a41530 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_3 0x20a41534 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_4 0x20a41538 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_5 0x20a4153c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_WRITE_PTR      0x20a41540 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_READ_PTR       0x20a41544 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_BASE_PTR       0x20a41548 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_END_PTR        0x20a4154c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_VALID_PTR      0x20a41550 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_WRAPAROUND_PTR 0x20a41554 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_THRESHOLD_LEVEL 0x20a41558 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_DEPTH          0x20a4155c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX17_AV_THRESHOLDS         0x20a41560 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_WRITE_PTR      0x20a41564 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_READ_PTR       0x20a41568 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_BASE_PTR       0x20a4156c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_END_PTR        0x20a41570 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_VALID_PTR      0x20a41574 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_WRAPAROUND_PTR 0x20a41578 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_THRESHOLD_LEVEL 0x20a4157c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_DEPTH          0x20a41580 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX17_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41584 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX17_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41588 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX17_REC_MISC_CONFIG       0x20a4158c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_A        0x20a41590 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_B        0x20a41594 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_C        0x20a41598 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_D        0x20a4159c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_E        0x20a415a0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_F        0x20a415a4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_G        0x20a415a8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_H        0x20a415ac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG1       0x20a415b0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG2       0x20a415b4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG3       0x20a415b8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX17_AV_INTERRUPT_ENABLES  0x20a415bc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX17_AV_COMP1_CONTROL      0x20a415c0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX17_AV_COMP1_COMPARE_VAL  0x20a415c4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP1_MASK_VAL     0x20a415c8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP1_FILTER_VAL   0x20a415cc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP1_FILTER_MASK_VAL 0x20a415d0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP2_CONTROL      0x20a415d4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX17_AV_COMP2_COMPARE_VAL  0x20a415d8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP2_MASK_VAL     0x20a415dc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP2_FILTER_VAL   0x20a415e0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP2_FILTER_MASK_VAL 0x20a415e4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_COMP12_FILTER_MODE 0x20a415e8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX17_AV_PID_STREAM_ID      0x20a415ec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX17_REC_CTRL1             0x20a415f0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX17_REC_INIT_TS           0x20a415f4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX17_REC_TS_CTRL           0x20a415f8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX17_REC_TIME_CONFIG       0x20a415fc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG4       0x20a41600 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX17_PIC_CTR               0x20a41604 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX17_PIC_CTR_MODE          0x20a41608 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX17_REC_TIMER             0x20a4160c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX17_REC_STATE0            0x20a41610 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX17_REC_STATE1            0x20a41614 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX17_REC_STATE2            0x20a41618 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX17_REC_STATE2b           0x20a4161c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX17_REC_STATE3            0x20a41620 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX17_REC_COUNT             0x20a41624 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX17_PIC_INC_DEC_CTRL      0x20a41628 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX17_SC                    0x20a4162c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG5       0x20a41630 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX17_RAVE_FW_MISC_STATUS1  0x20a41634 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX17_RAVE_Reg_2            0x20a41638 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_RAVE_Reg_3            0x20a4163c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_CONFIG      0x20a41640 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41644 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41648 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_PCR         0x20a4164c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_ATS         0x20a41650 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_ADJ_ATS     0x20a41654 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_NEXT_PKT_ATS 0x20a41658 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX17_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4165c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX17_RAVE_Reg_4            0x20a41660 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX17_RAVE_Reg_5            0x20a41664 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_0 0x20a41668 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_1 0x20a4166c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_2 0x20a41670 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_3 0x20a41674 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_4 0x20a41678 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_5 0x20a4167c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_WRITE_PTR      0x20a41680 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_READ_PTR       0x20a41684 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_BASE_PTR       0x20a41688 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_END_PTR        0x20a4168c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_VALID_PTR      0x20a41690 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_WRAPAROUND_PTR 0x20a41694 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_THRESHOLD_LEVEL 0x20a41698 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_DEPTH          0x20a4169c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX18_AV_THRESHOLDS         0x20a416a0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_WRITE_PTR      0x20a416a4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_READ_PTR       0x20a416a8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_BASE_PTR       0x20a416ac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_END_PTR        0x20a416b0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_VALID_PTR      0x20a416b4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_WRAPAROUND_PTR 0x20a416b8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_THRESHOLD_LEVEL 0x20a416bc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_DEPTH          0x20a416c0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX18_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a416c4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX18_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a416c8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX18_REC_MISC_CONFIG       0x20a416cc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_A        0x20a416d0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_B        0x20a416d4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_C        0x20a416d8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_D        0x20a416dc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_E        0x20a416e0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_F        0x20a416e4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_G        0x20a416e8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_H        0x20a416ec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG1       0x20a416f0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG2       0x20a416f4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG3       0x20a416f8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX18_AV_INTERRUPT_ENABLES  0x20a416fc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX18_AV_COMP1_CONTROL      0x20a41700 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX18_AV_COMP1_COMPARE_VAL  0x20a41704 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP1_MASK_VAL     0x20a41708 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP1_FILTER_VAL   0x20a4170c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP1_FILTER_MASK_VAL 0x20a41710 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP2_CONTROL      0x20a41714 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX18_AV_COMP2_COMPARE_VAL  0x20a41718 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP2_MASK_VAL     0x20a4171c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP2_FILTER_VAL   0x20a41720 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP2_FILTER_MASK_VAL 0x20a41724 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_COMP12_FILTER_MODE 0x20a41728 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX18_AV_PID_STREAM_ID      0x20a4172c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX18_REC_CTRL1             0x20a41730 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX18_REC_INIT_TS           0x20a41734 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX18_REC_TS_CTRL           0x20a41738 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX18_REC_TIME_CONFIG       0x20a4173c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG4       0x20a41740 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX18_PIC_CTR               0x20a41744 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX18_PIC_CTR_MODE          0x20a41748 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX18_REC_TIMER             0x20a4174c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX18_REC_STATE0            0x20a41750 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX18_REC_STATE1            0x20a41754 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX18_REC_STATE2            0x20a41758 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX18_REC_STATE2b           0x20a4175c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX18_REC_STATE3            0x20a41760 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX18_REC_COUNT             0x20a41764 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX18_PIC_INC_DEC_CTRL      0x20a41768 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX18_SC                    0x20a4176c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG5       0x20a41770 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX18_RAVE_FW_MISC_STATUS1  0x20a41774 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX18_RAVE_Reg_2            0x20a41778 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_RAVE_Reg_3            0x20a4177c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_CONFIG      0x20a41780 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41784 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41788 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_PCR         0x20a4178c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_ATS         0x20a41790 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_ADJ_ATS     0x20a41794 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_NEXT_PKT_ATS 0x20a41798 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX18_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4179c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX18_RAVE_Reg_4            0x20a417a0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX18_RAVE_Reg_5            0x20a417a4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_0 0x20a417a8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_1 0x20a417ac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_2 0x20a417b0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_3 0x20a417b4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_4 0x20a417b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_5 0x20a417bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_WRITE_PTR      0x20a417c0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_READ_PTR       0x20a417c4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_BASE_PTR       0x20a417c8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_END_PTR        0x20a417cc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_VALID_PTR      0x20a417d0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_WRAPAROUND_PTR 0x20a417d4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_THRESHOLD_LEVEL 0x20a417d8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_DEPTH          0x20a417dc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX19_AV_THRESHOLDS         0x20a417e0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_WRITE_PTR      0x20a417e4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_READ_PTR       0x20a417e8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_BASE_PTR       0x20a417ec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_END_PTR        0x20a417f0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_VALID_PTR      0x20a417f4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_WRAPAROUND_PTR 0x20a417f8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_THRESHOLD_LEVEL 0x20a417fc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_DEPTH          0x20a41800 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX19_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41804 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX19_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41808 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX19_REC_MISC_CONFIG       0x20a4180c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_A        0x20a41810 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_B        0x20a41814 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_C        0x20a41818 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_D        0x20a4181c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_E        0x20a41820 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_F        0x20a41824 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_G        0x20a41828 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_H        0x20a4182c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG1       0x20a41830 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG2       0x20a41834 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG3       0x20a41838 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX19_AV_INTERRUPT_ENABLES  0x20a4183c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX19_AV_COMP1_CONTROL      0x20a41840 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX19_AV_COMP1_COMPARE_VAL  0x20a41844 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP1_MASK_VAL     0x20a41848 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP1_FILTER_VAL   0x20a4184c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP1_FILTER_MASK_VAL 0x20a41850 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP2_CONTROL      0x20a41854 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX19_AV_COMP2_COMPARE_VAL  0x20a41858 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP2_MASK_VAL     0x20a4185c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP2_FILTER_VAL   0x20a41860 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP2_FILTER_MASK_VAL 0x20a41864 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_COMP12_FILTER_MODE 0x20a41868 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX19_AV_PID_STREAM_ID      0x20a4186c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX19_REC_CTRL1             0x20a41870 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX19_REC_INIT_TS           0x20a41874 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX19_REC_TS_CTRL           0x20a41878 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX19_REC_TIME_CONFIG       0x20a4187c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG4       0x20a41880 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX19_PIC_CTR               0x20a41884 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX19_PIC_CTR_MODE          0x20a41888 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX19_REC_TIMER             0x20a4188c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX19_REC_STATE0            0x20a41890 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX19_REC_STATE1            0x20a41894 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX19_REC_STATE2            0x20a41898 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX19_REC_STATE2b           0x20a4189c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX19_REC_STATE3            0x20a418a0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX19_REC_COUNT             0x20a418a4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX19_PIC_INC_DEC_CTRL      0x20a418a8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX19_SC                    0x20a418ac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG5       0x20a418b0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX19_RAVE_FW_MISC_STATUS1  0x20a418b4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX19_RAVE_Reg_2            0x20a418b8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_RAVE_Reg_3            0x20a418bc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_CONFIG      0x20a418c0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_OFFSET_MAGNITUDE 0x20a418c4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_OFFSET_SIGN_BIT 0x20a418c8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_PCR         0x20a418cc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_ATS         0x20a418d0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_ADJ_ATS     0x20a418d4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_NEXT_PKT_ATS 0x20a418d8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX19_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a418dc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX19_RAVE_Reg_4            0x20a418e0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX19_RAVE_Reg_5            0x20a418e4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_0 0x20a418e8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_1 0x20a418ec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_2 0x20a418f0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_3 0x20a418f4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_4 0x20a418f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_5 0x20a418fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_WRITE_PTR      0x20a41900 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_READ_PTR       0x20a41904 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_BASE_PTR       0x20a41908 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_END_PTR        0x20a4190c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_VALID_PTR      0x20a41910 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_WRAPAROUND_PTR 0x20a41914 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_THRESHOLD_LEVEL 0x20a41918 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_DEPTH          0x20a4191c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX20_AV_THRESHOLDS         0x20a41920 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_WRITE_PTR      0x20a41924 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_READ_PTR       0x20a41928 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_BASE_PTR       0x20a4192c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_END_PTR        0x20a41930 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_VALID_PTR      0x20a41934 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_WRAPAROUND_PTR 0x20a41938 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_THRESHOLD_LEVEL 0x20a4193c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_DEPTH          0x20a41940 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX20_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41944 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX20_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41948 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX20_REC_MISC_CONFIG       0x20a4194c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_A        0x20a41950 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_B        0x20a41954 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_C        0x20a41958 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_D        0x20a4195c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_E        0x20a41960 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_F        0x20a41964 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_G        0x20a41968 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_H        0x20a4196c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG1       0x20a41970 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG2       0x20a41974 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG3       0x20a41978 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX20_AV_INTERRUPT_ENABLES  0x20a4197c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX20_AV_COMP1_CONTROL      0x20a41980 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX20_AV_COMP1_COMPARE_VAL  0x20a41984 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP1_MASK_VAL     0x20a41988 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP1_FILTER_VAL   0x20a4198c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP1_FILTER_MASK_VAL 0x20a41990 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP2_CONTROL      0x20a41994 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX20_AV_COMP2_COMPARE_VAL  0x20a41998 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP2_MASK_VAL     0x20a4199c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP2_FILTER_VAL   0x20a419a0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP2_FILTER_MASK_VAL 0x20a419a4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_COMP12_FILTER_MODE 0x20a419a8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX20_AV_PID_STREAM_ID      0x20a419ac /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX20_REC_CTRL1             0x20a419b0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX20_REC_INIT_TS           0x20a419b4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX20_REC_TS_CTRL           0x20a419b8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX20_REC_TIME_CONFIG       0x20a419bc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG4       0x20a419c0 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX20_PIC_CTR               0x20a419c4 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX20_PIC_CTR_MODE          0x20a419c8 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX20_REC_TIMER             0x20a419cc /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX20_REC_STATE0            0x20a419d0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX20_REC_STATE1            0x20a419d4 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX20_REC_STATE2            0x20a419d8 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX20_REC_STATE2b           0x20a419dc /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX20_REC_STATE3            0x20a419e0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX20_REC_COUNT             0x20a419e4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX20_PIC_INC_DEC_CTRL      0x20a419e8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX20_SC                    0x20a419ec /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG5       0x20a419f0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX20_RAVE_FW_MISC_STATUS1  0x20a419f4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX20_RAVE_Reg_2            0x20a419f8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_RAVE_Reg_3            0x20a419fc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_CONFIG      0x20a41a00 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41a04 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41a08 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_PCR         0x20a41a0c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_ATS         0x20a41a10 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_ADJ_ATS     0x20a41a14 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_NEXT_PKT_ATS 0x20a41a18 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX20_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41a1c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX20_RAVE_Reg_4            0x20a41a20 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX20_RAVE_Reg_5            0x20a41a24 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_0 0x20a41a28 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_1 0x20a41a2c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_2 0x20a41a30 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_3 0x20a41a34 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_4 0x20a41a38 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_5 0x20a41a3c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_WRITE_PTR      0x20a41a40 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_READ_PTR       0x20a41a44 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_BASE_PTR       0x20a41a48 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_END_PTR        0x20a41a4c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_VALID_PTR      0x20a41a50 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_WRAPAROUND_PTR 0x20a41a54 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_THRESHOLD_LEVEL 0x20a41a58 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_DEPTH          0x20a41a5c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX21_AV_THRESHOLDS         0x20a41a60 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_WRITE_PTR      0x20a41a64 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_READ_PTR       0x20a41a68 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_BASE_PTR       0x20a41a6c /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_END_PTR        0x20a41a70 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_VALID_PTR      0x20a41a74 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_WRAPAROUND_PTR 0x20a41a78 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_THRESHOLD_LEVEL 0x20a41a7c /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_DEPTH          0x20a41a80 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX21_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41a84 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX21_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41a88 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX21_REC_MISC_CONFIG       0x20a41a8c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_A        0x20a41a90 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_B        0x20a41a94 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_C        0x20a41a98 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_D        0x20a41a9c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_E        0x20a41aa0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_F        0x20a41aa4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_G        0x20a41aa8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_H        0x20a41aac /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG1       0x20a41ab0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG2       0x20a41ab4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG3       0x20a41ab8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX21_AV_INTERRUPT_ENABLES  0x20a41abc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX21_AV_COMP1_CONTROL      0x20a41ac0 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX21_AV_COMP1_COMPARE_VAL  0x20a41ac4 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP1_MASK_VAL     0x20a41ac8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP1_FILTER_VAL   0x20a41acc /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP1_FILTER_MASK_VAL 0x20a41ad0 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP2_CONTROL      0x20a41ad4 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX21_AV_COMP2_COMPARE_VAL  0x20a41ad8 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP2_MASK_VAL     0x20a41adc /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP2_FILTER_VAL   0x20a41ae0 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP2_FILTER_MASK_VAL 0x20a41ae4 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_COMP12_FILTER_MODE 0x20a41ae8 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX21_AV_PID_STREAM_ID      0x20a41aec /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX21_REC_CTRL1             0x20a41af0 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX21_REC_INIT_TS           0x20a41af4 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX21_REC_TS_CTRL           0x20a41af8 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX21_REC_TIME_CONFIG       0x20a41afc /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG4       0x20a41b00 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX21_PIC_CTR               0x20a41b04 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX21_PIC_CTR_MODE          0x20a41b08 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX21_REC_TIMER             0x20a41b0c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX21_REC_STATE0            0x20a41b10 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX21_REC_STATE1            0x20a41b14 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX21_REC_STATE2            0x20a41b18 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX21_REC_STATE2b           0x20a41b1c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX21_REC_STATE3            0x20a41b20 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX21_REC_COUNT             0x20a41b24 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX21_PIC_INC_DEC_CTRL      0x20a41b28 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX21_SC                    0x20a41b2c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG5       0x20a41b30 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX21_RAVE_FW_MISC_STATUS1  0x20a41b34 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX21_RAVE_Reg_2            0x20a41b38 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_RAVE_Reg_3            0x20a41b3c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_CONFIG      0x20a41b40 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41b44 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41b48 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_PCR         0x20a41b4c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_ATS         0x20a41b50 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_ADJ_ATS     0x20a41b54 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_NEXT_PKT_ATS 0x20a41b58 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX21_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41b5c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX21_RAVE_Reg_4            0x20a41b60 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX21_RAVE_Reg_5            0x20a41b64 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_0 0x20a41b68 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_1 0x20a41b6c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_2 0x20a41b70 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_3 0x20a41b74 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_4 0x20a41b78 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_5 0x20a41b7c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_WRITE_PTR      0x20a41b80 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_READ_PTR       0x20a41b84 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_BASE_PTR       0x20a41b88 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_END_PTR        0x20a41b8c /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_VALID_PTR      0x20a41b90 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_WRAPAROUND_PTR 0x20a41b94 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_THRESHOLD_LEVEL 0x20a41b98 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_DEPTH          0x20a41b9c /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX22_AV_THRESHOLDS         0x20a41ba0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_WRITE_PTR      0x20a41ba4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_READ_PTR       0x20a41ba8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_BASE_PTR       0x20a41bac /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_END_PTR        0x20a41bb0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_VALID_PTR      0x20a41bb4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_WRAPAROUND_PTR 0x20a41bb8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_THRESHOLD_LEVEL 0x20a41bbc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_DEPTH          0x20a41bc0 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX22_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41bc4 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX22_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41bc8 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX22_REC_MISC_CONFIG       0x20a41bcc /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_A        0x20a41bd0 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_B        0x20a41bd4 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_C        0x20a41bd8 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_D        0x20a41bdc /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_E        0x20a41be0 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_F        0x20a41be4 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_G        0x20a41be8 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_H        0x20a41bec /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG1       0x20a41bf0 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG2       0x20a41bf4 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG3       0x20a41bf8 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX22_AV_INTERRUPT_ENABLES  0x20a41bfc /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX22_AV_COMP1_CONTROL      0x20a41c00 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX22_AV_COMP1_COMPARE_VAL  0x20a41c04 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP1_MASK_VAL     0x20a41c08 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP1_FILTER_VAL   0x20a41c0c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP1_FILTER_MASK_VAL 0x20a41c10 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP2_CONTROL      0x20a41c14 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX22_AV_COMP2_COMPARE_VAL  0x20a41c18 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP2_MASK_VAL     0x20a41c1c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP2_FILTER_VAL   0x20a41c20 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP2_FILTER_MASK_VAL 0x20a41c24 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_COMP12_FILTER_MODE 0x20a41c28 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX22_AV_PID_STREAM_ID      0x20a41c2c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX22_REC_CTRL1             0x20a41c30 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX22_REC_INIT_TS           0x20a41c34 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX22_REC_TS_CTRL           0x20a41c38 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX22_REC_TIME_CONFIG       0x20a41c3c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG4       0x20a41c40 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX22_PIC_CTR               0x20a41c44 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX22_PIC_CTR_MODE          0x20a41c48 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX22_REC_TIMER             0x20a41c4c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX22_REC_STATE0            0x20a41c50 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX22_REC_STATE1            0x20a41c54 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX22_REC_STATE2            0x20a41c58 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX22_REC_STATE2b           0x20a41c5c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX22_REC_STATE3            0x20a41c60 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX22_REC_COUNT             0x20a41c64 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX22_PIC_INC_DEC_CTRL      0x20a41c68 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX22_SC                    0x20a41c6c /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG5       0x20a41c70 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX22_RAVE_FW_MISC_STATUS1  0x20a41c74 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX22_RAVE_Reg_2            0x20a41c78 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_RAVE_Reg_3            0x20a41c7c /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_CONFIG      0x20a41c80 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41c84 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41c88 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_PCR         0x20a41c8c /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_ATS         0x20a41c90 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_ADJ_ATS     0x20a41c94 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_NEXT_PKT_ATS 0x20a41c98 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX22_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41c9c /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX22_RAVE_Reg_4            0x20a41ca0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX22_RAVE_Reg_5            0x20a41ca4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_0 0x20a41ca8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_1 0x20a41cac /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_2 0x20a41cb0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_3 0x20a41cb4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_4 0x20a41cb8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_5 0x20a41cbc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_WRITE_PTR      0x20a41cc0 /* [RW] Context CDB Write Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_READ_PTR       0x20a41cc4 /* [RW] Context CDB Read Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_BASE_PTR       0x20a41cc8 /* [RW] Context CDB Base Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_END_PTR        0x20a41ccc /* [RW] Context CDB End Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_VALID_PTR      0x20a41cd0 /* [RW] Context CDB Valid Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_WRAPAROUND_PTR 0x20a41cd4 /* [RW] Context CDB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_THRESHOLD_LEVEL 0x20a41cd8 /* [RW] Context CDB Watermark Level */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_DEPTH          0x20a41cdc /* [RW] Context CDB Depth */
-#define BCHP_XPT_RAVE_CX23_AV_THRESHOLDS         0x20a41ce0 /* [RW] Context Thresholds */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_WRITE_PTR      0x20a41ce4 /* [RW] Context ITB Write Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_READ_PTR       0x20a41ce8 /* [RW] Context ITB Read Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_BASE_PTR       0x20a41cec /* [RW] Context ITB Base Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_END_PTR        0x20a41cf0 /* [RW] Context ITB End Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_VALID_PTR      0x20a41cf4 /* [RW] Context ITB Valid Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_WRAPAROUND_PTR 0x20a41cf8 /* [RW] Context ITB Wraparound Pointer */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_THRESHOLD_LEVEL 0x20a41cfc /* [RW] Context ITB Watermark Level */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_DEPTH          0x20a41d00 /* [RW] Context ITB Depth */
-#define BCHP_XPT_RAVE_CX23_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41d04 /* [RW] Context ITB min depth threshold */
-#define BCHP_XPT_RAVE_CX23_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41d08 /* [RW] Context CDB min depth threshold */
-#define BCHP_XPT_RAVE_CX23_REC_MISC_CONFIG       0x20a41d0c /* [RW] Miscellaneous Config */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_A        0x20a41d10 /* [RW] Context SCD map PIDS A */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_B        0x20a41d14 /* [RW] Context SCD map PIDS B */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_C        0x20a41d18 /* [RW] Context SCD map PIDS C */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_D        0x20a41d1c /* [RW] Context SCD map PIDS D */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_E        0x20a41d20 /* [RW] Context SCD map PIDS E */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_F        0x20a41d24 /* [RW] Context SCD map PIDS F */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_G        0x20a41d28 /* [RW] Context SCD map PIDS G */
-#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_H        0x20a41d2c /* [RW] Context SCD map PIDS H */
-#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG1       0x20a41d30 /* [RW] Context Miscellaneous Config 1 Register */
-#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG2       0x20a41d34 /* [RW] Context Miscellaneous Config 2 Register */
-#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG3       0x20a41d38 /* [RW] Context Miscellaneous Config 3 Register */
-#define BCHP_XPT_RAVE_CX23_AV_INTERRUPT_ENABLES  0x20a41d3c /* [RW] Context Interrupt Enables */
-#define BCHP_XPT_RAVE_CX23_AV_COMP1_CONTROL      0x20a41d40 /* [RW] Context Comparator 1 Control Register */
-#define BCHP_XPT_RAVE_CX23_AV_COMP1_COMPARE_VAL  0x20a41d44 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP1_MASK_VAL     0x20a41d48 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP1_FILTER_VAL   0x20a41d4c /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP1_FILTER_MASK_VAL 0x20a41d50 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP2_CONTROL      0x20a41d54 /* [RW] Context Comparator 2 Control Register */
-#define BCHP_XPT_RAVE_CX23_AV_COMP2_COMPARE_VAL  0x20a41d58 /* [RW] Context Comparator 2 32-bit compare value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP2_MASK_VAL     0x20a41d5c /* [RW] Context Comparator 2 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP2_FILTER_VAL   0x20a41d60 /* [RW] Context Comparator 1 32-bit compare value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP2_FILTER_MASK_VAL 0x20a41d64 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_COMP12_FILTER_MODE 0x20a41d68 /* [RW] Context Comparator 1 32-bit mask value */
-#define BCHP_XPT_RAVE_CX23_AV_PID_STREAM_ID      0x20a41d6c /* [RW] Context PID and Stream ID Filter Value */
-#define BCHP_XPT_RAVE_CX23_REC_CTRL1             0x20a41d70 /* [RW] Record Control Register 1 */
-#define BCHP_XPT_RAVE_CX23_REC_INIT_TS           0x20a41d74 /* [RW] Record Initial Timestamp Value Register */
-#define BCHP_XPT_RAVE_CX23_REC_TS_CTRL           0x20a41d78 /* [RW] Record Timestamp Control Register */
-#define BCHP_XPT_RAVE_CX23_REC_TIME_CONFIG       0x20a41d7c /* [RW] Record Time Configuration Register */
-#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG4       0x20a41d80 /* [RW] Context Miscellaneous Config 4 Register */
-#define BCHP_XPT_RAVE_CX23_PIC_CTR               0x20a41d84 /* [RW] Picture Counter register */
-#define BCHP_XPT_RAVE_CX23_PIC_CTR_MODE          0x20a41d88 /* [RW] Picture Counter Mode Register */
-#define BCHP_XPT_RAVE_CX23_REC_TIMER             0x20a41d8c /* [RW] Record Timer Register */
-#define BCHP_XPT_RAVE_CX23_REC_STATE0            0x20a41d90 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX23_REC_STATE1            0x20a41d94 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX23_REC_STATE2            0x20a41d98 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX23_REC_STATE2b           0x20a41d9c /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX23_REC_STATE3            0x20a41da0 /* [RW] Record State Register */
-#define BCHP_XPT_RAVE_CX23_REC_COUNT             0x20a41da4 /* [RW] Record Packet Count Register */
-#define BCHP_XPT_RAVE_CX23_PIC_INC_DEC_CTRL      0x20a41da8 /* [RW] Picture Counter Increment/Decrement/Reset Control Register */
-#define BCHP_XPT_RAVE_CX23_SC                    0x20a41dac /* [RW] Scrambling Control Monitor Register */
-#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG5       0x20a41db0 /* [RW] Context Miscellaneous Config 5 Register */
-#define BCHP_XPT_RAVE_CX23_RAVE_FW_MISC_STATUS1  0x20a41db4 /* [RW] Miscelleneous status register used by FW */
-#define BCHP_XPT_RAVE_CX23_RAVE_Reg_2            0x20a41db8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_RAVE_Reg_3            0x20a41dbc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_CONFIG      0x20a41dc0 /* [RW] Config register for ATS OFFSET feature */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41dc4 /* [RW] 32 bit magnitude of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41dc8 /* [RW] Sign bit of the 33 bit signed ATS offset */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_PCR         0x20a41dcc /* [RW] PCR value of the last PCR packet */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_ATS         0x20a41dd0 /* [RW] ATS of the last packet carrying PCR */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_ADJ_ATS     0x20a41dd4 /* [RW] Adjusted ATS of the last packet */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_NEXT_PKT_ATS 0x20a41dd8 /* [RW] ATS to be used for next packet in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX23_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41ddc /* [RW] ATS delta to be used in Local Timestamp generation mode */
-#define BCHP_XPT_RAVE_CX23_RAVE_Reg_4            0x20a41de0 /* [RW] RAVE_Reg_4 used by FW */
-#define BCHP_XPT_RAVE_CX23_RAVE_Reg_5            0x20a41de4 /* [RW] RAVE_Reg_5 used by FW */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_0 0x20a41de8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_1 0x20a41dec /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_2 0x20a41df0 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_3 0x20a41df4 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_4 0x20a41df8 /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_5 0x20a41dfc /* [RW] Reserved Rave Register for future use */
-#define BCHP_XPT_RAVE_SCD0_SCD_MISC_CONFIG       0x20a41e00 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE0       0x20a41e04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE1       0x20a41e08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE2       0x20a41e0c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE3       0x20a41e10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE4       0x20a41e14 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE5       0x20a41e18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE6       0x20a41e1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE7       0x20a41e20 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE8       0x20a41e24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE9       0x20a41e28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE10      0x20a41e2c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE11      0x20a41e30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_EPBR_STATE_WORD       0x20a41e34 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE12      0x20a41e38 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE13      0x20a41e3c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE14      0x20a41e40 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE15      0x20a41e44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE16      0x20a41e48 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE17      0x20a41e4c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE18      0x20a41e50 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_RESERVE_COMP_STATE3   0x20a41e54 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE0        0x20a41e58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE1        0x20a41e5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE2        0x20a41e60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE3        0x20a41e64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_PACKET_COUNT      0x20a41e68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_RESERVE_PES_STATE0    0x20a41e6c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE0            0x20a41e70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE1            0x20a41e74 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE2            0x20a41e78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE3            0x20a41e7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE4            0x20a41e80 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE5            0x20a41e84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE6            0x20a41e88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE7            0x20a41e8c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE8            0x20a41e90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE9            0x20a41e94 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE10           0x20a41e98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD0_SCD_STATE11           0x20a41e9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_MISC_CONFIG       0x20a41ea0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE0       0x20a41ea4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE1       0x20a41ea8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE2       0x20a41eac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE3       0x20a41eb0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE4       0x20a41eb4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE5       0x20a41eb8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE6       0x20a41ebc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE7       0x20a41ec0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE8       0x20a41ec4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE9       0x20a41ec8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE10      0x20a41ecc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE11      0x20a41ed0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_EPBR_STATE_WORD       0x20a41ed4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE12      0x20a41ed8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE13      0x20a41edc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE14      0x20a41ee0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE15      0x20a41ee4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE16      0x20a41ee8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE17      0x20a41eec /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE18      0x20a41ef0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_RESERVE_COMP_STATE3   0x20a41ef4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE0        0x20a41ef8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE1        0x20a41efc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE2        0x20a41f00 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE3        0x20a41f04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_PACKET_COUNT      0x20a41f08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_RESERVE_PES_STATE0    0x20a41f0c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE0            0x20a41f10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE1            0x20a41f14 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE2            0x20a41f18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE3            0x20a41f1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE4            0x20a41f20 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE5            0x20a41f24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE6            0x20a41f28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE7            0x20a41f2c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE8            0x20a41f30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE9            0x20a41f34 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE10           0x20a41f38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD1_SCD_STATE11           0x20a41f3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_MISC_CONFIG       0x20a41f40 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE0       0x20a41f44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE1       0x20a41f48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE2       0x20a41f4c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE3       0x20a41f50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE4       0x20a41f54 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE5       0x20a41f58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE6       0x20a41f5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE7       0x20a41f60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE8       0x20a41f64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE9       0x20a41f68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE10      0x20a41f6c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE11      0x20a41f70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_EPBR_STATE_WORD       0x20a41f74 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE12      0x20a41f78 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE13      0x20a41f7c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE14      0x20a41f80 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE15      0x20a41f84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE16      0x20a41f88 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE17      0x20a41f8c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE18      0x20a41f90 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_RESERVE_COMP_STATE3   0x20a41f94 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE0        0x20a41f98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE1        0x20a41f9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE2        0x20a41fa0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE3        0x20a41fa4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_PACKET_COUNT      0x20a41fa8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_RESERVE_PES_STATE0    0x20a41fac /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE0            0x20a41fb0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE1            0x20a41fb4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE2            0x20a41fb8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE3            0x20a41fbc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE4            0x20a41fc0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE5            0x20a41fc4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE6            0x20a41fc8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE7            0x20a41fcc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE8            0x20a41fd0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE9            0x20a41fd4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE10           0x20a41fd8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD2_SCD_STATE11           0x20a41fdc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_MISC_CONFIG       0x20a41fe0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE0       0x20a41fe4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE1       0x20a41fe8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE2       0x20a41fec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE3       0x20a41ff0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE4       0x20a41ff4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE5       0x20a41ff8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE6       0x20a41ffc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE7       0x20a42000 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE8       0x20a42004 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE9       0x20a42008 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE10      0x20a4200c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE11      0x20a42010 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_EPBR_STATE_WORD       0x20a42014 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE12      0x20a42018 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE13      0x20a4201c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE14      0x20a42020 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE15      0x20a42024 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE16      0x20a42028 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE17      0x20a4202c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE18      0x20a42030 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_RESERVE_COMP_STATE3   0x20a42034 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE0        0x20a42038 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE1        0x20a4203c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE2        0x20a42040 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE3        0x20a42044 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_PACKET_COUNT      0x20a42048 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_RESERVE_PES_STATE0    0x20a4204c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE0            0x20a42050 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE1            0x20a42054 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE2            0x20a42058 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE3            0x20a4205c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE4            0x20a42060 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE5            0x20a42064 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE6            0x20a42068 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE7            0x20a4206c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE8            0x20a42070 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE9            0x20a42074 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE10           0x20a42078 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD3_SCD_STATE11           0x20a4207c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_MISC_CONFIG       0x20a42080 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE0       0x20a42084 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE1       0x20a42088 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE2       0x20a4208c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE3       0x20a42090 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE4       0x20a42094 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE5       0x20a42098 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE6       0x20a4209c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE7       0x20a420a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE8       0x20a420a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE9       0x20a420a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE10      0x20a420ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE11      0x20a420b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_EPBR_STATE_WORD       0x20a420b4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE12      0x20a420b8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE13      0x20a420bc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE14      0x20a420c0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE15      0x20a420c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE16      0x20a420c8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE17      0x20a420cc /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE18      0x20a420d0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_RESERVE_COMP_STATE3   0x20a420d4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE0        0x20a420d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE1        0x20a420dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE2        0x20a420e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE3        0x20a420e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_PACKET_COUNT      0x20a420e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_RESERVE_PES_STATE0    0x20a420ec /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE0            0x20a420f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE1            0x20a420f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE2            0x20a420f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE3            0x20a420fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE4            0x20a42100 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE5            0x20a42104 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE6            0x20a42108 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE7            0x20a4210c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE8            0x20a42110 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE9            0x20a42114 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE10           0x20a42118 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD4_SCD_STATE11           0x20a4211c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_MISC_CONFIG       0x20a42120 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE0       0x20a42124 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE1       0x20a42128 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE2       0x20a4212c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE3       0x20a42130 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE4       0x20a42134 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE5       0x20a42138 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE6       0x20a4213c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE7       0x20a42140 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE8       0x20a42144 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE9       0x20a42148 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE10      0x20a4214c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE11      0x20a42150 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_EPBR_STATE_WORD       0x20a42154 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE12      0x20a42158 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE13      0x20a4215c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE14      0x20a42160 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE15      0x20a42164 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE16      0x20a42168 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE17      0x20a4216c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE18      0x20a42170 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_RESERVE_COMP_STATE3   0x20a42174 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE0        0x20a42178 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE1        0x20a4217c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE2        0x20a42180 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE3        0x20a42184 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_PACKET_COUNT      0x20a42188 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_RESERVE_PES_STATE0    0x20a4218c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE0            0x20a42190 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE1            0x20a42194 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE2            0x20a42198 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE3            0x20a4219c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE4            0x20a421a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE5            0x20a421a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE6            0x20a421a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE7            0x20a421ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE8            0x20a421b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE9            0x20a421b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE10           0x20a421b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD5_SCD_STATE11           0x20a421bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_MISC_CONFIG       0x20a421c0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE0       0x20a421c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE1       0x20a421c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE2       0x20a421cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE3       0x20a421d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE4       0x20a421d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE5       0x20a421d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE6       0x20a421dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE7       0x20a421e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE8       0x20a421e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE9       0x20a421e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE10      0x20a421ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE11      0x20a421f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_EPBR_STATE_WORD       0x20a421f4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE12      0x20a421f8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE13      0x20a421fc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE14      0x20a42200 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE15      0x20a42204 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE16      0x20a42208 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE17      0x20a4220c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE18      0x20a42210 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_RESERVE_COMP_STATE3   0x20a42214 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE0        0x20a42218 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE1        0x20a4221c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE2        0x20a42220 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE3        0x20a42224 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_PACKET_COUNT      0x20a42228 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_RESERVE_PES_STATE0    0x20a4222c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE0            0x20a42230 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE1            0x20a42234 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE2            0x20a42238 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE3            0x20a4223c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE4            0x20a42240 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE5            0x20a42244 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE6            0x20a42248 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE7            0x20a4224c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE8            0x20a42250 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE9            0x20a42254 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE10           0x20a42258 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD6_SCD_STATE11           0x20a4225c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_MISC_CONFIG       0x20a42260 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE0       0x20a42264 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE1       0x20a42268 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE2       0x20a4226c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE3       0x20a42270 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE4       0x20a42274 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE5       0x20a42278 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE6       0x20a4227c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE7       0x20a42280 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE8       0x20a42284 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE9       0x20a42288 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE10      0x20a4228c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE11      0x20a42290 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_EPBR_STATE_WORD       0x20a42294 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE12      0x20a42298 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE13      0x20a4229c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE14      0x20a422a0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE15      0x20a422a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE16      0x20a422a8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE17      0x20a422ac /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE18      0x20a422b0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_RESERVE_COMP_STATE3   0x20a422b4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE0        0x20a422b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE1        0x20a422bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE2        0x20a422c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE3        0x20a422c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_PACKET_COUNT      0x20a422c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_RESERVE_PES_STATE0    0x20a422cc /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE0            0x20a422d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE1            0x20a422d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE2            0x20a422d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE3            0x20a422dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE4            0x20a422e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE5            0x20a422e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE6            0x20a422e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE7            0x20a422ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE8            0x20a422f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE9            0x20a422f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE10           0x20a422f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD7_SCD_STATE11           0x20a422fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_MISC_CONFIG       0x20a42300 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE0       0x20a42304 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE1       0x20a42308 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE2       0x20a4230c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE3       0x20a42310 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE4       0x20a42314 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE5       0x20a42318 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE6       0x20a4231c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE7       0x20a42320 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE8       0x20a42324 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE9       0x20a42328 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE10      0x20a4232c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE11      0x20a42330 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_EPBR_STATE_WORD       0x20a42334 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE12      0x20a42338 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE13      0x20a4233c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE14      0x20a42340 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE15      0x20a42344 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE16      0x20a42348 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE17      0x20a4234c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE18      0x20a42350 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_RESERVE_COMP_STATE3   0x20a42354 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE0        0x20a42358 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE1        0x20a4235c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE2        0x20a42360 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE3        0x20a42364 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_PACKET_COUNT      0x20a42368 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_RESERVE_PES_STATE0    0x20a4236c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE0            0x20a42370 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE1            0x20a42374 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE2            0x20a42378 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE3            0x20a4237c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE4            0x20a42380 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE5            0x20a42384 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE6            0x20a42388 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE7            0x20a4238c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE8            0x20a42390 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE9            0x20a42394 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE10           0x20a42398 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD8_SCD_STATE11           0x20a4239c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_MISC_CONFIG       0x20a423a0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE0       0x20a423a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE1       0x20a423a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE2       0x20a423ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE3       0x20a423b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE4       0x20a423b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE5       0x20a423b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE6       0x20a423bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE7       0x20a423c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE8       0x20a423c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE9       0x20a423c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE10      0x20a423cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE11      0x20a423d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_EPBR_STATE_WORD       0x20a423d4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE12      0x20a423d8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE13      0x20a423dc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE14      0x20a423e0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE15      0x20a423e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE16      0x20a423e8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE17      0x20a423ec /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE18      0x20a423f0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_RESERVE_COMP_STATE3   0x20a423f4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE0        0x20a423f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE1        0x20a423fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE2        0x20a42400 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE3        0x20a42404 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_PACKET_COUNT      0x20a42408 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_RESERVE_PES_STATE0    0x20a4240c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE0            0x20a42410 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE1            0x20a42414 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE2            0x20a42418 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE3            0x20a4241c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE4            0x20a42420 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE5            0x20a42424 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE6            0x20a42428 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE7            0x20a4242c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE8            0x20a42430 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE9            0x20a42434 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE10           0x20a42438 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD9_SCD_STATE11           0x20a4243c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_MISC_CONFIG      0x20a42440 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE0      0x20a42444 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE1      0x20a42448 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE2      0x20a4244c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE3      0x20a42450 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE4      0x20a42454 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE5      0x20a42458 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE6      0x20a4245c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE7      0x20a42460 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE8      0x20a42464 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE9      0x20a42468 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE10     0x20a4246c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE11     0x20a42470 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_EPBR_STATE_WORD      0x20a42474 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE12     0x20a42478 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE13     0x20a4247c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE14     0x20a42480 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE15     0x20a42484 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE16     0x20a42488 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE17     0x20a4248c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE18     0x20a42490 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_RESERVE_COMP_STATE3  0x20a42494 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE0       0x20a42498 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE1       0x20a4249c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE2       0x20a424a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE3       0x20a424a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_PACKET_COUNT     0x20a424a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_RESERVE_PES_STATE0   0x20a424ac /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE0           0x20a424b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE1           0x20a424b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE2           0x20a424b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE3           0x20a424bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE4           0x20a424c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE5           0x20a424c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE6           0x20a424c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE7           0x20a424cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE8           0x20a424d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE9           0x20a424d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE10          0x20a424d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD10_SCD_STATE11          0x20a424dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_MISC_CONFIG      0x20a424e0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE0      0x20a424e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE1      0x20a424e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE2      0x20a424ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE3      0x20a424f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE4      0x20a424f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE5      0x20a424f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE6      0x20a424fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE7      0x20a42500 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE8      0x20a42504 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE9      0x20a42508 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE10     0x20a4250c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE11     0x20a42510 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_EPBR_STATE_WORD      0x20a42514 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE12     0x20a42518 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE13     0x20a4251c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE14     0x20a42520 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE15     0x20a42524 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE16     0x20a42528 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE17     0x20a4252c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE18     0x20a42530 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_RESERVE_COMP_STATE3  0x20a42534 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE0       0x20a42538 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE1       0x20a4253c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE2       0x20a42540 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE3       0x20a42544 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_PACKET_COUNT     0x20a42548 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_RESERVE_PES_STATE0   0x20a4254c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE0           0x20a42550 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE1           0x20a42554 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE2           0x20a42558 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE3           0x20a4255c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE4           0x20a42560 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE5           0x20a42564 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE6           0x20a42568 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE7           0x20a4256c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE8           0x20a42570 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE9           0x20a42574 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE10          0x20a42578 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD11_SCD_STATE11          0x20a4257c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_MISC_CONFIG      0x20a42580 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE0      0x20a42584 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE1      0x20a42588 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE2      0x20a4258c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE3      0x20a42590 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE4      0x20a42594 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE5      0x20a42598 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE6      0x20a4259c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE7      0x20a425a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE8      0x20a425a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE9      0x20a425a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE10     0x20a425ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE11     0x20a425b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_EPBR_STATE_WORD      0x20a425b4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE12     0x20a425b8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE13     0x20a425bc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE14     0x20a425c0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE15     0x20a425c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE16     0x20a425c8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE17     0x20a425cc /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE18     0x20a425d0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_RESERVE_COMP_STATE3  0x20a425d4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE0       0x20a425d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE1       0x20a425dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE2       0x20a425e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE3       0x20a425e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_PACKET_COUNT     0x20a425e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_RESERVE_PES_STATE0   0x20a425ec /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE0           0x20a425f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE1           0x20a425f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE2           0x20a425f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE3           0x20a425fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE4           0x20a42600 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE5           0x20a42604 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE6           0x20a42608 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE7           0x20a4260c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE8           0x20a42610 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE9           0x20a42614 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE10          0x20a42618 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD12_SCD_STATE11          0x20a4261c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_MISC_CONFIG      0x20a42620 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE0      0x20a42624 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE1      0x20a42628 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE2      0x20a4262c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE3      0x20a42630 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE4      0x20a42634 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE5      0x20a42638 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE6      0x20a4263c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE7      0x20a42640 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE8      0x20a42644 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE9      0x20a42648 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE10     0x20a4264c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE11     0x20a42650 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_EPBR_STATE_WORD      0x20a42654 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE12     0x20a42658 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE13     0x20a4265c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE14     0x20a42660 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE15     0x20a42664 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE16     0x20a42668 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE17     0x20a4266c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE18     0x20a42670 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_RESERVE_COMP_STATE3  0x20a42674 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE0       0x20a42678 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE1       0x20a4267c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE2       0x20a42680 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE3       0x20a42684 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_PACKET_COUNT     0x20a42688 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_RESERVE_PES_STATE0   0x20a4268c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE0           0x20a42690 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE1           0x20a42694 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE2           0x20a42698 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE3           0x20a4269c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE4           0x20a426a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE5           0x20a426a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE6           0x20a426a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE7           0x20a426ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE8           0x20a426b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE9           0x20a426b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE10          0x20a426b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD13_SCD_STATE11          0x20a426bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_MISC_CONFIG      0x20a426c0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE0      0x20a426c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE1      0x20a426c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE2      0x20a426cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE3      0x20a426d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE4      0x20a426d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE5      0x20a426d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE6      0x20a426dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE7      0x20a426e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE8      0x20a426e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE9      0x20a426e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE10     0x20a426ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE11     0x20a426f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_EPBR_STATE_WORD      0x20a426f4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE12     0x20a426f8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE13     0x20a426fc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE14     0x20a42700 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE15     0x20a42704 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE16     0x20a42708 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE17     0x20a4270c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE18     0x20a42710 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_RESERVE_COMP_STATE3  0x20a42714 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE0       0x20a42718 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE1       0x20a4271c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE2       0x20a42720 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE3       0x20a42724 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_PACKET_COUNT     0x20a42728 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_RESERVE_PES_STATE0   0x20a4272c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE0           0x20a42730 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE1           0x20a42734 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE2           0x20a42738 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE3           0x20a4273c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE4           0x20a42740 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE5           0x20a42744 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE6           0x20a42748 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE7           0x20a4274c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE8           0x20a42750 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE9           0x20a42754 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE10          0x20a42758 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD14_SCD_STATE11          0x20a4275c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_MISC_CONFIG      0x20a42760 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE0      0x20a42764 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE1      0x20a42768 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE2      0x20a4276c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE3      0x20a42770 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE4      0x20a42774 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE5      0x20a42778 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE6      0x20a4277c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE7      0x20a42780 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE8      0x20a42784 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE9      0x20a42788 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE10     0x20a4278c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE11     0x20a42790 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_EPBR_STATE_WORD      0x20a42794 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE12     0x20a42798 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE13     0x20a4279c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE14     0x20a427a0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE15     0x20a427a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE16     0x20a427a8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE17     0x20a427ac /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE18     0x20a427b0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_RESERVE_COMP_STATE3  0x20a427b4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE0       0x20a427b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE1       0x20a427bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE2       0x20a427c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE3       0x20a427c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_PACKET_COUNT     0x20a427c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_RESERVE_PES_STATE0   0x20a427cc /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE0           0x20a427d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE1           0x20a427d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE2           0x20a427d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE3           0x20a427dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE4           0x20a427e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE5           0x20a427e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE6           0x20a427e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE7           0x20a427ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE8           0x20a427f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE9           0x20a427f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE10          0x20a427f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD15_SCD_STATE11          0x20a427fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_MISC_CONFIG      0x20a42800 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE0      0x20a42804 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE1      0x20a42808 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE2      0x20a4280c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE3      0x20a42810 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE4      0x20a42814 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE5      0x20a42818 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE6      0x20a4281c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE7      0x20a42820 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE8      0x20a42824 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE9      0x20a42828 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE10     0x20a4282c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE11     0x20a42830 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_EPBR_STATE_WORD      0x20a42834 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE12     0x20a42838 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE13     0x20a4283c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE14     0x20a42840 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE15     0x20a42844 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE16     0x20a42848 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE17     0x20a4284c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE18     0x20a42850 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_RESERVE_COMP_STATE3  0x20a42854 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE0       0x20a42858 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE1       0x20a4285c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE2       0x20a42860 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE3       0x20a42864 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_PACKET_COUNT     0x20a42868 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_RESERVE_PES_STATE0   0x20a4286c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE0           0x20a42870 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE1           0x20a42874 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE2           0x20a42878 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE3           0x20a4287c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE4           0x20a42880 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE5           0x20a42884 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE6           0x20a42888 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE7           0x20a4288c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE8           0x20a42890 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE9           0x20a42894 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE10          0x20a42898 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD16_SCD_STATE11          0x20a4289c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_MISC_CONFIG      0x20a428a0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE0      0x20a428a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE1      0x20a428a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE2      0x20a428ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE3      0x20a428b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE4      0x20a428b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE5      0x20a428b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE6      0x20a428bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE7      0x20a428c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE8      0x20a428c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE9      0x20a428c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE10     0x20a428cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE11     0x20a428d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_EPBR_STATE_WORD      0x20a428d4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE12     0x20a428d8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE13     0x20a428dc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE14     0x20a428e0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE15     0x20a428e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE16     0x20a428e8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE17     0x20a428ec /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE18     0x20a428f0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_RESERVE_COMP_STATE3  0x20a428f4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE0       0x20a428f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE1       0x20a428fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE2       0x20a42900 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE3       0x20a42904 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_PACKET_COUNT     0x20a42908 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_RESERVE_PES_STATE0   0x20a4290c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE0           0x20a42910 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE1           0x20a42914 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE2           0x20a42918 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE3           0x20a4291c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE4           0x20a42920 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE5           0x20a42924 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE6           0x20a42928 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE7           0x20a4292c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE8           0x20a42930 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE9           0x20a42934 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE10          0x20a42938 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD17_SCD_STATE11          0x20a4293c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_MISC_CONFIG      0x20a42940 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE0      0x20a42944 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE1      0x20a42948 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE2      0x20a4294c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE3      0x20a42950 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE4      0x20a42954 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE5      0x20a42958 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE6      0x20a4295c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE7      0x20a42960 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE8      0x20a42964 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE9      0x20a42968 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE10     0x20a4296c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE11     0x20a42970 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_EPBR_STATE_WORD      0x20a42974 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE12     0x20a42978 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE13     0x20a4297c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE14     0x20a42980 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE15     0x20a42984 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE16     0x20a42988 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE17     0x20a4298c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE18     0x20a42990 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_RESERVE_COMP_STATE3  0x20a42994 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE0       0x20a42998 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE1       0x20a4299c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE2       0x20a429a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE3       0x20a429a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_PACKET_COUNT     0x20a429a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_RESERVE_PES_STATE0   0x20a429ac /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE0           0x20a429b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE1           0x20a429b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE2           0x20a429b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE3           0x20a429bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE4           0x20a429c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE5           0x20a429c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE6           0x20a429c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE7           0x20a429cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE8           0x20a429d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE9           0x20a429d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE10          0x20a429d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD18_SCD_STATE11          0x20a429dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_MISC_CONFIG      0x20a429e0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE0      0x20a429e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE1      0x20a429e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE2      0x20a429ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE3      0x20a429f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE4      0x20a429f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE5      0x20a429f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE6      0x20a429fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE7      0x20a42a00 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE8      0x20a42a04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE9      0x20a42a08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE10     0x20a42a0c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE11     0x20a42a10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_EPBR_STATE_WORD      0x20a42a14 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE12     0x20a42a18 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE13     0x20a42a1c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE14     0x20a42a20 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE15     0x20a42a24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE16     0x20a42a28 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE17     0x20a42a2c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE18     0x20a42a30 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_RESERVE_COMP_STATE3  0x20a42a34 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE0       0x20a42a38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE1       0x20a42a3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE2       0x20a42a40 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE3       0x20a42a44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_PACKET_COUNT     0x20a42a48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_RESERVE_PES_STATE0   0x20a42a4c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE0           0x20a42a50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE1           0x20a42a54 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE2           0x20a42a58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE3           0x20a42a5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE4           0x20a42a60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE5           0x20a42a64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE6           0x20a42a68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE7           0x20a42a6c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE8           0x20a42a70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE9           0x20a42a74 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE10          0x20a42a78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD19_SCD_STATE11          0x20a42a7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_MISC_CONFIG      0x20a42a80 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE0      0x20a42a84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE1      0x20a42a88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE2      0x20a42a8c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE3      0x20a42a90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE4      0x20a42a94 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE5      0x20a42a98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE6      0x20a42a9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE7      0x20a42aa0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE8      0x20a42aa4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE9      0x20a42aa8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE10     0x20a42aac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE11     0x20a42ab0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_EPBR_STATE_WORD      0x20a42ab4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE12     0x20a42ab8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE13     0x20a42abc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE14     0x20a42ac0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE15     0x20a42ac4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE16     0x20a42ac8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE17     0x20a42acc /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE18     0x20a42ad0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_RESERVE_COMP_STATE3  0x20a42ad4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE0       0x20a42ad8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE1       0x20a42adc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE2       0x20a42ae0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE3       0x20a42ae4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_PACKET_COUNT     0x20a42ae8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_RESERVE_PES_STATE0   0x20a42aec /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE0           0x20a42af0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE1           0x20a42af4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE2           0x20a42af8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE3           0x20a42afc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE4           0x20a42b00 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE5           0x20a42b04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE6           0x20a42b08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE7           0x20a42b0c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE8           0x20a42b10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE9           0x20a42b14 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE10          0x20a42b18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD20_SCD_STATE11          0x20a42b1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_MISC_CONFIG      0x20a42b20 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE0      0x20a42b24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE1      0x20a42b28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE2      0x20a42b2c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE3      0x20a42b30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE4      0x20a42b34 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE5      0x20a42b38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE6      0x20a42b3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE7      0x20a42b40 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE8      0x20a42b44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE9      0x20a42b48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE10     0x20a42b4c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE11     0x20a42b50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_EPBR_STATE_WORD      0x20a42b54 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE12     0x20a42b58 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE13     0x20a42b5c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE14     0x20a42b60 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE15     0x20a42b64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE16     0x20a42b68 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE17     0x20a42b6c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE18     0x20a42b70 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_RESERVE_COMP_STATE3  0x20a42b74 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE0       0x20a42b78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE1       0x20a42b7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE2       0x20a42b80 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE3       0x20a42b84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_PACKET_COUNT     0x20a42b88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_RESERVE_PES_STATE0   0x20a42b8c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE0           0x20a42b90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE1           0x20a42b94 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE2           0x20a42b98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE3           0x20a42b9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE4           0x20a42ba0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE5           0x20a42ba4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE6           0x20a42ba8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE7           0x20a42bac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE8           0x20a42bb0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE9           0x20a42bb4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE10          0x20a42bb8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD21_SCD_STATE11          0x20a42bbc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_MISC_CONFIG      0x20a42bc0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE0      0x20a42bc4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE1      0x20a42bc8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE2      0x20a42bcc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE3      0x20a42bd0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE4      0x20a42bd4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE5      0x20a42bd8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE6      0x20a42bdc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE7      0x20a42be0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE8      0x20a42be4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE9      0x20a42be8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE10     0x20a42bec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE11     0x20a42bf0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_EPBR_STATE_WORD      0x20a42bf4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE12     0x20a42bf8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE13     0x20a42bfc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE14     0x20a42c00 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE15     0x20a42c04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE16     0x20a42c08 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE17     0x20a42c0c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE18     0x20a42c10 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_RESERVE_COMP_STATE3  0x20a42c14 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE0       0x20a42c18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE1       0x20a42c1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE2       0x20a42c20 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE3       0x20a42c24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_PACKET_COUNT     0x20a42c28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_RESERVE_PES_STATE0   0x20a42c2c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE0           0x20a42c30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE1           0x20a42c34 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE2           0x20a42c38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE3           0x20a42c3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE4           0x20a42c40 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE5           0x20a42c44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE6           0x20a42c48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE7           0x20a42c4c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE8           0x20a42c50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE9           0x20a42c54 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE10          0x20a42c58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD22_SCD_STATE11          0x20a42c5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_MISC_CONFIG      0x20a42c60 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE0      0x20a42c64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE1      0x20a42c68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE2      0x20a42c6c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE3      0x20a42c70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE4      0x20a42c74 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE5      0x20a42c78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE6      0x20a42c7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE7      0x20a42c80 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE8      0x20a42c84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE9      0x20a42c88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE10     0x20a42c8c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE11     0x20a42c90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_EPBR_STATE_WORD      0x20a42c94 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE12     0x20a42c98 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE13     0x20a42c9c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE14     0x20a42ca0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE15     0x20a42ca4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE16     0x20a42ca8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE17     0x20a42cac /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE18     0x20a42cb0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_RESERVE_COMP_STATE3  0x20a42cb4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE0       0x20a42cb8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE1       0x20a42cbc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE2       0x20a42cc0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE3       0x20a42cc4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_PACKET_COUNT     0x20a42cc8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_RESERVE_PES_STATE0   0x20a42ccc /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE0           0x20a42cd0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE1           0x20a42cd4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE2           0x20a42cd8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE3           0x20a42cdc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE4           0x20a42ce0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE5           0x20a42ce4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE6           0x20a42ce8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE7           0x20a42cec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE8           0x20a42cf0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE9           0x20a42cf4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE10          0x20a42cf8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD23_SCD_STATE11          0x20a42cfc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_MISC_CONFIG      0x20a42d00 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE0      0x20a42d04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE1      0x20a42d08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE2      0x20a42d0c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE3      0x20a42d10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE4      0x20a42d14 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE5      0x20a42d18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE6      0x20a42d1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE7      0x20a42d20 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE8      0x20a42d24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE9      0x20a42d28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE10     0x20a42d2c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE11     0x20a42d30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_EPBR_STATE_WORD      0x20a42d34 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE12     0x20a42d38 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE13     0x20a42d3c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE14     0x20a42d40 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE15     0x20a42d44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE16     0x20a42d48 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE17     0x20a42d4c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE18     0x20a42d50 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_RESERVE_COMP_STATE3  0x20a42d54 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE0       0x20a42d58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE1       0x20a42d5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE2       0x20a42d60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE3       0x20a42d64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_PACKET_COUNT     0x20a42d68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_RESERVE_PES_STATE0   0x20a42d6c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE0           0x20a42d70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE1           0x20a42d74 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE2           0x20a42d78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE3           0x20a42d7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE4           0x20a42d80 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE5           0x20a42d84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE6           0x20a42d88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE7           0x20a42d8c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE8           0x20a42d90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE9           0x20a42d94 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE10          0x20a42d98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD24_SCD_STATE11          0x20a42d9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_MISC_CONFIG      0x20a42da0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE0      0x20a42da4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE1      0x20a42da8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE2      0x20a42dac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE3      0x20a42db0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE4      0x20a42db4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE5      0x20a42db8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE6      0x20a42dbc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE7      0x20a42dc0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE8      0x20a42dc4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE9      0x20a42dc8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE10     0x20a42dcc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE11     0x20a42dd0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_EPBR_STATE_WORD      0x20a42dd4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE12     0x20a42dd8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE13     0x20a42ddc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE14     0x20a42de0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE15     0x20a42de4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE16     0x20a42de8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE17     0x20a42dec /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE18     0x20a42df0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_RESERVE_COMP_STATE3  0x20a42df4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE0       0x20a42df8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE1       0x20a42dfc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE2       0x20a42e00 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE3       0x20a42e04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_PACKET_COUNT     0x20a42e08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_RESERVE_PES_STATE0   0x20a42e0c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE0           0x20a42e10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE1           0x20a42e14 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE2           0x20a42e18 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE3           0x20a42e1c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE4           0x20a42e20 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE5           0x20a42e24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE6           0x20a42e28 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE7           0x20a42e2c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE8           0x20a42e30 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE9           0x20a42e34 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE10          0x20a42e38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD25_SCD_STATE11          0x20a42e3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_MISC_CONFIG      0x20a42e40 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE0      0x20a42e44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE1      0x20a42e48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE2      0x20a42e4c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE3      0x20a42e50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE4      0x20a42e54 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE5      0x20a42e58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE6      0x20a42e5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE7      0x20a42e60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE8      0x20a42e64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE9      0x20a42e68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE10     0x20a42e6c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE11     0x20a42e70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_EPBR_STATE_WORD      0x20a42e74 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE12     0x20a42e78 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE13     0x20a42e7c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE14     0x20a42e80 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE15     0x20a42e84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE16     0x20a42e88 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE17     0x20a42e8c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE18     0x20a42e90 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_RESERVE_COMP_STATE3  0x20a42e94 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE0       0x20a42e98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE1       0x20a42e9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE2       0x20a42ea0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE3       0x20a42ea4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_PACKET_COUNT     0x20a42ea8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_RESERVE_PES_STATE0   0x20a42eac /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE0           0x20a42eb0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE1           0x20a42eb4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE2           0x20a42eb8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE3           0x20a42ebc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE4           0x20a42ec0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE5           0x20a42ec4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE6           0x20a42ec8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE7           0x20a42ecc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE8           0x20a42ed0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE9           0x20a42ed4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE10          0x20a42ed8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD26_SCD_STATE11          0x20a42edc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_MISC_CONFIG      0x20a42ee0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE0      0x20a42ee4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE1      0x20a42ee8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE2      0x20a42eec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE3      0x20a42ef0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE4      0x20a42ef4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE5      0x20a42ef8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE6      0x20a42efc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE7      0x20a42f00 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE8      0x20a42f04 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE9      0x20a42f08 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE10     0x20a42f0c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE11     0x20a42f10 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_EPBR_STATE_WORD      0x20a42f14 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE12     0x20a42f18 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE13     0x20a42f1c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE14     0x20a42f20 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE15     0x20a42f24 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE16     0x20a42f28 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE17     0x20a42f2c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE18     0x20a42f30 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_RESERVE_COMP_STATE3  0x20a42f34 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE0       0x20a42f38 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE1       0x20a42f3c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE2       0x20a42f40 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE3       0x20a42f44 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_PACKET_COUNT     0x20a42f48 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_RESERVE_PES_STATE0   0x20a42f4c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE0           0x20a42f50 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE1           0x20a42f54 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE2           0x20a42f58 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE3           0x20a42f5c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE4           0x20a42f60 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE5           0x20a42f64 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE6           0x20a42f68 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE7           0x20a42f6c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE8           0x20a42f70 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE9           0x20a42f74 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE10          0x20a42f78 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD27_SCD_STATE11          0x20a42f7c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_MISC_CONFIG      0x20a42f80 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE0      0x20a42f84 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE1      0x20a42f88 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE2      0x20a42f8c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE3      0x20a42f90 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE4      0x20a42f94 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE5      0x20a42f98 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE6      0x20a42f9c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE7      0x20a42fa0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE8      0x20a42fa4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE9      0x20a42fa8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE10     0x20a42fac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE11     0x20a42fb0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_EPBR_STATE_WORD      0x20a42fb4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE12     0x20a42fb8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE13     0x20a42fbc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE14     0x20a42fc0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE15     0x20a42fc4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE16     0x20a42fc8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE17     0x20a42fcc /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE18     0x20a42fd0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_RESERVE_COMP_STATE3  0x20a42fd4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE0       0x20a42fd8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE1       0x20a42fdc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE2       0x20a42fe0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE3       0x20a42fe4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_PACKET_COUNT     0x20a42fe8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_RESERVE_PES_STATE0   0x20a42fec /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE0           0x20a42ff0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE1           0x20a42ff4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE2           0x20a42ff8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE3           0x20a42ffc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE4           0x20a43000 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE5           0x20a43004 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE6           0x20a43008 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE7           0x20a4300c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE8           0x20a43010 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE9           0x20a43014 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE10          0x20a43018 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD28_SCD_STATE11          0x20a4301c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_MISC_CONFIG      0x20a43020 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE0      0x20a43024 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE1      0x20a43028 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE2      0x20a4302c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE3      0x20a43030 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE4      0x20a43034 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE5      0x20a43038 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE6      0x20a4303c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE7      0x20a43040 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE8      0x20a43044 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE9      0x20a43048 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE10     0x20a4304c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE11     0x20a43050 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_EPBR_STATE_WORD      0x20a43054 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE12     0x20a43058 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE13     0x20a4305c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE14     0x20a43060 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE15     0x20a43064 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE16     0x20a43068 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE17     0x20a4306c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE18     0x20a43070 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_RESERVE_COMP_STATE3  0x20a43074 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE0       0x20a43078 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE1       0x20a4307c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE2       0x20a43080 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE3       0x20a43084 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_PACKET_COUNT     0x20a43088 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_RESERVE_PES_STATE0   0x20a4308c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE0           0x20a43090 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE1           0x20a43094 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE2           0x20a43098 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE3           0x20a4309c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE4           0x20a430a0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE5           0x20a430a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE6           0x20a430a8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE7           0x20a430ac /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE8           0x20a430b0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE9           0x20a430b4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE10          0x20a430b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD29_SCD_STATE11          0x20a430bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_MISC_CONFIG      0x20a430c0 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE0      0x20a430c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE1      0x20a430c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE2      0x20a430cc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE3      0x20a430d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE4      0x20a430d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE5      0x20a430d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE6      0x20a430dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE7      0x20a430e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE8      0x20a430e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE9      0x20a430e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE10     0x20a430ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE11     0x20a430f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_EPBR_STATE_WORD      0x20a430f4 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE12     0x20a430f8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE13     0x20a430fc /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE14     0x20a43100 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE15     0x20a43104 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE16     0x20a43108 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE17     0x20a4310c /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE18     0x20a43110 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_RESERVE_COMP_STATE3  0x20a43114 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE0       0x20a43118 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE1       0x20a4311c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE2       0x20a43120 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE3       0x20a43124 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_PACKET_COUNT     0x20a43128 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_RESERVE_PES_STATE0   0x20a4312c /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE0           0x20a43130 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE1           0x20a43134 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE2           0x20a43138 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE3           0x20a4313c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE4           0x20a43140 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE5           0x20a43144 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE6           0x20a43148 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE7           0x20a4314c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE8           0x20a43150 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE9           0x20a43154 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE10          0x20a43158 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD30_SCD_STATE11          0x20a4315c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_MISC_CONFIG      0x20a43160 /* [RW] SCD Misc Config Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE0      0x20a43164 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE1      0x20a43168 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE2      0x20a4316c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE3      0x20a43170 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE4      0x20a43174 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE5      0x20a43178 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE6      0x20a4317c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE7      0x20a43180 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE8      0x20a43184 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE9      0x20a43188 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE10     0x20a4318c /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE11     0x20a43190 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_EPBR_STATE_WORD      0x20a43194 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE12     0x20a43198 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE13     0x20a4319c /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE14     0x20a431a0 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE15     0x20a431a4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE16     0x20a431a8 /* [RW] Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE17     0x20a431ac /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE18     0x20a431b0 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_RESERVE_COMP_STATE3  0x20a431b4 /* [RW] Reserved Comparator State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE0       0x20a431b8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE1       0x20a431bc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE2       0x20a431c0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE3       0x20a431c4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_PACKET_COUNT     0x20a431c8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_RESERVE_PES_STATE0   0x20a431cc /* [RW] Reserved PES State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE0           0x20a431d0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE1           0x20a431d4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE2           0x20a431d8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE3           0x20a431dc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE4           0x20a431e0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE5           0x20a431e4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE6           0x20a431e8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE7           0x20a431ec /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE8           0x20a431f0 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE9           0x20a431f4 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE10          0x20a431f8 /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_SCD31_SCD_STATE11          0x20a431fc /* [RW] SCD State Register */
-#define BCHP_XPT_RAVE_XPU_IMEM_ACCESS_CONTROL    0x20a43200 /* [RW] XPU IMEM ACCESS CONTROL REGISTER */
-#define BCHP_XPT_RAVE_XPU_IMEM_ACCESS_STATUS     0x20a43204 /* [RO] XPU IMEM ACCESS STATUS REGISTER */
-#define BCHP_XPT_RAVE_XPU_CONFIG                 0x20a43208 /* [RW] XPU TEST ENABLE REGISTER */
-#define BCHP_XPT_RAVE_XPU_TEST_CONTROL           0x20a4320c /* [RW] XPU TEST CONTROL REGISTER */
-#define BCHP_XPT_RAVE_XPU_TEST_CONTROL_EXT_IO    0x20a43210 /* [RW] XPU TEST CONTROL EXT IO */
-#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_0         0x20a43214 /* [RO] XPU TEST OBSERVE REGISTER */
-#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_1         0x20a43218 /* [RO] XPU TEST OBSERVE REGISTER */
-#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_EXT_IO    0x20a4321c /* [RO] XPU TEST OBSERVE EXT IO REGISTER */
-#define BCHP_XPT_RAVE_RAVE_DIAGNOSTICS_CONTROL   0x20a43220 /* [RW] RAVE Diagnostics Control Register */
-#define BCHP_XPT_RAVE_STOP_PACKET_COUNT_VALUE    0x20a43224 /* [RW] Stop Packet Count Value */
-#define BCHP_XPT_RAVE_RAVE_DIAGNOSTICS_READ      0x20a43228 /* [RO] RAVE Diagnostics Read Register */
-#define BCHP_XPT_RAVE_AVS_SCV_FILTER_MODE_CONTROL 0x20a4322c /* [RW] AVS SCV Filter mode */
-#define BCHP_XPT_RAVE_AVS_SCV_FILTER_VALUE_0_TO_3 0x20a43230 /* [RW] AVS SCV Filter value 0 to 3 */
-#define BCHP_XPT_RAVE_AVS_SCV_FILTER_VALUE_4_TO_7 0x20a43234 /* [RW] AVS SCV Filter value 4 to 7 */
-#define BCHP_XPT_RAVE_AV_STATUS                  0x20a43238 /* [RO] RAVE Status */
-#define BCHP_XPT_RAVE_PACKET_COUNT               0x20a4323c /* [RO] RAVE input packet counter */
-#define BCHP_XPT_RAVE_DATA_START_ADDR_A          0x20a43240 /* [RW] Pkt and HWA data buffer A base addresses */
-#define BCHP_XPT_RAVE_DATA_START_ADDR_B          0x20a43244 /* [RW] Pkt and HWA data buffer B base addresses */
-#define BCHP_XPT_RAVE_WATCHDOG_TIMER_VALUE       0x20a43248 /* [RW] Watchdog Timer Timeout Value */
-#define BCHP_XPT_RAVE_MISC_CONTROL               0x20a4324c /* [RW] Miscellaneous Control */
-#define BCHP_XPT_RAVE_BASE_ADDRESSES             0x20a43250 /* [RW] Record and SCD Base Addresses */
-#define BCHP_XPT_RAVE_CX_HOLD_CLR_STATUS         0x20a43254 /* [RW] Context Hold Status and Clear for CX 0 to 23 */
-#define BCHP_XPT_RAVE_CX_HOLD_CLR_STATUS_1       0x20a43258 /* [RW] Context Hold Status and Clear for CX 24 to 47 */
-#define BCHP_XPT_RAVE_PB_BAND_HOLD_CLR_STATUS    0x20a4325c /* [RW] Playback Band Hold Status and Clear */
-#define BCHP_XPT_RAVE_FE_BAND_HOLD_CLR_STATUS    0x20a43260 /* [RW] FE parser Band Hold Status and Clear */
-#define BCHP_XPT_RAVE_FW_WATERMARK               0x20a43264 /* [RW] Firmware throughput watermark */
-#define BCHP_XPT_RAVE_HW_WATCHDOG                0x20a43268 /* [RW] Hardware Watchdog Counter */
-#define BCHP_XPT_RAVE_MISC_CONTROL2              0x20a4326c /* [RW] Miscellaneous Control 2 */
-#define BCHP_XPT_RAVE_MISC_CONTROL3              0x20a43270 /* [RW] Miscellaneous Control 3 */
-#define BCHP_XPT_RAVE_RC0_SP_CONTROL             0x20a43274 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC1_SP_CONTROL             0x20a43278 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC2_SP_CONTROL             0x20a4327c /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC3_SP_CONTROL             0x20a43280 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC4_SP_CONTROL             0x20a43284 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC5_SP_CONTROL             0x20a43288 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC6_SP_CONTROL             0x20a4328c /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC7_SP_CONTROL             0x20a43290 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_RC8_SP_CONTROL             0x20a43294 /* [RW] Seamless Pause Control */
-#define BCHP_XPT_RAVE_AV_STATUS2                 0x20a43298 /* [RO] RAVE Status */
-#define BCHP_XPT_RAVE_ATSOFFSET_MAX_ERROR        0x20a4329c /* [RW] Max error for ATS offset */
-#define BCHP_XPT_RAVE_INT_CX0                    0x20a432a0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX1                    0x20a432a4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX2                    0x20a432a8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX3                    0x20a432ac /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX4                    0x20a432b0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX5                    0x20a432b4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX6                    0x20a432b8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX7                    0x20a432bc /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX8                    0x20a432c0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX9                    0x20a432c4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX10                   0x20a432c8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX11                   0x20a432cc /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX12                   0x20a432d0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX13                   0x20a432d4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX14                   0x20a432d8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX15                   0x20a432dc /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX16                   0x20a432e0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX17                   0x20a432e4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX18                   0x20a432e8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX19                   0x20a432ec /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX20                   0x20a432f0 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX21                   0x20a432f4 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX22                   0x20a432f8 /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_CX23                   0x20a432fc /* [RW] Context Interrupts */
-#define BCHP_XPT_RAVE_INT_MISC                   0x20a43300 /* [RW] Miscellaneous Interrupts */
-#define BCHP_XPT_RAVE_TPIT_TIME_TICK             0x20a48b04 /* [RW] TPIT Time Tick Register */
-#define BCHP_XPT_RAVE_TPIT_PKT_TIMEOUT           0x20a48b08 /* [RW] TPIT Time Packet Timeout Register */
-#define BCHP_XPT_RAVE_TPIT_EVE_TIMEOUT           0x20a48b0c /* [RW] TPIT Time Event Timeout Register */
-#define BCHP_XPT_RAVE_EMM_TID_MODE               0x20a48b10 /* [RW] TPIT EMM_TID_MODE Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_TID                    0x20a48b14 /* [RW] TPIT EMM_TID Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_CTRL_ID                0x20a48b18 /* [RW] TPIT EMM_CTRL_ID Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_1              0x20a48b1c /* [RW] TPIT EMM_DATA_ID_1 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_2              0x20a48b20 /* [RW] TPIT EMM_DATA_ID_2 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_3              0x20a48b24 /* [RW] TPIT EMM_DATA_ID_3 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_4              0x20a48b28 /* [RW] TPIT EMM_DATA_ID_4 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_5              0x20a48b2c /* [RW] TPIT EMM_DATA_ID_5 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_6              0x20a48b30 /* [RW] TPIT EMM_DATA_ID_6 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_7              0x20a48b34 /* [RW] TPIT EMM_DATA_ID_7 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_DATA_ID_8              0x20a48b38 /* [RW] TPIT EMM_DATA_ID_8 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_1              0x20a48b3c /* [RW] TPIT EMM_MASK_ID_1 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_2              0x20a48b40 /* [RW] TPIT EMM_MASK_ID_2 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_3              0x20a48b44 /* [RW] TPIT EMM_MASK_ID_3 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_4              0x20a48b48 /* [RW] TPIT EMM_MASK_ID_4 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_5              0x20a48b4c /* [RW] TPIT EMM_MASK_ID_5 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_6              0x20a48b50 /* [RW] TPIT EMM_MASK_ID_6 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_7              0x20a48b54 /* [RW] TPIT EMM_MASK_ID_7 Register (NDS only) */
-#define BCHP_XPT_RAVE_EMM_MASK_ID_8              0x20a48b58 /* [RW] TPIT EMM_MASK_ID_8 Register (NDS only) */
-#define BCHP_XPT_RAVE_TPIT0_CTRL1                0x20a4935c /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT0_COR1                 0x20a49360 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT0_TID                  0x20a49364 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT0_TID2                 0x20a49368 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT0_STATE0               0x20a4936c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE1               0x20a49370 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2               0x20a49374 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2a              0x20a49378 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2b              0x20a4937c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2c              0x20a49380 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2d              0x20a49384 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2e              0x20a49388 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2f              0x20a4938c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2g              0x20a49390 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2h              0x20a49394 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2i              0x20a49398 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2j              0x20a4939c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2k              0x20a493a0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2l              0x20a493a4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE2m              0x20a493a8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE_RESERVED0      0x20a493ac /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE_RESERVED1      0x20a493b0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE4               0x20a493b4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE5               0x20a493b8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE6               0x20a493bc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE7               0x20a493c0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE8               0x20a493c4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT0_STATE9               0x20a493c8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_CTRL1                0x20a493cc /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT1_COR1                 0x20a493d0 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT1_TID                  0x20a493d4 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT1_TID2                 0x20a493d8 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT1_STATE0               0x20a493dc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE1               0x20a493e0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2               0x20a493e4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2a              0x20a493e8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2b              0x20a493ec /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2c              0x20a493f0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2d              0x20a493f4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2e              0x20a493f8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2f              0x20a493fc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2g              0x20a49400 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2h              0x20a49404 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2i              0x20a49408 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2j              0x20a4940c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2k              0x20a49410 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2l              0x20a49414 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE2m              0x20a49418 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE_RESERVED0      0x20a4941c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE_RESERVED1      0x20a49420 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE4               0x20a49424 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE5               0x20a49428 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE6               0x20a4942c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE7               0x20a49430 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE8               0x20a49434 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT1_STATE9               0x20a49438 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_CTRL1                0x20a4943c /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT2_COR1                 0x20a49440 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT2_TID                  0x20a49444 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT2_TID2                 0x20a49448 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT2_STATE0               0x20a4944c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE1               0x20a49450 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2               0x20a49454 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2a              0x20a49458 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2b              0x20a4945c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2c              0x20a49460 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2d              0x20a49464 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2e              0x20a49468 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2f              0x20a4946c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2g              0x20a49470 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2h              0x20a49474 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2i              0x20a49478 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2j              0x20a4947c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2k              0x20a49480 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2l              0x20a49484 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE2m              0x20a49488 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE_RESERVED0      0x20a4948c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE_RESERVED1      0x20a49490 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE4               0x20a49494 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE5               0x20a49498 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE6               0x20a4949c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE7               0x20a494a0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE8               0x20a494a4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT2_STATE9               0x20a494a8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_CTRL1                0x20a494ac /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT3_COR1                 0x20a494b0 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT3_TID                  0x20a494b4 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT3_TID2                 0x20a494b8 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT3_STATE0               0x20a494bc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE1               0x20a494c0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2               0x20a494c4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2a              0x20a494c8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2b              0x20a494cc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2c              0x20a494d0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2d              0x20a494d4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2e              0x20a494d8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2f              0x20a494dc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2g              0x20a494e0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2h              0x20a494e4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2i              0x20a494e8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2j              0x20a494ec /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2k              0x20a494f0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2l              0x20a494f4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE2m              0x20a494f8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE_RESERVED0      0x20a494fc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE_RESERVED1      0x20a49500 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE4               0x20a49504 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE5               0x20a49508 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE6               0x20a4950c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE7               0x20a49510 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE8               0x20a49514 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT3_STATE9               0x20a49518 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_CTRL1                0x20a4951c /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT4_COR1                 0x20a49520 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT4_TID                  0x20a49524 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT4_TID2                 0x20a49528 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT4_STATE0               0x20a4952c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE1               0x20a49530 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2               0x20a49534 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2a              0x20a49538 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2b              0x20a4953c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2c              0x20a49540 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2d              0x20a49544 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2e              0x20a49548 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2f              0x20a4954c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2g              0x20a49550 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2h              0x20a49554 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2i              0x20a49558 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2j              0x20a4955c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2k              0x20a49560 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2l              0x20a49564 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE2m              0x20a49568 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE_RESERVED0      0x20a4956c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE_RESERVED1      0x20a49570 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE4               0x20a49574 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE5               0x20a49578 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE6               0x20a4957c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE7               0x20a49580 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE8               0x20a49584 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT4_STATE9               0x20a49588 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_CTRL1                0x20a4958c /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT5_COR1                 0x20a49590 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT5_TID                  0x20a49594 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT5_TID2                 0x20a49598 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT5_STATE0               0x20a4959c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE1               0x20a495a0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2               0x20a495a4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2a              0x20a495a8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2b              0x20a495ac /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2c              0x20a495b0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2d              0x20a495b4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2e              0x20a495b8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2f              0x20a495bc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2g              0x20a495c0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2h              0x20a495c4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2i              0x20a495c8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2j              0x20a495cc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2k              0x20a495d0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2l              0x20a495d4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE2m              0x20a495d8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE_RESERVED0      0x20a495dc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE_RESERVED1      0x20a495e0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE4               0x20a495e4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE5               0x20a495e8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE6               0x20a495ec /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE7               0x20a495f0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE8               0x20a495f4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT5_STATE9               0x20a495f8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_CTRL1                0x20a495fc /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT6_COR1                 0x20a49600 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT6_TID                  0x20a49604 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT6_TID2                 0x20a49608 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT6_STATE0               0x20a4960c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE1               0x20a49610 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2               0x20a49614 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2a              0x20a49618 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2b              0x20a4961c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2c              0x20a49620 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2d              0x20a49624 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2e              0x20a49628 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2f              0x20a4962c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2g              0x20a49630 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2h              0x20a49634 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2i              0x20a49638 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2j              0x20a4963c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2k              0x20a49640 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2l              0x20a49644 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE2m              0x20a49648 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE_RESERVED0      0x20a4964c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE_RESERVED1      0x20a49650 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE4               0x20a49654 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE5               0x20a49658 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE6               0x20a4965c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE7               0x20a49660 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE8               0x20a49664 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT6_STATE9               0x20a49668 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_CTRL1                0x20a4966c /* [RW] TPIT  Control Register 1 */
-#define BCHP_XPT_RAVE_TPIT7_COR1                 0x20a49670 /* [RW] TPIT  Corrupt Register */
-#define BCHP_XPT_RAVE_TPIT7_TID                  0x20a49674 /* [RW] TPIT TID Register */
-#define BCHP_XPT_RAVE_TPIT7_TID2                 0x20a49678 /* [RW] TPIT TID Register 2 */
-#define BCHP_XPT_RAVE_TPIT7_STATE0               0x20a4967c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE1               0x20a49680 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2               0x20a49684 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2a              0x20a49688 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2b              0x20a4968c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2c              0x20a49690 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2d              0x20a49694 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2e              0x20a49698 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2f              0x20a4969c /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2g              0x20a496a0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2h              0x20a496a4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2i              0x20a496a8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2j              0x20a496ac /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2k              0x20a496b0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2l              0x20a496b4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE2m              0x20a496b8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE_RESERVED0      0x20a496bc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE_RESERVED1      0x20a496c0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE4               0x20a496c4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE5               0x20a496c8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE6               0x20a496cc /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE7               0x20a496d0 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE8               0x20a496d4 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT7_STATE9               0x20a496d8 /* [RW] TPIT  State Register */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT0        0x20a496dc /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT1        0x20a496e0 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT2        0x20a496e4 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT3        0x20a496e8 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT4        0x20a496ec /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT5        0x20a496f0 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT6        0x20a496f4 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT7        0x20a496f8 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT8        0x20a496fc /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT9        0x20a49700 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT10       0x20a49704 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT11       0x20a49708 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT12       0x20a4970c /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT13       0x20a49710 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT14       0x20a49714 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT15       0x20a49718 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT16       0x20a4971c /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT17       0x20a49720 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT18       0x20a49724 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT19       0x20a49728 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT20       0x20a4972c /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT21       0x20a49730 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT22       0x20a49734 /* [RW] TPIT State Register for Context */
-#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT23       0x20a49738 /* [RW] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_WRITE_PTR       0x20a40000 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_READ_PTR        0x20a40004 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_BASE_PTR        0x20a40008 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_END_PTR         0x20a4000c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_VALID_PTR       0x20a40010 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_WRAPAROUND_PTR  0x20a40014 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_THRESHOLD_LEVEL 0x20a40018 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_DEPTH           0x20a4001c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX0_AV_THRESHOLDS          0x20a40020 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_WRITE_PTR       0x20a40024 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_READ_PTR        0x20a40028 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_BASE_PTR        0x20a4002c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_END_PTR         0x20a40030 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_VALID_PTR       0x20a40034 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_WRAPAROUND_PTR  0x20a40038 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_THRESHOLD_LEVEL 0x20a4003c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_DEPTH           0x20a40040 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX0_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40044 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX0_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40048 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX0_REC_MISC_CONFIG        0x20a4004c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_A         0x20a40050 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_B         0x20a40054 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_C         0x20a40058 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_D         0x20a4005c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_E         0x20a40060 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_F         0x20a40064 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_G         0x20a40068 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX0_REC_SCD_PIDS_H         0x20a4006c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG1        0x20a40070 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG2        0x20a40074 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG3        0x20a40078 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX0_AV_INTERRUPT_ENABLES   0x20a4007c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX0_AV_COMP1_CONTROL       0x20a40080 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX0_AV_COMP1_COMPARE_VAL   0x20a40084 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP1_MASK_VAL      0x20a40088 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP1_FILTER_VAL    0x20a4008c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP1_FILTER_MASK_VAL 0x20a40090 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP2_CONTROL       0x20a40094 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX0_AV_COMP2_COMPARE_VAL   0x20a40098 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP2_MASK_VAL      0x20a4009c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP2_FILTER_VAL    0x20a400a0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP2_FILTER_MASK_VAL 0x20a400a4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_COMP12_FILTER_MODE  0x20a400a8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX0_AV_PID_STREAM_ID       0x20a400ac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX0_REC_CTRL1              0x20a400b0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX0_REC_INIT_TS            0x20a400b4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX0_REC_TS_CTRL            0x20a400b8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX0_REC_TIME_CONFIG        0x20a400bc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG4        0x20a400c0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX0_PIC_CTR                0x20a400c4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX0_PIC_CTR_MODE           0x20a400c8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX0_REC_TIMER              0x20a400cc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX0_REC_STATE0             0x20a400d0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX0_REC_STATE1             0x20a400d4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX0_REC_STATE2             0x20a400d8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX0_REC_STATE2b            0x20a400dc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX0_REC_STATE3             0x20a400e0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX0_REC_COUNT              0x20a400e4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX0_PIC_INC_DEC_CTRL       0x20a400e8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX0_SC                     0x20a400ec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX0_AV_MISC_CONFIG5        0x20a400f0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX0_RAVE_FW_MISC_STATUS1   0x20a400f4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX0_RAVE_Reg_2             0x20a400f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_RAVE_Reg_3             0x20a400fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_CONFIG       0x20a40100 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40104 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40108 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_PCR          0x20a4010c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_ATS          0x20a40110 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_ADJ_ATS      0x20a40114 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_NEXT_PKT_ATS 0x20a40118 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX0_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4011c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX0_RAVE_Reg_4             0x20a40120 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX0_RAVE_Reg_5             0x20a40124 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_0  0x20a40128 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_1  0x20a4012c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_2  0x20a40130 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_3  0x20a40134 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_4  0x20a40138 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX0_Record_reserved_reg_5  0x20a4013c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_WRITE_PTR       0x20a40140 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_READ_PTR        0x20a40144 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_BASE_PTR        0x20a40148 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_END_PTR         0x20a4014c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_VALID_PTR       0x20a40150 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_WRAPAROUND_PTR  0x20a40154 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_THRESHOLD_LEVEL 0x20a40158 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_DEPTH           0x20a4015c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX1_AV_THRESHOLDS          0x20a40160 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_WRITE_PTR       0x20a40164 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_READ_PTR        0x20a40168 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_BASE_PTR        0x20a4016c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_END_PTR         0x20a40170 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_VALID_PTR       0x20a40174 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_WRAPAROUND_PTR  0x20a40178 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_THRESHOLD_LEVEL 0x20a4017c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_DEPTH           0x20a40180 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX1_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40184 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX1_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40188 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX1_REC_MISC_CONFIG        0x20a4018c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_A         0x20a40190 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_B         0x20a40194 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_C         0x20a40198 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_D         0x20a4019c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_E         0x20a401a0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_F         0x20a401a4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_G         0x20a401a8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX1_REC_SCD_PIDS_H         0x20a401ac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG1        0x20a401b0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG2        0x20a401b4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG3        0x20a401b8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX1_AV_INTERRUPT_ENABLES   0x20a401bc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX1_AV_COMP1_CONTROL       0x20a401c0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX1_AV_COMP1_COMPARE_VAL   0x20a401c4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP1_MASK_VAL      0x20a401c8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP1_FILTER_VAL    0x20a401cc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP1_FILTER_MASK_VAL 0x20a401d0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP2_CONTROL       0x20a401d4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX1_AV_COMP2_COMPARE_VAL   0x20a401d8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP2_MASK_VAL      0x20a401dc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP2_FILTER_VAL    0x20a401e0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP2_FILTER_MASK_VAL 0x20a401e4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_COMP12_FILTER_MODE  0x20a401e8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX1_AV_PID_STREAM_ID       0x20a401ec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX1_REC_CTRL1              0x20a401f0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX1_REC_INIT_TS            0x20a401f4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX1_REC_TS_CTRL            0x20a401f8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX1_REC_TIME_CONFIG        0x20a401fc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG4        0x20a40200 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX1_PIC_CTR                0x20a40204 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX1_PIC_CTR_MODE           0x20a40208 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX1_REC_TIMER              0x20a4020c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX1_REC_STATE0             0x20a40210 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX1_REC_STATE1             0x20a40214 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX1_REC_STATE2             0x20a40218 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX1_REC_STATE2b            0x20a4021c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX1_REC_STATE3             0x20a40220 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX1_REC_COUNT              0x20a40224 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX1_PIC_INC_DEC_CTRL       0x20a40228 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX1_SC                     0x20a4022c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX1_AV_MISC_CONFIG5        0x20a40230 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX1_RAVE_FW_MISC_STATUS1   0x20a40234 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX1_RAVE_Reg_2             0x20a40238 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_RAVE_Reg_3             0x20a4023c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_CONFIG       0x20a40240 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40244 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40248 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_PCR          0x20a4024c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_ATS          0x20a40250 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_ADJ_ATS      0x20a40254 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_NEXT_PKT_ATS 0x20a40258 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX1_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4025c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX1_RAVE_Reg_4             0x20a40260 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX1_RAVE_Reg_5             0x20a40264 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_0  0x20a40268 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_1  0x20a4026c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_2  0x20a40270 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_3  0x20a40274 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_4  0x20a40278 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX1_Record_reserved_reg_5  0x20a4027c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_WRITE_PTR       0x20a40280 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_READ_PTR        0x20a40284 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_BASE_PTR        0x20a40288 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_END_PTR         0x20a4028c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_VALID_PTR       0x20a40290 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_WRAPAROUND_PTR  0x20a40294 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_THRESHOLD_LEVEL 0x20a40298 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_DEPTH           0x20a4029c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX2_AV_THRESHOLDS          0x20a402a0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_WRITE_PTR       0x20a402a4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_READ_PTR        0x20a402a8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_BASE_PTR        0x20a402ac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_END_PTR         0x20a402b0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_VALID_PTR       0x20a402b4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_WRAPAROUND_PTR  0x20a402b8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_THRESHOLD_LEVEL 0x20a402bc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_DEPTH           0x20a402c0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX2_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a402c4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX2_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a402c8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX2_REC_MISC_CONFIG        0x20a402cc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_A         0x20a402d0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_B         0x20a402d4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_C         0x20a402d8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_D         0x20a402dc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_E         0x20a402e0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_F         0x20a402e4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_G         0x20a402e8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX2_REC_SCD_PIDS_H         0x20a402ec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG1        0x20a402f0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG2        0x20a402f4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG3        0x20a402f8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX2_AV_INTERRUPT_ENABLES   0x20a402fc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX2_AV_COMP1_CONTROL       0x20a40300 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX2_AV_COMP1_COMPARE_VAL   0x20a40304 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP1_MASK_VAL      0x20a40308 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP1_FILTER_VAL    0x20a4030c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP1_FILTER_MASK_VAL 0x20a40310 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP2_CONTROL       0x20a40314 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX2_AV_COMP2_COMPARE_VAL   0x20a40318 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP2_MASK_VAL      0x20a4031c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP2_FILTER_VAL    0x20a40320 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP2_FILTER_MASK_VAL 0x20a40324 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_COMP12_FILTER_MODE  0x20a40328 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX2_AV_PID_STREAM_ID       0x20a4032c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX2_REC_CTRL1              0x20a40330 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX2_REC_INIT_TS            0x20a40334 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX2_REC_TS_CTRL            0x20a40338 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX2_REC_TIME_CONFIG        0x20a4033c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG4        0x20a40340 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX2_PIC_CTR                0x20a40344 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX2_PIC_CTR_MODE           0x20a40348 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX2_REC_TIMER              0x20a4034c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX2_REC_STATE0             0x20a40350 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX2_REC_STATE1             0x20a40354 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX2_REC_STATE2             0x20a40358 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX2_REC_STATE2b            0x20a4035c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX2_REC_STATE3             0x20a40360 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX2_REC_COUNT              0x20a40364 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX2_PIC_INC_DEC_CTRL       0x20a40368 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX2_SC                     0x20a4036c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX2_AV_MISC_CONFIG5        0x20a40370 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX2_RAVE_FW_MISC_STATUS1   0x20a40374 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX2_RAVE_Reg_2             0x20a40378 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_RAVE_Reg_3             0x20a4037c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_CONFIG       0x20a40380 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40384 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40388 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_PCR          0x20a4038c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_ATS          0x20a40390 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_ADJ_ATS      0x20a40394 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_NEXT_PKT_ATS 0x20a40398 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX2_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4039c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX2_RAVE_Reg_4             0x20a403a0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX2_RAVE_Reg_5             0x20a403a4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_0  0x20a403a8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_1  0x20a403ac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_2  0x20a403b0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_3  0x20a403b4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_4  0x20a403b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX2_Record_reserved_reg_5  0x20a403bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_WRITE_PTR       0x20a403c0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_READ_PTR        0x20a403c4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_BASE_PTR        0x20a403c8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_END_PTR         0x20a403cc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_VALID_PTR       0x20a403d0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_WRAPAROUND_PTR  0x20a403d4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_THRESHOLD_LEVEL 0x20a403d8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_DEPTH           0x20a403dc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX3_AV_THRESHOLDS          0x20a403e0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_WRITE_PTR       0x20a403e4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_READ_PTR        0x20a403e8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_BASE_PTR        0x20a403ec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_END_PTR         0x20a403f0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_VALID_PTR       0x20a403f4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_WRAPAROUND_PTR  0x20a403f8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_THRESHOLD_LEVEL 0x20a403fc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_DEPTH           0x20a40400 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX3_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40404 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX3_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40408 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX3_REC_MISC_CONFIG        0x20a4040c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_A         0x20a40410 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_B         0x20a40414 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_C         0x20a40418 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_D         0x20a4041c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_E         0x20a40420 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_F         0x20a40424 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_G         0x20a40428 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX3_REC_SCD_PIDS_H         0x20a4042c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG1        0x20a40430 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG2        0x20a40434 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG3        0x20a40438 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX3_AV_INTERRUPT_ENABLES   0x20a4043c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX3_AV_COMP1_CONTROL       0x20a40440 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX3_AV_COMP1_COMPARE_VAL   0x20a40444 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP1_MASK_VAL      0x20a40448 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP1_FILTER_VAL    0x20a4044c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP1_FILTER_MASK_VAL 0x20a40450 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP2_CONTROL       0x20a40454 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX3_AV_COMP2_COMPARE_VAL   0x20a40458 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP2_MASK_VAL      0x20a4045c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP2_FILTER_VAL    0x20a40460 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP2_FILTER_MASK_VAL 0x20a40464 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_COMP12_FILTER_MODE  0x20a40468 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX3_AV_PID_STREAM_ID       0x20a4046c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX3_REC_CTRL1              0x20a40470 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX3_REC_INIT_TS            0x20a40474 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX3_REC_TS_CTRL            0x20a40478 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX3_REC_TIME_CONFIG        0x20a4047c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG4        0x20a40480 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX3_PIC_CTR                0x20a40484 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX3_PIC_CTR_MODE           0x20a40488 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX3_REC_TIMER              0x20a4048c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX3_REC_STATE0             0x20a40490 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX3_REC_STATE1             0x20a40494 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX3_REC_STATE2             0x20a40498 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX3_REC_STATE2b            0x20a4049c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX3_REC_STATE3             0x20a404a0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX3_REC_COUNT              0x20a404a4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX3_PIC_INC_DEC_CTRL       0x20a404a8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX3_SC                     0x20a404ac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX3_AV_MISC_CONFIG5        0x20a404b0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX3_RAVE_FW_MISC_STATUS1   0x20a404b4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX3_RAVE_Reg_2             0x20a404b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_RAVE_Reg_3             0x20a404bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_CONFIG       0x20a404c0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_OFFSET_MAGNITUDE 0x20a404c4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_OFFSET_SIGN_BIT 0x20a404c8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_PCR          0x20a404cc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_ATS          0x20a404d0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_ADJ_ATS      0x20a404d4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_NEXT_PKT_ATS 0x20a404d8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX3_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a404dc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX3_RAVE_Reg_4             0x20a404e0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX3_RAVE_Reg_5             0x20a404e4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_0  0x20a404e8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_1  0x20a404ec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_2  0x20a404f0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_3  0x20a404f4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_4  0x20a404f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX3_Record_reserved_reg_5  0x20a404fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_WRITE_PTR       0x20a40500 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_READ_PTR        0x20a40504 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_BASE_PTR        0x20a40508 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_END_PTR         0x20a4050c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_VALID_PTR       0x20a40510 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_WRAPAROUND_PTR  0x20a40514 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_THRESHOLD_LEVEL 0x20a40518 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_DEPTH           0x20a4051c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX4_AV_THRESHOLDS          0x20a40520 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_WRITE_PTR       0x20a40524 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_READ_PTR        0x20a40528 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_BASE_PTR        0x20a4052c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_END_PTR         0x20a40530 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_VALID_PTR       0x20a40534 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_WRAPAROUND_PTR  0x20a40538 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_THRESHOLD_LEVEL 0x20a4053c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_DEPTH           0x20a40540 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX4_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40544 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX4_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40548 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX4_REC_MISC_CONFIG        0x20a4054c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_A         0x20a40550 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_B         0x20a40554 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_C         0x20a40558 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_D         0x20a4055c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_E         0x20a40560 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_F         0x20a40564 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_G         0x20a40568 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX4_REC_SCD_PIDS_H         0x20a4056c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG1        0x20a40570 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG2        0x20a40574 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG3        0x20a40578 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX4_AV_INTERRUPT_ENABLES   0x20a4057c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX4_AV_COMP1_CONTROL       0x20a40580 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX4_AV_COMP1_COMPARE_VAL   0x20a40584 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP1_MASK_VAL      0x20a40588 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP1_FILTER_VAL    0x20a4058c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP1_FILTER_MASK_VAL 0x20a40590 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP2_CONTROL       0x20a40594 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX4_AV_COMP2_COMPARE_VAL   0x20a40598 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP2_MASK_VAL      0x20a4059c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP2_FILTER_VAL    0x20a405a0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP2_FILTER_MASK_VAL 0x20a405a4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_COMP12_FILTER_MODE  0x20a405a8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX4_AV_PID_STREAM_ID       0x20a405ac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX4_REC_CTRL1              0x20a405b0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX4_REC_INIT_TS            0x20a405b4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX4_REC_TS_CTRL            0x20a405b8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX4_REC_TIME_CONFIG        0x20a405bc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG4        0x20a405c0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX4_PIC_CTR                0x20a405c4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX4_PIC_CTR_MODE           0x20a405c8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX4_REC_TIMER              0x20a405cc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX4_REC_STATE0             0x20a405d0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX4_REC_STATE1             0x20a405d4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX4_REC_STATE2             0x20a405d8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX4_REC_STATE2b            0x20a405dc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX4_REC_STATE3             0x20a405e0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX4_REC_COUNT              0x20a405e4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX4_PIC_INC_DEC_CTRL       0x20a405e8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX4_SC                     0x20a405ec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX4_AV_MISC_CONFIG5        0x20a405f0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX4_RAVE_FW_MISC_STATUS1   0x20a405f4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX4_RAVE_Reg_2             0x20a405f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_RAVE_Reg_3             0x20a405fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_CONFIG       0x20a40600 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40604 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40608 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_PCR          0x20a4060c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_ATS          0x20a40610 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_ADJ_ATS      0x20a40614 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_NEXT_PKT_ATS 0x20a40618 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX4_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4061c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX4_RAVE_Reg_4             0x20a40620 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX4_RAVE_Reg_5             0x20a40624 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_0  0x20a40628 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_1  0x20a4062c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_2  0x20a40630 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_3  0x20a40634 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_4  0x20a40638 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX4_Record_reserved_reg_5  0x20a4063c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_WRITE_PTR       0x20a40640 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_READ_PTR        0x20a40644 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_BASE_PTR        0x20a40648 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_END_PTR         0x20a4064c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_VALID_PTR       0x20a40650 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_WRAPAROUND_PTR  0x20a40654 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_THRESHOLD_LEVEL 0x20a40658 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_DEPTH           0x20a4065c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX5_AV_THRESHOLDS          0x20a40660 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_WRITE_PTR       0x20a40664 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_READ_PTR        0x20a40668 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_BASE_PTR        0x20a4066c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_END_PTR         0x20a40670 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_VALID_PTR       0x20a40674 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_WRAPAROUND_PTR  0x20a40678 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_THRESHOLD_LEVEL 0x20a4067c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_DEPTH           0x20a40680 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX5_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40684 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX5_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40688 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX5_REC_MISC_CONFIG        0x20a4068c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_A         0x20a40690 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_B         0x20a40694 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_C         0x20a40698 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_D         0x20a4069c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_E         0x20a406a0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_F         0x20a406a4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_G         0x20a406a8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX5_REC_SCD_PIDS_H         0x20a406ac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG1        0x20a406b0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG2        0x20a406b4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG3        0x20a406b8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX5_AV_INTERRUPT_ENABLES   0x20a406bc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX5_AV_COMP1_CONTROL       0x20a406c0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX5_AV_COMP1_COMPARE_VAL   0x20a406c4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP1_MASK_VAL      0x20a406c8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP1_FILTER_VAL    0x20a406cc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP1_FILTER_MASK_VAL 0x20a406d0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP2_CONTROL       0x20a406d4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX5_AV_COMP2_COMPARE_VAL   0x20a406d8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP2_MASK_VAL      0x20a406dc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP2_FILTER_VAL    0x20a406e0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP2_FILTER_MASK_VAL 0x20a406e4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_COMP12_FILTER_MODE  0x20a406e8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX5_AV_PID_STREAM_ID       0x20a406ec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX5_REC_CTRL1              0x20a406f0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX5_REC_INIT_TS            0x20a406f4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX5_REC_TS_CTRL            0x20a406f8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX5_REC_TIME_CONFIG        0x20a406fc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG4        0x20a40700 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX5_PIC_CTR                0x20a40704 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX5_PIC_CTR_MODE           0x20a40708 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX5_REC_TIMER              0x20a4070c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX5_REC_STATE0             0x20a40710 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX5_REC_STATE1             0x20a40714 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX5_REC_STATE2             0x20a40718 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX5_REC_STATE2b            0x20a4071c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX5_REC_STATE3             0x20a40720 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX5_REC_COUNT              0x20a40724 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX5_PIC_INC_DEC_CTRL       0x20a40728 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX5_SC                     0x20a4072c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX5_AV_MISC_CONFIG5        0x20a40730 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX5_RAVE_FW_MISC_STATUS1   0x20a40734 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX5_RAVE_Reg_2             0x20a40738 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_RAVE_Reg_3             0x20a4073c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_CONFIG       0x20a40740 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40744 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40748 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_PCR          0x20a4074c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_ATS          0x20a40750 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_ADJ_ATS      0x20a40754 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_NEXT_PKT_ATS 0x20a40758 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX5_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4075c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX5_RAVE_Reg_4             0x20a40760 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX5_RAVE_Reg_5             0x20a40764 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_0  0x20a40768 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_1  0x20a4076c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_2  0x20a40770 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_3  0x20a40774 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_4  0x20a40778 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX5_Record_reserved_reg_5  0x20a4077c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_WRITE_PTR       0x20a40780 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_READ_PTR        0x20a40784 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_BASE_PTR        0x20a40788 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_END_PTR         0x20a4078c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_VALID_PTR       0x20a40790 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_WRAPAROUND_PTR  0x20a40794 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_THRESHOLD_LEVEL 0x20a40798 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_DEPTH           0x20a4079c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX6_AV_THRESHOLDS          0x20a407a0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_WRITE_PTR       0x20a407a4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_READ_PTR        0x20a407a8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_BASE_PTR        0x20a407ac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_END_PTR         0x20a407b0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_VALID_PTR       0x20a407b4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_WRAPAROUND_PTR  0x20a407b8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_THRESHOLD_LEVEL 0x20a407bc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_DEPTH           0x20a407c0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX6_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a407c4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX6_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a407c8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX6_REC_MISC_CONFIG        0x20a407cc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_A         0x20a407d0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_B         0x20a407d4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_C         0x20a407d8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_D         0x20a407dc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_E         0x20a407e0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_F         0x20a407e4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_G         0x20a407e8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX6_REC_SCD_PIDS_H         0x20a407ec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG1        0x20a407f0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG2        0x20a407f4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG3        0x20a407f8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX6_AV_INTERRUPT_ENABLES   0x20a407fc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX6_AV_COMP1_CONTROL       0x20a40800 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX6_AV_COMP1_COMPARE_VAL   0x20a40804 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP1_MASK_VAL      0x20a40808 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP1_FILTER_VAL    0x20a4080c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP1_FILTER_MASK_VAL 0x20a40810 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP2_CONTROL       0x20a40814 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX6_AV_COMP2_COMPARE_VAL   0x20a40818 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP2_MASK_VAL      0x20a4081c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP2_FILTER_VAL    0x20a40820 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP2_FILTER_MASK_VAL 0x20a40824 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_COMP12_FILTER_MODE  0x20a40828 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX6_AV_PID_STREAM_ID       0x20a4082c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX6_REC_CTRL1              0x20a40830 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX6_REC_INIT_TS            0x20a40834 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX6_REC_TS_CTRL            0x20a40838 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX6_REC_TIME_CONFIG        0x20a4083c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG4        0x20a40840 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX6_PIC_CTR                0x20a40844 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX6_PIC_CTR_MODE           0x20a40848 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX6_REC_TIMER              0x20a4084c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX6_REC_STATE0             0x20a40850 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX6_REC_STATE1             0x20a40854 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX6_REC_STATE2             0x20a40858 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX6_REC_STATE2b            0x20a4085c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX6_REC_STATE3             0x20a40860 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX6_REC_COUNT              0x20a40864 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX6_PIC_INC_DEC_CTRL       0x20a40868 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX6_SC                     0x20a4086c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX6_AV_MISC_CONFIG5        0x20a40870 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX6_RAVE_FW_MISC_STATUS1   0x20a40874 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX6_RAVE_Reg_2             0x20a40878 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_RAVE_Reg_3             0x20a4087c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_CONFIG       0x20a40880 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40884 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40888 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_PCR          0x20a4088c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_ATS          0x20a40890 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_ADJ_ATS      0x20a40894 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_NEXT_PKT_ATS 0x20a40898 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX6_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4089c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX6_RAVE_Reg_4             0x20a408a0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX6_RAVE_Reg_5             0x20a408a4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_0  0x20a408a8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_1  0x20a408ac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_2  0x20a408b0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_3  0x20a408b4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_4  0x20a408b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX6_Record_reserved_reg_5  0x20a408bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_WRITE_PTR       0x20a408c0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_READ_PTR        0x20a408c4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_BASE_PTR        0x20a408c8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_END_PTR         0x20a408cc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_VALID_PTR       0x20a408d0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_WRAPAROUND_PTR  0x20a408d4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_THRESHOLD_LEVEL 0x20a408d8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_DEPTH           0x20a408dc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX7_AV_THRESHOLDS          0x20a408e0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_WRITE_PTR       0x20a408e4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_READ_PTR        0x20a408e8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_BASE_PTR        0x20a408ec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_END_PTR         0x20a408f0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_VALID_PTR       0x20a408f4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_WRAPAROUND_PTR  0x20a408f8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_THRESHOLD_LEVEL 0x20a408fc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_DEPTH           0x20a40900 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX7_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40904 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX7_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40908 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX7_REC_MISC_CONFIG        0x20a4090c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_A         0x20a40910 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_B         0x20a40914 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_C         0x20a40918 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_D         0x20a4091c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_E         0x20a40920 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_F         0x20a40924 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_G         0x20a40928 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX7_REC_SCD_PIDS_H         0x20a4092c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG1        0x20a40930 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG2        0x20a40934 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG3        0x20a40938 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX7_AV_INTERRUPT_ENABLES   0x20a4093c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX7_AV_COMP1_CONTROL       0x20a40940 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX7_AV_COMP1_COMPARE_VAL   0x20a40944 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP1_MASK_VAL      0x20a40948 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP1_FILTER_VAL    0x20a4094c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP1_FILTER_MASK_VAL 0x20a40950 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP2_CONTROL       0x20a40954 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX7_AV_COMP2_COMPARE_VAL   0x20a40958 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP2_MASK_VAL      0x20a4095c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP2_FILTER_VAL    0x20a40960 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP2_FILTER_MASK_VAL 0x20a40964 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_COMP12_FILTER_MODE  0x20a40968 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX7_AV_PID_STREAM_ID       0x20a4096c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX7_REC_CTRL1              0x20a40970 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX7_REC_INIT_TS            0x20a40974 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX7_REC_TS_CTRL            0x20a40978 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX7_REC_TIME_CONFIG        0x20a4097c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG4        0x20a40980 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX7_PIC_CTR                0x20a40984 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX7_PIC_CTR_MODE           0x20a40988 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX7_REC_TIMER              0x20a4098c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX7_REC_STATE0             0x20a40990 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX7_REC_STATE1             0x20a40994 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX7_REC_STATE2             0x20a40998 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX7_REC_STATE2b            0x20a4099c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX7_REC_STATE3             0x20a409a0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX7_REC_COUNT              0x20a409a4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX7_PIC_INC_DEC_CTRL       0x20a409a8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX7_SC                     0x20a409ac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX7_AV_MISC_CONFIG5        0x20a409b0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX7_RAVE_FW_MISC_STATUS1   0x20a409b4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX7_RAVE_Reg_2             0x20a409b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_RAVE_Reg_3             0x20a409bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_CONFIG       0x20a409c0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_OFFSET_MAGNITUDE 0x20a409c4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_OFFSET_SIGN_BIT 0x20a409c8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_PCR          0x20a409cc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_ATS          0x20a409d0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_ADJ_ATS      0x20a409d4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_NEXT_PKT_ATS 0x20a409d8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX7_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a409dc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX7_RAVE_Reg_4             0x20a409e0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX7_RAVE_Reg_5             0x20a409e4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_0  0x20a409e8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_1  0x20a409ec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_2  0x20a409f0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_3  0x20a409f4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_4  0x20a409f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX7_Record_reserved_reg_5  0x20a409fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_WRITE_PTR       0x20a40a00 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_READ_PTR        0x20a40a04 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_BASE_PTR        0x20a40a08 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_END_PTR         0x20a40a0c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_VALID_PTR       0x20a40a10 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_WRAPAROUND_PTR  0x20a40a14 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_THRESHOLD_LEVEL 0x20a40a18 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_DEPTH           0x20a40a1c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX8_AV_THRESHOLDS          0x20a40a20 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_WRITE_PTR       0x20a40a24 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_READ_PTR        0x20a40a28 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_BASE_PTR        0x20a40a2c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_END_PTR         0x20a40a30 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_VALID_PTR       0x20a40a34 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_WRAPAROUND_PTR  0x20a40a38 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_THRESHOLD_LEVEL 0x20a40a3c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_DEPTH           0x20a40a40 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX8_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40a44 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX8_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40a48 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX8_REC_MISC_CONFIG        0x20a40a4c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_A         0x20a40a50 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_B         0x20a40a54 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_C         0x20a40a58 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_D         0x20a40a5c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_E         0x20a40a60 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_F         0x20a40a64 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_G         0x20a40a68 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX8_REC_SCD_PIDS_H         0x20a40a6c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG1        0x20a40a70 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG2        0x20a40a74 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG3        0x20a40a78 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX8_AV_INTERRUPT_ENABLES   0x20a40a7c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX8_AV_COMP1_CONTROL       0x20a40a80 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX8_AV_COMP1_COMPARE_VAL   0x20a40a84 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP1_MASK_VAL      0x20a40a88 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP1_FILTER_VAL    0x20a40a8c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP1_FILTER_MASK_VAL 0x20a40a90 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP2_CONTROL       0x20a40a94 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX8_AV_COMP2_COMPARE_VAL   0x20a40a98 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP2_MASK_VAL      0x20a40a9c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP2_FILTER_VAL    0x20a40aa0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP2_FILTER_MASK_VAL 0x20a40aa4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_COMP12_FILTER_MODE  0x20a40aa8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX8_AV_PID_STREAM_ID       0x20a40aac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX8_REC_CTRL1              0x20a40ab0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX8_REC_INIT_TS            0x20a40ab4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX8_REC_TS_CTRL            0x20a40ab8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX8_REC_TIME_CONFIG        0x20a40abc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG4        0x20a40ac0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX8_PIC_CTR                0x20a40ac4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX8_PIC_CTR_MODE           0x20a40ac8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX8_REC_TIMER              0x20a40acc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX8_REC_STATE0             0x20a40ad0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX8_REC_STATE1             0x20a40ad4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX8_REC_STATE2             0x20a40ad8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX8_REC_STATE2b            0x20a40adc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX8_REC_STATE3             0x20a40ae0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX8_REC_COUNT              0x20a40ae4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX8_PIC_INC_DEC_CTRL       0x20a40ae8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX8_SC                     0x20a40aec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX8_AV_MISC_CONFIG5        0x20a40af0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX8_RAVE_FW_MISC_STATUS1   0x20a40af4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX8_RAVE_Reg_2             0x20a40af8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_RAVE_Reg_3             0x20a40afc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_CONFIG       0x20a40b00 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40b04 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40b08 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_PCR          0x20a40b0c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_ATS          0x20a40b10 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_ADJ_ATS      0x20a40b14 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_NEXT_PKT_ATS 0x20a40b18 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX8_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40b1c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX8_RAVE_Reg_4             0x20a40b20 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX8_RAVE_Reg_5             0x20a40b24 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_0  0x20a40b28 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_1  0x20a40b2c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_2  0x20a40b30 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_3  0x20a40b34 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_4  0x20a40b38 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX8_Record_reserved_reg_5  0x20a40b3c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_WRITE_PTR       0x20a40b40 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_READ_PTR        0x20a40b44 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_BASE_PTR        0x20a40b48 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_END_PTR         0x20a40b4c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_VALID_PTR       0x20a40b50 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_WRAPAROUND_PTR  0x20a40b54 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_THRESHOLD_LEVEL 0x20a40b58 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_DEPTH           0x20a40b5c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX9_AV_THRESHOLDS          0x20a40b60 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_WRITE_PTR       0x20a40b64 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_READ_PTR        0x20a40b68 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_BASE_PTR        0x20a40b6c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_END_PTR         0x20a40b70 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_VALID_PTR       0x20a40b74 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_WRAPAROUND_PTR  0x20a40b78 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_THRESHOLD_LEVEL 0x20a40b7c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_DEPTH           0x20a40b80 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX9_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40b84 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX9_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40b88 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX9_REC_MISC_CONFIG        0x20a40b8c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_A         0x20a40b90 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_B         0x20a40b94 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_C         0x20a40b98 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_D         0x20a40b9c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_E         0x20a40ba0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_F         0x20a40ba4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_G         0x20a40ba8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX9_REC_SCD_PIDS_H         0x20a40bac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG1        0x20a40bb0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG2        0x20a40bb4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG3        0x20a40bb8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX9_AV_INTERRUPT_ENABLES   0x20a40bbc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX9_AV_COMP1_CONTROL       0x20a40bc0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX9_AV_COMP1_COMPARE_VAL   0x20a40bc4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP1_MASK_VAL      0x20a40bc8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP1_FILTER_VAL    0x20a40bcc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP1_FILTER_MASK_VAL 0x20a40bd0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP2_CONTROL       0x20a40bd4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX9_AV_COMP2_COMPARE_VAL   0x20a40bd8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP2_MASK_VAL      0x20a40bdc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP2_FILTER_VAL    0x20a40be0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP2_FILTER_MASK_VAL 0x20a40be4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_COMP12_FILTER_MODE  0x20a40be8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX9_AV_PID_STREAM_ID       0x20a40bec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX9_REC_CTRL1              0x20a40bf0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX9_REC_INIT_TS            0x20a40bf4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX9_REC_TS_CTRL            0x20a40bf8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX9_REC_TIME_CONFIG        0x20a40bfc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG4        0x20a40c00 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX9_PIC_CTR                0x20a40c04 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX9_PIC_CTR_MODE           0x20a40c08 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX9_REC_TIMER              0x20a40c0c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX9_REC_STATE0             0x20a40c10 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX9_REC_STATE1             0x20a40c14 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX9_REC_STATE2             0x20a40c18 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX9_REC_STATE2b            0x20a40c1c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX9_REC_STATE3             0x20a40c20 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX9_REC_COUNT              0x20a40c24 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX9_PIC_INC_DEC_CTRL       0x20a40c28 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX9_SC                     0x20a40c2c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX9_AV_MISC_CONFIG5        0x20a40c30 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX9_RAVE_FW_MISC_STATUS1   0x20a40c34 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX9_RAVE_Reg_2             0x20a40c38 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_RAVE_Reg_3             0x20a40c3c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_CONFIG       0x20a40c40 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40c44 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40c48 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_PCR          0x20a40c4c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_ATS          0x20a40c50 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_ADJ_ATS      0x20a40c54 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_NEXT_PKT_ATS 0x20a40c58 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX9_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40c5c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX9_RAVE_Reg_4             0x20a40c60 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX9_RAVE_Reg_5             0x20a40c64 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_0  0x20a40c68 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_1  0x20a40c6c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_2  0x20a40c70 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_3  0x20a40c74 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_4  0x20a40c78 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX9_Record_reserved_reg_5  0x20a40c7c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_WRITE_PTR      0x20a40c80 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_READ_PTR       0x20a40c84 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_BASE_PTR       0x20a40c88 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_END_PTR        0x20a40c8c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_VALID_PTR      0x20a40c90 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_WRAPAROUND_PTR 0x20a40c94 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_THRESHOLD_LEVEL 0x20a40c98 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_DEPTH          0x20a40c9c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX10_AV_THRESHOLDS         0x20a40ca0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_WRITE_PTR      0x20a40ca4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_READ_PTR       0x20a40ca8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_BASE_PTR       0x20a40cac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_END_PTR        0x20a40cb0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_VALID_PTR      0x20a40cb4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_WRAPAROUND_PTR 0x20a40cb8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_THRESHOLD_LEVEL 0x20a40cbc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_DEPTH          0x20a40cc0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX10_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40cc4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX10_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40cc8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX10_REC_MISC_CONFIG       0x20a40ccc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_A        0x20a40cd0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_B        0x20a40cd4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_C        0x20a40cd8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_D        0x20a40cdc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_E        0x20a40ce0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_F        0x20a40ce4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_G        0x20a40ce8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX10_REC_SCD_PIDS_H        0x20a40cec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG1       0x20a40cf0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG2       0x20a40cf4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG3       0x20a40cf8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX10_AV_INTERRUPT_ENABLES  0x20a40cfc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX10_AV_COMP1_CONTROL      0x20a40d00 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX10_AV_COMP1_COMPARE_VAL  0x20a40d04 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP1_MASK_VAL     0x20a40d08 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP1_FILTER_VAL   0x20a40d0c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP1_FILTER_MASK_VAL 0x20a40d10 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP2_CONTROL      0x20a40d14 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX10_AV_COMP2_COMPARE_VAL  0x20a40d18 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP2_MASK_VAL     0x20a40d1c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP2_FILTER_VAL   0x20a40d20 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP2_FILTER_MASK_VAL 0x20a40d24 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_COMP12_FILTER_MODE 0x20a40d28 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX10_AV_PID_STREAM_ID      0x20a40d2c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX10_REC_CTRL1             0x20a40d30 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX10_REC_INIT_TS           0x20a40d34 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX10_REC_TS_CTRL           0x20a40d38 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX10_REC_TIME_CONFIG       0x20a40d3c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG4       0x20a40d40 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX10_PIC_CTR               0x20a40d44 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX10_PIC_CTR_MODE          0x20a40d48 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX10_REC_TIMER             0x20a40d4c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX10_REC_STATE0            0x20a40d50 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX10_REC_STATE1            0x20a40d54 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX10_REC_STATE2            0x20a40d58 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX10_REC_STATE2b           0x20a40d5c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX10_REC_STATE3            0x20a40d60 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX10_REC_COUNT             0x20a40d64 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX10_PIC_INC_DEC_CTRL      0x20a40d68 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX10_SC                    0x20a40d6c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX10_AV_MISC_CONFIG5       0x20a40d70 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX10_RAVE_FW_MISC_STATUS1  0x20a40d74 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX10_RAVE_Reg_2            0x20a40d78 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_RAVE_Reg_3            0x20a40d7c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_CONFIG      0x20a40d80 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40d84 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40d88 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_PCR         0x20a40d8c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_ATS         0x20a40d90 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_ADJ_ATS     0x20a40d94 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_NEXT_PKT_ATS 0x20a40d98 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX10_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40d9c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX10_RAVE_Reg_4            0x20a40da0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX10_RAVE_Reg_5            0x20a40da4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_0 0x20a40da8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_1 0x20a40dac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_2 0x20a40db0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_3 0x20a40db4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_4 0x20a40db8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX10_Record_reserved_reg_5 0x20a40dbc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_WRITE_PTR      0x20a40dc0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_READ_PTR       0x20a40dc4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_BASE_PTR       0x20a40dc8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_END_PTR        0x20a40dcc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_VALID_PTR      0x20a40dd0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_WRAPAROUND_PTR 0x20a40dd4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_THRESHOLD_LEVEL 0x20a40dd8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_DEPTH          0x20a40ddc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX11_AV_THRESHOLDS         0x20a40de0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_WRITE_PTR      0x20a40de4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_READ_PTR       0x20a40de8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_BASE_PTR       0x20a40dec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_END_PTR        0x20a40df0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_VALID_PTR      0x20a40df4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_WRAPAROUND_PTR 0x20a40df8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_THRESHOLD_LEVEL 0x20a40dfc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_DEPTH          0x20a40e00 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX11_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40e04 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX11_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40e08 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX11_REC_MISC_CONFIG       0x20a40e0c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_A        0x20a40e10 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_B        0x20a40e14 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_C        0x20a40e18 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_D        0x20a40e1c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_E        0x20a40e20 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_F        0x20a40e24 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_G        0x20a40e28 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX11_REC_SCD_PIDS_H        0x20a40e2c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG1       0x20a40e30 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG2       0x20a40e34 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG3       0x20a40e38 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX11_AV_INTERRUPT_ENABLES  0x20a40e3c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX11_AV_COMP1_CONTROL      0x20a40e40 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX11_AV_COMP1_COMPARE_VAL  0x20a40e44 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP1_MASK_VAL     0x20a40e48 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP1_FILTER_VAL   0x20a40e4c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP1_FILTER_MASK_VAL 0x20a40e50 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP2_CONTROL      0x20a40e54 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX11_AV_COMP2_COMPARE_VAL  0x20a40e58 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP2_MASK_VAL     0x20a40e5c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP2_FILTER_VAL   0x20a40e60 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP2_FILTER_MASK_VAL 0x20a40e64 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_COMP12_FILTER_MODE 0x20a40e68 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX11_AV_PID_STREAM_ID      0x20a40e6c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX11_REC_CTRL1             0x20a40e70 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX11_REC_INIT_TS           0x20a40e74 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX11_REC_TS_CTRL           0x20a40e78 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX11_REC_TIME_CONFIG       0x20a40e7c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG4       0x20a40e80 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX11_PIC_CTR               0x20a40e84 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX11_PIC_CTR_MODE          0x20a40e88 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX11_REC_TIMER             0x20a40e8c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX11_REC_STATE0            0x20a40e90 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX11_REC_STATE1            0x20a40e94 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX11_REC_STATE2            0x20a40e98 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX11_REC_STATE2b           0x20a40e9c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX11_REC_STATE3            0x20a40ea0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX11_REC_COUNT             0x20a40ea4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX11_PIC_INC_DEC_CTRL      0x20a40ea8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX11_SC                    0x20a40eac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX11_AV_MISC_CONFIG5       0x20a40eb0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX11_RAVE_FW_MISC_STATUS1  0x20a40eb4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX11_RAVE_Reg_2            0x20a40eb8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_RAVE_Reg_3            0x20a40ebc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_CONFIG      0x20a40ec0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_OFFSET_MAGNITUDE 0x20a40ec4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_OFFSET_SIGN_BIT 0x20a40ec8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_PCR         0x20a40ecc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_ATS         0x20a40ed0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_ADJ_ATS     0x20a40ed4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_NEXT_PKT_ATS 0x20a40ed8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX11_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a40edc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX11_RAVE_Reg_4            0x20a40ee0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX11_RAVE_Reg_5            0x20a40ee4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_0 0x20a40ee8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_1 0x20a40eec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_2 0x20a40ef0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_3 0x20a40ef4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_4 0x20a40ef8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX11_Record_reserved_reg_5 0x20a40efc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_WRITE_PTR      0x20a40f00 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_READ_PTR       0x20a40f04 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_BASE_PTR       0x20a40f08 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_END_PTR        0x20a40f0c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_VALID_PTR      0x20a40f10 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_WRAPAROUND_PTR 0x20a40f14 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_THRESHOLD_LEVEL 0x20a40f18 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_DEPTH          0x20a40f1c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX12_AV_THRESHOLDS         0x20a40f20 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_WRITE_PTR      0x20a40f24 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_READ_PTR       0x20a40f28 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_BASE_PTR       0x20a40f2c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_END_PTR        0x20a40f30 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_VALID_PTR      0x20a40f34 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_WRAPAROUND_PTR 0x20a40f38 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_THRESHOLD_LEVEL 0x20a40f3c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_DEPTH          0x20a40f40 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX12_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a40f44 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX12_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a40f48 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX12_REC_MISC_CONFIG       0x20a40f4c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_A        0x20a40f50 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_B        0x20a40f54 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_C        0x20a40f58 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_D        0x20a40f5c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_E        0x20a40f60 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_F        0x20a40f64 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_G        0x20a40f68 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX12_REC_SCD_PIDS_H        0x20a40f6c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG1       0x20a40f70 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG2       0x20a40f74 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG3       0x20a40f78 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX12_AV_INTERRUPT_ENABLES  0x20a40f7c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX12_AV_COMP1_CONTROL      0x20a40f80 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX12_AV_COMP1_COMPARE_VAL  0x20a40f84 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP1_MASK_VAL     0x20a40f88 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP1_FILTER_VAL   0x20a40f8c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP1_FILTER_MASK_VAL 0x20a40f90 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP2_CONTROL      0x20a40f94 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX12_AV_COMP2_COMPARE_VAL  0x20a40f98 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP2_MASK_VAL     0x20a40f9c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP2_FILTER_VAL   0x20a40fa0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP2_FILTER_MASK_VAL 0x20a40fa4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_COMP12_FILTER_MODE 0x20a40fa8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX12_AV_PID_STREAM_ID      0x20a40fac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX12_REC_CTRL1             0x20a40fb0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX12_REC_INIT_TS           0x20a40fb4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX12_REC_TS_CTRL           0x20a40fb8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX12_REC_TIME_CONFIG       0x20a40fbc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG4       0x20a40fc0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX12_PIC_CTR               0x20a40fc4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX12_PIC_CTR_MODE          0x20a40fc8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX12_REC_TIMER             0x20a40fcc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX12_REC_STATE0            0x20a40fd0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX12_REC_STATE1            0x20a40fd4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX12_REC_STATE2            0x20a40fd8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX12_REC_STATE2b           0x20a40fdc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX12_REC_STATE3            0x20a40fe0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX12_REC_COUNT             0x20a40fe4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX12_PIC_INC_DEC_CTRL      0x20a40fe8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX12_SC                    0x20a40fec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX12_AV_MISC_CONFIG5       0x20a40ff0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX12_RAVE_FW_MISC_STATUS1  0x20a40ff4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX12_RAVE_Reg_2            0x20a40ff8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_RAVE_Reg_3            0x20a40ffc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_CONFIG      0x20a41000 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41004 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41008 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_PCR         0x20a4100c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_ATS         0x20a41010 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_ADJ_ATS     0x20a41014 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_NEXT_PKT_ATS 0x20a41018 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX12_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4101c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX12_RAVE_Reg_4            0x20a41020 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX12_RAVE_Reg_5            0x20a41024 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_0 0x20a41028 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_1 0x20a4102c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_2 0x20a41030 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_3 0x20a41034 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_4 0x20a41038 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX12_Record_reserved_reg_5 0x20a4103c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_WRITE_PTR      0x20a41040 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_READ_PTR       0x20a41044 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_BASE_PTR       0x20a41048 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_END_PTR        0x20a4104c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_VALID_PTR      0x20a41050 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_WRAPAROUND_PTR 0x20a41054 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_THRESHOLD_LEVEL 0x20a41058 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_DEPTH          0x20a4105c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX13_AV_THRESHOLDS         0x20a41060 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_WRITE_PTR      0x20a41064 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_READ_PTR       0x20a41068 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_BASE_PTR       0x20a4106c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_END_PTR        0x20a41070 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_VALID_PTR      0x20a41074 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_WRAPAROUND_PTR 0x20a41078 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_THRESHOLD_LEVEL 0x20a4107c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_DEPTH          0x20a41080 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX13_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41084 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX13_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41088 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX13_REC_MISC_CONFIG       0x20a4108c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_A        0x20a41090 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_B        0x20a41094 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_C        0x20a41098 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_D        0x20a4109c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_E        0x20a410a0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_F        0x20a410a4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_G        0x20a410a8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX13_REC_SCD_PIDS_H        0x20a410ac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG1       0x20a410b0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG2       0x20a410b4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG3       0x20a410b8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX13_AV_INTERRUPT_ENABLES  0x20a410bc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX13_AV_COMP1_CONTROL      0x20a410c0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX13_AV_COMP1_COMPARE_VAL  0x20a410c4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP1_MASK_VAL     0x20a410c8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP1_FILTER_VAL   0x20a410cc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP1_FILTER_MASK_VAL 0x20a410d0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP2_CONTROL      0x20a410d4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX13_AV_COMP2_COMPARE_VAL  0x20a410d8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP2_MASK_VAL     0x20a410dc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP2_FILTER_VAL   0x20a410e0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP2_FILTER_MASK_VAL 0x20a410e4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_COMP12_FILTER_MODE 0x20a410e8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX13_AV_PID_STREAM_ID      0x20a410ec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX13_REC_CTRL1             0x20a410f0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX13_REC_INIT_TS           0x20a410f4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX13_REC_TS_CTRL           0x20a410f8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX13_REC_TIME_CONFIG       0x20a410fc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG4       0x20a41100 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX13_PIC_CTR               0x20a41104 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX13_PIC_CTR_MODE          0x20a41108 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX13_REC_TIMER             0x20a4110c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX13_REC_STATE0            0x20a41110 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX13_REC_STATE1            0x20a41114 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX13_REC_STATE2            0x20a41118 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX13_REC_STATE2b           0x20a4111c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX13_REC_STATE3            0x20a41120 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX13_REC_COUNT             0x20a41124 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX13_PIC_INC_DEC_CTRL      0x20a41128 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX13_SC                    0x20a4112c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX13_AV_MISC_CONFIG5       0x20a41130 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX13_RAVE_FW_MISC_STATUS1  0x20a41134 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX13_RAVE_Reg_2            0x20a41138 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_RAVE_Reg_3            0x20a4113c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_CONFIG      0x20a41140 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41144 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41148 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_PCR         0x20a4114c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_ATS         0x20a41150 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_ADJ_ATS     0x20a41154 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_NEXT_PKT_ATS 0x20a41158 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX13_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4115c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX13_RAVE_Reg_4            0x20a41160 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX13_RAVE_Reg_5            0x20a41164 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_0 0x20a41168 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_1 0x20a4116c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_2 0x20a41170 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_3 0x20a41174 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_4 0x20a41178 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX13_Record_reserved_reg_5 0x20a4117c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_WRITE_PTR      0x20a41180 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_READ_PTR       0x20a41184 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_BASE_PTR       0x20a41188 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_END_PTR        0x20a4118c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_VALID_PTR      0x20a41190 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_WRAPAROUND_PTR 0x20a41194 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_THRESHOLD_LEVEL 0x20a41198 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_DEPTH          0x20a4119c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX14_AV_THRESHOLDS         0x20a411a0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_WRITE_PTR      0x20a411a4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_READ_PTR       0x20a411a8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_BASE_PTR       0x20a411ac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_END_PTR        0x20a411b0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_VALID_PTR      0x20a411b4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_WRAPAROUND_PTR 0x20a411b8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_THRESHOLD_LEVEL 0x20a411bc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_DEPTH          0x20a411c0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX14_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a411c4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX14_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a411c8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX14_REC_MISC_CONFIG       0x20a411cc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_A        0x20a411d0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_B        0x20a411d4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_C        0x20a411d8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_D        0x20a411dc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_E        0x20a411e0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_F        0x20a411e4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_G        0x20a411e8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX14_REC_SCD_PIDS_H        0x20a411ec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG1       0x20a411f0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG2       0x20a411f4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG3       0x20a411f8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX14_AV_INTERRUPT_ENABLES  0x20a411fc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX14_AV_COMP1_CONTROL      0x20a41200 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX14_AV_COMP1_COMPARE_VAL  0x20a41204 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP1_MASK_VAL     0x20a41208 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP1_FILTER_VAL   0x20a4120c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP1_FILTER_MASK_VAL 0x20a41210 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP2_CONTROL      0x20a41214 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX14_AV_COMP2_COMPARE_VAL  0x20a41218 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP2_MASK_VAL     0x20a4121c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP2_FILTER_VAL   0x20a41220 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP2_FILTER_MASK_VAL 0x20a41224 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_COMP12_FILTER_MODE 0x20a41228 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX14_AV_PID_STREAM_ID      0x20a4122c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX14_REC_CTRL1             0x20a41230 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX14_REC_INIT_TS           0x20a41234 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX14_REC_TS_CTRL           0x20a41238 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX14_REC_TIME_CONFIG       0x20a4123c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG4       0x20a41240 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX14_PIC_CTR               0x20a41244 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX14_PIC_CTR_MODE          0x20a41248 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX14_REC_TIMER             0x20a4124c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX14_REC_STATE0            0x20a41250 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX14_REC_STATE1            0x20a41254 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX14_REC_STATE2            0x20a41258 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX14_REC_STATE2b           0x20a4125c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX14_REC_STATE3            0x20a41260 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX14_REC_COUNT             0x20a41264 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX14_PIC_INC_DEC_CTRL      0x20a41268 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX14_SC                    0x20a4126c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX14_AV_MISC_CONFIG5       0x20a41270 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX14_RAVE_FW_MISC_STATUS1  0x20a41274 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX14_RAVE_Reg_2            0x20a41278 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_RAVE_Reg_3            0x20a4127c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_CONFIG      0x20a41280 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41284 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41288 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_PCR         0x20a4128c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_ATS         0x20a41290 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_ADJ_ATS     0x20a41294 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_NEXT_PKT_ATS 0x20a41298 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX14_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4129c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX14_RAVE_Reg_4            0x20a412a0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX14_RAVE_Reg_5            0x20a412a4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_0 0x20a412a8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_1 0x20a412ac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_2 0x20a412b0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_3 0x20a412b4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_4 0x20a412b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX14_Record_reserved_reg_5 0x20a412bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_WRITE_PTR      0x20a412c0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_READ_PTR       0x20a412c4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_BASE_PTR       0x20a412c8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_END_PTR        0x20a412cc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_VALID_PTR      0x20a412d0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_WRAPAROUND_PTR 0x20a412d4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_THRESHOLD_LEVEL 0x20a412d8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_DEPTH          0x20a412dc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX15_AV_THRESHOLDS         0x20a412e0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_WRITE_PTR      0x20a412e4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_READ_PTR       0x20a412e8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_BASE_PTR       0x20a412ec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_END_PTR        0x20a412f0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_VALID_PTR      0x20a412f4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_WRAPAROUND_PTR 0x20a412f8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_THRESHOLD_LEVEL 0x20a412fc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_DEPTH          0x20a41300 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX15_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41304 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX15_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41308 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX15_REC_MISC_CONFIG       0x20a4130c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_A        0x20a41310 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_B        0x20a41314 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_C        0x20a41318 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_D        0x20a4131c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_E        0x20a41320 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_F        0x20a41324 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_G        0x20a41328 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX15_REC_SCD_PIDS_H        0x20a4132c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG1       0x20a41330 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG2       0x20a41334 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG3       0x20a41338 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX15_AV_INTERRUPT_ENABLES  0x20a4133c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX15_AV_COMP1_CONTROL      0x20a41340 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX15_AV_COMP1_COMPARE_VAL  0x20a41344 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP1_MASK_VAL     0x20a41348 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP1_FILTER_VAL   0x20a4134c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP1_FILTER_MASK_VAL 0x20a41350 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP2_CONTROL      0x20a41354 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX15_AV_COMP2_COMPARE_VAL  0x20a41358 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP2_MASK_VAL     0x20a4135c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP2_FILTER_VAL   0x20a41360 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP2_FILTER_MASK_VAL 0x20a41364 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_COMP12_FILTER_MODE 0x20a41368 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX15_AV_PID_STREAM_ID      0x20a4136c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX15_REC_CTRL1             0x20a41370 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX15_REC_INIT_TS           0x20a41374 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX15_REC_TS_CTRL           0x20a41378 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX15_REC_TIME_CONFIG       0x20a4137c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG4       0x20a41380 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX15_PIC_CTR               0x20a41384 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX15_PIC_CTR_MODE          0x20a41388 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX15_REC_TIMER             0x20a4138c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX15_REC_STATE0            0x20a41390 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX15_REC_STATE1            0x20a41394 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX15_REC_STATE2            0x20a41398 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX15_REC_STATE2b           0x20a4139c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX15_REC_STATE3            0x20a413a0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX15_REC_COUNT             0x20a413a4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX15_PIC_INC_DEC_CTRL      0x20a413a8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX15_SC                    0x20a413ac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX15_AV_MISC_CONFIG5       0x20a413b0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX15_RAVE_FW_MISC_STATUS1  0x20a413b4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX15_RAVE_Reg_2            0x20a413b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_RAVE_Reg_3            0x20a413bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_CONFIG      0x20a413c0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_OFFSET_MAGNITUDE 0x20a413c4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_OFFSET_SIGN_BIT 0x20a413c8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_PCR         0x20a413cc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_ATS         0x20a413d0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_ADJ_ATS     0x20a413d4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_NEXT_PKT_ATS 0x20a413d8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX15_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a413dc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX15_RAVE_Reg_4            0x20a413e0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX15_RAVE_Reg_5            0x20a413e4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_0 0x20a413e8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_1 0x20a413ec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_2 0x20a413f0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_3 0x20a413f4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_4 0x20a413f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX15_Record_reserved_reg_5 0x20a413fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_WRITE_PTR      0x20a41400 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_READ_PTR       0x20a41404 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_BASE_PTR       0x20a41408 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_END_PTR        0x20a4140c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_VALID_PTR      0x20a41410 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_WRAPAROUND_PTR 0x20a41414 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_THRESHOLD_LEVEL 0x20a41418 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_DEPTH          0x20a4141c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX16_AV_THRESHOLDS         0x20a41420 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_WRITE_PTR      0x20a41424 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_READ_PTR       0x20a41428 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_BASE_PTR       0x20a4142c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_END_PTR        0x20a41430 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_VALID_PTR      0x20a41434 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_WRAPAROUND_PTR 0x20a41438 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_THRESHOLD_LEVEL 0x20a4143c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_DEPTH          0x20a41440 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX16_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41444 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX16_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41448 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX16_REC_MISC_CONFIG       0x20a4144c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_A        0x20a41450 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_B        0x20a41454 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_C        0x20a41458 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_D        0x20a4145c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_E        0x20a41460 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_F        0x20a41464 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_G        0x20a41468 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX16_REC_SCD_PIDS_H        0x20a4146c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG1       0x20a41470 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG2       0x20a41474 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG3       0x20a41478 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX16_AV_INTERRUPT_ENABLES  0x20a4147c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX16_AV_COMP1_CONTROL      0x20a41480 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX16_AV_COMP1_COMPARE_VAL  0x20a41484 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP1_MASK_VAL     0x20a41488 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP1_FILTER_VAL   0x20a4148c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP1_FILTER_MASK_VAL 0x20a41490 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP2_CONTROL      0x20a41494 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX16_AV_COMP2_COMPARE_VAL  0x20a41498 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP2_MASK_VAL     0x20a4149c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP2_FILTER_VAL   0x20a414a0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP2_FILTER_MASK_VAL 0x20a414a4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_COMP12_FILTER_MODE 0x20a414a8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX16_AV_PID_STREAM_ID      0x20a414ac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX16_REC_CTRL1             0x20a414b0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX16_REC_INIT_TS           0x20a414b4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX16_REC_TS_CTRL           0x20a414b8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX16_REC_TIME_CONFIG       0x20a414bc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG4       0x20a414c0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX16_PIC_CTR               0x20a414c4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX16_PIC_CTR_MODE          0x20a414c8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX16_REC_TIMER             0x20a414cc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX16_REC_STATE0            0x20a414d0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX16_REC_STATE1            0x20a414d4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX16_REC_STATE2            0x20a414d8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX16_REC_STATE2b           0x20a414dc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX16_REC_STATE3            0x20a414e0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX16_REC_COUNT             0x20a414e4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX16_PIC_INC_DEC_CTRL      0x20a414e8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX16_SC                    0x20a414ec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX16_AV_MISC_CONFIG5       0x20a414f0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX16_RAVE_FW_MISC_STATUS1  0x20a414f4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX16_RAVE_Reg_2            0x20a414f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_RAVE_Reg_3            0x20a414fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_CONFIG      0x20a41500 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41504 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41508 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_PCR         0x20a4150c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_ATS         0x20a41510 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_ADJ_ATS     0x20a41514 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_NEXT_PKT_ATS 0x20a41518 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX16_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4151c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX16_RAVE_Reg_4            0x20a41520 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX16_RAVE_Reg_5            0x20a41524 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_0 0x20a41528 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_1 0x20a4152c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_2 0x20a41530 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_3 0x20a41534 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_4 0x20a41538 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX16_Record_reserved_reg_5 0x20a4153c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_WRITE_PTR      0x20a41540 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_READ_PTR       0x20a41544 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_BASE_PTR       0x20a41548 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_END_PTR        0x20a4154c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_VALID_PTR      0x20a41550 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_WRAPAROUND_PTR 0x20a41554 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_THRESHOLD_LEVEL 0x20a41558 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_DEPTH          0x20a4155c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX17_AV_THRESHOLDS         0x20a41560 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_WRITE_PTR      0x20a41564 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_READ_PTR       0x20a41568 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_BASE_PTR       0x20a4156c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_END_PTR        0x20a41570 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_VALID_PTR      0x20a41574 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_WRAPAROUND_PTR 0x20a41578 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_THRESHOLD_LEVEL 0x20a4157c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_DEPTH          0x20a41580 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX17_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41584 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX17_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41588 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX17_REC_MISC_CONFIG       0x20a4158c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_A        0x20a41590 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_B        0x20a41594 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_C        0x20a41598 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_D        0x20a4159c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_E        0x20a415a0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_F        0x20a415a4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_G        0x20a415a8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX17_REC_SCD_PIDS_H        0x20a415ac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG1       0x20a415b0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG2       0x20a415b4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG3       0x20a415b8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX17_AV_INTERRUPT_ENABLES  0x20a415bc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX17_AV_COMP1_CONTROL      0x20a415c0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX17_AV_COMP1_COMPARE_VAL  0x20a415c4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP1_MASK_VAL     0x20a415c8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP1_FILTER_VAL   0x20a415cc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP1_FILTER_MASK_VAL 0x20a415d0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP2_CONTROL      0x20a415d4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX17_AV_COMP2_COMPARE_VAL  0x20a415d8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP2_MASK_VAL     0x20a415dc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP2_FILTER_VAL   0x20a415e0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP2_FILTER_MASK_VAL 0x20a415e4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_COMP12_FILTER_MODE 0x20a415e8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX17_AV_PID_STREAM_ID      0x20a415ec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX17_REC_CTRL1             0x20a415f0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX17_REC_INIT_TS           0x20a415f4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX17_REC_TS_CTRL           0x20a415f8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX17_REC_TIME_CONFIG       0x20a415fc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG4       0x20a41600 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX17_PIC_CTR               0x20a41604 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX17_PIC_CTR_MODE          0x20a41608 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX17_REC_TIMER             0x20a4160c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX17_REC_STATE0            0x20a41610 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX17_REC_STATE1            0x20a41614 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX17_REC_STATE2            0x20a41618 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX17_REC_STATE2b           0x20a4161c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX17_REC_STATE3            0x20a41620 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX17_REC_COUNT             0x20a41624 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX17_PIC_INC_DEC_CTRL      0x20a41628 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX17_SC                    0x20a4162c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX17_AV_MISC_CONFIG5       0x20a41630 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX17_RAVE_FW_MISC_STATUS1  0x20a41634 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX17_RAVE_Reg_2            0x20a41638 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_RAVE_Reg_3            0x20a4163c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_CONFIG      0x20a41640 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41644 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41648 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_PCR         0x20a4164c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_ATS         0x20a41650 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_ADJ_ATS     0x20a41654 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_NEXT_PKT_ATS 0x20a41658 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX17_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4165c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX17_RAVE_Reg_4            0x20a41660 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX17_RAVE_Reg_5            0x20a41664 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_0 0x20a41668 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_1 0x20a4166c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_2 0x20a41670 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_3 0x20a41674 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_4 0x20a41678 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX17_Record_reserved_reg_5 0x20a4167c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_WRITE_PTR      0x20a41680 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_READ_PTR       0x20a41684 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_BASE_PTR       0x20a41688 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_END_PTR        0x20a4168c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_VALID_PTR      0x20a41690 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_WRAPAROUND_PTR 0x20a41694 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_THRESHOLD_LEVEL 0x20a41698 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_DEPTH          0x20a4169c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX18_AV_THRESHOLDS         0x20a416a0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_WRITE_PTR      0x20a416a4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_READ_PTR       0x20a416a8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_BASE_PTR       0x20a416ac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_END_PTR        0x20a416b0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_VALID_PTR      0x20a416b4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_WRAPAROUND_PTR 0x20a416b8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_THRESHOLD_LEVEL 0x20a416bc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_DEPTH          0x20a416c0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX18_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a416c4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX18_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a416c8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX18_REC_MISC_CONFIG       0x20a416cc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_A        0x20a416d0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_B        0x20a416d4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_C        0x20a416d8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_D        0x20a416dc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_E        0x20a416e0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_F        0x20a416e4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_G        0x20a416e8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX18_REC_SCD_PIDS_H        0x20a416ec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG1       0x20a416f0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG2       0x20a416f4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG3       0x20a416f8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX18_AV_INTERRUPT_ENABLES  0x20a416fc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX18_AV_COMP1_CONTROL      0x20a41700 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX18_AV_COMP1_COMPARE_VAL  0x20a41704 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP1_MASK_VAL     0x20a41708 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP1_FILTER_VAL   0x20a4170c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP1_FILTER_MASK_VAL 0x20a41710 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP2_CONTROL      0x20a41714 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX18_AV_COMP2_COMPARE_VAL  0x20a41718 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP2_MASK_VAL     0x20a4171c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP2_FILTER_VAL   0x20a41720 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP2_FILTER_MASK_VAL 0x20a41724 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_COMP12_FILTER_MODE 0x20a41728 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX18_AV_PID_STREAM_ID      0x20a4172c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX18_REC_CTRL1             0x20a41730 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX18_REC_INIT_TS           0x20a41734 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX18_REC_TS_CTRL           0x20a41738 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX18_REC_TIME_CONFIG       0x20a4173c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG4       0x20a41740 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX18_PIC_CTR               0x20a41744 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX18_PIC_CTR_MODE          0x20a41748 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX18_REC_TIMER             0x20a4174c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX18_REC_STATE0            0x20a41750 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX18_REC_STATE1            0x20a41754 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX18_REC_STATE2            0x20a41758 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX18_REC_STATE2b           0x20a4175c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX18_REC_STATE3            0x20a41760 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX18_REC_COUNT             0x20a41764 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX18_PIC_INC_DEC_CTRL      0x20a41768 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX18_SC                    0x20a4176c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX18_AV_MISC_CONFIG5       0x20a41770 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX18_RAVE_FW_MISC_STATUS1  0x20a41774 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX18_RAVE_Reg_2            0x20a41778 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_RAVE_Reg_3            0x20a4177c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_CONFIG      0x20a41780 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41784 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41788 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_PCR         0x20a4178c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_ATS         0x20a41790 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_ADJ_ATS     0x20a41794 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_NEXT_PKT_ATS 0x20a41798 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX18_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a4179c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX18_RAVE_Reg_4            0x20a417a0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX18_RAVE_Reg_5            0x20a417a4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_0 0x20a417a8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_1 0x20a417ac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_2 0x20a417b0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_3 0x20a417b4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_4 0x20a417b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX18_Record_reserved_reg_5 0x20a417bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_WRITE_PTR      0x20a417c0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_READ_PTR       0x20a417c4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_BASE_PTR       0x20a417c8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_END_PTR        0x20a417cc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_VALID_PTR      0x20a417d0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_WRAPAROUND_PTR 0x20a417d4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_THRESHOLD_LEVEL 0x20a417d8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_DEPTH          0x20a417dc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX19_AV_THRESHOLDS         0x20a417e0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_WRITE_PTR      0x20a417e4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_READ_PTR       0x20a417e8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_BASE_PTR       0x20a417ec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_END_PTR        0x20a417f0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_VALID_PTR      0x20a417f4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_WRAPAROUND_PTR 0x20a417f8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_THRESHOLD_LEVEL 0x20a417fc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_DEPTH          0x20a41800 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX19_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41804 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX19_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41808 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX19_REC_MISC_CONFIG       0x20a4180c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_A        0x20a41810 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_B        0x20a41814 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_C        0x20a41818 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_D        0x20a4181c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_E        0x20a41820 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_F        0x20a41824 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_G        0x20a41828 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX19_REC_SCD_PIDS_H        0x20a4182c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG1       0x20a41830 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG2       0x20a41834 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG3       0x20a41838 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX19_AV_INTERRUPT_ENABLES  0x20a4183c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX19_AV_COMP1_CONTROL      0x20a41840 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX19_AV_COMP1_COMPARE_VAL  0x20a41844 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP1_MASK_VAL     0x20a41848 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP1_FILTER_VAL   0x20a4184c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP1_FILTER_MASK_VAL 0x20a41850 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP2_CONTROL      0x20a41854 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX19_AV_COMP2_COMPARE_VAL  0x20a41858 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP2_MASK_VAL     0x20a4185c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP2_FILTER_VAL   0x20a41860 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP2_FILTER_MASK_VAL 0x20a41864 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_COMP12_FILTER_MODE 0x20a41868 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX19_AV_PID_STREAM_ID      0x20a4186c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX19_REC_CTRL1             0x20a41870 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX19_REC_INIT_TS           0x20a41874 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX19_REC_TS_CTRL           0x20a41878 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX19_REC_TIME_CONFIG       0x20a4187c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG4       0x20a41880 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX19_PIC_CTR               0x20a41884 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX19_PIC_CTR_MODE          0x20a41888 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX19_REC_TIMER             0x20a4188c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX19_REC_STATE0            0x20a41890 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX19_REC_STATE1            0x20a41894 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX19_REC_STATE2            0x20a41898 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX19_REC_STATE2b           0x20a4189c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX19_REC_STATE3            0x20a418a0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX19_REC_COUNT             0x20a418a4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX19_PIC_INC_DEC_CTRL      0x20a418a8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX19_SC                    0x20a418ac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX19_AV_MISC_CONFIG5       0x20a418b0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX19_RAVE_FW_MISC_STATUS1  0x20a418b4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX19_RAVE_Reg_2            0x20a418b8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_RAVE_Reg_3            0x20a418bc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_CONFIG      0x20a418c0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_OFFSET_MAGNITUDE 0x20a418c4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_OFFSET_SIGN_BIT 0x20a418c8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_PCR         0x20a418cc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_ATS         0x20a418d0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_ADJ_ATS     0x20a418d4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_NEXT_PKT_ATS 0x20a418d8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX19_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a418dc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX19_RAVE_Reg_4            0x20a418e0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX19_RAVE_Reg_5            0x20a418e4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_0 0x20a418e8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_1 0x20a418ec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_2 0x20a418f0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_3 0x20a418f4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_4 0x20a418f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX19_Record_reserved_reg_5 0x20a418fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_WRITE_PTR      0x20a41900 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_READ_PTR       0x20a41904 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_BASE_PTR       0x20a41908 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_END_PTR        0x20a4190c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_VALID_PTR      0x20a41910 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_WRAPAROUND_PTR 0x20a41914 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_THRESHOLD_LEVEL 0x20a41918 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_DEPTH          0x20a4191c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX20_AV_THRESHOLDS         0x20a41920 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_WRITE_PTR      0x20a41924 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_READ_PTR       0x20a41928 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_BASE_PTR       0x20a4192c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_END_PTR        0x20a41930 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_VALID_PTR      0x20a41934 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_WRAPAROUND_PTR 0x20a41938 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_THRESHOLD_LEVEL 0x20a4193c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_DEPTH          0x20a41940 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX20_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41944 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX20_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41948 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX20_REC_MISC_CONFIG       0x20a4194c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_A        0x20a41950 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_B        0x20a41954 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_C        0x20a41958 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_D        0x20a4195c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_E        0x20a41960 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_F        0x20a41964 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_G        0x20a41968 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX20_REC_SCD_PIDS_H        0x20a4196c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG1       0x20a41970 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG2       0x20a41974 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG3       0x20a41978 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX20_AV_INTERRUPT_ENABLES  0x20a4197c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX20_AV_COMP1_CONTROL      0x20a41980 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX20_AV_COMP1_COMPARE_VAL  0x20a41984 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP1_MASK_VAL     0x20a41988 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP1_FILTER_VAL   0x20a4198c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP1_FILTER_MASK_VAL 0x20a41990 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP2_CONTROL      0x20a41994 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX20_AV_COMP2_COMPARE_VAL  0x20a41998 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP2_MASK_VAL     0x20a4199c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP2_FILTER_VAL   0x20a419a0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP2_FILTER_MASK_VAL 0x20a419a4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_COMP12_FILTER_MODE 0x20a419a8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX20_AV_PID_STREAM_ID      0x20a419ac /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX20_REC_CTRL1             0x20a419b0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX20_REC_INIT_TS           0x20a419b4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX20_REC_TS_CTRL           0x20a419b8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX20_REC_TIME_CONFIG       0x20a419bc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG4       0x20a419c0 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX20_PIC_CTR               0x20a419c4 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX20_PIC_CTR_MODE          0x20a419c8 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX20_REC_TIMER             0x20a419cc /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX20_REC_STATE0            0x20a419d0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX20_REC_STATE1            0x20a419d4 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX20_REC_STATE2            0x20a419d8 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX20_REC_STATE2b           0x20a419dc /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX20_REC_STATE3            0x20a419e0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX20_REC_COUNT             0x20a419e4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX20_PIC_INC_DEC_CTRL      0x20a419e8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX20_SC                    0x20a419ec /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX20_AV_MISC_CONFIG5       0x20a419f0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX20_RAVE_FW_MISC_STATUS1  0x20a419f4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX20_RAVE_Reg_2            0x20a419f8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_RAVE_Reg_3            0x20a419fc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_CONFIG      0x20a41a00 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41a04 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41a08 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_PCR         0x20a41a0c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_ATS         0x20a41a10 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_ADJ_ATS     0x20a41a14 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_NEXT_PKT_ATS 0x20a41a18 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX20_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41a1c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX20_RAVE_Reg_4            0x20a41a20 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX20_RAVE_Reg_5            0x20a41a24 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_0 0x20a41a28 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_1 0x20a41a2c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_2 0x20a41a30 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_3 0x20a41a34 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_4 0x20a41a38 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX20_Record_reserved_reg_5 0x20a41a3c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_WRITE_PTR      0x20a41a40 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_READ_PTR       0x20a41a44 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_BASE_PTR       0x20a41a48 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_END_PTR        0x20a41a4c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_VALID_PTR      0x20a41a50 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_WRAPAROUND_PTR 0x20a41a54 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_THRESHOLD_LEVEL 0x20a41a58 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_DEPTH          0x20a41a5c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX21_AV_THRESHOLDS         0x20a41a60 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_WRITE_PTR      0x20a41a64 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_READ_PTR       0x20a41a68 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_BASE_PTR       0x20a41a6c /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_END_PTR        0x20a41a70 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_VALID_PTR      0x20a41a74 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_WRAPAROUND_PTR 0x20a41a78 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_THRESHOLD_LEVEL 0x20a41a7c /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_DEPTH          0x20a41a80 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX21_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41a84 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX21_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41a88 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX21_REC_MISC_CONFIG       0x20a41a8c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_A        0x20a41a90 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_B        0x20a41a94 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_C        0x20a41a98 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_D        0x20a41a9c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_E        0x20a41aa0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_F        0x20a41aa4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_G        0x20a41aa8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX21_REC_SCD_PIDS_H        0x20a41aac /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG1       0x20a41ab0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG2       0x20a41ab4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG3       0x20a41ab8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX21_AV_INTERRUPT_ENABLES  0x20a41abc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX21_AV_COMP1_CONTROL      0x20a41ac0 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX21_AV_COMP1_COMPARE_VAL  0x20a41ac4 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP1_MASK_VAL     0x20a41ac8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP1_FILTER_VAL   0x20a41acc /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP1_FILTER_MASK_VAL 0x20a41ad0 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP2_CONTROL      0x20a41ad4 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX21_AV_COMP2_COMPARE_VAL  0x20a41ad8 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP2_MASK_VAL     0x20a41adc /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP2_FILTER_VAL   0x20a41ae0 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP2_FILTER_MASK_VAL 0x20a41ae4 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_COMP12_FILTER_MODE 0x20a41ae8 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX21_AV_PID_STREAM_ID      0x20a41aec /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX21_REC_CTRL1             0x20a41af0 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX21_REC_INIT_TS           0x20a41af4 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX21_REC_TS_CTRL           0x20a41af8 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX21_REC_TIME_CONFIG       0x20a41afc /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG4       0x20a41b00 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX21_PIC_CTR               0x20a41b04 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX21_PIC_CTR_MODE          0x20a41b08 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX21_REC_TIMER             0x20a41b0c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX21_REC_STATE0            0x20a41b10 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX21_REC_STATE1            0x20a41b14 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX21_REC_STATE2            0x20a41b18 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX21_REC_STATE2b           0x20a41b1c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX21_REC_STATE3            0x20a41b20 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX21_REC_COUNT             0x20a41b24 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX21_PIC_INC_DEC_CTRL      0x20a41b28 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX21_SC                    0x20a41b2c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX21_AV_MISC_CONFIG5       0x20a41b30 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX21_RAVE_FW_MISC_STATUS1  0x20a41b34 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX21_RAVE_Reg_2            0x20a41b38 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_RAVE_Reg_3            0x20a41b3c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_CONFIG      0x20a41b40 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41b44 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41b48 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_PCR         0x20a41b4c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_ATS         0x20a41b50 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_ADJ_ATS     0x20a41b54 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_NEXT_PKT_ATS 0x20a41b58 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX21_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41b5c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX21_RAVE_Reg_4            0x20a41b60 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX21_RAVE_Reg_5            0x20a41b64 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_0 0x20a41b68 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_1 0x20a41b6c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_2 0x20a41b70 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_3 0x20a41b74 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_4 0x20a41b78 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX21_Record_reserved_reg_5 0x20a41b7c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_WRITE_PTR      0x20a41b80 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_READ_PTR       0x20a41b84 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_BASE_PTR       0x20a41b88 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_END_PTR        0x20a41b8c /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_VALID_PTR      0x20a41b90 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_WRAPAROUND_PTR 0x20a41b94 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_THRESHOLD_LEVEL 0x20a41b98 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_DEPTH          0x20a41b9c /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX22_AV_THRESHOLDS         0x20a41ba0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_WRITE_PTR      0x20a41ba4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_READ_PTR       0x20a41ba8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_BASE_PTR       0x20a41bac /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_END_PTR        0x20a41bb0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_VALID_PTR      0x20a41bb4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_WRAPAROUND_PTR 0x20a41bb8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_THRESHOLD_LEVEL 0x20a41bbc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_DEPTH          0x20a41bc0 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX22_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41bc4 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX22_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41bc8 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX22_REC_MISC_CONFIG       0x20a41bcc /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_A        0x20a41bd0 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_B        0x20a41bd4 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_C        0x20a41bd8 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_D        0x20a41bdc /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_E        0x20a41be0 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_F        0x20a41be4 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_G        0x20a41be8 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX22_REC_SCD_PIDS_H        0x20a41bec /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG1       0x20a41bf0 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG2       0x20a41bf4 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG3       0x20a41bf8 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX22_AV_INTERRUPT_ENABLES  0x20a41bfc /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX22_AV_COMP1_CONTROL      0x20a41c00 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX22_AV_COMP1_COMPARE_VAL  0x20a41c04 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP1_MASK_VAL     0x20a41c08 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP1_FILTER_VAL   0x20a41c0c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP1_FILTER_MASK_VAL 0x20a41c10 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP2_CONTROL      0x20a41c14 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX22_AV_COMP2_COMPARE_VAL  0x20a41c18 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP2_MASK_VAL     0x20a41c1c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP2_FILTER_VAL   0x20a41c20 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP2_FILTER_MASK_VAL 0x20a41c24 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_COMP12_FILTER_MODE 0x20a41c28 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX22_AV_PID_STREAM_ID      0x20a41c2c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX22_REC_CTRL1             0x20a41c30 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX22_REC_INIT_TS           0x20a41c34 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX22_REC_TS_CTRL           0x20a41c38 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX22_REC_TIME_CONFIG       0x20a41c3c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG4       0x20a41c40 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX22_PIC_CTR               0x20a41c44 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX22_PIC_CTR_MODE          0x20a41c48 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX22_REC_TIMER             0x20a41c4c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX22_REC_STATE0            0x20a41c50 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX22_REC_STATE1            0x20a41c54 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX22_REC_STATE2            0x20a41c58 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX22_REC_STATE2b           0x20a41c5c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX22_REC_STATE3            0x20a41c60 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX22_REC_COUNT             0x20a41c64 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX22_PIC_INC_DEC_CTRL      0x20a41c68 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX22_SC                    0x20a41c6c /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX22_AV_MISC_CONFIG5       0x20a41c70 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX22_RAVE_FW_MISC_STATUS1  0x20a41c74 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX22_RAVE_Reg_2            0x20a41c78 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_RAVE_Reg_3            0x20a41c7c /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_CONFIG      0x20a41c80 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41c84 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41c88 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_PCR         0x20a41c8c /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_ATS         0x20a41c90 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_ADJ_ATS     0x20a41c94 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_NEXT_PKT_ATS 0x20a41c98 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX22_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41c9c /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX22_RAVE_Reg_4            0x20a41ca0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX22_RAVE_Reg_5            0x20a41ca4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_0 0x20a41ca8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_1 0x20a41cac /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_2 0x20a41cb0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_3 0x20a41cb4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_4 0x20a41cb8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX22_Record_reserved_reg_5 0x20a41cbc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_WRITE_PTR      0x20a41cc0 /* [RW][32] Context CDB Write Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_READ_PTR       0x20a41cc4 /* [RW][32] Context CDB Read Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_BASE_PTR       0x20a41cc8 /* [RW][32] Context CDB Base Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_END_PTR        0x20a41ccc /* [RW][32] Context CDB End Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_VALID_PTR      0x20a41cd0 /* [RW][32] Context CDB Valid Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_WRAPAROUND_PTR 0x20a41cd4 /* [RW][32] Context CDB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_THRESHOLD_LEVEL 0x20a41cd8 /* [RW][32] Context CDB Watermark Level */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_DEPTH          0x20a41cdc /* [RW][32] Context CDB Depth */
+#define BCHP_XPT_RAVE_CX23_AV_THRESHOLDS         0x20a41ce0 /* [RW][32] Context Thresholds */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_WRITE_PTR      0x20a41ce4 /* [RW][32] Context ITB Write Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_READ_PTR       0x20a41ce8 /* [RW][32] Context ITB Read Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_BASE_PTR       0x20a41cec /* [RW][32] Context ITB Base Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_END_PTR        0x20a41cf0 /* [RW][32] Context ITB End Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_VALID_PTR      0x20a41cf4 /* [RW][32] Context ITB Valid Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_WRAPAROUND_PTR 0x20a41cf8 /* [RW][32] Context ITB Wraparound Pointer */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_THRESHOLD_LEVEL 0x20a41cfc /* [RW][32] Context ITB Watermark Level */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_DEPTH          0x20a41d00 /* [RW][32] Context ITB Depth */
+#define BCHP_XPT_RAVE_CX23_AV_ITB_MIN_DEPTH_THRESHOLD 0x20a41d04 /* [RW][32] Context ITB min depth threshold */
+#define BCHP_XPT_RAVE_CX23_AV_CDB_MIN_DEPTH_THRESHOLD 0x20a41d08 /* [RW][32] Context CDB min depth threshold */
+#define BCHP_XPT_RAVE_CX23_REC_MISC_CONFIG       0x20a41d0c /* [RW][32] Miscellaneous Config */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_A        0x20a41d10 /* [RW][32] Context SCD map PIDS A */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_B        0x20a41d14 /* [RW][32] Context SCD map PIDS B */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_C        0x20a41d18 /* [RW][32] Context SCD map PIDS C */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_D        0x20a41d1c /* [RW][32] Context SCD map PIDS D */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_E        0x20a41d20 /* [RW][32] Context SCD map PIDS E */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_F        0x20a41d24 /* [RW][32] Context SCD map PIDS F */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_G        0x20a41d28 /* [RW][32] Context SCD map PIDS G */
+#define BCHP_XPT_RAVE_CX23_REC_SCD_PIDS_H        0x20a41d2c /* [RW][32] Context SCD map PIDS H */
+#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG1       0x20a41d30 /* [RW][32] Context Miscellaneous Config 1 Register */
+#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG2       0x20a41d34 /* [RW][32] Context Miscellaneous Config 2 Register */
+#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG3       0x20a41d38 /* [RW][32] Context Miscellaneous Config 3 Register */
+#define BCHP_XPT_RAVE_CX23_AV_INTERRUPT_ENABLES  0x20a41d3c /* [RW][32] Context Interrupt Enables */
+#define BCHP_XPT_RAVE_CX23_AV_COMP1_CONTROL      0x20a41d40 /* [RW][32] Context Comparator 1 Control Register */
+#define BCHP_XPT_RAVE_CX23_AV_COMP1_COMPARE_VAL  0x20a41d44 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP1_MASK_VAL     0x20a41d48 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP1_FILTER_VAL   0x20a41d4c /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP1_FILTER_MASK_VAL 0x20a41d50 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP2_CONTROL      0x20a41d54 /* [RW][32] Context Comparator 2 Control Register */
+#define BCHP_XPT_RAVE_CX23_AV_COMP2_COMPARE_VAL  0x20a41d58 /* [RW][32] Context Comparator 2 32-bit compare value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP2_MASK_VAL     0x20a41d5c /* [RW][32] Context Comparator 2 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP2_FILTER_VAL   0x20a41d60 /* [RW][32] Context Comparator 1 32-bit compare value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP2_FILTER_MASK_VAL 0x20a41d64 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_COMP12_FILTER_MODE 0x20a41d68 /* [RW][32] Context Comparator 1 32-bit mask value */
+#define BCHP_XPT_RAVE_CX23_AV_PID_STREAM_ID      0x20a41d6c /* [RW][32] Context PID and Stream ID Filter Value */
+#define BCHP_XPT_RAVE_CX23_REC_CTRL1             0x20a41d70 /* [RW][32] Record Control Register 1 */
+#define BCHP_XPT_RAVE_CX23_REC_INIT_TS           0x20a41d74 /* [RW][32] Record Initial Timestamp Value Register */
+#define BCHP_XPT_RAVE_CX23_REC_TS_CTRL           0x20a41d78 /* [RW][32] Record Timestamp Control Register */
+#define BCHP_XPT_RAVE_CX23_REC_TIME_CONFIG       0x20a41d7c /* [RW][32] Record Time Configuration Register */
+#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG4       0x20a41d80 /* [RW][32] Context Miscellaneous Config 4 Register */
+#define BCHP_XPT_RAVE_CX23_PIC_CTR               0x20a41d84 /* [RW][32] Picture Counter register */
+#define BCHP_XPT_RAVE_CX23_PIC_CTR_MODE          0x20a41d88 /* [RW][32] Picture Counter Mode Register */
+#define BCHP_XPT_RAVE_CX23_REC_TIMER             0x20a41d8c /* [RW][32] Record Timer Register */
+#define BCHP_XPT_RAVE_CX23_REC_STATE0            0x20a41d90 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX23_REC_STATE1            0x20a41d94 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX23_REC_STATE2            0x20a41d98 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX23_REC_STATE2b           0x20a41d9c /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX23_REC_STATE3            0x20a41da0 /* [RW][32] Record State Register */
+#define BCHP_XPT_RAVE_CX23_REC_COUNT             0x20a41da4 /* [RW][32] Record Packet Count Register */
+#define BCHP_XPT_RAVE_CX23_PIC_INC_DEC_CTRL      0x20a41da8 /* [RW][32] Picture Counter Increment/Decrement/Reset Control Register */
+#define BCHP_XPT_RAVE_CX23_SC                    0x20a41dac /* [RW][32] Scrambling Control Monitor Register */
+#define BCHP_XPT_RAVE_CX23_AV_MISC_CONFIG5       0x20a41db0 /* [RW][32] Context Miscellaneous Config 5 Register */
+#define BCHP_XPT_RAVE_CX23_RAVE_FW_MISC_STATUS1  0x20a41db4 /* [RW][32] Miscelleneous status register used by FW */
+#define BCHP_XPT_RAVE_CX23_RAVE_Reg_2            0x20a41db8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_RAVE_Reg_3            0x20a41dbc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_CONFIG      0x20a41dc0 /* [RW][32] Config register for ATS OFFSET feature */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_OFFSET_MAGNITUDE 0x20a41dc4 /* [RW][32] 32 bit magnitude of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_OFFSET_SIGN_BIT 0x20a41dc8 /* [RW][32] Sign bit of the 33 bit signed ATS offset */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_PCR         0x20a41dcc /* [RW][32] PCR value of the last PCR packet */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_ATS         0x20a41dd0 /* [RW][32] ATS of the last packet carrying PCR */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_ADJ_ATS     0x20a41dd4 /* [RW][32] Adjusted ATS of the last packet */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_NEXT_PKT_ATS 0x20a41dd8 /* [RW][32] ATS to be used for next packet in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX23_ATSOFFSET_PKT2PKT_ATS_DELTA 0x20a41ddc /* [RW][32] ATS delta to be used in Local Timestamp generation mode */
+#define BCHP_XPT_RAVE_CX23_RAVE_Reg_4            0x20a41de0 /* [RW][32] RAVE_Reg_4 used by FW */
+#define BCHP_XPT_RAVE_CX23_RAVE_Reg_5            0x20a41de4 /* [RW][32] RAVE_Reg_5 used by FW */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_0 0x20a41de8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_1 0x20a41dec /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_2 0x20a41df0 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_3 0x20a41df4 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_4 0x20a41df8 /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_CX23_Record_reserved_reg_5 0x20a41dfc /* [RW][32] Reserved Rave Register for future use */
+#define BCHP_XPT_RAVE_SCD0_SCD_MISC_CONFIG       0x20a41e00 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE0       0x20a41e04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE1       0x20a41e08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE2       0x20a41e0c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE3       0x20a41e10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE4       0x20a41e14 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE5       0x20a41e18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE6       0x20a41e1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE7       0x20a41e20 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE8       0x20a41e24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE9       0x20a41e28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE10      0x20a41e2c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE11      0x20a41e30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_EPBR_STATE_WORD       0x20a41e34 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE12      0x20a41e38 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE13      0x20a41e3c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE14      0x20a41e40 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE15      0x20a41e44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE16      0x20a41e48 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE17      0x20a41e4c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_COMP_STATE18      0x20a41e50 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_RESERVE_COMP_STATE3   0x20a41e54 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE0        0x20a41e58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE1        0x20a41e5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE2        0x20a41e60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_PES_STATE3        0x20a41e64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_PACKET_COUNT      0x20a41e68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_RESERVE_PES_STATE0    0x20a41e6c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE0            0x20a41e70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE1            0x20a41e74 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE2            0x20a41e78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE3            0x20a41e7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE4            0x20a41e80 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE5            0x20a41e84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE6            0x20a41e88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE7            0x20a41e8c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE8            0x20a41e90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE9            0x20a41e94 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE10           0x20a41e98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD0_SCD_STATE11           0x20a41e9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_MISC_CONFIG       0x20a41ea0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE0       0x20a41ea4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE1       0x20a41ea8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE2       0x20a41eac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE3       0x20a41eb0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE4       0x20a41eb4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE5       0x20a41eb8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE6       0x20a41ebc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE7       0x20a41ec0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE8       0x20a41ec4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE9       0x20a41ec8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE10      0x20a41ecc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE11      0x20a41ed0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_EPBR_STATE_WORD       0x20a41ed4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE12      0x20a41ed8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE13      0x20a41edc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE14      0x20a41ee0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE15      0x20a41ee4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE16      0x20a41ee8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE17      0x20a41eec /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_COMP_STATE18      0x20a41ef0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_RESERVE_COMP_STATE3   0x20a41ef4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE0        0x20a41ef8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE1        0x20a41efc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE2        0x20a41f00 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_PES_STATE3        0x20a41f04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_PACKET_COUNT      0x20a41f08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_RESERVE_PES_STATE0    0x20a41f0c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE0            0x20a41f10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE1            0x20a41f14 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE2            0x20a41f18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE3            0x20a41f1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE4            0x20a41f20 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE5            0x20a41f24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE6            0x20a41f28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE7            0x20a41f2c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE8            0x20a41f30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE9            0x20a41f34 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE10           0x20a41f38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD1_SCD_STATE11           0x20a41f3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_MISC_CONFIG       0x20a41f40 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE0       0x20a41f44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE1       0x20a41f48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE2       0x20a41f4c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE3       0x20a41f50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE4       0x20a41f54 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE5       0x20a41f58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE6       0x20a41f5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE7       0x20a41f60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE8       0x20a41f64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE9       0x20a41f68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE10      0x20a41f6c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE11      0x20a41f70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_EPBR_STATE_WORD       0x20a41f74 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE12      0x20a41f78 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE13      0x20a41f7c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE14      0x20a41f80 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE15      0x20a41f84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE16      0x20a41f88 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE17      0x20a41f8c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_COMP_STATE18      0x20a41f90 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_RESERVE_COMP_STATE3   0x20a41f94 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE0        0x20a41f98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE1        0x20a41f9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE2        0x20a41fa0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_PES_STATE3        0x20a41fa4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_PACKET_COUNT      0x20a41fa8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_RESERVE_PES_STATE0    0x20a41fac /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE0            0x20a41fb0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE1            0x20a41fb4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE2            0x20a41fb8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE3            0x20a41fbc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE4            0x20a41fc0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE5            0x20a41fc4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE6            0x20a41fc8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE7            0x20a41fcc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE8            0x20a41fd0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE9            0x20a41fd4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE10           0x20a41fd8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD2_SCD_STATE11           0x20a41fdc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_MISC_CONFIG       0x20a41fe0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE0       0x20a41fe4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE1       0x20a41fe8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE2       0x20a41fec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE3       0x20a41ff0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE4       0x20a41ff4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE5       0x20a41ff8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE6       0x20a41ffc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE7       0x20a42000 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE8       0x20a42004 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE9       0x20a42008 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE10      0x20a4200c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE11      0x20a42010 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_EPBR_STATE_WORD       0x20a42014 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE12      0x20a42018 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE13      0x20a4201c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE14      0x20a42020 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE15      0x20a42024 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE16      0x20a42028 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE17      0x20a4202c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_COMP_STATE18      0x20a42030 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_RESERVE_COMP_STATE3   0x20a42034 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE0        0x20a42038 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE1        0x20a4203c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE2        0x20a42040 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_PES_STATE3        0x20a42044 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_PACKET_COUNT      0x20a42048 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_RESERVE_PES_STATE0    0x20a4204c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE0            0x20a42050 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE1            0x20a42054 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE2            0x20a42058 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE3            0x20a4205c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE4            0x20a42060 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE5            0x20a42064 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE6            0x20a42068 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE7            0x20a4206c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE8            0x20a42070 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE9            0x20a42074 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE10           0x20a42078 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD3_SCD_STATE11           0x20a4207c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_MISC_CONFIG       0x20a42080 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE0       0x20a42084 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE1       0x20a42088 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE2       0x20a4208c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE3       0x20a42090 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE4       0x20a42094 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE5       0x20a42098 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE6       0x20a4209c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE7       0x20a420a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE8       0x20a420a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE9       0x20a420a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE10      0x20a420ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE11      0x20a420b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_EPBR_STATE_WORD       0x20a420b4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE12      0x20a420b8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE13      0x20a420bc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE14      0x20a420c0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE15      0x20a420c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE16      0x20a420c8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE17      0x20a420cc /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_COMP_STATE18      0x20a420d0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_RESERVE_COMP_STATE3   0x20a420d4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE0        0x20a420d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE1        0x20a420dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE2        0x20a420e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_PES_STATE3        0x20a420e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_PACKET_COUNT      0x20a420e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_RESERVE_PES_STATE0    0x20a420ec /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE0            0x20a420f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE1            0x20a420f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE2            0x20a420f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE3            0x20a420fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE4            0x20a42100 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE5            0x20a42104 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE6            0x20a42108 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE7            0x20a4210c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE8            0x20a42110 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE9            0x20a42114 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE10           0x20a42118 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD4_SCD_STATE11           0x20a4211c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_MISC_CONFIG       0x20a42120 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE0       0x20a42124 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE1       0x20a42128 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE2       0x20a4212c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE3       0x20a42130 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE4       0x20a42134 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE5       0x20a42138 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE6       0x20a4213c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE7       0x20a42140 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE8       0x20a42144 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE9       0x20a42148 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE10      0x20a4214c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE11      0x20a42150 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_EPBR_STATE_WORD       0x20a42154 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE12      0x20a42158 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE13      0x20a4215c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE14      0x20a42160 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE15      0x20a42164 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE16      0x20a42168 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE17      0x20a4216c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_COMP_STATE18      0x20a42170 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_RESERVE_COMP_STATE3   0x20a42174 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE0        0x20a42178 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE1        0x20a4217c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE2        0x20a42180 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_PES_STATE3        0x20a42184 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_PACKET_COUNT      0x20a42188 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_RESERVE_PES_STATE0    0x20a4218c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE0            0x20a42190 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE1            0x20a42194 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE2            0x20a42198 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE3            0x20a4219c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE4            0x20a421a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE5            0x20a421a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE6            0x20a421a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE7            0x20a421ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE8            0x20a421b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE9            0x20a421b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE10           0x20a421b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD5_SCD_STATE11           0x20a421bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_MISC_CONFIG       0x20a421c0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE0       0x20a421c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE1       0x20a421c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE2       0x20a421cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE3       0x20a421d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE4       0x20a421d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE5       0x20a421d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE6       0x20a421dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE7       0x20a421e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE8       0x20a421e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE9       0x20a421e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE10      0x20a421ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE11      0x20a421f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_EPBR_STATE_WORD       0x20a421f4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE12      0x20a421f8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE13      0x20a421fc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE14      0x20a42200 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE15      0x20a42204 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE16      0x20a42208 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE17      0x20a4220c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_COMP_STATE18      0x20a42210 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_RESERVE_COMP_STATE3   0x20a42214 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE0        0x20a42218 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE1        0x20a4221c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE2        0x20a42220 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_PES_STATE3        0x20a42224 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_PACKET_COUNT      0x20a42228 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_RESERVE_PES_STATE0    0x20a4222c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE0            0x20a42230 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE1            0x20a42234 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE2            0x20a42238 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE3            0x20a4223c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE4            0x20a42240 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE5            0x20a42244 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE6            0x20a42248 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE7            0x20a4224c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE8            0x20a42250 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE9            0x20a42254 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE10           0x20a42258 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD6_SCD_STATE11           0x20a4225c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_MISC_CONFIG       0x20a42260 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE0       0x20a42264 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE1       0x20a42268 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE2       0x20a4226c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE3       0x20a42270 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE4       0x20a42274 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE5       0x20a42278 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE6       0x20a4227c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE7       0x20a42280 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE8       0x20a42284 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE9       0x20a42288 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE10      0x20a4228c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE11      0x20a42290 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_EPBR_STATE_WORD       0x20a42294 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE12      0x20a42298 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE13      0x20a4229c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE14      0x20a422a0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE15      0x20a422a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE16      0x20a422a8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE17      0x20a422ac /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_COMP_STATE18      0x20a422b0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_RESERVE_COMP_STATE3   0x20a422b4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE0        0x20a422b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE1        0x20a422bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE2        0x20a422c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_PES_STATE3        0x20a422c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_PACKET_COUNT      0x20a422c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_RESERVE_PES_STATE0    0x20a422cc /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE0            0x20a422d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE1            0x20a422d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE2            0x20a422d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE3            0x20a422dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE4            0x20a422e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE5            0x20a422e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE6            0x20a422e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE7            0x20a422ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE8            0x20a422f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE9            0x20a422f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE10           0x20a422f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD7_SCD_STATE11           0x20a422fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_MISC_CONFIG       0x20a42300 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE0       0x20a42304 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE1       0x20a42308 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE2       0x20a4230c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE3       0x20a42310 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE4       0x20a42314 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE5       0x20a42318 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE6       0x20a4231c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE7       0x20a42320 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE8       0x20a42324 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE9       0x20a42328 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE10      0x20a4232c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE11      0x20a42330 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_EPBR_STATE_WORD       0x20a42334 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE12      0x20a42338 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE13      0x20a4233c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE14      0x20a42340 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE15      0x20a42344 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE16      0x20a42348 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE17      0x20a4234c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_COMP_STATE18      0x20a42350 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_RESERVE_COMP_STATE3   0x20a42354 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE0        0x20a42358 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE1        0x20a4235c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE2        0x20a42360 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_PES_STATE3        0x20a42364 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_PACKET_COUNT      0x20a42368 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_RESERVE_PES_STATE0    0x20a4236c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE0            0x20a42370 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE1            0x20a42374 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE2            0x20a42378 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE3            0x20a4237c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE4            0x20a42380 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE5            0x20a42384 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE6            0x20a42388 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE7            0x20a4238c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE8            0x20a42390 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE9            0x20a42394 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE10           0x20a42398 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD8_SCD_STATE11           0x20a4239c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_MISC_CONFIG       0x20a423a0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE0       0x20a423a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE1       0x20a423a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE2       0x20a423ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE3       0x20a423b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE4       0x20a423b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE5       0x20a423b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE6       0x20a423bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE7       0x20a423c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE8       0x20a423c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE9       0x20a423c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE10      0x20a423cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE11      0x20a423d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_EPBR_STATE_WORD       0x20a423d4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE12      0x20a423d8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE13      0x20a423dc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE14      0x20a423e0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE15      0x20a423e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE16      0x20a423e8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE17      0x20a423ec /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_COMP_STATE18      0x20a423f0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_RESERVE_COMP_STATE3   0x20a423f4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE0        0x20a423f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE1        0x20a423fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE2        0x20a42400 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_PES_STATE3        0x20a42404 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_PACKET_COUNT      0x20a42408 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_RESERVE_PES_STATE0    0x20a4240c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE0            0x20a42410 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE1            0x20a42414 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE2            0x20a42418 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE3            0x20a4241c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE4            0x20a42420 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE5            0x20a42424 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE6            0x20a42428 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE7            0x20a4242c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE8            0x20a42430 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE9            0x20a42434 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE10           0x20a42438 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD9_SCD_STATE11           0x20a4243c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_MISC_CONFIG      0x20a42440 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE0      0x20a42444 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE1      0x20a42448 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE2      0x20a4244c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE3      0x20a42450 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE4      0x20a42454 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE5      0x20a42458 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE6      0x20a4245c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE7      0x20a42460 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE8      0x20a42464 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE9      0x20a42468 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE10     0x20a4246c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE11     0x20a42470 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_EPBR_STATE_WORD      0x20a42474 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE12     0x20a42478 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE13     0x20a4247c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE14     0x20a42480 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE15     0x20a42484 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE16     0x20a42488 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE17     0x20a4248c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_COMP_STATE18     0x20a42490 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_RESERVE_COMP_STATE3  0x20a42494 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE0       0x20a42498 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE1       0x20a4249c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE2       0x20a424a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_PES_STATE3       0x20a424a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_PACKET_COUNT     0x20a424a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_RESERVE_PES_STATE0   0x20a424ac /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE0           0x20a424b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE1           0x20a424b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE2           0x20a424b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE3           0x20a424bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE4           0x20a424c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE5           0x20a424c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE6           0x20a424c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE7           0x20a424cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE8           0x20a424d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE9           0x20a424d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE10          0x20a424d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD10_SCD_STATE11          0x20a424dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_MISC_CONFIG      0x20a424e0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE0      0x20a424e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE1      0x20a424e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE2      0x20a424ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE3      0x20a424f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE4      0x20a424f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE5      0x20a424f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE6      0x20a424fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE7      0x20a42500 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE8      0x20a42504 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE9      0x20a42508 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE10     0x20a4250c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE11     0x20a42510 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_EPBR_STATE_WORD      0x20a42514 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE12     0x20a42518 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE13     0x20a4251c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE14     0x20a42520 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE15     0x20a42524 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE16     0x20a42528 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE17     0x20a4252c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_COMP_STATE18     0x20a42530 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_RESERVE_COMP_STATE3  0x20a42534 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE0       0x20a42538 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE1       0x20a4253c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE2       0x20a42540 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_PES_STATE3       0x20a42544 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_PACKET_COUNT     0x20a42548 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_RESERVE_PES_STATE0   0x20a4254c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE0           0x20a42550 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE1           0x20a42554 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE2           0x20a42558 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE3           0x20a4255c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE4           0x20a42560 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE5           0x20a42564 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE6           0x20a42568 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE7           0x20a4256c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE8           0x20a42570 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE9           0x20a42574 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE10          0x20a42578 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD11_SCD_STATE11          0x20a4257c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_MISC_CONFIG      0x20a42580 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE0      0x20a42584 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE1      0x20a42588 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE2      0x20a4258c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE3      0x20a42590 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE4      0x20a42594 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE5      0x20a42598 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE6      0x20a4259c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE7      0x20a425a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE8      0x20a425a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE9      0x20a425a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE10     0x20a425ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE11     0x20a425b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_EPBR_STATE_WORD      0x20a425b4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE12     0x20a425b8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE13     0x20a425bc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE14     0x20a425c0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE15     0x20a425c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE16     0x20a425c8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE17     0x20a425cc /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_COMP_STATE18     0x20a425d0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_RESERVE_COMP_STATE3  0x20a425d4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE0       0x20a425d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE1       0x20a425dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE2       0x20a425e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_PES_STATE3       0x20a425e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_PACKET_COUNT     0x20a425e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_RESERVE_PES_STATE0   0x20a425ec /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE0           0x20a425f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE1           0x20a425f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE2           0x20a425f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE3           0x20a425fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE4           0x20a42600 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE5           0x20a42604 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE6           0x20a42608 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE7           0x20a4260c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE8           0x20a42610 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE9           0x20a42614 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE10          0x20a42618 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD12_SCD_STATE11          0x20a4261c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_MISC_CONFIG      0x20a42620 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE0      0x20a42624 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE1      0x20a42628 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE2      0x20a4262c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE3      0x20a42630 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE4      0x20a42634 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE5      0x20a42638 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE6      0x20a4263c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE7      0x20a42640 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE8      0x20a42644 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE9      0x20a42648 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE10     0x20a4264c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE11     0x20a42650 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_EPBR_STATE_WORD      0x20a42654 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE12     0x20a42658 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE13     0x20a4265c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE14     0x20a42660 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE15     0x20a42664 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE16     0x20a42668 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE17     0x20a4266c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_COMP_STATE18     0x20a42670 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_RESERVE_COMP_STATE3  0x20a42674 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE0       0x20a42678 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE1       0x20a4267c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE2       0x20a42680 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_PES_STATE3       0x20a42684 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_PACKET_COUNT     0x20a42688 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_RESERVE_PES_STATE0   0x20a4268c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE0           0x20a42690 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE1           0x20a42694 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE2           0x20a42698 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE3           0x20a4269c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE4           0x20a426a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE5           0x20a426a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE6           0x20a426a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE7           0x20a426ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE8           0x20a426b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE9           0x20a426b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE10          0x20a426b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD13_SCD_STATE11          0x20a426bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_MISC_CONFIG      0x20a426c0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE0      0x20a426c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE1      0x20a426c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE2      0x20a426cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE3      0x20a426d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE4      0x20a426d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE5      0x20a426d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE6      0x20a426dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE7      0x20a426e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE8      0x20a426e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE9      0x20a426e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE10     0x20a426ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE11     0x20a426f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_EPBR_STATE_WORD      0x20a426f4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE12     0x20a426f8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE13     0x20a426fc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE14     0x20a42700 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE15     0x20a42704 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE16     0x20a42708 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE17     0x20a4270c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_COMP_STATE18     0x20a42710 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_RESERVE_COMP_STATE3  0x20a42714 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE0       0x20a42718 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE1       0x20a4271c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE2       0x20a42720 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_PES_STATE3       0x20a42724 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_PACKET_COUNT     0x20a42728 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_RESERVE_PES_STATE0   0x20a4272c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE0           0x20a42730 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE1           0x20a42734 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE2           0x20a42738 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE3           0x20a4273c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE4           0x20a42740 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE5           0x20a42744 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE6           0x20a42748 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE7           0x20a4274c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE8           0x20a42750 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE9           0x20a42754 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE10          0x20a42758 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD14_SCD_STATE11          0x20a4275c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_MISC_CONFIG      0x20a42760 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE0      0x20a42764 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE1      0x20a42768 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE2      0x20a4276c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE3      0x20a42770 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE4      0x20a42774 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE5      0x20a42778 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE6      0x20a4277c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE7      0x20a42780 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE8      0x20a42784 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE9      0x20a42788 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE10     0x20a4278c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE11     0x20a42790 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_EPBR_STATE_WORD      0x20a42794 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE12     0x20a42798 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE13     0x20a4279c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE14     0x20a427a0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE15     0x20a427a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE16     0x20a427a8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE17     0x20a427ac /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_COMP_STATE18     0x20a427b0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_RESERVE_COMP_STATE3  0x20a427b4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE0       0x20a427b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE1       0x20a427bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE2       0x20a427c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_PES_STATE3       0x20a427c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_PACKET_COUNT     0x20a427c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_RESERVE_PES_STATE0   0x20a427cc /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE0           0x20a427d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE1           0x20a427d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE2           0x20a427d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE3           0x20a427dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE4           0x20a427e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE5           0x20a427e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE6           0x20a427e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE7           0x20a427ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE8           0x20a427f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE9           0x20a427f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE10          0x20a427f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD15_SCD_STATE11          0x20a427fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_MISC_CONFIG      0x20a42800 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE0      0x20a42804 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE1      0x20a42808 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE2      0x20a4280c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE3      0x20a42810 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE4      0x20a42814 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE5      0x20a42818 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE6      0x20a4281c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE7      0x20a42820 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE8      0x20a42824 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE9      0x20a42828 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE10     0x20a4282c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE11     0x20a42830 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_EPBR_STATE_WORD      0x20a42834 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE12     0x20a42838 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE13     0x20a4283c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE14     0x20a42840 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE15     0x20a42844 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE16     0x20a42848 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE17     0x20a4284c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_COMP_STATE18     0x20a42850 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_RESERVE_COMP_STATE3  0x20a42854 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE0       0x20a42858 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE1       0x20a4285c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE2       0x20a42860 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_PES_STATE3       0x20a42864 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_PACKET_COUNT     0x20a42868 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_RESERVE_PES_STATE0   0x20a4286c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE0           0x20a42870 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE1           0x20a42874 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE2           0x20a42878 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE3           0x20a4287c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE4           0x20a42880 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE5           0x20a42884 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE6           0x20a42888 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE7           0x20a4288c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE8           0x20a42890 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE9           0x20a42894 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE10          0x20a42898 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD16_SCD_STATE11          0x20a4289c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_MISC_CONFIG      0x20a428a0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE0      0x20a428a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE1      0x20a428a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE2      0x20a428ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE3      0x20a428b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE4      0x20a428b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE5      0x20a428b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE6      0x20a428bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE7      0x20a428c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE8      0x20a428c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE9      0x20a428c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE10     0x20a428cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE11     0x20a428d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_EPBR_STATE_WORD      0x20a428d4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE12     0x20a428d8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE13     0x20a428dc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE14     0x20a428e0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE15     0x20a428e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE16     0x20a428e8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE17     0x20a428ec /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_COMP_STATE18     0x20a428f0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_RESERVE_COMP_STATE3  0x20a428f4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE0       0x20a428f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE1       0x20a428fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE2       0x20a42900 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_PES_STATE3       0x20a42904 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_PACKET_COUNT     0x20a42908 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_RESERVE_PES_STATE0   0x20a4290c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE0           0x20a42910 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE1           0x20a42914 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE2           0x20a42918 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE3           0x20a4291c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE4           0x20a42920 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE5           0x20a42924 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE6           0x20a42928 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE7           0x20a4292c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE8           0x20a42930 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE9           0x20a42934 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE10          0x20a42938 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD17_SCD_STATE11          0x20a4293c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_MISC_CONFIG      0x20a42940 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE0      0x20a42944 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE1      0x20a42948 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE2      0x20a4294c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE3      0x20a42950 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE4      0x20a42954 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE5      0x20a42958 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE6      0x20a4295c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE7      0x20a42960 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE8      0x20a42964 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE9      0x20a42968 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE10     0x20a4296c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE11     0x20a42970 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_EPBR_STATE_WORD      0x20a42974 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE12     0x20a42978 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE13     0x20a4297c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE14     0x20a42980 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE15     0x20a42984 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE16     0x20a42988 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE17     0x20a4298c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_COMP_STATE18     0x20a42990 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_RESERVE_COMP_STATE3  0x20a42994 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE0       0x20a42998 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE1       0x20a4299c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE2       0x20a429a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_PES_STATE3       0x20a429a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_PACKET_COUNT     0x20a429a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_RESERVE_PES_STATE0   0x20a429ac /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE0           0x20a429b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE1           0x20a429b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE2           0x20a429b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE3           0x20a429bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE4           0x20a429c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE5           0x20a429c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE6           0x20a429c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE7           0x20a429cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE8           0x20a429d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE9           0x20a429d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE10          0x20a429d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD18_SCD_STATE11          0x20a429dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_MISC_CONFIG      0x20a429e0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE0      0x20a429e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE1      0x20a429e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE2      0x20a429ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE3      0x20a429f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE4      0x20a429f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE5      0x20a429f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE6      0x20a429fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE7      0x20a42a00 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE8      0x20a42a04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE9      0x20a42a08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE10     0x20a42a0c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE11     0x20a42a10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_EPBR_STATE_WORD      0x20a42a14 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE12     0x20a42a18 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE13     0x20a42a1c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE14     0x20a42a20 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE15     0x20a42a24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE16     0x20a42a28 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE17     0x20a42a2c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_COMP_STATE18     0x20a42a30 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_RESERVE_COMP_STATE3  0x20a42a34 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE0       0x20a42a38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE1       0x20a42a3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE2       0x20a42a40 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_PES_STATE3       0x20a42a44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_PACKET_COUNT     0x20a42a48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_RESERVE_PES_STATE0   0x20a42a4c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE0           0x20a42a50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE1           0x20a42a54 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE2           0x20a42a58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE3           0x20a42a5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE4           0x20a42a60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE5           0x20a42a64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE6           0x20a42a68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE7           0x20a42a6c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE8           0x20a42a70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE9           0x20a42a74 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE10          0x20a42a78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD19_SCD_STATE11          0x20a42a7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_MISC_CONFIG      0x20a42a80 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE0      0x20a42a84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE1      0x20a42a88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE2      0x20a42a8c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE3      0x20a42a90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE4      0x20a42a94 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE5      0x20a42a98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE6      0x20a42a9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE7      0x20a42aa0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE8      0x20a42aa4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE9      0x20a42aa8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE10     0x20a42aac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE11     0x20a42ab0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_EPBR_STATE_WORD      0x20a42ab4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE12     0x20a42ab8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE13     0x20a42abc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE14     0x20a42ac0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE15     0x20a42ac4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE16     0x20a42ac8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE17     0x20a42acc /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_COMP_STATE18     0x20a42ad0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_RESERVE_COMP_STATE3  0x20a42ad4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE0       0x20a42ad8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE1       0x20a42adc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE2       0x20a42ae0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_PES_STATE3       0x20a42ae4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_PACKET_COUNT     0x20a42ae8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_RESERVE_PES_STATE0   0x20a42aec /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE0           0x20a42af0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE1           0x20a42af4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE2           0x20a42af8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE3           0x20a42afc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE4           0x20a42b00 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE5           0x20a42b04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE6           0x20a42b08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE7           0x20a42b0c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE8           0x20a42b10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE9           0x20a42b14 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE10          0x20a42b18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD20_SCD_STATE11          0x20a42b1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_MISC_CONFIG      0x20a42b20 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE0      0x20a42b24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE1      0x20a42b28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE2      0x20a42b2c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE3      0x20a42b30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE4      0x20a42b34 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE5      0x20a42b38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE6      0x20a42b3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE7      0x20a42b40 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE8      0x20a42b44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE9      0x20a42b48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE10     0x20a42b4c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE11     0x20a42b50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_EPBR_STATE_WORD      0x20a42b54 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE12     0x20a42b58 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE13     0x20a42b5c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE14     0x20a42b60 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE15     0x20a42b64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE16     0x20a42b68 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE17     0x20a42b6c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_COMP_STATE18     0x20a42b70 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_RESERVE_COMP_STATE3  0x20a42b74 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE0       0x20a42b78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE1       0x20a42b7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE2       0x20a42b80 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_PES_STATE3       0x20a42b84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_PACKET_COUNT     0x20a42b88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_RESERVE_PES_STATE0   0x20a42b8c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE0           0x20a42b90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE1           0x20a42b94 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE2           0x20a42b98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE3           0x20a42b9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE4           0x20a42ba0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE5           0x20a42ba4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE6           0x20a42ba8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE7           0x20a42bac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE8           0x20a42bb0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE9           0x20a42bb4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE10          0x20a42bb8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD21_SCD_STATE11          0x20a42bbc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_MISC_CONFIG      0x20a42bc0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE0      0x20a42bc4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE1      0x20a42bc8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE2      0x20a42bcc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE3      0x20a42bd0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE4      0x20a42bd4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE5      0x20a42bd8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE6      0x20a42bdc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE7      0x20a42be0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE8      0x20a42be4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE9      0x20a42be8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE10     0x20a42bec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE11     0x20a42bf0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_EPBR_STATE_WORD      0x20a42bf4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE12     0x20a42bf8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE13     0x20a42bfc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE14     0x20a42c00 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE15     0x20a42c04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE16     0x20a42c08 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE17     0x20a42c0c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_COMP_STATE18     0x20a42c10 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_RESERVE_COMP_STATE3  0x20a42c14 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE0       0x20a42c18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE1       0x20a42c1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE2       0x20a42c20 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_PES_STATE3       0x20a42c24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_PACKET_COUNT     0x20a42c28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_RESERVE_PES_STATE0   0x20a42c2c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE0           0x20a42c30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE1           0x20a42c34 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE2           0x20a42c38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE3           0x20a42c3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE4           0x20a42c40 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE5           0x20a42c44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE6           0x20a42c48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE7           0x20a42c4c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE8           0x20a42c50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE9           0x20a42c54 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE10          0x20a42c58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD22_SCD_STATE11          0x20a42c5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_MISC_CONFIG      0x20a42c60 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE0      0x20a42c64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE1      0x20a42c68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE2      0x20a42c6c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE3      0x20a42c70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE4      0x20a42c74 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE5      0x20a42c78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE6      0x20a42c7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE7      0x20a42c80 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE8      0x20a42c84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE9      0x20a42c88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE10     0x20a42c8c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE11     0x20a42c90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_EPBR_STATE_WORD      0x20a42c94 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE12     0x20a42c98 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE13     0x20a42c9c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE14     0x20a42ca0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE15     0x20a42ca4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE16     0x20a42ca8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE17     0x20a42cac /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_COMP_STATE18     0x20a42cb0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_RESERVE_COMP_STATE3  0x20a42cb4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE0       0x20a42cb8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE1       0x20a42cbc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE2       0x20a42cc0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_PES_STATE3       0x20a42cc4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_PACKET_COUNT     0x20a42cc8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_RESERVE_PES_STATE0   0x20a42ccc /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE0           0x20a42cd0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE1           0x20a42cd4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE2           0x20a42cd8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE3           0x20a42cdc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE4           0x20a42ce0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE5           0x20a42ce4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE6           0x20a42ce8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE7           0x20a42cec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE8           0x20a42cf0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE9           0x20a42cf4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE10          0x20a42cf8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD23_SCD_STATE11          0x20a42cfc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_MISC_CONFIG      0x20a42d00 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE0      0x20a42d04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE1      0x20a42d08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE2      0x20a42d0c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE3      0x20a42d10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE4      0x20a42d14 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE5      0x20a42d18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE6      0x20a42d1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE7      0x20a42d20 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE8      0x20a42d24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE9      0x20a42d28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE10     0x20a42d2c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE11     0x20a42d30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_EPBR_STATE_WORD      0x20a42d34 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE12     0x20a42d38 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE13     0x20a42d3c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE14     0x20a42d40 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE15     0x20a42d44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE16     0x20a42d48 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE17     0x20a42d4c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_COMP_STATE18     0x20a42d50 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_RESERVE_COMP_STATE3  0x20a42d54 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE0       0x20a42d58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE1       0x20a42d5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE2       0x20a42d60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_PES_STATE3       0x20a42d64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_PACKET_COUNT     0x20a42d68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_RESERVE_PES_STATE0   0x20a42d6c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE0           0x20a42d70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE1           0x20a42d74 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE2           0x20a42d78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE3           0x20a42d7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE4           0x20a42d80 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE5           0x20a42d84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE6           0x20a42d88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE7           0x20a42d8c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE8           0x20a42d90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE9           0x20a42d94 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE10          0x20a42d98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD24_SCD_STATE11          0x20a42d9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_MISC_CONFIG      0x20a42da0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE0      0x20a42da4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE1      0x20a42da8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE2      0x20a42dac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE3      0x20a42db0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE4      0x20a42db4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE5      0x20a42db8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE6      0x20a42dbc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE7      0x20a42dc0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE8      0x20a42dc4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE9      0x20a42dc8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE10     0x20a42dcc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE11     0x20a42dd0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_EPBR_STATE_WORD      0x20a42dd4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE12     0x20a42dd8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE13     0x20a42ddc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE14     0x20a42de0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE15     0x20a42de4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE16     0x20a42de8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE17     0x20a42dec /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_COMP_STATE18     0x20a42df0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_RESERVE_COMP_STATE3  0x20a42df4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE0       0x20a42df8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE1       0x20a42dfc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE2       0x20a42e00 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_PES_STATE3       0x20a42e04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_PACKET_COUNT     0x20a42e08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_RESERVE_PES_STATE0   0x20a42e0c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE0           0x20a42e10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE1           0x20a42e14 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE2           0x20a42e18 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE3           0x20a42e1c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE4           0x20a42e20 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE5           0x20a42e24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE6           0x20a42e28 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE7           0x20a42e2c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE8           0x20a42e30 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE9           0x20a42e34 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE10          0x20a42e38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD25_SCD_STATE11          0x20a42e3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_MISC_CONFIG      0x20a42e40 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE0      0x20a42e44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE1      0x20a42e48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE2      0x20a42e4c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE3      0x20a42e50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE4      0x20a42e54 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE5      0x20a42e58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE6      0x20a42e5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE7      0x20a42e60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE8      0x20a42e64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE9      0x20a42e68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE10     0x20a42e6c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE11     0x20a42e70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_EPBR_STATE_WORD      0x20a42e74 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE12     0x20a42e78 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE13     0x20a42e7c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE14     0x20a42e80 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE15     0x20a42e84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE16     0x20a42e88 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE17     0x20a42e8c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_COMP_STATE18     0x20a42e90 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_RESERVE_COMP_STATE3  0x20a42e94 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE0       0x20a42e98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE1       0x20a42e9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE2       0x20a42ea0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_PES_STATE3       0x20a42ea4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_PACKET_COUNT     0x20a42ea8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_RESERVE_PES_STATE0   0x20a42eac /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE0           0x20a42eb0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE1           0x20a42eb4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE2           0x20a42eb8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE3           0x20a42ebc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE4           0x20a42ec0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE5           0x20a42ec4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE6           0x20a42ec8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE7           0x20a42ecc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE8           0x20a42ed0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE9           0x20a42ed4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE10          0x20a42ed8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD26_SCD_STATE11          0x20a42edc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_MISC_CONFIG      0x20a42ee0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE0      0x20a42ee4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE1      0x20a42ee8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE2      0x20a42eec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE3      0x20a42ef0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE4      0x20a42ef4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE5      0x20a42ef8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE6      0x20a42efc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE7      0x20a42f00 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE8      0x20a42f04 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE9      0x20a42f08 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE10     0x20a42f0c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE11     0x20a42f10 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_EPBR_STATE_WORD      0x20a42f14 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE12     0x20a42f18 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE13     0x20a42f1c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE14     0x20a42f20 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE15     0x20a42f24 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE16     0x20a42f28 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE17     0x20a42f2c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_COMP_STATE18     0x20a42f30 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_RESERVE_COMP_STATE3  0x20a42f34 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE0       0x20a42f38 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE1       0x20a42f3c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE2       0x20a42f40 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_PES_STATE3       0x20a42f44 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_PACKET_COUNT     0x20a42f48 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_RESERVE_PES_STATE0   0x20a42f4c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE0           0x20a42f50 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE1           0x20a42f54 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE2           0x20a42f58 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE3           0x20a42f5c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE4           0x20a42f60 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE5           0x20a42f64 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE6           0x20a42f68 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE7           0x20a42f6c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE8           0x20a42f70 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE9           0x20a42f74 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE10          0x20a42f78 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD27_SCD_STATE11          0x20a42f7c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_MISC_CONFIG      0x20a42f80 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE0      0x20a42f84 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE1      0x20a42f88 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE2      0x20a42f8c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE3      0x20a42f90 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE4      0x20a42f94 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE5      0x20a42f98 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE6      0x20a42f9c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE7      0x20a42fa0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE8      0x20a42fa4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE9      0x20a42fa8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE10     0x20a42fac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE11     0x20a42fb0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_EPBR_STATE_WORD      0x20a42fb4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE12     0x20a42fb8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE13     0x20a42fbc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE14     0x20a42fc0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE15     0x20a42fc4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE16     0x20a42fc8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE17     0x20a42fcc /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_COMP_STATE18     0x20a42fd0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_RESERVE_COMP_STATE3  0x20a42fd4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE0       0x20a42fd8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE1       0x20a42fdc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE2       0x20a42fe0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_PES_STATE3       0x20a42fe4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_PACKET_COUNT     0x20a42fe8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_RESERVE_PES_STATE0   0x20a42fec /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE0           0x20a42ff0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE1           0x20a42ff4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE2           0x20a42ff8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE3           0x20a42ffc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE4           0x20a43000 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE5           0x20a43004 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE6           0x20a43008 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE7           0x20a4300c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE8           0x20a43010 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE9           0x20a43014 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE10          0x20a43018 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD28_SCD_STATE11          0x20a4301c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_MISC_CONFIG      0x20a43020 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE0      0x20a43024 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE1      0x20a43028 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE2      0x20a4302c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE3      0x20a43030 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE4      0x20a43034 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE5      0x20a43038 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE6      0x20a4303c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE7      0x20a43040 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE8      0x20a43044 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE9      0x20a43048 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE10     0x20a4304c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE11     0x20a43050 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_EPBR_STATE_WORD      0x20a43054 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE12     0x20a43058 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE13     0x20a4305c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE14     0x20a43060 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE15     0x20a43064 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE16     0x20a43068 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE17     0x20a4306c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_COMP_STATE18     0x20a43070 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_RESERVE_COMP_STATE3  0x20a43074 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE0       0x20a43078 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE1       0x20a4307c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE2       0x20a43080 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_PES_STATE3       0x20a43084 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_PACKET_COUNT     0x20a43088 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_RESERVE_PES_STATE0   0x20a4308c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE0           0x20a43090 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE1           0x20a43094 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE2           0x20a43098 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE3           0x20a4309c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE4           0x20a430a0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE5           0x20a430a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE6           0x20a430a8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE7           0x20a430ac /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE8           0x20a430b0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE9           0x20a430b4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE10          0x20a430b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD29_SCD_STATE11          0x20a430bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_MISC_CONFIG      0x20a430c0 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE0      0x20a430c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE1      0x20a430c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE2      0x20a430cc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE3      0x20a430d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE4      0x20a430d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE5      0x20a430d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE6      0x20a430dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE7      0x20a430e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE8      0x20a430e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE9      0x20a430e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE10     0x20a430ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE11     0x20a430f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_EPBR_STATE_WORD      0x20a430f4 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE12     0x20a430f8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE13     0x20a430fc /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE14     0x20a43100 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE15     0x20a43104 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE16     0x20a43108 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE17     0x20a4310c /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_COMP_STATE18     0x20a43110 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_RESERVE_COMP_STATE3  0x20a43114 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE0       0x20a43118 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE1       0x20a4311c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE2       0x20a43120 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_PES_STATE3       0x20a43124 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_PACKET_COUNT     0x20a43128 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_RESERVE_PES_STATE0   0x20a4312c /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE0           0x20a43130 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE1           0x20a43134 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE2           0x20a43138 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE3           0x20a4313c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE4           0x20a43140 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE5           0x20a43144 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE6           0x20a43148 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE7           0x20a4314c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE8           0x20a43150 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE9           0x20a43154 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE10          0x20a43158 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD30_SCD_STATE11          0x20a4315c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_MISC_CONFIG      0x20a43160 /* [RW][32] SCD Misc Config Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE0      0x20a43164 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE1      0x20a43168 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE2      0x20a4316c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE3      0x20a43170 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE4      0x20a43174 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE5      0x20a43178 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE6      0x20a4317c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE7      0x20a43180 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE8      0x20a43184 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE9      0x20a43188 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE10     0x20a4318c /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE11     0x20a43190 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_EPBR_STATE_WORD      0x20a43194 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE12     0x20a43198 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE13     0x20a4319c /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE14     0x20a431a0 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE15     0x20a431a4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE16     0x20a431a8 /* [RW][32] Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE17     0x20a431ac /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_COMP_STATE18     0x20a431b0 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_RESERVE_COMP_STATE3  0x20a431b4 /* [RW][32] Reserved Comparator State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE0       0x20a431b8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE1       0x20a431bc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE2       0x20a431c0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_PES_STATE3       0x20a431c4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_PACKET_COUNT     0x20a431c8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_RESERVE_PES_STATE0   0x20a431cc /* [RW][32] Reserved PES State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE0           0x20a431d0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE1           0x20a431d4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE2           0x20a431d8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE3           0x20a431dc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE4           0x20a431e0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE5           0x20a431e4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE6           0x20a431e8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE7           0x20a431ec /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE8           0x20a431f0 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE9           0x20a431f4 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE10          0x20a431f8 /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_SCD31_SCD_STATE11          0x20a431fc /* [RW][32] SCD State Register */
+#define BCHP_XPT_RAVE_XPU_IMEM_ACCESS_CONTROL    0x20a43200 /* [RW][32] XPU IMEM ACCESS CONTROL REGISTER */
+#define BCHP_XPT_RAVE_XPU_IMEM_ACCESS_STATUS     0x20a43204 /* [RO][32] XPU IMEM ACCESS STATUS REGISTER */
+#define BCHP_XPT_RAVE_XPU_CONFIG                 0x20a43208 /* [RW][32] XPU TEST ENABLE REGISTER */
+#define BCHP_XPT_RAVE_XPU_TEST_CONTROL           0x20a4320c /* [RW][32] XPU TEST CONTROL REGISTER */
+#define BCHP_XPT_RAVE_XPU_TEST_CONTROL_EXT_IO    0x20a43210 /* [RW][32] XPU TEST CONTROL EXT IO */
+#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_0         0x20a43214 /* [RO][32] XPU TEST OBSERVE REGISTER */
+#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_1         0x20a43218 /* [RO][32] XPU TEST OBSERVE REGISTER */
+#define BCHP_XPT_RAVE_XPU_TEST_OBSERVE_EXT_IO    0x20a4321c /* [RO][32] XPU TEST OBSERVE EXT IO REGISTER */
+#define BCHP_XPT_RAVE_RAVE_DIAGNOSTICS_CONTROL   0x20a43220 /* [RW][32] RAVE Diagnostics Control Register */
+#define BCHP_XPT_RAVE_STOP_PACKET_COUNT_VALUE    0x20a43224 /* [RW][32] Stop Packet Count Value */
+#define BCHP_XPT_RAVE_RAVE_DIAGNOSTICS_READ      0x20a43228 /* [RO][32] RAVE Diagnostics Read Register */
+#define BCHP_XPT_RAVE_AVS_SCV_FILTER_MODE_CONTROL 0x20a4322c /* [RW][32] AVS SCV Filter mode */
+#define BCHP_XPT_RAVE_AVS_SCV_FILTER_VALUE_0_TO_3 0x20a43230 /* [RW][32] AVS SCV Filter value 0 to 3 */
+#define BCHP_XPT_RAVE_AVS_SCV_FILTER_VALUE_4_TO_7 0x20a43234 /* [RW][32] AVS SCV Filter value 4 to 7 */
+#define BCHP_XPT_RAVE_AV_STATUS                  0x20a43238 /* [RO][32] RAVE Status */
+#define BCHP_XPT_RAVE_PACKET_COUNT               0x20a4323c /* [RO][32] RAVE input packet counter */
+#define BCHP_XPT_RAVE_DATA_START_ADDR_A          0x20a43240 /* [RW][32] Pkt and HWA data buffer A base addresses */
+#define BCHP_XPT_RAVE_DATA_START_ADDR_B          0x20a43244 /* [RW][32] Pkt and HWA data buffer B base addresses */
+#define BCHP_XPT_RAVE_WATCHDOG_TIMER_VALUE       0x20a43248 /* [RW][32] Watchdog Timer Timeout Value */
+#define BCHP_XPT_RAVE_MISC_CONTROL               0x20a4324c /* [RW][32] Miscellaneous Control */
+#define BCHP_XPT_RAVE_BASE_ADDRESSES             0x20a43250 /* [RW][32] Record and SCD Base Addresses */
+#define BCHP_XPT_RAVE_CX_HOLD_CLR_STATUS         0x20a43254 /* [RW][32] Context Hold Status and Clear for CX 0 to 23 */
+#define BCHP_XPT_RAVE_CX_HOLD_CLR_STATUS_1       0x20a43258 /* [RW][32] Context Hold Status and Clear for CX 24 to 47 */
+#define BCHP_XPT_RAVE_PB_BAND_HOLD_CLR_STATUS    0x20a4325c /* [RW][32] Playback Band Hold Status and Clear */
+#define BCHP_XPT_RAVE_FE_BAND_HOLD_CLR_STATUS    0x20a43260 /* [RW][32] FE parser Band Hold Status and Clear */
+#define BCHP_XPT_RAVE_FW_WATERMARK               0x20a43264 /* [RW][32] Firmware throughput watermark */
+#define BCHP_XPT_RAVE_HW_WATCHDOG                0x20a43268 /* [RW][32] Hardware Watchdog Counter */
+#define BCHP_XPT_RAVE_MISC_CONTROL2              0x20a4326c /* [RW][32] Miscellaneous Control 2 */
+#define BCHP_XPT_RAVE_MISC_CONTROL3              0x20a43270 /* [RW][32] Miscellaneous Control 3 */
+#define BCHP_XPT_RAVE_RC0_SP_CONTROL             0x20a43274 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC1_SP_CONTROL             0x20a43278 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC2_SP_CONTROL             0x20a4327c /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC3_SP_CONTROL             0x20a43280 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC4_SP_CONTROL             0x20a43284 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC5_SP_CONTROL             0x20a43288 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC6_SP_CONTROL             0x20a4328c /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC7_SP_CONTROL             0x20a43290 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_RC8_SP_CONTROL             0x20a43294 /* [RW][32] Seamless Pause Control */
+#define BCHP_XPT_RAVE_AV_STATUS2                 0x20a43298 /* [RO][32] RAVE Status */
+#define BCHP_XPT_RAVE_ATSOFFSET_MAX_ERROR        0x20a4329c /* [RW][32] Max error for ATS offset */
+#define BCHP_XPT_RAVE_INT_CX0                    0x20a432a0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX1                    0x20a432a4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX2                    0x20a432a8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX3                    0x20a432ac /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX4                    0x20a432b0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX5                    0x20a432b4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX6                    0x20a432b8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX7                    0x20a432bc /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX8                    0x20a432c0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX9                    0x20a432c4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX10                   0x20a432c8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX11                   0x20a432cc /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX12                   0x20a432d0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX13                   0x20a432d4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX14                   0x20a432d8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX15                   0x20a432dc /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX16                   0x20a432e0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX17                   0x20a432e4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX18                   0x20a432e8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX19                   0x20a432ec /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX20                   0x20a432f0 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX21                   0x20a432f4 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX22                   0x20a432f8 /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_CX23                   0x20a432fc /* [RW][32] Context Interrupts */
+#define BCHP_XPT_RAVE_INT_MISC                   0x20a43300 /* [RW][32] Miscellaneous Interrupts */
+#define BCHP_XPT_RAVE_TPIT_TIME_TICK             0x20a48b04 /* [RW][32] TPIT Time Tick Register */
+#define BCHP_XPT_RAVE_TPIT_PKT_TIMEOUT           0x20a48b08 /* [RW][32] TPIT Time Packet Timeout Register */
+#define BCHP_XPT_RAVE_TPIT_EVE_TIMEOUT           0x20a48b0c /* [RW][32] TPIT Time Event Timeout Register */
+#define BCHP_XPT_RAVE_EMM_TID_MODE               0x20a48b10 /* [RW][32] TPIT EMM_TID_MODE Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_TID                    0x20a48b14 /* [RW][32] TPIT EMM_TID Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_CTRL_ID                0x20a48b18 /* [RW][32] TPIT EMM_CTRL_ID Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_1              0x20a48b1c /* [RW][32] TPIT EMM_DATA_ID_1 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_2              0x20a48b20 /* [RW][32] TPIT EMM_DATA_ID_2 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_3              0x20a48b24 /* [RW][32] TPIT EMM_DATA_ID_3 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_4              0x20a48b28 /* [RW][32] TPIT EMM_DATA_ID_4 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_5              0x20a48b2c /* [RW][32] TPIT EMM_DATA_ID_5 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_6              0x20a48b30 /* [RW][32] TPIT EMM_DATA_ID_6 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_7              0x20a48b34 /* [RW][32] TPIT EMM_DATA_ID_7 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_DATA_ID_8              0x20a48b38 /* [RW][32] TPIT EMM_DATA_ID_8 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_1              0x20a48b3c /* [RW][32] TPIT EMM_MASK_ID_1 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_2              0x20a48b40 /* [RW][32] TPIT EMM_MASK_ID_2 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_3              0x20a48b44 /* [RW][32] TPIT EMM_MASK_ID_3 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_4              0x20a48b48 /* [RW][32] TPIT EMM_MASK_ID_4 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_5              0x20a48b4c /* [RW][32] TPIT EMM_MASK_ID_5 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_6              0x20a48b50 /* [RW][32] TPIT EMM_MASK_ID_6 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_7              0x20a48b54 /* [RW][32] TPIT EMM_MASK_ID_7 Register (NDS only) */
+#define BCHP_XPT_RAVE_EMM_MASK_ID_8              0x20a48b58 /* [RW][32] TPIT EMM_MASK_ID_8 Register (NDS only) */
+#define BCHP_XPT_RAVE_TPIT0_CTRL1                0x20a4935c /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT0_COR1                 0x20a49360 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT0_TID                  0x20a49364 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT0_TID2                 0x20a49368 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT0_STATE0               0x20a4936c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE1               0x20a49370 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2               0x20a49374 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2a              0x20a49378 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2b              0x20a4937c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2c              0x20a49380 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2d              0x20a49384 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2e              0x20a49388 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2f              0x20a4938c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2g              0x20a49390 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2h              0x20a49394 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2i              0x20a49398 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2j              0x20a4939c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2k              0x20a493a0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2l              0x20a493a4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE2m              0x20a493a8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE_RESERVED0      0x20a493ac /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE_RESERVED1      0x20a493b0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE4               0x20a493b4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE5               0x20a493b8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE6               0x20a493bc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE7               0x20a493c0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE8               0x20a493c4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT0_STATE9               0x20a493c8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_CTRL1                0x20a493cc /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT1_COR1                 0x20a493d0 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT1_TID                  0x20a493d4 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT1_TID2                 0x20a493d8 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT1_STATE0               0x20a493dc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE1               0x20a493e0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2               0x20a493e4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2a              0x20a493e8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2b              0x20a493ec /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2c              0x20a493f0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2d              0x20a493f4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2e              0x20a493f8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2f              0x20a493fc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2g              0x20a49400 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2h              0x20a49404 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2i              0x20a49408 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2j              0x20a4940c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2k              0x20a49410 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2l              0x20a49414 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE2m              0x20a49418 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE_RESERVED0      0x20a4941c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE_RESERVED1      0x20a49420 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE4               0x20a49424 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE5               0x20a49428 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE6               0x20a4942c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE7               0x20a49430 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE8               0x20a49434 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT1_STATE9               0x20a49438 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_CTRL1                0x20a4943c /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT2_COR1                 0x20a49440 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT2_TID                  0x20a49444 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT2_TID2                 0x20a49448 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT2_STATE0               0x20a4944c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE1               0x20a49450 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2               0x20a49454 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2a              0x20a49458 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2b              0x20a4945c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2c              0x20a49460 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2d              0x20a49464 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2e              0x20a49468 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2f              0x20a4946c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2g              0x20a49470 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2h              0x20a49474 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2i              0x20a49478 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2j              0x20a4947c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2k              0x20a49480 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2l              0x20a49484 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE2m              0x20a49488 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE_RESERVED0      0x20a4948c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE_RESERVED1      0x20a49490 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE4               0x20a49494 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE5               0x20a49498 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE6               0x20a4949c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE7               0x20a494a0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE8               0x20a494a4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT2_STATE9               0x20a494a8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_CTRL1                0x20a494ac /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT3_COR1                 0x20a494b0 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT3_TID                  0x20a494b4 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT3_TID2                 0x20a494b8 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT3_STATE0               0x20a494bc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE1               0x20a494c0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2               0x20a494c4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2a              0x20a494c8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2b              0x20a494cc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2c              0x20a494d0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2d              0x20a494d4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2e              0x20a494d8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2f              0x20a494dc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2g              0x20a494e0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2h              0x20a494e4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2i              0x20a494e8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2j              0x20a494ec /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2k              0x20a494f0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2l              0x20a494f4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE2m              0x20a494f8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE_RESERVED0      0x20a494fc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE_RESERVED1      0x20a49500 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE4               0x20a49504 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE5               0x20a49508 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE6               0x20a4950c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE7               0x20a49510 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE8               0x20a49514 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT3_STATE9               0x20a49518 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_CTRL1                0x20a4951c /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT4_COR1                 0x20a49520 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT4_TID                  0x20a49524 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT4_TID2                 0x20a49528 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT4_STATE0               0x20a4952c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE1               0x20a49530 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2               0x20a49534 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2a              0x20a49538 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2b              0x20a4953c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2c              0x20a49540 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2d              0x20a49544 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2e              0x20a49548 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2f              0x20a4954c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2g              0x20a49550 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2h              0x20a49554 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2i              0x20a49558 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2j              0x20a4955c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2k              0x20a49560 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2l              0x20a49564 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE2m              0x20a49568 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE_RESERVED0      0x20a4956c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE_RESERVED1      0x20a49570 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE4               0x20a49574 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE5               0x20a49578 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE6               0x20a4957c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE7               0x20a49580 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE8               0x20a49584 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT4_STATE9               0x20a49588 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_CTRL1                0x20a4958c /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT5_COR1                 0x20a49590 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT5_TID                  0x20a49594 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT5_TID2                 0x20a49598 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT5_STATE0               0x20a4959c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE1               0x20a495a0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2               0x20a495a4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2a              0x20a495a8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2b              0x20a495ac /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2c              0x20a495b0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2d              0x20a495b4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2e              0x20a495b8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2f              0x20a495bc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2g              0x20a495c0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2h              0x20a495c4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2i              0x20a495c8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2j              0x20a495cc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2k              0x20a495d0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2l              0x20a495d4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE2m              0x20a495d8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE_RESERVED0      0x20a495dc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE_RESERVED1      0x20a495e0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE4               0x20a495e4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE5               0x20a495e8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE6               0x20a495ec /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE7               0x20a495f0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE8               0x20a495f4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT5_STATE9               0x20a495f8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_CTRL1                0x20a495fc /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT6_COR1                 0x20a49600 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT6_TID                  0x20a49604 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT6_TID2                 0x20a49608 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT6_STATE0               0x20a4960c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE1               0x20a49610 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2               0x20a49614 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2a              0x20a49618 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2b              0x20a4961c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2c              0x20a49620 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2d              0x20a49624 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2e              0x20a49628 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2f              0x20a4962c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2g              0x20a49630 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2h              0x20a49634 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2i              0x20a49638 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2j              0x20a4963c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2k              0x20a49640 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2l              0x20a49644 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE2m              0x20a49648 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE_RESERVED0      0x20a4964c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE_RESERVED1      0x20a49650 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE4               0x20a49654 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE5               0x20a49658 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE6               0x20a4965c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE7               0x20a49660 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE8               0x20a49664 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT6_STATE9               0x20a49668 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_CTRL1                0x20a4966c /* [RW][32] TPIT  Control Register 1 */
+#define BCHP_XPT_RAVE_TPIT7_COR1                 0x20a49670 /* [RW][32] TPIT  Corrupt Register */
+#define BCHP_XPT_RAVE_TPIT7_TID                  0x20a49674 /* [RW][32] TPIT TID Register */
+#define BCHP_XPT_RAVE_TPIT7_TID2                 0x20a49678 /* [RW][32] TPIT TID Register 2 */
+#define BCHP_XPT_RAVE_TPIT7_STATE0               0x20a4967c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE1               0x20a49680 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2               0x20a49684 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2a              0x20a49688 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2b              0x20a4968c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2c              0x20a49690 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2d              0x20a49694 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2e              0x20a49698 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2f              0x20a4969c /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2g              0x20a496a0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2h              0x20a496a4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2i              0x20a496a8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2j              0x20a496ac /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2k              0x20a496b0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2l              0x20a496b4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE2m              0x20a496b8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE_RESERVED0      0x20a496bc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE_RESERVED1      0x20a496c0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE4               0x20a496c4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE5               0x20a496c8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE6               0x20a496cc /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE7               0x20a496d0 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE8               0x20a496d4 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT7_STATE9               0x20a496d8 /* [RW][32] TPIT  State Register */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT0        0x20a496dc /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT1        0x20a496e0 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT2        0x20a496e4 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT3        0x20a496e8 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT4        0x20a496ec /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT5        0x20a496f0 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT6        0x20a496f4 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT7        0x20a496f8 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT8        0x20a496fc /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT9        0x20a49700 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT10       0x20a49704 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT11       0x20a49708 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT12       0x20a4970c /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT13       0x20a49710 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT14       0x20a49714 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT15       0x20a49718 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT16       0x20a4971c /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT17       0x20a49720 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT18       0x20a49724 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT19       0x20a49728 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT20       0x20a4972c /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT21       0x20a49730 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT22       0x20a49734 /* [RW][32] TPIT State Register for Context */
+#define BCHP_XPT_RAVE_TPIT_STATE_CONTEXT23       0x20a49738 /* [RW][32] TPIT State Register for Context */
 
 /***************************************************************************
  *CX0_AV_CDB_WRITE_PTR - Context CDB Write Pointer

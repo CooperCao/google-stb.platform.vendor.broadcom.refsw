@@ -37,8 +37,8 @@
 ############################################################
 
 ifeq ($(URSR_TOP),)
-$(warning URSR_TOP is not defined! setting to ../../../../)
-URSR_TOP := ../../../../
+#$(warning URSR_TOP is not defined! setting to ../../../../)
+URSR_TOP := $(abspath ../../../../)
 endif
 
 NEXUS_TOP=$(URSR_TOP)/nexus
@@ -81,6 +81,7 @@ include common_drm.inc
 # SRAI is always from URSR_TOP
 ifeq ($(SAGE_SUPPORT),y)
     include $(URSR_TOP)/magnum/syslib/sagelib/bsagelib_public.inc
+    SAGE_CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
     SAGE_CFLAGS += -I${BSAGELIB_INCLUDES}
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/include
     SAGE_CFLAGS += -I$(URSR_TOP)/BSEAV/lib/security/sage/platforms/include
@@ -115,16 +116,23 @@ PRDY_LDFLAGS += --sysroot=$(ANDROID_LINKER_SYSROOT)
 endif # end of ANDROID_LINKER_SYSROOT
 PRDY_LDFLAGS += -lnexus -llog
 
+ifeq ($(SAGE_VERSION), 2x)
+PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib/$(SAGE_VERSION)
+else
+PRDY_LIB_PATH := ${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+endif
+
+
 ifeq ($(findstring mips,$(B_REFSW_ARCH)),mips)
 #Adding eglibc support for mips platforms. if the tool chain version is greater than 4.8.5
 GCC_GTEQ_485 := $(shell expr `$(CC) -dumpversion | sed -e 's/\.\([0-9][0-9]\)/\1/g' -e 's/\.\([0-9]\)/0\1/g' -e 's/^[0-9]\{3,4\}$$/&00/'` \>= 40805)
 ifeq "$(GCC_GTEQ_485)" "1"
-PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib/eglibc
+PRDY_LDFLAGS += -L${PRDY_LIB_PATH}/eglibc
 else
-PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+PRDY_LDFLAGS += -L${PRDY_LIB_PATH}
 endif
 else
-PRDY_LDFLAGS += -L${URSR_TOP}/BSEAV/lib/playready/2.5/bin/${ARCH_DIR}/lib
+PRDY_LDFLAGS += -L${PRDY_LIB_PATH}
 endif
 ifeq ($(SAGE_SUPPORT),y)
 ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
@@ -362,6 +370,10 @@ ifeq ($(filter ${B_REFSW_ARCH}, arm-linux ), ${B_REFSW_ARCH})
 CFLAGS +=-marm -march=armv7-a
 endif
 
+ifeq ($(filter ${B_REFSW_ARCH}, aarch64-linux), ${B_REFSW_ARCH})
+CFLAGS += -march=armv8-a
+endif
+
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
 
@@ -400,7 +412,6 @@ F_INSTALLED_TL_LIBS	=
 endif
 BUILD_LIBS = $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${F_PUBLIC_LIBS} ${F_PUBLIC_TL_LIBS})
 
-
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
 
 #$(warning TL_LDFLAGS = ${TL_LDFLAGS})
@@ -432,28 +443,37 @@ ifeq ($(SAGE_SUPPORT),y)
 	@ mkdir -p ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}
 endif
 
-prep_drmrootfs:
-	@echo [Compiling drmrootfs dependency ....] && \
-	$(MAKE) -C $(BSEAV_TOP)/lib/drmrootfs install > /dev/null
-
-prep_srai:
-ifeq ($(SAGE_SUPPORT),y)
-	@echo [..... prep_SRAI]
-	$(Q)$(MAKE) -C $(URSR_TOP)/BSEAV/lib/security/sage/srai re
+include $(BSEAV)/lib/openssl/b_openssl_targets.inc
+ifeq ($(B_BUILD_DEPS),n)
+ prep_openssl:
+else
+ prep_openssl: b_openssl_target_build
 endif
 
-prep_openssl:
-	@echo [..... prep_openssl]
-	$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR) > /dev/null
+include $(BSEAV)/lib/drmrootfs/b_drmrootfs_targets.inc
+ifeq ($(B_BUILD_DEPS),n)
+ prep_drmrootfs:
+else
+ prep_drmrootfs: b_drmrootfs_target_build
+endif
 
-playready: prep_folder prep_drmrootfs
-	$(MAKE) prep_playready && \
-	$(MAKE) ${PRDY_INSTALLED_LIBS}
+include $(BSEAV)/lib/security/sage/srai/b_srai_targets.inc
+ifeq ($(B_BUILD_DEPS),n)
+ prep_srai:
+else
+ prep_srai: b_srai_target_build
+endif
+
+playready: prep_folder prep_drmrootfs prep_playready ${PRDY_INSTALLED_LIBS}
 
 prep_playready: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_PUBLIC_LIBS})
 
+# Order-only prerequisites
+${PRDY_INSTALLED_LIBS}: |prep_playready
+$(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_PUBLIC_LIBS}): |prep_folder prep_drmrootfs
+
 clean:
-	rm -rf ${COMMON_DRM_OBJ_ROOT}
+	@rm -rf ${COMMON_DRM_OBJ_ROOT}
 
 report:
 	@echo "NEXUS CFLAGS is $(NEXUS_CFLAGS)"
@@ -472,7 +492,7 @@ report:
 #vvvv#####################vvvvvvvvvvvvvvvvvvvvvvv#####################vvvv##
 ifeq ($(SAGE_SUPPORT),y)
 ${COMMON_DRM_OBJ_ROOT}/lib${LIB_TL_BASENAME}.so: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${COMMON_DRM_TL_OBJECTS})
-	@ echo [Linking shared TL library .... $@ ]
+	@ echo "[Link...... $(notdir $@) (common_drm)]"
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
 	@ ${CC} -shared -o $@ ${TL_LDFLAGS} ${LDFLAGS} $^ -Wl,-Bdynamic
 else
@@ -482,7 +502,7 @@ endif
 
 ifeq ($(SAGE_SUPPORT),y)
 ${COMMON_DRM_OBJ_ROOT}/lib${LIB_TL_BASENAME}.a: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${COMMON_DRM_TL_OBJECTS})
-	@ echo [Linking static TL library .... $@ ]
+	@ echo "[Archive... $(notdir $@) (common_drm)]"
 	@ ${AR} rc $@ $^
 endif
 
@@ -495,30 +515,29 @@ else
 endif
 
 ${COMMON_DRM_OBJ_ROOT}/lib${PRDY_BASENAME}.a: $(addprefix ${COMMON_DRM_OBJ_ROOT}/, ${PRDY_OBJS})
-	@ echo [Linking static library .... $@ ]
+	@ echo "[Archive... $(notdir $@) (common_drm)]"
 	@ ${AR} rc $@ $^
 
 # Install a copy of cmndrmprdy libs in the out of source build folder
-install: all
-	@$(MAKE) ${F_INSTALLED_LIBS}
-ifeq ($(SAGE_SUPPORT),y)
-	@$(MAKE) ${F_INSTALLED_TL_LIBS}
-endif
+install: all ${F_INSTALLED_LIBS} ${F_INSTALLED_TL_LIBS}
+
+# all must be done before installing (order-only dependency)
+${F_INSTALLED_LIBS} ${F_INSTALLED_TL_LIBS}: |all
 
 ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.a : ${COMMON_DRM_OBJ_ROOT}/%.a
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 
 ${COMMON_DRM_OBJ_ROOT}/lib/${CMNDRM_DIR}/%.so : ${COMMON_DRM_OBJ_ROOT}/%.so
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 
 ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.a : ${COMMON_DRM_OBJ_ROOT}/%.a
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 
 ${COMMON_DRM_OBJ_ROOT}/${PRDY_FOR_LIB_INSTALL}/%.so : ${COMMON_DRM_OBJ_ROOT}/%.so
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 
-${COMMON_DRM_OBJ_ROOT}/%.o: %.c prep_folder
-	@ echo [Compiling with $(CC).... $< ]
+${COMMON_DRM_OBJ_ROOT}/%.o: %.c |prep_folder
+	@ echo "[Compile... $(notdir $<) (common_drm)]"
 ifeq ($(SAGE_SUPPORT),y)
 	@ ${CC} ${CFLAGS} ${SAGE_CFLAGS} ${COMMON_DRM_TL_DEFINES} -c -o $@ $<
 else
@@ -527,11 +546,13 @@ endif
 
 
 copy: all
-	install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR); \
-	install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm64.so $(NEXUS_BIN_DIR); \
-	if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
+	@install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm.so $(NEXUS_BIN_DIR);
+	@if [ -f ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
+		install -m 0755 ${COMMON_DRM_TOP}/lib/${CMNDRM_DIR}/libcmndrm64.so $(NEXUS_BIN_DIR); \
+	fi;
+	@if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrmprdy.so $(NEXUS_BIN_DIR); \
-	fi; \
-	if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrm_tl.so ]; then \
+	fi;
+	@if [ -e ${COMMON_DRM_OBJ_ROOT}/libcmndrm_tl.so ]; then \
 		install -m 0755 ${COMMON_DRM_OBJ_ROOT}/libcmndrm_tl.so $(NEXUS_BIN_DIR); \
 	fi

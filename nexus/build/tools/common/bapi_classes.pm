@@ -197,16 +197,6 @@ sub get_classes
     return \@c;
 }
 
-sub skip_thunk
-{
-    my $file = shift;
-    return
-        $file =~ /\*/ || # skip not expaneded wildcards
-        $file =~ /_init.h$/ ||
-        $file =~ /nexus_platform_client.h$/ ||
-        $file =~ /nexus_base\w*.h$/;
-}
-
 sub get_class_name {
     my $type = shift;
     $type =~ s/Handle$//;
@@ -313,7 +303,7 @@ sub generate_meta
             if ($param->{ISREF} && $param->{BASETYPE} ne 'void') {
                 if (!exists $param->{ATTR}->{'nelem'}) {
                     my @pointer;
-                    push @pointer, "\"$param->{NAME}\" ,";
+                    push @pointer, "BDBG_STRING(\"$param->{NAME}\"),";
                     push @pointer, "NEXUS_OFFSETOF($arg_type, $args . $param->{NAME}), /* offset */";
                     if($param->{INPARAM}) {
                         push @pointer, "NEXUS_OFFSETOF($arg_type, $args . $isnull_prefix$param->{NAME}$isnull_suffix ), /* null_offset */";
@@ -339,7 +329,7 @@ sub generate_meta
                             my $class_name = bapi_classes::get_class_name($handletype);
                             my @object;
 
-                            push @object, '"' . $param->{NAME} . '->' . $struct_field->{NAME} . '",';
+                            push @object, 'BDBG_STRING("' . $param->{NAME} . '->' . $struct_field->{NAME} . '"),';
                             push @object, "NEXUS_OFFSETOF($arg_type, $args . $param->{NAME}.$struct_field->{NAME} ), /* offset */";
                             if($param->{INPARAM}) {
                                 push @object, "NEXUS_OFFSETOF($arg_type, $args . $isnull_prefix$param->{NAME}$isnull_suffix), /* null_offset */";
@@ -363,7 +353,7 @@ sub generate_meta
                 if ($param->{TYPE} eq $handletype) {
                     my @object;
                     my $class_name = bapi_classes::get_class_name($handletype);
-                    push @object, "\"$param->{NAME}\" ,";
+                    push @object, "BDBG_STRING(\"$param->{NAME}\"),";
                     if($mode->{KIND} eq 'driver') {
                         push @object, "NEXUS_OFFSETOF($arg_type, $args .  ioctl . $param->{NAME} ),  /*  offset */";
                     } else {
@@ -405,7 +395,7 @@ sub generate_meta
             print $file "\n};\n";
         }
 
-        push @function, "\"$func->{FUNCNAME}\",";
+        push @function, "BDBG_STRING(\"$func->{FUNCNAME}\"),";
         if(exists $mode->{FUNCHEADER}) {
             $mode->{FUNCHEADER}->(\@function, $module,$func);
         }

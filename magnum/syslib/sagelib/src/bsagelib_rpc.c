@@ -61,11 +61,14 @@ static uint32_t BSAGElib_P_Rpc_GenSeqId(BSAGElib_Handle hSAGElib);
 static uint32_t BSAGElib_P_Rpc_GenInstanceId(BSAGElib_Handle hSAGElib);
 static void BSAGElib_P_Rpc_HandleResponse_isr(BSAGElib_Handle hSAGElib, BSAGElib_RpcResponse *response);
 static void BSAGElib_P_Rpc_HandleIndication_isr(BSAGElib_Handle hSAGElib, BSAGElib_RpcIndication *indication);
-static void BSAGElib_P_Rpc_HandleTATerminate_isr(BSAGElib_Handle hSAGElib, BSAGElib_RpcTATerminate *taTerminate);
 static void BSAGElib_P_Rpc_ResponseCallbackFree(BSAGElib_ClientHandle hSAGElibClient, BSAGElib_CallbackItem *item);
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
+static void BSAGElib_P_Rpc_HandleTATerminate_isr(BSAGElib_Handle hSAGElib, BSAGElib_RpcTATerminate *taTerminate);
 static BERR_Code BSAGElib_P_Rpc_HandleCallbackRequest_isr(BSAGElib_Handle hSAGElib, BSAGElib_RpcRequest *callbackRequest);
-static BSAGElib_CallbackItem *BSAGElib_P_Rpc_ResponseCallbackAllocate(BSAGElib_ClientHandle hSAGElibClient);
 static void BSAGElib_P_Rpc_TerminateAllByPlatformById_isrsafe(BSAGElib_Handle hSAGElib, uint32_t platformId);
+#endif
+static BSAGElib_CallbackItem *BSAGElib_P_Rpc_ResponseCallbackAllocate(BSAGElib_ClientHandle hSAGElibClient);
+
 
 
 static BSAGElib_RpcRemoteHandle
@@ -92,7 +95,7 @@ BSAGElib_P_Rpc_FindRemoteById_isr(
 
     return NULL;
 }
-
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 static void
 BSAGElib_P_Rpc_TerminateAllByPlatformById_isrsafe(
     BSAGElib_Handle hSAGElib,
@@ -111,6 +114,7 @@ BSAGElib_P_Rpc_TerminateAllByPlatformById_isrsafe(
         }
     }
 }
+#endif
 
 /* This function assumes that given remote is valid. */
 void
@@ -182,6 +186,73 @@ BSAGElib_P_Rpc_HandleResponse_isr(
     BSAGElib_P_Rpc_DispatchResponse_isr(remote, response->rc);
 }
 
+static void
+BSAGElib_P_Rpc_HandleIndication_isr(
+    BSAGElib_Handle hSAGElib,
+    BSAGElib_RpcIndication *indication)
+{
+    BSAGElib_RpcRemoteHandle remote;
+    BSAGElib_ClientHandle hSAGElibClient;
+
+    remote = BSAGElib_P_Rpc_FindRemoteById_isr(hSAGElib,
+                                               indication->instanceId);
+    if (!remote) {
+        BDBG_ERR(("%s: Cannot find remote bounded to id #%u",
+                  __FUNCTION__, indication->instanceId));
+        return;
+    }
+    hSAGElibClient = remote->hSAGElibClient;
+
+    if (!BSAGElib_iRpcIndicationRecv_isr) {
+        BDBG_WRN(("%s: remote [id=%u] NO INDICATION CALLBACK (indication #%u, val=%u)",
+                  __FUNCTION__, indication->instanceId, indication->id, indication->value));
+        return;
+    }
+
+    BDBG_MSG(("%s: remote [id=%u]: indication #%u, val=%u",
+              __FUNCTION__, indication->instanceId, indication->id, indication->value));
+
+    BSAGElib_iRpcIndicationRecv_isr(remote, remote->async_arg, indication->id, indication->value);
+}
+
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+/* Callback fired by lower layer HSI when receiving a message
+ * BHSI_IsrCallbackFunc prototype */
+static void
+BSAGElib_P_Rpc_HSIReceiveCallback_isr(
+    void *context)
+{
+    BSAGElib_Response rs;
+    uint32_t recv_length;
+    BERR_Code rc;
+    BSAGElib_Handle hSAGElib = (BSAGElib_Handle)context;
+
+    rc = BHSI_Receive_isrsafe(hSAGElib->hHsi, (uint8_t *)&rs, sizeof(rs), &recv_length);
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("%s: BHSI_Receive failure (%d)",
+                  __FUNCTION__, rc));
+        return;
+    }
+
+    /* TODO Check for reset situation (watchdog) */
+
+    if (recv_length != sizeof(rs)) {
+        BDBG_ERR(("%s: BHSI_Receive returns receive length %u != %u",
+                  __FUNCTION__, recv_length, (unsigned)sizeof(rs)));
+        return;
+    }
+
+    switch (rs.responseType) {
+    case BSAGElib_Response_eResponse:
+        BSAGElib_P_Rpc_HandleResponse_isr(hSAGElib, &rs.response);
+        break;
+    case BSAGElib_Response_eIndication:
+        BSAGElib_P_Rpc_HandleIndication_isr(hSAGElib, &rs.indication);
+        break;
+    default: return;
+    }
+}
+#else
 static BERR_Code
 BSAGElib_P_Rpc_HandleCallbackRequest_isr(
     BSAGElib_Handle hSAGElib,
@@ -239,34 +310,6 @@ end:
     return rc;
 }
 
-static void
-BSAGElib_P_Rpc_HandleIndication_isr(
-    BSAGElib_Handle hSAGElib,
-    BSAGElib_RpcIndication *indication)
-{
-    BSAGElib_RpcRemoteHandle remote;
-    BSAGElib_ClientHandle hSAGElibClient;
-
-    remote = BSAGElib_P_Rpc_FindRemoteById_isr(hSAGElib,
-                                               indication->instanceId);
-    if (!remote) {
-        BDBG_ERR(("%s: Cannot find remote bounded to id #%u",
-                  __FUNCTION__, indication->instanceId));
-        return;
-    }
-    hSAGElibClient = remote->hSAGElibClient;
-
-    if (!BSAGElib_iRpcIndicationRecv_isr) {
-        BDBG_WRN(("%s: remote [id=%u] NO INDICATION CALLBACK (indication #%u, val=%u)",
-                  __FUNCTION__, indication->instanceId, indication->id, indication->value));
-        return;
-    }
-
-    BDBG_MSG(("%s: remote [id=%u]: indication #%u, val=%u",
-              __FUNCTION__, indication->instanceId, indication->id, indication->value));
-
-    BSAGElib_iRpcIndicationRecv_isr(remote, remote->async_arg, indication->id, indication->value);
-}
 
 static void
 BSAGElib_P_Rpc_HandleTATerminate_isr(
@@ -349,6 +392,7 @@ BSAGElib_P_Rpc_HSIReceiveCallback_isr(
     /* Send Ack */
     BHSI_Ack_isrsafe(hSAGElib->hHsi, pAckBuf, ackBufLen);
 }
+#endif
 
 BERR_Code
 BSAGElib_P_Rpc_Init(BSAGElib_Handle hSAGElib)
@@ -383,7 +427,6 @@ BSAGElib_P_Rpc_Init(BSAGElib_Handle hSAGElib)
 
     rc = BHSI_Open(&hSAGElib->hHsi,
                    hSAGElib->core_handles.hReg,
-                   hSAGElib->core_handles.hChp,
                    hSAGElib->core_handles.hInt,
                    &HSISettings);
     if (rc != BERR_SUCCESS) {
@@ -545,12 +588,22 @@ BSAGElib_P_Rpc_RemoveRemote(
               __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote, remote->message->instanceId));
 
     if (remote->open) {
-        BDBG_ERR(("%s hSAGElib=%p hSAGElibClient=%p remote=%p platformId=%u moduleId=%u instanceId=%u is open",
-                  __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
-                  remote->platformId, remote->moduleId, remote->message->instanceId));
+        /* Special case for system crit platform and S3 */
+        /* When going to S3, BSAGElib_P_Rpc_RemoveRemote will be intentionally called without
+        * closing the platform in order to free resources, but leave the platform running (as
+        * it is needed for S3) */
+        if(remote->platformId != BSAGE_PLATFORM_ID_SYSTEM_CRIT)
+        {
+            BDBG_ERR(("%s hSAGElib=%p hSAGElibClient=%p remote=%p platformId=%u moduleId=%u instanceId=%u is open",
+                      __FUNCTION__, (void *)hSAGElib, (void *)remote->hSAGElibClient, (void *)remote,
+                      remote->platformId, remote->moduleId, remote->message->instanceId));
 
-        if (remote->platformId != 0) {
-            BSAGElib_Rai_Platform_Close(remote, NULL);
+            if (remote->moduleId != 0) {
+                BSAGElib_Rai_Module_Uninit(remote, NULL);
+            }
+            else if (remote->platformId != 0) {
+                BSAGElib_Rai_Platform_Close(remote, NULL);
+            }
         }
     }
     BKNI_EnterCriticalSection();
@@ -586,6 +639,150 @@ BSAGElib_Rpc_RemoveRemote(
     BSAGElib_P_Rpc_RemoveRemote(remote);
 }
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+BERR_Code
+BSAGElib_Rpc_SendCommand(
+    BSAGElib_RpcRemoteHandle remote,
+    BSAGElib_RpcCommand *command,
+    uint32_t *pAsync_id)
+{
+    BERR_Code rc = BERR_SUCCESS;
+    BSAGElib_RpcRequest request;
+    BSAGElib_RpcAck ack;
+    uint32_t ack_len;
+    uint32_t seqId;
+    BSAGElib_Handle hSAGElib;
+    BSAGElib_ClientHandle hSAGElibClient;
+
+    BDBG_OBJECT_ASSERT(remote, BSAGElib_P_RpcRemote);
+    BDBG_ASSERT(command);
+
+    hSAGElibClient = remote->hSAGElibClient;
+    hSAGElib = hSAGElibClient->hSAGElib;
+
+    if (remote->message->sequence) {
+        BDBG_ERR(("%s: remote is busy", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    if (!remote->valid) {
+        BDBG_ERR(("%s: remote is invalid (watchdog reset)", __FUNCTION__));
+        rc = BSAGE_ERR_RESET;
+        goto end;
+    }
+
+    if (command->containerVAddr && !command->containerOffset) {
+        BDBG_ERR(("%s: container VAddr and offset inconsistency", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    if (!BSAGElib_iRpcResponse_isr) {
+        remote->callbackItem = BSAGElib_P_Rpc_ResponseCallbackAllocate(remote->hSAGElibClient);
+        if (!remote->callbackItem) {
+            BDBG_ERR(("%s: cannot allocate callback item", __FUNCTION__));
+            rc = BERR_OUT_OF_SYSTEM_MEMORY;
+            goto end;
+        }
+    }
+
+    if(!hSAGElib->bBootPostCalled)
+    {
+        BDBG_ERR(("%s: cannot send RPC command, SAGE Boot not completed", __FUNCTION__));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    remote->container = command->containerVAddr;
+
+    remote->message->systemCommandId = command->systemCommandId;
+    remote->message->moduleCommandId = command->moduleCommandId;
+    remote->message->payloadOffset = command->containerOffset;
+
+    /* lock/unlock sage to ensure consistent message/sequence IDs
+     * (no new seq can be generated until that one is consumed) */
+    BSAGElib_iLockSage;
+
+    seqId = BSAGElib_P_Rpc_GenSeqId(hSAGElib);
+
+    remote->message->sequence = seqId;
+    BTMR_ReadTimer(hSAGElib->hTimer, &remote->message->timestamp);
+
+    request.messageOffset = BSAGElib_iAddrToOffset(remote->message);
+    BSAGElib_iFlush_isrsafe(remote->message, sizeof(*remote->message));
+
+    rc = BHSI_Send(hSAGElib->hHsi,
+                   (uint8_t *)&request,
+                   sizeof(request),
+                   (uint8_t *)&ack,
+                   sizeof(ack),
+                   &ack_len);
+
+    BSAGElib_iUnlockSage;
+
+    /* if any host-related error occur beyond this, most likely sequence won't be in sync anymore */
+
+    if (rc != BERR_SUCCESS) {
+        BDBG_ERR(("BHSI_Send failure (%d)", rc));
+        goto end;
+    }
+
+    if (ack_len != sizeof(ack)) {
+        BDBG_ERR(("ack_len is not the right size (%u != %u)", ack_len, (unsigned)sizeof(ack)));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    if (ack.rc) {
+        BDBG_WRN(("An error occurred on the SAGE side (%u)", ack.rc));
+        rc = BERR_INVALID_PARAMETER;
+        goto end;
+    }
+
+    switch (command->systemCommandId) {
+    case BSAGElib_SystemCommandId_eModuleInit:
+    case BSAGElib_SystemCommandId_ePlatformOpen:
+        remote->open = true;
+        break;
+    case BSAGElib_SystemCommandId_eModuleUninit:
+    case BSAGElib_SystemCommandId_ePlatformClose:
+        remote->open = false;
+        break;
+    default:
+        break;
+    }
+
+    if (pAsync_id) {
+        *pAsync_id = seqId;
+    }
+
+end:
+    if (rc) {
+        remote->message->sequence = 0;
+        if (remote->callbackItem) {
+            BSAGElib_P_Rpc_ResponseCallbackFree(hSAGElibClient, remote->callbackItem);
+            remote->callbackItem = NULL;
+        }
+    }
+    return rc;
+}
+
+BERR_Code
+BSAGElib_Rpc_SendCallbackResponse(
+    BSAGElib_RpcRemoteHandle remote,
+    uint32_t sequenceId,
+    BERR_Code retCode)
+{
+	BSTD_UNUSED(remote);
+	BSTD_UNUSED(sequenceId);
+	BSTD_UNUSED(retCode);
+
+	BDBG_WRN(("This API is valid only for SAGE 3X and later binaries"));
+
+	return BERR_SUCCESS;
+}
+#else
 BERR_Code
 BSAGElib_Rpc_SendCommand(
     BSAGElib_RpcRemoteHandle remote,
@@ -800,7 +997,7 @@ BSAGElib_Rpc_SendCallbackResponse(
 end:
     return rc;
 }
-
+#endif
 
 static void
 BSAGElib_P_Rpc_ResponseCallbackFree(

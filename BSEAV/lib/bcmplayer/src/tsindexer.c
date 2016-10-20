@@ -42,11 +42,9 @@
 #include <stdlib.h>
 #include <memory.h>
 #include <stdio.h>
-
-#define TS_DBGMSG(a,b)  if (a > 2) BDBG_WRN(b); else BDBG_MSG(b)
 #include "tsindexer.h"
 #include "mpeg2types.h"
-BDBG_MODULE(ts_indexer);
+BDBG_MODULE(tsindexer);
 
 #define VERSION 0101
 
@@ -351,7 +349,7 @@ long tsindex_feed( sTsIndexer * const p_tsi, const unsigned char *p_bfr, long nu
     /* We are parsing transport packets */
     p_tsi->PesParseMode = 0;
 
-    TS_DBGMSG(1,("feed %ld\n", numBytes));
+    BDBG_MSG(("feed %ld", numBytes));
     while( i < numBytes )
     {
         /* Check if we have a partial packet cached */
@@ -393,19 +391,16 @@ long tsindex_feed( sTsIndexer * const p_tsi, const unsigned char *p_bfr, long nu
         /* make sure this is a trasport packet */
         if( tsindex_readByte(p_curBfr,0) != 0x47 )
         {
-            if( p_tsi->TransRecordByteCountHi )
-            {
-                TS_DBGMSG(3,("  bad packet hi %d\n",
-                            p_tsi->TransRecordByteCountHi));
+            if( p_tsi->TransRecordByteCountHi ) {
+                BDBG_ERR(("  bad packet hi %d", p_tsi->TransRecordByteCountHi));
             }
-
-            TS_DBGMSG(3,("  bad packet %d\n", p_tsi->TransRecordByteCount));
-            return -1;
+            BDBG_ERR(("  bad packet %d", p_tsi->TransRecordByteCount));
+            goto next_packet;
         }
 
         /* Does this pid match the one we are indexing? */
         pid = tsindex_readShort(p_curBfr,TS_PID_BYTE) & TS_PID_MASK;
-        TS_DBGMSG(1,("  pid 0x%x\n", pid));
+        BDBG_MSG(("  pid 0x%x", pid));
 
         if( pid == p_tsi->settings.pid )
         {
@@ -455,19 +450,21 @@ long tsindex_feed( sTsIndexer * const p_tsi, const unsigned char *p_bfr, long nu
                 p_tsi->curEntry.recordByteCountHi &= REC_BYTE_COUNT_HI_MASK;
                 p_tsi->curEntry.recordByteCountHi |= p_tsi->TransRecordByteCountHi<<REC_BYTE_COUNT_HI_OFFSET;
                 p_tsi->curEntry.startCodeBytes = p_tsi->TransByteOffset;
-                TS_DBGMSG(1,("  processPes\n"));
+                BDBG_MSG(("  processPes"));
                 tsindex_processPes( p_tsi, p_curBfr, p_tsi->TransByteOffset,
                     p_tsi->settings.ts_packet_size - p_tsi->TransByteOffset - timestamp_size);
             }
 
             if( p_tsi->TransByteOffset != p_tsi->settings.ts_packet_size )
             {
-                TS_DBGMSG(1,("  processEs\n"));
+                BDBG_MSG(("  processEs"));
                 tsindex_processEs( p_tsi, p_curBfr, p_tsi->TransByteOffset,
                     p_tsi->settings.ts_packet_size - p_tsi->TransByteOffset - timestamp_size);
             }
 
         }
+
+next_packet:
         /* Advance to next transport packet */
         p_tsi->TransRecordByteCount += p_tsi->settings.ts_packet_size;
 
@@ -660,8 +657,9 @@ long tsindex_processPes( sTsIndexer * const p_tsi, const unsigned char *p_bfr,
 
 #ifdef SWAPPED_STREAM
     /* check the offset is a multiple of four.  If it is not then we need more work here */
-    if (offset % 4)
-        TS_DBGMSG(3,("PES Header not 4 byte aligned\n"));
+    if (offset % 4) {
+        BDBG_ERR(("PES Header not 4 byte aligned"));
+    }
 #endif
 
     for( i = 0; i < numBytes; i++ )

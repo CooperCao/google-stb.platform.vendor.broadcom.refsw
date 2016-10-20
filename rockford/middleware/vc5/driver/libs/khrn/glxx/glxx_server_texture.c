@@ -27,6 +27,7 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
 #include "libs/core/lfmt/lfmt_fmt_detail.h"
 #include "libs/util/profile/profile.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 #include "glxx_shared.h"
 #include "glxx_server.h"
@@ -1710,9 +1711,6 @@ static bool is_texparam(GLenum pname) {
    case GL_TEXTURE_BASE_LEVEL:
    case GL_TEXTURE_MAX_LEVEL:
    case GL_TEXTURE_BORDER_COLOR:
-   case GL_TEXTURE_FLIP_X:
-   case GL_TEXTURE_FLIP_Y:
-   case GL_TEXTURE_SWAP_ST:
    case GL_TEXTURE_UNNORMALISED_COORDS_BRCM:
    case GL_TEXTURE_PROTECTED_EXT:
       return true;
@@ -1797,24 +1795,6 @@ void glxx_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum target, GLenu
          texture->max_level = *i;
       else
          glxx_server_state_set_error(state, GL_INVALID_VALUE);
-      break;
-   case GL_TEXTURE_FLIP_X:
-      if (is_boolean(*i))
-         texture->flip_x = *i;
-      else
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      break;
-   case GL_TEXTURE_FLIP_Y:
-      if (is_boolean(*i))
-         texture->flip_y = *i;
-      else
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
-      break;
-   case GL_TEXTURE_SWAP_ST:
-      if (is_boolean(*i))
-         texture->swap_st = *i;
-      else
-         glxx_server_state_set_error(state, GL_INVALID_ENUM);
       break;
    case GL_DEPTH_STENCIL_TEXTURE_MODE:
       if (*i == GL_DEPTH_COMPONENT || *i == GL_STENCIL_INDEX)

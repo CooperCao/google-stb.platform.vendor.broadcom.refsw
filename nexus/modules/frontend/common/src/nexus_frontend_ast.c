@@ -992,6 +992,7 @@ NEXUS_Error NEXUS_Frontend_P_Ast_TuneSatellite( void *handle, const NEXUS_Fronte
 #if 0
     if (pDevice->lastSettings.bypassFrequencyEstimation != pSettings->bypassFrequencyEstimation)
 #endif
+    if (pDevice->astChip != 4506) /* not supported on 4506 */
     {
         uint8_t tuner_ctl;
         BAST_ReadConfig(pDevice->astChannel, BAST_G3_CONFIG_TUNER_CTL, &tuner_ctl, BAST_G3_CONFIG_LEN_TUNER_CTL);
@@ -2458,7 +2459,7 @@ tone_done:
                 pDevice->psd.freqPointIndex
                 ));
 
-        if (pDevice->psd.dataSize >= 5)
+        if (pDevice->psd.dataSize >= 3)
         {
             int32_t  sortBuf[5];
             bool bSwapped = true;
@@ -2607,7 +2608,7 @@ blind_psd_step:
         if (psStatus->curFreq < psStatus->endFreq) {
             errCode = BAST_PeakScan(pDevice->astChannel, psStatus->curFreq);
             if (errCode != BERR_SUCCESS) {
-                BDBG_ERR(("BAST_PeakScan() (blind scan) error %#x. Peak scan terminated", errCode));
+                BDBG_ERR(("BAST_PeakScan() (psd scan) error %#x. Peak scan terminated", errCode));
                 errCode = BERR_TRACE(errCode);
                 goto done;
             }

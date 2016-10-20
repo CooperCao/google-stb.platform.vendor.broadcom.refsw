@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,140 +70,140 @@
 /***************************************************************************
  *HD_DVI_0 - HD Digital Input 0 Registers
  ***************************************************************************/
-#define BCHP_HD_DVI_0_CORE_REV                   0x206f4000 /* [RO] CORE_REV          Register */
-#define BCHP_HD_DVI_0_SW_INIT                    0x206f4004 /* [RW] SW_INIT          Register */
-#define BCHP_HD_DVI_0_HW_CONFIGURATION           0x206f4008 /* [RO] Features supported by hardware */
-#define BCHP_HD_DVI_0_INPUT_CNTRL                0x206f400c /* [RW] Controls the input selections to get the video source */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_X  0x206f4010 /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_Y  0x206f4014 /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_Z  0x206f4018 /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_A  0x206f401c /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_B  0x206f4020 /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_C  0x206f4024 /* [RW] Adjusts input timing at the pins for the msw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_X  0x206f4028 /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_Y  0x206f402c /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_Z  0x206f4030 /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_A  0x206f4034 /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_B  0x206f4038 /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_C  0x206f403c /* [RW] Adjusts input timing at the pins for the lsw capture */
-#define BCHP_HD_DVI_0_DESKEW_CLK_MSW             0x206f4040 /* [RW] Deskews the msw clock relative to all msw input pins */
-#define BCHP_HD_DVI_0_DESKEW_CLK_LSW             0x206f4044 /* [RW] Deskews the lsw clock relative to all lsw input pins */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_0         0x206f4048 /* [RW] INPUT_MUX_SELECT_0 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_1         0x206f404c /* [RW] INPUT_MUX_SELECT_1 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_2         0x206f4050 /* [RW] INPUT_MUX_SELECT_2 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_3         0x206f4054 /* [RW] INPUT_MUX_SELECT_3 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_4         0x206f4058 /* [RW] INPUT_MUX_SELECT_4 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_5         0x206f405c /* [RW] INPUT_MUX_SELECT_5 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_6         0x206f4060 /* [RW] INPUT_MUX_SELECT_6 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_7         0x206f4064 /* [RW] INPUT_MUX_SELECT_7 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_8         0x206f4068 /* [RW] INPUT_MUX_SELECT_8 */
-#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_9         0x206f406c /* [RW] INPUT_MUX_SELECT_9 */
-#define BCHP_HD_DVI_0_BVB_CONVERT                0x206f4070 /* [RW] BVB_CONVERT       Register */
-#define BCHP_HD_DVI_0_AUTO_REPEAT                0x206f4074 /* [RW] DMA Trigger auto repeat value */
-#define BCHP_HD_DVI_0_PICTURE_DELAY              0x206f4078 /* [RW] DMA Trigger delay from the end of picture */
-#define BCHP_HD_DVI_0_MUTE_CLEAR                 0x206f407c /* [RW] MUTE_CLEAR */
-#define BCHP_HD_DVI_0_HOST_ENABLE                0x206f4080 /* [RW] HOST_ENABLE */
-#define BCHP_HD_DVI_0_HOST_CONTROL_BITS          0x206f4084 /* [RW] HOST_CONTROL_BITS */
-#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_CLEAR    0x206f4088 /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_CLEAR_1  0x206f408c /* [RW] Video Format Detection Circuit Clear Update Register */
-#define BCHP_HD_DVI_0_I3D_FA_DETECT_CLEAR        0x206f4090 /* [RW] I3D_FA_DETECT_CLEAR */
-#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_1     0x206f4094 /* [RW] FORMAT_THRESHOLD_CFG_1 - Min Vsync Count */
-#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_2     0x206f4098 /* [RW] FORMAT_THRESHOLD_CFG_2 - Max Vsync Count */
-#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_3     0x206f409c /* [RW] FORMAT_THRESHOLD_CFG_3 - Set Min and Max Hsync Count */
-#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_4     0x206f40a0 /* [RW] FORMAT_THRESHOLD_CFG_4 - Set Min and Max Ver. Active Line Count */
-#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_5     0x206f40a4 /* [RW] FORMAT_THRESHOLD_CFG_5 - Set Min and Max Hor. Active Pixel Count */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_1           0x206f40a8 /* [RW] PCTR_CLEAN_CFG_1     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_2           0x206f40ac /* [RW] PCTR_CLEAN_CFG_2     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_3           0x206f40b0 /* [RW] PCTR_CLEAN_CFG_3     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_4           0x206f40b4 /* [RW] PCTR_CLEAN_CFG_4     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_5           0x206f40b8 /* [RW] PCTR_CLEAN_CFG_5     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_6           0x206f40bc /* [RW] PCTR_CLEAN_CFG_6     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_7           0x206f40c0 /* [RW] PCTR_CLEAN_CFG_7     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_8           0x206f40c4 /* [RW] PCTR_CLEAN_CFG_8     Register */
-#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_9           0x206f40c8 /* [RW] PCTR_CLEAN_CFG_9     Register */
-#define BCHP_HD_DVI_0_CHANNEL_CNTRL              0x206f40cc /* [RW] CHANNEL_CNTRL        Register */
-#define BCHP_HD_DVI_0_US_422_TO_444_CONV         0x206f40d0 /* [RW] US_422_TO_444_CONV   Register */
-#define BCHP_HD_DVI_0_PORT_CONFIG                0x206f40d4 /* [RW] PORT_CONFIG Register */
-#define BCHP_HD_DVI_0_PIXEL_DECIMATION           0x206f40d8 /* [RW] PIXEL_DECIMATION */
-#define BCHP_HD_DVI_0_I3D_FA_DETECT_CFG          0x206f40dc /* [RW] Field Alternative 3D video Processing configuration */
-#define BCHP_HD_DVI_0_I3D_FA_CNVT_CFG_0          0x206f40e0 /* [RW] Field Alternative 3D video Processing configuration */
-#define BCHP_HD_DVI_0_I3D_FA_CNVT_CFG_1          0x206f40e4 /* [RW] Field Alternative 3D video Processing configuration */
-#define BCHP_HD_DVI_0_I3D_VBI_CFG_0              0x206f40e8 /* [RW] Vertical Blanking Insertion for Frame packed 3D video config */
-#define BCHP_HD_DVI_0_I3D_VBI_CFG_1              0x206f40ec /* [RW] Vertical Blanking Insertion for Frame packed 3D video config */
-#define BCHP_HD_DVI_0_I3D_VBI_CFG_2              0x206f40f0 /* [RW] Vertical Blanking Insertion for Frame packed 3D video config */
-#define BCHP_HD_DVI_0_ASR                        0x206f40f4 /* [RW] Active Space Removal */
-#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_CFG_1        0x206f40f8 /* [RW] 420 Chroma Up-converter Configuration Register 1 */
-#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_CFG_2        0x206f40fc /* [RW] 420 Chroma Up-converter Configuration Register 2 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_1          0x206f4100 /* [RW] RGB Pixel Monitor Configuration Register 1 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_2          0x206f4104 /* [RW] RGB Pixel Monitor Configuration Register 2 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_3          0x206f4108 /* [RW] RGB Pixel Monitor Configuration Register 3 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_4          0x206f410c /* [RW] RGB Pixel Monitor Configuration Register 4 */
-#define BCHP_HD_DVI_0_V0_COEFF_C01_C00           0x206f4110 /* [RW] Video Surface 0 Color Matrix coefficients c01 and c00: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_V0_COEFF_C03_C02           0x206f4114 /* [RW] Video Surface 0 Color Matrix coefficients c03 and c02: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_V0_COEFF_C11_C10           0x206f4118 /* [RW] Video Surface 0 Color Matrix coefficients c11 and c10: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_V0_COEFF_C13_C12           0x206f411c /* [RW] Video Surface 0 Color Matrix coefficients c13 and c12: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_V0_COEFF_C21_C20           0x206f4120 /* [RW] Video Surface 0 Color Matrix coefficients c21 and c20: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_V0_COEFF_C23_C22           0x206f4124 /* [RW] Video Surface 0 Color Matrix coefficients c23 and c22: 8-bit in, 8-bit out */
-#define BCHP_HD_DVI_0_DE_GEN_CONFIG1             0x206f4128 /* [RW] DE_GEN_CONFIG1     Register */
-#define BCHP_HD_DVI_0_DE_GEN_CONFIG2             0x206f412c /* [RW] DE_GEN_CONFIG2 Register */
-#define BCHP_HD_DVI_0_DE_GEN_CONFIG3             0x206f4130 /* [RW] DE_GEN_CONFIG3 Register */
-#define BCHP_HD_DVI_0_DITHER_LFSR_INIT           0x206f4134 /* [RW] DITHER_LFSR_INIT Register */
-#define BCHP_HD_DVI_0_DITHER_LFSR_CTRL           0x206f4138 /* [RW] DITHER_LFSR_CTRL Register */
-#define BCHP_HD_DVI_0_DITHER_CTRL                0x206f413c /* [RW] DITHER_CTRL Register */
-#define BCHP_HD_DVI_0_MUTE_CFG_1                 0x206f4140 /* [RW] MUTE_CFG_1  Video Mute configuration register */
-#define BCHP_HD_DVI_0_MUTE_CFG_2                 0x206f4144 /* [RW] MUTE_CFG_2  Video Mute Mask register 1 */
-#define BCHP_HD_DVI_0_MUTE_CFG_3                 0x206f4148 /* [RW] MUTE_CFG_3  Video Mute Mask register 2 */
-#define BCHP_HD_DVI_0_SIDEBAND_CFG               0x206f414c /* [RW] SIDEBAND_CFG Sideband signal configuration register */
-#define BCHP_HD_DVI_0_VID_FORMAT_CFG             0x206f4150 /* [RW] Video Format Detection Circuit Configuration Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_1               0x206f4154 /* [RO] VID_FORMAT_1  Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_2               0x206f4158 /* [RO] VID_FORMAT_2  Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_3               0x206f415c /* [RO] VID_FORMAT_3  Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_4               0x206f4160 /* [RO] VID_FORMAT_4  Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_5               0x206f4164 /* [RO] VID_FORMAT_5 Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_6               0x206f4168 /* [RO] VID_FORMAT_6 Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_7               0x206f416c /* [RO] VID_FORMAT_7 Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_8               0x206f4170 /* [RO] VID_FORMAT_8 Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_9               0x206f4174 /* [RO] VID_FORMAT_9 Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_10              0x206f4178 /* [RO] VID_FORMAT_10 Register */
-#define BCHP_HD_DVI_0_HSYNC_CNT                  0x206f417c /* [RO] HSYNC_CNT    Register */
-#define BCHP_HD_DVI_0_VSYNC_CNT_FIELD0           0x206f4180 /* [RO] VSYNC_CNT_FIELD0 Register */
-#define BCHP_HD_DVI_0_VSYNC_CNT_FIELD1           0x206f4184 /* [RO] VSYNC_CNT_FIELD1 Register */
-#define BCHP_HD_DVI_0_VSYNC_PIX_FIELD0           0x206f4188 /* [RO] VSYNC_PIX_FIELD0 Register */
-#define BCHP_HD_DVI_0_VSYNC_PIX_FIELD1           0x206f418c /* [RO] VSYNC_PIX_FIELD1 Register */
-#define BCHP_HD_DVI_0_I3D_FA_DETECT_STATUS_0     0x206f4190 /* [RO] Field Alternative 3D video Status */
-#define BCHP_HD_DVI_0_I3D_FA_DETECT_STATUS_1     0x206f4194 /* [RO] Field Alternative 3D video Status    F0 */
-#define BCHP_HD_DVI_0_COUNT_AT_FIRST_PIXEL       0x206f4198 /* [RO] The DMA trigger count down value at the time of the first picture pixel */
-#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_STATUS   0x206f419c /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_STATUS_1 0x206f41a0 /* [RO] Video Format Detection Circuit Update Register */
-#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_STATUS_1     0x206f41a4 /* [RO] 420 Chroma Up-converter Status Register 1 */
-#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_STATUS_2     0x206f41a8 /* [RO] 420 Chroma Up-converter Status Register 2 */
-#define BCHP_HD_DVI_0_PCTR_ERROR_STATUS          0x206f41ac /* [RO] PCTR_ERROR_STATUS    Register */
-#define BCHP_HD_DVI_0_BRIDGE_ERRORS_AUTO_CLR     0x206f41b0 /* [RO] BRIDGE_ERRORS_AUTO_CLR */
-#define BCHP_HD_DVI_0_BRIDGE_ERRORS_RDB_CLR      0x206f41b4 /* [RO] BRIDGE_ERRORS_RDB_CLR */
-#define BCHP_HD_DVI_0_BUFFER_FIFO                0x206f41b8 /* [RW] BUFFER_FIFO    Register */
-#define BCHP_HD_DVI_0_MUTE_STATUS                0x206f41bc /* [RO] MUTE Active status Register */
-#define BCHP_HD_DVI_0_SIDEBAND_STATUS_1          0x206f41c0 /* [RO] SIDE BAND signal status Register */
-#define BCHP_HD_DVI_0_SIDEBAND_STATUS_2          0x206f41c4 /* [RO] SIDE BAND signal status after sampling register */
-#define BCHP_HD_DVI_0_FLOW_STATUS                0x206f41c8 /* [RO] FLOW CONTROL STATUS Register */
-#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_1       0x206f41cc /* [RO] RGB Pixel Monitor Status Register 1 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_2       0x206f41d0 /* [RO] RGB Pixel Monitor Status Register 2 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_3       0x206f41d4 /* [RO] RGB Pixel Monitor Status Register 3 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_4       0x206f41d8 /* [RO] RGB Pixel Monitor Status Register 4 */
-#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_5       0x206f41dc /* [RO] RGB Pixel Monitor Status Register 5 */
-#define BCHP_HD_DVI_0_TEST_CONFIG                0x206f41e0 /* [RW] TEST_CONFIG Register */
-#define BCHP_HD_DVI_0_POSTING_MASTER             0x206f41e4 /* [RW] HD_DVI Posting Master count control */
-#define BCHP_HD_DVI_0_CRC_CHECK_CFG_0            0x206f41e8 /* [RW] HD_DVI CRC Checker Configuration 0 */
-#define BCHP_HD_DVI_0_CRC_CHECK_CFG_1            0x206f41ec /* [RW] HD_DVI CRC Checker Configuration 1 */
-#define BCHP_HD_DVI_0_CRC_CHECK_CTL              0x206f41f0 /* [RW] HD_DVI CRC Checker Control */
-#define BCHP_HD_DVI_0_CRC_CHECK_STATUS_0         0x206f41f4 /* [RO] HD_DVI CRC Checker Status 0 */
-#define BCHP_HD_DVI_0_CRC_CHECK_STATUS_1         0x206f41f8 /* [RO] HD_DVI CRC Checker Status 1 */
-#define BCHP_HD_DVI_0_BVB_OUTPUT_CFG             0x206f41fc /* [RW] HD_DVI BVB Output Video parameters - Configuration bits to clear the errors */
-#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_0       0x206f4200 /* [RO] HD_DVI BVB Output Video parameters - Pixel count and line count Error flags */
-#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1       0x206f4204 /* [RO] HD_DVI BVB Output Video parameters - Total Pixel count and line count */
-#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_2       0x206f4208 /* [RO] HD_DVI BVB Output Video parameters - Current Pixel count and line count */
-#define BCHP_HD_DVI_0_PTHRU_CFG                  0x206f420c /* [RW] HD_DVI Passthru configuration register to map the output */
-#define BCHP_HD_DVI_0_PTHRU_STATUS               0x206f4210 /* [RO] HD_DVI Passthru status register */
-#define BCHP_HD_DVI_0_SPARE_REG2                 0x206f427c /* [RW] SPARE_REG2   Register */
+#define BCHP_HD_DVI_0_CORE_REV                   0x206f4000 /* [RO][32] CORE_REV          Register */
+#define BCHP_HD_DVI_0_SW_INIT                    0x206f4004 /* [RW][32] SW_INIT          Register */
+#define BCHP_HD_DVI_0_HW_CONFIGURATION           0x206f4008 /* [RO][32] Features supported by hardware */
+#define BCHP_HD_DVI_0_INPUT_CNTRL                0x206f400c /* [RW][32] Controls the input selections to get the video source */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_X  0x206f4010 /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_Y  0x206f4014 /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_Z  0x206f4018 /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_A  0x206f401c /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_B  0x206f4020 /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_MSW_C  0x206f4024 /* [RW][32] Adjusts input timing at the pins for the msw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_X  0x206f4028 /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_Y  0x206f402c /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_Z  0x206f4030 /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_A  0x206f4034 /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_B  0x206f4038 /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_INPUT_TIMING_ADJUST_LSW_C  0x206f403c /* [RW][32] Adjusts input timing at the pins for the lsw capture */
+#define BCHP_HD_DVI_0_DESKEW_CLK_MSW             0x206f4040 /* [RW][32] Deskews the msw clock relative to all msw input pins */
+#define BCHP_HD_DVI_0_DESKEW_CLK_LSW             0x206f4044 /* [RW][32] Deskews the lsw clock relative to all lsw input pins */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_0         0x206f4048 /* [RW][32] INPUT_MUX_SELECT_0 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_1         0x206f404c /* [RW][32] INPUT_MUX_SELECT_1 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_2         0x206f4050 /* [RW][32] INPUT_MUX_SELECT_2 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_3         0x206f4054 /* [RW][32] INPUT_MUX_SELECT_3 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_4         0x206f4058 /* [RW][32] INPUT_MUX_SELECT_4 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_5         0x206f405c /* [RW][32] INPUT_MUX_SELECT_5 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_6         0x206f4060 /* [RW][32] INPUT_MUX_SELECT_6 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_7         0x206f4064 /* [RW][32] INPUT_MUX_SELECT_7 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_8         0x206f4068 /* [RW][32] INPUT_MUX_SELECT_8 */
+#define BCHP_HD_DVI_0_INPUT_MUX_SELECT_9         0x206f406c /* [RW][32] INPUT_MUX_SELECT_9 */
+#define BCHP_HD_DVI_0_BVB_CONVERT                0x206f4070 /* [RW][32] BVB_CONVERT       Register */
+#define BCHP_HD_DVI_0_AUTO_REPEAT                0x206f4074 /* [RW][32] DMA Trigger auto repeat value */
+#define BCHP_HD_DVI_0_PICTURE_DELAY              0x206f4078 /* [RW][32] DMA Trigger delay from the end of picture */
+#define BCHP_HD_DVI_0_MUTE_CLEAR                 0x206f407c /* [RW][32] MUTE_CLEAR */
+#define BCHP_HD_DVI_0_HOST_ENABLE                0x206f4080 /* [RW][32] HOST_ENABLE */
+#define BCHP_HD_DVI_0_HOST_CONTROL_BITS          0x206f4084 /* [RW][32] HOST_CONTROL_BITS */
+#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_CLEAR    0x206f4088 /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_CLEAR_1  0x206f408c /* [RW][32] Video Format Detection Circuit Clear Update Register */
+#define BCHP_HD_DVI_0_I3D_FA_DETECT_CLEAR        0x206f4090 /* [RW][32] I3D_FA_DETECT_CLEAR */
+#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_1     0x206f4094 /* [RW][32] FORMAT_THRESHOLD_CFG_1 - Min Vsync Count */
+#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_2     0x206f4098 /* [RW][32] FORMAT_THRESHOLD_CFG_2 - Max Vsync Count */
+#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_3     0x206f409c /* [RW][32] FORMAT_THRESHOLD_CFG_3 - Set Min and Max Hsync Count */
+#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_4     0x206f40a0 /* [RW][32] FORMAT_THRESHOLD_CFG_4 - Set Min and Max Ver. Active Line Count */
+#define BCHP_HD_DVI_0_FORMAT_THRESHOLD_CFG_5     0x206f40a4 /* [RW][32] FORMAT_THRESHOLD_CFG_5 - Set Min and Max Hor. Active Pixel Count */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_1           0x206f40a8 /* [RW][32] PCTR_CLEAN_CFG_1     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_2           0x206f40ac /* [RW][32] PCTR_CLEAN_CFG_2     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_3           0x206f40b0 /* [RW][32] PCTR_CLEAN_CFG_3     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_4           0x206f40b4 /* [RW][32] PCTR_CLEAN_CFG_4     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_5           0x206f40b8 /* [RW][32] PCTR_CLEAN_CFG_5     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_6           0x206f40bc /* [RW][32] PCTR_CLEAN_CFG_6     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_7           0x206f40c0 /* [RW][32] PCTR_CLEAN_CFG_7     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_8           0x206f40c4 /* [RW][32] PCTR_CLEAN_CFG_8     Register */
+#define BCHP_HD_DVI_0_PCTR_CLEAN_CFG_9           0x206f40c8 /* [RW][32] PCTR_CLEAN_CFG_9     Register */
+#define BCHP_HD_DVI_0_CHANNEL_CNTRL              0x206f40cc /* [RW][32] CHANNEL_CNTRL        Register */
+#define BCHP_HD_DVI_0_US_422_TO_444_CONV         0x206f40d0 /* [RW][32] US_422_TO_444_CONV   Register */
+#define BCHP_HD_DVI_0_PORT_CONFIG                0x206f40d4 /* [RW][32] PORT_CONFIG Register */
+#define BCHP_HD_DVI_0_PIXEL_DECIMATION           0x206f40d8 /* [RW][32] PIXEL_DECIMATION */
+#define BCHP_HD_DVI_0_I3D_FA_DETECT_CFG          0x206f40dc /* [RW][32] Field Alternative 3D video Processing configuration */
+#define BCHP_HD_DVI_0_I3D_FA_CNVT_CFG_0          0x206f40e0 /* [RW][32] Field Alternative 3D video Processing configuration */
+#define BCHP_HD_DVI_0_I3D_FA_CNVT_CFG_1          0x206f40e4 /* [RW][32] Field Alternative 3D video Processing configuration */
+#define BCHP_HD_DVI_0_I3D_VBI_CFG_0              0x206f40e8 /* [RW][32] Vertical Blanking Insertion for Frame packed 3D video config */
+#define BCHP_HD_DVI_0_I3D_VBI_CFG_1              0x206f40ec /* [RW][32] Vertical Blanking Insertion for Frame packed 3D video config */
+#define BCHP_HD_DVI_0_I3D_VBI_CFG_2              0x206f40f0 /* [RW][32] Vertical Blanking Insertion for Frame packed 3D video config */
+#define BCHP_HD_DVI_0_ASR                        0x206f40f4 /* [RW][32] Active Space Removal */
+#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_CFG_1        0x206f40f8 /* [RW][32] 420 Chroma Up-converter Configuration Register 1 */
+#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_CFG_2        0x206f40fc /* [RW][32] 420 Chroma Up-converter Configuration Register 2 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_1          0x206f4100 /* [RW][32] RGB Pixel Monitor Configuration Register 1 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_2          0x206f4104 /* [RW][32] RGB Pixel Monitor Configuration Register 2 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_3          0x206f4108 /* [RW][32] RGB Pixel Monitor Configuration Register 3 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_CFG_4          0x206f410c /* [RW][32] RGB Pixel Monitor Configuration Register 4 */
+#define BCHP_HD_DVI_0_V0_COEFF_C01_C00           0x206f4110 /* [RW][32] Video Surface 0 Color Matrix coefficients c01 and c00: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_V0_COEFF_C03_C02           0x206f4114 /* [RW][32] Video Surface 0 Color Matrix coefficients c03 and c02: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_V0_COEFF_C11_C10           0x206f4118 /* [RW][32] Video Surface 0 Color Matrix coefficients c11 and c10: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_V0_COEFF_C13_C12           0x206f411c /* [RW][32] Video Surface 0 Color Matrix coefficients c13 and c12: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_V0_COEFF_C21_C20           0x206f4120 /* [RW][32] Video Surface 0 Color Matrix coefficients c21 and c20: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_V0_COEFF_C23_C22           0x206f4124 /* [RW][32] Video Surface 0 Color Matrix coefficients c23 and c22: 8-bit in, 8-bit out */
+#define BCHP_HD_DVI_0_DE_GEN_CONFIG1             0x206f4128 /* [RW][32] DE_GEN_CONFIG1     Register */
+#define BCHP_HD_DVI_0_DE_GEN_CONFIG2             0x206f412c /* [RW][32] DE_GEN_CONFIG2 Register */
+#define BCHP_HD_DVI_0_DE_GEN_CONFIG3             0x206f4130 /* [RW][32] DE_GEN_CONFIG3 Register */
+#define BCHP_HD_DVI_0_DITHER_LFSR_INIT           0x206f4134 /* [RW][32] DITHER_LFSR_INIT Register */
+#define BCHP_HD_DVI_0_DITHER_LFSR_CTRL           0x206f4138 /* [RW][32] DITHER_LFSR_CTRL Register */
+#define BCHP_HD_DVI_0_DITHER_CTRL                0x206f413c /* [RW][32] DITHER_CTRL Register */
+#define BCHP_HD_DVI_0_MUTE_CFG_1                 0x206f4140 /* [RW][32] MUTE_CFG_1  Video Mute configuration register */
+#define BCHP_HD_DVI_0_MUTE_CFG_2                 0x206f4144 /* [RW][32] MUTE_CFG_2  Video Mute Mask register 1 */
+#define BCHP_HD_DVI_0_MUTE_CFG_3                 0x206f4148 /* [RW][32] MUTE_CFG_3  Video Mute Mask register 2 */
+#define BCHP_HD_DVI_0_SIDEBAND_CFG               0x206f414c /* [RW][32] SIDEBAND_CFG Sideband signal configuration register */
+#define BCHP_HD_DVI_0_VID_FORMAT_CFG             0x206f4150 /* [RW][32] Video Format Detection Circuit Configuration Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_1               0x206f4154 /* [RO][32] VID_FORMAT_1  Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_2               0x206f4158 /* [RO][32] VID_FORMAT_2  Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_3               0x206f415c /* [RO][32] VID_FORMAT_3  Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_4               0x206f4160 /* [RO][32] VID_FORMAT_4  Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_5               0x206f4164 /* [RO][32] VID_FORMAT_5 Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_6               0x206f4168 /* [RO][32] VID_FORMAT_6 Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_7               0x206f416c /* [RO][32] VID_FORMAT_7 Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_8               0x206f4170 /* [RO][32] VID_FORMAT_8 Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_9               0x206f4174 /* [RO][32] VID_FORMAT_9 Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_10              0x206f4178 /* [RO][32] VID_FORMAT_10 Register */
+#define BCHP_HD_DVI_0_HSYNC_CNT                  0x206f417c /* [RO][32] HSYNC_CNT    Register */
+#define BCHP_HD_DVI_0_VSYNC_CNT_FIELD0           0x206f4180 /* [RO][32] VSYNC_CNT_FIELD0 Register */
+#define BCHP_HD_DVI_0_VSYNC_CNT_FIELD1           0x206f4184 /* [RO][32] VSYNC_CNT_FIELD1 Register */
+#define BCHP_HD_DVI_0_VSYNC_PIX_FIELD0           0x206f4188 /* [RO][32] VSYNC_PIX_FIELD0 Register */
+#define BCHP_HD_DVI_0_VSYNC_PIX_FIELD1           0x206f418c /* [RO][32] VSYNC_PIX_FIELD1 Register */
+#define BCHP_HD_DVI_0_I3D_FA_DETECT_STATUS_0     0x206f4190 /* [RO][32] Field Alternative 3D video Status */
+#define BCHP_HD_DVI_0_I3D_FA_DETECT_STATUS_1     0x206f4194 /* [RO][32] Field Alternative 3D video Status    F0 */
+#define BCHP_HD_DVI_0_COUNT_AT_FIRST_PIXEL       0x206f4198 /* [RO][32] The DMA trigger count down value at the time of the first picture pixel */
+#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_STATUS   0x206f419c /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HD_DVI_0_VID_FORMAT_UPDATE_STATUS_1 0x206f41a0 /* [RO][32] Video Format Detection Circuit Update Register */
+#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_STATUS_1     0x206f41a4 /* [RO][32] 420 Chroma Up-converter Status Register 1 */
+#define BCHP_HD_DVI_0_FOUR_TWO_ZERO_STATUS_2     0x206f41a8 /* [RO][32] 420 Chroma Up-converter Status Register 2 */
+#define BCHP_HD_DVI_0_PCTR_ERROR_STATUS          0x206f41ac /* [RO][32] PCTR_ERROR_STATUS    Register */
+#define BCHP_HD_DVI_0_BRIDGE_ERRORS_AUTO_CLR     0x206f41b0 /* [RO][32] BRIDGE_ERRORS_AUTO_CLR */
+#define BCHP_HD_DVI_0_BRIDGE_ERRORS_RDB_CLR      0x206f41b4 /* [RO][32] BRIDGE_ERRORS_RDB_CLR */
+#define BCHP_HD_DVI_0_BUFFER_FIFO                0x206f41b8 /* [RW][32] BUFFER_FIFO    Register */
+#define BCHP_HD_DVI_0_MUTE_STATUS                0x206f41bc /* [RO][32] MUTE Active status Register */
+#define BCHP_HD_DVI_0_SIDEBAND_STATUS_1          0x206f41c0 /* [RO][32] SIDE BAND signal status Register */
+#define BCHP_HD_DVI_0_SIDEBAND_STATUS_2          0x206f41c4 /* [RO][32] SIDE BAND signal status after sampling register */
+#define BCHP_HD_DVI_0_FLOW_STATUS                0x206f41c8 /* [RO][32] FLOW CONTROL STATUS Register */
+#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_1       0x206f41cc /* [RO][32] RGB Pixel Monitor Status Register 1 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_2       0x206f41d0 /* [RO][32] RGB Pixel Monitor Status Register 2 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_3       0x206f41d4 /* [RO][32] RGB Pixel Monitor Status Register 3 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_4       0x206f41d8 /* [RO][32] RGB Pixel Monitor Status Register 4 */
+#define BCHP_HD_DVI_0_RGB_MONITOR_STATUS_5       0x206f41dc /* [RO][32] RGB Pixel Monitor Status Register 5 */
+#define BCHP_HD_DVI_0_TEST_CONFIG                0x206f41e0 /* [RW][32] TEST_CONFIG Register */
+#define BCHP_HD_DVI_0_POSTING_MASTER             0x206f41e4 /* [RW][32] HD_DVI Posting Master count control */
+#define BCHP_HD_DVI_0_CRC_CHECK_CFG_0            0x206f41e8 /* [RW][32] HD_DVI CRC Checker Configuration 0 */
+#define BCHP_HD_DVI_0_CRC_CHECK_CFG_1            0x206f41ec /* [RW][32] HD_DVI CRC Checker Configuration 1 */
+#define BCHP_HD_DVI_0_CRC_CHECK_CTL              0x206f41f0 /* [RW][32] HD_DVI CRC Checker Control */
+#define BCHP_HD_DVI_0_CRC_CHECK_STATUS_0         0x206f41f4 /* [RO][32] HD_DVI CRC Checker Status 0 */
+#define BCHP_HD_DVI_0_CRC_CHECK_STATUS_1         0x206f41f8 /* [RO][32] HD_DVI CRC Checker Status 1 */
+#define BCHP_HD_DVI_0_BVB_OUTPUT_CFG             0x206f41fc /* [RW][32] HD_DVI BVB Output Video parameters - Configuration bits to clear the errors */
+#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_0       0x206f4200 /* [RO][32] HD_DVI BVB Output Video parameters - Pixel count and line count Error flags */
+#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_1       0x206f4204 /* [RO][32] HD_DVI BVB Output Video parameters - Total Pixel count and line count */
+#define BCHP_HD_DVI_0_BVB_OUTPUT_MONITOR_2       0x206f4208 /* [RO][32] HD_DVI BVB Output Video parameters - Current Pixel count and line count */
+#define BCHP_HD_DVI_0_PTHRU_CFG                  0x206f420c /* [RW][32] HD_DVI Passthru configuration register to map the output */
+#define BCHP_HD_DVI_0_PTHRU_STATUS               0x206f4210 /* [RO][32] HD_DVI Passthru status register */
+#define BCHP_HD_DVI_0_SPARE_REG2                 0x206f427c /* [RW][32] SPARE_REG2   Register */
 
 /***************************************************************************
  *CORE_REV - CORE_REV          Register

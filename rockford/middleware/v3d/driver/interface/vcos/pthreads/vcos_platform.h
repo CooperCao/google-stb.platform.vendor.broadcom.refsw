@@ -35,13 +35,13 @@ extern "C" {
 #include <errno.h>
 #include <unistd.h>
 #include <string.h>
+#include <strings.h>
 #include <time.h>
 #include <signal.h>
 #include <sys/time.h>
 
 #define typeof __typeof__  /* hack as we are c89 */
 
-#define VCOS_UNUSED(X) (void)X
 #define VCOS_HAVE_RTOS         0
 #define VCOS_HAVE_SEMAPHORE    1
 #define VCOS_HAVE_EVENT        1

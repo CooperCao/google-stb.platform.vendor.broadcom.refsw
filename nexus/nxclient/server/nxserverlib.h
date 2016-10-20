@@ -161,7 +161,6 @@ struct nxserver_settings
         } ir_input;
 #endif
         bool evdevInput;
-        bool graphics;
         unsigned audioPlaybacks; /* control initial distribution of audio playbacks across sessions */
         bool avl;
         bool truVolume;
@@ -209,15 +208,12 @@ struct nxserver_settings
 
 #if NEXUS_HAS_HDMI_OUTPUT
     struct {
-        NEXUS_HdmiOutputHdcpKsv txAksv;
-        NEXUS_HdmiOutputHdcpKey encryptedTxKeySet[NEXUS_HDMI_OUTPUT_HDCP_NUM_KEYS];
         char *hdcp2xBinFile;
         char *hdcp1xBinFile;
         NxClient_HdcpLevel alwaysLevel;
         NxClient_HdcpVersion versionSelect;
     } hdcp;
     struct {
-        bool noDrm;
         bool ignoreVideoEdid; /* use HDMI EDID for audio, but not video */
         struct {
             char vendorName[NEXUS_HDMI_SPD_VENDOR_NAME_MAX+1];
@@ -260,7 +256,6 @@ struct nxserver_cmdline_settings
     struct {
         unsigned dacBandGapAdjust;
         bool dacDetection;
-        bool mtgOff;
     } video;
     struct {
         unsigned userId, groupId; /* drop to this user and group id after connecting to driver */

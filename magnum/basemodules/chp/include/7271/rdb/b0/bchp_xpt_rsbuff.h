@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,831 +70,831 @@
 /***************************************************************************
  *XPT_RSBUFF - XPT RSBUFF Control Registers
  ***************************************************************************/
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP0        0x20a04000 /* [RW] RS Buffer - Base pointer for  Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP0         0x20a04004 /* [RW] RS Buffer - End pointer for  Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP0       0x20a04008 /* [RW] RS Buffer - Write pointer for  Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP0       0x20a0400c /* [RW] RS Buffer - Valid pointer for  Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP0        0x20a04010 /* [RW] RS Buffer - Read pointer for  Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP0           0x20a04014 /* [RW] RS Buffer - Watermark Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP1        0x20a04018 /* [RW] RS Buffer - Base pointer for  Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP1         0x20a0401c /* [RW] RS Buffer - End pointer for  Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP1       0x20a04020 /* [RW] RS Buffer - Write pointer for  Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP1       0x20a04024 /* [RW] RS Buffer - Valid pointer for  Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP1        0x20a04028 /* [RW] RS Buffer - Read pointer for  Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP1           0x20a0402c /* [RW] RS Buffer - Watermark   Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP2        0x20a04030 /* [RW] RS Buffer - Base pointer for  Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP2         0x20a04034 /* [RW] RS Buffer - End pointer for  Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP2       0x20a04038 /* [RW] RS Buffer - Write pointer for  Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP2       0x20a0403c /* [RW] RS Buffer - Valid pointer for  Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP2        0x20a04040 /* [RW] RS Buffer - Read pointer for  Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP2           0x20a04044 /* [RW] RS Buffer - Watermark   Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP3        0x20a04048 /* [RW] RS Buffer - Base pointer for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP3         0x20a0404c /* [RW] RS Buffer - End pointer for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP3       0x20a04050 /* [RW] RS Buffer - Write pointer for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP3       0x20a04054 /* [RW] RS Buffer - Valid pointer for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP3        0x20a04058 /* [RW] RS Buffer - Read pointer for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP3           0x20a0405c /* [RW] RS Buffer - Watermark  Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP4        0x20a04060 /* [RW] RS Buffer - Base pointer for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP4         0x20a04064 /* [RW] RS Buffer - End pointer for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP4       0x20a04068 /* [RW] RS Buffer - Write pointer for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP4       0x20a0406c /* [RW] RS Buffer - Valid pointer for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP4        0x20a04070 /* [RW] RS Buffer - Read pointer for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP4           0x20a04074 /* [RW] RS Buffer - Watermark  Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP5        0x20a04078 /* [RW] RS Buffer - Base pointer for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP5         0x20a0407c /* [RW] RS Buffer - End pointer for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP5       0x20a04080 /* [RW] RS Buffer - Write pointer for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP5       0x20a04084 /* [RW] RS Buffer - Valid pointer for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP5        0x20a04088 /* [RW] RS Buffer - Read pointer for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP5           0x20a0408c /* [RW] RS Buffer - Watermark  Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP6        0x20a04090 /* [RW] RS Buffer - Base pointer for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP6         0x20a04094 /* [RW] RS Buffer - End pointer for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP6       0x20a04098 /* [RW] RS Buffer - Write pointer for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP6       0x20a0409c /* [RW] RS Buffer - Valid pointer for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP6        0x20a040a0 /* [RW] RS Buffer - Read pointer for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP6           0x20a040a4 /* [RW] RS Buffer - Watermark  Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP7        0x20a040a8 /* [RW] RS Buffer - Base pointer for  Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP7         0x20a040ac /* [RW] RS Buffer - End pointer for  Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP7       0x20a040b0 /* [RW] RS Buffer - Write pointer for  Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP7       0x20a040b4 /* [RW] RS Buffer - Valid pointer for  Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP7        0x20a040b8 /* [RW] RS Buffer - Read pointer for  Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP7           0x20a040bc /* [RW] RS Buffer - Watermark Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP8        0x20a040c0 /* [RW] RS Buffer - Base pointer for  Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP8         0x20a040c4 /* [RW] RS Buffer - End pointer for  Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP8       0x20a040c8 /* [RW] RS Buffer - Write pointer for  Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP8       0x20a040cc /* [RW] RS Buffer - Valid pointer for  Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP8        0x20a040d0 /* [RW] RS Buffer - Read pointer for  Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP8           0x20a040d4 /* [RW] RS Buffer - Watermark   Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP9        0x20a040d8 /* [RW] RS Buffer - Base pointer for  Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP9         0x20a040dc /* [RW] RS Buffer - End pointer for  Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP9       0x20a040e0 /* [RW] RS Buffer - Write pointer for  Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP9       0x20a040e4 /* [RW] RS Buffer - Valid pointer for  Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP9        0x20a040e8 /* [RW] RS Buffer - Read pointer for  Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP9           0x20a040ec /* [RW] RS Buffer - Watermark   Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP10       0x20a040f0 /* [RW] RS Buffer - Base pointer for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP10        0x20a040f4 /* [RW] RS Buffer - End pointer for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP10      0x20a040f8 /* [RW] RS Buffer - Write pointer for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP10      0x20a040fc /* [RW] RS Buffer - Valid pointer for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP10       0x20a04100 /* [RW] RS Buffer - Read pointer for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP10          0x20a04104 /* [RW] RS Buffer - Watermark  Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP11       0x20a04108 /* [RW] RS Buffer - Base pointer for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP11        0x20a0410c /* [RW] RS Buffer - End pointer for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP11      0x20a04110 /* [RW] RS Buffer - Write pointer for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP11      0x20a04114 /* [RW] RS Buffer - Valid pointer for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP11       0x20a04118 /* [RW] RS Buffer - Read pointer for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP11          0x20a0411c /* [RW] RS Buffer - Watermark  Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP12       0x20a04120 /* [RW] RS Buffer - Base pointer for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP12        0x20a04124 /* [RW] RS Buffer - End pointer for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP12      0x20a04128 /* [RW] RS Buffer - Write pointer for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP12      0x20a0412c /* [RW] RS Buffer - Valid pointer for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP12       0x20a04130 /* [RW] RS Buffer - Read pointer for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP12          0x20a04134 /* [RW] RS Buffer - Watermark  Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP13       0x20a04138 /* [RW] RS Buffer - Base pointer for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP13        0x20a0413c /* [RW] RS Buffer - End pointer for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP13      0x20a04140 /* [RW] RS Buffer - Write pointer for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP13      0x20a04144 /* [RW] RS Buffer - Valid pointer for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP13       0x20a04148 /* [RW] RS Buffer - Read pointer for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP13          0x20a0414c /* [RW] RS Buffer - Watermark  Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP14       0x20a04150 /* [RW] RS Buffer - Base pointer for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP14        0x20a04154 /* [RW] RS Buffer - End pointer for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP14      0x20a04158 /* [RW] RS Buffer - Write pointer for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP14      0x20a0415c /* [RW] RS Buffer - Valid pointer for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP14       0x20a04160 /* [RW] RS Buffer - Read pointer for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP14          0x20a04164 /* [RW] RS Buffer - Watermark  Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP15       0x20a04168 /* [RW] RS Buffer - Base pointer for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_END_POINTER_IBP15        0x20a0416c /* [RW] RS Buffer - End pointer for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP15      0x20a04170 /* [RW] RS Buffer - Write pointer for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP15      0x20a04174 /* [RW] RS Buffer - Valid pointer for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_IBP15       0x20a04178 /* [RW] RS Buffer - Read pointer for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WATERMARK_IBP15          0x20a0417c /* [RW] RS Buffer - Watermark  Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP0        0x20a04300 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP0         0x20a04304 /* [RW] RS Buffer - End pointer for  Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP0       0x20a04308 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP0       0x20a0430c /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP0        0x20a04310 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP0           0x20a04314 /* [RW] RS Buffer - Watermark Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP1        0x20a04318 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP1         0x20a0431c /* [RW] RS Buffer - End pointer for  Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP1       0x20a04320 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP1       0x20a04324 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP1        0x20a04328 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP1           0x20a0432c /* [RW] RS Buffer - Watermark   Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP2        0x20a04330 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP2         0x20a04334 /* [RW] RS Buffer - End pointer for  Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP2       0x20a04338 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP2       0x20a0433c /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP2        0x20a04340 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP2           0x20a04344 /* [RW] RS Buffer - Watermark   Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP3        0x20a04348 /* [RW] RS Buffer - Base pointer for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP3         0x20a0434c /* [RW] RS Buffer - End pointer for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP3       0x20a04350 /* [RW] RS Buffer - Write pointer for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP3       0x20a04354 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP3        0x20a04358 /* [RW] RS Buffer - Read pointer for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP3           0x20a0435c /* [RW] RS Buffer - Watermark  Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP4        0x20a04360 /* [RW] RS Buffer - Base pointer for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP4         0x20a04364 /* [RW] RS Buffer - End pointer for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP4       0x20a04368 /* [RW] RS Buffer - Write pointer for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP4       0x20a0436c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP4        0x20a04370 /* [RW] RS Buffer - Read pointer for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP4           0x20a04374 /* [RW] RS Buffer - Watermark  Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP5        0x20a04378 /* [RW] RS Buffer - Base pointer for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP5         0x20a0437c /* [RW] RS Buffer - End pointer for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP5       0x20a04380 /* [RW] RS Buffer - Write pointer for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP5       0x20a04384 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP5        0x20a04388 /* [RW] RS Buffer - Read pointer for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP5           0x20a0438c /* [RW] RS Buffer - Watermark  Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP6        0x20a04390 /* [RW] RS Buffer - Base pointer for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP6         0x20a04394 /* [RW] RS Buffer - End pointer for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP6       0x20a04398 /* [RW] RS Buffer - Write pointer for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP6       0x20a0439c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP6        0x20a043a0 /* [RW] RS Buffer - Read pointer for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP6           0x20a043a4 /* [RW] RS Buffer - Watermark  Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP7        0x20a043a8 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP7         0x20a043ac /* [RW] RS Buffer - End pointer for  Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP7       0x20a043b0 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP7       0x20a043b4 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP7        0x20a043b8 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP7           0x20a043bc /* [RW] RS Buffer - Watermark Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP8        0x20a043c0 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP8         0x20a043c4 /* [RW] RS Buffer - End pointer for  Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP8       0x20a043c8 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP8       0x20a043cc /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP8        0x20a043d0 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP8           0x20a043d4 /* [RW] RS Buffer - Watermark   Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP9        0x20a043d8 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP9         0x20a043dc /* [RW] RS Buffer - End pointer for  Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP9       0x20a043e0 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP9       0x20a043e4 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP9        0x20a043e8 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP9           0x20a043ec /* [RW] RS Buffer - Watermark   Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP10       0x20a043f0 /* [RW] RS Buffer - Base pointer for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP10        0x20a043f4 /* [RW] RS Buffer - End pointer for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP10      0x20a043f8 /* [RW] RS Buffer - Write pointer for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP10      0x20a043fc /* [RW] RS Buffer - Valid pointer for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP10       0x20a04400 /* [RW] RS Buffer - Read pointer for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP10          0x20a04404 /* [RW] RS Buffer - Watermark  Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP11       0x20a04408 /* [RW] RS Buffer - Base pointer for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP11        0x20a0440c /* [RW] RS Buffer - End pointer for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP11      0x20a04410 /* [RW] RS Buffer - Write pointer for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP11      0x20a04414 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP11       0x20a04418 /* [RW] RS Buffer - Read pointer for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP11          0x20a0441c /* [RW] RS Buffer - Watermark  Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP12       0x20a04420 /* [RW] RS Buffer - Base pointer for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP12        0x20a04424 /* [RW] RS Buffer - End pointer for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP12      0x20a04428 /* [RW] RS Buffer - Write pointer for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP12      0x20a0442c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP12       0x20a04430 /* [RW] RS Buffer - Read pointer for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP12          0x20a04434 /* [RW] RS Buffer - Watermark  Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP13       0x20a04438 /* [RW] RS Buffer - Base pointer for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP13        0x20a0443c /* [RW] RS Buffer - End pointer for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP13      0x20a04440 /* [RW] RS Buffer - Write pointer for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP13      0x20a04444 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP13       0x20a04448 /* [RW] RS Buffer - Read pointer for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP13          0x20a0444c /* [RW] RS Buffer - Watermark  Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP14       0x20a04450 /* [RW] RS Buffer - Base pointer for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP14        0x20a04454 /* [RW] RS Buffer - End pointer for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP14      0x20a04458 /* [RW] RS Buffer - Write pointer for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP14      0x20a0445c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP14       0x20a04460 /* [RW] RS Buffer - Read pointer for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP14          0x20a04464 /* [RW] RS Buffer - Watermark  Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP15       0x20a04468 /* [RW] RS Buffer - Base pointer for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP15        0x20a0446c /* [RW] RS Buffer - End pointer for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP15      0x20a04470 /* [RW] RS Buffer - Write pointer for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP15      0x20a04474 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP15       0x20a04478 /* [RW] RS Buffer - Read pointer for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP15          0x20a0447c /* [RW] RS Buffer - Watermark  Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP16       0x20a04480 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP16        0x20a04484 /* [RW] RS Buffer - End pointer for  Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP16      0x20a04488 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP16      0x20a0448c /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP16       0x20a04490 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP16          0x20a04494 /* [RW] RS Buffer - Watermark Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP17       0x20a04498 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP17        0x20a0449c /* [RW] RS Buffer - End pointer for  Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP17      0x20a044a0 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP17      0x20a044a4 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP17       0x20a044a8 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP17          0x20a044ac /* [RW] RS Buffer - Watermark   Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP18       0x20a044b0 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP18        0x20a044b4 /* [RW] RS Buffer - End pointer for  Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP18      0x20a044b8 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP18      0x20a044bc /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP18       0x20a044c0 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP18          0x20a044c4 /* [RW] RS Buffer - Watermark   Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP19       0x20a044c8 /* [RW] RS Buffer - Base pointer for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP19        0x20a044cc /* [RW] RS Buffer - End pointer for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP19      0x20a044d0 /* [RW] RS Buffer - Write pointer for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP19      0x20a044d4 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP19       0x20a044d8 /* [RW] RS Buffer - Read pointer for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP19          0x20a044dc /* [RW] RS Buffer - Watermark  Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP20       0x20a044e0 /* [RW] RS Buffer - Base pointer for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP20        0x20a044e4 /* [RW] RS Buffer - End pointer for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP20      0x20a044e8 /* [RW] RS Buffer - Write pointer for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP20      0x20a044ec /* [RW] RS Buffer - Valid pointer for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP20       0x20a044f0 /* [RW] RS Buffer - Read pointer for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP20          0x20a044f4 /* [RW] RS Buffer - Watermark  Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP21       0x20a044f8 /* [RW] RS Buffer - Base pointer for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP21        0x20a044fc /* [RW] RS Buffer - End pointer for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP21      0x20a04500 /* [RW] RS Buffer - Write pointer for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP21      0x20a04504 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP21       0x20a04508 /* [RW] RS Buffer - Read pointer for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP21          0x20a0450c /* [RW] RS Buffer - Watermark  Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP22       0x20a04510 /* [RW] RS Buffer - Base pointer for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP22        0x20a04514 /* [RW] RS Buffer - End pointer for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP22      0x20a04518 /* [RW] RS Buffer - Write pointer for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP22      0x20a0451c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP22       0x20a04520 /* [RW] RS Buffer - Read pointer for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP22          0x20a04524 /* [RW] RS Buffer - Watermark  Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP23       0x20a04528 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP23        0x20a0452c /* [RW] RS Buffer - End pointer for  Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP23      0x20a04530 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP23      0x20a04534 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP23       0x20a04538 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP23          0x20a0453c /* [RW] RS Buffer - Watermark Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP24       0x20a04540 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP24        0x20a04544 /* [RW] RS Buffer - End pointer for  Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP24      0x20a04548 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP24      0x20a0454c /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP24       0x20a04550 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP24          0x20a04554 /* [RW] RS Buffer - Watermark   Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP25       0x20a04558 /* [RW] RS Buffer - Base pointer for  Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP25        0x20a0455c /* [RW] RS Buffer - End pointer for  Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP25      0x20a04560 /* [RW] RS Buffer - Write pointer for  Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP25      0x20a04564 /* [RW] RS Buffer - Valid pointer for  Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP25       0x20a04568 /* [RW] RS Buffer - Read pointer for  Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP25          0x20a0456c /* [RW] RS Buffer - Watermark   Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP26       0x20a04570 /* [RW] RS Buffer - Base pointer for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP26        0x20a04574 /* [RW] RS Buffer - End pointer for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP26      0x20a04578 /* [RW] RS Buffer - Write pointer for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP26      0x20a0457c /* [RW] RS Buffer - Valid pointer for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP26       0x20a04580 /* [RW] RS Buffer - Read pointer for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP26          0x20a04584 /* [RW] RS Buffer - Watermark  Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP27       0x20a04588 /* [RW] RS Buffer - Base pointer for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP27        0x20a0458c /* [RW] RS Buffer - End pointer for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP27      0x20a04590 /* [RW] RS Buffer - Write pointer for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP27      0x20a04594 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP27       0x20a04598 /* [RW] RS Buffer - Read pointer for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP27          0x20a0459c /* [RW] RS Buffer - Watermark  Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP28       0x20a045a0 /* [RW] RS Buffer - Base pointer for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP28        0x20a045a4 /* [RW] RS Buffer - End pointer for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP28      0x20a045a8 /* [RW] RS Buffer - Write pointer for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP28      0x20a045ac /* [RW] RS Buffer - Valid pointer for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP28       0x20a045b0 /* [RW] RS Buffer - Read pointer for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP28          0x20a045b4 /* [RW] RS Buffer - Watermark  Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP29       0x20a045b8 /* [RW] RS Buffer - Base pointer for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP29        0x20a045bc /* [RW] RS Buffer - End pointer for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP29      0x20a045c0 /* [RW] RS Buffer - Write pointer for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP29      0x20a045c4 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP29       0x20a045c8 /* [RW] RS Buffer - Read pointer for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP29          0x20a045cc /* [RW] RS Buffer - Watermark  Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP30       0x20a045d0 /* [RW] RS Buffer - Base pointer for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP30        0x20a045d4 /* [RW] RS Buffer - End pointer for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP30      0x20a045d8 /* [RW] RS Buffer - Write pointer for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP30      0x20a045dc /* [RW] RS Buffer - Valid pointer for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP30       0x20a045e0 /* [RW] RS Buffer - Read pointer for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP30          0x20a045e4 /* [RW] RS Buffer - Watermark  Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP31       0x20a045e8 /* [RW] RS Buffer - Base pointer for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_END_POINTER_PBP31        0x20a045ec /* [RW] RS Buffer - End pointer for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP31      0x20a045f0 /* [RW] RS Buffer - Write pointer for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP31      0x20a045f4 /* [RW] RS Buffer - Valid pointer for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_PBP31       0x20a045f8 /* [RW] RS Buffer - Read pointer for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_WATERMARK_PBP31          0x20a045fc /* [RW] RS Buffer - Watermark  Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0   0x20a04600 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP0    0x20a04604 /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP0  0x20a04608 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP0  0x20a0460c /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP0   0x20a04610 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP0      0x20a04614 /* [RW] RS Buffer - Watermark MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP1   0x20a04618 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP1    0x20a0461c /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP1  0x20a04620 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP1  0x20a04624 /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP1   0x20a04628 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP1      0x20a0462c /* [RW] RS Buffer - Watermark   MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP2   0x20a04630 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP2    0x20a04634 /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP2  0x20a04638 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP2  0x20a0463c /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP2   0x20a04640 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP2      0x20a04644 /* [RW] RS Buffer - Watermark   MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP3   0x20a04648 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP3    0x20a0464c /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP3  0x20a04650 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP3  0x20a04654 /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP3   0x20a04658 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP3      0x20a0465c /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP4   0x20a04660 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP4    0x20a04664 /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP4  0x20a04668 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP4  0x20a0466c /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP4   0x20a04670 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP4      0x20a04674 /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP5   0x20a04678 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP5    0x20a0467c /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP5  0x20a04680 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP5  0x20a04684 /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP5   0x20a04688 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP5      0x20a0468c /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP6   0x20a04690 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP6    0x20a04694 /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP6  0x20a04698 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP6  0x20a0469c /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP6   0x20a046a0 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP6      0x20a046a4 /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP7   0x20a046a8 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP7    0x20a046ac /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP7  0x20a046b0 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP7  0x20a046b4 /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP7   0x20a046b8 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP7      0x20a046bc /* [RW] RS Buffer - Watermark MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP8   0x20a046c0 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP8    0x20a046c4 /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP8  0x20a046c8 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP8  0x20a046cc /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP8   0x20a046d0 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP8      0x20a046d4 /* [RW] RS Buffer - Watermark   MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP9   0x20a046d8 /* [RW] RS Buffer - Base pointer for  MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP9    0x20a046dc /* [RW] RS Buffer - End pointer for  MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP9  0x20a046e0 /* [RW] RS Buffer - Write pointer for  MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP9  0x20a046e4 /* [RW] RS Buffer - Valid pointer for  MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP9   0x20a046e8 /* [RW] RS Buffer - Read pointer for  MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP9      0x20a046ec /* [RW] RS Buffer - Watermark   MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP10  0x20a046f0 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP10   0x20a046f4 /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP10 0x20a046f8 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP10 0x20a046fc /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP10  0x20a04700 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP10     0x20a04704 /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP11  0x20a04708 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP11   0x20a0470c /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP11 0x20a04710 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP11 0x20a04714 /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP11  0x20a04718 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP11     0x20a0471c /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP12  0x20a04720 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP12   0x20a04724 /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP12 0x20a04728 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP12 0x20a0472c /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP12  0x20a04730 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP12     0x20a04734 /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP13  0x20a04738 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP13   0x20a0473c /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP13 0x20a04740 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP13 0x20a04744 /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP13  0x20a04748 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP13     0x20a0474c /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP14  0x20a04750 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP14   0x20a04754 /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP14 0x20a04758 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP14 0x20a0475c /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP14  0x20a04760 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP14     0x20a04764 /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP15  0x20a04768 /* [RW] RS Buffer - Base pointer for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP15   0x20a0476c /* [RW] RS Buffer - End pointer for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP15 0x20a04770 /* [RW] RS Buffer - Write pointer for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP15 0x20a04774 /* [RW] RS Buffer - Valid pointer for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP15  0x20a04778 /* [RW] RS Buffer - Read pointer for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP15     0x20a0477c /* [RW] RS Buffer - Watermark  MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP0   0x20a04900 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP0    0x20a04904 /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP0  0x20a04908 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP0  0x20a0490c /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP0   0x20a04910 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP0      0x20a04914 /* [RW] RS Buffer - Watermark TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP1   0x20a04918 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP1    0x20a0491c /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP1  0x20a04920 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP1  0x20a04924 /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP1   0x20a04928 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP1      0x20a0492c /* [RW] RS Buffer - Watermark   TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP2   0x20a04930 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP2    0x20a04934 /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP2  0x20a04938 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP2  0x20a0493c /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP2   0x20a04940 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP2      0x20a04944 /* [RW] RS Buffer - Watermark   TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP3   0x20a04948 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP3    0x20a0494c /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP3  0x20a04950 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP3  0x20a04954 /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP3   0x20a04958 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP3      0x20a0495c /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP4   0x20a04960 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP4    0x20a04964 /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP4  0x20a04968 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP4  0x20a0496c /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP4   0x20a04970 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP4      0x20a04974 /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP5   0x20a04978 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP5    0x20a0497c /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP5  0x20a04980 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP5  0x20a04984 /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP5   0x20a04988 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP5      0x20a0498c /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP6   0x20a04990 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP6    0x20a04994 /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP6  0x20a04998 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP6  0x20a0499c /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP6   0x20a049a0 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP6      0x20a049a4 /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP7   0x20a049a8 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP7    0x20a049ac /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP7  0x20a049b0 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP7  0x20a049b4 /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP7   0x20a049b8 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP7      0x20a049bc /* [RW] RS Buffer - Watermark TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP8   0x20a049c0 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP8    0x20a049c4 /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP8  0x20a049c8 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP8  0x20a049cc /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP8   0x20a049d0 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP8      0x20a049d4 /* [RW] RS Buffer - Watermark   TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP9   0x20a049d8 /* [RW] RS Buffer - Base pointer for  TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP9    0x20a049dc /* [RW] RS Buffer - End pointer for  TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP9  0x20a049e0 /* [RW] RS Buffer - Write pointer for  TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP9  0x20a049e4 /* [RW] RS Buffer - Valid pointer for  TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP9   0x20a049e8 /* [RW] RS Buffer - Read pointer for  TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP9      0x20a049ec /* [RW] RS Buffer - Watermark   TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP10  0x20a049f0 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP10   0x20a049f4 /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP10 0x20a049f8 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP10 0x20a049fc /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP10  0x20a04a00 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP10     0x20a04a04 /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP11  0x20a04a08 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP11   0x20a04a0c /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP11 0x20a04a10 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP11 0x20a04a14 /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP11  0x20a04a18 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP11     0x20a04a1c /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP12  0x20a04a20 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP12   0x20a04a24 /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP12 0x20a04a28 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP12 0x20a04a2c /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP12  0x20a04a30 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP12     0x20a04a34 /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP13  0x20a04a38 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP13   0x20a04a3c /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP13 0x20a04a40 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP13 0x20a04a44 /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP13  0x20a04a48 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP13     0x20a04a4c /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP14  0x20a04a50 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP14   0x20a04a54 /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP14 0x20a04a58 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP14 0x20a04a5c /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP14  0x20a04a60 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP14     0x20a04a64 /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP15  0x20a04a68 /* [RW] RS Buffer - Base pointer for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP15   0x20a04a6c /* [RW] RS Buffer - End pointer for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP15 0x20a04a70 /* [RW] RS Buffer - Write pointer for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP15 0x20a04a74 /* [RW] RS Buffer - Valid pointer for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP15  0x20a04a78 /* [RW] RS Buffer - Read pointer for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP15     0x20a04a7c /* [RW] RS Buffer - Watermark  TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BO_IBP0                  0x20a04c00 /* [RW] RS Buffer  Block Out Control for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BO_IBP1                  0x20a04c04 /* [RW] RS Buffer  Block Out Control for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BO_IBP2                  0x20a04c08 /* [RW] RS Buffer  Block Out Control for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BO_IBP3                  0x20a04c0c /* [RW] RS Buffer  Block Out Control for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BO_IBP4                  0x20a04c10 /* [RW] RS Buffer  Block Out Control for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BO_IBP5                  0x20a04c14 /* [RW] RS Buffer  Block Out Control for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BO_IBP6                  0x20a04c18 /* [RW] RS Buffer  Block Out Control for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BO_IBP7                  0x20a04c1c /* [RW] RS Buffer  Block Out Control for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BO_IBP8                  0x20a04c20 /* [RW] RS Buffer  Block Out Control for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BO_IBP9                  0x20a04c24 /* [RW] RS Buffer  Block Out Control for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BO_IBP10                 0x20a04c28 /* [RW] RS Buffer  Block Out Control for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BO_IBP11                 0x20a04c2c /* [RW] RS Buffer  Block Out Control for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BO_IBP12                 0x20a04c30 /* [RW] RS Buffer  Block Out Control for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BO_IBP13                 0x20a04c34 /* [RW] RS Buffer  Block Out Control for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BO_IBP14                 0x20a04c38 /* [RW] RS Buffer  Block Out Control for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BO_IBP15                 0x20a04c3c /* [RW] RS Buffer  Block Out Control for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BO_PBP0                  0x20a04c80 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BO_PBP1                  0x20a04c84 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BO_PBP2                  0x20a04c88 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BO_PBP3                  0x20a04c8c /* [RW] RS Buffer  Block Out Control for Playback Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BO_PBP4                  0x20a04c90 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BO_PBP5                  0x20a04c94 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BO_PBP6                  0x20a04c98 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BO_PBP7                  0x20a04c9c /* [RW] RS Buffer  Block Out Control for Playback Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BO_PBP8                  0x20a04ca0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BO_PBP9                  0x20a04ca4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BO_PBP10                 0x20a04ca8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BO_PBP11                 0x20a04cac /* [RW] RS Buffer  Block Out Control for Playback Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BO_PBP12                 0x20a04cb0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BO_PBP13                 0x20a04cb4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BO_PBP14                 0x20a04cb8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BO_PBP15                 0x20a04cbc /* [RW] RS Buffer  Block Out Control for Playback Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BO_PBP16                 0x20a04cc0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 16 */
-#define BCHP_XPT_RSBUFF_BO_PBP17                 0x20a04cc4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 17 */
-#define BCHP_XPT_RSBUFF_BO_PBP18                 0x20a04cc8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 18 */
-#define BCHP_XPT_RSBUFF_BO_PBP19                 0x20a04ccc /* [RW] RS Buffer  Block Out Control for Playback Band Parser 19 */
-#define BCHP_XPT_RSBUFF_BO_PBP20                 0x20a04cd0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 20 */
-#define BCHP_XPT_RSBUFF_BO_PBP21                 0x20a04cd4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 21 */
-#define BCHP_XPT_RSBUFF_BO_PBP22                 0x20a04cd8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 22 */
-#define BCHP_XPT_RSBUFF_BO_PBP23                 0x20a04cdc /* [RW] RS Buffer  Block Out Control for Playback Band Parser 23 */
-#define BCHP_XPT_RSBUFF_BO_PBP24                 0x20a04ce0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 24 */
-#define BCHP_XPT_RSBUFF_BO_PBP25                 0x20a04ce4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 25 */
-#define BCHP_XPT_RSBUFF_BO_PBP26                 0x20a04ce8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 26 */
-#define BCHP_XPT_RSBUFF_BO_PBP27                 0x20a04cec /* [RW] RS Buffer  Block Out Control for Playback Band Parser 27 */
-#define BCHP_XPT_RSBUFF_BO_PBP28                 0x20a04cf0 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 28 */
-#define BCHP_XPT_RSBUFF_BO_PBP29                 0x20a04cf4 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 29 */
-#define BCHP_XPT_RSBUFF_BO_PBP30                 0x20a04cf8 /* [RW] RS Buffer  Block Out Control for Playback Band Parser 30 */
-#define BCHP_XPT_RSBUFF_BO_PBP31                 0x20a04cfc /* [RW] RS Buffer  Block Out Control for Playback Band Parser 31 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP0             0x20a04d00 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP1             0x20a04d04 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP2             0x20a04d08 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP3             0x20a04d0c /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP4             0x20a04d10 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP5             0x20a04d14 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP6             0x20a04d18 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP7             0x20a04d1c /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP8             0x20a04d20 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP9             0x20a04d24 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP10            0x20a04d28 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP11            0x20a04d2c /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP12            0x20a04d30 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP13            0x20a04d34 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP14            0x20a04d38 /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BO_MPOD_IBP15            0x20a04d3c /* [RW] RS Buffer  Block Out Control for MPOD Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP0             0x20a04d80 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP1             0x20a04d84 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP2             0x20a04d88 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP3             0x20a04d8c /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP4             0x20a04d90 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP5             0x20a04d94 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP6             0x20a04d98 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP7             0x20a04d9c /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP8             0x20a04da0 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP9             0x20a04da4 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP10            0x20a04da8 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP11            0x20a04dac /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP12            0x20a04db0 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP13            0x20a04db4 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP14            0x20a04db8 /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_BO_TSIO_IBP15            0x20a04dbc /* [RW] RS Buffer  Block Out Control for TSIO Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_IBP_DATA_RDY             0x20a04e00 /* [RW] RS Buffer IBP Data Ready */
-#define BCHP_XPT_RSBUFF_PBP_DATA_RDY             0x20a04e04 /* [RW] RS Buffer PBP Data Ready */
-#define BCHP_XPT_RSBUFF_IBP_BUFFER_ENABLE        0x20a04e08 /* [RW] RS Buffer IBP BUFF_ENABLE */
-#define BCHP_XPT_RSBUFF_PBP_BUFFER_ENABLE        0x20a04e0c /* [RW] RS Buffer PBP BUFF_ENABLE */
-#define BCHP_XPT_RSBUFF_IBP_OVERFLOW_STATUS      0x20a04e10 /* [RW] RS Buffer IBP Overflow status */
-#define BCHP_XPT_RSBUFF_PBP_OVERFLOW_STATUS      0x20a04e14 /* [RW] RS Buffer PBP Overflow status */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_DATA_RDY        0x20a04e18 /* [RW] RS Buffer MPOD IBP Data Ready */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE   0x20a04e1c /* [RW] RS Buffer MPOD IBP BUFF_ENABLE */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_OVERFLOW_STATUS 0x20a04e20 /* [RW] RS Buffer MPOD IBP Overflow status */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_DATA_RDY        0x20a04e24 /* [RW] RS Buffer TSIO IBP Data Ready */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_BUFFER_ENABLE   0x20a04e28 /* [RW] RS Buffer TSIO IBP BUFF_ENABLE */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_OVERFLOW_STATUS 0x20a04e2c /* [RW] RS Buffer TSIO IBP Overflow status */
-#define BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD       0x20a04e30 /* [RW] RS Buffer Overflow Threshold */
-#define BCHP_XPT_RSBUFF_PAUSE_THRESHOLD          0x20a04e34 /* [RW] RS Buffer Pause Threshold */
-#define BCHP_XPT_RSBUFF_CTRL_PAUSE_EN_PBP        0x20a04e38 /* [RW] RS Buffer Control Pause Enable PBP */
-#define BCHP_XPT_RSBUFF_PAUSE_STATUS_PBP         0x20a04e3c /* [RO] RS Buffer Pause Status PBP */
-#define BCHP_XPT_RSBUFF_MCPB0_PAUSE_SEL0         0x20a04e40 /* [RW] RS Buffer MCPB0 Pause Select Register for Playback bands 0-15 */
-#define BCHP_XPT_RSBUFF_MCPB0_PAUSE_SEL1         0x20a04e44 /* [RW] RS Buffer MCPB0 Pause Select Register for Playback bands 16-31 */
-#define BCHP_XPT_RSBUFF_BYTE_SWAP_CTRL           0x20a04e48 /* [RW] RS Buffer Byte swap Control */
-#define BCHP_XPT_RSBUFF_PACKET_LENGTH            0x20a04e4c /* [RW] RS Buffer Packet length */
-#define BCHP_XPT_RSBUFF_MISC_CTRL                0x20a04e50 /* [RW] RS Buffer Miscellaneous Control */
-#define BCHP_XPT_RSBUFF_NO_RD_HANG_CTRL          0x20a04e54 /* [RW] RS Buffer No Read Hang Control */
-#define BCHP_XPT_RSBUFF_WR_DEBUG                 0x20a04e58 /* [RO] RS Buffer Write Debug Register */
-#define BCHP_XPT_RSBUFF_RD_DEBUG                 0x20a04e5c /* [RO] RS Buffer Read Debug Register */
-#define BCHP_XPT_RSBUFF_MPOD_RD_DEBUG            0x20a04e60 /* [RO] RS Buffer MPOD Read Debug Register */
-#define BCHP_XPT_RSBUFF_TSIO_RD_DEBUG            0x20a04e64 /* [RO] RS Buffer TSIO Read Debug Register */
-#define BCHP_XPT_RSBUFF_PR_FALLBACK_CTRL         0x20a04e68 /* [RW] PR FALLBACK Control Register */
-#define BCHP_XPT_RSBUFF_RDIF_BLOCK_OUT           0x20a04e6c /* [RW] RS Buffer Read I/F Blockout Register */
-#define BCHP_XPT_RSBUFF_MPOD_RDIF_BLOCK_OUT      0x20a04e70 /* [RW] RS Buffer MPOD Read I/F Blockout Register */
-#define BCHP_XPT_RSBUFF_TSIO_RDIF_BLOCK_OUT      0x20a04e74 /* [RW] RS Buffer TSIO Read I/F Blockout Register */
-#define BCHP_XPT_RSBUFF_IBP_BUFFER_IDLE          0x20a04e78 /* [RO] RS Buffer IBP Buffer Idle Status */
-#define BCHP_XPT_RSBUFF_PBP_BUFFER_IDLE          0x20a04e7c /* [RO] RS Buffer PBP Buffer Idle Status */
-#define BCHP_XPT_RSBUFF_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e80 /* [RW] RS Buffer IBP0 to IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e88 /* [RW] RS Buffer IBP0 to IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e90 /* [RW] RS Buffer PBP0 to PBP15 Write Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a04e94 /* [RW] RS Buffer PBP16 to PBP31 Write Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e98 /* [RW] RS Buffer PBP0 to PBP15 Read Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a04e9c /* [RW] RS Buffer PBP16 to PBP31 Read Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_IDLE     0x20a04ea0 /* [RO] RS Buffer MPOD IBP Buffer Idle Status */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04ea4 /* [RW] RS Buffer MPOD IBP0 to MPOD IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04eac /* [RW] RS Buffer MPOD IBP0 to MPOD IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_BUFFER_IDLE     0x20a04eb4 /* [RO] RS Buffer TSIO IBP Buffer Idle Status */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04eb8 /* [RW] RS Buffer TSIO IBP0 to TSIO IBP15 Write Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04ec0 /* [RW] RS Buffer TSIO IBP0 to TSIO IBP15 Read Transaction Pending Status */
-#define BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ec8 /* [RW] RS Buffer IBP Read In Progress Control */
-#define BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS  0x20a04ecc /* [RW] RS Buffer IBP Read In Progress Status */
-#define BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN 0x20a04ed0 /* [RW] RS Buffer PBP Read In Progress Control */
-#define BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS  0x20a04ed4 /* [RW] RS Buffer PBP Read In Progress Status */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ed8 /* [RW] RS Buffer MPOD IBP Read In Progress Control */
-#define BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS 0x20a04edc /* [RW] RS Buffer MPOD IBP Read In Progress Status */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ee0 /* [RW] RS Buffer TSIO IBP Read In Progress Control */
-#define BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS 0x20a04ee4 /* [RW] RS Buffer TSIO IBP Read In Progress Status */
-#define BCHP_XPT_RSBUFF_TB_GLOBAL_CTRL           0x20a04f00 /* [RW] RS Buffer Transponder Bonding Global Control Register */
-#define BCHP_XPT_RSBUFF_TB_MIN_ATS_DELTA         0x20a04f04 /* [RW] RS Buffer Transponder Bonding Minimum ATS Delta */
-#define BCHP_XPT_RSBUFF_TB_MAX_SEQ_DELTA         0x20a04f08 /* [RW] RS Buffer Transponder Bonding Maximum Sequence number Delta */
-#define BCHP_XPT_RSBUFF_TBG_ERROR_STATUS         0x20a04f0c /* [RW] RS Buffer Transponder Bonding Error Status Register */
-#define BCHP_XPT_RSBUFF_TBG_ERROR_INFO_CURR      0x20a04f10 /* [RW] RS Buffer Transponder Bonding Error Current Info Register */
-#define BCHP_XPT_RSBUFF_TBG_ERROR_INFO_PREV      0x20a04f14 /* [RW] RS Buffer Transponder Bonding Error Previous Info Register */
-#define BCHP_XPT_RSBUFF_TBG_ERROR_SYNC_COUNT     0x20a04f18 /* [RW] RS Buffer Transponder Bonding Error Sync Count */
-#define BCHP_XPT_RSBUFF_TB_BAND_ARB_EN           0x20a04f1c /* [RW] RS Buffer Transponder Bonding Band Arbitration Enable Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG0                0x20a04f20 /* [RW] RS Buffer Transponder Bonding Debug1 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG1                0x20a04f24 /* [RO] RS Buffer Transponder Bonding Debug2 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG2                0x20a04f28 /* [RO] RS Buffer Transponder Bonding Debug3 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG3                0x20a04f2c /* [RO] RS Buffer Transponder Bonding Debug4 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG4                0x20a04f30 /* [RO] RS Buffer Transponder Bonding Debug5 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG5                0x20a04f34 /* [RO] RS Buffer Transponder Bonding Debug6 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG6                0x20a04f38 /* [RO] RS Buffer Transponder Bonding Debug7 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG7                0x20a04f3c /* [RO] RS Buffer Transponder Bonding Debug8 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG8                0x20a04f40 /* [RO] RS Buffer Transponder Bonding Debug1 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG9                0x20a04f44 /* [RO] RS Buffer Transponder Bonding Debug2 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG10               0x20a04f48 /* [RO] RS Buffer Transponder Bonding Debug3 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG11               0x20a04f4c /* [RO] RS Buffer Transponder Bonding Debug4 Register */
-#define BCHP_XPT_RSBUFF_TB_DEBUG12               0x20a04f50 /* [RO] RS Buffer Transponder Bonding Debug4 Register */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP0          0x20a04f80 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP1          0x20a04f84 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP2          0x20a04f88 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP3          0x20a04f8c /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP4          0x20a04f90 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP5          0x20a04f94 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP6          0x20a04f98 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP7          0x20a04f9c /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP8          0x20a04fa0 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP9          0x20a04fa4 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP10         0x20a04fa8 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP11         0x20a04fac /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP12         0x20a04fb0 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP13         0x20a04fb4 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP14         0x20a04fb8 /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP15         0x20a04fbc /* [RW] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP0           0x20a05000 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP0           0x20a05004 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP0  0x20a05008 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP0     0x20a0500c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 0 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP1           0x20a05010 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP1           0x20a05014 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP1  0x20a05018 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP1     0x20a0501c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 1 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP2           0x20a05020 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP2           0x20a05024 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP2  0x20a05028 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP2     0x20a0502c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 2 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP3           0x20a05030 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP3           0x20a05034 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP3  0x20a05038 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP3     0x20a0503c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 3 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP4           0x20a05040 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP4           0x20a05044 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP4  0x20a05048 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP4     0x20a0504c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 4 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP5           0x20a05050 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP5           0x20a05054 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP5  0x20a05058 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP5     0x20a0505c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 5 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP6           0x20a05060 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP6           0x20a05064 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP6  0x20a05068 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP6     0x20a0506c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 6 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP7           0x20a05070 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP7           0x20a05074 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP7  0x20a05078 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP7     0x20a0507c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 7 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP8           0x20a05080 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP8           0x20a05084 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP8  0x20a05088 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP8     0x20a0508c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 8 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP9           0x20a05090 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP9           0x20a05094 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP9  0x20a05098 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP9     0x20a0509c /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 9 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP10          0x20a050a0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP10          0x20a050a4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP10 0x20a050a8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP10    0x20a050ac /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 10 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP11          0x20a050b0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP11          0x20a050b4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP11 0x20a050b8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP11    0x20a050bc /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 11 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP12          0x20a050c0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP12          0x20a050c4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP12 0x20a050c8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP12    0x20a050cc /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 12 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP13          0x20a050d0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP13          0x20a050d4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP13 0x20a050d8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP13    0x20a050dc /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 13 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP14          0x20a050e0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP14          0x20a050e4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP14 0x20a050e8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP14    0x20a050ec /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 14 */
-#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP15          0x20a050f0 /* [RW] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP15          0x20a050f4 /* [RW] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP15 0x20a050f8 /* [RW] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP15    0x20a050fc /* [RW] RS Buffer Transponder Bonding RESERVED for Input Band Parser 15 */
-#define BCHP_XPT_RSBUFF_TBG0_CTRL                0x20a05200 /* [RW] RS Buffer Transponder Bonding Group 0 Control */
-#define BCHP_XPT_RSBUFF_TBG0_MAP_VECTOR          0x20a05204 /* [RW] RS Buffer Transponder Bonding Group 0 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG0_BO                  0x20a05208 /* [RW] RS Buffer Transponder Bonding Group 0 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG0_STATUS              0x20a0520c /* [RW] RS Buffer Transponder Bonding Group 0 Status */
-#define BCHP_XPT_RSBUFF_TBG0_NEXT_BAND_TO_RD     0x20a05210 /* [RW] RS Buffer Transponder Bonding Group 0 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG0_BAND_THRESHOLD      0x20a05214 /* [RW] RS Buffer Transponder Bonding Group 0 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG1_CTRL                0x20a05218 /* [RW] RS Buffer Transponder Bonding Group 1 Control */
-#define BCHP_XPT_RSBUFF_TBG1_MAP_VECTOR          0x20a0521c /* [RW] RS Buffer Transponder Bonding Group 1 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG1_BO                  0x20a05220 /* [RW] RS Buffer Transponder Bonding Group 1 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG1_STATUS              0x20a05224 /* [RW] RS Buffer Transponder Bonding Group 1 Status */
-#define BCHP_XPT_RSBUFF_TBG1_NEXT_BAND_TO_RD     0x20a05228 /* [RW] RS Buffer Transponder Bonding Group 1 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG1_BAND_THRESHOLD      0x20a0522c /* [RW] RS Buffer Transponder Bonding Group 1 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG2_CTRL                0x20a05230 /* [RW] RS Buffer Transponder Bonding Group 2 Control */
-#define BCHP_XPT_RSBUFF_TBG2_MAP_VECTOR          0x20a05234 /* [RW] RS Buffer Transponder Bonding Group 2 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG2_BO                  0x20a05238 /* [RW] RS Buffer Transponder Bonding Group 2 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG2_STATUS              0x20a0523c /* [RW] RS Buffer Transponder Bonding Group 2 Status */
-#define BCHP_XPT_RSBUFF_TBG2_NEXT_BAND_TO_RD     0x20a05240 /* [RW] RS Buffer Transponder Bonding Group 2 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG2_BAND_THRESHOLD      0x20a05244 /* [RW] RS Buffer Transponder Bonding Group 2 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG3_CTRL                0x20a05248 /* [RW] RS Buffer Transponder Bonding Group 3 Control */
-#define BCHP_XPT_RSBUFF_TBG3_MAP_VECTOR          0x20a0524c /* [RW] RS Buffer Transponder Bonding Group 3 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG3_BO                  0x20a05250 /* [RW] RS Buffer Transponder Bonding Group 3 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG3_STATUS              0x20a05254 /* [RW] RS Buffer Transponder Bonding Group 3 Status */
-#define BCHP_XPT_RSBUFF_TBG3_NEXT_BAND_TO_RD     0x20a05258 /* [RW] RS Buffer Transponder Bonding Group 3 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG3_BAND_THRESHOLD      0x20a0525c /* [RW] RS Buffer Transponder Bonding Group 3 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG4_CTRL                0x20a05260 /* [RW] RS Buffer Transponder Bonding Group 4 Control */
-#define BCHP_XPT_RSBUFF_TBG4_MAP_VECTOR          0x20a05264 /* [RW] RS Buffer Transponder Bonding Group 4 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG4_BO                  0x20a05268 /* [RW] RS Buffer Transponder Bonding Group 4 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG4_STATUS              0x20a0526c /* [RW] RS Buffer Transponder Bonding Group 4 Status */
-#define BCHP_XPT_RSBUFF_TBG4_NEXT_BAND_TO_RD     0x20a05270 /* [RW] RS Buffer Transponder Bonding Group 4 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG4_BAND_THRESHOLD      0x20a05274 /* [RW] RS Buffer Transponder Bonding Group 4 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG5_CTRL                0x20a05278 /* [RW] RS Buffer Transponder Bonding Group 5 Control */
-#define BCHP_XPT_RSBUFF_TBG5_MAP_VECTOR          0x20a0527c /* [RW] RS Buffer Transponder Bonding Group 5 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG5_BO                  0x20a05280 /* [RW] RS Buffer Transponder Bonding Group 5 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG5_STATUS              0x20a05284 /* [RW] RS Buffer Transponder Bonding Group 5 Status */
-#define BCHP_XPT_RSBUFF_TBG5_NEXT_BAND_TO_RD     0x20a05288 /* [RW] RS Buffer Transponder Bonding Group 5 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG5_BAND_THRESHOLD      0x20a0528c /* [RW] RS Buffer Transponder Bonding Group 5 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG6_CTRL                0x20a05290 /* [RW] RS Buffer Transponder Bonding Group 6 Control */
-#define BCHP_XPT_RSBUFF_TBG6_MAP_VECTOR          0x20a05294 /* [RW] RS Buffer Transponder Bonding Group 6 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG6_BO                  0x20a05298 /* [RW] RS Buffer Transponder Bonding Group 6 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG6_STATUS              0x20a0529c /* [RW] RS Buffer Transponder Bonding Group 6 Status */
-#define BCHP_XPT_RSBUFF_TBG6_NEXT_BAND_TO_RD     0x20a052a0 /* [RW] RS Buffer Transponder Bonding Group 6 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG6_BAND_THRESHOLD      0x20a052a4 /* [RW] RS Buffer Transponder Bonding Group 6 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG7_CTRL                0x20a052a8 /* [RW] RS Buffer Transponder Bonding Group 7 Control */
-#define BCHP_XPT_RSBUFF_TBG7_MAP_VECTOR          0x20a052ac /* [RW] RS Buffer Transponder Bonding Group 7 Map Vector */
-#define BCHP_XPT_RSBUFF_TBG7_BO                  0x20a052b0 /* [RW] RS Buffer Transponder Bonding Group 7 Block Out Control */
-#define BCHP_XPT_RSBUFF_TBG7_STATUS              0x20a052b4 /* [RW] RS Buffer Transponder Bonding Group 7 Status */
-#define BCHP_XPT_RSBUFF_TBG7_NEXT_BAND_TO_RD     0x20a052b8 /* [RW] RS Buffer Transponder Bonding Group 7 Next Band To Read Status */
-#define BCHP_XPT_RSBUFF_TBG7_BAND_THRESHOLD      0x20a052bc /* [RW] RS Buffer Transponder Bonding Group 7 Current Sequence Number Threshold */
-#define BCHP_XPT_RSBUFF_TBG0_SEQ_STATE           0x20a05400 /* [RW] RS Buffer Transponder Bonding Group 0 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG0_PREV_PKT_ATS        0x20a05404 /* [RW] RS Buffer Transponder Bonding Group 0 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG0_MARKER_PKT_ATS      0x20a05408 /* [RW] RS Buffer Transponder Bonding Group 0 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG0_PKT2PKT_DELTA       0x20a0540c /* [RW] RS Buffer Transponder Bonding Group 0 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG0_CURR_MARKER_STATUS  0x20a05410 /* [RW] RS Buffer Transponder Bonding Group 0 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG0_PREV_MARKER_STATUS  0x20a05414 /* [RW] RS Buffer Transponder Bonding Group 0 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG0_DEBUG0              0x20a05418 /* [RW] RS Buffer Transponder Bonding Group 0 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG0_DEBUG1              0x20a0541c /* [RW] RS Buffer Transponder Bonding Group 0 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG1_SEQ_STATE           0x20a05420 /* [RW] RS Buffer Transponder Bonding Group 1 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG1_PREV_PKT_ATS        0x20a05424 /* [RW] RS Buffer Transponder Bonding Group 1 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG1_MARKER_PKT_ATS      0x20a05428 /* [RW] RS Buffer Transponder Bonding Group 1 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG1_PKT2PKT_DELTA       0x20a0542c /* [RW] RS Buffer Transponder Bonding Group 1 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG1_CURR_MARKER_STATUS  0x20a05430 /* [RW] RS Buffer Transponder Bonding Group 1 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG1_PREV_MARKER_STATUS  0x20a05434 /* [RW] RS Buffer Transponder Bonding Group 1 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG1_DEBUG0              0x20a05438 /* [RW] RS Buffer Transponder Bonding Group 1 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG1_DEBUG1              0x20a0543c /* [RW] RS Buffer Transponder Bonding Group 1 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG2_SEQ_STATE           0x20a05440 /* [RW] RS Buffer Transponder Bonding Group 2 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG2_PREV_PKT_ATS        0x20a05444 /* [RW] RS Buffer Transponder Bonding Group 2 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG2_MARKER_PKT_ATS      0x20a05448 /* [RW] RS Buffer Transponder Bonding Group 2 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG2_PKT2PKT_DELTA       0x20a0544c /* [RW] RS Buffer Transponder Bonding Group 2 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG2_CURR_MARKER_STATUS  0x20a05450 /* [RW] RS Buffer Transponder Bonding Group 2 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG2_PREV_MARKER_STATUS  0x20a05454 /* [RW] RS Buffer Transponder Bonding Group 2 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG2_DEBUG0              0x20a05458 /* [RW] RS Buffer Transponder Bonding Group 2 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG2_DEBUG1              0x20a0545c /* [RW] RS Buffer Transponder Bonding Group 2 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG3_SEQ_STATE           0x20a05460 /* [RW] RS Buffer Transponder Bonding Group 3 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG3_PREV_PKT_ATS        0x20a05464 /* [RW] RS Buffer Transponder Bonding Group 3 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG3_MARKER_PKT_ATS      0x20a05468 /* [RW] RS Buffer Transponder Bonding Group 3 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG3_PKT2PKT_DELTA       0x20a0546c /* [RW] RS Buffer Transponder Bonding Group 3 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG3_CURR_MARKER_STATUS  0x20a05470 /* [RW] RS Buffer Transponder Bonding Group 3 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG3_PREV_MARKER_STATUS  0x20a05474 /* [RW] RS Buffer Transponder Bonding Group 3 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG3_DEBUG0              0x20a05478 /* [RW] RS Buffer Transponder Bonding Group 3 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG3_DEBUG1              0x20a0547c /* [RW] RS Buffer Transponder Bonding Group 3 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG4_SEQ_STATE           0x20a05480 /* [RW] RS Buffer Transponder Bonding Group 4 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG4_PREV_PKT_ATS        0x20a05484 /* [RW] RS Buffer Transponder Bonding Group 4 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG4_MARKER_PKT_ATS      0x20a05488 /* [RW] RS Buffer Transponder Bonding Group 4 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG4_PKT2PKT_DELTA       0x20a0548c /* [RW] RS Buffer Transponder Bonding Group 4 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG4_CURR_MARKER_STATUS  0x20a05490 /* [RW] RS Buffer Transponder Bonding Group 4 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG4_PREV_MARKER_STATUS  0x20a05494 /* [RW] RS Buffer Transponder Bonding Group 4 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG4_DEBUG0              0x20a05498 /* [RW] RS Buffer Transponder Bonding Group 4 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG4_DEBUG1              0x20a0549c /* [RW] RS Buffer Transponder Bonding Group 4 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG5_SEQ_STATE           0x20a054a0 /* [RW] RS Buffer Transponder Bonding Group 5 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG5_PREV_PKT_ATS        0x20a054a4 /* [RW] RS Buffer Transponder Bonding Group 5 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG5_MARKER_PKT_ATS      0x20a054a8 /* [RW] RS Buffer Transponder Bonding Group 5 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG5_PKT2PKT_DELTA       0x20a054ac /* [RW] RS Buffer Transponder Bonding Group 5 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG5_CURR_MARKER_STATUS  0x20a054b0 /* [RW] RS Buffer Transponder Bonding Group 5 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG5_PREV_MARKER_STATUS  0x20a054b4 /* [RW] RS Buffer Transponder Bonding Group 5 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG5_DEBUG0              0x20a054b8 /* [RW] RS Buffer Transponder Bonding Group 5 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG5_DEBUG1              0x20a054bc /* [RW] RS Buffer Transponder Bonding Group 5 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG6_SEQ_STATE           0x20a054c0 /* [RW] RS Buffer Transponder Bonding Group 6 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG6_PREV_PKT_ATS        0x20a054c4 /* [RW] RS Buffer Transponder Bonding Group 6 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG6_MARKER_PKT_ATS      0x20a054c8 /* [RW] RS Buffer Transponder Bonding Group 6 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG6_PKT2PKT_DELTA       0x20a054cc /* [RW] RS Buffer Transponder Bonding Group 6 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG6_CURR_MARKER_STATUS  0x20a054d0 /* [RW] RS Buffer Transponder Bonding Group 6 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG6_PREV_MARKER_STATUS  0x20a054d4 /* [RW] RS Buffer Transponder Bonding Group 6 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG6_DEBUG0              0x20a054d8 /* [RW] RS Buffer Transponder Bonding Group 6 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG6_DEBUG1              0x20a054dc /* [RW] RS Buffer Transponder Bonding Group 6 RESERVED1 */
-#define BCHP_XPT_RSBUFF_TBG7_SEQ_STATE           0x20a054e0 /* [RW] RS Buffer Transponder Bonding Group 7 Chunk sequencer state */
-#define BCHP_XPT_RSBUFF_TBG7_PREV_PKT_ATS        0x20a054e4 /* [RW] RS Buffer Transponder Bonding Group 7 Previous Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG7_MARKER_PKT_ATS      0x20a054e8 /* [RW] RS Buffer Transponder Bonding Group 7 Marker Packet ATS */
-#define BCHP_XPT_RSBUFF_TBG7_PKT2PKT_DELTA       0x20a054ec /* [RW] RS Buffer Transponder Bonding Group 7 Packet-to-packet Delta */
-#define BCHP_XPT_RSBUFF_TBG7_CURR_MARKER_STATUS  0x20a054f0 /* [RW] RS Buffer Transponder Bonding Group 7 Current Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG7_PREV_MARKER_STATUS  0x20a054f4 /* [RW] RS Buffer Transponder Bonding Group 7 Previous Marker Packet Status */
-#define BCHP_XPT_RSBUFF_TBG7_DEBUG0              0x20a054f8 /* [RW] RS Buffer Transponder Bonding Group 7 RESERVED0 */
-#define BCHP_XPT_RSBUFF_TBG7_DEBUG1              0x20a054fc /* [RW] RS Buffer Transponder Bonding Group 7 RESERVED1 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP0        0x20a04000 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP0         0x20a04004 /* [RW][32] RS Buffer - End pointer for  Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP0       0x20a04008 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP0       0x20a0400c /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP0        0x20a04010 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP0           0x20a04014 /* [RW][32] RS Buffer - Watermark Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP1        0x20a04018 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP1         0x20a0401c /* [RW][32] RS Buffer - End pointer for  Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP1       0x20a04020 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP1       0x20a04024 /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP1        0x20a04028 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP1           0x20a0402c /* [RW][32] RS Buffer - Watermark   Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP2        0x20a04030 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP2         0x20a04034 /* [RW][32] RS Buffer - End pointer for  Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP2       0x20a04038 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP2       0x20a0403c /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP2        0x20a04040 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP2           0x20a04044 /* [RW][32] RS Buffer - Watermark   Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP3        0x20a04048 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP3         0x20a0404c /* [RW][32] RS Buffer - End pointer for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP3       0x20a04050 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP3       0x20a04054 /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP3        0x20a04058 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP3           0x20a0405c /* [RW][32] RS Buffer - Watermark  Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP4        0x20a04060 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP4         0x20a04064 /* [RW][32] RS Buffer - End pointer for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP4       0x20a04068 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP4       0x20a0406c /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP4        0x20a04070 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP4           0x20a04074 /* [RW][32] RS Buffer - Watermark  Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP5        0x20a04078 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP5         0x20a0407c /* [RW][32] RS Buffer - End pointer for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP5       0x20a04080 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP5       0x20a04084 /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP5        0x20a04088 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP5           0x20a0408c /* [RW][32] RS Buffer - Watermark  Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP6        0x20a04090 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP6         0x20a04094 /* [RW][32] RS Buffer - End pointer for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP6       0x20a04098 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP6       0x20a0409c /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP6        0x20a040a0 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP6           0x20a040a4 /* [RW][32] RS Buffer - Watermark  Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP7        0x20a040a8 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP7         0x20a040ac /* [RW][32] RS Buffer - End pointer for  Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP7       0x20a040b0 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP7       0x20a040b4 /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP7        0x20a040b8 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP7           0x20a040bc /* [RW][32] RS Buffer - Watermark Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP8        0x20a040c0 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP8         0x20a040c4 /* [RW][32] RS Buffer - End pointer for  Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP8       0x20a040c8 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP8       0x20a040cc /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP8        0x20a040d0 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP8           0x20a040d4 /* [RW][32] RS Buffer - Watermark   Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP9        0x20a040d8 /* [RW][32] RS Buffer - Base pointer for  Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP9         0x20a040dc /* [RW][32] RS Buffer - End pointer for  Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP9       0x20a040e0 /* [RW][32] RS Buffer - Write pointer for  Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP9       0x20a040e4 /* [RW][32] RS Buffer - Valid pointer for  Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP9        0x20a040e8 /* [RW][32] RS Buffer - Read pointer for  Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP9           0x20a040ec /* [RW][32] RS Buffer - Watermark   Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP10       0x20a040f0 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP10        0x20a040f4 /* [RW][32] RS Buffer - End pointer for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP10      0x20a040f8 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP10      0x20a040fc /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP10       0x20a04100 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP10          0x20a04104 /* [RW][32] RS Buffer - Watermark  Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP11       0x20a04108 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP11        0x20a0410c /* [RW][32] RS Buffer - End pointer for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP11      0x20a04110 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP11      0x20a04114 /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP11       0x20a04118 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP11          0x20a0411c /* [RW][32] RS Buffer - Watermark  Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP12       0x20a04120 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP12        0x20a04124 /* [RW][32] RS Buffer - End pointer for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP12      0x20a04128 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP12      0x20a0412c /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP12       0x20a04130 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP12          0x20a04134 /* [RW][32] RS Buffer - Watermark  Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP13       0x20a04138 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP13        0x20a0413c /* [RW][32] RS Buffer - End pointer for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP13      0x20a04140 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP13      0x20a04144 /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP13       0x20a04148 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP13          0x20a0414c /* [RW][32] RS Buffer - Watermark  Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP14       0x20a04150 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP14        0x20a04154 /* [RW][32] RS Buffer - End pointer for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP14      0x20a04158 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP14      0x20a0415c /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP14       0x20a04160 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP14          0x20a04164 /* [RW][32] RS Buffer - Watermark  Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_IBP15       0x20a04168 /* [RW][32] RS Buffer - Base pointer for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_END_POINTER_IBP15        0x20a0416c /* [RW][32] RS Buffer - End pointer for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_IBP15      0x20a04170 /* [RW][32] RS Buffer - Write pointer for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_IBP15      0x20a04174 /* [RW][32] RS Buffer - Valid pointer for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_IBP15       0x20a04178 /* [RW][32] RS Buffer - Read pointer for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WATERMARK_IBP15          0x20a0417c /* [RW][32] RS Buffer - Watermark  Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP0        0x20a04300 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP0         0x20a04304 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP0       0x20a04308 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP0       0x20a0430c /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP0        0x20a04310 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP0           0x20a04314 /* [RW][32] RS Buffer - Watermark Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP1        0x20a04318 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP1         0x20a0431c /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP1       0x20a04320 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP1       0x20a04324 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP1        0x20a04328 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP1           0x20a0432c /* [RW][32] RS Buffer - Watermark   Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP2        0x20a04330 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP2         0x20a04334 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP2       0x20a04338 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP2       0x20a0433c /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP2        0x20a04340 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP2           0x20a04344 /* [RW][32] RS Buffer - Watermark   Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP3        0x20a04348 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP3         0x20a0434c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP3       0x20a04350 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP3       0x20a04354 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP3        0x20a04358 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP3           0x20a0435c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP4        0x20a04360 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP4         0x20a04364 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP4       0x20a04368 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP4       0x20a0436c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP4        0x20a04370 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP4           0x20a04374 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP5        0x20a04378 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP5         0x20a0437c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP5       0x20a04380 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP5       0x20a04384 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP5        0x20a04388 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP5           0x20a0438c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP6        0x20a04390 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP6         0x20a04394 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP6       0x20a04398 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP6       0x20a0439c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP6        0x20a043a0 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP6           0x20a043a4 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP7        0x20a043a8 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP7         0x20a043ac /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP7       0x20a043b0 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP7       0x20a043b4 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP7        0x20a043b8 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP7           0x20a043bc /* [RW][32] RS Buffer - Watermark Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP8        0x20a043c0 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP8         0x20a043c4 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP8       0x20a043c8 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP8       0x20a043cc /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP8        0x20a043d0 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP8           0x20a043d4 /* [RW][32] RS Buffer - Watermark   Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP9        0x20a043d8 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP9         0x20a043dc /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP9       0x20a043e0 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP9       0x20a043e4 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP9        0x20a043e8 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP9           0x20a043ec /* [RW][32] RS Buffer - Watermark   Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP10       0x20a043f0 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP10        0x20a043f4 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP10      0x20a043f8 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP10      0x20a043fc /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP10       0x20a04400 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP10          0x20a04404 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP11       0x20a04408 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP11        0x20a0440c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP11      0x20a04410 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP11      0x20a04414 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP11       0x20a04418 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP11          0x20a0441c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP12       0x20a04420 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP12        0x20a04424 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP12      0x20a04428 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP12      0x20a0442c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP12       0x20a04430 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP12          0x20a04434 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP13       0x20a04438 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP13        0x20a0443c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP13      0x20a04440 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP13      0x20a04444 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP13       0x20a04448 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP13          0x20a0444c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP14       0x20a04450 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP14        0x20a04454 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP14      0x20a04458 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP14      0x20a0445c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP14       0x20a04460 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP14          0x20a04464 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP15       0x20a04468 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP15        0x20a0446c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP15      0x20a04470 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP15      0x20a04474 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP15       0x20a04478 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP15          0x20a0447c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP16       0x20a04480 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP16        0x20a04484 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP16      0x20a04488 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP16      0x20a0448c /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP16       0x20a04490 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP16          0x20a04494 /* [RW][32] RS Buffer - Watermark Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP17       0x20a04498 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP17        0x20a0449c /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP17      0x20a044a0 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP17      0x20a044a4 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP17       0x20a044a8 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP17          0x20a044ac /* [RW][32] RS Buffer - Watermark   Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP18       0x20a044b0 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP18        0x20a044b4 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP18      0x20a044b8 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP18      0x20a044bc /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP18       0x20a044c0 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP18          0x20a044c4 /* [RW][32] RS Buffer - Watermark   Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP19       0x20a044c8 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP19        0x20a044cc /* [RW][32] RS Buffer - End pointer for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP19      0x20a044d0 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP19      0x20a044d4 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP19       0x20a044d8 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP19          0x20a044dc /* [RW][32] RS Buffer - Watermark  Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP20       0x20a044e0 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP20        0x20a044e4 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP20      0x20a044e8 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP20      0x20a044ec /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP20       0x20a044f0 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP20          0x20a044f4 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP21       0x20a044f8 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP21        0x20a044fc /* [RW][32] RS Buffer - End pointer for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP21      0x20a04500 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP21      0x20a04504 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP21       0x20a04508 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP21          0x20a0450c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP22       0x20a04510 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP22        0x20a04514 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP22      0x20a04518 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP22      0x20a0451c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP22       0x20a04520 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP22          0x20a04524 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP23       0x20a04528 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP23        0x20a0452c /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP23      0x20a04530 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP23      0x20a04534 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP23       0x20a04538 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP23          0x20a0453c /* [RW][32] RS Buffer - Watermark Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP24       0x20a04540 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP24        0x20a04544 /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP24      0x20a04548 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP24      0x20a0454c /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP24       0x20a04550 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP24          0x20a04554 /* [RW][32] RS Buffer - Watermark   Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP25       0x20a04558 /* [RW][32] RS Buffer - Base pointer for  Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP25        0x20a0455c /* [RW][32] RS Buffer - End pointer for  Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP25      0x20a04560 /* [RW][32] RS Buffer - Write pointer for  Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP25      0x20a04564 /* [RW][32] RS Buffer - Valid pointer for  Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP25       0x20a04568 /* [RW][32] RS Buffer - Read pointer for  Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP25          0x20a0456c /* [RW][32] RS Buffer - Watermark   Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP26       0x20a04570 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP26        0x20a04574 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP26      0x20a04578 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP26      0x20a0457c /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP26       0x20a04580 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP26          0x20a04584 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP27       0x20a04588 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP27        0x20a0458c /* [RW][32] RS Buffer - End pointer for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP27      0x20a04590 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP27      0x20a04594 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP27       0x20a04598 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP27          0x20a0459c /* [RW][32] RS Buffer - Watermark  Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP28       0x20a045a0 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP28        0x20a045a4 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP28      0x20a045a8 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP28      0x20a045ac /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP28       0x20a045b0 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP28          0x20a045b4 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP29       0x20a045b8 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP29        0x20a045bc /* [RW][32] RS Buffer - End pointer for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP29      0x20a045c0 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP29      0x20a045c4 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP29       0x20a045c8 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP29          0x20a045cc /* [RW][32] RS Buffer - Watermark  Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP30       0x20a045d0 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP30        0x20a045d4 /* [RW][32] RS Buffer - End pointer for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP30      0x20a045d8 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP30      0x20a045dc /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP30       0x20a045e0 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP30          0x20a045e4 /* [RW][32] RS Buffer - Watermark  Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_PBP31       0x20a045e8 /* [RW][32] RS Buffer - Base pointer for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_END_POINTER_PBP31        0x20a045ec /* [RW][32] RS Buffer - End pointer for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_PBP31      0x20a045f0 /* [RW][32] RS Buffer - Write pointer for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_PBP31      0x20a045f4 /* [RW][32] RS Buffer - Valid pointer for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_PBP31       0x20a045f8 /* [RW][32] RS Buffer - Read pointer for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_WATERMARK_PBP31          0x20a045fc /* [RW][32] RS Buffer - Watermark  Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP0   0x20a04600 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP0    0x20a04604 /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP0  0x20a04608 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP0  0x20a0460c /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP0   0x20a04610 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP0      0x20a04614 /* [RW][32] RS Buffer - Watermark MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP1   0x20a04618 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP1    0x20a0461c /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP1  0x20a04620 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP1  0x20a04624 /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP1   0x20a04628 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP1      0x20a0462c /* [RW][32] RS Buffer - Watermark   MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP2   0x20a04630 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP2    0x20a04634 /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP2  0x20a04638 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP2  0x20a0463c /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP2   0x20a04640 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP2      0x20a04644 /* [RW][32] RS Buffer - Watermark   MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP3   0x20a04648 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP3    0x20a0464c /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP3  0x20a04650 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP3  0x20a04654 /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP3   0x20a04658 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP3      0x20a0465c /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP4   0x20a04660 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP4    0x20a04664 /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP4  0x20a04668 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP4  0x20a0466c /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP4   0x20a04670 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP4      0x20a04674 /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP5   0x20a04678 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP5    0x20a0467c /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP5  0x20a04680 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP5  0x20a04684 /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP5   0x20a04688 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP5      0x20a0468c /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP6   0x20a04690 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP6    0x20a04694 /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP6  0x20a04698 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP6  0x20a0469c /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP6   0x20a046a0 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP6      0x20a046a4 /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP7   0x20a046a8 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP7    0x20a046ac /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP7  0x20a046b0 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP7  0x20a046b4 /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP7   0x20a046b8 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP7      0x20a046bc /* [RW][32] RS Buffer - Watermark MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP8   0x20a046c0 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP8    0x20a046c4 /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP8  0x20a046c8 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP8  0x20a046cc /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP8   0x20a046d0 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP8      0x20a046d4 /* [RW][32] RS Buffer - Watermark   MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP9   0x20a046d8 /* [RW][32] RS Buffer - Base pointer for  MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP9    0x20a046dc /* [RW][32] RS Buffer - End pointer for  MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP9  0x20a046e0 /* [RW][32] RS Buffer - Write pointer for  MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP9  0x20a046e4 /* [RW][32] RS Buffer - Valid pointer for  MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP9   0x20a046e8 /* [RW][32] RS Buffer - Read pointer for  MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP9      0x20a046ec /* [RW][32] RS Buffer - Watermark   MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP10  0x20a046f0 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP10   0x20a046f4 /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP10 0x20a046f8 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP10 0x20a046fc /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP10  0x20a04700 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP10     0x20a04704 /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP11  0x20a04708 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP11   0x20a0470c /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP11 0x20a04710 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP11 0x20a04714 /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP11  0x20a04718 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP11     0x20a0471c /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP12  0x20a04720 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP12   0x20a04724 /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP12 0x20a04728 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP12 0x20a0472c /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP12  0x20a04730 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP12     0x20a04734 /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP13  0x20a04738 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP13   0x20a0473c /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP13 0x20a04740 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP13 0x20a04744 /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP13  0x20a04748 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP13     0x20a0474c /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP14  0x20a04750 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP14   0x20a04754 /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP14 0x20a04758 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP14 0x20a0475c /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP14  0x20a04760 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP14     0x20a04764 /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_MPOD_IBP15  0x20a04768 /* [RW][32] RS Buffer - Base pointer for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_END_POINTER_MPOD_IBP15   0x20a0476c /* [RW][32] RS Buffer - End pointer for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_MPOD_IBP15 0x20a04770 /* [RW][32] RS Buffer - Write pointer for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_MPOD_IBP15 0x20a04774 /* [RW][32] RS Buffer - Valid pointer for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_MPOD_IBP15  0x20a04778 /* [RW][32] RS Buffer - Read pointer for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WATERMARK_MPOD_IBP15     0x20a0477c /* [RW][32] RS Buffer - Watermark  MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP0   0x20a04900 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP0    0x20a04904 /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP0  0x20a04908 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP0  0x20a0490c /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP0   0x20a04910 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP0      0x20a04914 /* [RW][32] RS Buffer - Watermark TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP1   0x20a04918 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP1    0x20a0491c /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP1  0x20a04920 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP1  0x20a04924 /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP1   0x20a04928 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP1      0x20a0492c /* [RW][32] RS Buffer - Watermark   TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP2   0x20a04930 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP2    0x20a04934 /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP2  0x20a04938 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP2  0x20a0493c /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP2   0x20a04940 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP2      0x20a04944 /* [RW][32] RS Buffer - Watermark   TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP3   0x20a04948 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP3    0x20a0494c /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP3  0x20a04950 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP3  0x20a04954 /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP3   0x20a04958 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP3      0x20a0495c /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP4   0x20a04960 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP4    0x20a04964 /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP4  0x20a04968 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP4  0x20a0496c /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP4   0x20a04970 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP4      0x20a04974 /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP5   0x20a04978 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP5    0x20a0497c /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP5  0x20a04980 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP5  0x20a04984 /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP5   0x20a04988 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP5      0x20a0498c /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP6   0x20a04990 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP6    0x20a04994 /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP6  0x20a04998 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP6  0x20a0499c /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP6   0x20a049a0 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP6      0x20a049a4 /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP7   0x20a049a8 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP7    0x20a049ac /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP7  0x20a049b0 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP7  0x20a049b4 /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP7   0x20a049b8 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP7      0x20a049bc /* [RW][32] RS Buffer - Watermark TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP8   0x20a049c0 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP8    0x20a049c4 /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP8  0x20a049c8 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP8  0x20a049cc /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP8   0x20a049d0 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP8      0x20a049d4 /* [RW][32] RS Buffer - Watermark   TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP9   0x20a049d8 /* [RW][32] RS Buffer - Base pointer for  TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP9    0x20a049dc /* [RW][32] RS Buffer - End pointer for  TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP9  0x20a049e0 /* [RW][32] RS Buffer - Write pointer for  TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP9  0x20a049e4 /* [RW][32] RS Buffer - Valid pointer for  TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP9   0x20a049e8 /* [RW][32] RS Buffer - Read pointer for  TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP9      0x20a049ec /* [RW][32] RS Buffer - Watermark   TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP10  0x20a049f0 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP10   0x20a049f4 /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP10 0x20a049f8 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP10 0x20a049fc /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP10  0x20a04a00 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP10     0x20a04a04 /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP11  0x20a04a08 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP11   0x20a04a0c /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP11 0x20a04a10 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP11 0x20a04a14 /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP11  0x20a04a18 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP11     0x20a04a1c /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP12  0x20a04a20 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP12   0x20a04a24 /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP12 0x20a04a28 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP12 0x20a04a2c /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP12  0x20a04a30 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP12     0x20a04a34 /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP13  0x20a04a38 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP13   0x20a04a3c /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP13 0x20a04a40 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP13 0x20a04a44 /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP13  0x20a04a48 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP13     0x20a04a4c /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP14  0x20a04a50 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP14   0x20a04a54 /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP14 0x20a04a58 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP14 0x20a04a5c /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP14  0x20a04a60 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP14     0x20a04a64 /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BASE_POINTER_TSIO_IBP15  0x20a04a68 /* [RW][32] RS Buffer - Base pointer for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_END_POINTER_TSIO_IBP15   0x20a04a6c /* [RW][32] RS Buffer - End pointer for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WRITE_POINTER_TSIO_IBP15 0x20a04a70 /* [RW][32] RS Buffer - Write pointer for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_VALID_POINTER_TSIO_IBP15 0x20a04a74 /* [RW][32] RS Buffer - Valid pointer for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_READ_POINTER_TSIO_IBP15  0x20a04a78 /* [RW][32] RS Buffer - Read pointer for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_WATERMARK_TSIO_IBP15     0x20a04a7c /* [RW][32] RS Buffer - Watermark  TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BO_IBP0                  0x20a04c00 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BO_IBP1                  0x20a04c04 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BO_IBP2                  0x20a04c08 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BO_IBP3                  0x20a04c0c /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BO_IBP4                  0x20a04c10 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BO_IBP5                  0x20a04c14 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BO_IBP6                  0x20a04c18 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BO_IBP7                  0x20a04c1c /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BO_IBP8                  0x20a04c20 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BO_IBP9                  0x20a04c24 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BO_IBP10                 0x20a04c28 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BO_IBP11                 0x20a04c2c /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BO_IBP12                 0x20a04c30 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BO_IBP13                 0x20a04c34 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BO_IBP14                 0x20a04c38 /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BO_IBP15                 0x20a04c3c /* [RW][32] RS Buffer  Block Out Control for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BO_PBP0                  0x20a04c80 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BO_PBP1                  0x20a04c84 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BO_PBP2                  0x20a04c88 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BO_PBP3                  0x20a04c8c /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BO_PBP4                  0x20a04c90 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BO_PBP5                  0x20a04c94 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BO_PBP6                  0x20a04c98 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BO_PBP7                  0x20a04c9c /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BO_PBP8                  0x20a04ca0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BO_PBP9                  0x20a04ca4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BO_PBP10                 0x20a04ca8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BO_PBP11                 0x20a04cac /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BO_PBP12                 0x20a04cb0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BO_PBP13                 0x20a04cb4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BO_PBP14                 0x20a04cb8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BO_PBP15                 0x20a04cbc /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BO_PBP16                 0x20a04cc0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 16 */
+#define BCHP_XPT_RSBUFF_BO_PBP17                 0x20a04cc4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 17 */
+#define BCHP_XPT_RSBUFF_BO_PBP18                 0x20a04cc8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 18 */
+#define BCHP_XPT_RSBUFF_BO_PBP19                 0x20a04ccc /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 19 */
+#define BCHP_XPT_RSBUFF_BO_PBP20                 0x20a04cd0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 20 */
+#define BCHP_XPT_RSBUFF_BO_PBP21                 0x20a04cd4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 21 */
+#define BCHP_XPT_RSBUFF_BO_PBP22                 0x20a04cd8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 22 */
+#define BCHP_XPT_RSBUFF_BO_PBP23                 0x20a04cdc /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 23 */
+#define BCHP_XPT_RSBUFF_BO_PBP24                 0x20a04ce0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 24 */
+#define BCHP_XPT_RSBUFF_BO_PBP25                 0x20a04ce4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 25 */
+#define BCHP_XPT_RSBUFF_BO_PBP26                 0x20a04ce8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 26 */
+#define BCHP_XPT_RSBUFF_BO_PBP27                 0x20a04cec /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 27 */
+#define BCHP_XPT_RSBUFF_BO_PBP28                 0x20a04cf0 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 28 */
+#define BCHP_XPT_RSBUFF_BO_PBP29                 0x20a04cf4 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 29 */
+#define BCHP_XPT_RSBUFF_BO_PBP30                 0x20a04cf8 /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 30 */
+#define BCHP_XPT_RSBUFF_BO_PBP31                 0x20a04cfc /* [RW][32] RS Buffer  Block Out Control for Playback Band Parser 31 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP0             0x20a04d00 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP1             0x20a04d04 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP2             0x20a04d08 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP3             0x20a04d0c /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP4             0x20a04d10 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP5             0x20a04d14 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP6             0x20a04d18 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP7             0x20a04d1c /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP8             0x20a04d20 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP9             0x20a04d24 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP10            0x20a04d28 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP11            0x20a04d2c /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP12            0x20a04d30 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP13            0x20a04d34 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP14            0x20a04d38 /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BO_MPOD_IBP15            0x20a04d3c /* [RW][32] RS Buffer  Block Out Control for MPOD Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP0             0x20a04d80 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP1             0x20a04d84 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP2             0x20a04d88 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP3             0x20a04d8c /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP4             0x20a04d90 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP5             0x20a04d94 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP6             0x20a04d98 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP7             0x20a04d9c /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP8             0x20a04da0 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP9             0x20a04da4 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP10            0x20a04da8 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP11            0x20a04dac /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP12            0x20a04db0 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP13            0x20a04db4 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP14            0x20a04db8 /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_BO_TSIO_IBP15            0x20a04dbc /* [RW][32] RS Buffer  Block Out Control for TSIO Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_IBP_DATA_RDY             0x20a04e00 /* [RW][32] RS Buffer IBP Data Ready */
+#define BCHP_XPT_RSBUFF_PBP_DATA_RDY             0x20a04e04 /* [RW][32] RS Buffer PBP Data Ready */
+#define BCHP_XPT_RSBUFF_IBP_BUFFER_ENABLE        0x20a04e08 /* [RW][32] RS Buffer IBP BUFF_ENABLE */
+#define BCHP_XPT_RSBUFF_PBP_BUFFER_ENABLE        0x20a04e0c /* [RW][32] RS Buffer PBP BUFF_ENABLE */
+#define BCHP_XPT_RSBUFF_IBP_OVERFLOW_STATUS      0x20a04e10 /* [RW][32] RS Buffer IBP Overflow status */
+#define BCHP_XPT_RSBUFF_PBP_OVERFLOW_STATUS      0x20a04e14 /* [RW][32] RS Buffer PBP Overflow status */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_DATA_RDY        0x20a04e18 /* [RW][32] RS Buffer MPOD IBP Data Ready */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_ENABLE   0x20a04e1c /* [RW][32] RS Buffer MPOD IBP BUFF_ENABLE */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_OVERFLOW_STATUS 0x20a04e20 /* [RW][32] RS Buffer MPOD IBP Overflow status */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_DATA_RDY        0x20a04e24 /* [RW][32] RS Buffer TSIO IBP Data Ready */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_BUFFER_ENABLE   0x20a04e28 /* [RW][32] RS Buffer TSIO IBP BUFF_ENABLE */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_OVERFLOW_STATUS 0x20a04e2c /* [RW][32] RS Buffer TSIO IBP Overflow status */
+#define BCHP_XPT_RSBUFF_OVERFLOW_THRESHOLD       0x20a04e30 /* [RW][32] RS Buffer Overflow Threshold */
+#define BCHP_XPT_RSBUFF_PAUSE_THRESHOLD          0x20a04e34 /* [RW][32] RS Buffer Pause Threshold */
+#define BCHP_XPT_RSBUFF_CTRL_PAUSE_EN_PBP        0x20a04e38 /* [RW][32] RS Buffer Control Pause Enable PBP */
+#define BCHP_XPT_RSBUFF_PAUSE_STATUS_PBP         0x20a04e3c /* [RO][32] RS Buffer Pause Status PBP */
+#define BCHP_XPT_RSBUFF_MCPB0_PAUSE_SEL0         0x20a04e40 /* [RW][32] RS Buffer MCPB0 Pause Select Register for Playback bands 0-15 */
+#define BCHP_XPT_RSBUFF_MCPB0_PAUSE_SEL1         0x20a04e44 /* [RW][32] RS Buffer MCPB0 Pause Select Register for Playback bands 16-31 */
+#define BCHP_XPT_RSBUFF_BYTE_SWAP_CTRL           0x20a04e48 /* [RW][32] RS Buffer Byte swap Control */
+#define BCHP_XPT_RSBUFF_PACKET_LENGTH            0x20a04e4c /* [RW][32] RS Buffer Packet length */
+#define BCHP_XPT_RSBUFF_MISC_CTRL                0x20a04e50 /* [RW][32] RS Buffer Miscellaneous Control */
+#define BCHP_XPT_RSBUFF_NO_RD_HANG_CTRL          0x20a04e54 /* [RW][32] RS Buffer No Read Hang Control */
+#define BCHP_XPT_RSBUFF_WR_DEBUG                 0x20a04e58 /* [RO][32] RS Buffer Write Debug Register */
+#define BCHP_XPT_RSBUFF_RD_DEBUG                 0x20a04e5c /* [RO][32] RS Buffer Read Debug Register */
+#define BCHP_XPT_RSBUFF_MPOD_RD_DEBUG            0x20a04e60 /* [RO][32] RS Buffer MPOD Read Debug Register */
+#define BCHP_XPT_RSBUFF_TSIO_RD_DEBUG            0x20a04e64 /* [RO][32] RS Buffer TSIO Read Debug Register */
+#define BCHP_XPT_RSBUFF_PR_FALLBACK_CTRL         0x20a04e68 /* [RW][32] PR FALLBACK Control Register */
+#define BCHP_XPT_RSBUFF_RDIF_BLOCK_OUT           0x20a04e6c /* [RW][32] RS Buffer Read I/F Blockout Register */
+#define BCHP_XPT_RSBUFF_MPOD_RDIF_BLOCK_OUT      0x20a04e70 /* [RW][32] RS Buffer MPOD Read I/F Blockout Register */
+#define BCHP_XPT_RSBUFF_TSIO_RDIF_BLOCK_OUT      0x20a04e74 /* [RW][32] RS Buffer TSIO Read I/F Blockout Register */
+#define BCHP_XPT_RSBUFF_IBP_BUFFER_IDLE          0x20a04e78 /* [RO][32] RS Buffer IBP Buffer Idle Status */
+#define BCHP_XPT_RSBUFF_PBP_BUFFER_IDLE          0x20a04e7c /* [RO][32] RS Buffer PBP Buffer Idle Status */
+#define BCHP_XPT_RSBUFF_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e80 /* [RW][32] RS Buffer IBP0 to IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e88 /* [RW][32] RS Buffer IBP0 to IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_PBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e90 /* [RW][32] RS Buffer PBP0 to PBP15 Write Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_PBP_WR_TRANS_PENDING_BAND16_TO_BAND31 0x20a04e94 /* [RW][32] RS Buffer PBP16 to PBP31 Write Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_PBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04e98 /* [RW][32] RS Buffer PBP0 to PBP15 Read Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_PBP_RD_TRANS_PENDING_BAND16_TO_BAND31 0x20a04e9c /* [RW][32] RS Buffer PBP16 to PBP31 Read Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_BUFFER_IDLE     0x20a04ea0 /* [RO][32] RS Buffer MPOD IBP Buffer Idle Status */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04ea4 /* [RW][32] RS Buffer MPOD IBP0 to MPOD IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04eac /* [RW][32] RS Buffer MPOD IBP0 to MPOD IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_BUFFER_IDLE     0x20a04eb4 /* [RO][32] RS Buffer TSIO IBP Buffer Idle Status */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_WR_TRANS_PENDING_BAND0_TO_BAND15 0x20a04eb8 /* [RW][32] RS Buffer TSIO IBP0 to TSIO IBP15 Write Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_RD_TRANS_PENDING_BAND0_TO_BAND15 0x20a04ec0 /* [RW][32] RS Buffer TSIO IBP0 to TSIO IBP15 Read Transaction Pending Status */
+#define BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ec8 /* [RW][32] RS Buffer IBP Read In Progress Control */
+#define BCHP_XPT_RSBUFF_IBP_BAND_RD_IN_PROGRESS  0x20a04ecc /* [RW][32] RS Buffer IBP Read In Progress Status */
+#define BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS_EN 0x20a04ed0 /* [RW][32] RS Buffer PBP Read In Progress Control */
+#define BCHP_XPT_RSBUFF_PBP_BAND_RD_IN_PROGRESS  0x20a04ed4 /* [RW][32] RS Buffer PBP Read In Progress Status */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ed8 /* [RW][32] RS Buffer MPOD IBP Read In Progress Control */
+#define BCHP_XPT_RSBUFF_MPOD_IBP_BAND_RD_IN_PROGRESS 0x20a04edc /* [RW][32] RS Buffer MPOD IBP Read In Progress Status */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS_EN 0x20a04ee0 /* [RW][32] RS Buffer TSIO IBP Read In Progress Control */
+#define BCHP_XPT_RSBUFF_TSIO_IBP_BAND_RD_IN_PROGRESS 0x20a04ee4 /* [RW][32] RS Buffer TSIO IBP Read In Progress Status */
+#define BCHP_XPT_RSBUFF_TB_GLOBAL_CTRL           0x20a04f00 /* [RW][32] RS Buffer Transponder Bonding Global Control Register */
+#define BCHP_XPT_RSBUFF_TB_MIN_ATS_DELTA         0x20a04f04 /* [RW][32] RS Buffer Transponder Bonding Minimum ATS Delta */
+#define BCHP_XPT_RSBUFF_TB_MAX_SEQ_DELTA         0x20a04f08 /* [RW][32] RS Buffer Transponder Bonding Maximum Sequence number Delta */
+#define BCHP_XPT_RSBUFF_TBG_ERROR_STATUS         0x20a04f0c /* [RW][32] RS Buffer Transponder Bonding Error Status Register */
+#define BCHP_XPT_RSBUFF_TBG_ERROR_INFO_CURR      0x20a04f10 /* [RW][32] RS Buffer Transponder Bonding Error Current Info Register */
+#define BCHP_XPT_RSBUFF_TBG_ERROR_INFO_PREV      0x20a04f14 /* [RW][32] RS Buffer Transponder Bonding Error Previous Info Register */
+#define BCHP_XPT_RSBUFF_TBG_ERROR_SYNC_COUNT     0x20a04f18 /* [RW][32] RS Buffer Transponder Bonding Error Sync Count */
+#define BCHP_XPT_RSBUFF_TB_BAND_ARB_EN           0x20a04f1c /* [RW][32] RS Buffer Transponder Bonding Band Arbitration Enable Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG0                0x20a04f20 /* [RW][32] RS Buffer Transponder Bonding Debug1 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG1                0x20a04f24 /* [RO][32] RS Buffer Transponder Bonding Debug2 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG2                0x20a04f28 /* [RO][32] RS Buffer Transponder Bonding Debug3 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG3                0x20a04f2c /* [RO][32] RS Buffer Transponder Bonding Debug4 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG4                0x20a04f30 /* [RO][32] RS Buffer Transponder Bonding Debug5 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG5                0x20a04f34 /* [RO][32] RS Buffer Transponder Bonding Debug6 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG6                0x20a04f38 /* [RO][32] RS Buffer Transponder Bonding Debug7 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG7                0x20a04f3c /* [RO][32] RS Buffer Transponder Bonding Debug8 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG8                0x20a04f40 /* [RO][32] RS Buffer Transponder Bonding Debug1 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG9                0x20a04f44 /* [RO][32] RS Buffer Transponder Bonding Debug2 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG10               0x20a04f48 /* [RO][32] RS Buffer Transponder Bonding Debug3 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG11               0x20a04f4c /* [RO][32] RS Buffer Transponder Bonding Debug4 Register */
+#define BCHP_XPT_RSBUFF_TB_DEBUG12               0x20a04f50 /* [RO][32] RS Buffer Transponder Bonding Debug4 Register */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP0          0x20a04f80 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP1          0x20a04f84 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP2          0x20a04f88 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP3          0x20a04f8c /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP4          0x20a04f90 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP5          0x20a04f94 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP6          0x20a04f98 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP7          0x20a04f9c /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP8          0x20a04fa0 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP9          0x20a04fa4 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP10         0x20a04fa8 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP11         0x20a04fac /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP12         0x20a04fb0 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP13         0x20a04fb4 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP14         0x20a04fb8 /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_TB_SEQ_NUM_IBP15         0x20a04fbc /* [RW][32] RS Buffer Transponder Bonding Current Sequence Number for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP0           0x20a05000 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP0           0x20a05004 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP0  0x20a05008 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP0     0x20a0500c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 0 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP1           0x20a05010 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP1           0x20a05014 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP1  0x20a05018 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP1     0x20a0501c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 1 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP2           0x20a05020 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP2           0x20a05024 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP2  0x20a05028 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP2     0x20a0502c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 2 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP3           0x20a05030 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP3           0x20a05034 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP3  0x20a05038 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP3     0x20a0503c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 3 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP4           0x20a05040 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP4           0x20a05044 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP4  0x20a05048 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP4     0x20a0504c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 4 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP5           0x20a05050 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP5           0x20a05054 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP5  0x20a05058 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP5     0x20a0505c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 5 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP6           0x20a05060 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP6           0x20a05064 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP6  0x20a05068 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP6     0x20a0506c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 6 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP7           0x20a05070 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP7           0x20a05074 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP7  0x20a05078 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP7     0x20a0507c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 7 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP8           0x20a05080 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP8           0x20a05084 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP8  0x20a05088 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP8     0x20a0508c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 8 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP9           0x20a05090 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP9           0x20a05094 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP9  0x20a05098 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP9     0x20a0509c /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 9 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP10          0x20a050a0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP10          0x20a050a4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP10 0x20a050a8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP10    0x20a050ac /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 10 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP11          0x20a050b0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP11          0x20a050b4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP11 0x20a050b8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP11    0x20a050bc /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 11 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP12          0x20a050c0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP12          0x20a050c4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP12 0x20a050c8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP12    0x20a050cc /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 12 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP13          0x20a050d0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP13          0x20a050d4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP13 0x20a050d8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP13    0x20a050dc /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 13 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP14          0x20a050e0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP14          0x20a050e4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP14 0x20a050e8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP14    0x20a050ec /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 14 */
+#define BCHP_XPT_RSBUFF_TB_BCR_HI_IBP15          0x20a050f0 /* [RW][32] RS Buffer Transponder Bonding Current BCR HI for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_TB_BCR_LO_IBP15          0x20a050f4 /* [RW][32] RS Buffer Transponder Bonding Current BCR LO for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_TB_PREV_CHUNK_SIZE_IBP15 0x20a050f8 /* [RW][32] RS Buffer Transponder Bonding Previous Chunk Size for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_TB_RESERVED_CFG_IBP15    0x20a050fc /* [RW][32] RS Buffer Transponder Bonding RESERVED for Input Band Parser 15 */
+#define BCHP_XPT_RSBUFF_TBG0_CTRL                0x20a05200 /* [RW][32] RS Buffer Transponder Bonding Group 0 Control */
+#define BCHP_XPT_RSBUFF_TBG0_MAP_VECTOR          0x20a05204 /* [RW][32] RS Buffer Transponder Bonding Group 0 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG0_BO                  0x20a05208 /* [RW][32] RS Buffer Transponder Bonding Group 0 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG0_STATUS              0x20a0520c /* [RW][32] RS Buffer Transponder Bonding Group 0 Status */
+#define BCHP_XPT_RSBUFF_TBG0_NEXT_BAND_TO_RD     0x20a05210 /* [RW][32] RS Buffer Transponder Bonding Group 0 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG0_BAND_THRESHOLD      0x20a05214 /* [RW][32] RS Buffer Transponder Bonding Group 0 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG1_CTRL                0x20a05218 /* [RW][32] RS Buffer Transponder Bonding Group 1 Control */
+#define BCHP_XPT_RSBUFF_TBG1_MAP_VECTOR          0x20a0521c /* [RW][32] RS Buffer Transponder Bonding Group 1 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG1_BO                  0x20a05220 /* [RW][32] RS Buffer Transponder Bonding Group 1 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG1_STATUS              0x20a05224 /* [RW][32] RS Buffer Transponder Bonding Group 1 Status */
+#define BCHP_XPT_RSBUFF_TBG1_NEXT_BAND_TO_RD     0x20a05228 /* [RW][32] RS Buffer Transponder Bonding Group 1 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG1_BAND_THRESHOLD      0x20a0522c /* [RW][32] RS Buffer Transponder Bonding Group 1 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG2_CTRL                0x20a05230 /* [RW][32] RS Buffer Transponder Bonding Group 2 Control */
+#define BCHP_XPT_RSBUFF_TBG2_MAP_VECTOR          0x20a05234 /* [RW][32] RS Buffer Transponder Bonding Group 2 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG2_BO                  0x20a05238 /* [RW][32] RS Buffer Transponder Bonding Group 2 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG2_STATUS              0x20a0523c /* [RW][32] RS Buffer Transponder Bonding Group 2 Status */
+#define BCHP_XPT_RSBUFF_TBG2_NEXT_BAND_TO_RD     0x20a05240 /* [RW][32] RS Buffer Transponder Bonding Group 2 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG2_BAND_THRESHOLD      0x20a05244 /* [RW][32] RS Buffer Transponder Bonding Group 2 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG3_CTRL                0x20a05248 /* [RW][32] RS Buffer Transponder Bonding Group 3 Control */
+#define BCHP_XPT_RSBUFF_TBG3_MAP_VECTOR          0x20a0524c /* [RW][32] RS Buffer Transponder Bonding Group 3 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG3_BO                  0x20a05250 /* [RW][32] RS Buffer Transponder Bonding Group 3 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG3_STATUS              0x20a05254 /* [RW][32] RS Buffer Transponder Bonding Group 3 Status */
+#define BCHP_XPT_RSBUFF_TBG3_NEXT_BAND_TO_RD     0x20a05258 /* [RW][32] RS Buffer Transponder Bonding Group 3 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG3_BAND_THRESHOLD      0x20a0525c /* [RW][32] RS Buffer Transponder Bonding Group 3 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG4_CTRL                0x20a05260 /* [RW][32] RS Buffer Transponder Bonding Group 4 Control */
+#define BCHP_XPT_RSBUFF_TBG4_MAP_VECTOR          0x20a05264 /* [RW][32] RS Buffer Transponder Bonding Group 4 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG4_BO                  0x20a05268 /* [RW][32] RS Buffer Transponder Bonding Group 4 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG4_STATUS              0x20a0526c /* [RW][32] RS Buffer Transponder Bonding Group 4 Status */
+#define BCHP_XPT_RSBUFF_TBG4_NEXT_BAND_TO_RD     0x20a05270 /* [RW][32] RS Buffer Transponder Bonding Group 4 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG4_BAND_THRESHOLD      0x20a05274 /* [RW][32] RS Buffer Transponder Bonding Group 4 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG5_CTRL                0x20a05278 /* [RW][32] RS Buffer Transponder Bonding Group 5 Control */
+#define BCHP_XPT_RSBUFF_TBG5_MAP_VECTOR          0x20a0527c /* [RW][32] RS Buffer Transponder Bonding Group 5 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG5_BO                  0x20a05280 /* [RW][32] RS Buffer Transponder Bonding Group 5 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG5_STATUS              0x20a05284 /* [RW][32] RS Buffer Transponder Bonding Group 5 Status */
+#define BCHP_XPT_RSBUFF_TBG5_NEXT_BAND_TO_RD     0x20a05288 /* [RW][32] RS Buffer Transponder Bonding Group 5 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG5_BAND_THRESHOLD      0x20a0528c /* [RW][32] RS Buffer Transponder Bonding Group 5 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG6_CTRL                0x20a05290 /* [RW][32] RS Buffer Transponder Bonding Group 6 Control */
+#define BCHP_XPT_RSBUFF_TBG6_MAP_VECTOR          0x20a05294 /* [RW][32] RS Buffer Transponder Bonding Group 6 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG6_BO                  0x20a05298 /* [RW][32] RS Buffer Transponder Bonding Group 6 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG6_STATUS              0x20a0529c /* [RW][32] RS Buffer Transponder Bonding Group 6 Status */
+#define BCHP_XPT_RSBUFF_TBG6_NEXT_BAND_TO_RD     0x20a052a0 /* [RW][32] RS Buffer Transponder Bonding Group 6 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG6_BAND_THRESHOLD      0x20a052a4 /* [RW][32] RS Buffer Transponder Bonding Group 6 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG7_CTRL                0x20a052a8 /* [RW][32] RS Buffer Transponder Bonding Group 7 Control */
+#define BCHP_XPT_RSBUFF_TBG7_MAP_VECTOR          0x20a052ac /* [RW][32] RS Buffer Transponder Bonding Group 7 Map Vector */
+#define BCHP_XPT_RSBUFF_TBG7_BO                  0x20a052b0 /* [RW][32] RS Buffer Transponder Bonding Group 7 Block Out Control */
+#define BCHP_XPT_RSBUFF_TBG7_STATUS              0x20a052b4 /* [RW][32] RS Buffer Transponder Bonding Group 7 Status */
+#define BCHP_XPT_RSBUFF_TBG7_NEXT_BAND_TO_RD     0x20a052b8 /* [RW][32] RS Buffer Transponder Bonding Group 7 Next Band To Read Status */
+#define BCHP_XPT_RSBUFF_TBG7_BAND_THRESHOLD      0x20a052bc /* [RW][32] RS Buffer Transponder Bonding Group 7 Current Sequence Number Threshold */
+#define BCHP_XPT_RSBUFF_TBG0_SEQ_STATE           0x20a05400 /* [RW][32] RS Buffer Transponder Bonding Group 0 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG0_PREV_PKT_ATS        0x20a05404 /* [RW][32] RS Buffer Transponder Bonding Group 0 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG0_MARKER_PKT_ATS      0x20a05408 /* [RW][32] RS Buffer Transponder Bonding Group 0 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG0_PKT2PKT_DELTA       0x20a0540c /* [RW][32] RS Buffer Transponder Bonding Group 0 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG0_CURR_MARKER_STATUS  0x20a05410 /* [RW][32] RS Buffer Transponder Bonding Group 0 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG0_PREV_MARKER_STATUS  0x20a05414 /* [RW][32] RS Buffer Transponder Bonding Group 0 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG0_DEBUG0              0x20a05418 /* [RW][32] RS Buffer Transponder Bonding Group 0 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG0_DEBUG1              0x20a0541c /* [RW][32] RS Buffer Transponder Bonding Group 0 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG1_SEQ_STATE           0x20a05420 /* [RW][32] RS Buffer Transponder Bonding Group 1 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG1_PREV_PKT_ATS        0x20a05424 /* [RW][32] RS Buffer Transponder Bonding Group 1 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG1_MARKER_PKT_ATS      0x20a05428 /* [RW][32] RS Buffer Transponder Bonding Group 1 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG1_PKT2PKT_DELTA       0x20a0542c /* [RW][32] RS Buffer Transponder Bonding Group 1 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG1_CURR_MARKER_STATUS  0x20a05430 /* [RW][32] RS Buffer Transponder Bonding Group 1 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG1_PREV_MARKER_STATUS  0x20a05434 /* [RW][32] RS Buffer Transponder Bonding Group 1 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG1_DEBUG0              0x20a05438 /* [RW][32] RS Buffer Transponder Bonding Group 1 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG1_DEBUG1              0x20a0543c /* [RW][32] RS Buffer Transponder Bonding Group 1 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG2_SEQ_STATE           0x20a05440 /* [RW][32] RS Buffer Transponder Bonding Group 2 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG2_PREV_PKT_ATS        0x20a05444 /* [RW][32] RS Buffer Transponder Bonding Group 2 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG2_MARKER_PKT_ATS      0x20a05448 /* [RW][32] RS Buffer Transponder Bonding Group 2 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG2_PKT2PKT_DELTA       0x20a0544c /* [RW][32] RS Buffer Transponder Bonding Group 2 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG2_CURR_MARKER_STATUS  0x20a05450 /* [RW][32] RS Buffer Transponder Bonding Group 2 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG2_PREV_MARKER_STATUS  0x20a05454 /* [RW][32] RS Buffer Transponder Bonding Group 2 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG2_DEBUG0              0x20a05458 /* [RW][32] RS Buffer Transponder Bonding Group 2 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG2_DEBUG1              0x20a0545c /* [RW][32] RS Buffer Transponder Bonding Group 2 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG3_SEQ_STATE           0x20a05460 /* [RW][32] RS Buffer Transponder Bonding Group 3 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG3_PREV_PKT_ATS        0x20a05464 /* [RW][32] RS Buffer Transponder Bonding Group 3 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG3_MARKER_PKT_ATS      0x20a05468 /* [RW][32] RS Buffer Transponder Bonding Group 3 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG3_PKT2PKT_DELTA       0x20a0546c /* [RW][32] RS Buffer Transponder Bonding Group 3 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG3_CURR_MARKER_STATUS  0x20a05470 /* [RW][32] RS Buffer Transponder Bonding Group 3 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG3_PREV_MARKER_STATUS  0x20a05474 /* [RW][32] RS Buffer Transponder Bonding Group 3 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG3_DEBUG0              0x20a05478 /* [RW][32] RS Buffer Transponder Bonding Group 3 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG3_DEBUG1              0x20a0547c /* [RW][32] RS Buffer Transponder Bonding Group 3 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG4_SEQ_STATE           0x20a05480 /* [RW][32] RS Buffer Transponder Bonding Group 4 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG4_PREV_PKT_ATS        0x20a05484 /* [RW][32] RS Buffer Transponder Bonding Group 4 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG4_MARKER_PKT_ATS      0x20a05488 /* [RW][32] RS Buffer Transponder Bonding Group 4 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG4_PKT2PKT_DELTA       0x20a0548c /* [RW][32] RS Buffer Transponder Bonding Group 4 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG4_CURR_MARKER_STATUS  0x20a05490 /* [RW][32] RS Buffer Transponder Bonding Group 4 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG4_PREV_MARKER_STATUS  0x20a05494 /* [RW][32] RS Buffer Transponder Bonding Group 4 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG4_DEBUG0              0x20a05498 /* [RW][32] RS Buffer Transponder Bonding Group 4 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG4_DEBUG1              0x20a0549c /* [RW][32] RS Buffer Transponder Bonding Group 4 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG5_SEQ_STATE           0x20a054a0 /* [RW][32] RS Buffer Transponder Bonding Group 5 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG5_PREV_PKT_ATS        0x20a054a4 /* [RW][32] RS Buffer Transponder Bonding Group 5 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG5_MARKER_PKT_ATS      0x20a054a8 /* [RW][32] RS Buffer Transponder Bonding Group 5 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG5_PKT2PKT_DELTA       0x20a054ac /* [RW][32] RS Buffer Transponder Bonding Group 5 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG5_CURR_MARKER_STATUS  0x20a054b0 /* [RW][32] RS Buffer Transponder Bonding Group 5 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG5_PREV_MARKER_STATUS  0x20a054b4 /* [RW][32] RS Buffer Transponder Bonding Group 5 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG5_DEBUG0              0x20a054b8 /* [RW][32] RS Buffer Transponder Bonding Group 5 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG5_DEBUG1              0x20a054bc /* [RW][32] RS Buffer Transponder Bonding Group 5 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG6_SEQ_STATE           0x20a054c0 /* [RW][32] RS Buffer Transponder Bonding Group 6 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG6_PREV_PKT_ATS        0x20a054c4 /* [RW][32] RS Buffer Transponder Bonding Group 6 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG6_MARKER_PKT_ATS      0x20a054c8 /* [RW][32] RS Buffer Transponder Bonding Group 6 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG6_PKT2PKT_DELTA       0x20a054cc /* [RW][32] RS Buffer Transponder Bonding Group 6 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG6_CURR_MARKER_STATUS  0x20a054d0 /* [RW][32] RS Buffer Transponder Bonding Group 6 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG6_PREV_MARKER_STATUS  0x20a054d4 /* [RW][32] RS Buffer Transponder Bonding Group 6 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG6_DEBUG0              0x20a054d8 /* [RW][32] RS Buffer Transponder Bonding Group 6 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG6_DEBUG1              0x20a054dc /* [RW][32] RS Buffer Transponder Bonding Group 6 RESERVED1 */
+#define BCHP_XPT_RSBUFF_TBG7_SEQ_STATE           0x20a054e0 /* [RW][32] RS Buffer Transponder Bonding Group 7 Chunk sequencer state */
+#define BCHP_XPT_RSBUFF_TBG7_PREV_PKT_ATS        0x20a054e4 /* [RW][32] RS Buffer Transponder Bonding Group 7 Previous Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG7_MARKER_PKT_ATS      0x20a054e8 /* [RW][32] RS Buffer Transponder Bonding Group 7 Marker Packet ATS */
+#define BCHP_XPT_RSBUFF_TBG7_PKT2PKT_DELTA       0x20a054ec /* [RW][32] RS Buffer Transponder Bonding Group 7 Packet-to-packet Delta */
+#define BCHP_XPT_RSBUFF_TBG7_CURR_MARKER_STATUS  0x20a054f0 /* [RW][32] RS Buffer Transponder Bonding Group 7 Current Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG7_PREV_MARKER_STATUS  0x20a054f4 /* [RW][32] RS Buffer Transponder Bonding Group 7 Previous Marker Packet Status */
+#define BCHP_XPT_RSBUFF_TBG7_DEBUG0              0x20a054f8 /* [RW][32] RS Buffer Transponder Bonding Group 7 RESERVED0 */
+#define BCHP_XPT_RSBUFF_TBG7_DEBUG1              0x20a054fc /* [RW][32] RS Buffer Transponder Bonding Group 7 RESERVED1 */
 
 /***************************************************************************
  *BASE_POINTER_IBP0 - RS Buffer - Base pointer for  Input Band Parser 0

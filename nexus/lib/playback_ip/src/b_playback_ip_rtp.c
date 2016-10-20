@@ -440,24 +440,12 @@ B_PlaybackIp_FeedRtpPacketsToPlaypump(
             if (playback_ip->startSettings.monitorPsi) {
                 B_PlaybackIp_ParseAndProcessPsiState(playback_ip, playback_ip->buffer, playback_ip->byte_count);
             }
-#define TOSS_START_DATA (1)
-#if TOSS_START_DATA
-            static int tossfirst = 500 * 1024;
-            if (tossfirst > 0){
-                BDBG_LOG(("%s:tossfirst=%d  playback_ip->byte_count=%lu", __FUNCTION__,tossfirst, playback_ip->byte_count));
-                tossfirst -= playback_ip->byte_count;
-            }
-            else {
-#endif
             /* enough has been accumulated, release buffer to playback */
             if (NEXUS_Playpump_ReadComplete(playback_ip->nexusHandles.playpump, 0, playback_ip->byte_count)) {
                 /* don't treat this as an error: it can occur when the playpump overflows and is subsequently flushed */
                 BDBG_WRN(("Returned error from NEXUS_Playpump_ReadComplete()!"));
             }
             BDBG_MSG(("%s: fed %lu byte to Playpump, item cnt %d\n", __FUNCTION__, playback_ip->byte_count, item_cnt));
-#ifdef TOSS_START_DATA
-            }
-#endif
             /* write data to file */
             if (playback_ip->enableRecording && playback_ip->fclear) {
                 fwrite(playback_ip->buffer, 1, playback_ip->byte_count, playback_ip->fclear);
@@ -596,6 +584,10 @@ void B_PlaybackIp_RtpProcessing(
     /* get an adequately sized buffer from the playpump */
     if (B_PlaybackIp_UtilsGetPlaypumpBuffer(playback_ip, MAX_BUFFER_SIZE) < 0)
         goto error;
+
+    if (B_PlaybackIp_UtilsDiscardBufferedData(playback_ip, playback_ip->socketState.fd, SOCK_DGRAM) == false) {
+        BDBG_WRN(("%s: B_PlaybackIp_UtilsDiscardBufferedData failed, but continuing...", __FUNCTION__));
+    }
 
     /* main loop */
     while (playback_ip->playback_state != B_PlaybackIpState_eStopping) {

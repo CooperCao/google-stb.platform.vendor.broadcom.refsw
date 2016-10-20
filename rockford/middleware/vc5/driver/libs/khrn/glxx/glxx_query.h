@@ -24,13 +24,15 @@ enum glxx_query_target
                          glBeginQuery(target) call */
    enumify(GL_ANY_SAMPLES_PASSED),
    enumify(GL_ANY_SAMPLES_PASSED_CONSERVATIVE),
-   enumify(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN)
+   enumify(GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN),
+   enumify(GL_PRIMITIVES_GENERATED),
 };
 
 enum glxx_query_type
 {
    GLXX_Q_OCCLUSION,
-   GLXX_Q_TRANSF_FEEDBACK,
+   GLXX_Q_PRIM_WRITTEN,
+   GLXX_Q_PRIM_GEN,
    GLXX_Q_COUNT
 };
 
@@ -53,6 +55,8 @@ typedef struct glxx_query
                              only the last call needs to record the result in
                              the query */
 
+   unsigned prim_drawn_by_us;  /*valid only for GLXX_Q_PRIM_GEN  queries */
+
 
     unsigned required_updates; /* number of updates we require on this last
                                   "instance" of this query before we can use
@@ -66,6 +70,14 @@ typedef struct glxx_query
    char *debug_label;     /* For KHR_debug */
 } GLXX_QUERY_T;
 
+typedef struct
+{
+   struct glxx_query* query;
+   uint64_t instance;
+} glxx_instanced_query_t;
+
+typedef struct glxx_query_block glxx_query_block;
+
 extern bool glxx_queries_updates_lock_init(void);
 
 /* returns false if query has a target and  the passed in target does not match
@@ -76,13 +88,26 @@ extern bool glxx_query_begin_new_instance(GLXX_QUERY_T *query,
 extern enum glxx_query_type glxx_query_target_to_type(enum glxx_query_target target);
 
 extern GLXX_QUERY_T* glxx_query_create(unsigned name);
-extern bool glxx_query_enable(GLXX_HW_RENDER_STATE_T *rs,
-      GLXX_QUERY_T *query);
-extern bool glxx_query_disable(GLXX_HW_RENDER_STATE_T *rs,
-      enum glxx_query_type type);
-unsigned glxx_query_get_result(GLXX_QUERY_T *query);
 
-extern void glxx_occlusion_queries_update(KHRN_OCCLUSION_QUERY_BLOCK_T *query_list,
-      bool valid_results);
+/* if query!- NULL, enable ooclusion queries on this rs, otherwise, disable
+ * occlusion query */
+extern bool glxx_occlusion_query_record(GLXX_HW_RENDER_STATE_T *rs, GLXX_QUERY_T *query);
+
+
+extern unsigned glxx_query_get_result(GLXX_QUERY_T *query);
+
+void glxx_occlusion_queries_update(glxx_query_block *query_list, bool valid_results);
+void glxx_queries_release(glxx_query_block *query_list);
+
+#if V3D_HAS_NEW_TF
+extern bool glxx_prim_counts_query_record(GLXX_HW_RENDER_STATE_T *rs,
+      GLXX_QUERY_T *query_pg, GLXX_QUERY_T *query_pw);
+extern void glxx_prim_drawn_by_us_record(GLXX_HW_RENDER_STATE_T *rs,
+      unsigned no_prim);
+extern bool glxx_write_prim_counts_feedback(GLXX_HW_RENDER_STATE_T *rs);
+
+void glxx_prim_counts_queries_update(glxx_query_block *query_list, bool valid_results);
+
+#endif
 
 #endif

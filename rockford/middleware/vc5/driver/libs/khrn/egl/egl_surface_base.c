@@ -55,6 +55,19 @@ EGLint egl_surface_base_init(EGL_SURFACE_T *surface,
    if (pix != NULL && egl_any_surfaces_using_native_pixmap(pix))
       return EGL_BAD_ALLOC;
 
+   /* check config has required WINDOW, PIXMAP or PBUFFER bit set */
+   EGLint valid_types = egl_config_get_attrib(config, EGL_SURFACE_TYPE, NULL);
+   EGLint surface_type;
+   if (win != NULL)
+      surface_type = EGL_WINDOW_BIT;
+   else if (pix != NULL)
+      surface_type = EGL_PIXMAP_BIT;
+   else
+      surface_type = EGL_PBUFFER_BIT;
+
+   if (!(valid_types & surface_type))
+      return EGL_BAD_MATCH;
+
    surface->fns = fns;
    surface->config = config;
    surface->width = width;

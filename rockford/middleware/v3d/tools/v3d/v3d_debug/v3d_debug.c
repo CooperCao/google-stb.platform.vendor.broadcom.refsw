@@ -1,13 +1,12 @@
+/*=============================================================================
+Broadcom Proprietary and Confidential. (c)2009 Broadcom.
+All rights reserved.
 
-/*
-   (c) Broadcom 2009
+Project  :
+Module   :
 
-   Routines to talk to V3D debugger.
-
-   Plus basic QPU debug stimulator
-
-
-*/
+FILE DESCRIPTION
+=============================================================================*/
 
 #include "v3d_debug.h"
 
@@ -584,7 +583,8 @@ int v3d_debug_read_device(int client,int dev,int address,int units,unsigned int 
  *
  */
 int v3d_debug_write_device(int client,int dev,int address,int units,unsigned int *data)
-{ int d,dev_adrs,bits;
+{
+  int d,dev_adrs,bits;
   client_device_type *client_pntr;
 //  if (!enabled)
 //    return V3D_DBG_ERR_NOEN; // debug not enabled

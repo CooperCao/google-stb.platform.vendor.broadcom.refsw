@@ -65,7 +65,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
     pSettings->heap[NEXUS_SAGE_SECURE_HEAP].size = 32*1024*1024;
 #endif
 
-    if (g_platformMemory.memc[0].length <= (512*1024*1024))
+    if (g_platformMemory.memoryLayout.memc[0].size <= (512*1024*1024))
     {
         BDBG_WRN(("Using low memory heap configuration"));
         pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 128*1024*1024;

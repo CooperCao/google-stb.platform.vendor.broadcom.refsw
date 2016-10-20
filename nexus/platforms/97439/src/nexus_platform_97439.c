@@ -65,7 +65,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 142*1024*1024;
+    pSettings->heap[NEXUS_MEMC0_MAIN_HEAP].size = 162*1024*1024;
     pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].size = 112*1024 *1024; /* CABACs(28)for 2 decoders + RAVE CDB(6+15) */
     pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 26*1024*1024;
 
@@ -75,10 +75,12 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          /* 1 MEMC */
          case 1:
             /* use the rest of available memc0 main heap memory */
-            if (g_platformMemory.memc[0].length > 1 * 1024 * 1024)
+#ifndef NEXUS_USE_7439_DR3 /* Only use this DR3 define when using a 7251S on a 7449SSV_DR3 board.*/
+            if (g_platformMemory.memoryLayout.memc[0].size > 1 * 1024 * 1024)
              pSettings->heap[NEXUS_MEMC0_GRAPHICS_HEAP].size = 192*1024*1024; /* for trellis usage */
             /* If the platform does not have more then 1GB then customer has to tweak these values
                to conform with their 3D app usage */
+#endif
          case 12:
          case 13:
          case 17:
@@ -108,6 +110,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
          case 21:
          case 24:
          case 25:
+         case 27:
            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 256*1024*1024;
            pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].heapType |= NEXUS_HEAP_TYPE_GRAPHICS;
            break;
@@ -120,7 +123,7 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
    const char *board;
    /* TODO: some day this needs to become run-time vs. compile time. read product ID */
-    board = "7439 B0 Based";
+    board = "7439 Bx Based";
 
 #if defined NEXUS_USE_7252S_VMS_SFF
     board = "7252S VMS SFF";
@@ -128,7 +131,9 @@ NEXUS_Error NEXUS_Platform_P_InitBoard(void)
     board = "93390 VMS";
 #elif defined NEXUS_USE_7439_SFF
     board = "SFF board";
-#elif defined NEXUS_USE_7439_SV
+#elif defined NEXUS_USE_7439_SV_DR3
+    board= "Use this only with 7251S chips on 7449SSV_DR3 Socket boards"
+#elif (defined NEXUS_USE_7439_SV || defined  NEXUS_USE_7449_SV)
     board = "SV board";
 #elif defined NEXUS_USE_7252S_SAT
     board = "SAT board";

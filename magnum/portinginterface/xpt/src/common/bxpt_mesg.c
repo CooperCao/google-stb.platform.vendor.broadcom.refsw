@@ -655,7 +655,7 @@ BERR_Code BXPT_RemoveFilterFromGroup(
     else
     {
         ExitCode = BERR_TRACE( BERR_INVALID_PARAMETER );
-        BDBG_ERR(("Incorrect PidChannelNumber (%d)\n", PidChannelNum ));
+        BDBG_ERR(("Incorrect PidChannelNumber (%d)", PidChannelNum ));
     }
 
     return( ExitCode );
@@ -2094,7 +2094,7 @@ void CopyDmaDataToUser_isr(
     /* Just in case... */
     if( NumBytesToCopy > DmaBufferSize )
     {
-        BDBG_ERR(( "CopyDmaDataToUser_isr(): NumBytesToCopy out of range!\n" ));
+        BDBG_ERR(( "CopyDmaDataToUser_isr(): NumBytesToCopy out of range!" ));
         NumBytesToCopy = DmaBufferSize;
     }
 

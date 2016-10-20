@@ -65,6 +65,7 @@ Platform::Platform(const ApplicationOptions &options) :
    m_mouseMoveMerging(true),
    m_stereoEye(eMONO),
    m_showFpsHUD(options.GetShowFpsHUD()),
+   m_pinCursor(false),
    m_showedHudLastFrame(false),
    m_frameGrabPending(false),
    m_swapIntervalPending(false),

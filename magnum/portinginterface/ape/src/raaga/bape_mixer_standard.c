@@ -182,6 +182,7 @@ BERR_Code BAPE_StandardMixer_P_Create(
     handle->pathNode.inputFormatChange = BAPE_StandardMixer_P_InputFormatChange;
     handle->pathNode.inputMute = BAPE_StandardMixer_P_InputMute;
     handle->pathNode.removeInput = BAPE_StandardMixer_P_RemoveInputCallback;
+    handle->stereoMode = BAPE_StereoMode_eLeftRight;
 
     *pHandle = handle;
 
@@ -650,20 +651,69 @@ static BERR_Code BAPE_StandardMixer_P_ApplyInputVolume(BAPE_MixerHandle mixer, u
                           !mixer->inputVolume[index].muted )
                 {
                     /* PCM inputs can have variable volume */
-                    mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2*i][2*i];
-                    mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][2*i];
-                    mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2*i][(2*i)+1];
-                    mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+                    if ( mixer->stereoMode == BAPE_StereoMode_eRightLeft ) /* Right/Left */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2 * i][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2 * i][2 * i];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][2 * i];
+                    }
+                    else if ( mixer->stereoMode == BAPE_StereoMode_eLeftLeft ) /* Left/Left */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2 * i][2 * i];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][2*i];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2 * i][2 * i];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][2*i];
+                    }
+                    else if ( mixer->stereoMode == BAPE_StereoMode_eRightRight ) /* Right/Right */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2*i][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2*i][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+                    }
+                    else /* Left/Right */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[2 * i][2 * i];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[(2*i)+1][2*i];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[2*i][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[(2*i)+1][(2*i)+1];
+
+                    }
                 }
                 else if ( mixer->explicitFormat != BAPE_MixerFormat_eMax && BAPE_Mixer_P_MixerFormatToNumChannels(mixer->explicitFormat) > i &&
                           !mixer->inputMuted[index] &&
                           !mixer->inputVolume[index].muted )
                 {
                     /* Allow 2 -> Multichannel Upmixing */
-                    mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[0][2*i];
-                    mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[1][2*i];
-                    mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[0][(2*i)+1];
-                    mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[1][(2*i)+1];
+                    if ( mixer->stereoMode == BAPE_StereoMode_eRightLeft ) /* Right/Left */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[0][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[1][(2*i)+1];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[0][2*i];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[1][2*i];
+                    }
+                    else if ( mixer->stereoMode == BAPE_StereoMode_eLeftLeft ) /* Left/Left */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[0][2*i];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[1][2*i];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[0][2*i];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[1][2*i];
+                    }
+                    else if ( mixer->stereoMode == BAPE_StereoMode_eRightRight ) /* Right/Right */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[0][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[1][(2*i)+1];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[0][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[1][(2*i)+1];
+                    }
+                    else /* Left/Right */
+                    {
+                        mixerInputSettings.coefficients[i][0][0] = mixer->inputVolume[index].coefficients[0][2*i];
+                        mixerInputSettings.coefficients[i][1][0] = mixer->inputVolume[index].coefficients[1][2*i];
+                        mixerInputSettings.coefficients[i][0][1] = mixer->inputVolume[index].coefficients[0][(2*i)+1];
+                        mixerInputSettings.coefficients[i][1][1] = mixer->inputVolume[index].coefficients[1][(2*i)+1];
+                    }
                 }
                 else
                 {
@@ -744,7 +794,37 @@ static BERR_Code BAPE_StandardMixer_P_SetInputVolume(
         }
     }
 
-    return BERR_SUCCESS;    
+    return BERR_SUCCESS;
+}
+
+
+static BERR_Code BAPE_StandardMixer_P_ApplyStereoMode(BAPE_MixerHandle handle, BAPE_StereoMode stereoMode)
+{
+    BERR_Code errCode;
+    BDBG_OBJECT_ASSERT(handle, BAPE_Mixer);
+
+    if ( handle->stereoMode != stereoMode )
+    {
+        handle->stereoMode = stereoMode;
+        if (handle->running)
+        {
+            int i;
+            for ( i = 0; i < BAPE_CHIP_MAX_MIXER_INPUTS; i++ )
+            {
+                if ( handle->inputs[i] != NULL )
+                {
+                    int index;
+                    index = BAPE_Mixer_P_FindInputIndex_isrsafe(handle, handle->inputs[i]);
+                    errCode = BAPE_StandardMixer_P_ApplyInputVolume(handle, index);
+                    if ( errCode )
+                    {
+                        return BERR_TRACE(errCode);
+                    }
+                }
+            }
+        }
+    }
+    return BERR_SUCCESS;
 }
 
 static uint32_t BAPE_StandardMixer_P_ApplyAdditionalOutputVolume(BAPE_OutputPort output, int index)
@@ -2758,5 +2838,6 @@ static const BAPE_MixerInterface  standardMixerInterface  = {
     BAPE_StandardMixer_P_GetInputVolume,         /*       (*getInputVolume)    */
     BAPE_StandardMixer_P_SetInputVolume,         /*       (*setInputVolume)    */
     BAPE_StandardMixer_P_ApplyOutputVolume,      /*       (*applyOutputVolume) */
-    BAPE_StandardMixer_P_SetSettings             /*       (*setSettings) */
+    BAPE_StandardMixer_P_SetSettings,            /*       (*setSettings) */
+    BAPE_StandardMixer_P_ApplyStereoMode,        /*       (*applyStereoMode) */
 };

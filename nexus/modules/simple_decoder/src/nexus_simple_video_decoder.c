@@ -194,6 +194,7 @@ static NEXUS_Error nexus_simplevideodecoder_p_start( NEXUS_SimpleVideoDecoderHan
 static void nexus_simplevideodecoder_p_stop( NEXUS_SimpleVideoDecoderHandle handle );
 static NEXUS_Error nexus_simplevideodecoder_p_connect(NEXUS_SimpleVideoDecoderHandle handle);
 static void nexus_simplevideodecoder_p_disconnect(NEXUS_SimpleVideoDecoderHandle handle, bool allow_cache);
+static bool nexus_simplevideodecoder_p_nondecoder(NEXUS_SimpleVideoDecoderHandle handle);
 
 static void nexus_simple_p_close_primer(NEXUS_SimpleVideoDecoderHandle handle);
 
@@ -273,6 +274,7 @@ static void nexus_simplevideodecoder_p_set_default_settings(NEXUS_SimpleVideoDec
     NEXUS_VideoWindow_GetDefaultMadSettings(&handle->pictureQualitySettings.mad);
     NEXUS_VideoWindow_GetDefaultScalerSettings(&handle->pictureQualitySettings.scaler);
     handle->clientSettings.closedCaptionRouting = true;
+    NEXUS_CallbackDesc_Init(&handle->clientSettings.resourceChanged);
 }
 
 NEXUS_SimpleVideoDecoderHandle NEXUS_SimpleVideoDecoder_Create( NEXUS_SimpleVideoDecoderServerHandle server, unsigned index, const NEXUS_SimpleVideoDecoderServerSettings *pSettings )
@@ -424,7 +426,7 @@ NEXUS_Error NEXUS_SimpleVideoDecoder_SetServerSettings( NEXUS_SimpleVideoDecoder
         NEXUS_SimpleStcChannel_SetVideo_priv(handle->stcChannel, handle);
     }
 
-    if (handle->serverSettings.videoDecoder && handle->serverSettings.enabled) {
+    if (nexus_simplevideodecoder_p_nondecoder(handle) || (handle->serverSettings.videoDecoder && handle->serverSettings.enabled)) {
         rc = NEXUS_SimpleVideoDecoder_SetPictureQualitySettings(handle, &handle->pictureQualitySettings);
         if (rc) {rc = BERR_TRACE(rc);} /* fall through */
 
@@ -450,8 +452,8 @@ void NEXUS_SimpleVideoDecoder_GetStcStatus_priv(NEXUS_SimpleVideoDecoderHandle h
     BKNI_Memset(pStatus, 0, sizeof(*pStatus));
     pStatus->connected = (handle->serverSettings.videoDecoder && handle->serverSettings.enabled) ||
                          handle->hdmiInput.handle || handle->hdDviInput.handle;
-    pStatus->started = handle->started;
-    pStatus->stcIndex = handle->serverSettings.stcIndex;
+    pStatus->stc.active = handle->started;
+    pStatus->stc.index = handle->serverSettings.stcIndex;
     pStatus->primer = handle->primer.started && !handle->started;
     pStatus->hdDviInput = handle->hdmiInput.handle || handle->hdDviInput.handle;
     NEXUS_SimpleEncoder_GetStcStatus_priv(handle->encoder.handle, &pStatus->encoder);

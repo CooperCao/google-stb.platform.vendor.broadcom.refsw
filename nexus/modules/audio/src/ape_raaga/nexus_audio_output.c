@@ -607,9 +607,9 @@ void NEXUS_AudioOutput_Shutdown(
                         BDBG_MSG(("Closing MAI output"));
                         BAPE_MaiOutput_Close(g_hdmiMapping[i].handle);
 
-                        NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+                        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
                         NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(output->pObjectHandle, NULL);
-                        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+                        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
 
                         NEXUS_UnregisterEvent(g_hdmiMapping[i].settingsChangedCallback);
                         BKNI_DestroyEvent(g_hdmiMapping[i].settingsChangedEvent);
@@ -702,7 +702,7 @@ NEXUS_Error NEXUS_AudioOutput_P_SetSlaveSource(
         BAPE_RfModSettings apeRfmSettings;
         int i;
 
-        if ( NULL == g_NEXUS_audioModuleData.settings.modules.rfm )
+        if ( NULL == g_NEXUS_audioModuleData.internalSettings.modules.rfm )
         {
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
@@ -740,11 +740,11 @@ NEXUS_Error NEXUS_AudioOutput_P_SetSlaveSource(
         }
 
         /* Tell RFM to mute or unmute appropriately */
-        NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.rfm);
+        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.rfm);
         NEXUS_Rfm_GetConnectionSettings_priv(slaveHandle->pObjectHandle, &rfmConnectionSettings);
         rfmConnectionSettings.audioEnabled = enabled;
         errCode = NEXUS_Rfm_SetConnectionSettings_priv(slaveHandle->pObjectHandle, &rfmConnectionSettings);
-        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.rfm);
+        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.rfm);
 
         if ( errCode )
         {
@@ -845,9 +845,9 @@ NEXUS_AudioOutputData *NEXUS_AudioOutput_P_CreateData(NEXUS_AudioOutputHandle ou
                         BAPE_MaiOutput_GetOutputPort(g_hdmiMapping[hdmiStatus.index].handle, &mixerOutput);
                         output->port = (size_t)mixerOutput;
 
-                        NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+                        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
                         NEXUS_HdmiOutput_SetNotifyAudioEvent_priv(output->pObjectHandle, g_hdmiMapping[hdmiStatus.index].settingsChangedEvent);
-                        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+                        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
                         NEXUS_AudioOutput_P_HdmiSettingsChanged(output);
                     }
             }
@@ -1111,7 +1111,7 @@ void NEXUS_AudioOutput_P_SetOutputFormat(NEXUS_AudioOutputHandle output, NEXUS_A
 #if NEXUS_NUM_HDMI_OUTPUTS
     if ( output->objectType == NEXUS_AudioOutputType_eHdmi )
     {
-        NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+        NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
         {
             BAVC_AudioSamplingRate sampleRate = BAVC_AudioSamplingRate_e48k;
             NEXUS_AudioOutputData *pData = output->pMixerData;
@@ -1146,7 +1146,7 @@ void NEXUS_AudioOutput_P_SetOutputFormat(NEXUS_AudioOutputHandle output, NEXUS_A
             NEXUS_HdmiOutput_SetAudioParams_priv(output->pObjectHandle, BAVC_AudioBits_e16, sampleRate,
                                                  format == NEXUS_AudioInputFormat_eCompressed?BAVC_AudioFormat_eAC3:BAVC_AudioFormat_ePCM,numberOfChannels);
         }
-        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.hdmiOutput);
+        NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.hdmiOutput);
     }
 #else
     BSTD_UNUSED(output);

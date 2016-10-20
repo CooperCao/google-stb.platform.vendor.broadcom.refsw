@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,6 +34,7 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
+*
 * API Description:
 *   API name: AudioDecoder
 *    API for audio decoder management.
@@ -81,9 +82,10 @@ static BERR_Code NEXUS_AudioDecoder_P_SetPcrOffset_isr(void *pContext, uint32_t 
 static BERR_Code NEXUS_AudioDecoder_P_GetPcrOffset_isr(void *pContext, uint32_t *pPcrOffset);
 static void NEXUS_AudioDecoder_P_DialnormChanged_isr(void *pParam1, int param2);
 static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedMute(NEXUS_AudioDecoderHandle decoder, bool muted);
+static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedEncoderMute(NEXUS_AudioDecoderHandle decoder, bool muted);
 
-#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.settings.modules.transport)
-#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.settings.modules.transport)
+#define LOCK_TRANSPORT()    NEXUS_Module_Lock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
+#define UNLOCK_TRANSPORT()  NEXUS_Module_Unlock(g_NEXUS_audioModuleData.internalSettings.modules.transport)
 
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_MPEG (0x7fffffff / 45) /* 47722 seconds (largest positive int we can represent in 45 KHz domain) */
 #define NEXUS_AUDIO_DECODER_P_PULL_DISCARD_THRESHOLD_DSS (0x7fffffff / 27000) /* 79.5 seconds (largest positive int we can represent in 27 MHz domain) */
@@ -205,6 +207,15 @@ static void NEXUS_AudioDecoder_P_GetDefaultSettings(
         pSettings->volumeMatrix[i][i] = NEXUS_AUDIO_VOLUME_LINEAR_NORMAL;
     }
     NEXUS_AudioDecoder_P_GetDefaultKaraokeSettings(&pSettings->karaokeSettings);
+    NEXUS_CallbackDesc_Init(&pSettings->sourceChanged);
+    NEXUS_CallbackDesc_Init(&pSettings->lockChanged);
+    NEXUS_CallbackDesc_Init(&pSettings->ptsError);
+    NEXUS_CallbackDesc_Init(&pSettings->firstPts);
+    NEXUS_CallbackDesc_Init(&pSettings->fifoUnderflow);
+    NEXUS_CallbackDesc_Init(&pSettings->fifoOverflow);
+    NEXUS_CallbackDesc_Init(&pSettings->streamStatusAvailable);
+    NEXUS_CallbackDesc_Init(&pSettings->ancillaryData);
+    NEXUS_CallbackDesc_Init(&pSettings->dialnormChanged);
 
 }
 
@@ -1060,7 +1071,7 @@ NEXUS_Error NEXUS_AudioDecoder_Start(
         pStartSettings->pContextMap = &handle->raveStatus.xptContextMap;
     }
 
-    BDBG_MSG(("Has input %d", (bool)(pProgram->input != NULL)));
+    BDBG_MSG(("%s input", (pProgram->input != NULL) ? "HAS" : "DOES NOT HAVE"));
     if ( pProgram->input )
     {
         BDBG_MSG(("Supports Format Change %d", NEXUS_AudioInput_P_SupportsFormatChanges(pProgram->input)));
@@ -1403,8 +1414,11 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         BDBG_CASSERT(NEXUS_AudioDecoderDolbyDrcMode_eRf == (NEXUS_AudioDecoderDolbyDrcMode)BAPE_Ac3DrcMode_eRf);
         BDBG_CASSERT(NEXUS_AudioDecoderDolbyDrcMode_eCustomA == (NEXUS_AudioDecoderDolbyDrcMode)BAPE_Ac3DrcMode_eCustomA);
         BDBG_CASSERT(NEXUS_AudioDecoderDolbyDrcMode_eCustomD == (NEXUS_AudioDecoderDolbyDrcMode)BAPE_Ac3DrcMode_eCustomD);
+        BDBG_CASSERT(NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget == (NEXUS_AudioDecoderDolbyDrcMode)BAPE_Ac3DrcMode_eCustomTarget);
         pSettings->codecSettings.ac3.drcMode = codecSettings.codecSettings.ac3.drcMode;
         pSettings->codecSettings.ac3.drcModeDownmix = codecSettings.codecSettings.ac3.drcModeDownmix;
+        pSettings->codecSettings.ac3.customTargetLevel = codecSettings.codecSettings.ac3.customTargetLevel;
+        pSettings->codecSettings.ac3.customTargetLevelDownmix = codecSettings.codecSettings.ac3.customTargetLevelDownmix;
         pSettings->codecSettings.ac3.cut = codecSettings.codecSettings.ac3.drcScaleHi;
         pSettings->codecSettings.ac3.boost = codecSettings.codecSettings.ac3.drcScaleLow;
         pSettings->codecSettings.ac3.cutDownmix = codecSettings.codecSettings.ac3.drcScaleHiDownmix;
@@ -1424,6 +1438,8 @@ void NEXUS_AudioDecoder_GetCodecSettings(
     case NEXUS_AudioCodec_eAc3Plus:
         pSettings->codecSettings.ac3Plus.drcMode = codecSettings.codecSettings.ac3Plus.drcMode;
         pSettings->codecSettings.ac3Plus.drcModeDownmix = codecSettings.codecSettings.ac3Plus.drcModeDownmix;
+        pSettings->codecSettings.ac3Plus.customTargetLevel = codecSettings.codecSettings.ac3Plus.customTargetLevel;
+        pSettings->codecSettings.ac3Plus.customTargetLevelDownmix = codecSettings.codecSettings.ac3Plus.customTargetLevelDownmix;
         pSettings->codecSettings.ac3Plus.cut = codecSettings.codecSettings.ac3Plus.drcScaleHi;
         pSettings->codecSettings.ac3Plus.boost = codecSettings.codecSettings.ac3Plus.drcScaleLow;
         pSettings->codecSettings.ac3Plus.cutDownmix = codecSettings.codecSettings.ac3Plus.drcScaleHiDownmix;
@@ -1464,6 +1480,10 @@ void NEXUS_AudioDecoder_GetCodecSettings(
             pSettings->codecSettings.ac4.drcModeDownmix = NEXUS_AudioDecoderDolbyDrcMode_eOff;
             break;
         }
+        pSettings->codecSettings.ac4.drcScaleHi = codecSettings.codecSettings.ac4.drcScaleHi;
+        pSettings->codecSettings.ac4.drcScaleLow = codecSettings.codecSettings.ac4.drcScaleLow;
+        pSettings->codecSettings.ac4.drcScaleHiDownmix = codecSettings.codecSettings.ac4.drcScaleHiDownmix;
+        pSettings->codecSettings.ac4.drcScaleLowDownmix = codecSettings.codecSettings.ac4.drcScaleLowDownmix;
         switch ( codecSettings.codecSettings.ac4.stereoMode )
         {
         default:
@@ -1474,13 +1494,16 @@ void NEXUS_AudioDecoder_GetCodecSettings(
             pSettings->codecSettings.ac4.stereoMode = NEXUS_AudioDecoderStereoDownmixMode_eLtRt;
             break;
         }
+        pSettings->codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)codecSettings.codecSettings.ac4.selectionMode;
+        BDBG_CASSERT(NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH == BAPE_AC4_PRESENTATION_ID_LENGTH);
+        BKNI_Memcpy(pSettings->codecSettings.ac4.presentationId, codecSettings.codecSettings.ac4.presentationId, sizeof(char) * NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        pSettings->codecSettings.ac4.presentationIndex = codecSettings.codecSettings.ac4.presentationIndex;
         pSettings->codecSettings.ac4.programSelection = codecSettings.codecSettings.ac4.programSelection;
         pSettings->codecSettings.ac4.programBalance = codecSettings.codecSettings.ac4.programBalance;
-        pSettings->codecSettings.ac4.presentationId = codecSettings.codecSettings.ac4.presentationId;
         pSettings->codecSettings.ac4.dialogEnhancerAmount = codecSettings.codecSettings.ac4.dialogEnhancerAmount;
         pSettings->codecSettings.ac4.certificationMode = codecSettings.codecSettings.ac4.certificationMode;
         /* personalization settings */
-        pSettings->codecSettings.ac4.selectionMode = (NEXUS_AudioDecoderAc4PresentationSelectionMode)codecSettings.codecSettings.ac4.selectionMode;
+        pSettings->codecSettings.ac4.preferLanguageOverAssociateType = codecSettings.codecSettings.ac4.preferLanguageOverAssociateType;
         pSettings->codecSettings.ac4.preferredAssociateType = (NEXUS_AudioAc4AssociateType)codecSettings.codecSettings.ac4.preferredAssociateType;
         pSettings->codecSettings.ac4.enableAssociateMixing = codecSettings.codecSettings.ac4.enableAssociateMixing;
         BDBG_CASSERT(NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH == BAPE_AC4_LANGUAGE_NAME_LENGTH);
@@ -1583,6 +1606,7 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         pSettings->codecSettings.isac.gainFactor = codecSettings.codecSettings.isac.gain.factor;
         break;
     case NEXUS_AudioCodec_eAls:
+    case NEXUS_AudioCodec_eAlsLoas:
         switch (codecSettings.codecSettings.als.stereoMode) {
         default:
         case BAPE_AlsStereoMode_eArib:
@@ -1624,6 +1648,8 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
     case NEXUS_AudioCodec_eAc3:
         codecSettings.codecSettings.ac3.drcMode = pSettings->codecSettings.ac3.drcMode;
         codecSettings.codecSettings.ac3.drcModeDownmix = pSettings->codecSettings.ac3.drcModeDownmix;
+        codecSettings.codecSettings.ac3.customTargetLevel = pSettings->codecSettings.ac3.customTargetLevel;
+        codecSettings.codecSettings.ac3.customTargetLevelDownmix = pSettings->codecSettings.ac3.customTargetLevelDownmix;
         codecSettings.codecSettings.ac3.drcScaleHi = pSettings->codecSettings.ac3.cut;
         codecSettings.codecSettings.ac3.drcScaleLow = pSettings->codecSettings.ac3.boost;
         codecSettings.codecSettings.ac3.drcScaleHiDownmix = pSettings->codecSettings.ac3.cutDownmix;
@@ -1640,6 +1666,8 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
     case NEXUS_AudioCodec_eAc3Plus:
         codecSettings.codecSettings.ac3Plus.drcMode = pSettings->codecSettings.ac3Plus.drcMode;
         codecSettings.codecSettings.ac3Plus.drcModeDownmix = pSettings->codecSettings.ac3Plus.drcModeDownmix;
+        codecSettings.codecSettings.ac3Plus.customTargetLevel = pSettings->codecSettings.ac3Plus.customTargetLevel;
+        codecSettings.codecSettings.ac3Plus.customTargetLevelDownmix = pSettings->codecSettings.ac3Plus.customTargetLevelDownmix;
         codecSettings.codecSettings.ac3Plus.drcScaleHi = pSettings->codecSettings.ac3Plus.cut;
         codecSettings.codecSettings.ac3Plus.drcScaleLow = pSettings->codecSettings.ac3Plus.boost;
         codecSettings.codecSettings.ac3Plus.drcScaleHiDownmix = pSettings->codecSettings.ac3Plus.cutDownmix;
@@ -1686,6 +1714,10 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
         }
+        codecSettings.codecSettings.ac4.drcScaleHi = pSettings->codecSettings.ac4.drcScaleHi;
+        codecSettings.codecSettings.ac4.drcScaleLow = pSettings->codecSettings.ac4.drcScaleLow;
+        codecSettings.codecSettings.ac4.drcScaleHiDownmix = pSettings->codecSettings.ac4.drcScaleHiDownmix;
+        codecSettings.codecSettings.ac4.drcScaleLowDownmix = pSettings->codecSettings.ac4.drcScaleLowDownmix;
         switch ( pSettings->codecSettings.ac4.stereoMode )
         {
         case NEXUS_AudioDecoderStereoDownmixMode_eLoRo:
@@ -1699,13 +1731,15 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
             break;
         }
+        codecSettings.codecSettings.ac4.selectionMode = (BAPE_Ac4PresentationSelectionMode)pSettings->codecSettings.ac4.selectionMode;
+        BKNI_Memcpy(codecSettings.codecSettings.ac4.presentationId, pSettings->codecSettings.ac4.presentationId, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+        codecSettings.codecSettings.ac4.presentationIndex = pSettings->codecSettings.ac4.presentationIndex;
         codecSettings.codecSettings.ac4.programSelection = pSettings->codecSettings.ac4.programSelection;
         codecSettings.codecSettings.ac4.programBalance = pSettings->codecSettings.ac4.programBalance;
-        codecSettings.codecSettings.ac4.presentationId = pSettings->codecSettings.ac4.presentationId;
         codecSettings.codecSettings.ac4.dialogEnhancerAmount = pSettings->codecSettings.ac4.dialogEnhancerAmount;
         codecSettings.codecSettings.ac4.certificationMode = pSettings->codecSettings.ac4.certificationMode;
         /* personalization settings */
-        codecSettings.codecSettings.ac4.selectionMode = (BAPE_Ac4PresentationSelectionMode)pSettings->codecSettings.ac4.selectionMode;
+        codecSettings.codecSettings.ac4.preferLanguageOverAssociateType = pSettings->codecSettings.ac4.preferLanguageOverAssociateType;
         codecSettings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)pSettings->codecSettings.ac4.preferredAssociateType;
         codecSettings.codecSettings.ac4.enableAssociateMixing = pSettings->codecSettings.ac4.enableAssociateMixing;
         for ( i = 0; i < BAPE_AC4_NUM_LANGUAGES; i++ )
@@ -2151,6 +2185,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetStatus(
             pStatus->codecStatus.cook.frameSize = decoderStatus.codecStatus.cook.frameSize;
             break;
         case BAVC_AudioCompressionStd_eAls:
+        case BAVC_AudioCompressionStd_eAlsLoas:
             pStatus->codecStatus.als.bitsPerSample = decoderStatus.codecStatus.als.bitsPerSample;
             break;
         default:
@@ -2181,7 +2216,7 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
     BDBG_OBJECT_ASSERT(handle, NEXUS_AudioDecoder);
     BDBG_ASSERT(NULL != pStatus);
 
-    BDBG_CASSERT(BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH == NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH);
+    BDBG_CASSERT(BAPE_AC4_LANGUAGE_NAME_LENGTH == NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
     BDBG_CASSERT(BAPE_AC4_PRESENTATION_NAME_LENGTH == NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
     BDBG_CASSERT(NEXUS_AudioAc4AssociateType_eMax == (NEXUS_AudioAc4AssociateType)BAPE_Ac4AssociateType_eMax);
 
@@ -2202,8 +2237,9 @@ NEXUS_Error NEXUS_AudioDecoder_GetPresentationStatus(
         break;
     case NEXUS_AudioCodec_eAc4:
         BKNI_Memcpy(pStatus->status.ac4.name, piPresentationInfo.info.ac4.name, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_NAME_LENGTH);
-        BKNI_Memcpy(pStatus->status.ac4.language, piPresentationInfo.info.ac4.language, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH);
-        pStatus->status.ac4.id = piPresentationInfo.info.ac4.id;
+        BKNI_Memcpy(pStatus->status.ac4.language, piPresentationInfo.info.ac4.language, sizeof(char)*NEXUS_AUDIO_AC4_LANGUAGE_NAME_LENGTH);
+        BKNI_Memcpy(pStatus->status.ac4.id, piPresentationInfo.info.ac4.id, sizeof(char)*NEXUS_AUDIO_AC4_PRESENTATION_ID_LENGTH);
+        pStatus->status.ac4.index = piPresentationInfo.info.ac4.index;
         pStatus->status.ac4.associateType = (NEXUS_AudioAc4AssociateType)piPresentationInfo.info.ac4.associateType;
         break;
     }
@@ -2462,6 +2498,8 @@ NEXUS_Error NEXUS_AudioDecoder_ApplySettings_priv(
     {
         NEXUS_AudioDecoder_P_SetCompressedMute(handle, mute);
     }
+    /* Check if there is an AC3/DTS encoder attached to decoder and if so mute the outputs */
+    NEXUS_AudioDecoder_P_SetCompressedEncoderMute(handle, mute);
 
     /* Apply volume settings - but only if an output has ever been connected by the user.
        Otherwise this forces a Shutdown() call in the application. */
@@ -2620,6 +2658,43 @@ static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedMute(NEXUS_AudioDecoderHand
         }
     }
     return NEXUS_SUCCESS;
+}
+
+static NEXUS_Error NEXUS_AudioDecoder_P_SetCompressedEncoderMute(NEXUS_AudioDecoderHandle handle, bool mute)
+{
+    NEXUS_AudioOutputHandle output;
+    NEXUS_Error rc;
+    int i;
+
+    /* If encoding to output, encoder will be directly attached */
+    for (i=0; i < NEXUS_AudioDecoderConnectorType_eMax; i++)
+    {
+        NEXUS_AudioInputHandle connector = NEXUS_AudioInput_P_LocateDownstream(&handle->connectors[i], NULL);
+        while (connector)
+        {
+            if (connector->objectType == NEXUS_AudioInputType_eEncoder)
+            {
+                NEXUS_AudioEncoderSettings encoderSettings;
+
+                NEXUS_AudioEncoder_GetSettings( connector->pObjectHandle, &encoderSettings);
+                if (encoderSettings.codec == NEXUS_AudioCodec_eAc3 || encoderSettings.codec == NEXUS_AudioCodec_eDts)
+                {
+                    output = NEXUS_AudioInput_P_LocateOutput(connector, NULL);
+                    while ( output )
+                    {
+                        rc = NEXUS_AudioOutput_P_SetCompressedMute(output, mute);
+                        if ( rc )
+                        {
+                            return BERR_TRACE(rc);
+                        }
+                        output = NEXUS_AudioInput_P_LocateOutput(connector, output);
+                    }
+                }
+            }
+            connector = NEXUS_AudioInput_P_LocateDownstream(&handle->connectors[i], connector);
+        }
+    }
+    return BERR_SUCCESS;
 }
 
 #if NEXUS_HAS_SYNC_CHANNEL
@@ -2948,7 +3023,15 @@ static void NEXUS_AudioDecoder_P_AudioTsmFail_isr(void *pParam1, int param2, con
     )
     {
         tsmStatus = *pTsmStatus;
-        tsmStatus.ptsInfo.ui32CurrentPTS = (uint32_t)((int32_t)stc - tsmStatus.ptsStcDifference);
+        if
+        (
+            ((tsmStatus.ptsStcDifference >= 0) && (tsmStatus.ptsStcDifference < 128 * 45))
+            ||
+            ((tsmStatus.ptsStcDifference < 0) && (tsmStatus.ptsStcDifference > -128 * 45))
+        )
+        {
+            tsmStatus.ptsInfo.ui32CurrentPTS = (uint32_t)((int32_t)stc - tsmStatus.ptsStcDifference);
+        }
         pTsmStatus = &tsmStatus;
     }
 
@@ -3455,7 +3538,9 @@ NEXUS_Error NEXUS_AudioDecoder_P_Stop(NEXUS_AudioDecoderHandle handle, bool flus
 #endif
     }
 
-    NEXUS_AudioDecoder_P_SetCompressedMute(handle, false); /* Unset compressed output mutes incase outputs do not get attached again for compressed output */
+    /* Unset compressed output mutes incase outputs do not get attached again for compressed output */
+    NEXUS_AudioDecoder_P_SetCompressedMute(handle, false);
+    NEXUS_AudioDecoder_P_SetCompressedEncoderMute(handle, false);
 
     /* Invalidate the output list */
     BKNI_Memset(handle->outputLists, 0, sizeof(handle->outputLists));

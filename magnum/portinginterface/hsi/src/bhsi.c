@@ -51,6 +51,8 @@
 #include "bhsi.h"
 #include "bhsi_priv.h"
 
+#include "bsagelib_types.h"
+
 
 /*
  * defines
@@ -69,7 +71,7 @@ BDBG_MODULE(BHSI);
 /*#define BDBG_MSG(x) {printf x; printf("\n");}*/
 /*#define BDBG_ERR(x) {printf("BHSI ERR:\t");BDBG_MSG(x);}*/
 /*#define BDBG_ENTER(FUNC) printf("\n\t>> %s ENTER\n", #FUNC)*/
-/*#define BDBG_LEAVE(FUNC) printf("\t<< %s LEAVE\n\n", #FUNC)*/
+/*#define BDBG_LEAVE(FUNC) printf("<< %s LEAVE\n\n", #FUNC)*/
 /*int printf(const char *format, ...);*/
 
 #ifdef BHSI_DEBUG_REG
@@ -325,7 +327,6 @@ BHSI_P_DONE_LABEL:
 BERR_Code BHSI_Open(
     BHSI_Handle *hHsi,
     BREG_Handle hRegister,
-    BCHP_Handle hChip,
     BINT_Handle hInt,
     const BHSI_Settings *pSettings
 )
@@ -337,7 +338,6 @@ BERR_Code BHSI_Open(
 
     /* Sanity check on the handles we've been given. */
     BDBG_ASSERT( hHsi );
-    BDBG_ASSERT( hChip );
     BDBG_ASSERT( hRegister );
     BDBG_ASSERT( hInt );
     BDBG_ASSERT( pSettings );
@@ -365,7 +365,6 @@ BERR_Code BHSI_Open(
 
     /* Configure instance */
     BKNI_Memset(hsiHandle, 0, sizeof( BHSI_P_Handle ));
-    hsiHandle->chipHandle = hChip;
     hsiHandle->regHandle = hRegister;
     hsiHandle->interruptHandle = hInt;
     hsiHandle->settings = *pSettings;
@@ -708,6 +707,15 @@ BERR_Code BHSI_Receive_isrsafe(
               "MIPS <----------------------------------- Sage(Response)");
 
 BHSI_P_DONE_LABEL:
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+    /* TODO update CPU STATUS instead of replacing it */
+    /* ? BREG_Read32(hHsi->regHandle, BCHP_CPU_IPI_INTR2_CPU_STATUS); */
+    if (hHsi != NULL){
+        BREG_Write32(hHsi->regHandle,
+                 BCHP_CPU_IPI_INTR2_CPU_SET,
+                 BCHP_CPU_IPI_INTR2_CPU_SET_HOST_SCPU_DDONE_MASK);
+    }
+#endif
     BDBG_LEAVE(BHSI_Receive_isrsafe);
     return( errCode );
 }

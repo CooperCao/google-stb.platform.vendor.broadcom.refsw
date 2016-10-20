@@ -155,7 +155,6 @@ upon the chip usage. See below */
 #define NEXUS_MEMC0_DRIVER_HEAP         8
 
 #define NEXUS_PLATFORM_P_GET_FRAMEBUFFER_HEAP_INDEX 1
-#define NEXUS_PLATFORM_P_READ_MEMC_CONFIG 1
 #define NEXUS_PLATFORM_P_READ_BOX_MODE 1
 
 #define NEXUS_AVS_MONITOR           1

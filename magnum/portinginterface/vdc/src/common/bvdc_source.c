@@ -58,6 +58,8 @@
 BDBG_MODULE(BVDC_SRC);
 BDBG_FILE_MODULE(BVDC_MEMC_INDEX_CHECK);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
+BDBG_FILE_MODULE(BVDC_SRC_DELTA);
+
 
 
 /* How to map mpeg format to BFMT format. */
@@ -1428,56 +1430,6 @@ BERR_Code BVDC_Source_ForceFrameCapture
     return BERR_SUCCESS;
 }
 
-#if !B_REFSW_MINIMAL
-/***************************************************************************
- *
- */
-BERR_Code BVDC_Source_SetReMapFormats
-    ( BVDC_Source_Handle               hSource,
-      bool                             bReMap,
-      const BVDC_VideoFmtPair          aReMapFormats[],
-      uint32_t                         ulReMapFormats )
-{
-    uint32_t i;
-    BVDC_P_Source_Info *pNewInfo;
-
-    BDBG_ENTER(BVDC_Source_SetReMapFormats);
-    BDBG_OBJECT_ASSERT(hSource, BVDC_SRC);
-
-    if(!BVDC_P_SRC_IS_HDDVI(hSource->eId))
-    {
-        BDBG_ERR(("Source is not HD_DVI"));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    if(ulReMapFormats >= BFMT_VideoFmt_eMaxCount)
-    {
-        BDBG_ERR(("Out of bound ulReMapFormats = %d", ulReMapFormats));
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-    }
-
-    pNewInfo = &hSource->stNewInfo;
-
-    /* set new value */
-    pNewInfo->bReMapFormats = bReMap;
-    pNewInfo->ulReMapFormats = ulReMapFormats;
-
-    if((bReMap) && (ulReMapFormats))
-    {
-        for(i = 0; i < ulReMapFormats; i++)
-        {
-            pNewInfo->aReMapFormats[i] = aReMapFormats[i];
-        }
-    }
-
-    /* Dirty bit set */
-    pNewInfo->stDirty.stBits.bAutoDetectFmt = BVDC_P_DIRTY;
-
-    BDBG_LEAVE(BVDC_Source_SetReMapFormats);
-    return BERR_SUCCESS;
-}
-#endif
-
 
 /***************************************************************************
  *
@@ -1777,9 +1729,8 @@ static BERR_Code BVDC_P_Source_CheckGfxMemcIndex_isr
     BERR_Code   eStatus = BERR_SUCCESS;
     uint32_t    i, ulGfxWinId = 0;
     uint32_t    ulMemcIndex = BBOX_VDC_DISREGARD;
-    BCHP_MemoryInfo  stMemoryInfo;
     BBOX_Vdc_MemcIndexSettings  *pVdcMemcSettings = NULL;
-    uint64_t    ulMemcStartOffset, ulMemcEndOffset, ulSurOffset;
+    uint64_t    ulSurOffset;
 
     pVdcMemcSettings = &hSource->hVdc->stBoxConfig.stMemConfig.stVdcMemcIndex;
 
@@ -1808,27 +1759,16 @@ static BERR_Code BVDC_P_Source_CheckGfxMemcIndex_isr
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
-        BCHP_GetMemoryInfo(hSource->hVdc->hRegister, &stMemoryInfo);
-        ulMemcStartOffset = (uint64_t)stMemoryInfo.memc[ulMemcIndex].offset;
-        ulMemcEndOffset = ulMemcStartOffset + stMemoryInfo.memc[ulMemcIndex].size;
-
         if(pAvcGfxPic->pSurface)
         {
             ulSurOffset = BMMA_GetOffset_isr(pAvcGfxPic->pSurface->hPixels);
             ulSurOffset += pAvcGfxPic->pSurface->ulPixelsOffset;
 
-            BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                ("Boxmode[%d]: Memc[%d] device offset: " BDBG_UINT64_FMT " - " BDBG_UINT64_FMT,
-                hSource->hVdc->stBoxConfig.stBox.ulBoxId, ulMemcIndex,
-                BDBG_UINT64_ARG(ulMemcStartOffset), BDBG_UINT64_ARG(ulMemcEndOffset)));
-            BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                ("GfxSur Addr: 0x%lx", ulSurOffset));
-
-            if( !((ulSurOffset >= ulMemcStartOffset) && (ulSurOffset < ulMemcEndOffset)) )
+            if( !BCHP_OffsetOnMemc(hSource->hVdc->hChip, ulSurOffset, ulMemcIndex) )
             {
                 BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                    ("Disp[%d]GfxWin[%d] Possible mismatch between surface addr and Box mode settings:",
-                    eDispId, ulGfxWinId));
+                    ("Disp[%d]GfxWin[%d] mismatch between surface addr " BDBG_UINT64_FMT " and Box mode MEMC%u",
+                    eDispId, ulGfxWinId, BDBG_UINT64_ARG(ulSurOffset), ulMemcIndex));
             }
         }
 
@@ -1837,14 +1777,11 @@ static BERR_Code BVDC_P_Source_CheckGfxMemcIndex_isr
             ulSurOffset = BMMA_GetOffset_isr(pAvcGfxPic->pRSurface->hPixels);
             ulSurOffset += pAvcGfxPic->pRSurface->ulPixelsOffset;
 
-            if( !((ulSurOffset >= ulMemcStartOffset) && (ulSurOffset < ulMemcEndOffset)) )
+            if( !BCHP_OffsetOnMemc(hSource->hVdc->hChip, ulSurOffset, ulMemcIndex) )
             {
-                BDBG_WRN(("Disp[%d]GfxWin[%d] Possible mismatch between surface addr and Box mode settings:",
-                    eDispId, ulGfxWinId));
-                BDBG_WRN(("Boxmode[%d]: Memc[%d] device offset: " BDBG_UINT64_FMT " - " BDBG_UINT64_FMT,
-                    hSource->hVdc->stBoxConfig.stBox.ulBoxId, ulMemcIndex,
-                    BDBG_UINT64_ARG(ulMemcStartOffset), BDBG_UINT64_ARG(ulMemcEndOffset)));
-                BDBG_WRN(("GfxSurR Addr: 0x%lx", ulSurOffset));
+                BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
+                    ("Disp[%d]GfxWin[%d] mismatch between Rsurface addr " BDBG_UINT64_FMT " and Box mode MEMC%u",
+                    eDispId, ulGfxWinId, BDBG_UINT64_ARG(ulSurOffset), ulMemcIndex));
             }
         }
 
@@ -2171,75 +2108,76 @@ static void BVDC_P_Source_PrintPicture_isr
         BAVC_MVD_Field *pPic = (BAVC_MVD_Field *)pNewPic;
         uint32_t ulPicIdx = 0;
         do {
-            BDBG_ERR(("------------------------------------------ pic %d", ulPicIdx++));
-            BDBG_ERR(("src_id                                     : mfd%d", hSource->eId));
-            BDBG_ERR(("pPic->bMute                                : %d", pPic->bMute));
-            BDBG_ERR(("pPic->ulAdjQp                              : %d", pPic->ulAdjQp));
-            BDBG_ERR(("pPic->bCaptureCrc                          : %d", pPic->bCaptureCrc));
-            BDBG_ERR(("pPic->ulOrigPTS                            : %d", pPic->ulOrigPTS));
-            BDBG_ERR(("pPic->ulIdrPicID                           : %d", pPic->ulIdrPicID));
-            BDBG_ERR(("pPic->int32_PicOrderCnt                    : %d", pPic->int32_PicOrderCnt));
-            BDBG_ERR(("pPic->eSourcePolarity                      : %d", pPic->eSourcePolarity));
-            BDBG_ERR(("pPic->eInterruptPolarity                   : %d", pPic->eInterruptPolarity));
-            BDBG_ERR(("pPic->eChrominanceIntMode                  : %d", pPic->eChrominanceInterpolationMode));
-            BDBG_ERR(("pPic->eMpegType                            : %d", pPic->eMpegType));
-            BDBG_ERR(("pPic->eYCbCrType                           : %d", pPic->eYCbCrType));
-            BDBG_ERR(("pPic->eAspectRatio                         : %d", pPic->eAspectRatio));
-            BDBG_ERR(("pPic->uiSampleAspectRatioX                 : %d", pPic->uiSampleAspectRatioX));
-            BDBG_ERR(("pPic->uiSampleAspectRatioY                 : %d", pPic->uiSampleAspectRatioY));
-            BDBG_ERR(("pPic->eFrameRateCode                       : %d", pPic->eFrameRateCode));
-            BDBG_ERR(("pPic->ePxlFmt                              : %s", BPXL_ConvertFmtToStr(pPic->ePxlFmt)));
-            BDBG_ERR(("pPic->eMatrixCoefficients                  : %d", pPic->eMatrixCoefficients));
-            BDBG_ERR(("pPic->ePreferredTransferCharacteristics    : %d", pPic->ePreferredTransferCharacteristics));
-            BDBG_ERR(("pPic->eTransferCharacteristics             : %d", pPic->eTransferCharacteristics));
-            BDBG_ERR(("pPic->bStreamProgressive                   : %d", pPic->bStreamProgressive));
-            BDBG_ERR(("pPic->bFrameProgressive                    : %d", pPic->bFrameProgressive));
-            BDBG_ERR(("pPic->hLuminanceFrameBufferBlock           : %p", (void *)pPic->hLuminanceFrameBufferBlock));
-            BDBG_ERR(("pPic->ulLuminanceFrameBufferBlockOffset    : 0x%08x", pPic->ulLuminanceFrameBufferBlockOffset));
-            BDBG_ERR(("pPic->hChrominanceFrameBufferBlock         : %p", (void *)pPic->hChrominanceFrameBufferBlock));
-            BDBG_ERR(("pPic->ulChrominanceFrameBufferBlockOffset  : 0x%08x", pPic->ulChrominanceFrameBufferBlockOffset));
-            BDBG_ERR(("pPic->ulRowStride                          : 0x%08x", pPic->ulRowStride));
-            BDBG_ERR(("pPic->ulLuminanceNMBY                      : %d", pPic->ulLuminanceNMBY));
-            BDBG_ERR(("pPic->ulChrominanceNMBY                    : %d", pPic->ulChrominanceNMBY));
-            BDBG_ERR(("pPic->ulLumaRangeRemapping                 : 0x%x", pPic->ulLumaRangeRemapping));
-            BDBG_ERR(("pPic->ulChromaRangeRemapping               : 0x%x", pPic->ulChromaRangeRemapping));
-            BDBG_ERR(("pPic->ulDisplayHorizontalSize              : %d", pPic->ulDisplayHorizontalSize));
-            BDBG_ERR(("pPic->ulDisplayVerticalSize                : %d", pPic->ulDisplayVerticalSize));
-            BDBG_ERR(("pPic->ulSourceHorizontalSize               : %d", pPic->ulSourceHorizontalSize));
-            BDBG_ERR(("pPic->ulSourceVerticalSize                 : %d", pPic->ulSourceVerticalSize));
-            BDBG_ERR(("pPic->i32_HorizontalPanScan                : %d", pPic->i32_HorizontalPanScan));
-            BDBG_ERR(("pPic->i32_VerticalPanScan                  : %d", pPic->i32_VerticalPanScan));
-            BDBG_ERR(("pPic->ulSourceClipLeft                     : %d", pPic->ulSourceClipLeft));
-            BDBG_ERR(("pPic->ulSourceClipTop                      : %d", pPic->ulSourceClipTop));
-            BDBG_ERR(("pPic->bPictureRepeatFlag                   : %d", pPic->bPictureRepeatFlag));
-            BDBG_ERR(("pPic->ulChannelId                          : %d", pPic->ulChannelId));
-            BDBG_ERR(("pPic->eStripeWidth                         : %d", pPic->eStripeWidth));
-            BDBG_ERR(("pPic->bIgnoreCadenceMatch                  : %d", pPic->bIgnoreCadenceMatch));
-            BDBG_ERR(("pPic->bValidAfd                            : %d", pPic->bValidAfd));
-            BDBG_ERR(("pPic->ulAfd                                : %d", pPic->ulAfd));
-            BDBG_ERR(("pPic->eBarDataType                         : %d", pPic->eBarDataType));
-            BDBG_ERR(("pPic->ulTopLeftBarValue                    : %d", pPic->ulTopLeftBarValue));
-            BDBG_ERR(("pPic->ulBotRightBarValue                   : %d", pPic->ulBotRightBarValue));
-            BDBG_ERR(("pPic->eBitDepth                            : %u", (BAVC_VideoBitDepth_e10Bit==pPic->eBitDepth)? 10:8));
-            BDBG_ERR(("pPic->eBufferFormat                        : %d", pPic->eBufferFormat));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("------------------------------------------ pic %d", ulPicIdx++));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("src_id                                     : mfd%d", hSource->eId));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bMute                                : %d", pPic->bMute));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulAdjQp                              : %d", pPic->ulAdjQp));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bCaptureCrc                          : %d", pPic->bCaptureCrc));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulOrigPTS                            : %d", pPic->ulOrigPTS));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulIdrPicID                           : %d", pPic->ulIdrPicID));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->int32_PicOrderCnt                    : %d", pPic->int32_PicOrderCnt));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eSourcePolarity                      : %d", pPic->eSourcePolarity));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eInterruptPolarity                   : %d", pPic->eInterruptPolarity));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eChrominanceIntMode                  : %d", pPic->eChrominanceInterpolationMode));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eMpegType                            : %d", pPic->eMpegType));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eYCbCrType                           : %d", pPic->eYCbCrType));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eAspectRatio                         : %d", pPic->eAspectRatio));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->uiSampleAspectRatioX                 : %d", pPic->uiSampleAspectRatioX));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->uiSampleAspectRatioY                 : %d", pPic->uiSampleAspectRatioY));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eFrameRateCode                       : %d", pPic->eFrameRateCode));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePxlFmt                              : %s", BPXL_ConvertFmtToStr(pPic->ePxlFmt)));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eMatrixCoefficients                  : %d", pPic->eMatrixCoefficients));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ePreferredTransferCharacteristics    : %d", pPic->ePreferredTransferCharacteristics));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eTransferCharacteristics             : %d", pPic->eTransferCharacteristics));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bStreamProgressive                   : %d", pPic->bStreamProgressive));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bFrameProgressive                    : %d", pPic->bFrameProgressive));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hLuminanceFrameBufferBlock           : %p", (void *)pPic->hLuminanceFrameBufferBlock));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulLuminanceFrameBufferBlockOffset    : 0x%08x", pPic->ulLuminanceFrameBufferBlockOffset));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hChrominanceFrameBufferBlock         : %p", (void *)pPic->hChrominanceFrameBufferBlock));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulChrominanceFrameBufferBlockOffset  : 0x%08x", pPic->ulChrominanceFrameBufferBlockOffset));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulRowStride                          : 0x%08x", pPic->ulRowStride));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulLuminanceNMBY                      : %d", pPic->ulLuminanceNMBY));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulChrominanceNMBY                    : %d", pPic->ulChrominanceNMBY));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulLumaRangeRemapping                 : 0x%x", pPic->ulLumaRangeRemapping));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulChromaRangeRemapping               : 0x%x", pPic->ulChromaRangeRemapping));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulDisplayHorizontalSize              : %d", pPic->ulDisplayHorizontalSize));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulDisplayVerticalSize                : %d", pPic->ulDisplayVerticalSize));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulSourceHorizontalSize               : %d", pPic->ulSourceHorizontalSize));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulSourceVerticalSize                 : %d", pPic->ulSourceVerticalSize));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->i32_HorizontalPanScan                : %d", pPic->i32_HorizontalPanScan));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->i32_VerticalPanScan                  : %d", pPic->i32_VerticalPanScan));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulSourceClipLeft                     : %d", pPic->ulSourceClipLeft));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulSourceClipTop                      : %d", pPic->ulSourceClipTop));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bPictureRepeatFlag                   : %d", pPic->bPictureRepeatFlag));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulChannelId                          : %d", pPic->ulChannelId));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eStripeWidth                         : %d", pPic->eStripeWidth));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bIgnoreCadenceMatch                  : %d", pPic->bIgnoreCadenceMatch));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->bValidAfd                            : %d", pPic->bValidAfd));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulAfd                                : %d", pPic->ulAfd));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBarDataType                         : %d", pPic->eBarDataType));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulTopLeftBarValue                    : %d", pPic->ulTopLeftBarValue));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulBotRightBarValue                   : %d", pPic->ulBotRightBarValue));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBitDepth                            : %u", pPic->eBitDepth));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eChromaBitDepth                      : %u", pPic->eChromaBitDepth));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eBufferFormat                        : %d", pPic->eBufferFormat));
             if(BAVC_DecodedPictureBuffer_eFieldsPair == pPic->eBufferFormat) {
-                BDBG_ERR(("pPic->hLuminanceBotFieldBlock              : %p", (void *)pPic->hLuminanceBotFieldBufferBlock));
-                BDBG_ERR(("pPic->ulLuminanceBotFieldBlockOffset       : 0x%08x", pPic->ulLuminanceBotFieldBufferBlockOffset));
-                BDBG_ERR(("pPic->hChrominanceBotFieldBlock            : %p", (void *)pPic->hChrominanceBotFieldBufferBlock));
-                BDBG_ERR(("pPic->ulChrominanceBotFieldBlockOffset     : 0x%08x", pPic->ulChrominanceBotFieldBufferBlockOffset));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hLuminanceBotFieldBlock              : %p", (void *)pPic->hLuminanceBotFieldBufferBlock));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulLuminanceBotFieldBlockOffset       : 0x%08x", pPic->ulLuminanceBotFieldBufferBlockOffset));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->hChrominanceBotFieldBlock            : %p", (void *)pPic->hChrominanceBotFieldBufferBlock));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->ulChrominanceBotFieldBlockOffset     : 0x%08x", pPic->ulChrominanceBotFieldBufferBlockOffset));
             }
-            BDBG_ERR(("pPic->eOrientation                         : %d", pPic->eOrientation));
-            BDBG_ERR(("pPic->pNext                                : %p", pPic->pNext));
-            BDBG_ERR(("pPic->pEnhanced                            : %p", pPic->pEnhanced));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->eOrientation                         : %d", pPic->eOrientation));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pNext                                : %p", pPic->pNext));
+            BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced                            : %p", pPic->pEnhanced));
             if(pPic->pEnhanced)
             {
                 BAVC_MVD_Field *pEnhanced = (BAVC_MVD_Field *)pPic->pEnhanced;
 
-                BDBG_ERR(("pPic->pEnhanced->eOrientation                         : %d",     pEnhanced->eOrientation));
-                BDBG_ERR(("pPic->pEnhanced->hLuminanceFrameBufferBlock           : %p", (void *)pEnhanced->hLuminanceFrameBufferBlock));
-                BDBG_ERR(("pPic->pEnhanced->ulLuminanceFrameBufferBlockOffset    : 0x%08x", pEnhanced->ulLuminanceFrameBufferBlockOffset));
-                BDBG_ERR(("pPic->pEnhanced->hChrominanceFrameBufferBlock         : %p", (void *)pEnhanced->hChrominanceFrameBufferBlock));
-                BDBG_ERR(("pPic->pEnhanced->ulChrominanceFrameBufferBlockOffset  : 0x%08x", pEnhanced->ulChrominanceFrameBufferBlockOffset));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->eOrientation                         : %d",     pEnhanced->eOrientation));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->hLuminanceFrameBufferBlock           : %p", (void *)pEnhanced->hLuminanceFrameBufferBlock));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->ulLuminanceFrameBufferBlockOffset    : 0x%08x", pEnhanced->ulLuminanceFrameBufferBlockOffset));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->hChrominanceFrameBufferBlock         : %p", (void *)pEnhanced->hChrominanceFrameBufferBlock));
+                BDBG_MODULE_MSG(BVDC_SRC_DELTA, ("pPic->pEnhanced->ulChrominanceFrameBufferBlockOffset  : 0x%08x", pEnhanced->ulChrominanceFrameBufferBlockOffset));
             }
             pPic = pPic->pNext;
         }while (pPic);
@@ -2409,25 +2347,6 @@ void BVDC_P_Source_ValidateMpegData_isr
                 BVDC_P_MIN(pNewPic->ulSourceHorizontalSize,  BFMT_1080I_WIDTH);
         }
 
-#if (!BVDC_P_SUPPORT_3D_VIDEO)
-        /* (3) Handle stream larger than 720p.  Feeder will NOT be
-         * able to handle this, and halt the bvb downstream.  VDC will
-         * force a field output for this pictures.
-         * Two exceptions:
-         *   - PsF mode;
-         *   - 1080p24/25/30 pass-thru mode;
-         *   - Feeding using GFX surface;
-         * For MPG source, ulVertFreq is the max scanout frame rate; */
-        if((BAVC_Polarity_eFrame == pNewPic->eSourcePolarity) &&
-           (pNewPic->ulSourceVerticalSize  > BFMT_720P_HEIGHT) &&
-           (BVDC_P_PSF_VERT_FREQ < hSource->ulVertFreq) &&
-           (!hSource->hMpegFeeder->bGfxSrc))
-        {
-            BDBG_WRN(("MVD[%d] passing larger than 720p frame picture", hSource->eId));
-            pNewPic->eSourcePolarity = BAVC_Polarity_eTopField;
-        }
-#endif
-
 #if (BVDC_P_SUPPORT_DTG_RMD) && (!BVDC_P_SUPPORT_DSCL) && (!BVDC_P_SUPPORT_4kx2k_60HZ)
         /* Can only handle 4kx2k@30, always enable PSF for 4kx2k source */
         if((BAVC_Polarity_eFrame == pNewPic->eSourcePolarity) &&
@@ -2497,12 +2416,7 @@ void BVDC_P_Source_ValidateMpegData_isr
            !pNewPic->bStreamProgressive)
         {
             if((hSource->stCurInfo.bDeinterlace) &&
-#if (BVDC_P_SUPPORT_MAD_SRC_1080I)
                (pNewPic->ulSourceVerticalSize   <= BFMT_1080I_HEIGHT)
-#else
-               (pNewPic->ulSourceHorizontalSize <= BFMT_PAL_WIDTH) &&
-               (pNewPic->ulSourceVerticalSize   <= BFMT_PAL_HEIGHT)
-#endif
               )
             {
                 BDBG_WRN(("Force scanout field instead of frame"));
@@ -2918,7 +2832,6 @@ void BVDC_Source_MpegDataReady_isr
     }
 #endif
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     /* bOrientationOverride only valid when original
      * orientation from XVD is 2D */
     if(pNewPic->eOrientation == BFMT_Orientation_e2D)
@@ -2948,7 +2861,6 @@ void BVDC_Source_MpegDataReady_isr
         pNewPic->ulSourceHorizontalSize  = pNewPic->ulSourceHorizontalSize / 2;
         pNewPic->ulDisplayHorizontalSize = pNewPic->ulDisplayHorizontalSize / 2;
     }
-#endif
 
     /* H & V size alignment */
     /* Jira SW7405-4239: XMD might send odd width for special aspect ratio purpose
@@ -2964,14 +2876,7 @@ void BVDC_Source_MpegDataReady_isr
     {
         bool bPsfSrc;
 
-#if (!BVDC_P_SUPPORT_1080p_60HZ)
-        bPsfSrc =
-            (((BFMT_720P_WIDTH     < pNewPic->ulSourceHorizontalSize) ||
-              (BFMT_720P_HEIGHT     < pNewPic->ulSourceVerticalSize)) &&
-             (BAVC_Polarity_eFrame == pNewPic->eSourcePolarity)       &&
-             (BAVC_FrameRateCode_e30 >= pNewPic->eFrameRateCode)) ||
-            (hSource->stCurInfo.bForceFrameCapture);
-#elif (!BVDC_P_SUPPORT_4kx2k_60HZ)
+#if (!BVDC_P_SUPPORT_4kx2k_60HZ)
         /* Always enable PSF for 4kx2k source */
         bPsfSrc =
             (((BFMT_1080P_WIDTH     < pNewPic->ulSourceHorizontalSize) ||
@@ -3055,13 +2960,12 @@ void BVDC_Source_MpegDataReady_isr
 
             if(hSource->ulVertFreq != ulPsfVertFreq)
             {
+                /* overwrite previously set ulVertFreq in UpdateMfdVerRate_code */
                 hSource->ulVertFreq = ulPsfVertFreq;
                 hSource->bRasterChanged = true;
+                /* change eMfdVertRateCode accordingly to be consistent with ulVertFreq */
+                hSource->eMfdVertRateCode = BVDC_P_Source_RefreshRateCode_FromRefreshRate_isrsafe(hSource->ulVertFreq);
             }
-        }
-        else if(!bPsfSrc)
-        {
-            hSource->ulVertFreq = hSource->ulDispVsyncFreq;
         }
     }
     /* PsF: if user disables PsF, skip one new scanout to avoid MFD hang; */
@@ -3112,7 +3016,6 @@ void BVDC_Source_MpegDataReady_isr
         ulSourceHorizontalSize = pNewPic->ulSourceHorizontalSize;
         ulSourceVerticalSize   = pNewPic->ulSourceVerticalSize;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(pNewPic->eOrientation == BFMT_Orientation_e3D_LeftRight)
         {
             ulSourceHorizontalSize  = ulSourceHorizontalSize * 2;
@@ -3121,7 +3024,6 @@ void BVDC_Source_MpegDataReady_isr
         {
             ulSourceVerticalSize  = ulSourceVerticalSize * 2;
         }
-#endif
 
         ulNewPicFrmRate = s_aulFrmRate[BVDC_P_MIN(BVDC_P_MAX_FRM_RATE_CODE, pNewPic->eFrameRateCode)];
         bNewPicInterlaced = (BAVC_Polarity_eFrame != pNewPic->eSourcePolarity);
@@ -3635,7 +3537,7 @@ void BVDC_Source_MpegDataReady_isr
             if((NULL == hSource->hSyncLockCompositor) && (0 == ulPictureIdx))
             {
 #if BVDC_P_SUPPORT_MTG
-                if (BVDC_P_VNET_USED_MAD_AT_WRITER(hSource->ahWindow[i]->stVnetMode))
+                if (BVDC_P_MVP_USED_MAD_AT_WRITER(hSource->ahWindow[i]->stVnetMode, hSource->ahWindow[i]->stMvpMode))
                 {
                     hSource->bUsedMadAtWriter = true;
                 }
@@ -4034,7 +3936,8 @@ MpegDataReady_isr_Done:
                 {
                     if(hWindow->bSetAppliedEventPending &&
                        (BVDC_P_IS_CLEAN(&hWindow->stCurInfo.stDirty) ||
-                        (hWindow->stCurInfo.stDirty.stBits.bSrcPending &&
+                        ((hWindow->stCurInfo.stDirty.stBits.bSrcPending ||
+                          hWindow->stCurInfo.stDirty.stBits.bBufferPending) &&
                          !hWindow->stCurInfo.stDirty.stBits.bShutdown)))
                     {
                         hWindow->bSetAppliedEventPending = false;
@@ -4068,7 +3971,9 @@ MpegDataReady_isr_Done:
             (hWindow->hCompositor->hForceTrigPipSrc == hSource)) &&
             (hWindow->bSetAppliedEventPending) &&
             ((BVDC_P_IS_CLEAN(&hWindow->stCurInfo.stDirty)) ||
-            (hWindow->stCurInfo.stDirty.stBits.bSrcPending && !hWindow->stCurInfo.stDirty.stBits.bShutdown)))
+            ((hWindow->stCurInfo.stDirty.stBits.bSrcPending ||
+              hWindow->stCurInfo.stDirty.stBits.bBufferPending) &&
+            !hWindow->stCurInfo.stDirty.stBits.bShutdown)))
         {
             hWindow->bSetAppliedEventPending = false;
             BDBG_MSG(("Window[%d] set apply done event", hWindow->eId));

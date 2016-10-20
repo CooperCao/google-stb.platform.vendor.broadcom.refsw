@@ -1,8 +1,8 @@
-#*******************************************************************************
-#   Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+############################################################
+#  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#   This program is the proprietary software of Broadcom and/or its licensors,
-#   and may only be used, duplicated, modified or distributed pursuant to the terms and
+#  This program is the proprietary software of Broadcom and/or its licensors,
+#  and may only be used, duplicated, modified or distributed pursuant to the terms and
 #  conditions of a separate, written license agreement executed between you and Broadcom
 #  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
 #  no license (express or implied), right to use, or waiver of any kind with respect to the
@@ -34,7 +34,7 @@
 #  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
-#********************************************************************************
+############################################################
 
 
 ######## localisation
@@ -105,6 +105,7 @@ LDFLAGS += -L${NEXUS_BIN_DIR} -lnexus -lpthread
 CFLAGS += -g
 
 CFLAGS += $(addprefix -I,${APP_INCLUDES})
+CFLAGS += $(addprefix -D,${BSAGELIB_DEFINES})
 CFLAGS += -DPIC -fpic
 
 # This is the minimum needed to compile and link with Nexus

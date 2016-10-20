@@ -43,6 +43,7 @@ TZ_ARMGNU ?= $(TZ_TOOLCHAIN)/bin/arm-tzos-musl
 
 # platform and target
 PLATFORM ?= brcmstb
+EXTRA_DEBUG_INFO ?= n
 
 # directories and files
 USER_APP := hello
@@ -76,7 +77,16 @@ INCLUDES    += -I$(TZ_DIR)/kernel/api
 # funcationally and alphabetically ordered
 ARCHFLAGS   := -mcpu=cortex-a15
 
+ifeq ($(EXTRA_DEBUG_INFO),y)
+BASEFLAGS   := -O0 -g3
+endif
+
+ifeq ($(EXTRA_DEBUG_INFO),n)
 BASEFLAGS   := -O2 -g
+endif
+
+
+BASEFLAGS   += -fomit-frame-pointer
 
 WARNFLAGS   := -Wall
 WARNFLAGS   += -Werror

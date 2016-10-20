@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -39,14 +39,8 @@
 
 #include "bdsp_arm_priv_include.h"
 
-BDBG_MODULE(bdsp_arm_cit);
+BDBG_MODULE(bdsp_arm_cit_priv);
 
-static const char ARMAlgoIdEnum2Char[BDSP_ARM_AF_P_AlgoId_eMax+1][MAX_CHAR_LENGTH] =
-{
-    {"ARM DDPEncode"},
-    {"ARM DDPEncode FrameSync"},
-    {"EndOfTasks"}
-};
 static uint32_t BDSP_ARM_PopulateAlgoMode(
                 BDSP_ArmStage *pArmPrimaryStage,
                 BDSP_CIT_P_sAlgoModePresent *sAlgoModePresent)
@@ -175,7 +169,7 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 
     uint32_t    j;
     uint32_t    ui32FmmPortDstCount[BDSP_AF_P_DistinctOpType_eMax] = {0};
-	void *pVirtualAddr = NULL;
+    void *pVirtualAddr = NULL;
 
     const BDSP_Arm_P_AlgorithmInfo *sAlgoInfo;
 
@@ -190,7 +184,7 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
 
     errCode = BERR_SUCCESS;
 
-	BSTD_UNUSED(dspIndex);
+    BSTD_UNUSED(dspIndex);
 
     pArmPrimaryStage = (BDSP_ArmStage *)pPrimaryStageHandle;
     BDBG_ASSERT(NULL != pArmPrimaryStage->pContext);
@@ -272,17 +266,17 @@ static uint32_t BDSP_CITGEN_ARM_P_FillNodeCfgIntoNewCit(
                                                 pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(psNodeCfg->eAlgoId)].offset;
                 psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes =
                                                 pDevice->imgCache[BDSP_ARM_IMG_ID_TABLE(psNodeCfg->eAlgoId)].size;
-				if(psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes)
-				{
-					BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress, &pVirtualAddr);
+                if(psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes)
+                {
+                    BDSP_MEM_P_ConvertOffsetToCacheAddr(pDevice->memHandle, psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress, &pVirtualAddr);
 
-	                BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle,
-	                   &(pArmConnectStage->sStageMapTable[0]),
-	                   pVirtualAddr,
-	                   psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes,
-	                   BDSP_ARM_AF_P_Map_eDram,
-	                   BDSP_ARM_MAX_ALLOC_STAGE);
-				}
+                    BDSP_Arm_P_InsertEntry_MapTable(pDevice->memHandle,
+                       &(pArmConnectStage->sStageMapTable[0]),
+                       pVirtualAddr,
+                       psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes,
+                       BDSP_ARM_AF_P_Map_eDram,
+                       BDSP_ARM_MAX_ALLOC_STAGE);
+                }
                 if(ui32Node == 0)
                 {
                     /*  User Config buffer*/
@@ -945,287 +939,4 @@ BDSP_CITGENMODULE_P_EXIT_POINT:
 
     BDBG_LEAVE(BDSP_P_GenArmCit);
     return ui32Err;
-}
-
-/*  This function analysis the CIT. The intention of this function is to
-    analyse and print out all the parameters within the CIT structure
-    Going forward it is expected to verify all the addresses and sizes also
-    generated in the CIT strucuture*/
-void BDSP_Arm_P_AnalyseCit( BMEM_Handle             hHeap,
-                       BDSP_ARM_AF_P_sTASK_CONFIG   *psCit
-                      )
-{
-    uint32_t    ui32NumNodes;
-    uint32_t    ui32Node;
-    uint32_t    ui32NumSrc, ui32NumDest;
-    BDSP_AF_P_sGLOBAL_TASK_CONFIG   *psGblTaskCfg;
-    BDSP_ARM_AF_P_sNODE_CONFIG          *psNodeCfg;
-
-#ifdef ANALYZE_IO_CFG
-    BDSP_AF_P_sIO_BUFFER            sIoBuffer;
-    BDSP_AF_P_sIO_GENERIC_BUFFER    sIoGenericBuffer;
-#endif
-
-    BDBG_ENTER(BDSP_Arm_P_AnalyseCit);
-
-    /*  First Step: Print all the informations within the CIT structure */
-    BDBG_MSG(("Global Task Configuration parameters"));
-    BDBG_MSG(("===================================="));
-
-    psGblTaskCfg = &psCit->sGlobalTaskConfig;
-    ui32NumNodes = psGblTaskCfg->ui32NumberOfNodesInTask;
-
-
-    BDBG_MSG(("Time base for the Task:%s",GlobalTimeBase[psGblTaskCfg->eTimeBaseType]));
-    BDBG_MSG(("--"));
-
-    BDBG_MSG(("Number of Nodes in Task: %d ",ui32NumNodes));
-    BDBG_MSG(("Number of Zero Fill Frames: 0x%x ",
-        psGblTaskCfg->ui32NumberOfZeroFillSamples));
-    BDBG_MSG(("Start Node index of Core Algo: %d ",
-        psGblTaskCfg->ui32StartNodeIndexOfCoreAudioAlgorithm));
-
-    /*
-        Removing:
-    ui32NumPorts = psGblTaskCfg->ui32NumOpPorts;
-    BDBG_MSG(("Number of Output Ports in Task: %d ",
-        psGblTaskCfg->ui32NumOpPorts));
-
-    for(ui32Port=0; ui32Port<ui32NumPorts; ui32Port++)
-    {
-        BDBG_MSG(("Output Port Configuration for Port: %d ",ui32Port));
-        BDBG_MSG(("TBD "));
-    }
-    */
-
-    /*  Dram Scratch buffer Address and Size */
-    BDBG_MSG(("--"));
-    BDBG_MSG(("DRAM Scratch Buffer Address: 0x%x ",
-        psGblTaskCfg->sDramScratchBuffer.ui32DramBufferAddress));
-    BDBG_MSG(("DRAM Scratch Buffer Size Allocated: %d Bytes ",
-        psGblTaskCfg->sDramScratchBuffer.ui32BufferSizeInBytes));
-    BDBG_MSG(("--"));
-
-    /* DRAM port Configuration */
-    BDBG_MSG(("Port Configuration address 0x%x  ",psGblTaskCfg->ui32FmmDestCfgAddr));
-
-    /* DRAM Gate Open Configuration */
-    BDBG_MSG(("Gate Open Configuration address 0x%x  ",psGblTaskCfg->ui32FmmGateOpenConfigAddr));
-    BDBG_MSG(("--"));
-
-
-
-    BDBG_MSG(("Node Configuration parameters "));
-    BDBG_MSG(("============================= "));
-    for(ui32Node=0; ui32Node<ui32NumNodes; ui32Node++)
-    {
-        psNodeCfg = &psCit->sNodeConfig[ui32Node];
-        BDBG_MSG(("Node index: %d ",psNodeCfg->uiNodeId));
-        BDBG_MSG(("Algo Id: %s ",ARMAlgoIdEnum2Char[psNodeCfg->eAlgoId]));
-
-        BDBG_MSG(("\neCollectResidual : %s ",DisableEnable[psNodeCfg->eCollectResidual]));
-        /*BDBG_ERR(("Algo Id: %x ",psNodeCfg->eAlgoId));*/
-
-        /*  Code Address and Size */
-        BDBG_MSG(("DRAM Code Buffer Address: 0x%x ",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Code Buffer Size: %d Bytes",
-            psNodeCfg->sDramAlgoCodeBuffer.ui32BufferSizeInBytes));
-
-        /*  Lookup Table Address and Size */
-        BDBG_MSG(("DRAM Lookup Table Buffer Address: 0x%x ",
-            psNodeCfg->sDramLookupTablesBuffer.ui32DramBufferAddress));
-        BDBG_MSG(("DRAM Lookup Table Buffer Size: %d Bytes",
-            psNodeCfg->sDramLookupTablesBuffer.ui32BufferSizeInBytes));
-
-        /*  Inter-frame buffer Address check */
-        if( psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Inter-Frame Buffer Address: 0x%x ",
-                psNodeCfg->sDramInterFrameBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Inter-Frame Buffer Size: %d Bytes",
-                psNodeCfg->sDramInterFrameBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Node Status buffer Address check */
-        if( psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM Node Status buffer Not present for this Node"));
-            BDBG_MSG(("DRAM Node Status buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM Node Status buffer Address: 0x%x ",
-                psNodeCfg->sDramStatusBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM Node Status buffer Size: %d Bytes",
-                psNodeCfg->sDramStatusBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  User config buffer Address check */
-        if( psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress ==
-                BDSP_AF_P_DRAM_ADDR_INVALID )
-        {
-            BDBG_MSG(("DRAM User Config Buffer not present for this Node"));
-            BDBG_MSG(("DRAM User Config Buffer Size: 0 Bytes"));
-        }
-        else
-        {
-            BDBG_MSG(("DRAM User Config Buffer Address: 0x%x ",
-                psNodeCfg->sDramUserConfigBuffer.ui32DramBufferAddress));
-            BDBG_MSG(("DRAM User Config Buffer Size: %d Bytes",
-                psNodeCfg->sDramUserConfigBuffer.ui32BufferSizeInBytes));
-        }
-
-        /*  Input buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Input Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Source feeding data to this node: %d", psNodeCfg->ui32NumSrc));
-        for( ui32NumSrc=0; ui32NumSrc<psNodeCfg->ui32NumSrc; ui32NumSrc++)
-        {
-            BDBG_MSG(("--"));
-
-            BDBG_MSG(("Source %d Input Buffer is [%s]",ui32NumSrc, PortValidType[psNodeCfg->eNodeIpValidFlag[ui32NumSrc]]));
-
-            BDBG_MSG(("Source %d Input Buffer Cfg Structure Address: 0x%x",
-                ui32NumSrc, psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-            /*BDBG_MSG(("Input buffer Configuration:"));*/
-            if(psNodeCfg->eNodeIpValidFlag[ui32NumSrc] == BDSP_AF_P_eValid)
-            {
-                /* Getting the Virtual Address */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoBuffer,
-                    (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-                /*Printing Buffer Type*/
-                if((sIoBuffer.ui32NumBuffers >0) && (BDSP_AF_P_eValid == psNodeCfg->eNodeIpValidFlag[ui32NumSrc]) )
-                {
-                    BDBG_MSG(("Source %d Input Buffer Type: %s",
-                    ui32NumSrc, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-#endif
-                BDBG_MSG(("Source %d Input Generic Buffer Cfg Structure Address: 0x%x",
-                    ui32NumSrc, psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc]));
-
-#ifdef ANALYZE_IO_CFG
-
-                /* BDBG_MSG(("Input Generic buffer Configuration:")); */
-                BDSP_P_ReadFromOffset(hHeap,
-                    psNodeCfg->ui32NodeIpGenericDataBuffCfgAddr[ui32NumSrc],
-                    (void *)&sIoGenericBuffer,
-                    (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoGenericBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Source %d Input Generic Buffer Type: %s",
-                    ui32NumSrc,BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Genric Buff Struct */
-                 /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-            }
-#endif
-        }
-
-        /*  Output buffer configuration details */
-        BDBG_MSG(("--"));
-        BDBG_MSG(("Node %d Output Configuration Details:", ui32Node));
-        BDBG_MSG(("Num Destination getting data from this node: %d",
-            psNodeCfg->ui32NumDst));
-        for( ui32NumDest=0; ui32NumDest<psNodeCfg->ui32NumDst; ui32NumDest++)
-        {
-
-            /* IO BUFFER CONFIGURATION */
-            /*-------------------------*/
-
-            /*Printing Output Buffer Cfg Structure Address */
-            BDBG_MSG(("Destination %d Output Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest]));
-
-#ifdef ANALYZE_IO_CFG
-            /* BDBG_MSG(("Output buffer Configuration:"));*/
-
-            if(0 != psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest])
-            {
-
-                /* Getting contents of the Destination IO buffer */
-                /* Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                        psNodeCfg->ui32NodeOpBuffCfgAddr[ui32NumDest],
-                        (void *)&sIoBuffer,
-                        (uint32_t)SIZEOF(BDSP_AF_P_sIO_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoBuffer.eBufferType]));
-                }
-
-
-                /*  Print Io Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoBuffCfgStruct(&sIoBuffer); */
-            }
-#endif
-
-
-            /* IOGENERIC BUFFER CONFIGURATION */
-            /*--------------------------------*/
-
-            BDBG_MSG(("Destination %d Output Generic Buffer Cfg Structure Address: 0x%x",
-                ui32NumDest, psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest]));
-
-
-#ifdef ANALYZE_IO_CFG
-
-            /*  Getting contents of the IO Generic buffer */
-            if(0 != psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest])
-            {
-
-                /*Getting the Virtual Address */
-
-            BDSP_P_ReadFromOffset(hHeap,
-                psNodeCfg->ui32NodeOpGenericDataBuffCfgAddr[ui32NumDest],
-                (void *)&sIoGenericBuffer,
-                (uint32_t)SIZEOF(BDSP_AF_P_sIO_GENERIC_BUFFER));
-
-                /*Printing Buffer Type*/
-                if(sIoGenericBuffer.ui32NumBuffers >0)
-                {
-                    BDBG_MSG(("Destination %d Output Generic Buffer Type: %s",
-                    ui32NumDest, BuffTypeEnum2Char[sIoGenericBuffer.eBufferType]));
-                }
-
-                /*  Analyze Io Genric Buff Struct */
-                /* BDSP_CITGEN_P_AnalyzeIoGenericBuffCfgStruct(&sIoGenericBuffer); */
-            }
-#endif
-
-#ifdef BDSP_CIT_P_ENABLE_FORK_MATRIXING
-
-            BDBG_MSG(("Destination %d Datatype : %s",
-                ui32NumDest, PortDatatType[psNodeCfg->eNodeOpBuffDataType[ui32NumDest]]));
-
-            BDBG_MSG(("--"));
-#endif
-        }
-
-        BDBG_MSG(("============================= "));
-    }
-
-    BDBG_LEAVE(BDSP_Arm_P_AnalyseCit);
 }

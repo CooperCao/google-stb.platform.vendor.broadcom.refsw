@@ -131,9 +131,21 @@ int main(void)
 
     BKNI_Sleep( 1000 );  /* let debug flush through com port.*/
     NEXUS_GetSecurityCapabilities( &securityCaps );
-    printf("NEXUS: ZeusVersion[%d.%d] FwVersion[%08X] \n", NEXUS_ZEUS_VERSION_MAJOR(securityCaps.version.zeus)
+    printf("NEXUS: ZeusVersion[%d.%d] FwVersion[%d.%d.%d] "
+                                                         , NEXUS_ZEUS_VERSION_MAJOR(securityCaps.version.zeus)
                                                          , NEXUS_ZEUS_VERSION_MINOR(securityCaps.version.zeus)
-                                                         , securityCaps.version.firmware );
+                                                         , NEXUS_BFW_VERSION_MAJOR( securityCaps.version.firmware )
+                                                         , NEXUS_BFW_VERSION_MINOR( securityCaps.version.firmware )
+                                                         , NEXUS_BFW_VERSION_SUBMINOR( securityCaps.version.firmware ) );
+
+    if( securityCaps.firmwareEpoch.valid )
+    {
+        printf("Epoch[0x%X]\n", securityCaps.firmwareEpoch.value );
+    }
+    else
+    {
+        printf("Epoch[not-available]\n");
+    }
 
     printf("KeySlot types  ");
     for( i = 0; i < NEXUS_SECURITY_MAX_KEYSLOT_TYPES; i++ )

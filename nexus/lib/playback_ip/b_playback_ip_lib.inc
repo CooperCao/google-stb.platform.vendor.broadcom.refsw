@@ -35,8 +35,6 @@
 #  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 #  ANY LIMITED REMEDY.
 #
-# Module Description:
-#
 ############################################################
 #
 # Protect against multiple/circular includes...
@@ -68,13 +66,6 @@ B_LIBS += B_PLAYBACK_IP_LIB
 export PLAYBACK_IP_SUPPORT=y
 B_PLAYBACK_IP_LIB_DEFINES := PLAYBACK_IP_SUPPORT
 export HTTP_MP4_SUPPORT=y
-
-B_REFSW_DEBUG ?= y
-ifeq ($(B_REFSW_DEBUG),y)
-DEBUG_SUFFIX=debug
-else
-DEBUG_SUFFIX=release
-endif
 
 ifeq ($(LOG_IP_LATENCY),y)
     B_PLAYBACK_IP_LIB_DEFINES += LOG_IP_LATENCY

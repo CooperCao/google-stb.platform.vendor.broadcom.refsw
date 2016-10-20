@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -167,6 +167,8 @@ void CNetwork::wifiConnectDoneCallback()
             /* request dhcp ip address - response handled in wifiUpdateNetworkSettings() */
             NetAppSetNetworkSettings(_pNetApp, NETAPP_IFACE_WIRELESS, NETAPP_IP_MODE_DYNAMIC, NULL);
         }
+
+        notifyObservers(eNotify_NetworkWifiConnected);
     }
     else
     {
@@ -414,6 +416,7 @@ eRet CNetwork::disconnectWifi()
 
     setConnectStatus(eConnectStatus_Disconnected);
 done:
+    notifyObservers(eNotify_NetworkWifiDisconnected);
 error:
     notifyObservers(eNotify_NetworkWifiConnectionStatus, this);
     return(ret);
@@ -439,7 +442,7 @@ eRet CNetwork::startScanWifi()
     notifyObservers(eNotify_NetworkWifiScanStarted);
 error:
     return(ret);
-}
+} /* startScanWifi */
 
 eRet CNetwork::stopScanWifi()
 {
@@ -457,7 +460,7 @@ eRet CNetwork::stopScanWifi()
 
     notifyObservers(eNotify_NetworkWifiScanStopped);
     return(eRet_Ok);
-}
+} /* stopScanWifi */
 
 eRet CNetwork::getStatusList(
         MStringHash * pStatus,

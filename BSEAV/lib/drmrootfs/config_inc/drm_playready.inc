@@ -116,7 +116,7 @@ _DRM_SHORT_WCHAR_ pr_revoke_info[] =L"pr_srm_data.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/mnt/hwcfg/drm.bin";
+_DRM_SHORT_WCHAR_ pr_bin_filename[] = L"/hwcfg/drm.bin";
 #else
 _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 #endif
@@ -141,7 +141,7 @@ _DRM_SHORT_WCHAR_ pr_bin_filename[] = L"./playready.bin";
 **
 ******************************************************************************/
 #ifdef ANDROID
-_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/mnt/hwcfg/drm3x.bin";
+_DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"/hwcfg/drm3x.bin";
 #else
 _DRM_SHORT_WCHAR_ pr3x_bin_filename[] = L"./playready3x.bin";
 #endif
@@ -572,8 +572,8 @@ _DRM_SHORT_WCHAR_ pr3x_hds_file[] = L"datastore3x.hds";
 **
 ******************************************************************************/
 #ifdef ANDROID
-char ta_pr3x_bin_file_rootfs_path[] ="/mnt/hwcfg/sage_ta_playready_30.bin";
-char ta_pr3x_dev_bin_file_rootfs_path[] ="/mnt/hwcfg/sage_ta_playready_30_dev.bin";
+char ta_pr3x_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_30.bin";
+char ta_pr3x_dev_bin_file_rootfs_path[] ="/system/bin/sage_ta_playready_30_dev.bin";
 #else
 char ta_pr3x_bin_file_rootfs_path[] ="./sage_ta_playready_30.bin";
 char ta_pr3x_dev_bin_file_rootfs_path[] ="./sage_ta_playready_30_dev.bin";

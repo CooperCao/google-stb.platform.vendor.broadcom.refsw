@@ -134,12 +134,6 @@ typedef struct glxx_texture
    glxx_ms_mode ms_mode;   /* non multisample or ms texture */
    bool fixed_sample_locations; /* this makes sense only for ms texture */
 
-   /* GL_BRCM_texture_mirror_swap */
-   bool swap_st;              /* swap texture coordinates - TMU transposition */
-   bool flip_x;               /* horizontally flip texture */
-
-   bool flip_y;               /* vertically flip texture */
-
    /* GL_OES_draw_texture define a crop rectangle */
    struct {
       GLint Ucr;

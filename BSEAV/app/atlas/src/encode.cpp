@@ -57,12 +57,12 @@ CEncode::CEncode(
         CConfiguration * pCfg
         ) :
     CResource(name, number, eBoardResource_encode, pCfg),
-    _allocated(false),
+    _encoding(false),
     _currentVideo(NULL),
     _encoder(NULL),
-    _cmixer(NULL),
+    _mixer(NULL),
     _pDecodeParserBand(NULL),
-    _pRecordParserBand(NULL),
+    _pEncodeParserBand(NULL),
     _pRecord(NULL),
     _pRecpump(NULL),
     _pBoardResources(NULL),
@@ -93,24 +93,9 @@ CEncode::~CEncode()
 
 void CEncode::close()
 {
-    if (_allocated)
-    {
-        simple_encoder_destroy();
-
-        if (_encoderServerSettings.videoEncoder != NULL)
-        {
-            NEXUS_VideoEncoder_Close(_encoderServerSettings.videoEncoder);
-            _encoderServerSettings.videoEncoder = NULL;
-        }
-
-        if (_encoder != NULL)
-        {
-            NEXUS_SimpleEncoder_Destroy(_encoder);
-            _encoder = NULL;
-        }
-    }
-
-    _allocated = false;
+    stop();
+    simple_encoder_destroy();
+    BDBG_MSG(("CLOSE #%d ENCODER", _number));
 } /* close */
 
 void CEncode::dump()
@@ -155,6 +140,18 @@ void CEncode::simple_encoder_destroy(void)
         _pTranscodeStc                             = NULL;
         _encoderServerSettings.stcChannelTranscode = NULL;
     }
+
+    if (_encoderServerSettings.videoEncoder != NULL)
+    {
+        NEXUS_VideoEncoder_Close(_encoderServerSettings.videoEncoder);
+        _encoderServerSettings.videoEncoder = NULL;
+    }
+
+    if (_encoder != NULL)
+    {
+        NEXUS_SimpleEncoder_Destroy(_encoder);
+        _encoder = NULL;
+    }
 } /* simple_encoder_destroy */
 
 eRet CEncode::simple_encoder_create()
@@ -162,10 +159,9 @@ eRet CEncode::simple_encoder_create()
     NEXUS_DisplaySettings         displaySettings;
     NEXUS_StreamMuxCreateSettings streamMuxCreateSettings;
     unsigned                      i;
-    eRet        ret    = eRet_Ok;
-    NEXUS_Error nerror = NEXUS_SUCCESS;
+    eRet                           ret    = eRet_Ok;
+    NEXUS_Error                    nerror = NEXUS_SUCCESS;
     NEXUS_VideoEncoderCapabilities cap;
-
 
     /* Using NxClient I don't need to do Encoder Create */
     if (_encoder == NULL)
@@ -186,7 +182,6 @@ eRet CEncode::simple_encoder_create()
     BDBG_MSG(("Opening Display %d", _encoderServerSettings.transcodeDisplayIndex));
     /* window is opened internally */
 
-
 #if 0 /* DONOT */
     _encoderServerSettings.displayEncode.display = mainDisplay;
 #endif
@@ -197,27 +192,17 @@ eRet CEncode::simple_encoder_create()
     {
         NEXUS_AudioMixerSettings mixerSettings;
 
-#if 0
         NEXUS_AudioMixer_GetDefaultSettings(&mixerSettings);
         mixerSettings.mixUsingDsp = true;
         _mixer                    = NEXUS_AudioMixer_Open(&mixerSettings);
-#endif
-        _cmixer = (CMixer *)_pBoardResources->checkoutResource(getCheckedOutId(),  eBoardResource_mixer);
-        CHECK_PTR_ERROR("Cmixer issue", _cmixer, ret, eRet_ExternalError);
-
-        mixerSettings = _cmixer->getSettings();
-        mixerSettings.mixUsingDsp = true;
-        _cmixer->setSettings(mixerSettings);
-        ret = _cmixer->open();
-        CHECK_ERROR_GOTO("error adding input to mixer", ret, error);
-
+        CHECK_PTR_ERROR_GOTO("Cannot open Audio Mixer ", _mixer, ret, eRet_NotAvailable, error);
     }
 
-    _encoderServerSettings.mixer = _cmixer->getMixer();
+    BDBG_ERR((" HEEEEEEEEEEEEEEEEEEEEEEEEEEEEEE"));
 
-    _pOutputAudioDummy->disconnect();
-
-    NEXUS_AudioOutput_AddInput(_pOutputAudioDummy->getConnectorA(), _cmixer->getConnector());
+    _encoderServerSettings.mixer = _mixer;
+    _pOutputAudioDummy->disconnect(); /* Make sure its empty */
+    _pOutputAudioDummy->connect(NEXUS_AudioMixer_GetConnector(_mixer));
     if (_encoderServerSettings.videoEncoder == NULL)
     {
         _encoderServerSettings.videoEncoder = NEXUS_VideoEncoder_Open(_number, NULL);
@@ -250,13 +235,15 @@ eRet CEncode::simple_encoder_create()
     _encoderServerSettings.streamMux = NEXUS_StreamMux_Create(&streamMuxCreateSettings);
 
     _encoderServerSettings.stcChannelTranscode = _pTranscodeStc->getStcChannel();
+    _encoderServerSettings.nonRealTime         = false;
 
     nerror = NEXUS_SimpleEncoder_SetServerSettings(_pModel->getSimpleEncoderServer(), _encoder, &_encoderServerSettings);
     CHECK_NEXUS_ERROR_GOTO("SimpleEncoder SetServer Settings failed", ret, nerror, error);
 
     BDBG_MSG(("Success in creating Encoder Server!!!"));
 
-    return (ret);
+    return(ret);
+
 error:
 
     checkinResources();
@@ -307,7 +294,7 @@ eRet CEncode::createVideo()
     _currentVideo->getPidMgr()->addPid(pPid);
 
     BDBG_MSG(("create audio/video pids"));
-    return ret;
+    return(ret);
 
 error:
     checkinResources();
@@ -317,9 +304,11 @@ error:
 /* Private function to close handles!! */
 void CEncode::checkinResources()
 {
-    /* Lots of cleanup still todo !!*/
+    /* Remove checking for NULL, if it is NULL then our
+     * logic is bad and needs to be debugged !!*/
     if (NULL != _pRecord)
     {
+        _pRecord->stop();
         _pRecord->close();
         _pBoardResources->checkinResource(_pRecord);
         _pRecord = NULL;
@@ -336,13 +325,6 @@ void CEncode::checkinResources()
     {
         _pVideoDecode->stop();
     }
-    if (_cmixer)
-    {
-        _cmixer->disconnect();
-        _pBoardResources->checkinResource(_cmixer);
-        _encoderServerSettings.mixer = NULL;
-        _cmixer = NULL;
-    }
 
     if (NULL != _pOutputAudioDummy)
     {
@@ -351,11 +333,20 @@ void CEncode::checkinResources()
         _pOutputAudioDummy = NULL;
     }
 
-    if (NULL != _pRecordParserBand)
+    if (_mixer)
     {
-        _pRecordParserBand->close();
-        _pBoardResources->checkinResource(_pRecordParserBand);
-        _pRecordParserBand = NULL;
+        NEXUS_AudioMixer_Stop(_mixer);
+        NEXUS_AudioMixer_RemoveAllInputs(_mixer);
+        NEXUS_AudioMixer_Close(_mixer);
+        _encoderServerSettings.mixer = NULL;
+        _mixer                       = NULL;
+    }
+
+    if (NULL != _pEncodeParserBand)
+    {
+        _pEncodeParserBand->close();
+        _pBoardResources->checkinResource(_pEncodeParserBand);
+        _pEncodeParserBand = NULL;
     }
 
     if (NULL != _pStc)
@@ -369,14 +360,12 @@ void CEncode::checkinResources()
 
     if (_pAudioDecode)
     {
-        BDBG_ERR(("CLOSE Simple Audio Decode"));
         _pAudioDecode->close();
         _pBoardResources->checkinResource(_pAudioDecode);
         _pAudioDecode = NULL;
     }
     if (NULL != _pVideoDecode)
     {
-        BDBG_ERR(("CLOSE Simple Video Decode"));
         _pVideoDecode->close();
         _pBoardResources->checkinResource(_pVideoDecode);
         _pVideoDecode = NULL;
@@ -386,6 +375,12 @@ void CEncode::checkinResources()
 eRet CEncode::open()
 {
     eRet ret = eRet_Ok;
+
+    if (_encoding)
+    {
+        BDBG_WRN(("Currently Encoding!"));
+        goto done;
+    }
 
     BDBG_MSG(("Open Encode %d!", _number));
     _pVideoDecode = (CSimpleVideoDecode *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_simpleDecodeVideo);
@@ -409,9 +404,10 @@ eRet CEncode::open()
         NEXUS_StcChannelSettings stcSettings;
         NEXUS_StcChannel_GetDefaultSettings(0, &stcSettings);
         /* should be the same timebase for end-to-end locking */
-        stcSettings.timebase = (NEXUS_Timebase) _pVideoDecode->getNumber();
-        stcSettings.mode     = NEXUS_StcChannelMode_eAuto;
-        stcSettings.pcrBits  = NEXUS_StcChannel_PcrBits_eFull42; /* ViCE2 requires 42-bit STC broadcast */
+        stcSettings.timebase           = (NEXUS_Timebase) _pVideoDecode->getNumber();
+        stcSettings.autoConfigTimebase = false;
+        stcSettings.mode               = NEXUS_StcChannelMode_eAuto;
+        stcSettings.pcrBits            = NEXUS_StcChannel_PcrBits_eFull42; /* ViCE2 requires 42-bit STC broadcast */
 
         _pTranscodeStc = (CStc *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_stcChannel);
         CHECK_PTR_ERROR_GOTO("Unable to checkout Regular transcode STC channel", _pTranscodeStc, ret, eRet_ExternalError, error);
@@ -420,8 +416,10 @@ eRet CEncode::open()
         /* Need to reconfigure the Transcode STC to match the */
     }
 
-    _pRecordParserBand = (CParserBand *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_parserBand);
-    CHECK_PTR_ERROR_GOTO("Unable to checkout Record ParserBand", _pRecordParserBand, ret, eRet_ExternalError, error);
+    _pEncodeParserBand = (CParserBand *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_parserBand);
+    CHECK_PTR_ERROR_GOTO("Unable to checkout Record ParserBand", _pEncodeParserBand, ret, eRet_ExternalError, error);
+    ret = _pEncodeParserBand->open();
+    CHECK_ERROR_GOTO("Unable to open ParserBand", ret, error);
 
     _pAudioDecode = (CSimpleAudioDecode *)_pBoardResources->checkoutResource(getCheckedOutId(), eBoardResource_simpleDecodeAudio);
     CHECK_PTR_ERROR_GOTO("Unable to open audio decode", _pAudioDecode, ret, eRet_ExternalError, error);
@@ -456,15 +454,13 @@ eRet CEncode::open()
     /* Get the Default settings for this encoder channel */
     NEXUS_SimpleEncoder_GetSettings(_encoder, &_encoderSettings);
 
-    _allocated = true;
+    _encoding = true;
 
     BDBG_MSG(("Encode Open #%d with all resources!", _number));
 
     goto done;
 error:
-    checkinResources();
-    _allocated = false;
-
+    close();
 done:
     return(ret);
 } /* initialize */
@@ -494,7 +490,7 @@ eRet CEncode::openPids(
         }
         else
         {
-            ret = pVideoPid->open(_pDecodeParserBand);
+            ret = pVideoPid->open(_pEncodeParserBand);
         }
 
         CHECK_ERROR_GOTO("open video pid channel failed", ret, error);
@@ -509,7 +505,7 @@ eRet CEncode::openPids(
         }
         else
         {
-            ret = pAudioPid->open(_pDecodeParserBand);
+            ret = pAudioPid->open(_pEncodeParserBand);
         }
 
         CHECK_ERROR_GOTO("open audio pid channel failed", ret, error);
@@ -518,6 +514,13 @@ eRet CEncode::openPids(
     if (pPcrPid)
     {
         pPcrPid->setPlayback(true);
+        if (pPcrPid != pVideoPid)
+        {
+            /* Unique pcr pid*/
+            BDBG_MSG(("Unique PCR pid"));
+            ret = pPcrPid->open(_pEncodeParserBand);
+            CHECK_ERROR_GOTO("open audio pid channel failed", ret, error);
+        }
     }
 
     return(ret);
@@ -562,13 +565,14 @@ eRet CEncode::start()
         return(eRet_ExternalError);
     }
 
-    _pRecord->setBand(_pRecordParserBand);
+    _pRecord->setBand(_pEncodeParserBand);
     /* Open the pids from PidMgr for Decode  */
     ret = openPids(&_pidMgr, false);
     CHECK_ERROR_GOTO("Cannot Open Pids for Transcode!", ret, error);
 
     /* Configure STC*/
     _pStc->setStcType(eStcType_ParserBand);
+    _pStc->setTransportType(_pidMgr.getTransportType());
     ret = _pStc->configure(_pidMgr.getPid(0, ePidType_Video));
     CHECK_ERROR_GOTO("unable to configure stc", ret, error);
 
@@ -589,11 +593,8 @@ eRet CEncode::start()
 
     BDBG_MSG(("Start Simple Encoder ... Now start video/audio + Record"));
 
-    /*
-     * Sleep
-     * BKNI_Sleep(100);
-     */
-
+    /* BDBG_ERR(("video 0x%x, audio 0x%x,pcr pids0x%x ", (_pidMgr->getPid(0,ePidType_Video)).getPid(),(_pidMgr->getPid(0,ePidType_Audio)).getPid(),(_pidMgr->getPid(0,ePidType_Pcr)).getPid())); */
+    _pidMgr.dump();
     ret = _pVideoDecode->start(_pidMgr.getPid(0, ePidType_Video), _pStc);
     CHECK_ERROR_GOTO("Cannot Start Simple Video Decoder", ret, error);
 
@@ -611,10 +612,6 @@ eRet CEncode::start()
     BDBG_MSG(("Record Started"));
 
     CHECK_PTR_ERROR_GOTO("must setPlaybackList first", _pPlaybackList, ret, eRet_NotAvailable, error);
-
-    _pPlaybackList->addVideo(_currentVideo, 0);
-    _pPlaybackList->createInfo(_currentVideo);
-    _pPlaybackList->sync();
 
     ret = notifyObservers(eNotify_EncodeStarted, this);
     CHECK_ERROR_GOTO("error notifying observers", ret, error);
@@ -643,7 +640,7 @@ void CEncode::dupPidMgr(CPidMgr * pPidMgr)
     BDBG_ASSERT(NULL != pPidMgr);
     /* pPidMgr->dump(); */
     _pidMgr = *pPidMgr;
-    /* _pidMgr->dump(); */
+    _pidMgr.dump();
 }
 
 eRet CEncode::setSettings(NEXUS_SimpleEncoderSettings encoderSettings)
@@ -659,7 +656,11 @@ eRet CEncode::setSettings(NEXUS_SimpleEncoderSettings encoderSettings)
     _encoderSettings.video.width             = 1280;        /* GET_INT(_pCfg, TRANSCODE_VIDEOWIDTH); */
     _encoderSettings.video.height            = 720;         /* GET_INT(_pCfg, TRANSCODE_VIDEOWIDTH); */
 
-    frameRate = 30000; /* GET_INT(_pCfg, TRANSCODE_FRAMERATE); */
+    frameRate = 30000; /*GET_INT(_pCfg, TRANSCODE_FRAMERATE);*/
+
+    _encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e30;
+
+#if 0 /* Support  multiple Frame Options through transcode .cfg */
 
     /* with 1000/1001 rate tracking by default */
     if ((frameRate == 29970) || (frameRate == 30000))
@@ -694,6 +695,7 @@ eRet CEncode::setSettings(NEXUS_SimpleEncoderSettings encoderSettings)
         _encoderSettings.videoEncoder.frameRate = NEXUS_VideoFrameRate_e25;
         _encoderSettings.video.refreshRate      = 50000;
     }
+#endif /* if 0 */
 
     _encoderSettings.video.interlaced = false; /* GET_BOOL(_pCfg, TRANSCODE_INTERLACED); */
     nerror                            = NEXUS_SimpleEncoder_SetSettings(_encoder, &_encoderSettings);
@@ -723,19 +725,22 @@ eRet CEncode::stop()
 {
     eRet ret = eRet_Ok;
 
-    BDBG_MSG(("Encode stop"));
-    if (_encoder)
+    if (_encoding == false)
     {
-        NEXUS_SimpleEncoder_Stop(_encoder);
+        BDBG_MSG(("not actively encoding"));
+        goto error;
     }
 
-    _pidMgr.closePidChannels();
-    _pidMgr.clearPids();
+    BDBG_MSG(("Encode stop %p", _encoder));
+    NEXUS_SimpleEncoder_Stop(_encoder);
 
     checkinResources();
+    _pidMgr.closePidChannels();
+    _pidMgr.clearPids();
     _currentVideo = NULL;
 
-    ret = notifyObservers(eNotify_EncodeStopped, this);
+    _encoding = false;
+    ret       = notifyObservers(eNotify_EncodeStopped, this);
     CHECK_ERROR_GOTO("error notifying observers", ret, error);
 
 error:

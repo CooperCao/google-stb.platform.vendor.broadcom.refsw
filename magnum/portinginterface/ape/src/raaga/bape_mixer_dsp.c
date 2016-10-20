@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -566,7 +566,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
-        return errCode;
+        goto err_loopback_create;
     }
 
     BAPE_FMT_P_InitDescriptor(&format);
@@ -577,7 +577,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
-        return errCode;
+        goto err_allocate_buffers;
     }
 
     BAPE_DfifoGroup_P_GetDefaultCreateSettings(&dfifoCreateSettings);
@@ -586,7 +586,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
-        return errCode;
+        goto err_difo_create;
     }
 
     BAPE_DfifoGroup_P_GetSettings(handle->loopbackDfifoGroup, &dfifoSettings);
@@ -601,7 +601,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
-        return errCode;
+        goto err_difo_settings;
     }
 
     /* Loopback found, allocate an FS timing object */
@@ -612,7 +612,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     {
         BDBG_ERR(("Unable to allocate FS resources for input loopback."));
         errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-        return errCode;
+        goto err_difo_settings;
     }
 #endif
     /* Use PLL for now, other timing sources are not available here. */
@@ -626,7 +626,7 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     BAPE_P_AttachMixerToPll(handle, handle->settings.outputPll);
     #else
     errCode = BERR_TRACE(BERR_NOT_SUPPORTED);
-    return errCode;
+    goto err_loopback_settings;
     #endif
 
     BKNI_EnterCriticalSection();
@@ -651,8 +651,47 @@ static BERR_Code BAPE_DspMixer_P_CreateLoopBackPath (BAPE_MixerHandle handle)
     if ( errCode )
     {
         errCode = BERR_TRACE(errCode);
-        return errCode;
+        goto err_loopback_settings;
     }
+    return errCode;
+
+err_loopback_settings:
+    if ( handle->mclkSource != BAPE_MclkSource_eNone )
+    {
+        #if BAPE_CHIP_MAX_PLLS > 0
+            if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
+            {
+                BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+            }
+        #endif
+        #if BAPE_CHIP_MAX_NCOS > 0
+            if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
+            {
+                BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+            }
+        #endif
+        handle->mclkSource = BAPE_MclkSource_eNone;
+    }
+    if (handle->fs != BAPE_FS_INVALID)
+    {
+        BAPE_P_FreeFs(handle->deviceHandle, handle->fs);
+        handle->fs = BAPE_FS_INVALID;
+    }
+err_difo_settings:
+    if ( handle->loopbackDfifoGroup )
+    {
+        BAPE_DfifoGroup_P_Destroy(handle->loopbackDfifoGroup);
+        handle->loopbackDfifoGroup = NULL;
+    }
+err_difo_create:
+        BAPE_P_FreeBuffers(handle->deviceHandle, handle->pLoopbackBuffers);
+err_allocate_buffers:
+    if ( handle->loopbackGroup )
+    {
+        BAPE_LoopbackGroup_P_Destroy(handle->loopbackGroup);
+        handle->loopbackGroup = NULL;
+    }
+err_loopback_create:
     return errCode;
 }
 
@@ -702,7 +741,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
             if ( errCode )
             {
                 errCode = BERR_TRACE(errCode);
-                goto err_acquire_resources;
+                goto err_create_loopback_mixer;
             }
         }
 
@@ -710,7 +749,7 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         if ( errCode )
         {
             errCode = BERR_TRACE(errCode);
-            goto err_acquire_resources;
+            goto err_create_loopback_path;
         }
     }
     else
@@ -751,7 +790,8 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
             errCode = BAPE_Connector_P_SetFormat(&handle->pathNode.connectors[0], &format);
             if ( errCode )
             {
-                return BERR_TRACE(errCode);
+                errCode = BERR_TRACE(errCode);
+                goto err_ddre;
             }
         }
         else if ( handle->settings.mixerSampleRate )
@@ -897,6 +937,24 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
         }
     }
 
+    /* Configure Stage Data sync settings */
+    {
+        BDSP_AudioTaskDatasyncSettings datasyncSettings;
+        errCode = BDSP_AudioStage_GetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+
+        datasyncSettings.uAlgoSpecConfigStruct.sMixerConfig.eContinuousFMMInput = handle->settings.loopbackMixerEnabled ? BDSP_AF_P_eDisable : BDSP_AF_P_eEnable;
+
+        errCode = BDSP_AudioStage_SetDatasyncSettings(handle->hMixerStage, &datasyncSettings);
+        if ( errCode )
+        {
+            return BERR_TRACE(errCode);
+        }
+    }
+
     /* Start the DSP Task */
     errCode = BDSP_Task_Start(handle->hTask, &taskStartSettings);
     if ( errCode )
@@ -909,17 +967,61 @@ static BERR_Code BAPE_DspMixer_P_StartTask(BAPE_MixerHandle handle)
     return BERR_SUCCESS;
 
 err_start_task:
+    BAPE_PathNode_P_StopPaths(&handle->pathNode);
 err_start_path:
 err_config_path:
 err_consumers:
-err_stage:
-err_acquire_resources:
     BAPE_PathNode_P_ReleasePathResources(&handle->pathNode);
-    if ( handle->fs != BAPE_FS_INVALID )
+err_acquire_resources:
+    BDSP_Stage_RemoveAllInputs(handle->hMixerStage);
+    BDSP_Stage_RemoveAllOutputs(handle->hMixerStage);
+    BDSP_Stage_RemoveAllInputs(handle->hSrcStage);
+    BDSP_Stage_RemoveAllOutputs(handle->hSrcStage);
+err_stage:
+err_ddre:
+    if ( handle->loopbackDfifoGroup )
+    {
+        BAPE_DfifoGroup_P_Destroy(handle->loopbackDfifoGroup);
+        handle->loopbackDfifoGroup = NULL;
+    }
+    if ( handle->loopbackGroup )
+    {
+        BAPE_LoopbackGroup_P_Destroy(handle->loopbackGroup);
+        handle->loopbackGroup = NULL;
+    }
+    BAPE_P_FreeBuffers(handle->deviceHandle, handle->pLoopbackBuffers);
+err_create_loopback_path:
+    if ( handle->loopbackMixerGroup )
+    {
+        BAPE_MixerGroup_P_Destroy(handle->loopbackMixerGroup);
+        handle->loopbackMixerGroup = NULL;
+    }
+     /* Unlink from PLL and give up FS if allocated */
+    if ( handle->mclkSource != BAPE_MclkSource_eNone )
+    {
+        #if BAPE_CHIP_MAX_PLLS > 0
+            if ( BAPE_MCLKSOURCE_IS_PLL(handle->mclkSource))
+            {
+                BAPE_P_DetachMixerFromPll(handle, handle->mclkSource - BAPE_MclkSource_ePll0);
+            }
+        #endif
+        #if BAPE_CHIP_MAX_NCOS > 0
+            if ( BAPE_MCLKSOURCE_IS_NCO(handle->mclkSource))
+            {
+                BAPE_P_DetachMixerFromNco(handle, handle->mclkSource - BAPE_MclkSource_eNco0);
+            }
+        #endif
+
+        handle->mclkSource = BAPE_MclkSource_eNone;
+    }
+    #if BAPE_CHIP_MAX_FS > 0
+    if (handle->fs != BAPE_FS_INVALID)
     {
         BAPE_P_FreeFs(handle->deviceHandle, handle->fs);
         handle->fs = BAPE_FS_INVALID;
     }
+    #endif
+err_create_loopback_mixer:
     return errCode;
 }
 
@@ -1339,7 +1441,12 @@ static void BAPE_DspMixer_P_StopPathFromInput(struct BAPE_PathNode *pNode, struc
     }
     else
     {
-        BDBG_ASSERT(handle->loopbackRunning > 0);
+        if ( handle->loopbackRunning == 0 )
+        {
+            BDBG_MSG(("Input already stopped"));
+            return;
+        }
+
         BDBG_ASSERT(handle->running > 0);
 
         handle->loopbackRunning--;
@@ -2270,5 +2377,6 @@ static const BAPE_MixerInterface g_dspMixerInterface = {
     BAPE_DspMixer_P_GetInputVolume,
     BAPE_DspMixer_P_SetInputVolume,
     NOT_SUPPORTED(BAPE_DspMixer_P_ApplyOutputVolume),
-    BAPE_DspMixer_P_SetSettings
+    BAPE_DspMixer_P_SetSettings,
+    NOT_SUPPORTED(BAPE_DspMixer_P_ApplyStereoMode)
 };

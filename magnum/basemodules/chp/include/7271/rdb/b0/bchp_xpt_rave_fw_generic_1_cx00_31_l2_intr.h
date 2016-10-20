@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR - Context 0 to 31
  ***************************************************************************/
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_STATUS_0_31 0x20a4f800 /* [RO] CPU interrupt Status Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_SET_0_31 0x20a4f804 /* [WO] CPU interrupt Set Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_CLEAR_0_31 0x20a4f808 /* [WO] CPU interrupt Clear Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_STATUS_0_31 0x20a4f80c /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_SET_0_31 0x20a4f810 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_CLEAR_0_31 0x20a4f814 /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_STATUS_0_31 0x20a4f818 /* [RO] PCI interrupt Status Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_SET_0_31 0x20a4f81c /* [WO] PCI interrupt Set Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_CLEAR_0_31 0x20a4f820 /* [WO] PCI interrupt Clear Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_STATUS_0_31 0x20a4f824 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_SET_0_31 0x20a4f828 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_CLEAR_0_31 0x20a4f82c /* [WO] PCI interrupt Mask Clear Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_STATUS_0_31 0x20a4f800 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_SET_0_31 0x20a4f804 /* [WO][32] CPU interrupt Set Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_CLEAR_0_31 0x20a4f808 /* [WO][32] CPU interrupt Clear Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_STATUS_0_31 0x20a4f80c /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_SET_0_31 0x20a4f810 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_CPU_MASK_CLEAR_0_31 0x20a4f814 /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_STATUS_0_31 0x20a4f818 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_SET_0_31 0x20a4f81c /* [WO][32] PCI interrupt Set Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_CLEAR_0_31 0x20a4f820 /* [WO][32] PCI interrupt Clear Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_STATUS_0_31 0x20a4f824 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_SET_0_31 0x20a4f828 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_PCI_MASK_CLEAR_0_31 0x20a4f82c /* [WO][32] PCI interrupt Mask Clear Register */
 
 #endif /* #ifndef BCHP_XPT_RAVE_FW_GENERIC_1_CX00_31_L2_INTR_H__ */
 

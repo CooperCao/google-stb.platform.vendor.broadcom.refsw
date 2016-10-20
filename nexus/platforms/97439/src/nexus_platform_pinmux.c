@@ -48,7 +48,7 @@ BDBG_MODULE(nexus_platform_pinmux);
 
 NEXUS_Error NEXUS_Platform_P_InitPinmux(void)
 {
-#if NEXUS_USE_7439_DR4
+#if NEXUS_USE_7439_SV
     BREG_Handle hReg = g_pCoreHandles->reg;
     uint32_t reg;
     reg = BREG_Read32(hReg,BCHP_SUN_TOP_CTRL_PIN_MUX_CTRL_8 );

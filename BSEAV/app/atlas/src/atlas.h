@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -171,11 +171,11 @@ typedef enum eRet
     } while (0)
 
 /* print helpful trace only if ATLAS_MEMORY_LEAK_DETECT is exported */
-#define ATLAS_MEMLEAK_TRACE(str)                                        \
-    do {                                                                \
-        if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                       \
-            BDBG_WRN(("--> %s:%s %s", __FILE__, __FUNCTION__, (str)));  \
-        }                                                               \
+#define ATLAS_MEMLEAK_TRACE(str)                                       \
+    do {                                                               \
+        if (getenv("ATLAS_MEMORY_LEAK_DETECT")) {                      \
+            BDBG_WRN(("--> %s:%s %s", __FILE__, __FUNCTION__, (str))); \
+        }                                                              \
     } while (0)
 
 /* print atlas error and return given error code */
@@ -403,6 +403,23 @@ typedef enum eRet
         }                                                                                                \
     } while (0)
 
+/* if atlas error, print message and goto given label */
+#define CHECK_MSG(err_str, err_code)                                                                    \
+    do {                                                                                                \
+        if (eRet_Ok != (err_code)) {                                                                    \
+            BDBG_WRN(("ATLAS MSG: %s - code:%d at %s: %d", (err_str), (err_code), __FILE__, __LINE__)); \
+        }                                                                                               \
+    } while (0)
+
+/* if atlas error, print message and goto given label */
+#define CHECK_MSG_GOTO(err_str, err_code, label)                                                        \
+    do {                                                                                                \
+        if (eRet_Ok != (err_code)) {                                                                    \
+            BDBG_WRN(("ATLAS MSG: %s - code:%d at %s: %d", (err_str), (err_code), __FILE__, __LINE__)); \
+            goto label;                                                                                 \
+        }                                                                                               \
+    } while (0)
+
 /* if ptr equals NULL, print error, set given err_code to err_var */
 #define CHECK_PTR_ERROR(err_str, ptr, err_var, err_code)                                           \
     do {                                                                                           \
@@ -419,6 +436,15 @@ typedef enum eRet
             BDBG_WRN(("ATLAS WARN: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__)); \
             (err_var) = (err_code);                                                               \
         }                                                                                         \
+    } while (0)
+
+/* if ptr equals NULL, print message, set given err_code to err_var */
+#define CHECK_PTR_MSG(err_str, ptr, err_var, err_code)                                           \
+    do {                                                                                         \
+        if (NULL == (ptr)) {                                                                     \
+            BDBG_MSG(("ATLAS MSG: %s - NULL pointer at %s: %d", (err_str), __FILE__, __LINE__)); \
+            (err_var) = (err_code);                                                              \
+        }                                                                                        \
     } while (0)
 
 /* if ptr equals NULL, print error, set given err_code to err_var and goto given label */

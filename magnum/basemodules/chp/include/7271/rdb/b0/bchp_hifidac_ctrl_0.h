@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,25 +70,25 @@
 /***************************************************************************
  *HIFIDAC_CTRL_0 - HiFiDAC Control Registers
  ***************************************************************************/
-#define BCHP_HIFIDAC_CTRL_0_REVISION             0x20cb0800 /* [RO] Hifidac Revision Register */
-#define BCHP_HIFIDAC_CTRL_0_INIT                 0x20cb0804 /* [RW] Init */
-#define BCHP_HIFIDAC_CTRL_0_CONFIG               0x20cb0808 /* [RW] Audio ASRC/DAC Configuration */
-#define BCHP_HIFIDAC_CTRL_0_RANGE                0x20cb080c /* [RW] Range Select */
-#define BCHP_HIFIDAC_CTRL_0_SCALECFG             0x20cb0810 /* [RW] Audio scale configuration */
-#define BCHP_HIFIDAC_CTRL_0_SCALE                0x20cb0814 /* [RW] Audio ASRC scale */
-#define BCHP_HIFIDAC_CTRL_0_DAC_VOLUMECFG        0x20cb0818 /* [RW] Audio DAC volume configuration */
-#define BCHP_HIFIDAC_CTRL_0_DAC_VOLUME           0x20cb081c /* [RW] Audio DAC volume */
-#define BCHP_HIFIDAC_CTRL_0_PEAK_CONFIG          0x20cb0820 /* [RW] Peaking filter configuration */
-#define BCHP_HIFIDAC_CTRL_0_PEAK_GAIN            0x20cb0824 /* [RW] Peaking filter gain */
-#define BCHP_HIFIDAC_CTRL_0_PEAK_A1              0x20cb0828 /* [RW] Peaking filter a1 coefficient */
-#define BCHP_HIFIDAC_CTRL_0_PEAK_A2              0x20cb082c /* [RW] Peaking filter a2 coefficient */
-#define BCHP_HIFIDAC_CTRL_0_RATEMGRCFG           0x20cb0830 /* [RW] Rate Manager Oversample Rate */
-#define BCHP_HIFIDAC_CTRL_0_STATUS               0x20cb0834 /* [RO] Hifidac status */
-#define BCHP_HIFIDAC_CTRL_0_MUTECTRL             0x20cb0838 /* [RW] RFMOD and DAC mute control */
-#define BCHP_HIFIDAC_CTRL_0_MUTECTRL_DACONLY     0x20cb083c /* [RW] DAC only mute control */
-#define BCHP_HIFIDAC_CTRL_0_CURRDAC_CTRL         0x20cb0840 /* [RW] Current DAC control */
-#define BCHP_HIFIDAC_CTRL_0_DAC_CONST_VAL        0x20cb0844 /* [RW] DAC constant value */
-#define BCHP_HIFIDAC_CTRL_0_TEST                 0x20cb08fc /* [RW] Test mode */
+#define BCHP_HIFIDAC_CTRL_0_REVISION             0x20cb0800 /* [RO][32] Hifidac Revision Register */
+#define BCHP_HIFIDAC_CTRL_0_INIT                 0x20cb0804 /* [RW][32] Init */
+#define BCHP_HIFIDAC_CTRL_0_CONFIG               0x20cb0808 /* [RW][32] Audio ASRC/DAC Configuration */
+#define BCHP_HIFIDAC_CTRL_0_RANGE                0x20cb080c /* [RW][32] Range Select */
+#define BCHP_HIFIDAC_CTRL_0_SCALECFG             0x20cb0810 /* [RW][32] Audio scale configuration */
+#define BCHP_HIFIDAC_CTRL_0_SCALE                0x20cb0814 /* [RW][32] Audio ASRC scale */
+#define BCHP_HIFIDAC_CTRL_0_DAC_VOLUMECFG        0x20cb0818 /* [RW][32] Audio DAC volume configuration */
+#define BCHP_HIFIDAC_CTRL_0_DAC_VOLUME           0x20cb081c /* [RW][32] Audio DAC volume */
+#define BCHP_HIFIDAC_CTRL_0_PEAK_CONFIG          0x20cb0820 /* [RW][32] Peaking filter configuration */
+#define BCHP_HIFIDAC_CTRL_0_PEAK_GAIN            0x20cb0824 /* [RW][32] Peaking filter gain */
+#define BCHP_HIFIDAC_CTRL_0_PEAK_A1              0x20cb0828 /* [RW][32] Peaking filter a1 coefficient */
+#define BCHP_HIFIDAC_CTRL_0_PEAK_A2              0x20cb082c /* [RW][32] Peaking filter a2 coefficient */
+#define BCHP_HIFIDAC_CTRL_0_RATEMGRCFG           0x20cb0830 /* [RW][32] Rate Manager Oversample Rate */
+#define BCHP_HIFIDAC_CTRL_0_STATUS               0x20cb0834 /* [RO][32] Hifidac status */
+#define BCHP_HIFIDAC_CTRL_0_MUTECTRL             0x20cb0838 /* [RW][32] RFMOD and DAC mute control */
+#define BCHP_HIFIDAC_CTRL_0_MUTECTRL_DACONLY     0x20cb083c /* [RW][32] DAC only mute control */
+#define BCHP_HIFIDAC_CTRL_0_CURRDAC_CTRL         0x20cb0840 /* [RW][32] Current DAC control */
+#define BCHP_HIFIDAC_CTRL_0_DAC_CONST_VAL        0x20cb0844 /* [RW][32] DAC constant value */
+#define BCHP_HIFIDAC_CTRL_0_TEST                 0x20cb08fc /* [RW][32] Test mode */
 
 /***************************************************************************
  *REVISION - Hifidac Revision Register

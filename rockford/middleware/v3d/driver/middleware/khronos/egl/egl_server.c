@@ -30,6 +30,7 @@ extern void khdispatch_send_async(uint32_t command, uint64_t pid, uint32_t sem);
 #include "middleware/khronos/gl20/gl20_shader.h"
 #include "middleware/khronos/glxx/glxx_framebuffer.h"
 #include "middleware/khronos/glxx/glxx_renderbuffer.h"
+#include "middleware/khronos/glxx/glxx_server.h"
 #ifndef NO_OPENVG
 #include "middleware/khronos/vg/vg_server.h"
 #include "middleware/khronos/vg/vg_font.h"
@@ -208,36 +209,33 @@ EGLAPI void EGLAPIENTRY BEGL_GetDefaultDriverInterfaces(BEGL_DriverInterfaces *d
 }
 
 /*
-   void egl_server_surface_term(void *v, uint32_t size)
+   void egl_server_surface_term(MEM_HANDLE_T handle)
 
    Terminator for EGL_SERVER_SURFACE_T
 
    Preconditions:
 
-   v is a valid pointer to a (possibly uninitialised or partially initialised*) object of type EGL_SERVER_SURFACE_T
+   handle is an (possibly uninitialised or partially initialised*) object of type EGL_SERVER_SURFACE_T
 
    Postconditions:
 
    Frees any references to resources that are referred to by the object of type EGL_SERVER_SURFACE_T
 */
 
-void egl_server_surface_term(void *v, uint32_t size)
+void egl_server_surface_term(MEM_HANDLE_T handle)
 {
-   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)v;
+   EGL_SERVER_SURFACE_T *surface = (EGL_SERVER_SURFACE_T *)mem_lock(handle, NULL);
 
    int i;
    BEGL_WindowState  *windowState = NULL;
 
    if (surface != NULL)
    {
-      UNUSED_NDEBUG(size);
       if (surface->display_thread_state.platform_state != NULL)
       {
          khrn_hw_common_finish();
          egl_disp_destroy_display_thread(&surface->display_thread_state);
       }
-
-      vcos_assert(size == sizeof(EGL_SERVER_SURFACE_T));
 
       if (surface->mh_color[0] != MEM_INVALID_HANDLE) {
          ((KHRN_IMAGE_T *)mem_lock(surface->mh_color[0], NULL))->flags &= ~IMAGE_FLAG_BOUND_CLIENTBUFFER;
@@ -280,6 +278,8 @@ void egl_server_surface_term(void *v, uint32_t size)
          free((void *)windowState);
       }
    }
+
+   mem_unlock(handle);
 }
 
 EGL_SERVER_STATE_T egl_server_state;
@@ -498,7 +498,7 @@ static EGL_SURFACE_ID_T create_surface_internal(
    if (shandle == MEM_INVALID_HANDLE)
       return result;
 
-   mem_set_term(shandle, egl_server_surface_term);
+   mem_set_term(shandle, egl_server_surface_term, NULL);
 
    surface = (EGL_SERVER_SURFACE_T *)mem_lock(shandle, NULL);
 
@@ -677,15 +677,10 @@ static EGL_SURFACE_ID_T create_surface_internal(
    if (depthstencilformat != IMAGE_FORMAT_INVALID) {
       MEM_HANDLE_T himage;
 
-      uint32_t depthstencil_width = width;
-      uint32_t depthstencil_height = height;
-      if (multisampleformat != IMAGE_FORMAT_INVALID)
-      {
-         depthstencil_width *= 2;
-         depthstencil_height *= 2;
-      }
-
-      himage = khrn_image_create(depthstencilformat, depthstencil_width, depthstencil_height,
+      MEM_HANDLE_T(*image_create)(KHRN_IMAGE_FORMAT_T format,
+         uint32_t width, uint32_t height, KHRN_IMAGE_CREATE_FLAG_T flags, bool secure);
+      image_create = (multisampleformat != IMAGE_FORMAT_INVALID) ? glxx_image_create_ms : khrn_image_create;
+      himage = image_create(depthstencilformat, width, height,
          image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
 
       if (himage == MEM_INVALID_HANDLE)
@@ -719,7 +714,8 @@ static EGL_SURFACE_ID_T create_surface_internal(
 
       if (color)
       {
-         MEM_HANDLE_T himage = khrn_image_create(COL_32_TLBD, 2*width, 2*height,
+         MEM_HANDLE_T himage = glxx_image_create_ms(COL_32_TLBD,
+            width, height,
             color_image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
          if (himage == MEM_INVALID_HANDLE)
             goto final;
@@ -730,7 +726,8 @@ static EGL_SURFACE_ID_T create_surface_internal(
 
       if (depth)
       {
-         MEM_HANDLE_T himage = khrn_image_create(DEPTH_32_TLBD, 2*width, 2*height,
+         MEM_HANDLE_T himage = glxx_image_create_ms(DEPTH_32_TLBD,
+            width, height,
             image_create_flags | IMAGE_CREATE_FLAG_NO_STORAGE, secure);
          if (himage == MEM_INVALID_HANDLE)
             goto final;
@@ -1019,7 +1016,7 @@ static MEM_HANDLE_T create_shared_context(void)
    MEM_HANDLE_T handle = MEM_ALLOC_STRUCT_EX(GLXX_SHARED_T, MEM_COMPACT_DISCARD);                                // check, glxx_shared_term
 
    if (handle != MEM_INVALID_HANDLE) {
-      mem_set_term(handle, glxx_shared_term);
+      mem_set_term(handle, glxx_shared_term, NULL);
 
       if (glxx_shared_init((GLXX_SHARED_T *)mem_lock(handle, NULL)))
          mem_unlock(handle);
@@ -1110,7 +1107,7 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES11_impl(EGL_GL_CONTEXT_ID_T share_id, EGL_CO
       return 0;
    }
 
-   mem_set_term(handle, glxx_server_state_term);
+   mem_set_term(handle, glxx_server_state_term, NULL);
 
    server = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
 
@@ -1163,7 +1160,7 @@ EGL_GL_CONTEXT_ID_T eglIntCreateGLES20_impl(EGL_GL_CONTEXT_ID_T share, EGL_CONTE
       return 0;
    }
 
-   mem_set_term(handle, glxx_server_state_term);
+   mem_set_term(handle, glxx_server_state_term, NULL);
 
    if (!gl20_server_state_init((GLXX_SERVER_STATE_T *)mem_lock(handle, NULL), state->next_context, state->pid, shandle)) {
       mem_unlock(handle);

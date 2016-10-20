@@ -41,6 +41,7 @@
 #include "nexus_security.h"
 
 /* SAGE-related utility/key_loader layer */
+#include "bsagelib_types.h"
 #include "key_loader_tl.h"
 
 #include <stdio.h>
@@ -92,6 +93,8 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         }
 
         KeyLoader_GetDefaultWrappedKeySettings(&wrappedKeySettings);
+
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
         wrappedKeySettings.engine       = BSAGElib_Crypto_Engine_eM2m;
 
         if (playback) {
@@ -100,6 +103,7 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         else {
             wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eEncrypt;
         }
+#endif
 
         wrappedKeySettings.keyladderAlg = BSAGElib_Crypto_Algorithm_eAes;
         wrappedKeySettings.keyladderDepth = BSAGElib_Crypto_KeyLadderLevel_eKey4;
@@ -154,6 +158,7 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
 
         KeyLoader_GetDefaultWrappedKeySettings(&wrappedKeySettings);
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
         wrappedKeySettings.engine       = BSAGElib_Crypto_Engine_eCaCp;
 
         if (playback) {
@@ -162,6 +167,7 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
         else {
             wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eEncrypt;
         }
+#endif
 
         wrappedKeySettings.keyladderAlg = BSAGElib_Crypto_Algorithm_eAes;
         wrappedKeySettings.keyladderDepth = BSAGElib_Crypto_KeyLadderLevel_eKey4;
@@ -226,8 +232,10 @@ int prepare_keyslots(int playback, NEXUS_KeySlotHandle *pM2mKeySlotHandle, NEXUS
 
         KeyLoader_GetDefaultWrappedKeySettings(&wrappedKeySettings);
 
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
         wrappedKeySettings.engine       = BSAGElib_Crypto_Engine_eCa;
         wrappedKeySettings.operation   = BSAGElib_Crypto_Operation_eDecrypt;
+#endif
         wrappedKeySettings.keyladderAlg = BSAGElib_Crypto_Algorithm_eAes;
         wrappedKeySettings.keyladderDepth = BSAGElib_Crypto_KeyLadderLevel_eKey5;
         BKNI_Memcpy(wrappedKeySettings.procInForKey3, ca_procInForKey3, 16);

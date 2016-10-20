@@ -74,6 +74,12 @@ Summary:
 ******************************************************************************/
 typedef struct BSRF_g1_P_ChannelHandle
 {
+   BINT_CallbackHandle  hAttackCountOvfCb;   /* callback handle for attack count overflow interrupt */
+   BINT_CallbackHandle  hDecayCountOvfCb;    /* callback handle for decay count overflow interrupt */
+   BINT_CallbackHandle  hFsCountOvfCb;       /* callback handle for fs count overflow interrupt */
+   BINT_CallbackHandle  hWinDetectCb;        /* callback handle for window detect interrupt */
+   BINT_CallbackHandle  hRampActiveCb;       /* callback handle for ramp active interrupt */
+   BINT_CallbackHandle  hRampInactiveCb;     /* callback handle for ramp inactive interrupt */
    BSRF_RfAgcSettings   rfagcSettings;       /* rfagc settings */
    bool                 bOmitRfagcLut[BSRF_RFAGC_LUT_COUNT];   /* rfagc lut omissions */
    bool                 bEnableFastDecay;    /* enable fast decay mode */
@@ -129,6 +135,12 @@ BERR_Code BSRF_g1_P_DeleteAgcLutCodes(BSRF_Handle h, uint32_t *pIdx, uint32_t n)
 BERR_Code BSRF_g1_P_ConfigOutputClockPhase(BSRF_Handle h, uint8_t phase, bool bDisableOutput);
 BERR_Code BSRF_g1_P_SetIqEqCoeff(BSRF_ChannelHandle h, int16_t *iTaps, int16_t *qTaps);
 BERR_Code BSRF_g1_P_SetIqEqSettings(BSRF_ChannelHandle h, BSRF_IqEqSettings settings);
+void BSRF_g1_P_AttackCountOvf_isr(void *p, int param);
+void BSRF_g1_P_DecayCountOvf_isr(void *p, int param);
+void BSRF_g1_P_FsCountOvf_isr(void *p, int param);
+void BSRF_g1_P_WinDetect_isr(void *p, int param);
+void BSRF_g1_P_RampActive_isr(void *p, int param);
+void BSRF_g1_P_RampInactive_isr(void *p, int param);
 
 /* bsrf_g1_priv_ana */
 BERR_Code BSRF_g1_Ana_P_PowerUp(BSRF_ChannelHandle h);

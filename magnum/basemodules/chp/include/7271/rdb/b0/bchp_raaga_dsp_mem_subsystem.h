@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,33 +70,33 @@
 /***************************************************************************
  *RAAGA_DSP_MEM_SUBSYSTEM - Raaga Dsp Memory Subsystem
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_ID2R_RDATA  0x20c30000 /* [RO] Peek and Poke IMEM/DMEM RBUS Read Data */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_WDATA  0x20c30004 /* [RW] Peek and Poke IMEM/DMEM RBUS Write Data */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_CMD    0x20c30008 /* [RW] Peek and Poke Command Register  for IMEM and DMEM */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_ADDR   0x20c3000c /* [RW] IMEM or DMEM Address for peek/poke access */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO   0x20c30010 /* [RW] Set Peek/poke in Auto increment mode */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO_RD_TRIG 0x20c30014 /* [RW] Peek trigger in auto inc mode */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO_ADDRESS_STATUS 0x20c30018 /* [RO] Current address for peek/poke operation in auto inc mode. */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_0 0x20c30040 /* [RW] Space_0 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_1 0x20c30044 /* [RW] Space_1 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_IMEM_STATUS 0x20c30048 /* [RO] IMEM STATUS Register */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_DMEM_STATUS 0x20c3004c /* [RO] DMEM STATUS Register */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_VOM_MISS_STATUS 0x20c30050 /* [RO] VOM MISS STATUS Register */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_CNTRL   0x20c30070 /* [RW] MRU Control Register */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_0  0x20c30074 /* [RO] MRU_Page_0 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_1  0x20c30078 /* [RO] MRU_Page_1 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_2  0x20c3007c /* [RO] MRU_Page_2 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_3  0x20c30080 /* [RO] MRU_Page_3 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_4  0x20c30084 /* [RO] MRU_Page_4 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_5  0x20c30088 /* [RO] MRU_Page_5 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_6  0x20c3008c /* [RO] MRU_Page_6 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_7  0x20c30090 /* [RO] MRU_Page_7 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_PC_STATUS   0x20c30094 /* [RO] FP_PC_STATUS */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_2 0x20c3009c /* [RW] Space_2 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_3 0x20c300a0 /* [RW] Space_3 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_4 0x20c300a4 /* [RW] Space_4 */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MEMSUB_ERROR_STATUS 0x20c300a8 /* [RO] MEMSUB_ERROR_STATUS */
-#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MEMSUB_ERROR_CLEAR 0x20c300ac /* [WO] MEMSUB_ERROR_CLEAR */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_ID2R_RDATA  0x20c30000 /* [RO][32] Peek and Poke IMEM/DMEM RBUS Read Data */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_WDATA  0x20c30004 /* [RW][32] Peek and Poke IMEM/DMEM RBUS Write Data */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_CMD    0x20c30008 /* [RW][32] Peek and Poke Command Register  for IMEM and DMEM */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_ADDR   0x20c3000c /* [RW][32] IMEM or DMEM Address for peek/poke access */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO   0x20c30010 /* [RW][32] Set Peek/poke in Auto increment mode */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO_RD_TRIG 0x20c30014 /* [RW][32] Peek trigger in auto inc mode */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_R2ID_AUTO_ADDRESS_STATUS 0x20c30018 /* [RO][32] Current address for peek/poke operation in auto inc mode. */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_0 0x20c30040 /* [RW][32] Space_0 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_1 0x20c30044 /* [RW][32] Space_1 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_IMEM_STATUS 0x20c30048 /* [RO][32] IMEM STATUS Register */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_DMEM_STATUS 0x20c3004c /* [RO][32] DMEM STATUS Register */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_VOM_MISS_STATUS 0x20c30050 /* [RO][32] VOM MISS STATUS Register */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_CNTRL   0x20c30070 /* [RW][32] MRU Control Register */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_0  0x20c30074 /* [RO][32] MRU_Page_0 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_1  0x20c30078 /* [RO][32] MRU_Page_1 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_2  0x20c3007c /* [RO][32] MRU_Page_2 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_3  0x20c30080 /* [RO][32] MRU_Page_3 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_4  0x20c30084 /* [RO][32] MRU_Page_4 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_5  0x20c30088 /* [RO][32] MRU_Page_5 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_6  0x20c3008c /* [RO][32] MRU_Page_6 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MRU_PAGE_7  0x20c30090 /* [RO][32] MRU_Page_7 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_PC_STATUS   0x20c30094 /* [RO][32] FP_PC_STATUS */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_2 0x20c3009c /* [RW][32] Space_2 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_3 0x20c300a0 /* [RW][32] Space_3 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_RESERVED_FOR_ECO_4 0x20c300a4 /* [RW][32] Space_4 */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MEMSUB_ERROR_STATUS 0x20c300a8 /* [RO][32] MEMSUB_ERROR_STATUS */
+#define BCHP_RAAGA_DSP_MEM_SUBSYSTEM_MEMSUB_ERROR_CLEAR 0x20c300ac /* [WO][32] MEMSUB_ERROR_CLEAR */
 
 /***************************************************************************
  *ID2R_RDATA - Peek and Poke IMEM/DMEM RBUS Read Data

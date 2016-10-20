@@ -201,6 +201,12 @@ typedef struct NEXUS_SimpleEncoderSettings
     NEXUS_AudioEncoderCodecSettings audioEncoder; /* must set audioEncoder.codec to match NEXUS_SimpleEncoderStartSettings.audio.codec. */
     NEXUS_CallbackDesc resourceChanged;
     NEXUS_SimpleEncoderStopMode stopMode;
+    struct {
+        struct {
+            bool video[1];
+            bool audio[1];
+        } enable;
+    } streamMux; /* maps to NEXUS_StreamMuxSettings */
 } NEXUS_SimpleEncoderSettings;
 
 /**

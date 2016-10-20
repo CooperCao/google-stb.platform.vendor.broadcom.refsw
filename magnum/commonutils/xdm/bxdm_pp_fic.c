@@ -110,10 +110,10 @@ BERR_Code BXDM_PPFIC_P_CalculateIgnoreCadenceMatch_isr(
       )
    {
 #if 0
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] VDC Cadence Matching Disabled",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] VDC Cadence Matching Disabled",
                                  hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                  BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                 pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 #endif
       pstPicture->stPicParms.stDisplay.stDynamic.bIgnoreCadenceMatch = true;
    }
@@ -415,20 +415,20 @@ BERR_Code BXDM_PPFIC_P_CalculateFieldInversionCorrectionOffset_isr(
                                                      pLocalState,
                                                      pstPicture);
 
-                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, selected element %d",
+                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, selected element %d",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement );
+                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement ));
                   }
                   else
                   {
                      /* else if the first element IS selected. */
 
-                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, TSM eWait",
+                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 1st->2nd slot, TSM eWait",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
 
                      pstPicture->stPicParms.stTSM.stDynamic.eTsmResult = BXDM_PictureProvider_TSMResult_eWait;
 
@@ -459,19 +459,19 @@ BERR_Code BXDM_PPFIC_P_CalculateFieldInversionCorrectionOffset_isr(
                       * TSM slot which should prevent field inversion
                       * on THIS vsync */
                      pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement++;
-                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot, select (next) element %d",
+                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot, select (next) element %d",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
                                              pstPicture->stPicParms.uiPPBIndex & 0xFFF,
-                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement );
+                                             pstPicture->stPicParms.stDisplay.stDynamic.uiSelectedElement ));
                      BXDM_PPDBG_P_SelectionLog_isr( hXdmPP, BXDM_PPDBG_Selection_PolarityOverride_e2ndSlotNextElement );
                   }
                   else
                   {
-                     BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot (next ppb)",
+                     BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.%03x] Polarity Override: 2nd->1st slot (next ppb)",
                                              hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
                                              BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ),
-                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF );
+                                             pstPicture->stPicParms.uiPPBIndex & 0xFFF ));
                      BXDM_PPFIC_S_SelectPreviousElement_isr(hXdmPP,
                                                      pLocalState,
                                                      pstPicture);
@@ -504,9 +504,9 @@ BERR_Code BXDM_PPFIC_P_ResetFieldInversionCorrectionOffset_isr(
         && ( 0 != hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiFractional )
       )
    {
-      BXDM_MODULE_MSG_isr( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.xxx] FIC Reset",
+      BXDM_MODULE_MSG_isr(( hXdmPP, BXDM_Debug_MsgType_eFIC, "%x:[%02x.xxx] FIC Reset",
                         hXdmPP->stDMState.stDecode.stDebug.uiVsyncCount,
-                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) );
+                        BXDM_PPDBG_FORMAT_INSTANCE_ID( hXdmPP ) ));
       BXDM_PPDBG_P_SelectionLog_isr( hXdmPP, BXDM_PPDBG_Selection_PolarityOverride_eFICReset );
       hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiWhole = 0;
       hXdmPP->stDMState.stDecode.stFieldInversionCorrectionPTSOffset.uiFractional = 0;

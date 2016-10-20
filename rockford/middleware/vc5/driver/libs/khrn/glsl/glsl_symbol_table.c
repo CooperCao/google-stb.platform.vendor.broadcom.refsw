@@ -27,7 +27,6 @@ FILE DESCRIPTION
 #include "glsl_dataflow.h"
 #include "glsl_shader_interfaces.h"
 #include "glsl_extensions.h"
-#include "glsl_globals.h"     /* For GLSL_SHADER_VERSION */
 
 SymbolTable *glsl_symbol_table_new(void) {
    SymbolTable *table = malloc_fast(sizeof(SymbolTable));

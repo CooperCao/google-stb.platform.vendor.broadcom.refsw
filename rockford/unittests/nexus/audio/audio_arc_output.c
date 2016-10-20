@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2013 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
 ******************************************************************************/
 /* Nexus example app: Play audio out to the HDMI input's Audio Return Channel. */
 
@@ -268,7 +260,7 @@ NEXUS_Error checkRecvMsgSize(uint8_t opcode, unsigned expectedLen, unsigned actu
 void deviceReady_callback(void *context, int param)
 {
     NEXUS_CecHandle     hCec = (NEXUS_CecHandle)context;
-	NEXUS_CecStatus     status;
+    NEXUS_CecStatus     status;
 
     BSTD_UNUSED(param);
     BKNI_SetEvent(event);
@@ -330,11 +322,11 @@ void msgReceived_callback(void *context, int param)
 
         if (msgLen == 0)
         {
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Polling Message>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
 
         else if (pMsg[0] == 0x83)    /* <Give Physical Address> */
@@ -342,16 +334,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             checkRecvMsgSize(0x83, 1, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Give Physical Address>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Report Physical Address>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0xF;
             transmitMessage.length = 4;
@@ -366,57 +358,57 @@ void msgReceived_callback(void *context, int param)
         else if (pMsg[0] == 0xC0)    /* <InitiateARC> */
         {
             checkRecvMsgSize(0xC0, 1, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <InitiateARC>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             initiateArc = true;
         }
         else if (pMsg[0] == 0x84)    /* <Report Physical Address> */
         {
             checkRecvMsgSize(0x84, 4, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Report Physical Address> : 0x%02x 0x%02x 0x%02x",  pMsg[1], pMsg[2], pMsg[3] ));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
         else if (pMsg[0] == 0x87)    /* <Device Vendor ID> */
         {
             checkRecvMsgSize(0x87, 4, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received  <Device Vendor ID> : 0x%02x 0x%02x 0x%02x",  pMsg[1], pMsg[2], pMsg[3] ));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
         else if (pMsg[0] == 0x82)    /* <ActiveSource> */
         {
             checkRecvMsgSize(0x82, 3, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Active Source>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
         else if (pMsg[0] == 0x9E)    /* <CEC Version> */
         {
             checkRecvMsgSize(0x9E, 2, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <CEC Version>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
         else if (pMsg[0] == 0x90)    /* <Report Power Status> */
         {
             checkRecvMsgSize(0x90, 2, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Report Power Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             powerStatusValue = pMsg[1];
             powerStatusValid = true;
         }
@@ -425,16 +417,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             checkRecvMsgSize(0x8C, 1, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Give Device Vendor ID>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Device Vendor ID>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0xf;
             transmitMessage.length = 4;
@@ -451,16 +443,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             checkRecvMsgSize(0x71, 1, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Give Audio Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Report Audio Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0x0;
             transmitMessage.length = 2;
@@ -475,16 +467,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             checkRecvMsgSize(0x7D, 1, msgLen);
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Give System Audio Mode Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <System Audio Mode Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0x0;
             transmitMessage.length = 2;
@@ -500,16 +492,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             /* checkRecvMsgSize(0x89, 1, msgLen); */
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Vendor Command>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Feature Abort>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0x0;
             transmitMessage.length = 3;
@@ -526,16 +518,16 @@ void msgReceived_callback(void *context, int param)
             NEXUS_CecMessage transmitMessage;
 
             /* checkRecvMsgSize(0x89, 1, msgLen); */
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Received <Vendor Command with ID>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Feature Abort>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.initiatorAddr = status.logicalAddress;
             transmitMessage.destinationAddr = 0x0;
             transmitMessage.length = 3;
@@ -548,11 +540,11 @@ void msgReceived_callback(void *context, int param)
         }
         else
         {
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_WRN(("****************************************************")) ;
             BDBG_WRN(("*  Received Unexpected Message: 0x%02x !!! ", pMsg[0]));
             BDBG_WRN(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
         }
     }
 }
@@ -560,7 +552,7 @@ void msgReceived_callback(void *context, int param)
 void msgTransmitted_callback(void *context, int param)
 {
     NEXUS_CecHandle     hCec = (NEXUS_CecHandle)context;
-	NEXUS_CecStatus     status;
+    NEXUS_CecStatus     status;
 
     BSTD_UNUSED(param);
     BKNI_SetEvent(event);
@@ -859,7 +851,7 @@ int main(int argc, char **argv)
         cecSettings.physicalAddress[0]= (hdmiStatus.physicalAddressA << 4) | hdmiStatus.physicalAddressB;
         cecSettings.physicalAddress[1]= (hdmiStatus.physicalAddressC << 4) | hdmiStatus.physicalAddressD;
 
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
         BDBG_LOG(("****************************************************")) ;
         BDBG_LOG(("*  Using CEC Physical Address: %X.%X.%X.%X",
             (cecSettings.physicalAddress[0] & 0xF0) >> 4,
@@ -867,7 +859,7 @@ int main(int argc, char **argv)
             (cecSettings.physicalAddress[1] & 0xF0) >> 4,
             (cecSettings.physicalAddress[1] & 0x0F) )) ;
         BDBG_LOG(("****************************************************")) ;
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
 
         cecSettings.deviceType = 5;     /* 3 => Tuner, 5 => Audio System */
 
@@ -881,11 +873,11 @@ int main(int argc, char **argv)
         BDBG_ASSERT(!rc);
     }
 
-    BDBG_LOG((""));
+    BDBG_LOG((" "));
     BDBG_LOG(("****************************************************")) ;
     BDBG_LOG(("*  Checking for CEC Logical Address"));
     BDBG_LOG(("****************************************************")) ;
-    BDBG_LOG((""));
+    BDBG_LOG((" "));
     {
         unsigned            loops;
         NEXUS_CecStatus     cecStatus;
@@ -911,11 +903,11 @@ int main(int argc, char **argv)
             goto done ;
         }
 
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
         BDBG_LOG(("****************************************************")) ;
         BDBG_LOG(("*  CEC Logical Address is %u", cecStatus.logicalAddress));
         BDBG_LOG(("****************************************************")) ;
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
     }
 
     {
@@ -932,11 +924,11 @@ int main(int argc, char **argv)
              *******************************************************************/
             powerStatusValid = false;
 
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Sending <Give Device Power Status>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             transmitMessage.destinationAddr = NEXUS_CecDeviceType_eAudioSystem;
             transmitMessage.length = 1;
             transmitMessage.buffer[0] = 0x8F;   /* <Give Device Power Status> */
@@ -952,7 +944,7 @@ int main(int argc, char **argv)
 
             if ( powerStatusValid)
             {
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 BDBG_LOG(("************************************************************************")) ;
                 BDBG_LOG(("*  Got <Report Power Status>: power code is 0x%x => %s", powerStatusValue,
                                                         powerStatusValue==0x0 ? "On"        :
@@ -961,16 +953,16 @@ int main(int argc, char **argv)
                                                         powerStatusValue==0x3 ? "In transition: On -> Standby" :
                                                                                 "<Reserved>"       ));
                 BDBG_LOG(("************************************************************************")) ;
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 if (powerStatusValid && powerStatusValue==0x0) break;   /* Great!  TV is powered up! */
             }
             else
             {
-                BDBG_WRN((""));
+                BDBG_WRN((" "));
                 BDBG_WRN(("************************************************************************")) ;
                 BDBG_WRN(("  Timed out waiting for <Report Power Status> message.  Trying again...."));
                 BDBG_WRN(("***********************************************************************")) ;
-                BDBG_WRN((""));
+                BDBG_WRN((" "));
                 continue;  /* Back to the top to send another <Give Device Power Status>. */
             }
 
@@ -982,11 +974,11 @@ int main(int argc, char **argv)
             {
                 powerStatusValid = false;
 
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 BDBG_LOG(("****************************************************")) ;
                 BDBG_LOG(("*  Sending <Image View On>"));
                 BDBG_LOG(("****************************************************")) ;
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 transmitMessage.destinationAddr = NEXUS_CecDeviceType_eAudioSystem;
                 transmitMessage.length = 1;
                 transmitMessage.buffer[0] = 0x04;   /* <Image View On> */
@@ -1013,11 +1005,11 @@ int main(int argc, char **argv)
              *******************************************************************/
             if (! initiateArc)
             {
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 BDBG_LOG(("****************************************************")) ;
                 BDBG_LOG(("*  Sending <Request ARC Initiation>"));
                 BDBG_LOG(("****************************************************")) ;
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 transmitMessage.destinationAddr = 5;
                 transmitMessage.length = 1;
                 transmitMessage.buffer[0] = 0xC3;   /* <Initiate ARC> */
@@ -1028,11 +1020,11 @@ int main(int argc, char **argv)
             /*******************************************************************
              *  Wait for the <Initiate ARC> message.
              *******************************************************************/
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             BDBG_LOG(("****************************************************")) ;
             BDBG_LOG(("*  Waiting for <Initiate ARC>"));
             BDBG_LOG(("****************************************************")) ;
-            BDBG_LOG((""));
+            BDBG_LOG((" "));
             for (loops = 0; loops < 20; loops++)
             {
                 if (initiateArc)
@@ -1043,11 +1035,11 @@ int main(int argc, char **argv)
 
             if ( initiateArc )
             {
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 BDBG_LOG(("****************************************************")) ;
                 BDBG_LOG(("*  Got <Initiate ARC>"));
                 BDBG_LOG(("****************************************************")) ;
-                BDBG_LOG((""));
+                BDBG_LOG((" "));
                 break;
             }
 
@@ -1064,11 +1056,11 @@ int main(int argc, char **argv)
     {
         NEXUS_CecMessage    transmitMessage;
 
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
         BDBG_LOG(("****************************************************")) ;
         BDBG_LOG(("*  Sending <Report ARC Initiated>"));
         BDBG_LOG(("****************************************************")) ;
-        BDBG_LOG((""));
+        BDBG_LOG((" "));
         transmitMessage.destinationAddr = 5;
         transmitMessage.length = 1;
         transmitMessage.buffer[0] = 0xC1;   /* <Report ARC Initiated> */

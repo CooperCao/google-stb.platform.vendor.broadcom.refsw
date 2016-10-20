@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:12 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,28 +70,28 @@
 /***************************************************************************
  *RAAGA_DSP_PERI_SW - Raaga DSP SW Control Registers
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE0        0x20c21100 /* [RW] Semaphore Register 0 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE1        0x20c21104 /* [RW] Semaphore Register 1 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE2        0x20c21108 /* [RW] Semaphore Register 2 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE3        0x20c2110c /* [RW] Semaphore Register 3 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE4        0x20c21110 /* [RW] Semaphore Register 4 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE5        0x20c21114 /* [RW] Semaphore Register 5 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE6        0x20c21118 /* [RW] Semaphore Register 6 */
-#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE7        0x20c2111c /* [RW] Semaphore Register 7 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX0          0x20c21120 /* [RW] Mailbox Register 0 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX1          0x20c21124 /* [RW] Mailbox Register 1 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX2          0x20c21128 /* [RW] Mailbox Register 2 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX3          0x20c2112c /* [RW] Mailbox Register 3 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX4          0x20c21130 /* [RW] Mailbox Register 4 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX5          0x20c21134 /* [RW] Mailbox Register 5 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX6          0x20c21138 /* [RW] Mailbox Register 6 */
-#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX7          0x20c2113c /* [RW] Mailbox Register 7 */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_STATUS_0 0x20c21140 /* [RO] SW SET CLEAR Status Register (Register 0) */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_SET_0    0x20c21144 /* [WO] SW SET CLEAR Set Register (Register 0) */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_CLEAR_0  0x20c21148 /* [WO] SW SET CLEAR Clear Register (Register 0) */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_STATUS_1 0x20c2114c /* [RO] SW SET CLEAR Status Register (Register 1) */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_SET_1    0x20c21150 /* [WO] SW SET CLEAR Set Register (Register 1) */
-#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_CLEAR_1  0x20c21154 /* [WO] SW SET CLEAR Clear Register (Register 1) */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE0        0x20c21100 /* [RW][32] Semaphore Register 0 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE1        0x20c21104 /* [RW][32] Semaphore Register 1 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE2        0x20c21108 /* [RW][32] Semaphore Register 2 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE3        0x20c2110c /* [RW][32] Semaphore Register 3 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE4        0x20c21110 /* [RW][32] Semaphore Register 4 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE5        0x20c21114 /* [RW][32] Semaphore Register 5 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE6        0x20c21118 /* [RW][32] Semaphore Register 6 */
+#define BCHP_RAAGA_DSP_PERI_SW_SEMAPHORE7        0x20c2111c /* [RW][32] Semaphore Register 7 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX0          0x20c21120 /* [RW][32] Mailbox Register 0 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX1          0x20c21124 /* [RW][32] Mailbox Register 1 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX2          0x20c21128 /* [RW][32] Mailbox Register 2 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX3          0x20c2112c /* [RW][32] Mailbox Register 3 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX4          0x20c21130 /* [RW][32] Mailbox Register 4 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX5          0x20c21134 /* [RW][32] Mailbox Register 5 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX6          0x20c21138 /* [RW][32] Mailbox Register 6 */
+#define BCHP_RAAGA_DSP_PERI_SW_MAILBOX7          0x20c2113c /* [RW][32] Mailbox Register 7 */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_STATUS_0 0x20c21140 /* [RO][32] SW SET CLEAR Status Register (Register 0) */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_SET_0    0x20c21144 /* [WO][32] SW SET CLEAR Set Register (Register 0) */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_CLEAR_0  0x20c21148 /* [WO][32] SW SET CLEAR Clear Register (Register 0) */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_STATUS_1 0x20c2114c /* [RO][32] SW SET CLEAR Status Register (Register 1) */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_SET_1    0x20c21150 /* [WO][32] SW SET CLEAR Set Register (Register 1) */
+#define BCHP_RAAGA_DSP_PERI_SW_MSG_BITS_CLEAR_1  0x20c21154 /* [WO][32] SW SET CLEAR Clear Register (Register 1) */
 
 /***************************************************************************
  *SEMAPHORE0 - Semaphore Register 0

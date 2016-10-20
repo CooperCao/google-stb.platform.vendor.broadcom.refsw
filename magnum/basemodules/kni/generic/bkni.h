@@ -448,7 +448,7 @@ BKNI_TRACK_MALLOCS is a simple way to track BKNI_Malloc memory leaks and bad BKN
 It can also help find the location of bad BKNI_EventHandle and BKNI_MutexHandle instances.
 **/
 #ifndef BKNI_TRACK_MALLOCS
-#if defined(LINUX) && !defined(__KERNEL__) && BDBG_DEBUG_BUILD
+#if defined(LINUX) && !defined(__KERNEL__) && defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BKNI_TRACK_MALLOCS 1
 #else
 #define BKNI_TRACK_MALLOCS 0
@@ -461,7 +461,7 @@ of poorly written code or context switching on an overly busy system or a system
 real-time threads.
 **/
 #ifndef BKNI_DEBUG_CS_TIMING
-#if defined(LINUX) && !defined(__KERNEL__) && BDBG_DEBUG_BUILD
+#if defined(LINUX) && !defined(__KERNEL__) && defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BKNI_DEBUG_CS_TIMING 0
 #else
 #define BKNI_DEBUG_CS_TIMING 0
@@ -473,7 +473,7 @@ BKNI_DEBUG_MUTEX_TRACKING can find mutex objects thate were acquired for long ti
 symptom and/or cause of a deadlock condition
 **/
 #ifndef BKNI_DEBUG_MUTEX_TRACKING
-#if defined(LINUX) && !defined(__KERNEL__) && BDBG_DEBUG_BUILD
+#if defined(LINUX) && !defined(__KERNEL__) && defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BKNI_DEBUG_MUTEX_TRACKING 0
 #else
 #define BKNI_DEBUG_MUTEX_TRACKING 0
@@ -863,7 +863,7 @@ Description:
 See Also:
     BKNI_EnterCriticalSection, Magnum InterruptSafe rules
 ****************************************************************************/
-#ifdef BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BKNI_ASSERT_TASK_CONTEXT() BKNI_AssertTaskContext(BSTD_FILE, BSTD_LINE)
 #else
 #define BKNI_ASSERT_TASK_CONTEXT() (void)0
@@ -881,7 +881,7 @@ Description:
 See Also:
     BKNI_EnterCriticalSection, Magnum InterruptSafe rules
 ****************************************************************************/
-#ifdef BDBG_DEBUG_BUILD
+#if defined BDBG_DEBUG_BUILD && BDBG_DEBUG_BUILD
 #define BKNI_ASSERT_ISR_CONTEXT() BKNI_AssertIsrContext_isr(BSTD_FILE, BSTD_LINE)
 #else
 #define BKNI_ASSERT_ISR_CONTEXT() (void)0

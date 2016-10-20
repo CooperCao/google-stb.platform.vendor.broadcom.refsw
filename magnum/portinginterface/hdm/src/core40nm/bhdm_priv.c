@@ -1,7 +1,7 @@
 /***************************************************************************
-*	  (c)2004-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -13,11 +13,11 @@
 *
 *  Except as expressly set forth in the Authorized License,
 *
-*  1.	  This program, including its structure, sequence and organization, constitutes the valuable trade
+*  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
 *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
 *  and to use this information only in connection with your use of Broadcom integrated circuit products.
 *
-*  2.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
 *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
 *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
 *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
@@ -26,7 +26,7 @@
 *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
 *  USE OR PERFORMANCE OF THE SOFTWARE.
 *
-*  3.	  TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
 *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
 *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
 *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
@@ -34,16 +34,8 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
+*
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -70,6 +62,7 @@ NOTE: These entries match the number of entries in the BHDM_InputPixelClock enum
 /* HDMI Rate Manager now updated by VDC for smoother transitions */
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 BERR_Code BHDM_SetAudioMute
 Summary: Implements HDMI Audio (only) mute enable/disable.
@@ -119,6 +112,7 @@ done:
 	BDBG_LEAVE(BHDM_SetAudioMute) ;
 	return rc ;
 }  /* END BHDM_SetAudioMute */
+#endif
 
 
 /******************************************************************************
@@ -247,6 +241,7 @@ void BHDM_P_ConfigureInputAudioFmt(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
 	Set pixel data override
@@ -584,8 +579,11 @@ done:
 	return rc;
 
 }
-
+#endif
 #endif /*#ifndef BHDM_FOR_BOOTUPDATER */
+
+
+
 
 
 /******************************************************************************
@@ -759,7 +757,7 @@ BERR_Code BHDM_P_ConfigurePhy(const BHDM_Handle hHDMI, const BHDM_Settings *NewH
 	BDBG_ENTER(BHDM_P_ConfigurePhy) ;
 
 	rc = BHDM_GetPreEmphasisConfiguration(hHDMI, &stPreEmphasisConfig);
-	if (rc) BERR_TRACE(rc);
+	if (rc) (void)BERR_TRACE(rc);
 
 	/* Majority of the cases default to this config */
 	stPreEmphasisConfig.uiHfEn = 0;
@@ -1138,6 +1136,3 @@ void BHDM_P_RxDeviceAttached_isr(
 	BDBG_LEAVE(BHDM_P_RxDeviceAttached_isr) ;
 	return ;
 }
-
-
-

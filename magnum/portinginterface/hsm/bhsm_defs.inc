@@ -42,6 +42,7 @@ include $(MAGNUM)/basemodules/chp/build/bchp_rdb.inc
 #
 # Determine the ZEUS version and CORETECH
 #
+SECURITY_CORE_LIST_ZEUS_421     := 7271b0 7268b0
 SECURITY_CORE_LIST_ZEUS_42      := 7445e0 7445d0 7366b0 7145b0 7252d0 7399a0 7439b0 7459c0 7364a0 7250b0 7366c0 7586a0 7364b0 7271a0 7268a0 7364c0 7260a0
 SECURITY_CORE_LIST_ZEUS_41      := 7366a0 7439a0 74371a0
 SECURITY_CORE_LIST_ZEUS_30      := 7584a0 7584a1 7435b0 75845a0
@@ -52,41 +53,55 @@ SECURITY_CORE_LIST_ZEUS_10      := 7346a0 7358a0 7358a1
 
 BCHP_CHIP_NAME_VERSION:=$(BCHP_CHIP)$(BCHP_VER_LOWER)
 
-ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_42) ), $(BCHP_CHIP_NAME_VERSION))
+ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_421) ), $(BCHP_CHIP_NAME_VERSION))
     ZEUSVER  := Zeus42
     CORETECH := core28nm
     BHSM_ZEUS_VER_MAJOR:=4
     BHSM_ZEUS_VER_MINOR:=2
+    BHSM_ZEUS_VER_SUBMINOR:=1
 else
-    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_41) ), $(BCHP_CHIP_NAME_VERSION))
-        ZEUSVER  := Zeus41
+    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_42) ), $(BCHP_CHIP_NAME_VERSION))
+        ZEUSVER  := Zeus42
         CORETECH := core28nm
         BHSM_ZEUS_VER_MAJOR:=4
-        BHSM_ZEUS_VER_MINOR:=1
+        BHSM_ZEUS_VER_MINOR:=2
+        BHSM_ZEUS_VER_SUBMINOR:=0
     else
-        ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_30) ), $(BCHP_CHIP_NAME_VERSION))
-            ZEUSVER  := Zeus30
-            CORETECH := core40nm
-            BHSM_ZEUS_VER_MAJOR:=3
-            BHSM_ZEUS_VER_MINOR:=0
+        ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_41) ), $(BCHP_CHIP_NAME_VERSION))
+            ZEUSVER  := Zeus41
+            CORETECH := core28nm
+            BHSM_ZEUS_VER_MAJOR:=4
+            BHSM_ZEUS_VER_MINOR:=1
+            BHSM_ZEUS_VER_SUBMINOR:=0
         else
-            ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_22) ), $(BCHP_CHIP_NAME_VERSION))
-                ZEUSVER  := Zeus22
+            ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_30) ), $(BCHP_CHIP_NAME_VERSION))
+                ZEUSVER  := Zeus30
                 CORETECH := core40nm
-                BHSM_ZEUS_VER_MAJOR:=2
-                BHSM_ZEUS_VER_MINOR:=2
+                BHSM_ZEUS_VER_MAJOR:=3
+                BHSM_ZEUS_VER_MINOR:=0
+                BHSM_ZEUS_VER_SUBMINOR:=0
             else
-                ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_20) ), $(BCHP_CHIP_NAME_VERSION))
-                    ZEUSVER  := Zeus20
+                ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_22) ), $(BCHP_CHIP_NAME_VERSION))
+                    ZEUSVER  := Zeus22
                     CORETECH := core40nm
                     BHSM_ZEUS_VER_MAJOR:=2
-                    BHSM_ZEUS_VER_MINOR:=0
+                    BHSM_ZEUS_VER_MINOR:=2
+                    BHSM_ZEUS_VER_SUBMINOR:=0
                 else
-                    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_10) ), $(BCHP_CHIP_NAME_VERSION))
-                        ZEUSVER := Zeus10
+                    ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_20) ), $(BCHP_CHIP_NAME_VERSION))
+                        ZEUSVER  := Zeus20
                         CORETECH := core40nm
-                        BHSM_ZEUS_VER_MAJOR:=1
+                        BHSM_ZEUS_VER_MAJOR:=2
                         BHSM_ZEUS_VER_MINOR:=0
+                        BHSM_ZEUS_VER_SUBMINOR:=0
+                    else
+                        ifeq ($(filter $(BCHP_CHIP_NAME_VERSION), $(SECURITY_CORE_LIST_ZEUS_10) ), $(BCHP_CHIP_NAME_VERSION))
+                            ZEUSVER := Zeus10
+                            CORETECH := core40nm
+                            BHSM_ZEUS_VER_MAJOR:=1
+                            BHSM_ZEUS_VER_MINOR:=0
+                            BHSM_ZEUS_VER_SUBMINOR:=0
+                        endif
                     endif
                 endif
             endif

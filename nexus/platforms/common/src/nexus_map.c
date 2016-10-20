@@ -249,7 +249,7 @@ void *nexus_p_map_memory(NEXUS_Addr offset, size_t length, NEXUS_MemoryMapType t
 #if !USE_DEV_ZERO_FOR_FAKE_ADDRESS_SPACE
             if ((unsigned)addr < g_fake.settings.offset || (unsigned)addr + length > g_fake.settings.offset + g_fake.settings.size) {
                 BDBG_ERR(("fake address outside of bounds: bounds %#x %#x, alloc %p %#x",
-                    g_fake.settings.offset, g_fake.settings.size,
+                    (unsigned) g_fake.settings.offset, (unsigned) g_fake.settings.size,
                     addr, (unsigned)length));
                 BKNI_Fail(); /* we cannot go on. the code must be fixed. */
             }

@@ -208,6 +208,10 @@ public:
    bool GetShowFpsHUD() const    { return m_showFpsHUD;  }
    void SetShowFpsHUD(bool show) { m_showFpsHUD = show;  }
 
+   //! Pin the mouse cursor.
+   bool GetPinCursor() const { return m_pinCursor; }
+   void SetPinCursor(bool pin) { m_pinCursor = pin; }
+
    //! Return the width/height allowing for stereo
    uint32_t GetStereoWidth()  const { return m_stereo ? m_options.GetWidth() / 2 : m_options.GetWidth(); }
    uint32_t GetStereoHeight() const { return m_options.GetHeight();                                      }
@@ -396,6 +400,7 @@ private:
    uint32_t             m_swapInterval;
    bool                 m_showHUD;
    bool                 m_showFpsHUD;
+   bool                 m_pinCursor;
    uint32_t             m_windowWidth;
    uint32_t             m_windowHeight;
 

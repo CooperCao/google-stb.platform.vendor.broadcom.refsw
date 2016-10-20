@@ -118,7 +118,7 @@ public:
    void AddEGLImageMapping(uint32_t handle, EGLImageKHR real);
    EGLSyncKHR MapEGLImage(uint32_t handle);
 
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
    void AddSyncMapping(uint32_t handle, GLsync real);
    GLsync MapSync(uint32_t handle);
 
@@ -243,7 +243,7 @@ private:
    std::map<uint32_t, GLuint>           m_bufferMap;
    std::map<uint32_t, EGLSyncKHR>       m_eglSyncMap;
    std::map<uint32_t, EGLImageKHR>      m_eglImageMap;
-#if V3D_TECH_VERSION == 3
+#if V3D_TECH_VERSION >= 3
    std::map<uint32_t, GLsync>           m_syncMap;
    std::map<uint32_t, GLuint>           m_queryMap;
    std::map<uint32_t, GLuint>           m_vertexArrayMap;

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,51 +70,51 @@
 /***************************************************************************
  *AVS_RO_REGISTERS_0 - AVS RO Registers 0 Core
  ***************************************************************************/
-#define BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS 0x204d2200 /* [RO] Indicate PVT monitor sel 000(Temperature Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_0P85V_0_MNTR_STATUS 0x204d2204 /* [RO] Indicate PVT monitor sel 001(0p85V_0 Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_0P85V_1_MNTR_STATUS 0x204d2208 /* [RO] Indicate PVT monitor sel 010(0p85V_1 Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS 0x204d220c /* [RO] Indicate PVT monitor sel 011(1V_0 Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_1V_1_MNTR_STATUS 0x204d2210 /* [RO] Indicate PVT monitor sel 100(1V_1 Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_1p8V_MNTR_STATUS 0x204d2214 /* [RO] Indicate PVT monitor sel 101(1p8V Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_3p3V_MNTR_STATUS 0x204d2218 /* [RO] Indicate PVT monitor sel 110(3p3V Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_PVT_TESTMODE_MNTR_STATUS 0x204d221c /* [RO] Indicate PVT monitor sel 111(Testmode Monitoring) measurements data, validity of data and measurement done status */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_0 0x204d2220 /* [RO] Indicate central rosc 0 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_1 0x204d2224 /* [RO] Indicate central rosc 1 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_2 0x204d2228 /* [RO] Indicate central rosc 2 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_3 0x204d222c /* [RO] Indicate central rosc 3 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_4 0x204d2230 /* [RO] Indicate central rosc 4 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_5 0x204d2234 /* [RO] Indicate central rosc 5 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_6 0x204d2238 /* [RO] Indicate central rosc 6 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_7 0x204d223c /* [RO] Indicate central rosc 7 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_8 0x204d2240 /* [RO] Indicate central rosc 8 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_9 0x204d2244 /* [RO] Indicate central rosc 9 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_10 0x204d2248 /* [RO] Indicate central rosc 10 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_11 0x204d224c /* [RO] Indicate central rosc 11 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_12 0x204d2250 /* [RO] Indicate central rosc 12 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_13 0x204d2254 /* [RO] Indicate central rosc 13 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_14 0x204d2258 /* [RO] Indicate central rosc 14 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_15 0x204d225c /* [RO] Indicate central rosc 15 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_16 0x204d2260 /* [RO] Indicate central rosc 16 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_17 0x204d2264 /* [RO] Indicate central rosc 17 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_18 0x204d2268 /* [RO] Indicate central rosc 18 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_19 0x204d226c /* [RO] Indicate central rosc 19 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_20 0x204d2270 /* [RO] Indicate central rosc 20 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_21 0x204d2274 /* [RO] Indicate central rosc 21 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_22 0x204d2278 /* [RO] Indicate central rosc 22 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_23 0x204d227c /* [RO] Indicate central rosc 23 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_24 0x204d2280 /* [RO] Indicate central rosc 24 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_25 0x204d2284 /* [RO] Indicate central rosc 25 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_26 0x204d2288 /* [RO] Indicate central rosc 26 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_27 0x204d228c /* [RO] Indicate central rosc 27 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_28 0x204d2290 /* [RO] Indicate central rosc 28 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_29 0x204d2294 /* [RO] Indicate central rosc 29 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_30 0x204d2298 /* [RO] Indicate central rosc 30 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_31 0x204d229c /* [RO] Indicate central rosc 31 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_32 0x204d22a0 /* [RO] Indicate central rosc 32 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_33 0x204d22a4 /* [RO] Indicate central rosc 33 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_34 0x204d22a8 /* [RO] Indicate central rosc 34 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_35 0x204d22ac /* [RO] Indicate central rosc 35 measurement data and validity of data */
-#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_ALL_IDL_HI_LOW_ROSCS 0x204d22e0 /* [RO] Represent sampled data from the central rosc's all_idl_hi_oscs and all_idl_low_oscs signals for test/debug purpose */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_TEMPERATURE_MNTR_STATUS 0x204d2200 /* [RO][32] Indicate PVT monitor sel 000(Temperature Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_0P85V_0_MNTR_STATUS 0x204d2204 /* [RO][32] Indicate PVT monitor sel 001(0p85V_0 Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_0P85V_1_MNTR_STATUS 0x204d2208 /* [RO][32] Indicate PVT monitor sel 010(0p85V_1 Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_1V_0_MNTR_STATUS 0x204d220c /* [RO][32] Indicate PVT monitor sel 011(1V_0 Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_1V_1_MNTR_STATUS 0x204d2210 /* [RO][32] Indicate PVT monitor sel 100(1V_1 Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_1p8V_MNTR_STATUS 0x204d2214 /* [RO][32] Indicate PVT monitor sel 101(1p8V Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_3p3V_MNTR_STATUS 0x204d2218 /* [RO][32] Indicate PVT monitor sel 110(3p3V Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_PVT_TESTMODE_MNTR_STATUS 0x204d221c /* [RO][32] Indicate PVT monitor sel 111(Testmode Monitoring) measurements data, validity of data and measurement done status */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_0 0x204d2220 /* [RO][32] Indicate central rosc 0 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_1 0x204d2224 /* [RO][32] Indicate central rosc 1 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_2 0x204d2228 /* [RO][32] Indicate central rosc 2 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_3 0x204d222c /* [RO][32] Indicate central rosc 3 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_4 0x204d2230 /* [RO][32] Indicate central rosc 4 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_5 0x204d2234 /* [RO][32] Indicate central rosc 5 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_6 0x204d2238 /* [RO][32] Indicate central rosc 6 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_7 0x204d223c /* [RO][32] Indicate central rosc 7 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_8 0x204d2240 /* [RO][32] Indicate central rosc 8 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_9 0x204d2244 /* [RO][32] Indicate central rosc 9 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_10 0x204d2248 /* [RO][32] Indicate central rosc 10 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_11 0x204d224c /* [RO][32] Indicate central rosc 11 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_12 0x204d2250 /* [RO][32] Indicate central rosc 12 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_13 0x204d2254 /* [RO][32] Indicate central rosc 13 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_14 0x204d2258 /* [RO][32] Indicate central rosc 14 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_15 0x204d225c /* [RO][32] Indicate central rosc 15 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_16 0x204d2260 /* [RO][32] Indicate central rosc 16 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_17 0x204d2264 /* [RO][32] Indicate central rosc 17 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_18 0x204d2268 /* [RO][32] Indicate central rosc 18 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_19 0x204d226c /* [RO][32] Indicate central rosc 19 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_20 0x204d2270 /* [RO][32] Indicate central rosc 20 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_21 0x204d2274 /* [RO][32] Indicate central rosc 21 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_22 0x204d2278 /* [RO][32] Indicate central rosc 22 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_23 0x204d227c /* [RO][32] Indicate central rosc 23 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_24 0x204d2280 /* [RO][32] Indicate central rosc 24 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_25 0x204d2284 /* [RO][32] Indicate central rosc 25 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_26 0x204d2288 /* [RO][32] Indicate central rosc 26 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_27 0x204d228c /* [RO][32] Indicate central rosc 27 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_28 0x204d2290 /* [RO][32] Indicate central rosc 28 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_29 0x204d2294 /* [RO][32] Indicate central rosc 29 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_30 0x204d2298 /* [RO][32] Indicate central rosc 30 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_31 0x204d229c /* [RO][32] Indicate central rosc 31 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_32 0x204d22a0 /* [RO][32] Indicate central rosc 32 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_33 0x204d22a4 /* [RO][32] Indicate central rosc 33 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_34 0x204d22a8 /* [RO][32] Indicate central rosc 34 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_STATUS_35 0x204d22ac /* [RO][32] Indicate central rosc 35 measurement data and validity of data */
+#define BCHP_AVS_RO_REGISTERS_0_CEN_ROSC_ALL_IDL_HI_LOW_ROSCS 0x204d22e0 /* [RO][32] Represent sampled data from the central rosc's all_idl_hi_oscs and all_idl_low_oscs signals for test/debug purpose */
 
 /***************************************************************************
  *PVT_TEMPERATURE_MNTR_STATUS - Indicate PVT monitor sel 000(Temperature Monitoring) measurements data, validity of data and measurement done status

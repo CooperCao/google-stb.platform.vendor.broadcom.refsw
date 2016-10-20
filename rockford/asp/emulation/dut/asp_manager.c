@@ -46,6 +46,11 @@
 #include <assert.h>
 #include <unistd.h>
 #include <arpa/inet.h>
+#include <linux/if_packet.h>
+#include <linux/if.h>
+#include <linux/if_ether.h>
+
+#include "../../../../nexus/lib/bip/include/bip.h"
 
 #include "asp_manager_api.h"
 #include "asp_connx_migration_api.h"
@@ -56,6 +61,7 @@ typedef struct ASP_Mgr
 {
     char *pAspProxyServerIp;
 } ASP_Mgr;
+
 static ASP_Mgr g_aspMgr;
 typedef struct ASP_Mgr* ASP_MgrHandle;
 
@@ -66,7 +72,11 @@ typedef struct ASP_ChannelMgr
     int fdEvents;
     int fdMigratedConnx;    /* sockFd of migrated socket. */
 
-    struct sockaddr_in remoteIpAddr; /* This is needed to send the raw frame to network.*/
+    BIP_IoCheckerHandle hRawFrameFdIoChecker;
+
+    struct sockaddr_in remoteIpAddr;    /* TODO: This is no more required, depricated with actual raw frame send.*/
+    char *pInterfaceName;               /* This is needed to send the raw frame to network.*/
+    unsigned char      remoteHostMacAddr[8];/* This is needed to send the raw frame to network.*/
     ASP_MgrHandle hAspMgr;  /* Parent handle. */
 } ASP_ChannelMgr;
 
@@ -76,6 +86,11 @@ typedef struct ASP_ChannelMgr
 void
 ASP_Mgr_Uninit(void)
 {
+
+    BIP_Uninit();
+
+    NEXUS_Platform_Uninit();
+
     if (g_aspMgr.pAspProxyServerIp)
     {
         free(g_aspMgr.pAspProxyServerIp);
@@ -91,6 +106,10 @@ ASP_Mgr_Init(
     const char *pAspProxyServerIp      /* If non-null, communicate w/ ASP using this proxy server. */
     )
 {
+    int rc;
+    /* TODO:Later if we bring in BIP_Uninit() then this will be removed.*/
+    static NEXUS_PlatformSettings   platformSettings;    /* Make "static" to reduce stack usage for Coverity. */
+
     memset(&g_aspMgr, 0, sizeof(g_aspMgr));
 
     if (pAspProxyServerIp)
@@ -98,6 +117,16 @@ ASP_Mgr_Init(
         g_aspMgr.pAspProxyServerIp = strndup(pAspProxyServerIp, strlen(pAspProxyServerIp));
         assert(g_aspMgr.pAspProxyServerIp);
     }
+
+    /* Entry Point: */
+    NEXUS_Platform_GetDefaultSettings( &platformSettings );
+    platformSettings.openFrontend = false;
+    NEXUS_Platform_Init( &platformSettings );
+
+    /* TODO:Later if we bring in BIP_Init() then this will be removed.*/
+    rc = BIP_Init(NULL);
+    assert(rc == 0);
+
     return 0;
 }
 
@@ -109,6 +138,13 @@ ASP_ChannelMgr_Close(
 ASP_ChannelMgrHandle hAspChannelMgr
     )
 {
+    /** Now we can free memory for getRemoteMacAddress **/
+    if(hAspChannelMgr->pInterfaceName)
+    {
+        free(hAspChannelMgr->pInterfaceName);
+        hAspChannelMgr->pInterfaceName = NULL;
+    }
+
     assert(hAspChannelMgr);
     free(hAspChannelMgr);
 }
@@ -155,6 +191,121 @@ connectToProxyServer(
     return (sockFd);
 }
 
+static int sendRawFrameToNw(
+    ASP_ChannelMgrHandle    hAspChannelMgr,
+    char                    *pRawFrameBuffer,
+    uint32_t                rawFrameSize
+    )
+{
+#if 0
+    int rc  = 0;
+    int socketFd = -1;
+    int one = 1;
+    const int *val = &one;
+
+    socketFd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
+    if(socketFd < 0)
+    {
+        fprintf(stdout, "%s: Failed to create raw socket:\n", __FUNCTION__);
+        goto error;
+    }
+
+    rc = setsockopt(socketFd, IPPROTO_IP, IP_HDRINCL, val, sizeof(one));
+    if(socketFd < 0)
+    {
+        fprintf(stdout, "%s: setsocketopt failed to set IP_HDRINCL ...\n", __FUNCTION__);
+        goto error;
+    }
+
+    fprintf(stdout,"\n %s: =======================> sending to %s:%d\n",__FUNCTION__, inet_ntoa(hAspChannelMgr->remoteIpAddr.sin_addr), ntohs(hAspChannelMgr->remoteIpAddr.sin_port));
+    rc = sendto(socketFd, pRawFrameBuffer, rawFrameSize, 0, (struct sockaddr *)&hAspChannelMgr->remoteIpAddr, sizeof(hAspChannelMgr->remoteIpAddr));
+    if(rc < 0)
+    {
+        fprintf(stdout, "%s:sendto failed ...\n", __FUNCTION__);
+        goto error;
+    }
+#endif
+
+    int socketFd;
+    int rc  = 0;
+    struct sockaddr_ll socket_address;
+    struct ifreq if_idx;
+
+    /* Open RAW socket to send on */
+    if ((socketFd = socket(AF_PACKET, SOCK_RAW, IPPROTO_RAW)) == -1) {
+        fprintf(stdout, "%s: Failed to create raw socket:\n", __FUNCTION__);
+        goto error;
+    }
+
+    /* Get the index of the interface to send on */
+    memset(&if_idx, 0, sizeof(struct ifreq));
+    strncpy(if_idx.ifr_name, hAspChannelMgr->pInterfaceName, IFNAMSIZ-1);
+    if (ioctl(socketFd, SIOCGIFINDEX, &if_idx) < 0)
+        perror("SIOCGIFINDEX");
+
+
+    /* Index of the network device */
+    socket_address.sll_ifindex = if_idx.ifr_ifindex;
+    /* Address length*/
+    socket_address.sll_halen = ETH_ALEN;
+    /* Destination MAC */
+    socket_address.sll_addr[0] = hAspChannelMgr->remoteHostMacAddr[0];
+    socket_address.sll_addr[1] = hAspChannelMgr->remoteHostMacAddr[1];
+    socket_address.sll_addr[2] = hAspChannelMgr->remoteHostMacAddr[2];
+    socket_address.sll_addr[3] = hAspChannelMgr->remoteHostMacAddr[3];
+    socket_address.sll_addr[4] = hAspChannelMgr->remoteHostMacAddr[4];
+    socket_address.sll_addr[5] = hAspChannelMgr->remoteHostMacAddr[5];
+
+    /* Send packet */
+    if (sendto(socketFd, pRawFrameBuffer, rawFrameSize, 0, (struct sockaddr*)&socket_address, sizeof(struct sockaddr_ll)) < 0)
+        printf("Send failed\n");
+
+    fprintf(stdout, "%s: ASP_ProxyServerMsg_eSendRawFrameToNw   rawFrameSize==============%d\n", __FUNCTION__, rawFrameSize);
+
+    close(socketFd);
+
+    return rc;
+error:
+    if(socketFd != -1)
+    {
+        close(socketFd);
+    }
+    return rc;
+}
+
+static void sendrawFrameFromRecvIoCheckerCallback(
+    void *pContext,
+    int param,
+    BIP_IoCheckerEvent eventMask
+    )
+{
+    ASP_ProxyServerMsgHeader aspProxyServerMsgHeader;
+    char *pRawFrameBuffer = NULL;
+    ASP_ChannelMgrHandle    hAspChannelMgr = (ASP_ChannelMgrHandle)pContext;
+    int brc;
+
+    fprintf(stdout, "%s: Recv message of type ASP_ProxyServerMsg_eSendRawFrameToNw\n", __FUNCTION__);
+    brc = ASP_ProxyServerMsg_RecvHeader(hAspChannelMgr->fdRawFrame, &aspProxyServerMsgHeader);
+    assert(brc == true);
+    assert(aspProxyServerMsgHeader.type == ASP_ProxyServerMsg_eSendRawFrameToNw);
+
+
+    /* Allocate memory for raw frame. */
+    pRawFrameBuffer = calloc(1, (aspProxyServerMsgHeader.length*4));
+
+    brc = ASP_ProxyServerMsg_RecvPayload(hAspChannelMgr->fdRawFrame, aspProxyServerMsgHeader.length, pRawFrameBuffer);
+    assert(brc == true);
+
+    fprintf(stdout, "%s: message payload size = %d----------------------\n", __FUNCTION__, aspProxyServerMsgHeader.length);
+    brc = sendRawFrameToNw( hAspChannelMgr, pRawFrameBuffer, aspProxyServerMsgHeader.length);
+    assert(brc != -1);
+
+    if(pRawFrameBuffer)
+    {
+        free(pRawFrameBuffer);
+    }
+}
+
 /*
  * ASP_ChannelMgr_Start()
  */
@@ -171,19 +322,36 @@ ASP_ChannelMgr_Start(
 
     /* Obtain TCP state associated with the sockFdToOffload and send a message to the Proxy Server. */
     {
-        rc = ASP_ConnxMigration_GetTcpStateFromLinux(sockFdToOffload, &socketState );
+        rc = ASP_ConnxMigration_GetTcpStateFromLinux(sockFdToOffload,
+                 &socketState,
+                 &hAspChannelMgr->pInterfaceName,  /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
+                 hAspChannelMgr->remoteHostMacAddr /* This is requuired to be preserved since it will be rewuired at the time of sendRawFrameToNw.*/
+                 );
         assert(rc == 0);
         hAspChannelMgr->remoteIpAddr = socketState.remoteIpAddr;
     }
 
     /* Setup connection w/ the ASP Proxy Server. */
     {
+        BIP_IoCheckerCreateSetting ioCreateSettings;
+
         printf("\n%s: connectint to connectToProxyServer for ASP_PROXY_SERVER_PORT_FOR_PAYLOAD\n",__FUNCTION__);
         hAspChannelMgr->fdPayload = connectToProxyServer(ASP_PROXY_SERVER_PORT_FOR_PAYLOAD, hAspChannelMgr->hAspMgr->pAspProxyServerIp);
         assert(hAspChannelMgr->fdPayload >= 0);
 
         hAspChannelMgr->fdRawFrame = connectToProxyServer(ASP_PROXY_SERVER_PORT_FOR_RAW_FRAMES, hAspChannelMgr->hAspMgr->pAspProxyServerIp);
         assert(hAspChannelMgr->fdRawFrame >= 0);
+
+        /* Once rawFrame is connected, create a ioChecker to observe it for any incoming raw Frames from asp c-model.*/
+        BIP_IoChecker_GetDefaultCreateSettings( &ioCreateSettings );
+        ioCreateSettings.fd =  hAspChannelMgr->fdRawFrame;
+        ioCreateSettings.settings.callBackFunction = sendrawFrameFromRecvIoCheckerCallback;
+        ioCreateSettings.settings.callBackContext  =  hAspChannelMgr;
+        /* TODO: Later we will need to add mac address in param*/
+        hAspChannelMgr->hRawFrameFdIoChecker = BIP_IoChecker_Create( &ioCreateSettings );
+        assert(hAspChannelMgr->hRawFrameFdIoChecker);
+        fprintf(stdout, "%s: Created hRawFrameFdIoChecker for rfdRawFrame=%d\n", __FUNCTION__, hAspChannelMgr->fdRawFrame);
+        BIP_IoChecker_Enable( hAspChannelMgr->hRawFrameFdIoChecker, BIP_IoCheckerEvent_ePollIn);
 
         hAspChannelMgr->fdEvents = connectToProxyServer(ASP_PROXY_SERVER_PORT_FOR_EVENTS, hAspChannelMgr->hAspMgr->pAspProxyServerIp);
         assert(hAspChannelMgr->fdEvents >= 0);
@@ -272,6 +440,14 @@ ASP_ChannelMgr_Stop(
 
     /* Close connections to ASP Proxy Server. */
     {
+        if(hAspChannelMgr->hRawFrameFdIoChecker)
+        {
+            BIP_IoChecker_Disable( hAspChannelMgr->hRawFrameFdIoChecker, BIP_IoCheckerEvent_ePollIn);
+
+            BIP_IoChecker_Destroy(hAspChannelMgr->hRawFrameFdIoChecker);
+            fprintf(stdout, "%s: Destroyed hRawFrameFdIoChecker\n", __FUNCTION__);
+        }
+
         close(hAspChannelMgr->fdPayload);
         close(hAspChannelMgr->fdEvents);
         close(hAspChannelMgr->fdRawFrame);
@@ -287,49 +463,6 @@ ASP_ChannelMgr_Stop(
     return (0);
 }
 
-static int sendRawFrameToNw(
-    ASP_ChannelMgrHandle    hAspChannelMgr,
-    char                    *pRawFrameBuffer,
-    uint32_t                rawFrameSize
-    )
-{
-    int rc  = 0;
-    int socketFd = -1;
-    int one = 1;
-    const int *val = &one;
-
-    socketFd = socket(PF_INET, SOCK_RAW, IPPROTO_TCP);
-    if(socketFd < 0)
-    {
-        fprintf(stdout, "%s: Failed to create raw socket:\n", __FUNCTION__);
-        goto error;
-    }
-
-    rc = setsockopt(socketFd, IPPROTO_IP, IP_HDRINCL, val, sizeof(one));
-    if(socketFd < 0)
-    {
-        fprintf(stdout, "%s: setsocketopt failed to set IP_HDRINCL ...\n", __FUNCTION__);
-        goto error;
-    }
-
-    fprintf(stdout,"\n %s: =======================> sending to %s:%d\n",__FUNCTION__, inet_ntoa(hAspChannelMgr->remoteIpAddr.sin_addr), ntohs(hAspChannelMgr->remoteIpAddr.sin_port));
-    rc = sendto(socketFd, pRawFrameBuffer, rawFrameSize, 0, (struct sockaddr *)&hAspChannelMgr->remoteIpAddr, sizeof(hAspChannelMgr->remoteIpAddr));
-    if(rc < 0)
-    {
-        fprintf(stdout, "%s:sendto failed ...\n", __FUNCTION__);
-        goto error;
-    }
-
-    close(socketFd);
-
-    return rc;
-error:
-    if(socketFd != -1)
-    {
-        close(socketFd);
-    }
-    return rc;
-}
 
 int ASP_ChannelMgr_SendPayload(
     ASP_ChannelMgrHandle    hAspChannelMgr,
@@ -354,6 +487,9 @@ int ASP_ChannelMgr_SendPayload(
         fprintf(stdout, "%s: Recv Response of type ASP_ProxyServerMsg_eSendPayloadToAspResp\n", __FUNCTION__);
         brc = ASP_ProxyServerMsg_RecvHeader(hAspChannelMgr->fdPayload, &aspProxyServerMsgHeader);
         assert(brc == true);
+#if 0
+        fprintf(stdout, "%s: Header type is %d expected type is %d, header length is %d\n", __FUNCTION__, aspProxyServerMsgHeader.type, ASP_ProxyServerMsg_eSendPayloadToAspResp, aspProxyServerMsgHeader.length );
+#endif
         assert(aspProxyServerMsgHeader.type == ASP_ProxyServerMsg_eSendPayloadToAspResp);
 
         brc = ASP_ProxyServerMsg_RecvPayload(hAspChannelMgr->fdPayload, sizeof(sendPayloadToAspResp), &sendPayloadToAspResp);
@@ -361,6 +497,7 @@ int ASP_ChannelMgr_SendPayload(
         fprintf(stdout, "%s: sendPayloadToAsp status: payloadGivenToAspSuccess=%s\n", __FUNCTION__, sendPayloadToAspResp.payloadGivenToAspSuccess?"Y":"N");
     }
 
+#if 0
     /* TODO: This will be removed once asp driver is ready.*/
     /* Now recv the ASP_ProxyServerMsg_eSendRawFrameToNw */
     {
@@ -388,6 +525,7 @@ int ASP_ChannelMgr_SendPayload(
             free(pRawFrameBuffer);
         }
     }
+#endif
 
     return (0);
 }

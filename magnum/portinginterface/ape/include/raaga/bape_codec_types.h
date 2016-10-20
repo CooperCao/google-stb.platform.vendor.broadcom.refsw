@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -53,6 +53,7 @@ typedef enum BAPE_DolbyDrcMode
     BAPE_DolbyDrcMode_eCustomA,
     BAPE_DolbyDrcMode_eCustomD,
     BAPE_DolbyDrcMode_eDisabled,
+    BAPE_DolbyDrcMode_eCustomTarget,
     BAPE_DolbyDrcMode_eMax
 } BAPE_DolbyDrcMode;
 
@@ -62,6 +63,7 @@ typedef BAPE_DolbyDrcMode BAPE_Ac3DrcMode;
 #define BAPE_Ac3DrcMode_eCustomA BAPE_DolbyDrcMode_eCustomA
 #define BAPE_Ac3DrcMode_eCustomD BAPE_DolbyDrcMode_eCustomD
 #define BAPE_Ac3DrcMode_eDisabled BAPE_DolbyDrcMode_eDisabled
+#define BAPE_Ac3DrcMode_eCustomTarget BAPE_DolbyDrcMode_eCustomTarget
 #define BAPE_Ac3DrcMode_eMax BAPE_DolbyDrcMode_eMax
 
 /***************************************************************************
@@ -84,6 +86,10 @@ typedef struct BAPE_Ac3Settings
 {
     BAPE_Ac3DrcMode drcMode;        /* DRC (Dynamic Range Compression) Mode */
     BAPE_Ac3DrcMode drcModeDownmix; /* DRC (Dynamic Range Compression) Mode for stereo downmixed data*/
+    unsigned customTargetLevel; /* Used with drcMode set to NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget.  Valid values are 0, which will result in DRC disabled,
+                                   23 and 24 which result in outputs of -23 and -24dB */
+    unsigned customTargetLevelDownmix; /* Used with drcModeDownmix set to NEXUS_AudioDecoderDolbyDrcMode_eCustomTarget.  Valid values are 0, which will result in DRC disabled,
+                                          23 and 24 which result in outputs of -23 and -24dB */
 
     BAPE_Ac3StereoMode stereoMode;  /* Stereo Downmix Mode */
 
@@ -121,9 +127,9 @@ Summary:
 ***************************************************************************/
 typedef enum BAPE_Ac4PresentationSelectionMode
 {
+    BAPE_Ac4PresentationSelectionMode_eAuto,
     BAPE_Ac4PresentationSelectionMode_ePresentationIndex,
-    BAPE_Ac4PresentationSelectionMode_eLanguageCode,
-    BAPE_Ac4PresentationSelectionMode_eAssociateType,
+    BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier,
     BAPE_Ac4PresentationSelectionMode_eMax
 } BAPE_Ac4PresentationSelectionMode;
 
@@ -144,41 +150,67 @@ typedef enum BAPE_Ac4AssociateType
 Summary:
 AC4 Codec Settings
 ***************************************************************************/
-#define BAPE_AC4_LANGUAGE_NAME_LENGTH      6
+#define BAPE_AC4_PRESENTATION_NAME_LENGTH  36
+#define BAPE_AC4_PRESENTATION_ID_LENGTH    20
+#define BAPE_AC4_LANGUAGE_NAME_LENGTH      8
 #define BAPE_AC4_NUM_LANGUAGES             2
 typedef struct BAPE_Ac4Settings
 {
     BAPE_DolbyDrcMode drcMode;      /* DRC (Dynamic Range Compression) Mode */
     BAPE_DolbyDrcMode drcModeDownmix;/* DRC (Dynamic Range Compression) Mode for stereo downmix path */
 
+    uint16_t drcScaleHi;            /* In %, ranges from 0..100 */
+    uint16_t drcScaleLow;           /* In %, ranges from 0..100 */
+    uint16_t drcScaleHiDownmix;     /* In %, ranges from 0..100 */
+    uint16_t drcScaleLowDownmix;    /* In %, ranges from 0..100 */
+
     BAPE_DolbyStereoMode stereoMode;/* Stereo Downmix Mode */
 
-    unsigned programSelection;      /* Program Selection for embedded description (substream) program.
-                                       0 (Default) - decode main + description program,
+    unsigned programSelection;      /* Program Selection for current presentation.
+                                       0 (Default) - decode main + associate program,
                                        1 - decode main program only,
-                                       2 - decode description program only. */
+                                       2 - decode associate program only. */
+
+    #if 0
+    unsigned decodeMode;            /* decode mode describtes the program allocation from one or more sources
+                                       0 - single program, one decode (either main OR associate)
+                                       1 - single program, single decoder instance main + associate decode
+                                       2 - single program, dual decoder instance main + associate decode
+                                       3 (default) - dual program, dual decoder instance main + associate decode */
+    #endif
+
     int programBalance;             /* Program balance adjusts the balance between the main and description
                                        programs. This control is for embedded description program only.
                                        Valid values are -32 to 32. -32 is main only, 32 is description only.
                                        Default is -32 */
 
-    unsigned presentationId;        /* Multiple "presentation" groups can exist within a single PID.
-                                       Use this field to pick the desired presentation. Valid values
-                                       are 0 - 511. Default value is 0 */
+    BAPE_Ac4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the presentation -
+                                                          Default setting is eAuto, allowing the decoder to choose based on the presence or absense
+                                                          of Presentation Index or Id, followed by the various personalization parameters.;
+                                                          eAuto setting should be used for certification testing */
+
+    unsigned presentationIndex;        /* Multiple "presentation" groups can exist within a single program.
+                                          To select by presentation index, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIndex
+                                          Valid values are 0 - 511. Default value is 0.
+                                          See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information. */
+
+    char presentationId[BAPE_AC4_PRESENTATION_ID_LENGTH]; /* Multiple "presentation" groups can exist within a single program.
+                                                             To select by presentation Id, set selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier
+                                                             This unique id can come in short or long varieties, per the Dolby AC4 spec.
+                                                             Presentation Ids are obtained from the Stream Status info.
+                                                             See BAPE_DecoderStatus/BAPE_DecoderAc4PresentationInfo for more information */
 
     int dialogEnhancerAmount;       /* Valid values are -12 to +12, in 1dB steps. Default value is 0 */
 
     unsigned certificationMode;     /* for internal use only */
 
-    BAPE_Ac4PresentationSelectionMode selectionMode;   /* Specifies how the AC4 decoder selects the default presentation -
-                                                          By default, personalization is off, and the program index will be used */
+    /* optional personalization parameters */
+    bool preferLanguageOverAssociateType; /* correlates to Dolby AC4 preference for language over associate type -
+                                             Default setting is false (Associate type is prioritized over Language) */
 
-    /* optional personalization parameters - These parameters allow the user to personalize
-       how the decoder will select the presentation. These parameters can only be changed while decoding is stopped.
-       On the fly changes will not be honored until the next stop/start sequence */
     struct {
         char selection[BAPE_AC4_LANGUAGE_NAME_LENGTH];   /* IETF BCP 47 language code. Codes that are longer than
-                                                            6 characters should be truncated. */
+                                                            8 characters should be truncated. */
     } languagePreference[BAPE_AC4_NUM_LANGUAGES];
 
     BAPE_Ac4AssociateType preferredAssociateType;
@@ -658,6 +690,7 @@ typedef struct BAPE_Ac4Status
     unsigned numPresentations;                                         /* Identifies the number of presentations present in compressed bitstream.
                                                                            Values greater than NEXUS_AUDIO_AC4_MAX_PRESENTATIONS should be ignored. */
     unsigned currentPresentationIndex;                                 /* Index to the current Presentation that is being decoded. */
+    char currentPresentationId[BAPE_AC4_PRESENTATION_ID_LENGTH];    /* Id of the current Presentation that is being decoded. */
     unsigned dialogEnhanceMax;                                         /* Specifies the maximum value that will be honored as
                                                                           a Dialog Enhance Amount Value. Possible range 0 to 12.
                                                                           Values outside of this range should be ignored */

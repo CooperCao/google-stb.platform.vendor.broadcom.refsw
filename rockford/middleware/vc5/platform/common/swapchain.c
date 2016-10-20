@@ -8,17 +8,17 @@ All rights reserved.
 #include <string.h>
 #include <assert.h>
 
-static bool create_surfaces(struct Swapchain *swapchain, size_t num_surfaces)
+static bool create_surfaces(Swapchain *swapchain, size_t num_surfaces)
 {
    if (queue_init(&swapchain->render_queue)
          && queue_init(&swapchain->display_queue))
    {
-      size_t surface_size = sizeof(struct SwapchainSurface)
+      size_t surface_size = sizeof(SwapchainSurface)
             + swapchain->surface_interface->sizeof_surface;
       swapchain->surfaces = calloc(num_surfaces, surface_size);
       if (swapchain->surfaces)
       {
-         struct SwapchainSurface *p = swapchain->surfaces;
+         SwapchainSurface *p = swapchain->surfaces;
          for (size_t i = 0; i < num_surfaces; i++)
          {
             p->pixmap_info.format = BEGL_BufferFormat_INVALID;
@@ -27,14 +27,14 @@ static bool create_surfaces(struct Swapchain *swapchain, size_t num_surfaces)
             p->swap_interval = 1;
 
             queue_enqueue(&swapchain->render_queue, &p->link);
-            p = (struct SwapchainSurface *) ((uintptr_t) p + surface_size);
+            p = (SwapchainSurface *) ((uintptr_t) p + surface_size);
          }
       }
    }
    return swapchain->surfaces != NULL;
 }
 
-static void destroy_surfaces_from_queue(struct Swapchain *swapchain,
+static void destroy_surfaces_from_queue(Swapchain *swapchain,
       struct queue *q)
 {
    struct list *item;
@@ -42,8 +42,8 @@ static void destroy_surfaces_from_queue(struct Swapchain *swapchain,
    queue_poison(q);
    while ((item = queue_try_dequeue(q)) != NULL)
    {
-      struct SwapchainSurface *surface = list_entry(item,
-            struct SwapchainSurface, link);
+      SwapchainSurface *surface = list_entry(item,
+            SwapchainSurface, link);
       FenceInterface_WaitAndDestroy(swapchain->fence_interface,
             &surface->render_fence);
       FenceInterface_WaitAndDestroy(swapchain->fence_interface,
@@ -53,7 +53,7 @@ static void destroy_surfaces_from_queue(struct Swapchain *swapchain,
    }
 }
 
-static void destroy_surfaces(struct Swapchain *swapchain)
+static void destroy_surfaces(Swapchain *swapchain)
 {
    destroy_surfaces_from_queue(swapchain, &swapchain->display_queue);
    destroy_surfaces_from_queue(swapchain, &swapchain->render_queue);
@@ -62,9 +62,9 @@ static void destroy_surfaces(struct Swapchain *swapchain)
    free(swapchain->surfaces);
 }
 
-bool SwapchainCreate(struct Swapchain *swapchain,
-      const struct FenceInterface *fence_interface,
-      const struct SurfaceInterface *surface_interface, size_t size)
+bool SwapchainCreate(Swapchain *swapchain,
+      const FenceInterface *fence_interface,
+      const SurfaceInterface *surface_interface, size_t size)
 {
    /* sanity check */
    assert(swapchain != NULL);
@@ -78,20 +78,20 @@ bool SwapchainCreate(struct Swapchain *swapchain,
    return create_surfaces(swapchain, size);
 }
 
-void SwapchainDestroy(struct Swapchain *swapchain)
+void SwapchainDestroy(Swapchain *swapchain)
 {
    destroy_surfaces(swapchain);
 }
 
-void SwapchainPoison(struct Swapchain *swapchain)
+void SwapchainPoison(Swapchain *swapchain)
 {
    assert(swapchain != NULL);
 
    queue_poison(&swapchain->display_queue);
 }
 
-static bool resize_surface(struct Swapchain *swapchain,
-      struct SwapchainSurface *surface, const BEGL_PixmapInfo *requested,
+static bool resize_surface(Swapchain *swapchain,
+      SwapchainSurface *surface, const BEGL_PixmapInfo *requested,
       bool secure)
 {
    if (surface->pixmap_info.width > 0)
@@ -124,16 +124,16 @@ static bool resize_surface(struct Swapchain *swapchain,
    return surface->pixmap_info.width > 0;
 }
 
-static struct SwapchainSurface *deque_surface(struct queue *queue)
+static SwapchainSurface *deque_surface(struct queue *queue)
 {
    struct list * item = queue_dequeue(queue); /* block */
-   struct SwapchainSurface *surface = item ? list_entry(item,
-         struct SwapchainSurface, link) : NULL;
+   SwapchainSurface *surface = item ? list_entry(item,
+         SwapchainSurface, link) : NULL;
    return surface;
 }
 
-struct SwapchainSurface *SwapchainDequeueRenderSurface(
-      struct Swapchain *swapchain, const BEGL_PixmapInfo *requested,
+SwapchainSurface *SwapchainDequeueRenderSurface(
+      Swapchain *swapchain, const BEGL_PixmapInfo *requested,
       bool secure)
 {
    assert(swapchain != NULL);
@@ -142,7 +142,7 @@ struct SwapchainSurface *SwapchainDequeueRenderSurface(
    assert(requested->height > 0);
    assert(requested->format != BEGL_BufferFormat_INVALID);
 
-   struct SwapchainSurface *surface = deque_surface(&swapchain->render_queue);
+   SwapchainSurface *surface = deque_surface(&swapchain->render_queue);
 
    if (surface->pixmap_info.width != requested->width
          || surface->pixmap_info.height != requested->height
@@ -155,8 +155,8 @@ struct SwapchainSurface *SwapchainDequeueRenderSurface(
    return surface;
 }
 
-void SwapchainEnqueueDisplaySurface(struct Swapchain *swapchain,
-      struct SwapchainSurface *surface)
+void SwapchainEnqueueDisplaySurface(Swapchain *swapchain,
+      SwapchainSurface *surface)
 {
    assert(swapchain != NULL);
    assert(surface != NULL);
@@ -164,15 +164,15 @@ void SwapchainEnqueueDisplaySurface(struct Swapchain *swapchain,
    queue_enqueue(&swapchain->display_queue, &surface->link);
 }
 
-struct SwapchainSurface *SwapchainDequeueDisplaySurface(
-      struct Swapchain *swapchain)
+SwapchainSurface *SwapchainDequeueDisplaySurface(
+      Swapchain *swapchain)
 {
    assert(swapchain != NULL);
    return  deque_surface(&swapchain->display_queue);
 }
 
-void SwapchainEnqueueRenderSurface(struct Swapchain *swapchain,
-      struct SwapchainSurface *surface)
+void SwapchainEnqueueRenderSurface(Swapchain *swapchain,
+      SwapchainSurface *surface)
 {
    assert(swapchain != NULL);
    assert(surface != NULL);

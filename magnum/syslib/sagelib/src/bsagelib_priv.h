@@ -160,8 +160,13 @@ struct BSAGElib_P_Instance {
     BCMD_VKLID_e vkl1;
     BCMD_VKLID_e vkl2;
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+    char BootImage_BlVerStr[SIZE_OF_BOOT_IMAGE_VERSION_STRING]; /* To hold the string of Boot Loader version */
+    char BootImage_OSVerStr[SIZE_OF_BOOT_IMAGE_VERSION_STRING]; /* To hold the string of OS/APP version */
+#else
     BSAGElib_ImageInfo bootloaderInfo;
     BSAGElib_ImageInfo frameworkInfo;
+#endif
 
     bool bBootPostCalled;
 };

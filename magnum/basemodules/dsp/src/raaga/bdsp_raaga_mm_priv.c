@@ -49,8 +49,6 @@
 
 BDBG_MODULE(bdsp_raaga_mm);
 
-/*#define FWDWNLD_DBG 1*/
-
 /***************************************************************************************
 Summary:
 #Use BDSP_MEM_P_ConvertOffsetToCacheAddr
@@ -241,9 +239,9 @@ void BDSP_Raaga_P_FreeFwExec(   void *pDeviceHandle)
     if(pDevice->memInfo.sDwnldMemInfo.pImgBuf == NULL )
         return;
 
-    #ifdef FWDWNLD_DBG
-        BDSP_Raaga_P_FwDwnldBuf_Dump(pDeviceHandle);
-    #endif
+#ifdef FWDWNLD_DBG
+    BDSP_Raaga_P_FwDwnldBuf_Dump(pDeviceHandle);
+#endif
 
     BDSP_MEM_P_FreeMemory(pDevice->memHandle,pDevice->memInfo.sDwnldMemInfo.pImgBuf);
     /* size element of both these structures are reused during watchdog so we dont zero it out here */

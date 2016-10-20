@@ -51,19 +51,12 @@
 extern "C" {
 #endif
 
-#define BHSM_HMACSHA_KEY_LEN            32       /* 20 for Sha1, 28 for Sha224, 32 for Sha256 */
-#define BHSM_HMACSHA_DIGEST_LEN         32       /* in bytes, same as HMACSHA key length */
-#define BHSM_HMACSHA_OP_KEY_MASK        0xFFFFFF /* 24 bits */
-#define BHSM_HMACSHA_OP_SHIFT           0x0
-#define BHSM_HMACSHA_KL_SHIFT           0x8      /* bits   8-15 - Key Layer */
-#define BHSM_HMACSHA_VKL_SHIFT          0x10     /* bits 16-23 - Virtual Key Ladder */
+#define BHSM_HMACSHA_KEY_LEN                (32)       /* 20 for Sha1, 28 for Sha224, 32 for Sha256 */
+#define BHSM_HMACSHA_DIGEST_LEN             (32)       /* in bytes, same as HMACSHA key length */
 
-#define BHSM_HMACSHA_TYPE_CXT_MASK      0xFFFFFF /* 24 bits */
-#define BHSM_HMACSHA_CTX_SHIFT          0x0      /* bits  0 - 7 - BSP Context ID */
-#define BHSM_HMACSHA_SHATYPE_SHIFT      0x8      /* bits 8 - 15 - SHA Type        */
-#define BHSM_HMACSHA_DRAM_SHIFT         0x10     /* bits 16-23 - DRAM mode flag */
-#define BHSM_HMACSHA_KEYINC_SHIFT       0x18     /* bits 24-31 - Key Inclusion Mode */
-
+#define BHSM_HMACSHA_INPLACE_DATA_MAX_LEN   (20)      /* Data can be passed in via memory offset or via
+                                                         array in BHSM_UserHmacShaIO_t. This define specifies the max
+                                                         length of data that can be passed in by BHSM_UserHmacShaIO_t. */
 
 typedef enum
 {
@@ -73,12 +66,6 @@ typedef enum
 
 }BHSM_HMACSHA_ContinualMode_e;
 
-typedef enum
-{
-    BHSM_HMACSHA_DataSource_eCmdBuff = 0,
-    BHSM_HMACSHA_DataSource_eDRAM    = 1
-
-}BHSM_HMACSHA_DataSource_e;
 
 typedef enum
 {
@@ -97,48 +84,38 @@ typedef enum
 
 typedef struct BHSM_UserHmacShaIO
 {
-    /* In: Which digest calculating mode: Sha-1/ShaX or HMAC */
-    BPI_HmacSha1_Op_e            oprMode;
-    /* In: Which SHA mode - Sha160(Sha1), Sha224, or Sha256  */
-    BPI_HmacSha1_ShaType_e        shaType;
-    /* In: Virtual Key Ladder ID - For HMAC calculation */
-    BCMD_VKLID_e                VirtualKeyLadderID;
-    /* In: Key Layer - For HMAC calculation */
-    BCMD_KeyRamBuf_e            keyLayer;
-    /* In: Which BSP internal context to use. */
-    BPI_HmacSha1_Context_e        contextSwitch;
-    /* In: DERECATED. Parameter ignored. */
-    BHSM_HMACSHA_DataSource_e    dataSource;
-    /* In: Which key source to use.  Embedded key or key ladder */
-    BHSM_HMACSHA_KeySource_e    keySource;
-    /* In: How to include key into calculation.  */
-    BHSM_HMACSHA_KeyInclusion_e keyIncMode;
 
-    unsigned int                unKeyLength;
-    /* In: clear key, valid only for HMAC-clear-key opr mode, 20 bytes of big endian byte array */
-    unsigned char                keyData    [BHSM_HMACSHA_KEY_LEN];
-    /* In: the length of the message data for digest calculation */
-    unsigned int                unInputDataLen;
-    /* In: DRAM address of the buffer holding data for digest calculation */
-    unsigned char                *pucInputData;
-    /*In: pucInputData is linux memory, not managed by BMEM. */
-    bool                          systemMemory;
-    /*In: Perform an endian byte swap */
-    bool                          byteSwap;
+    BPI_HmacSha1_Op_e            oprMode;                /* In: Which digest calculating mode: Sha-1/ShaX or HMAC */
+    BPI_HmacSha1_ShaType_e       shaType;                /* In: Which SHA mode - Sha160(Sha1), Sha224, or Sha256  */
 
-    /* In: data passed in for HMAC or SHA digest calculation can be contained in one buffer or multiple
-        buffers.  In the case of single buffer data, this needs to be set to  BHSM_HMACSHA_ContinualMode_eAllSeg,
-        0x00.  In the case of multiple buffer data, all of the commands except the last one need to have this
-        field set to BHSM_HMACSHA_ContinualMode_eMoreSeg, 0x01.  The last command for the last buffer
-        needs to have this field set to BHSM_HMACSHA_ContinualMode_eLastSeg. */
-    BHSM_HMACSHA_ContinualMode_e  contMode;
+    BPI_HmacSha1_Context_e       contextSwitch;          /* In: Which BSP internal context to use. */
 
-    uint32_t                      unStatus;  /* DEPRECATED. */
-    /* Out: size of the Digest string */
-    uint32_t                      digestSize;
-    /* Out: SHA or HMAC digest, max 32 byte array, big endian */
-    unsigned char                 aucOutputDigest[BHSM_HMACSHA_DIGEST_LEN];
+    BHSM_HMACSHA_KeyInclusion_e  keyIncMode;             /* In: Include key or not */
+    BHSM_HMACSHA_KeySource_e     keySource;              /* In: Which key source to use.  keyladder *OR* software key  */
+    /* the keyladder */
+    BCMD_VKLID_e                 VirtualKeyLadderID;     /* In: Id */
+    BCMD_KeyRamBuf_e             keyLayer;               /* In: layer  */
+    /* the software key */
+    unsigned                     unKeyLength;
+    uint8_t                      keyData[BHSM_HMACSHA_KEY_LEN];  /* In: clear key. */
 
+    /* the data. */
+    bool                         dataInplace;            /* In: If true, data is in inputData. Otherwise, data is
+                                                                referenced by pucInputData */
+    unsigned                     unInputDataLen;         /* In: the length of the data */
+    uint8_t                     *pucInputData;           /* In: offset to data (valid of dataInplace==false) */
+    uint8_t                      inputData[BHSM_HMACSHA_INPLACE_DATA_MAX_LEN];  /* In: data (valid of dataInplace==true) */
+
+    BHSM_HMACSHA_ContinualMode_e contMode;               /* In: Data may be submitted in multiple consecutive calls. */
+
+    /* the output. */
+    unsigned                     digestSize;                                  /* Out: size of the Digest string */
+    uint8_t                      aucOutputDigest[BHSM_HMACSHA_DIGEST_LEN];  /* Out: SHA or HMAC digest, big endian */
+
+    /* DEPRECATED Not used. */
+    bool                         systemMemory; /* DEPRECATED */
+    bool                         byteSwap;     /* DEPRECATED */
+    uint32_t                     unStatus;     /* DEPRECATED */
 } BHSM_UserHmacShaIO_t;
 
 /*****************************************************************************
@@ -165,10 +142,10 @@ Calling Context:
 (of course the system and BSP had been initialized.)
 
 *****************************************************************************/
-BERR_Code      BHSM_UserHmacSha (
+BERR_Code BHSM_UserHmacSha (
         BHSM_Handle           hHsm,
         BHSM_UserHmacShaIO_t *pIo
-);
+    );
 
 
 #ifdef __cplusplus

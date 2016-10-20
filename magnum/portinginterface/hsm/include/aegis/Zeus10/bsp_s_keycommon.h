@@ -552,6 +552,7 @@ typedef enum BCMD_KeyLadderSelection_e
 	BCMD_eFWKL	= 0,
 	BCMD_eHWKL	= 1,
 	BCMD_ePKL	= 2,
+	BCMD_KeyLadderSelection_eReserved2 = BCMD_ePKL,
 	BCMD_KeyLadderSelection_eMax
 }BCMD_KeyLadderSelection_e;
 

@@ -54,7 +54,7 @@
     BRCMSTB_H_VERSION >= 5)
 
 typedef struct b_virtual_irq_capabilities {
-    int feature_supported; /* bool */
+    bool feature_supported;
 } b_virtual_irq_capabilities;
 
 void b_virtual_irq_init_submodule(void);
@@ -64,13 +64,15 @@ void b_virtual_irq_close_submodule(void);
 
 void b_virtual_irq_get_capabilities(b_virtual_irq_capabilities * caps);
 
-int b_virtual_irq_l1_is_virtual(const char * name); /* returns bool */
+bool b_virtual_irq_l1_is_virtual(const char * name); /* returns bool */
 int b_virtual_irq_get_linux_irq(b_virtual_irq_line line);
 void b_virtual_irq_software_l2_isr(b_virtual_irq_line line);
 
 void b_virtual_irq_get_status(b_virtual_irq_status * status);
 int b_virtual_irq_clear(b_virtual_irq_line line);
-int b_virtual_irq_set_mask(b_virtual_irq_line line, int disable /* bool */);
+int b_virtual_irq_set_mask(b_virtual_irq_line line, bool disabled);
 int b_virtual_irq_make_group(const b_virtual_irq_group * group);
+/* this function expects the caller to acquire the irq spinlock */
+void b_virtual_irq_reenable_irqs_spinlocked(void);
 
 #endif /* B_VIRTUAL_IRQ_H */

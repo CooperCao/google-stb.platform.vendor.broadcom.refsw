@@ -69,6 +69,15 @@ enum tess_spacing {
    TESS_SPACING_INVALID,
 };
 
+enum gs_in_type {
+   GS_IN_POINTS,
+   GS_IN_LINES,
+   GS_IN_TRIANGLES,
+   GS_IN_LINES_ADJ,
+   GS_IN_TRIS_ADJ,
+   GS_IN_INVALID
+};
+
 enum gs_out_type {
    GS_OUT_POINTS,
    GS_OUT_LINE_STRIP,
@@ -86,9 +95,10 @@ typedef struct {
    uint32_t live_attr_set;
    GLSL_VARY_MAP_T tf_vary_map;
 
-   bool early_fragment_tests;
-   bool varyings_per_sample;
-   VARYING_INFO_T varying[V3D_MAX_VARYING_COMPONENTS];
+   bool                    early_fragment_tests;
+   AdvancedBlendQualifier  abq;
+   bool                    varyings_per_sample;
+   VARYING_INFO_T          varying[V3D_MAX_VARYING_COMPONENTS];
 
    unsigned          tess_vertices;
    enum tess_mode    tess_mode;
@@ -96,6 +106,7 @@ typedef struct {
    bool              tess_point_mode;
    bool              tess_cw;
 
+   enum gs_in_type   gs_in;
    enum gs_out_type  gs_out;
    unsigned          gs_n_invocations;
    unsigned          gs_max_vertices;

@@ -3,6 +3,7 @@ Broadcom Proprietary and Confidential. (c)2016 Broadcom.
 All rights reserved.
 =============================================================================*/
 #pragma once
+#include <stdbool.h>
 
 #if defined(__GNUC__)
 #include "../gcc/vcos_atomic_gcc.h"
@@ -16,11 +17,23 @@ extern "C" {
 
 void vcos_atomic_thread_fence(vcos_memory_order_t memorder);
 
-#define VCOS_ATOMIC_DECLARATIONS(name,T)\
+#define VCOS_ATOMIC_DECLARATIONS_BOOL(name,T)\
 T vcos_atomic_load_##name(const volatile T* ptr, vcos_memory_order_t memorder);\
-void vcos_atomic_store_##name(volatile T* ptr, T val, vcos_memory_order_t memorder);
+void vcos_atomic_store_##name(volatile T* ptr, T val, vcos_memory_order_t memorder);\
+\
+bool vcos_atomic_compare_exchange_weak_##name(\
+   volatile T* ptr,\
+   T* expected,\
+   T desired,\
+   vcos_memory_order_t succ,\
+   vcos_memory_order_t fail);
 
-VCOS_ATOMIC_DECLARATIONS(bool, bool);
+#define VCOS_ATOMIC_DECLARATIONS(name,T)\
+VCOS_ATOMIC_DECLARATIONS_BOOL(name,T)\
+T vcos_atomic_fetch_add_##name(volatile T* ptr, T val, vcos_memory_order_t memorder);\
+T vcos_atomic_fetch_sub_##name(volatile T* ptr, T val, vcos_memory_order_t memorder);
+
+VCOS_ATOMIC_DECLARATIONS_BOOL(bool, bool);
 VCOS_ATOMIC_DECLARATIONS(int8, int8_t);
 VCOS_ATOMIC_DECLARATIONS(int16, int16_t);
 VCOS_ATOMIC_DECLARATIONS(int32, int32_t);

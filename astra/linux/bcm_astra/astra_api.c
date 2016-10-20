@@ -483,3 +483,24 @@ int astra_call_smc(
         ucMode);
 }
 EXPORT_SYMBOL(astra_call_smc);
+
+void astra_uapp_coredump(
+    astra_uapp_handle hUapp)
+{
+    struct astra_uapp *pUapp = (struct astra_uapp *)hUapp;
+    struct astra_client *pClient;
+
+    if (!pUapp) {
+        LOGE("Invalid args");
+        return;
+    }
+
+    pClient = pUapp->pClient;
+
+    LOGI("Coredump astra client %s userapp %s, handle %p",
+        pClient->name, pUapp->name, pUapp);
+
+    /* close astra userapp */
+    _astra_uapp_coredump(pUapp);
+}
+EXPORT_SYMBOL(astra_uapp_coredump);

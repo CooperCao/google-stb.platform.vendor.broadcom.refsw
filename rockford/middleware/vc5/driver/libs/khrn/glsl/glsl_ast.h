@@ -194,24 +194,24 @@ struct _Expr {
 bool glsl_is_lvalue(Expr *expr);
 MemoryQualifier glsl_get_mem_flags(Expr *expr);
 
-// On failure, these functions call glsl_compile_error() and return NULL.
-Expr *glsl_expr_construct_const_value(int line_num, PrimitiveTypeIndex type_index, const_value v);
-Expr *glsl_expr_construct_instance(int line_num, Symbol *symbol);
-Expr *glsl_expr_construct_subscript(int line_num, Expr *aggregate, Expr *subscript);
-Expr *glsl_expr_construct_function_call(int line_num, Symbol *overload_chain, ExprChain *args);
-Expr *glsl_expr_construct_method_call(int line_num, Expr *aggregate, CallContext *function_ctx);
+// On failure, these functions call glsl_compile_error() and do not return
+Expr *glsl_expr_construct_const_value     (int line_num, PrimitiveTypeIndex type_index, const_value v);
+Expr *glsl_expr_construct_instance        (int line_num, Symbol *symbol);
+Expr *glsl_expr_construct_subscript       (int line_num, Expr *aggregate, Expr *subscript);
+Expr *glsl_expr_construct_function_call   (int line_num, Symbol *overload_chain, ExprChain *args);
+Expr *glsl_expr_construct_method_call     (int line_num, Expr *aggregate, CallContext *function_ctx);
 Expr *glsl_expr_construct_constructor_call(int line_num, SymbolType *type, ExprChain *args);
-Expr *glsl_expr_construct_field_selector(int line_num, Expr *aggregate, const char *field);
-Expr *glsl_expr_construct_unary_op(ExprFlavour flavour, int line_num, Expr *operand);
+Expr *glsl_expr_construct_field_selector  (int line_num, Expr *aggregate, const char *field);
+Expr *glsl_expr_construct_unary_op            (ExprFlavour flavour, int line_num, Expr *operand);
 Expr *glsl_expr_construct_binary_op_arithmetic(ExprFlavour flavour, int line_num, Expr *left, Expr *right);
 Expr *glsl_expr_construct_binary_op_logical   (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
 Expr *glsl_expr_construct_binary_op_shift     (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
 Expr *glsl_expr_construct_binary_op_bitwise   (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
 Expr *glsl_expr_construct_binary_op_relational(ExprFlavour flavour, int line_num, Expr *left, Expr *right);
 Expr *glsl_expr_construct_binary_op_equality  (ExprFlavour flavour, int line_num, Expr *left, Expr *right);
-Expr *glsl_expr_construct_cond_op(int line_num, Expr *cond, Expr *if_true, Expr *if_false);
-Expr *glsl_expr_construct_assign_op(int line_num, Expr *lvalue, Expr *rvalue);
-Expr *glsl_expr_construct_sequence(int line_num, Expr *all_these, Expr *then_this);
+Expr *glsl_expr_construct_cond_op     (int line_num, Expr *cond, Expr *if_true, Expr *if_false);
+Expr *glsl_expr_construct_assign_op   (int line_num, Expr *lvalue, Expr *rvalue);
+Expr *glsl_expr_construct_sequence    (int line_num, Expr *all_these, Expr *then_this);
 Expr *glsl_expr_construct_array_length(int line_num, Expr *array);
 Expr *glsl_expr_construct_intrinsic(ExprFlavour flavour, int line_num, ExprChain *args);
 
@@ -244,7 +244,6 @@ StatementChain *glsl_statement_chain_cat(StatementChain *a, StatementChain *b);
 struct _Statement
 {
    StatementFlavour flavour;  /* Type of statement. Somewhat documented below */
-
    int line_num;  /* The source line number on which this statement appeared. */
 
    union
@@ -253,22 +252,19 @@ struct _Statement
       // - The root of the AST, containing STATEMENT_FUNCTION_DEF and STATEMENT_DECL_LIST.
       // - However, after loop transforms, when STATEMENT_DECL_LIST are no longer necessary,
       //   compiler-generated variables will go straight into STATEMENT_VAR_DECL instead.
-      struct
-      {
+      struct {
          StatementChain *decls;
       } ast;
 
       // STATEMENT_DECL_LIST
       // - Contains a list of STATEMENT_VAR_DECL of the same type.
       // - Needed in loop statements where more than one STATEMENT_VAR_DECL is possible.
-      struct
-      {
+      struct {
          StatementChain *decls; // possibly containing 0 declarations
       } decl_list;
 
       // STATEMENT_FUNCTION_DEF
-      struct
-      {
+      struct {
          Symbol *header;
          Statement *body; // as STATEMENT_COMPOUND
       } function_def;
@@ -278,8 +274,7 @@ struct _Statement
       // - However, after loop transforms, when STATEMENT_DECL_LIST are no longer necessary,
       //   a later transformation will bring them out to statement context level.
       //   (i.e. splicing the list of STATEMENT_VAR_DECL into the place of the STATEMENT_DECL_LIST)
-      struct
-      {
+      struct {
          // base_type is the type which appears at the start of the declaration,
          // it differs from var->type only if the declarator specifies an array)
          QualList      *quals;
@@ -288,55 +283,47 @@ struct _Statement
          Expr          *initializer; // or NULL if no initializer
       } var_decl;
 
-      struct
-      {
+      struct {
          SymbolType     *type;
          QualList       *quals;
          StatementChain *members;
       } struct_decl;
 
-      struct
-      {
+      struct {
          const char *name;
          ExprChain  *array_specifier;
       } struct_member_decl;
 
       // STATEMENT_COMPOUND
-      struct
-      {
+      struct {
          StatementChain *statements; // possibly containing 0 statements
       } compound;
 
       // STATEMENT_EXPR
-      struct
-      {
+      struct {
          Expr *expr;
       } expr;
 
       // STATEMENT_SELECTION
-      struct
-      {
+      struct {
          Expr *cond;
-         Statement *if_true; // *always* constructed as a STATEMENT_COMPOUND
+         Statement *if_true;  // *always* constructed as a STATEMENT_COMPOUND
          Statement *if_false; // *always* constructed as a STATEMENT_COMPOUND, or NULL if none
       } selection;
 
       // STATEMENT_SWITCH
-      struct
-      {
+      struct {
          Expr *cond;
          StatementChain *stmtChain;
       } switch_stmt;
 
       // STATEMENT_CASE
-      struct
-      {
+      struct {
          Expr *expr;
       } case_stmt;
 
       // STATEMENT_ITERATOR_FOR
-      struct
-      {
+      struct {
          Statement *init;
          Statement *cond_or_decl;
          Expr      *loop;          /* NULL if none provided */
@@ -344,15 +331,13 @@ struct _Statement
       } iterator_for;
 
       // STATEMENT_ITERATOR_WHILE
-      struct
-      {
+      struct {
          Statement *cond_or_decl;
          Statement *block; // *always* constructed as a STATEMENT_COMPOUND
       } iterator_while;
 
       // STATEMENT_ITERATOR_DO_WHILE
-      struct
-      {
+      struct {
          Statement *block; // *always* constructed as a STATEMENT_COMPOUND
          Expr      *cond;
       } iterator_do_while;

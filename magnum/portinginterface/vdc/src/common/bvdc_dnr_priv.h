@@ -83,39 +83,7 @@ extern "C" {
 
 #define BVDC_P_DNR_H_MAX_RANGE        (200)
 #define BVDC_P_DNR_MAX_HW_QP_STEPS    (100)
-#ifdef BCHP_DNR_5_REG_START
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) \
-    ((BVDC_P_DnrId_eDnr5==(dnr_id)) ? (BCHP_DNR_5_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr4==(dnr_id)) ? (BCHP_DNR_4_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr3==(dnr_id)) ? (BCHP_DNR_3_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr2==(dnr_id)) ? (BCHP_DNR_2_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr1==(dnr_id)) ? (BCHP_DNR_1_REG_START - BCHP_DNR_0_REG_START) \
-    :(0))
-#elif BCHP_DNR_4_REG_START
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) \
-    ((BVDC_P_DnrId_eDnr4 ==(dnr_id)) ? (BCHP_DNR_4_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr3 ==(dnr_id)) ? (BCHP_DNR_3_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr2 ==(dnr_id)) ? (BCHP_DNR_2_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr1 ==(dnr_id)) ? (BCHP_DNR_1_REG_START - BCHP_DNR_0_REG_START) \
-    :(0))
-#elif BCHP_DNR_3_REG_START
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) \
-    ((BVDC_P_DnrId_eDnr3 ==(dnr_id)) ? (BCHP_DNR_3_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr2 ==(dnr_id)) ? (BCHP_DNR_2_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr1 ==(dnr_id)) ? (BCHP_DNR_1_REG_START - BCHP_DNR_0_REG_START) \
-    :(0))
-#elif BCHP_DNR_2_REG_START
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) \
-    ((BVDC_P_DnrId_eDnr2 ==(dnr_id)) ? (BCHP_DNR_2_REG_START - BCHP_DNR_0_REG_START) \
-    :(BVDC_P_DnrId_eDnr1 ==(dnr_id)) ? (BCHP_DNR_1_REG_START - BCHP_DNR_0_REG_START) \
-    :(0))
-#elif BCHP_DNR_1_REG_START
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) \
-    ((BVDC_P_DnrId_eDnr1 ==(dnr_id)) ? (BCHP_DNR_1_REG_START - BCHP_DNR_0_REG_START) \
-    :(0))
-#else
-#define BVDC_P_DNR_GET_REG_OFFSET(dnr_id) (0)
-#endif
+
 
 #define BVDC_P_Dnr_PostMuxValue(hDnr)     ((hDnr)->ulVnetMuxValue)
 

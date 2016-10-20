@@ -1,5 +1,5 @@
 /***************************************************************************
-*  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
 *  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -84,7 +84,7 @@
 #define NEXUS_NUM_AUDIO_DECODERS 6
 #define NEXUS_NUM_AUDIO_INPUT_CAPTURES 1 /* Number of external inputs active at a time */
 #define NEXUS_NUM_AUDIO_DACS 1
-#define NEXUS_NUM_SPDIF_INPUTS 0
+#define NEXUS_NUM_SPDIF_INPUTS 1
 #define NEXUS_NUM_SPDIF_OUTPUTS 1
 #if defined(NEXUS_USE_7250_USFF) || defined(NEXUS_USE_72501_SFF)
 #define NEXUS_NUM_I2S_INPUTS 0
@@ -165,6 +165,8 @@ upon the chip usage. See below */
 
 
 #define NEXUS_AVS_MONITOR           0
+
+#define NEXUS_NUM_SPI_CHANNELS 2
 
 
 #endif /* #ifndef NEXUS_PLATFORM_FEATURES_H__ */

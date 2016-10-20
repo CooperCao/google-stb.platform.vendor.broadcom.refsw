@@ -54,6 +54,7 @@ CAtlas::CAtlas(
     _pCfg(NULL),
     _pBoardResources(NULL),
     _pWidgetEngine(NULL),
+    _bwinEngine(NULL),
     _number(number),
     _mode(mode),
     _pChannelMgr(pChannelMgr),
@@ -108,7 +109,7 @@ CDisplay * CAtlas::displayCreate()
     CDisplay * pDisplay = NULL;
 
     pDisplay = (CDisplay *)_pBoardResources->checkoutResource(this, eBoardResource_display);
-    CHECK_PTR_ERROR_GOTO("unable to checkout display", pDisplay, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout display", pDisplay, ret, eRet_NotAvailable, error);
 
     _model.addDisplay(pDisplay);
 
@@ -139,7 +140,7 @@ CDisplay * CAtlas::displayInitialize(
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pDisplay = displayCreate();
-    CHECK_PTR_ERROR_GOTO("unable to checkout display", pDisplay, ret, eRet_NotAvailable, error);
+    CHECK_PTR_WARN_GOTO("unable to checkout display", pDisplay, ret, eRet_NotAvailable, error);
 
     if ((true == pDisplay->isReservedForEncoder()) || (false == pDisplay->isSupported()))
     {
@@ -161,7 +162,7 @@ CDisplay * CAtlas::displayInitialize(
         NEXUS_GetDisplayCapabilities(&capsDisplay);
 
         {
-            int width = capsDisplay.display[pDisplay->getNumber()].graphics.width;
+            int width  = capsDisplay.display[pDisplay->getNumber()].graphics.width;
             int height = capsDisplay.display[pDisplay->getNumber()].graphics.height;
             BDBG_WRN(("Init display - max graphics width:%d height:%d", width, height));
         }
@@ -207,7 +208,7 @@ CGraphics * CAtlas::graphicsCreate()
     CGraphics * pGraphics = NULL;
 
     pGraphics = (CGraphics *)_pBoardResources->checkoutResource(this, eBoardResource_graphics);
-    CHECK_PTR_ERROR_GOTO("unable to checkout graphics", pGraphics, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout graphics", pGraphics, ret, eRet_NotAvailable, error);
 
     _model.addGraphics(pGraphics);
 error:
@@ -235,12 +236,23 @@ CGraphics * CAtlas::graphicsInitialize(
 
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
+    /* open bwin */
+    {
+        bwin_engine_settings bwinSettings;
+
+        bwin_engine_settings_init(&bwinSettings);
+        _bwinEngine = bwin_open_engine(&bwinSettings);
+        CHECK_PTR_ERROR_GOTO("Unable to open bwin engine", _bwinEngine, ret, eRet_ExternalError, error);
+    }
+
     /* open graphics resource */
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
     {
         pGraphics = graphicsCreate();
 
         ret = pGraphics->open(_pConfig);
         CHECK_ERROR_GOTO("graphics failed to open", ret, error);
+        pGraphics->setBwin(_bwinEngine);
         pGraphics->setModel(&_model);
         pGraphics->setDisplays(pDisplayHD, pDisplaySD);
 
@@ -258,7 +270,7 @@ CGraphics * CAtlas::graphicsInitialize(
         _pWidgetEngine = new CWidgetEngine("widgetEngine", _pCfg);
         CHECK_PTR_ERROR_GOTO("unable to allocate widget engine", _pWidgetEngine, ret, eRet_OutOfMemory, error);
 
-        ret = _pWidgetEngine->open(pGraphics->getWinEngine(), &settings);
+        ret = _pWidgetEngine->open(_bwinEngine, &settings);
         CHECK_ERROR_GOTO("Unable to open widget engine", ret, error);
     }
 
@@ -285,7 +297,13 @@ void CAtlas::graphicsUninitialize()
         pGraphics->close();
         pGraphics = NULL;
     }
-}
+
+    if (NULL != _bwinEngine)
+    {
+        bwin_close_engine(_bwinEngine);
+        _bwinEngine = NULL;
+    }
+} /* graphicsUninitialize */
 
 CIrRemote * CAtlas::irRemoteCreate()
 {
@@ -293,7 +311,7 @@ CIrRemote * CAtlas::irRemoteCreate()
     CIrRemote * pIrRemote = NULL;
 
     pIrRemote = (CIrRemote *)_pBoardResources->checkoutResource(this, eBoardResource_irRemote);
-    CHECK_PTR_ERROR_GOTO("unable to checkout Ir remote", pIrRemote, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout Ir remote", pIrRemote, ret, eRet_NotAvailable, error);
 
     _model.addIrRemote(pIrRemote);
 error:
@@ -357,7 +375,7 @@ CRf4ceRemote * CAtlas::rf4ceRemoteCreate()
     CRf4ceRemote * pRf4ceRemote = NULL;
 
     pRf4ceRemote = (CRf4ceRemote *)_pBoardResources->checkoutResource(this, eBoardResource_rf4ceRemote);
-    CHECK_PTR_ERROR_GOTO("unable to checkout Rf4ce remote", pRf4ceRemote, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout Rf4ce remote", pRf4ceRemote, ret, eRet_NotAvailable, error);
 
     _model.addRf4ceRemote(pRf4ceRemote);
 error:
@@ -422,7 +440,7 @@ CUhfRemote * CAtlas::uhfRemoteCreate()
     CUhfRemote * pUhfRemote = NULL;
 
     pUhfRemote = (CUhfRemote *)_pBoardResources->checkoutResource(this, eBoardResource_uhfRemote);
-    CHECK_PTR_ERROR_GOTO("unable to checkout uhf remote", pUhfRemote, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout uhf remote", pUhfRemote, ret, eRet_NotAvailable, error);
 
     _model.addUhfRemote(pUhfRemote);
 error:
@@ -543,7 +561,7 @@ CStc * CAtlas::stcInitialize(eWindowType windowType)
 
     /* open STC channel for a/v sync */
     pStc = (CStc *)_pBoardResources->checkoutResource(this, eBoardResource_stcChannel);
-    CHECK_PTR_ERROR_GOTO("unable to checkout stc channel", pStc, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout stc channel", pStc, ret, eRet_NotAvailable, error);
 
     ret = pStc->open();
     CHECK_ERROR_GOTO("stc failed to open", ret, error);
@@ -563,7 +581,7 @@ void CAtlas::stcUninitialize(
         eWindowType windowType
         )
 {
-    if ((NULL == pStc) || (NULL == *pStc)|| (eWindowType_Max == windowType))
+    if ((NULL == pStc) || (NULL == *pStc) || (eWindowType_Max == windowType))
     {
         return;
     }
@@ -587,12 +605,12 @@ CSimpleVideoDecode * CAtlas::videoDecodeCreate(eWindowType windowType)
 
     pVideoDecode =
         (CSimpleVideoDecode *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeVideo);
-    CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     _model.addSimpleVideoDecode(pVideoDecode, windowType);
 error:
     return(pVideoDecode);
-}
+} /* videoDecodeCreate */
 
 void CAtlas::videoDecodeDestroy(eWindowType windowType)
 {
@@ -633,7 +651,7 @@ CSimpleVideoDecode * CAtlas::videoDecodeInitialize(
 
     /* add/setup  decode if available or reserved for us */
     pVideoDecode = videoDecodeCreate(windowType);
-    CHECK_PTR_ERROR_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout simple video decoder", pVideoDecode, ret, eRet_NotAvailable, error);
 
     pVideoDecode->setResources(this, _pBoardResources);
     pVideoDecode->setModel(&_model);
@@ -683,7 +701,7 @@ CSimpleAudioDecode * CAtlas::audioDecodeCreate(eWindowType windowType)
     CSimpleAudioDecode * pAudioDecode = NULL;
 
     pAudioDecode = (CSimpleAudioDecode *)_pBoardResources->checkoutResource(this, eBoardResource_simpleDecodeAudio);
-    CHECK_PTR_WARN_GOTO("unable to checkout simple audio decoder", pAudioDecode, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout simple audio decoder", pAudioDecode, ret, eRet_NotAvailable, error);
 
     /* add audio decode to model for main */
     _model.addSimpleAudioDecode(pAudioDecode, windowType);
@@ -806,7 +824,7 @@ eRet CAtlas::networkInitialize(void)
 error:
     ATLAS_MEMLEAK_TRACE("END");
     return(ret);
-}
+} /* networkInitialize */
 
 void CAtlas::networkUninitialize(void)
 {
@@ -849,7 +867,6 @@ done:
     return(pBluetoothRemote);
 } /* bluetoothRemoteInitialize */
 
-
 void CAtlas::bluetoothRemoteUninitialize(void)
 {
     CBluetoothRemote * pBluetoothRemote = _model.getBluetoothRemote();
@@ -865,14 +882,13 @@ void CAtlas::bluetoothRemoteUninitialize(void)
     pBluetoothRemote = NULL;
 }
 
-
 CBluetooth * CAtlas::bluetoothCreate()
 {
     eRet         ret        = eRet_Ok;
     CBluetooth * pBluetooth = NULL;
 
     pBluetooth = (CBluetooth *)_pBoardResources->checkoutResource(this, eBoardResource_bluetooth);
-    CHECK_PTR_ERROR_GOTO("unable to checkout bluetooth", pBluetooth, ret, eRet_OutOfMemory, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout bluetooth", pBluetooth, ret, eRet_OutOfMemory, error);
 
 error:
     return(pBluetooth);
@@ -966,7 +982,7 @@ eRet CAtlas::ipServerInitialize()
 
         ret = pServerMgr->open(_pWidgetEngine);
         CHECK_ERROR("unable to open HTTP server object", ret);
-        if ( ret != eRet_Ok )
+        if (ret != eRet_Ok)
         {
             delete pServerMgr;
             goto error;
@@ -1056,7 +1072,6 @@ eRet CAtlas::ipServerStart()
 
         /* Start UDP Streamer, optional */
         pServerMgr->startUdpServer();
-
     }
 
     /* start auto discovery client */
@@ -1121,7 +1136,7 @@ eRet CAtlas::snmpInitialize()
     }
 
     ATLAS_MEMLEAK_TRACE("END");
-}
+} /* snmpInitialize */
 
 void CAtlas::snmpUninitialize()
 {
@@ -1232,14 +1247,18 @@ done:
 
 void CAtlas::guiUninitialize()
 {
-    _pControl->removeView(_pMainScreen);
-    _pMainScreen->uninitialize();
-    DEL(_pMainScreen);
+    if (NULL != _pMainScreen)
+    {
+        _pControl->removeView(_pMainScreen);
+        _pMainScreen->uninitialize();
+        DEL(_pMainScreen);
+    }
 
     /* reparent pBackgroundScreen before destroying because all windows directly
      * descended from the framebuffer win don't seem to unlink automatically.
      * changing the parent win to NULL will force the unlink to occur before
      * destruction. */
+    if (NULL != _pBackgroundScreen)
     {
         _pBackgroundScreen->setParentWin(NULL);
         DEL(_pBackgroundScreen);
@@ -1365,10 +1384,10 @@ CTsb * CAtlas::dvrLibInitialize(void)
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pTsb = (CTsb *)_pBoardResources->checkoutResource(this, eBoardResource_tsb);
-    CHECK_PTR_ERROR_GOTO("main tsb checkout failed", pTsb, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("main tsb checkout failed", pTsb, ret, eRet_NotAvailable, error);
     _model.setTsb(pTsb, eWindowType_Main);
     pTsbPip = (CTsb *)_pBoardResources->checkoutResource(this, eBoardResource_tsb);
-    CHECK_PTR_ERROR_GOTO("pip tsb checkout failed", pTsbPip, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("pip tsb checkout failed", pTsbPip, ret, eRet_NotAvailable, error);
     _model.setTsb(pTsbPip, eWindowType_Pip);
 
     goto done;
@@ -1413,11 +1432,12 @@ eRet CAtlas::digitalClosedCaptionsInitialize(CConfig * pConfig)
         _model.addClosedCaption(pClosedCaption);
     }
     return(ret);
+
 error:
     DEL(pClosedCaption);
 
     ATLAS_MEMLEAK_TRACE("END");
-    return (ret);
+    return(ret);
 } /* digitalClosedCaptionsInitialize */
 
 void CAtlas::digitalClosedCaptionsUninitialize()
@@ -1442,7 +1462,7 @@ CStillDecode * CAtlas::videoDecodeStillInitialize()
     ATLAS_MEMLEAK_TRACE("BEGIN");
 
     pVideoDecodeStill = (CStillDecode *)_pBoardResources->checkoutResource(this, eBoardResource_decodeStill);
-    CHECK_PTR_ERROR_GOTO("unable to checkout still decode", pVideoDecodeStill, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout still decode", pVideoDecodeStill, ret, eRet_NotAvailable, error);
 
     /* set up still decode for use in thumbnail extractor */
     pVideoDecodeStill->setWidgetEngine(getWidgetEngine());
@@ -1486,7 +1506,7 @@ COutputHdmi * CAtlas::outputHdmiCreate()
 
     /* add/setup HDMI output if in resource list */
     pOutputHdmi = (COutputHdmi *)_pBoardResources->checkoutResource(this, eBoardResource_outputHdmi);
-    CHECK_PTR_ERROR_GOTO("unable to checkout hdmi output", pOutputHdmi, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout hdmi output", pOutputHdmi, ret, eRet_NotAvailable, error);
 
     pOutputHdmi->setWidgetEngine(_pWidgetEngine);
     _model.addAudioOutput(pOutputHdmi);
@@ -1574,7 +1594,7 @@ COutputComponent * CAtlas::outputComponentInitialize(CDisplay * pDisplay)
 
     /* add/setup COMPONENT output if in resource list */
     pOutputComponent = (COutputComponent *)_pBoardResources->checkoutResource(this, eBoardResource_outputComponent);
-    CHECK_PTR_ERROR_GOTO("unable to checkout component output", pOutputComponent, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout component output", pOutputComponent, ret, eRet_NotAvailable, error);
 
     /* connect output to display */
     ret = pDisplay->addOutput(pOutputComponent);
@@ -1623,7 +1643,7 @@ COutputComposite * CAtlas::outputCompositeInitialize(CDisplay * pDisplay)
 
     /* add/setup COMPOSITE output if in resource list */
     pOutputComposite = (COutputComposite *)_pBoardResources->checkoutResource(this, eBoardResource_outputComposite);
-    CHECK_PTR_ERROR_GOTO("unable to checkout composite output", pOutputComposite, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout composite output", pOutputComposite, ret, eRet_NotAvailable, error);
 
     /* connect output to display */
     ret = pDisplay->addOutput(pOutputComposite);
@@ -1667,7 +1687,7 @@ COutputRFM * CAtlas::outputRfmInitialize(CDisplay * pDisplay)
 
     /* add/setup Rfm output if in resource list */
     pOutputRfm = (COutputRFM *)_pBoardResources->checkoutResource(this, eBoardResource_outputRFM);
-    CHECK_PTR_ERROR_GOTO("unable to checkout RFM output", pOutputRfm, ret, eRet_NotAvailable, error);
+    CHECK_PTR_MSG_GOTO("unable to checkout RFM output", pOutputRfm, ret, eRet_NotAvailable, error);
 
     /* connect output to display */
     ret = pDisplay->addOutput(pOutputRfm);
@@ -2262,35 +2282,25 @@ void CAtlas::notificationsUninitialize()
 
 eRet CAtlas::initialize(CConfig * pConfig)
 {
-    eRet                 ret                 = eRet_Ok;
-    CDisplay *           pDisplayHD          = NULL;
-    CDisplay *           pDisplaySD          = NULL;
-    CGraphics *          pGraphics           = NULL;
-    CSimpleVideoDecode * pVideoDecodeMain    = NULL;
-    CSimpleVideoDecode * pVideoDecodePip     = NULL;
-    CStillDecode *       pVideoDecodeStill   = NULL;
-    CSimpleAudioDecode * pAudioDecodeMain    = NULL;
-    CSimpleAudioDecode * pAudioDecodePip     = NULL;
-    CStc *               pStcMain            = NULL;
-    CStc *               pStcPip             = NULL;
-    CIrRemote *          pIrRemote           = NULL;
-    CPlaybackList *      pPlaybackList       = NULL;
-    COutputComponent *   pOutputComponent    = NULL;
-    COutputComposite *   pOutputComposite    = NULL;
-    COutputRFM *         pOutputRFM          = NULL;
-    COutputHdmi *        pOutputHdmi         = NULL;
-    COutputSpdif *       pOutputSpdif        = NULL;
-    COutputAudioDac *    pOutputAudioDac     = NULL;
+    eRet                 ret               = eRet_Ok;
+    CDisplay *           pDisplayHD        = NULL;
+    CDisplay *           pDisplaySD        = NULL;
+    CGraphics *          pGraphics         = NULL;
+    CSimpleVideoDecode * pVideoDecodeMain  = NULL;
+    CSimpleVideoDecode * pVideoDecodePip   = NULL;
+    CStillDecode *       pVideoDecodeStill = NULL;
+    CSimpleAudioDecode * pAudioDecodeMain  = NULL;
+    CSimpleAudioDecode * pAudioDecodePip   = NULL;
+    CStc *               pStcMain          = NULL;
+    CStc *               pStcPip           = NULL;
+    CPlaybackList *      pPlaybackList     = NULL;
+    COutputComponent *   pOutputComponent  = NULL;
+    COutputComposite *   pOutputComposite  = NULL;
+    COutputRFM *         pOutputRFM        = NULL;
+    COutputHdmi *        pOutputHdmi       = NULL;
+    COutputSpdif *       pOutputSpdif      = NULL;
+    COutputAudioDac *    pOutputAudioDac   = NULL;
 
-#if RF4CE_SUPPORT
-    CRf4ceRemote * pRf4ceRemote = NULL;
-#endif
-#ifdef NETAPP_SUPPORT
-    CBluetoothRemote * pBluetoothRemote = NULL;
-#endif
-#if NEXUS_HAS_UHF_INPUT
-    CUhfRemote * pUhfRemote = NULL;
-#endif
 #ifdef MPOD_SUPPORT
     CCablecard * pCableCard = NULL;
 #endif
@@ -2310,7 +2320,7 @@ eRet CAtlas::initialize(CConfig * pConfig)
             stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_HD)),
             GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_HD),
             GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_HD));
-    CHECK_PTR_ERROR("unable to create HD Display", pDisplayHD, ret, eRet_NotSupported);
+    CHECK_PTR_MSG("unable to create HD Display", pDisplayHD, ret, eRet_NotSupported);
 
     if ((true == _pBoardResources->findResource(this, eBoardResource_outputComposite)) ||
         (true == _pBoardResources->findResource(this, eBoardResource_outputRFM)))
@@ -2319,23 +2329,22 @@ eRet CAtlas::initialize(CConfig * pConfig)
                 stringToVideoFormat(GET_STR(_pCfg, PREFERRED_FORMAT_SD)),
                 GET_INT(_pCfg, FRAMEBUFFER_SURFACE_WIDTH_SD),
                 GET_INT(_pCfg, FRAMEBUFFER_SURFACE_HEIGHT_SD));
-        CHECK_PTR_ERROR("unable to create SD Display", pDisplaySD, ret, eRet_NotSupported);
+        CHECK_PTR_MSG("unable to create SD Display", pDisplaySD, ret, eRet_NotSupported);
     }
 
-    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
     {
         pGraphics = graphicsInitialize(pDisplayHD, pDisplaySD);
-        CHECK_PTR_ERROR("unable to initialize graphics", pGraphics, ret, eRet_NotSupported);
+        CHECK_PTR_MSG("unable to initialize graphics", pGraphics, ret, eRet_NotSupported);
     }
 
     _pControl->initialize(this, _pConfig, _pChannelMgr, _pWidgetEngine);
 
-    pIrRemote = irRemoteInitialize();
+    irRemoteInitialize();
 #if RF4CE_SUPPORT
-    pRf4ceRemote = rf4ceRemoteInitialize();
+    rf4ceRemoteInitialize();
 #endif
 #if NEXUS_HAS_UHF_INPUT
-    pUhfRemote = uhfRemoteInitialize();
+    uhfRemoteInitialize();
 #endif
 
 #ifdef ESTB_CFG_SUPPORT
@@ -2356,21 +2365,22 @@ eRet CAtlas::initialize(CConfig * pConfig)
 #endif /* if DVR_LIB_SUPPORT */
 
     /* init main decode and video windows */
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
     {
         CVideoWindow * pVideoWindowHD = NULL;
         CVideoWindow * pVideoWindowSD = NULL;
 
         pStcMain = stcInitialize(eWindowType_Main);
-        CHECK_PTR_ERROR_GOTO("unable to initialize main simple stc", pStcMain, ret, eRet_NotAvailable, errorDecodeMain);
+        CHECK_PTR_MSG_GOTO("unable to initialize main simple stc", pStcMain, ret, eRet_NotAvailable, errorDecodeMain);
 
         pVideoDecodeMain = videoDecodeInitialize(pStcMain, eWindowType_Main);
-        CHECK_PTR_ERROR_GOTO("unable to initialize main video decode", pVideoDecodeMain, ret, eRet_NotAvailable, errorDecodeMain);
+        CHECK_PTR_MSG_GOTO("unable to initialize main video decode", pVideoDecodeMain, ret, eRet_NotAvailable, errorDecodeMain);
 
         pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_WARN("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_Ok);
+        CHECK_PTR_MSG("unable to initialize video window for HD display (main)", pVideoWindowHD, ret, eRet_Ok);
 
         pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodeMain, eWindowType_Main);
-        CHECK_PTR_WARN("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_Ok);
+        CHECK_PTR_MSG("unable to initialize video window for SD display (main)", pVideoWindowSD, ret, eRet_Ok);
 
         goto doneDecodeMain;
 errorDecodeMain: /* we can continue even if main decode cannot be initialized (headless) */
@@ -2396,6 +2406,7 @@ errorDecodeMain: /* we can continue even if main decode cannot be initialized (h
 doneDecodeMain:
 
     /* init pip decode and video windows */
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
     {
         CVideoWindow * pVideoWindowHD = NULL;
         CVideoWindow * pVideoWindowSD = NULL;
@@ -2403,16 +2414,16 @@ doneDecodeMain:
         _model.setPipEnabled(false);
 
         pStcPip = stcInitialize(eWindowType_Pip);
-        CHECK_PTR_WARN_GOTO("unable to initialize pip simple stc", pStcPip, ret, eRet_NotAvailable, errorDecodePip);
+        CHECK_PTR_MSG_GOTO("unable to initialize pip simple stc", pStcPip, ret, eRet_NotAvailable, errorDecodePip);
 
         pVideoDecodePip = videoDecodeInitialize(pStcPip, eWindowType_Pip);
-        CHECK_PTR_WARN_GOTO("unable to initialize pip video decode", pVideoDecodePip, ret, eRet_NotAvailable, errorDecodePip);
+        CHECK_PTR_MSG_GOTO("unable to initialize pip video decode", pVideoDecodePip, ret, eRet_NotAvailable, errorDecodePip);
 
         pVideoWindowHD = videoWindowInitialize(pDisplayHD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_WARN("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_Ok);
+        CHECK_PTR_MSG("unable to initialize video window for HD display (pip)", pVideoWindowHD, ret, eRet_Ok);
 
         pVideoWindowSD = videoWindowInitialize(pDisplaySD, pVideoDecodePip, eWindowType_Pip);
-        CHECK_PTR_WARN("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_Ok);
+        CHECK_PTR_MSG("unable to initialize video window for SD display (pip)", pVideoWindowSD, ret, eRet_Ok);
 
         _model.setPipEnabled(true);
 
@@ -2438,39 +2449,59 @@ errorDecodePip: /* we can continue even if pip decode cannot be initialized (hea
     }
 doneDecodePip:
 #ifdef DCC_SUPPORT
-    ret = digitalClosedCaptionsInitialize(pConfig);
-    CHECK_ERROR("digital closed captions failed to initialize", ret);
-#endif
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
+    {
+        ret = digitalClosedCaptionsInitialize(pConfig);
+        CHECK_ERROR("digital closed captions failed to initialize", ret);
+    }
+    else
+    {
+        BDBG_WRN(("Disable DCC since the HD display does not exist"));
+        SET(_pCfg, DCC_ENABLED, false);
+    }
+#endif /* ifdef DCC_SUPPORT */
 
     if (NULL != pVideoDecodeMain)
     {
         pVideoDecodeStill = videoDecodeStillInitialize();
-        CHECK_PTR_WARN("unable to initialize still decode", pVideoDecodeStill, ret, eRet_Ok);
+        CHECK_PTR_MSG("unable to initialize still decode", pVideoDecodeStill, ret, eRet_Ok);
     }
 
-    ret = mosaicInitialize();
-    CHECK_WARN("unable to initialize mosaics", ret);
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
+    {
+        ret = mosaicInitialize();
+        CHECK_WARN("unable to initialize mosaics", ret);
+    }
 
     /* initialize video and audio outputs */
     pOutputHdmi = outputHdmiInitialize(pDisplayHD);
-    CHECK_PTR_WARN("unable to initialize hdmi output - disabled", pOutputHdmi, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize hdmi output - disabled", pOutputHdmi, ret, eRet_Ok);
     pOutputComponent = outputComponentInitialize(pDisplayHD);
-    CHECK_PTR_WARN("unable to initialize component output - disabled", pOutputComponent, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize component output - disabled", pOutputComponent, ret, eRet_Ok);
     pOutputComposite = outputCompositeInitialize(pDisplaySD);
-    CHECK_PTR_WARN("unable to initialize composite output - disabled", pOutputComposite, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize composite output - disabled", pOutputComposite, ret, eRet_Ok);
     pOutputRFM = outputRfmInitialize(pDisplaySD);
-    CHECK_PTR_WARN("unable to initialize rfm output - disabled", pOutputRFM, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize rfm output - disabled", pOutputRFM, ret, eRet_Ok);
     pOutputSpdif = outputSpdifInitialize();
-    CHECK_PTR_WARN("unable to initialize spdif output - disabled", pOutputSpdif, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize spdif output - disabled", pOutputSpdif, ret, eRet_Ok);
     pOutputAudioDac = outputDacInitialize();
-    CHECK_PTR_WARN("unable to initialize Dac output - disabled", pOutputAudioDac, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize Dac output - disabled", pOutputAudioDac, ret, eRet_Ok);
 
     /* initialize Main audio decoder */
     pAudioDecodeMain = audioDecodeInitialize(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStcMain, eWindowType_Main);
-    CHECK_PTR_WARN("unable to initialize Main audio decode - disabled", pAudioDecodeMain, ret, eRet_Ok);
+    CHECK_PTR_MSG("unable to initialize Main audio decode - disabled", pAudioDecodeMain, ret, eRet_Ok);
     /* initialize Pip audio decoder */
-    pAudioDecodePip = audioDecodeInitializePip(pOutputHdmi, pOutputSpdif, pOutputAudioDac, pOutputRFM, pStcPip, eWindowType_Pip);
-    CHECK_PTR_WARN("unable to initialize Pip audio decode - disabled", pAudioDecodePip, ret, eRet_Ok);
+    pAudioDecodePip = audioDecodeInitialize(NULL, NULL, NULL, NULL, pStcPip, eWindowType_Pip);
+    CHECK_PTR_MSG("unable to initialize Pip audio decode - disabled", pAudioDecodePip, ret, eRet_Ok);
+    /* even though the pip audio decoder does not connect to these outputs initially, it will still
+     * need access to them in the event it is swapped onto the fullscreen */
+    if (NULL != pAudioDecodePip)
+    {
+        pAudioDecodePip->setOutputHdmi(pOutputHdmi);
+        pAudioDecodePip->setOutputSpdif(pOutputSpdif);
+        pAudioDecodePip->setOutputDac(pOutputAudioDac);
+        pAudioDecodePip->setOutputRFM(pOutputRFM);
+    }
 
     pPlaybackList = new CPlaybackList(_pCfg);
     CHECK_PTR_ERROR_GOTO("unable to allocate playback list", pPlaybackList, ret, eRet_OutOfMemory, error);
@@ -2480,22 +2511,24 @@ doneDecodePip:
     ret = networkInitialize();
     CHECK_WARN("unable to initialize wifi networking support - disabled", ret);
 
-    pBluetoothRemote = bluetoothRemoteInitialize();
-    CHECK_PTR_WARN("unable to initialize bluetooth remote - disabled", pBluetoothRemote, ret, eRet_Ok);
-
     {
-        CBluetooth *    pBluetooth    = NULL;
-        CAudioCapture * pAudioCapture = NULL;
+        CBluetoothRemote * pBluetoothRemote = bluetoothRemoteInitialize();
+        CHECK_PTR_MSG("unable to initialize bluetooth remote - disabled", pBluetoothRemote, ret, eRet_Ok);
 
-        pBluetooth = bluetoothInitialize();
-        CHECK_PTR_WARN_GOTO("unable to initialize bluetooth support - disabled", pBluetooth, ret, eRet_NotAvailable, errorBluetooth);
+        {
+            CBluetooth *    pBluetooth    = NULL;
+            CAudioCapture * pAudioCapture = NULL;
 
-        /* pass in the bluetoothRemote object, so a hotplug can initiate blueoothRemote functionality */
-        pBluetooth->setBluetoothRemote(pBluetoothRemote);
+            pBluetooth = bluetoothInitialize();
+            CHECK_PTR_MSG_GOTO("unable to initialize bluetooth support - disabled", pBluetooth, ret, eRet_NotAvailable, errorBluetooth);
 
-        /* audio capture is only supported in nxclient mode */
-        pAudioCapture = audioCaptureInitialize(pBluetooth);
-        CHECK_PTR_WARN_GOTO("unable to initialize audio capture support - disabled", pAudioCapture, ret, eRet_NotAvailable, errorAudioCapture);
+            /* pass in the bluetoothRemote object, so a hotplug can initiate blueoothRemote functionality */
+            pBluetooth->setBluetoothRemote(pBluetoothRemote);
+
+            /* audio capture is only supported in nxclient mode */
+            pAudioCapture = audioCaptureInitialize(pBluetooth);
+            CHECK_PTR_MSG_GOTO("unable to initialize audio capture support - disabled", pAudioCapture, ret, eRet_NotAvailable, errorAudioCapture);
+        }
     }
 errorBluetooth:
 errorAudioCapture:
@@ -2506,8 +2539,11 @@ errorAudioCapture:
     CHECK_WARN("unable to initialize IP client/server support - disabled", ret);
 #endif /* ifdef PLAYBACK_IP_SUPPORT */
 
-    ret = guiInitialize(pConfig, pGraphics);
-    CHECK_ERROR_GOTO("Graphical User Interface failed to initialize", ret, error);
+    if ((NULL != pDisplayHD) || (NULL != pDisplaySD))
+    {
+        ret = guiInitialize(pConfig, pGraphics);
+        CHECK_MSG_GOTO("Graphical User Interface failed to initialize", ret, error);
+    }
 
     /* register observers for allowed notification deliveries */
     notificationsInitialize();
@@ -2527,7 +2563,10 @@ errorAudioCapture:
     CHECK_WARN("unable to start SNMP - disabled", ret);
 #endif /* ifdef SNMP_SUPPORT */
 
-    _pMainScreen->show(true);
+    if (NULL != _pMainScreen)
+    {
+        _pMainScreen->show(true);
+    }
 
     ret = setPreferredVideoFormat(pOutputHdmi, pOutputComponent, pOutputComposite, pOutputRFM);
     CHECK_WARN("unable to set preferred video format", ret);
@@ -2538,6 +2577,14 @@ errorAudioCapture:
     /* initialize volume level */
     _pControl->setVolume(NEXUS_AUDIO_VOLUME_LINEAR_NORMAL);
 
+    if ((NULL == pDisplayHD) && (NULL == pDisplaySD))
+    {
+        /* headless mode so omit initial and idle tuning */
+        SET(_pCfg, FIRST_TUNE, false);
+        SET(_pCfg, ENABLE_IDLE_TUNE, false);
+        BDBG_WRN(("*** Atlas is in HEADLESS mode ***"));
+    }
+
     return(ret);
 
 error:
@@ -2547,22 +2594,21 @@ error:
 
 void CAtlas::uninitialize()
 {
-    CDisplay *           pDisplayHD          = _model.getDisplay(0);
-    CDisplay *           pDisplaySD          = _model.getDisplay(1);
-    CPlaybackList *      pPlaybackList       = _model.getPlaybackList();
-    CSimpleAudioDecode * pAudioDecodeMain    = _model.getSimpleAudioDecode(eWindowType_Main);
-    CSimpleAudioDecode * pAudioDecodePip     = _model.getSimpleAudioDecode(eWindowType_Pip);
-    COutputAudioDac *    pOutputAudioDac     = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
-    COutputSpdif *       pOutputSpdif        = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
-    COutputHdmi *        pOutputHdmi         = NULL;
-    COutputComponent *   pOutputComponent    = NULL;
-    COutputComposite *   pOutputComposite    = NULL;
-    COutputRFM *         pOutputRFM          = NULL;
+    CDisplay *           pDisplayHD       = _model.getDisplay(0);
+    CDisplay *           pDisplaySD       = _model.getDisplay(1);
+    CPlaybackList *      pPlaybackList    = _model.getPlaybackList();
+    CSimpleAudioDecode * pAudioDecodeMain = _model.getSimpleAudioDecode(eWindowType_Main);
+    CSimpleAudioDecode * pAudioDecodePip  = _model.getSimpleAudioDecode(eWindowType_Pip);
+    COutputAudioDac *    pOutputAudioDac  = (COutputAudioDac *)_model.getAudioOutput(eBoardResource_outputAudioDac);
+    COutputSpdif *       pOutputSpdif     = (COutputSpdif *)_model.getAudioOutput(eBoardResource_outputSpdif);
+    COutputHdmi *        pOutputHdmi      = NULL;
+    COutputComponent *   pOutputComponent = NULL;
+    COutputComposite *   pOutputComposite = NULL;
+    COutputRFM *         pOutputRFM       = NULL;
 
     if (NULL != pDisplayHD)
     {
-        pOutputHdmi      = (COutputHdmi *)pDisplayHD->getOutput(eBoardResource_outputHdmi);
-        pOutputComponent = (COutputComponent *)pDisplayHD->getOutput(eBoardResource_outputComponent);
+        pOutputHdmi = (COutputHdmi *)pDisplayHD->getOutput(eBoardResource_outputHdmi);
     }
     if (NULL != pDisplaySD)
     {
@@ -2570,7 +2616,10 @@ void CAtlas::uninitialize()
         pOutputRFM       = (COutputRFM *)pDisplaySD->getOutput(eBoardResource_outputRFM);
     }
 
-    _pMainScreen->show(false);
+    if (NULL != _pMainScreen)
+    {
+        _pMainScreen->show(false);
+    }
 
 #ifdef SNMP_SUPPORT
     snmpUninitialize();
@@ -2659,7 +2708,7 @@ void CAtlas::uninitialize()
     _pControl->uninitialize();
     controlDestroy(_pControl);
 
-    // graphicsUninitialize must be _after_ control unitialize to avoid leaks when the widget engine is destroyed
+    /* graphicsUninitialize must be _after_ control unitialize to avoid leaks when the widget engine is destroyed */
     graphicsUninitialize();
 
     displayUninitialize(&pDisplaySD);

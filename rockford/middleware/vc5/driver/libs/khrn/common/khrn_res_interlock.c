@@ -246,7 +246,7 @@ void* khrn_res_interlock_map_range(
                      *res_ptr = rename;
 
                      // sync needs to match with values that will be passed into khrn_res_interlock_unmap_range.
-                     gmem_sync_pre_cpu_access_range(rename->handle, offset, size, GMEM_SYNC_CPU | GMEM_SYNC_RELAXED);
+                     gmem_sync_pre_cpu_access_range(rename->handle, offset, size, GMEM_SYNC_CPU_RW | GMEM_SYNC_RELAXED);
                      return dst + offset;
                   }
 

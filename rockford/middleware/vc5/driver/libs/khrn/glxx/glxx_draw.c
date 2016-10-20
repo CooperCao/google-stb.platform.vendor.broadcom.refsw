@@ -48,6 +48,22 @@ static inline GLboolean is_index_type(GLenum type)
           (type == GL_UNSIGNED_INT);
 }
 
+#if GLXX_HAS_TNG
+static inline bool is_prim_mode_with_adj(GLenum mode)
+{
+   switch(mode)
+   {
+      case GL_LINES_ADJACENCY:
+      case GL_LINE_STRIP_ADJACENCY:
+      case GL_TRIANGLES_ADJACENCY:
+      case GL_TRIANGLE_STRIP_ADJACENCY:
+         return true;
+      default:
+         return false;
+   }
+}
+#endif
+
 static inline bool is_mode(GLenum mode, bool is_gl11)
 {
    switch (mode)
@@ -62,6 +78,10 @@ static inline bool is_mode(GLenum mode, bool is_gl11)
          return true;
 #if GLXX_HAS_TNG
       case GL_PATCHES:
+      case GL_LINES_ADJACENCY:
+      case GL_LINE_STRIP_ADJACENCY:
+      case GL_TRIANGLES_ADJACENCY:
+      case GL_TRIANGLE_STRIP_ADJACENCY:
          return !is_gl11;
 #endif
       default:
@@ -77,7 +97,7 @@ static bool check_raw_draw_params(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_RA
       return false;
    }
 
-   if (draw->max_index < draw->min_index)
+   if (draw->end < draw->start)
    {
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
       return false;
@@ -131,8 +151,6 @@ static bool check_raw_draw_params(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_RA
 static void draw_params_from_raw(GLXX_DRAW_T *draw, const GLXX_DRAW_RAW_T *raw)
 {
    draw->mode = (GLXX_PRIMITIVE_T)raw->mode;
-   draw->min_index = gfx_umin(raw->min_index, GLXX_CONFIG_MAX_ELEMENT_INDEX);
-   draw->max_index = gfx_umin(raw->max_index, GLXX_CONFIG_MAX_ELEMENT_INDEX);
    draw->count = raw->count;
    draw->is_draw_arrays = raw->is_draw_arrays;
    draw->index_type = (GLXX_INDEX_T)raw->index_type;
@@ -361,10 +379,45 @@ static bool store_client_vertex_pointers(const GLXX_VAO_T *vao, unsigned int att
    return res;
 }
 
-static bool check_valid_transform_in_use(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_T *draw)
+GLXX_PRIMITIVE_T glxx_get_used_draw_mode(const GLSL_PROGRAM_T *p, GLXX_PRIMITIVE_T draw_mode)
 {
-   if (!state->transform_feedback.in_use)
-      return true;
+#if GLXX_HAS_TNG
+   if (glsl_program_has_stage(p, SHADER_GEOMETRY))
+   {
+      switch(p->ir->gs_out)
+      {
+      case GS_OUT_POINTS:
+         return GL_POINTS;
+      case GS_OUT_LINE_STRIP:
+         return GL_LINES;
+      case GS_OUT_TRI_STRIP:
+         return GL_TRIANGLES;
+      default:
+         unreachable();
+      }
+   }
+   else if (glsl_program_has_stage(p, SHADER_TESS_EVALUATION))
+   {
+      assert(draw_mode == GL_PATCHES);
+
+      if(p->ir->tess_point_mode)
+         return GL_POINTS;
+      else if (p->ir->tess_mode == TESS_ISOLINES)
+         return GL_LINES;
+      else
+         return GL_TRIANGLES;
+   }
+   else
+      return draw_mode;
+#else
+   return draw_mode;
+#endif
+}
+
+static bool check_valid_tf_draw(GLXX_SERVER_STATE_T *state, const GLXX_DRAW_T *draw)
+{
+   assert(state->transform_feedback.in_use);
+   assert(gl20_program_common_get(state)->transform_feedback.varying_count > 0);
 
 #if !GLXX_HAS_TNG
    if(draw->is_indirect)
@@ -375,9 +428,62 @@ static bool check_valid_transform_in_use(GLXX_SERVER_STATE_T *state, const GLXX_
       return false;
 #endif
 
-   /* Validates that the primitive mode is OK, and that buffer won't overflow
-    * if applicable */
-   if (!glxx_tf_validate_draw(state, draw->mode, draw->count, draw->instance_count))
+   const GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.bound;
+   const GLSL_PROGRAM_T *program = gl20_program_common_get(state)->linked_glsl_program;
+   GLXX_PRIMITIVE_T used_draw_mode = glxx_get_used_draw_mode(program, draw->mode);
+
+   if (!glxx_tf_draw_mode_allowed(tf, used_draw_mode))
+      return false;
+
+#if !V3D_HAS_NEW_TF
+   /* we are using draw->count and instance->count; valid only if !is_indirect); */
+   assert(!draw->is_indirect);
+   const GLXX_PROGRAM_TFF_POST_LINK_T *ptf = &gl20_program_common_get(state)->transform_feedback;
+   if (!glxx_tf_capture_to_buffers_no_overflow(tf, ptf, draw->count, draw->instance_count))
+      return false;
+#endif
+
+   return true;
+}
+
+static AdvancedBlendQualifier convert_to_blend_qualifier(uint32_t b)
+{
+   switch (b)
+   {
+   case GLXX_ADV_BLEND_MULTIPLY       : return ADV_BLEND_MULTIPLY;
+   case GLXX_ADV_BLEND_SCREEN         : return ADV_BLEND_SCREEN;
+   case GLXX_ADV_BLEND_OVERLAY        : return ADV_BLEND_OVERLAY;
+   case GLXX_ADV_BLEND_DARKEN         : return ADV_BLEND_DARKEN;
+   case GLXX_ADV_BLEND_LIGHTEN        : return ADV_BLEND_LIGHTEN;
+   case GLXX_ADV_BLEND_COLORDODGE     : return ADV_BLEND_COLORDODGE;
+   case GLXX_ADV_BLEND_COLORBURN      : return ADV_BLEND_COLORBURN;
+   case GLXX_ADV_BLEND_HARDLIGHT      : return ADV_BLEND_HARDLIGHT;
+   case GLXX_ADV_BLEND_SOFTLIGHT      : return ADV_BLEND_SOFTLIGHT;
+   case GLXX_ADV_BLEND_DIFFERENCE     : return ADV_BLEND_DIFFERENCE;
+   case GLXX_ADV_BLEND_EXCLUSION      : return ADV_BLEND_EXCLUSION;
+   case GLXX_ADV_BLEND_HSL_HUE        : return ADV_BLEND_HSL_HUE;
+   case GLXX_ADV_BLEND_HSL_SATURATION : return ADV_BLEND_HSL_SATURATION;
+   case GLXX_ADV_BLEND_HSL_COLOR      : return ADV_BLEND_HSL_COLOR;
+   case GLXX_ADV_BLEND_HSL_LUMINOSITY : return ADV_BLEND_HSL_LUMINOSITY;
+   default:
+      assert(0); return 0;
+   }
+}
+
+static bool check_valid_advanced_blend(const GLXX_SERVER_STATE_T *state, const GLSL_PROGRAM_T *program)
+{
+   if (!glxx_advanced_blend_eqn(state))
+      return true;
+
+   GLXX_FRAMEBUFFER_T *fb = state->bound_draw_framebuffer;
+
+   for (uint32_t i = 1; i < GLXX_MAX_RENDER_TARGETS; ++i)
+      if (fb->draw_buffer[i] != GL_NONE)
+         return false;
+
+   // The layout qualifier in the shader must match the blend mode
+   // (it would work for us anyway, but need to conform to spec)
+   if ((program->ir->abq & convert_to_blend_qualifier(glxx_advanced_blend_eqn(state))) == 0)
       return false;
 
    return true;
@@ -462,7 +568,9 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
    }
 
    /* Check for transform feedback errors */
-   if (!check_valid_transform_in_use(state, draw)) {
+   if (state->transform_feedback.in_use &&
+         !check_valid_tf_draw(state, draw))
+   {
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       return false;
    }
@@ -491,7 +599,8 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
    else if (state->pipelines.bound)
    {
       /* If we have a bound program pipeline (and no current program), the pipeline must be valid */
-      if (!glxx_pipeline_validate(state->pipelines.bound)) {
+      if (!glxx_pipeline_validate(state->pipelines.bound))
+      {
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
          return false;
       }
@@ -503,7 +612,7 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
    if (!linked_program)
    {
 #if GLXX_HAS_TNG
-      if (draw->mode == GL_PATCHES)
+      if (draw->mode == GL_PATCHES || is_prim_mode_with_adj(draw->mode))
          glxx_server_state_set_error(state, GL_INVALID_OPERATION);
 #endif
       /* As per the ES2 and ES3 specifications, this is not an error
@@ -511,6 +620,13 @@ static bool check_draw_state(GLXX_SERVER_STATE_T * state, const GLXX_DRAW_T *dra
       is used, but the result of such uses is undefined.
       ES 2.0.25: p31, para 2; ES 3.0.2: p51, para 1.
       */
+      return false;
+   }
+
+   if (!check_valid_advanced_blend(state, linked_program))
+   {
+      log_info("%s: advanced blend validation failed", VCOS_FUNCTION);
+      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
       return false;
    }
 
@@ -649,10 +765,15 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
          break;
       }
 
+      if (!state->transform_feedback.in_use)
+         break;
+
       // If this render state is already reading from the buffers written to by TF,
       // then we will flush and get a new one.
       bool requires_flush = false;
-      if (glxx_tf_add_interlock_writes(state, rs, &requires_flush))
+      if (glxx_tf_add_interlock_writes(state->transform_feedback.bound,
+               &gl20_program_common_get(state)->transform_feedback,
+               rs, &requires_flush))
          break;
 
       // If didn't require a flush, then ran out of memory.
@@ -732,10 +853,6 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
       if (!any_nonrestart_indices)
          goto end; // No indices no drawing
 
-      /* Clamp max to client max to avoid wasted data transfer of
-       * out-of-range indices for client vertex arrays */
-      max_index = gfx_umin(max_index, draw->max_index);
-
       if (!store_client_vertex_pointers(vao, attribs_live,
             draw->instance_count, draw->baseinstance, max_index, &vertex_pointers))
       {
@@ -746,12 +863,6 @@ static void draw_arrays_or_elements(GLXX_SERVER_STATE_T *state, GLXX_DRAW_T *dra
       attribs_max.index = gfx_umin(attribs_max.index, max_index);
       attribs_max.instance = gfx_umin(attribs_max.instance, draw->instance_count - 1);
    }
-
-   if(draw->min_index > gfx_umin(draw->max_index, attribs_max.index))
-      /* glDrawRangeElements or glDrawRangeElementsBaseVertexEXT:
-       * Nothing to draw, early out.
-      */
-      goto end;
 
    if (!glxx_calculate_and_hide(state, rs, draw->mode))
    {
@@ -922,8 +1033,8 @@ GL_API void GL_APIENTRY glDrawRangeElements(GLenum mode, GLuint start, GLuint en
    GLXX_DRAW_RAW_T draw = {
       GLXX_DRAW_RAW_DEFAULTS,
       .mode = mode,
-      .min_index = start,
-      .max_index = end,
+      .start = start,
+      .end = end,
       .count = count,
       .index_type = index_type,
       .indices = indices};

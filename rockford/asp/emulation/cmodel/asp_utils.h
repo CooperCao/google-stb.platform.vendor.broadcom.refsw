@@ -42,11 +42,13 @@
 #include <stdio.h>
 #include <stdio.h>
 #include <stdint.h>
+#include <stdbool.h>
 
-typedef int bool;
-#define false   0
-#define true    1
+#ifndef SUCCESS
 #define SUCCESS 0
+#endif
+
+
 
 /*****  Simple APIs to allow callers to use list of ASP_CtxEntries for keeping track of objects of same type. *****/
 typedef struct

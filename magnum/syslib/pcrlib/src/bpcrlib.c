@@ -1,55 +1,44 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c) 2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
  *****************************************************************************/
 #include "bstd.h"
 #include "bpcrlib.h"
 #include "blst_list.h"
 #include "bkni.h"
-#include "bpcrlib_mvd.h"
-#include "bpcrlib_aud.h"
-
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-  #include "barc.h"
-  #include "barc_priv.h"
-#endif
 
 BDBG_MODULE(pcrlib);
 
@@ -63,18 +52,7 @@ enum BPCRlib_Decoder_State {
     BPCRlib_Decoder_State_eInvalidated
 };
 
-#if (BCHP_CHIP==7038)
-#else
-#define B_PCRLIB_HAS_PCROFFSET  1
 #include "bxpt_pcr_offset.h"
-#endif
-
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-typedef enum OS_control_state {
-    OS_control_idle,
-    OS_control_waiting_for_pcr
-} OS_control_state;
-#endif
 
 #define BPCRlib_P_PCR_FIFO  32
 
@@ -96,11 +74,6 @@ struct BPCRlib_P_Channel {
     enum BPCRlib_Decoder_State video_state;
     enum BPCRlib_Decoder_State audio_state;
     BPCRlib_Config cfg;
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-    OS_control_state theOS_control_state;
-    int OS_bit;
-    int error_count;
-#endif
 
     BPCRlib_P_PCROffset pcr_offset;
 
@@ -163,38 +136,17 @@ BPCRlib_Close(BPCRlib_Handle handle)
     return;
 }
 
-#if B_PCRLIB_HAS_PCROFFSET
-#else
-#define B_HAS_STCDECIFACE 1
-#endif
-
 static const BPCRlib_Config pcr_cfg = {
     false,
     BAVC_StreamType_eTsMpeg,
     NULL, /* primary audio */
-#if !B_HAS_STCDECIFACE
     NULL,
-#else
-    &BPCRlib_Audio_Aud,
-#endif
     NULL, /* video */
-#if !B_HAS_STCDECIFACE
     NULL,
-#else
-    &BPCRlib_Video_Mvd,
-#endif
     NULL, /* secondary audio */
-#if !B_HAS_STCDECIFACE
     NULL,
-#else
-    &BPCRlib_Audio_Aud,
-#endif
     NULL, /* tertiary audio */
-#if !B_HAS_STCDECIFACE
     NULL,
-#else
-    &BPCRlib_Audio_Aud,
-#endif
     NULL, /* aux transport */
     96 * 1024, /* video CDB level */
     ((3003*4)/2), /* video PTS offset, 120ms */
@@ -227,28 +179,12 @@ BERR_Code
 BPCRlib_Channel_Create(BPCRlib_Handle handle, BXPT_PCR_Handle pcr, BPCRlib_Channel *pChannel, const BPCRlib_ChannelSettings *settings )
 {
     BPCRlib_Channel channel;
-#if !B_PCRLIB_HAS_PCROFFSET
-    BPCRlib_Channel i;
-#endif
 
     channel = BKNI_Malloc(sizeof(*channel));
     if (!channel) {
         return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
     }
     BKNI_EnterCriticalSection();
-#if !B_PCRLIB_HAS_PCROFFSET
-    for(i=BLST_D_FIRST(&handle->list);i;i=BLST_D_NEXT(i,link)) {
-        if (i->pcr == pcr) {
-            BKNI_LeaveCriticalSection();
-            if (channel)
-            {
-                BKNI_Free(channel);
-            }
-            BDBG_ERR(("Can't use the same PCR(%#x) channel for two different pcrlib channels", (unsigned)pcr));
-            return BERR_TRACE(BERR_INVALID_PARAMETER);
-        }
-    }
-#endif
     channel->settings = *settings;
     channel->pcr = pcr;
     channel->cfg = pcr_cfg;
@@ -258,11 +194,6 @@ BPCRlib_Channel_Create(BPCRlib_Handle handle, BXPT_PCR_Handle pcr, BPCRlib_Chann
     channel->delayed_stc.state = delayed_stc_eInvalid;
 
     BPCRlib_P_InvalidatePCRCache_isr(channel);
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-    channel->theOS_control_state = OS_control_idle;
-    channel->OS_bit = 1;
-    channel->error_count = 0;
-#endif
 
     BLST_D_INSERT_HEAD(&handle->list, channel, link);
     BKNI_LeaveCriticalSection();
@@ -347,13 +278,6 @@ BPCRlib_Channel_SetConfig( BPCRlib_Channel channel, const BPCRlib_Config *config
         channel->audio_state = BPCRlib_Decoder_State_eWaitingSTC;
         BPCRlib_P_InvalidatePCRCache_isr(channel);
     }
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-    if (channel->cfg.video != config->video || channel->cfg.audio != config->audio) {
-        channel->theOS_control_state = OS_control_idle;
-        channel->OS_bit = 1;
-        channel->error_count = 0;
-    }
-#endif
     if (channel->cfg.video != config->video || channel->cfg.audio != config->audio || channel->cfg.playback!= config->playback) {
         channel->delayed_stc.state= delayed_stc_eInvalid;
     }
@@ -442,13 +366,8 @@ b_really_send_stc_isr(const BPCRlib_Channel chn, uint32_t stc)
     uint32_t old_stc;
 
     if (chn->cfg.mode == BPCRlib_Mode_eConstantDelay) {
-#if B_PCRLIB_HAS_PCROFFSET
         rc = BXPT_PcrOffset_SetStc_isr(chn->cfg.aux_transport, stc);
         if (rc!=BERR_SUCCESS) { BDBG_ERR(("BXPT_PcrOffset_SetStc_isr returned error %#x, ignored", rc)); }
-#else
-        rc = BXPT_PCR_SetUserStc_isr(chn->pcr, stc, 0);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("BXPT_PCR_SetUserStc returned error %#x, ignored", rc)); }
-#endif
     }
     if (chn->cfg.video && chn->cfg.video_iface->setStc) {
         BDBG_MSG(("updating video:STC %#x", stc));
@@ -530,164 +449,6 @@ b_read_stc_isr(const BPCRlib_Channel chn, uint32_t *stc)
     return false;
 }
 
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-/* 7411 regs */
-#define TS_DISCONT_CNT  0x00100458
-#define TS_PCR_CHANGED  0x00100448
-#define TS_TSM_CONFIG   0x00100540
-
-static BPCRlib_Channel
-find_by_decoder_isr(BPCRlib_Handle handle, void *decoder)
-{
-    BPCRlib_Channel chn;
-    BDBG_ASSERT(decoder);
-    for(chn=BLST_D_FIRST(&handle->list);chn;chn=BLST_D_NEXT(chn,link)) {
-        if (chn->cfg.audio==decoder || chn->cfg.secondary_audio==decoder || chn->cfg.tertiary_audio==decoder) {
-            /* we exploit fact that audio and secondary audio can't be shared */
-            goto found;
-        }
-        else if (chn->cfg.video==decoder) {
-            goto found;
-        }
-    }
-    BDBG_WRN(("Unknown decoder channel %#x", (unsigned)decoder));
-found:
-    return chn;
-}
-
-BERR_Code
-BPCRlib_HasPcrDisco(
-    BPCRlib_Handle handle, /* [in] PCRlib channel handle */
-    void *decoder, /* [in] decoder handle */
-    bool *has_disco
-    )
-{
-    BERR_Code rc = BERR_SUCCESS;
-    uint32_t val;
-    uint32_t reg;
-    BARC_ChannelHandle hArcCh;
-    BPCRlib_Channel chn = find_by_decoder_isr(handle, decoder);
-
-    if (!chn)
-        return BERR_TRACE(BERR_INVALID_PARAMETER);
-
-    hArcCh = (BARC_ChannelHandle)(chn->cfg.video_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr);
-    reg = TS_DISCONT_CNT;
-    val = BARC_Reg_Read32_isr(hArcCh->hArc, reg);
-    if(val != 0) {
-        *has_disco = true;
-        BARC_Reg_Write32_isr(hArcCh->hArc, reg, 0);
-    }
-    else {
-        *has_disco = false;
-    }
-
-    return rc;
-}
-
-static BERR_Code
-b_os_control_isr(const BPCRlib_Channel chn, bool use_aux_trp)
-{
-    BERR_Code rc=BERR_SUCCESS;
-    uint32_t val;
-    uint32_t reg;
-    BARC_ChannelHandle  hArcCh = (BARC_ChannelHandle)(use_aux_trp?chn->cfg.aux_transport:chn->pcr);
-
-    /* OS - PCR_Offset Supression control */
-    switch(chn->theOS_control_state) {
-    case OS_control_idle:
-        chn->OS_bit = 1;
-        chn->error_count++;
-        if(chn->error_count > 10) {
-            chn->error_count = 0;
-            chn->OS_bit = 0;
-            /*  read it to clear the value */
-            reg = TS_PCR_CHANGED;
-            val = BARC_Reg_Read32_isr(hArcCh->hArc, reg);
-            BDBG_MSG(("@@@ TS_PCR_CHANGED: %#x <- %#x (OS_control_idle state)", (unsigned)reg, (unsigned)val));
-            chn->theOS_control_state = OS_control_waiting_for_pcr;
-        }
-        break;
-    case OS_control_waiting_for_pcr:
-        /* Really we need a "one shot", ie let only one PCR through (the first one encountered
-          in the stream after startup/disco event) */
-        reg = TS_PCR_CHANGED;
-        val = BARC_Reg_Read32_isr(hArcCh->hArc, reg);
-        BDBG_MSG(("@@@ TS_PCR_CHANGED: %#x <- %#x (OS_control_waiting_for_pcr state)", (unsigned)reg, (unsigned)val));
-        if(val) {
-            chn->error_count = 0;
-            chn->OS_bit = 1;
-            chn->theOS_control_state = OS_control_idle;
-        }
-        break;
-    }
-    reg = TS_TSM_CONFIG;
-    val = BARC_Reg_Read32_isr(hArcCh->hArc, reg);
-    if(chn->OS_bit) {
-        val |= 0x00000001;
-    }
-    else {
-        val &= ~0x00000001;
-    }
-    BDBG_MSG(("TS_TSM_CONFIG: %#x <- %#x\n", (unsigned)reg, (unsigned)val));
-    BARC_Reg_Write32_isr(hArcCh->hArc, reg, val);
-
-    return rc;
-}
-
-static BERR_Code
-b_update_stc_isr(const BPCRlib_Channel chn, bool is_request_stc)
-{
-    BERR_Code rc=BERR_SUCCESS;
-
-    if(chn->cfg.is_playback_ip) {
-    if (chn->cfg.video && chn->cfg.video_iface->updateStc) {
-        rc = b_os_control_isr(chn, chn->cfg.video_iface->useAuxTrp);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("b_os_control_isr() returned error %#x, ignored", rc)); }
-        rc = chn->cfg.video_iface->updateStc(chn->cfg.video_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("video updateStc returned error %#x, ignored", rc)); }
-    }
-    else if (chn->cfg.audio && chn->cfg.audio_iface->updateStc) {
-        rc = b_os_control_isr(chn, chn->cfg.audio_iface->useAuxTrp);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("b_os_control_isr() returned error %#x, ignored", rc)); }
-        rc = chn->cfg.audio_iface->updateStc(chn->cfg.audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-    }
-    if (chn->cfg.secondary_audio && chn->cfg.secondary_audio_iface->updateStc) {
-        rc = b_os_control_isr(chn, chn->cfg.secondary_audio_iface->useAuxTrp);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("b_os_control_isr() returned error %#x, ignored", rc)); }
-        rc = chn->cfg.secondary_audio_iface->updateStc(chn->cfg.secondary_audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-    }
-    if (chn->cfg.tertiary_audio && chn->cfg.tertiary_audio_iface->updateStc) {
-        rc = b_os_control_isr(chn, chn->cfg.tertiary_audio_iface->useAuxTrp);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("b_os_control_isr() returned error %#x, ignored", rc)); }
-        rc = chn->cfg.tertiary_audio_iface->updateStc(chn->cfg.tertiary_audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-        if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-    }
-    }
-    else {
-        if (chn->cfg.video && chn->cfg.video_iface->updateStc) {
-            rc = chn->cfg.video_iface->updateStc(chn->cfg.video_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-            if (rc!=BERR_SUCCESS) { BDBG_ERR(("video updateStc returned error %#x, ignored", rc)); }
-        }
-        else if (chn->cfg.audio && chn->cfg.audio_iface->updateStc) {
-            rc = chn->cfg.audio_iface->updateStc(chn->cfg.audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-            if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-        }
-        if (chn->cfg.secondary_audio && chn->cfg.secondary_audio_iface->updateStc) {
-            rc = chn->cfg.secondary_audio_iface->updateStc(chn->cfg.secondary_audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-            if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-        }
-        if (chn->cfg.tertiary_audio && chn->cfg.tertiary_audio_iface->updateStc) {
-            rc = chn->cfg.tertiary_audio_iface->updateStc(chn->cfg.tertiary_audio_iface->useAuxTrp?chn->cfg.aux_transport:chn->pcr, is_request_stc);
-            if (rc!=BERR_SUCCESS) { BDBG_ERR(("audio updateStc returned error %#x, ignored", rc)); }
-        }
-    }
-
-    return rc;
-}
-#else
 /* 20060630 bandrews - this is going to get ugly... more hacks */
 static BERR_Code
 b_really_update_stc_isr(const BPCRlib_Channel chn, bool is_request_stc)
@@ -748,7 +509,6 @@ b_update_stc_isr(const BPCRlib_Channel chn, void * requestor, bool is_request_st
 
     return rc;
 }
-#endif
 
 static BERR_Code
 b_load_delayed_stc_isr(BPCRlib_Channel chn, void *requestor)
@@ -764,11 +524,7 @@ b_load_delayed_stc_isr(BPCRlib_Channel chn, void *requestor)
         break;
     case delayed_stc_eLocked:
     case delayed_stc_eWaiting:
-#if B_PCRLIB_HAS_PCROFFSET
         cur_stc = BXPT_PcrOffset_GetStc_isr(chn->cfg.aux_transport) + BXPT_PcrOffset_GetOffset_isr(chn->cfg.aux_transport);
-#else
-        rc = BXPT_PCR_GetStc_isr(chn->pcr, &cur_stc, &stc /* not used */ );
-#endif
         stc = chn->delayed_stc.stc + (cur_stc - chn->delayed_stc.old_stc);
         BDBG_WRN(("b_load_delayed_stc_isr: %#lx(%#lx) loading STC %#x (%u + %d)", (unsigned long)chn, (unsigned long)requestor, (unsigned)stc, (unsigned)chn->delayed_stc.stc, (int)(cur_stc - chn->delayed_stc.old_stc)));
         rc = b_send_stc_isr(chn, stc, requestor);
@@ -821,16 +577,7 @@ BPCRlib_P_GetStcFromPcr_isr(BPCRlib_Channel chn, uint32_t pts, uint32_t *new_stc
         if (delta<0) {
             return false;
         }
-#if BCHP_CHIP == 7401
-        if (dss)
-        {
-            *new_stc = chn->pcr_offset.last_pcr - chn->cfg.pcr_offset * 600;
-        }
-        else
-#endif
-        {
-            *new_stc = chn->pcr_offset.last_pcr - chn->cfg.pcr_offset;
-        }
+        *new_stc = chn->pcr_offset.last_pcr - chn->cfg.pcr_offset;
         chn->pcr_offset.last_pcr_valid = false; /* use own PCR not more than one time */
         return true;
     }
@@ -854,16 +601,7 @@ BPCRlib_P_GetStcFromPcr_isr(BPCRlib_Channel chn, uint32_t pts, uint32_t *new_stc
     if (2*offset > chn->cfg.pcr_offset) {
         offset -= (chn->cfg.pcr_offset/4); /* decresed buffer fullness a little bit */
     }
-#if BCHP_CHIP==7401
-    if (dss)
-    {
-        *new_stc = chn->pcr_offset.last_pcr - 2 * offset * 600;
-    }
-    else
-#endif
-    {
-        *new_stc = chn->pcr_offset.last_pcr - 2 * offset;
-    }
+    *new_stc = chn->pcr_offset.last_pcr - 2 * offset;
     delta = BPCRlib_StcDiff_isrsafe(dss, pts, *new_stc);
     BDBG_WRN(("[pcr offset %d]%s use PCR: PTS %#x PCR %#x STC %#x %d(%d)", 2*offset, (delta*2<chn->cfg.pcr_offset)?""/*can't"*/:"", (unsigned)pts, (unsigned)chn->pcr_offset.last_pcr, (unsigned)*new_stc, (int)delta*2, (int)chn->cfg.pcr_offset));
 #if 0
@@ -1190,16 +928,7 @@ no_seed:
                     }
                     else
                     {
-#if BCHP_CHIP == 7401
-                        if (dss)
-                        {
-                            new_stc = audio_pts - chn->cfg.audio_pts_offset * 600;
-                        }
-                        else
-#endif
-                        {
-                            new_stc = audio_pts - chn->cfg.audio_pts_offset;
-                        }
+                        new_stc = audio_pts - chn->cfg.audio_pts_offset;
                     }
                     BDBG_MSG(("AudioRequestStc(%p): primary audio Using audio PTS %#x as new STC %#x", (void *)audio, (unsigned)audio_pts, (unsigned)new_stc));
                     BPCRlib_P_InvalidatePCRCache_isr(chn);
@@ -1212,11 +941,7 @@ set_stc:
     }
     else /* live */
     {
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-        return b_update_stc_isr(chn, true);
-#else
         return b_update_stc_isr(chn, audio, true);
-#endif
     }
 
     return rc;
@@ -1281,16 +1006,7 @@ BPCRlib_Channel_VideoRequestStc_isr(BPCRlib_Handle handle, void *video, const BA
                 }
                 else
                 {
-#if BCHP_CHIP == 7401
-                    if (dss)
-                    {
-                        new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset * 600;
-                    }
-                    else
-#endif
-                    {
-                        new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset;
-                    }
+                    new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset;
                 }
                 BDBG_MSG(("VideoRequestStc(%p): Video master mode -> using video PTS %#x as new STC", (void *)video, (unsigned)new_stc));
                 BPCRlib_P_InvalidatePCRCache_isr(chn);
@@ -1349,16 +1065,7 @@ set_video_stc:
                 }
                 else
                 {
-#if BCHP_CHIP == 7401
-                    if (dss)
-                    {
-                        new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset * 600;
-                    }
-                    else
-#endif
-                    {
-                        new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset;
-                    }
+                    new_stc = video_pts->ui32CurrentPTS - chn->cfg.video_pts_offset;
                 }
                 BDBG_MSG(("VideoRequestStc(%p): Using video PTS %#x as new STC", (void*)video, (unsigned)new_stc));
                 BPCRlib_P_InvalidatePCRCache_isr(chn);
@@ -1371,11 +1078,7 @@ set_stc:
     }
     else
     {
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-        return b_update_stc_isr(chn, true);
-#else
         return b_update_stc_isr(chn, video, true);
-#endif
     }
     return rc;
 }
@@ -1426,16 +1129,7 @@ BPCRlib_Channel_VideoPtsError_isr( BPCRlib_Handle handle, void *video, const BAV
                 if (chn->cfg.video_iface->getCdbLevel && chn->cfg.video_iface->getCdbLevel(chn->cfg.video, &cdb_level)==BERR_SUCCESS && cdb_level > chn->cfg.video_cdb_level) {
                     pts_offset = 0;
                 }
-#if BCHP_CHIP == 7401
-                if (dss)
-                {
-                    new_stc = video_pts->ui32CurrentPTS - pts_offset * 600;
-                }
-                else
-#endif
-                {
-                    new_stc = video_pts->ui32CurrentPTS - pts_offset;
-                }
+                new_stc = video_pts->ui32CurrentPTS - pts_offset;
                 BDBG_MSG(("VideoPtsError(%p): Using video PTS %#x[%d] as new STC %#x (old %#x)", (void *)video, (unsigned)video_pts->ui32CurrentPTS, (int)pts_offset, (unsigned)new_stc, (unsigned)video_stc));
 
                 rc = b_send_stc_isr(chn, new_stc, video);
@@ -1539,16 +1233,7 @@ set_stc_from_pts:
                 {
                     pts_offset = 0;
                 }
-#if BCHP_CHIP == 7401
-                if (dss)
-                {
-                    new_stc = video_pts->ui32CurrentPTS - pts_offset * 600;
-                }
-                else
-#endif
-                {
-                    new_stc = video_pts->ui32CurrentPTS - pts_offset;
-                }
+                new_stc = video_pts->ui32CurrentPTS - pts_offset;
                 BDBG_MSG(("VideoPtsError(%p): Using video PTS %#x[%d] as new STC %#x (old %#x)", (void *)video, (unsigned)video_pts->ui32CurrentPTS, (int)pts_offset, (unsigned)new_stc, (unsigned)video_stc));
 set_stc:
                 rc = b_send_stc_isr(chn, new_stc, video);
@@ -1557,11 +1242,7 @@ set_stc:
                 break;
         }
     } else {
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-        return b_update_stc_isr(chn, false);
-#else
         return b_update_stc_isr(chn, video, false);
-#endif
     }
     return rc;
 }
@@ -1628,16 +1309,7 @@ BPCRlib_Channel_AudioPtsError_isr(BPCRlib_Handle handle, void *audio, const BAVC
                     || stc_delta < - BPCRLIB_MILLISECONDS_TO_PTS_TICKS(&chn->cfg, (signed)chn->cfg.sync_limit)) /* sync limit in PTS ticks*/
                 {
                     BDBG_MSG(("Outside of sync limit, requesting audio CDB flush"));
-#if BCHP_CHIP == 7401
-                    if (dss)
-                    {
-                        new_stc = audio_pts->ui32CurrentPTS - pts_offset * 600;
-                    }
-                    else
-#endif
-                    {
-                        new_stc = audio_pts->ui32CurrentPTS - pts_offset;
-                    }
+                    new_stc = audio_pts->ui32CurrentPTS - pts_offset;
                     if (chn->cfg.flush)
                     {
                         BKNI_SetEvent_isr(chn->cfg.flush);
@@ -1691,16 +1363,7 @@ set_stc_from_pts:
                 if (chn->cfg.audio_iface->getCdbLevel && chn->cfg.audio_iface->getCdbLevel(chn->cfg.audio, &cdb_level)==BERR_SUCCESS && cdb_level > chn->cfg.audio_cdb_level) {
                     pts_offset = 0;
                 }
-#if BCHP_CHIP == 7401
-                if (dss)
-                {
-                   new_stc = audio_pts->ui32CurrentPTS - pts_offset * 600;
-                }
-                else
-#endif
-                {
-                   new_stc = audio_pts->ui32CurrentPTS - pts_offset;
-                }
+                new_stc = audio_pts->ui32CurrentPTS - pts_offset;
                 BDBG_MSG(("AudioPtsError(%p): Using audio PTS %#x[%d] as new STC %#x (old %#x)", (void *)audio, (unsigned)audio_pts->ui32CurrentPTS, (int)pts_offset, (unsigned)new_stc, (unsigned)audio_stc));
 set_stc:
                 rc = b_send_stc_isr(chn, new_stc, audio);
@@ -1716,11 +1379,7 @@ ignored:
     }
     else
     {
-#if defined (B_HAS_IP) && defined (BCHP_7411_VER)
-        return b_update_stc_isr(chn, false);
-#else
         return b_update_stc_isr(chn, audio, false);
-#endif
     }
     return rc;
 
@@ -1869,14 +1528,8 @@ BPCRlib_Channel_GetStc(BPCRlib_Channel chn, uint32_t *stc)
     BDBG_ASSERT(chn);
 
     BKNI_EnterCriticalSection();
-#if B_PCRLIB_HAS_PCROFFSET
     /* Systems with PCROFFSET require the aux_transport setting and do not use the pcr setting. */
     *stc = BXPT_PcrOffset_GetStc_isr(chn->cfg.aux_transport) + BXPT_PcrOffset_GetOffset_isr(chn->cfg.aux_transport);
-#else
-    /* Systems without PCROFFSET require the pcr setting. */
-    BDBG_ASSERT(chn->pcr);
-    rc = BXPT_PCR_GetStc_isr(chn->pcr, stc, &stc_low /* not used */ );
-#endif
     if (rc!=BERR_SUCCESS) {
         rc = BERR_TRACE(rc);
         goto done;
@@ -1983,5 +1636,3 @@ BPCRlib_Channel_PcrUpdate(BPCRlib_Channel chn, uint32_t pcr)
 
     return rc;
 }
-
-

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,18 +70,18 @@
 /***************************************************************************
  *MPM_HOST_L2 - HOST L2 Interrupt Controller Registers
  ***************************************************************************/
-#define BCHP_MPM_HOST_L2_CPU_STATUS              0x20d82200 /* [RO] CPU interrupt Status Register */
-#define BCHP_MPM_HOST_L2_CPU_SET                 0x20d82204 /* [WO] CPU interrupt Set Register */
-#define BCHP_MPM_HOST_L2_CPU_CLEAR               0x20d82208 /* [WO] CPU interrupt Clear Register */
-#define BCHP_MPM_HOST_L2_CPU_MASK_STATUS         0x20d8220c /* [RO] CPU interrupt Mask Status Register */
-#define BCHP_MPM_HOST_L2_CPU_MASK_SET            0x20d82210 /* [WO] CPU interrupt Mask Set Register */
-#define BCHP_MPM_HOST_L2_CPU_MASK_CLEAR          0x20d82214 /* [WO] CPU interrupt Mask Clear Register */
-#define BCHP_MPM_HOST_L2_PCI_STATUS              0x20d82218 /* [RO] PCI interrupt Status Register */
-#define BCHP_MPM_HOST_L2_PCI_SET                 0x20d8221c /* [WO] PCI interrupt Set Register */
-#define BCHP_MPM_HOST_L2_PCI_CLEAR               0x20d82220 /* [WO] PCI interrupt Clear Register */
-#define BCHP_MPM_HOST_L2_PCI_MASK_STATUS         0x20d82224 /* [RO] PCI interrupt Mask Status Register */
-#define BCHP_MPM_HOST_L2_PCI_MASK_SET            0x20d82228 /* [WO] PCI interrupt Mask Set Register */
-#define BCHP_MPM_HOST_L2_PCI_MASK_CLEAR          0x20d8222c /* [WO] PCI interrupt Mask Clear Register */
+#define BCHP_MPM_HOST_L2_CPU_STATUS              0x20d82200 /* [RO][32] CPU interrupt Status Register */
+#define BCHP_MPM_HOST_L2_CPU_SET                 0x20d82204 /* [WO][32] CPU interrupt Set Register */
+#define BCHP_MPM_HOST_L2_CPU_CLEAR               0x20d82208 /* [WO][32] CPU interrupt Clear Register */
+#define BCHP_MPM_HOST_L2_CPU_MASK_STATUS         0x20d8220c /* [RO][32] CPU interrupt Mask Status Register */
+#define BCHP_MPM_HOST_L2_CPU_MASK_SET            0x20d82210 /* [WO][32] CPU interrupt Mask Set Register */
+#define BCHP_MPM_HOST_L2_CPU_MASK_CLEAR          0x20d82214 /* [WO][32] CPU interrupt Mask Clear Register */
+#define BCHP_MPM_HOST_L2_PCI_STATUS              0x20d82218 /* [RO][32] PCI interrupt Status Register */
+#define BCHP_MPM_HOST_L2_PCI_SET                 0x20d8221c /* [WO][32] PCI interrupt Set Register */
+#define BCHP_MPM_HOST_L2_PCI_CLEAR               0x20d82220 /* [WO][32] PCI interrupt Clear Register */
+#define BCHP_MPM_HOST_L2_PCI_MASK_STATUS         0x20d82224 /* [RO][32] PCI interrupt Mask Status Register */
+#define BCHP_MPM_HOST_L2_PCI_MASK_SET            0x20d82228 /* [WO][32] PCI interrupt Mask Set Register */
+#define BCHP_MPM_HOST_L2_PCI_MASK_CLEAR          0x20d8222c /* [WO][32] PCI interrupt Mask Clear Register */
 
 /***************************************************************************
  *CPU_STATUS - CPU interrupt Status Register

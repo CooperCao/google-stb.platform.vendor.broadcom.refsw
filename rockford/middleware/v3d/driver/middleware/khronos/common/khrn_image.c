@@ -112,11 +112,9 @@ uint32_t khrn_image_get_space(const KHRN_IMAGE_T *image)
    return mem_get_size(image->mh_storage) - image->offset;
 }
 
-void khrn_image_term(void *v, uint32_t size)
+void khrn_image_term(MEM_HANDLE_T handle)
 {
-   KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)v;
-
-   UNUSED(size);
+   KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(handle, NULL);
 
    khrn_interlock_term(&image->interlock);
 
@@ -126,6 +124,8 @@ void khrn_image_term(void *v, uint32_t size)
    egl_server_platform_destroy_buffer((uint32_t)image->opaque_buffer_handle, image->window_state);
    image->opaque_buffer_handle = NULL;
    image->window_state = NULL;
+
+   mem_unlock(handle);
 }
 
 MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
@@ -184,7 +184,7 @@ MEM_HANDLE_T khrn_image_create_from_storage(KHRN_IMAGE_FORMAT_T format,
       set the terminator
    */
 
-   mem_set_term(handle, khrn_image_term);
+   mem_set_term(handle, khrn_image_term, NULL);
 
    return handle;
 }

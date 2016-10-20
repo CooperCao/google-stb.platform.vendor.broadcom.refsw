@@ -78,10 +78,10 @@ typedef enum
    GMEM_USAGE_V3D_READ   = 1 << 2,
    GMEM_USAGE_V3D_WRITE  = 1 << 3,
 
-   /* Don't cache CPU reads/writes. If this hint is observed, this may
-    * significantly impact the performance of reads/writes from the CPU, but will
-    * avoid the need to flush the CPU caches before/after accessing from V3D. */
-   GMEM_USAGE_HINT_CPU_UNCACHED = 1 << 5,
+   /* Don't cache CPU reads/writes. This may significantly impact the performance
+    * of reads/writes from the CPU, but will avoid the need to flush the CPU
+    * caches before/after accessing from V3D. */
+   GMEM_USAGE_COHERENT = 1 << 5,
 
    /* Buffer is going to be short lived.  If this is observed, then it will
     * result in faster allocation operations */
@@ -191,67 +191,69 @@ typedef enum
    /* Default value */
    GMEM_SYNC_NONE                = 0,
 
-   /* V3D sync-list only flags */
-   GMEM_SYNC_CORE_READ           = 1 << 0, /* For reads that are uncached within the V3D core, eg control list reads */
-   GMEM_SYNC_CORE_WRITE          = 1 << 1, /* For writes that are uncached within the V3D core, eg TLB writes */
+   /* V3D read-only blocks */
+   GMEM_SYNC_CLE_CL_READ         = 1 << 0,
+   GMEM_SYNC_CLE_SHADREC_READ    = 1 << 1,
+   GMEM_SYNC_CLE_PRIMIND_READ    = 1 << 2,
+   GMEM_SYNC_CLE_DRAWREC_READ    = 1 << 3,
+   GMEM_SYNC_VCD_READ            = 1 << 4,
+   GMEM_SYNC_QPU_INSTR_READ      = 1 << 5,
+   GMEM_SYNC_QPU_UNIF_READ       = 1 << 6,
+   GMEM_SYNC_TMU_CONFIG_READ     = 1 << 7,
 
-   GMEM_SYNC_TMU_DATA_READ       = 1 << 2, /* Cached by L1T and L2T */
-   GMEM_SYNC_TMU_DATA_WRITE      = 1 << 3, /* Cached by L2T */
+   /* V3D write-only blocks */
+   GMEM_SYNC_PTB_TF_WRITE        = 1 << 8,
 
-   GMEM_SYNC_TMU_CONFIG_READ     = 1 << 4, /* Cached by TMU VCR and L2C */
-   GMEM_SYNC_QPU_IU_READ         = 1 << 5, /* QPU instrs/unifs, cached by L1 unif/instr caches and L2C */
-   GMEM_SYNC_VCD_READ            = 1 << 6, /* Cached by VCD cache */
-   GMEM_SYNC_TFU_READ            = 1 << 7,
-   GMEM_SYNC_TFU_WRITE           = 1 << 8,
+   /* V3D read-write blocks */
+   GMEM_SYNC_PTB_TILESTATE_READ  = 1 << 9,
+   GMEM_SYNC_PTB_TILESTATE_WRITE = 1 << 10,
+   GMEM_SYNC_PTB_PCF_READ        = 1 << 11,
+   GMEM_SYNC_PTB_PCF_WRITE       = 1 << 12,
+   GMEM_SYNC_TMU_DATA_READ       = 1 << 13,
+   GMEM_SYNC_TMU_DATA_WRITE      = 1 << 14,
+   GMEM_SYNC_TLB_IMAGE_READ      = 1 << 15,
+   GMEM_SYNC_TLB_IMAGE_WRITE     = 1 << 16,
+   GMEM_SYNC_TLB_OQ_READ         = 1 << 17,
+   GMEM_SYNC_TLB_OQ_WRITE        = 1 << 18,
+   GMEM_SYNC_TFU_READ            = 1 << 19,
+   GMEM_SYNC_TFU_WRITE           = 1 << 20,
 
    /* CPU sync-list only flags */
-   GMEM_SYNC_CPU_READ            = 1 << 9,
-   GMEM_SYNC_CPU_WRITE           = 1 << 10,
+   GMEM_SYNC_CPU_READ            = 1 << 24,
+   GMEM_SYNC_CPU_WRITE           = 1 << 25,
 
    /* Common sync-list flags. */
-   GMEM_SYNC_RELAXED = 1 << 14,
-   GMEM_SYNC_DISCARD = 1 << 15,
+   GMEM_SYNC_RELAXED = 1 << 30,
+   GMEM_SYNC_DISCARD = 1 << 31,
 } gmem_sync_flags_t;
 
-#define GMEM_SYNC_CORE (               \
-   GMEM_SYNC_CORE_READ |               \
-   GMEM_SYNC_CORE_WRITE                \
-)
+#define GMEM_SYNC_V3D_READ (\
+   GMEM_SYNC_CLE_CL_READ\
+ | GMEM_SYNC_CLE_SHADREC_READ\
+ | GMEM_SYNC_CLE_PRIMIND_READ\
+ | GMEM_SYNC_CLE_DRAWREC_READ\
+ | GMEM_SYNC_VCD_READ\
+ | GMEM_SYNC_QPU_INSTR_READ\
+ | GMEM_SYNC_QPU_UNIF_READ\
+ | GMEM_SYNC_TMU_CONFIG_READ\
+ | GMEM_SYNC_PTB_TILESTATE_READ\
+ | GMEM_SYNC_PTB_PCF_READ\
+ | GMEM_SYNC_TMU_DATA_READ\
+ | GMEM_SYNC_TLB_IMAGE_READ\
+ | GMEM_SYNC_TLB_OQ_READ\
+ | GMEM_SYNC_TFU_READ)
 
-#define GMEM_SYNC_TMU_DATA (           \
-   GMEM_SYNC_TMU_DATA_READ |           \
-   GMEM_SYNC_TMU_DATA_WRITE            \
-)
+#define GMEM_SYNC_V3D_WRITE (\
+   GMEM_SYNC_PTB_TF_WRITE\
+ | GMEM_SYNC_PTB_TILESTATE_WRITE\
+ | GMEM_SYNC_PTB_PCF_WRITE\
+ | GMEM_SYNC_TMU_DATA_WRITE\
+ | GMEM_SYNC_TLB_IMAGE_WRITE\
+ | GMEM_SYNC_TLB_OQ_WRITE\
+ | GMEM_SYNC_TFU_WRITE)
 
-#define GMEM_SYNC_TFU (                \
-   GMEM_SYNC_TFU_READ |                \
-   GMEM_SYNC_TFU_WRITE                 \
-)
-
-#define GMEM_SYNC_V3D_READ (           \
-   GMEM_SYNC_CORE_READ |               \
-   GMEM_SYNC_TMU_DATA_READ |           \
-   GMEM_SYNC_TMU_CONFIG_READ |         \
-   GMEM_SYNC_QPU_IU_READ |             \
-   GMEM_SYNC_TFU_READ |                \
-   GMEM_SYNC_VCD_READ                  \
-)
-
-#define GMEM_SYNC_V3D_WRITE (          \
-   GMEM_SYNC_CORE_WRITE |              \
-   GMEM_SYNC_TMU_DATA_WRITE |          \
-   GMEM_SYNC_TFU_WRITE                 \
-)
-
-#define GMEM_SYNC_V3D (                \
-   GMEM_SYNC_V3D_READ |                \
-   GMEM_SYNC_V3D_WRITE                 \
-)
-
-#define GMEM_SYNC_CPU (                \
-   GMEM_SYNC_CPU_READ |                \
-   GMEM_SYNC_CPU_WRITE                 \
-)
+#define GMEM_SYNC_V3D_RW (GMEM_SYNC_V3D_READ | GMEM_SYNC_V3D_WRITE)
+#define GMEM_SYNC_CPU_RW (GMEM_SYNC_CPU_READ | GMEM_SYNC_CPU_WRITE)
 
 /* Guaranteed to be a power of 2 >= V3D_MAX_CACHE_LINE_SIZE */
 extern size_t gmem_get_sync_block_size(void);
@@ -339,6 +341,14 @@ static inline void gmem_end_cpu_access_range_and_unmap(
 /* Initialise a CPU sync-list. */
 void gmem_cpu_sync_list_init(gmem_cpu_sync_list *sync_list);
 
+/* Initialise a CPU sync-list as a copy of an existing list. */
+void gmem_cpu_sync_list_init_from(gmem_cpu_sync_list *sync_list,
+                                  const gmem_cpu_sync_list *from);
+
+/* Merge CPU sync-lists */
+void gmem_cpu_sync_list_merge(gmem_cpu_sync_list *sync_list,
+                              const gmem_cpu_sync_list *from);
+
 /* Record a read/write operation in a CPU sync-list. */
 void gmem_cpu_sync_list_add(
    gmem_cpu_sync_list *sync_list,
@@ -369,6 +379,14 @@ GMEM_PLAT_INLINE void gmem_v3d_sync_list_init(gmem_v3d_sync_list *sync_list);
 
 /* Destroy a V3D sync-list. */
 GMEM_PLAT_INLINE void gmem_v3d_sync_list_destroy(gmem_v3d_sync_list *sync_list);
+
+/* Initialise a V3D sync-list as a copy of an existing list. */
+GMEM_PLAT_INLINE void gmem_v3d_sync_list_init_from(gmem_v3d_sync_list *sync_list,
+                                                   const gmem_v3d_sync_list *from);
+
+/* Merge V3D sync-lists */
+GMEM_PLAT_INLINE void gmem_v3d_sync_list_merge(gmem_v3d_sync_list *sync_list,
+                                               const gmem_v3d_sync_list *from);
 
 /* Record a read/write operation in a V3D sync-list. */
 GMEM_PLAT_INLINE void gmem_v3d_sync_list_add(

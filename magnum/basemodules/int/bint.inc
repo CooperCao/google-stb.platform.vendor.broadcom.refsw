@@ -39,7 +39,6 @@
 #
 # Conditional Options for this Makefile
 #
-# BCHP_QAM_CHIP - If defined, specifies the revision of the QAM chip to be supported.
 # BINT_ENABLE_IPI - If defined, IPI (inter-processor interrupts) are supported.  Not compatible with SMP Linux.
 #
 
@@ -64,13 +63,6 @@ endif
 
 ifeq ($(BINT_AVD1_DISABLED),y)
 BINT_DEFINES += BINT_AVD1_DISABLED
-endif
-
-ifneq ($(BCHP_QAM_CHIP),)
-BINT_INCLUDES += $(MAGNUM)/basemodules/int
-BINT_INCLUDES += $(MAGNUM)/basemodules/int/$(BCHP_QAM_CHIP)
-
-BINT_SOURCES += $(MAGNUM)/basemodules/int/$(BCHP_QAM_CHIP)/bint_$(BCHP_QAM_CHIP).c
 endif
 
 ifeq ($(BINT_ENABLE_IPI),y)

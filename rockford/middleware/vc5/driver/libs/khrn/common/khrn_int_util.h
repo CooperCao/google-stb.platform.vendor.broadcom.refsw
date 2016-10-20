@@ -8,6 +8,7 @@ All rights reserved.
 
 #include "khrn_int_common.h"
 #include "libs/util/gfx_util/gfx_util.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 /* Returns false iff all indices are restart indices, ie there are no real indices */
 static inline bool find_max(uint32_t *max_out, int count, int per_index_size, const void *indices, bool primitive_restart_enabled)

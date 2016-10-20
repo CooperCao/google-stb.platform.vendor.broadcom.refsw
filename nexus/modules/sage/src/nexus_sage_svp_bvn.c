@@ -260,6 +260,22 @@ typedef enum
     BBVN_P_VnetB_eXsrc_1    = BBVN_P_VNET_B(XSRC_1),
 #endif
 
+#if (BCHP_VNET_F_VFC_0_SRC)
+    BBVN_P_VnetB_eVfc_0     = BBVN_P_VNET_B(VFC_0),
+#endif
+
+#if (BCHP_VNET_F_VFC_1_SRC)
+    BBVN_P_VnetB_eVfc_1     = BBVN_P_VNET_B(VFC_1),
+#endif
+
+#if (BCHP_VNET_F_VFC_2_SRC)
+    BBVN_P_VnetB_eVfc_2     = BBVN_P_VNET_B(VFC_2),
+#endif
+
+#if (BCHP_VNET_F_ITM_0_SRC)
+    BBVN_P_VnetB_eItm_0     = BBVN_P_VNET_B(ITM_0),
+#endif
+
     BBVN_P_VnetB_eChannel_0 = BBVN_P_VNET_B(Free_Ch_0),
     BBVN_P_VnetB_eChannel_1 = BBVN_P_VNET_B(Free_Ch_1),
     BBVN_P_VnetB_eChannel_2 = BBVN_P_VNET_B(Free_Ch_2),
@@ -581,6 +597,20 @@ static const BBVN_P_VnetMux s_astVnetBackMuxes[] =
 #endif
 #if (BCHP_VNET_F_DNR_5_SRC)
     BBVN_P_MAKE_VNET_B_NODE(DNR_5, Dnr_5, DNR_5, Invalid),
+#endif
+
+#if (BCHP_VNET_F_VFC_0_SRC)
+    BBVN_P_MAKE_VNET_B_NODE(VFC_0, Vfc_0, VFC_0, Invalid),
+#endif
+#if (BCHP_VNET_F_VFC_1_SRC)
+    BBVN_P_MAKE_VNET_B_NODE(VFC_1, Vfc_1, VFC_1, Invalid),
+#endif
+#if (BCHP_VNET_F_VFC_2_SRC)
+    BBVN_P_MAKE_VNET_B_NODE(VFC_2, Vfc_2, VFC_2, Invalid),
+#endif
+
+#if (BCHP_VNET_F_ITM_0_SRC)
+    BBVN_P_MAKE_VNET_B_NODE(ITM_0, Itm_0, ITM_0, Invalid),
 #endif
 
     BBVN_P_MAKE_VNET_B_NODE(FCH_0, Channel_0, FCH_0, Invalid),
@@ -1155,8 +1185,8 @@ Summary:
 ****************************************************************************/
 BERR_Code BBVN_Monitor_Check
     ( BBVN_Monitor_Handle              hBvnMonitor,     /* [in] A valid BVN Monitor Handle created earlier. */
-    const BAVC_CoreList             *pSecureCores,    /* [in] list of secure cores */
-    BBVN_Monitor_Status             *pStatus          /* [out] BVN status */
+      const BAVC_CoreList             *pSecureCores,    /* [in] list of secure cores */
+      BBVN_Monitor_Status             *pStatus          /* [out] BVN status */
     )
 {
     uint8_t i, j;

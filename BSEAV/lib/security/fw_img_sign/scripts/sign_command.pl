@@ -218,6 +218,16 @@ sub GetEpochSel {
 	}
 }
 
+sub GetMarketIdSel {
+    my $Engine = $_[0];
+
+    if ($ENV{$Engine}) {
+        return $ENV{$Engine};
+    } else {
+        return $ENV{"MARKET_ID_SEL"};
+	}
+}
+
 sub GetMarketId {
     my $Engine = $_[0];
 
@@ -271,6 +281,7 @@ sub GenerateKeyParams {
     my $Key2Exp = GetKeyExp($ParamPrefix."_EXPONENT");
     my $Key2MarketId = GetMarketId($ParamPrefix."_MARKET_ID");
     my $Key2MarketIdMask = GetMarketIdMask($ParamPrefix."_MARKET_ID_MASK");
+    my $Key2MarketIdSel = GetMarketIdSel($ParamPrefix."_MARKET_ID_SEL");
     my $Key2EpochSel = GetEpochSel($ParamPrefix."_EPOCH_SEL");
     my $Key2Epoch = GetEpoch($ParamPrefix."_EPOCH");
     my $Key2EpochMask = GetEpochMask($ParamPrefix."_EPOCH_MASK");
@@ -281,7 +292,7 @@ sub GenerateKeyParams {
     $Line="load_pub_key -in=".$Key."\n";
     print $KeyCommandFile $Line;
 
-    $Line='add_param_key -right='.$Key2Right.' -exp='.$Key2Exp.' -mid='.$Key2MarketId.' -mid_mask='.$Key2MarketIdMask.' -epo_sel='.$Key2EpochSel.' -epo='.$Key2Epoch.' -epo_mask='.$Key2EpochMask.' -sig_type='.$Key2SigType.' -sig_ver='.$Key2SigVer.' -out='.$Key2Bin."\n";
+    $Line='add_param_key -right='.$Key2Right.' -exp='.$Key2Exp.' -mid='.$Key2MarketId.' -mid_mask='.$Key2MarketIdMask.' -mid_sel='.$Key2MarketIdSel.' -epo_sel='.$Key2EpochSel.' -epo='.$Key2Epoch.' -epo_mask='.$Key2EpochMask.' -sig_type='.$Key2SigType.' -sig_ver='.$Key2SigVer.' -out='.$Key2Bin."\n";
     print $KeyCommandFile $Line;
 
     close $KeyCommandFile;
@@ -338,7 +349,7 @@ sub GenerateLegacySignatures {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=le -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
         $Line='sign -in='.$VcePicPreBin.' -out_endian=le -out_type=binary -out='.$VcePicSigBin."\n";
@@ -379,7 +390,7 @@ sub GenerateLegacySignatures {
     $Line='sign -append -in='.$AvdIlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
 
-	if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+	if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='sign -append -in='.$AvdOlPreBin.' -out_endian=le -out_type=binary -out='.$AvdOlSigBin."\n";
             print $SignCommandFile $Line;
@@ -455,7 +466,7 @@ sub GenerateSignatures {
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
         $Line='sign -in='.$VcePicPreBin.' -out_endian=le -out_type=binary -out='.$VcePicSigBin."\n";
@@ -510,7 +521,7 @@ sub GenerateSignatures {
     $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
@@ -566,7 +577,7 @@ sub GeneratePostProcess {
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='swap_signature -in='.$VcePicSigBeBin.' -out='.$VcePicSigBin."\n";
         print $SignCommandFile $Line;
         $Line='add_param_bin -in='.$VcePicSigBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicSigParamBin."\n";
@@ -612,7 +623,7 @@ sub GeneratePostProcess {
     $Line='post_process'.$Append.' -in='.$AvdIlSigParamBin.' -in_endian=be -region=0xB -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='post_process'.$Append.' -in='.$AvdOlSigParamBin.' -in_endian=be -region=0x16 -out='.$OutputDir."/nexus_security_regver_signatures.h\n";
             print $SignCommandFile $Line;
@@ -654,7 +665,7 @@ sub GenerateLegacyPostProcess {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
 
         $Line='swap_signature -in='.$VcePicSigBeBin.' -out='.$VcePicSigBin."\n";
         print $SignCommandFile $Line;
@@ -682,7 +693,7 @@ sub GenerateLegacyPostProcess {
     $Line='swap_signature -append -in='.$AvdIlSigBeBin.' -out='.$AvdOlSigBin."\n";
     print $SignCommandFile $Line;
 
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         if (($NumChipId == 7445) || ($NumChipId == 7439)) {
             $Line='swap_signature -append -in='.$AvdOlSigBeBin.' -out='.$AvdOlSigBin."\n";
             print $SignCommandFile $Line;
@@ -721,7 +732,7 @@ sub GeneratePreProcess {
     print $SignCommandFile $Line;
 
 #Processing VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=be -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
 
@@ -763,7 +774,7 @@ sub GenerateLegacyPreProcess {
     print $SignCommandFile $Line;
 
 #Processing of VCE image
-    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
+    if ($NumChipId != 74371 && $NumChipId != 7271 && $NumChipId != 7268 && $NumChipId != 7250 && $NumChipId != 7360 && $NumChipId != 7425 && $NumChipId != 7563 && $NumChipId != 75635) {
         $Line='add_param_bin -in='.$VcePicBin.' -in_endian=le -cpu_type=vice -mid='.$MarketId.' -mid_mask='.$MarketIdMask.' -fw_epo='.$VceFwEpoch.' -epo_sel='.$EpochSel.' -epo='.$VceEpoch.' -epo_mask='.$EpochMask.' -sig_type='.$SigType.' -sig_ver='.$SigVer.' -out='.$VcePicPreBin."\n";
         print $SignCommandFile $Line;
 

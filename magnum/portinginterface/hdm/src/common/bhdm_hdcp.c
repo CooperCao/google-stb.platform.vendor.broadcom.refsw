@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1111,6 +1111,7 @@ BERR_Code BHDM_HDCP_XmitEncrypted(
         Register |= BCHP_FIELD_DATA(HDMI_CP_INTEGRITY_CFG, I_ALWAYS_REKEY_ON_VSYNC, 1) ;
         BREG_Write32(hRegister, BCHP_HDMI_CP_INTEGRITY_CFG + ulOffset, Register) ;
     }
+    BSTD_UNUSED(JRate);
 
 
     /* enable (toggle) the Vsync for encryption */

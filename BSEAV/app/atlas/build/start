@@ -73,6 +73,9 @@ install)
 	source atlas_zigbee_prep.sh ..
     fi
 
+    # save terminal settings
+    stty -g >term.settings
+
     # use the nexus script
 	if ps ax | grep -v grep | grep "nxserver" > /dev/null
 	then
@@ -82,5 +85,10 @@ install)
 		echo "--> Start Atlas in Nexus mode <--"
 		nexus $*
 	fi
+
+    # restore terminal settings
+    if [ -e term.settings ]; then
+        stty `cat ./term.settings`
+    fi
     ;;
 esac

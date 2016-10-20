@@ -16,6 +16,8 @@ FILE DESCRIPTION
 #include "v3d_util.h"
 #include "libs/util/gfx_util/gfx_util.h"
 
+VCOS_EXTERN_C_BEGIN
+
 /* Is encoding in indices mode the same for all prim types? */
 extern bool v3d_cl_has_common_ind_encoding(v3d_cl_compr_type_t type);
 
@@ -138,5 +140,7 @@ static inline v3d_addr_t v3d_cl_compr_rel_branch_dst(
 {
    return v3d_addr_align_down(source->parts[0].addr, 32) + rel_addr;
 }
+
+VCOS_EXTERN_C_END
 
 #endif

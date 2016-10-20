@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,95 +38,118 @@
  * Module Description:
  *
  ***************************************************************************/
+
 #include "splash_magnum.h"
 #include "lib_printf.h"
 
-BERR_Code BMEM_ConvertAddressToOffset(BMEM_Handle heap, void* addr, uint32_t* offset)
-{
-	if ( (uint32_t)addr >= 0xe0000000 )
-	{
-#if BCHP_CHIP == 7420
-		*offset = ((uint32_t)addr - 0xe0000000)+0x60000000 ;
-#else /*BCHP_CHIP == 7425*/
-		*offset = ((uint32_t)addr - 0xe0000000)+0x90000000 ;
-#endif
-	}
-	else
-	{
-		*offset = K1_TO_PHYS(((uint32_t)addr));
-	}
 
-	BDBG_MSG(("BMEM : Virtual %p Physical %08x", addr, *offset));
-	return 0 ;
-}
-
+/* Tuning */
 #define MEMORY_BASE				((void *)PHYS_TO_K1(0x5800000))
+static uint8_t *ui64CurrentStaticMemoryPointer = MEMORY_BASE ;
+static uint8_t *ui64CurrentStaticMemoryBase = MEMORY_BASE ;
+static uint64_t ui64StaticMemorySize = 8*1024*1024 ;
 
-static uint8_t *ui32CurrentStaticMemoryPointer = MEMORY_BASE ;
-static uint8_t *ui32CurrentStaticMemoryBase = MEMORY_BASE ;
-static uint32_t ui32StaticMemorySize = 8*1024*1024 ;
+static uint64_t AlignAddress(
+    uint64_t	ui64Address,	/* [in] size in bytes of block to allocate */
+    unsigned    alignment      	/* [in] alignment for the block */
+);
 
-/* BMVD_P_AlignAddress : Aligns the address to the specified bit position
- */
-uint32_t AlignAddress(
-		uint32_t	ui32Address,	/* [in] size in bytes of block to allocate */
-		unsigned int uiAlignBits	/* [in] alignment for the block */
-		)
-{
-	return (ui32Address+((1<<uiAlignBits)-1)) & ~((1<<uiAlignBits)-1) ;
-}
-
-
-void *BMEM_AllocAligned
+#error CHEAP
+BMMA_Block_Handle BMMA_Alloc
 (
-	BMEM_Handle       pheap,       /* Heap to allocate from */
-	size_t            ulSize,      /* size in bytes of block to allocate */
-	unsigned int      uiAlignBits, /* alignment for the block */
-	unsigned int      Boundary     /* boundry restricting allocated value */
+    BMMA_Heap_Handle heap,
+    size_t size,
+    unsigned alignment,
+    const BMMA_AllocationSettings *pSettings
 )
 {
-	uint32_t pAllocMem ;
-	uint32_t ui32_adjSize ;
+	uint64_t pAllocMem ;
+	uint64_t ui64_adjSize ;
 
-	ui32_adjSize = ulSize + (1<<uiAlignBits)-1 ;
+	ui64_adjSize = size + alignment-1 ;
 
 	/* The simple static memory allocator works as follows :
 	 * The running pointer always points to the starting address
 	 * of the remaining and free portion of the static memory block.
 	 */
-	pAllocMem = (uint32_t)ui32CurrentStaticMemoryPointer ;
+	pAllocMem = (uint64_t)ui64CurrentStaticMemoryPointer ;
 
 	/* Point the running pointer to the end+1 of the current buffer *
 	 * but first check if the static memory block is not exhausted */
-	if( (ui32CurrentStaticMemoryPointer+ui32_adjSize) >
-		(ui32CurrentStaticMemoryBase+ui32StaticMemorySize) )
+	if( (ui64CurrentStaticMemoryPointer+ui64_adjSize) >
+		(ui64CurrentStaticMemoryBase+ui64StaticMemorySize) )
 	{
-		BDBG_ERR(("BMEM_AllocAligned : No more Memory available"));
+		BDBG_ERR(("BMMA_Alloc : No more Memory available"));
 		return NULL;
 	}
 
 	/* Align the address to the specified Bit position */
-	pAllocMem = AlignAddress(pAllocMem, uiAlignBits) ;
+	pAllocMem = AlignAddress(pAllocMem, alignment) ;
 
-	ui32CurrentStaticMemoryPointer += ui32_adjSize;
+	ui64CurrentStaticMemoryPointer += ui64_adjSize;
 
-	BDBG_MSG(("Allocated Memory : %08lx, size %08lx, prealigned = %08lx", pAllocMem, ulSize, ui32CurrentStaticMemoryPointer ));
-	return (void *)pAllocMem ;
+	BDBG_MSG(("Allocated Memory : %08lx, size %08lx, prealigned = %08lx", pAllocMem, size, ui64CurrentStaticMemoryPointer ));
+	return (BMMA_Block_Handle)pAllocMem ;
 }
-BERR_Code BMEM_Heap_ConvertAddressToCached(
-		BMEM_Handle Heap,
-		void *pvAddress,
-		void **ppvCachedAddress)
+
+static uint64_t AlignAddress(
+    uint64_t	ui64Address,
+    unsigned    alignment
+)
 {
-	*ppvCachedAddress = pvAddress;
-	return 0;
+	return (ui64Address+(alignment-1)) & ~(alignment-1) ;
 }
-BERR_Code BMEM_Heap_FlushCache(
-		BMEM_Handle Heap,
-		void *pvCachedAddress,
-		size_t size)
+
+void* BMMA_Lock
+(
+    BMMA_Block_Handle block
+)
 {
-	return 0;
+    return (void*)block;
+}
+
+BMMA_DeviceOffset BMMA_LockOffset
+(
+    BMMA_Block_Handle block
+)
+{
+        BMMA_DeviceOffset offset;
+	if ( (uint64_t)block >= 0xe0000000 )
+	{
+		offset = ((uint64_t)block - 0xe0000000)+0x90000000 ;
+	}
+	else
+	{
+		offset = K1_TO_PHYS(((uint64_t)block));
+	}
+
+	BDBG_MSG(("BMMA : Virtual %p Physical %08x", block, offset));
+	return offset ;
+}
+
+void BMMA_Unlock
+(
+    BMMA_Block_Handle block,
+    const void *addr
+)
+{
+}
+
+void BMMA_UnlockOffset
+(
+    BMMA_Block_Handle block,
+    BMMA_DeviceOffset offset
+)
+{
+}
+
+void BMMA_FlushCache
+(
+    BMMA_Block_Handle block,
+    const void *addr,
+    size_t size
+)
+{
 }
 
 /* End of File */

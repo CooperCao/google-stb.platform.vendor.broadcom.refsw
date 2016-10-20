@@ -155,6 +155,10 @@ NEXUS_AudioInputCaptureHandle NEXUS_AudioInputCapture_Open(
     NEXUS_AUDIO_INPUT_INIT(&handle->connector, NEXUS_AudioInputType_eInputCapture, handle);
     NEXUS_OBJECT_REGISTER(NEXUS_AudioInput, &handle->connector, Open);
     handle->connector.pName = handle->name;
+    NEXUS_CallbackDesc_Init(&handle->settings.sourceChanged);
+    NEXUS_CallbackDesc_Init(&handle->settings.dataCallback);
+
+
 
     BAPE_InputCapture_GetDefaultOpenSettings(&openSettings);
     /* if we are capturing to memory, set up our data processor */

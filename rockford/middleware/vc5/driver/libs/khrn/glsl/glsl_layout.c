@@ -65,6 +65,30 @@ static FormatQualifier to_format_qualifier(LQ id)
    }
 }
 
+AdvancedBlendQualifier glsl_lq_to_abq(LQ lq)
+{
+   switch (lq) {
+      case LQ_BLEND_SUPPORT_MULTIPLY       : return ADV_BLEND_MULTIPLY;
+      case LQ_BLEND_SUPPORT_SCREEN         : return ADV_BLEND_SCREEN;
+      case LQ_BLEND_SUPPORT_OVERLAY        : return ADV_BLEND_OVERLAY;
+      case LQ_BLEND_SUPPORT_DARKEN         : return ADV_BLEND_DARKEN;
+      case LQ_BLEND_SUPPORT_LIGHTEN        : return ADV_BLEND_LIGHTEN;
+      case LQ_BLEND_SUPPORT_COLORDODGE     : return ADV_BLEND_COLORDODGE;
+      case LQ_BLEND_SUPPORT_COLORBURN      : return ADV_BLEND_COLORBURN;
+      case LQ_BLEND_SUPPORT_HARDLIGHT      : return ADV_BLEND_HARDLIGHT;
+      case LQ_BLEND_SUPPORT_SOFTLIGHT      : return ADV_BLEND_SOFTLIGHT;
+      case LQ_BLEND_SUPPORT_DIFFERENCE     : return ADV_BLEND_DIFFERENCE;
+      case LQ_BLEND_SUPPORT_EXCLUSION      : return ADV_BLEND_EXCLUSION;
+      case LQ_BLEND_SUPPORT_HSL_HUE        : return ADV_BLEND_HSL_HUE;
+      case LQ_BLEND_SUPPORT_HSL_SATURATION : return ADV_BLEND_HSL_SATURATION;
+      case LQ_BLEND_SUPPORT_HSL_COLOR      : return ADV_BLEND_HSL_COLOR;
+      case LQ_BLEND_SUPPORT_HSL_LUMINOSITY : return ADV_BLEND_HSL_LUMINOSITY;
+      case LQ_BLEND_SUPPORT_ALL_EQUATIONS  : return ADV_BLEND_ALL_EQUATIONS;
+      default:
+         unreachable();return ADV_BLEND_NONE;
+   }
+}
+
 LayoutQualifier *glsl_layout_create(const LayoutIDList *l) {
    if (!g_InGlobalScope)
       glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "layouts must be at global scope");
@@ -123,13 +147,9 @@ LayoutQualifier *glsl_layout_create(const LayoutIDList *l) {
          default:
             glsl_compile_error(ERROR_CUSTOM, 15, g_LineNumber, "Layout qualifier not valid in this context");
       }
-      if (block_pack_bits != 0) {
+      if ((block_pack_bits | matrix_order_bits) != 0) {
          ret->qualified |= UNIF_QUALED;
-         ret->unif_bits |= block_pack_bits;
-      }
-      if (matrix_order_bits != 0) {
-         ret->qualified |= UNIF_QUALED;
-         ret->unif_bits |= matrix_order_bits;
+         ret->unif_bits |= (block_pack_bits | matrix_order_bits);
       }
    }
    return ret;

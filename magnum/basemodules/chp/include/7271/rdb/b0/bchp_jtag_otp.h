@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,30 +70,30 @@
 /***************************************************************************
  *JTAG_OTP - JTAG OTP Registers
  ***************************************************************************/
-#define BCHP_JTAG_OTP_GENERAL_CTRL_0             0x204e6100 /* [RW] General control register 0 */
-#define BCHP_JTAG_OTP_GENERAL_CTRL_1             0x204e6104 /* [RW] General control register 1 */
-#define BCHP_JTAG_OTP_GENERAL_CTRL_2             0x204e6108 /* [RW] General control register 2 */
-#define BCHP_JTAG_OTP_GENERAL_CTRL_3             0x204e610c /* [RW] General control register 2 */
-#define BCHP_JTAG_OTP_GENERAL_CTRL_4             0x204e6110 /* [RW] General control register 2 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_0           0x204e6114 /* [RO] General status register 0 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_1           0x204e6118 /* [RO] General status register 1 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_2           0x204e611c /* [RO] General status register 2 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_3           0x204e6120 /* [RO] General status register 3 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_4           0x204e6124 /* [RO] General status register 4 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_5           0x204e6128 /* [RO] General status register 5 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_6           0x204e612c /* [RO] General status register 6 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_7           0x204e6130 /* [RO] General status register 7 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_8           0x204e6134 /* [RO] General status register 8 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_9           0x204e6138 /* [RO] General status register 9 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_10          0x204e613c /* [RO] General status register 10 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_11          0x204e6140 /* [RO] General status register 11 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_12          0x204e6144 /* [RO] General status register 12 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_13          0x204e6148 /* [RO] General status register 13 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_14          0x204e614c /* [RO] General status register 14 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_15          0x204e6150 /* [RO] General status register 15 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_16          0x204e6154 /* [RO] General status register 16 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_17          0x204e6158 /* [RO] General status register 17 */
-#define BCHP_JTAG_OTP_GENERAL_STATUS_18          0x204e615c /* [RO] General status register 18 */
+#define BCHP_JTAG_OTP_GENERAL_CTRL_0             0x204e6100 /* [RW][32] General control register 0 */
+#define BCHP_JTAG_OTP_GENERAL_CTRL_1             0x204e6104 /* [RW][32] General control register 1 */
+#define BCHP_JTAG_OTP_GENERAL_CTRL_2             0x204e6108 /* [RW][32] General control register 2 */
+#define BCHP_JTAG_OTP_GENERAL_CTRL_3             0x204e610c /* [RW][32] General control register 2 */
+#define BCHP_JTAG_OTP_GENERAL_CTRL_4             0x204e6110 /* [RW][32] General control register 2 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_0           0x204e6114 /* [RO][32] General status register 0 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_1           0x204e6118 /* [RO][32] General status register 1 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_2           0x204e611c /* [RO][32] General status register 2 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_3           0x204e6120 /* [RO][32] General status register 3 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_4           0x204e6124 /* [RO][32] General status register 4 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_5           0x204e6128 /* [RO][32] General status register 5 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_6           0x204e612c /* [RO][32] General status register 6 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_7           0x204e6130 /* [RO][32] General status register 7 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_8           0x204e6134 /* [RO][32] General status register 8 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_9           0x204e6138 /* [RO][32] General status register 9 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_10          0x204e613c /* [RO][32] General status register 10 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_11          0x204e6140 /* [RO][32] General status register 11 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_12          0x204e6144 /* [RO][32] General status register 12 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_13          0x204e6148 /* [RO][32] General status register 13 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_14          0x204e614c /* [RO][32] General status register 14 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_15          0x204e6150 /* [RO][32] General status register 15 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_16          0x204e6154 /* [RO][32] General status register 16 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_17          0x204e6158 /* [RO][32] General status register 17 */
+#define BCHP_JTAG_OTP_GENERAL_STATUS_18          0x204e615c /* [RO][32] General status register 18 */
 
 /***************************************************************************
  *GENERAL_CTRL_0 - General control register 0

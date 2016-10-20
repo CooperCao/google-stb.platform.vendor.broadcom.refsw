@@ -48,9 +48,7 @@
 #include "bvdc_buffer_priv.h"
 #include "bvdc_scaler_priv.h"
 
-#if (BVDC_P_SUPPORT_HSCL_MAD_HARD_WIRED)
 #include "bchp_hscl_0.h"
-#endif
 
 #ifdef __cplusplus
 extern "C" {
@@ -69,49 +67,7 @@ extern "C" {
 /***************************************************************************
  * Private register cracking macros
  ***************************************************************************/
-#if (BVDC_P_SUPPORT_HSCL_MAD_HARD_WIRED)
 
-#ifdef BCHP_HSCL_5_REG_START
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId) \
-    ((BVDC_P_HscalerId_eHscl5==(eHsclId)) ? (BCHP_HSCL_5_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl4==(eHsclId)) ? (BCHP_HSCL_4_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl3==(eHsclId)) ? (BCHP_HSCL_3_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl2==(eHsclId)) ? (BCHP_HSCL_2_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl1==(eHsclId)) ? (BCHP_HSCL_1_REG_START - BCHP_HSCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_HSCL_4_REG_START
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId) \
-    ((BVDC_P_HscalerId_eHscl4==(eHsclId)) ? (BCHP_HSCL_4_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl3==(eHsclId)) ? (BCHP_HSCL_3_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl2==(eHsclId)) ? (BCHP_HSCL_2_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl1==(eHsclId)) ? (BCHP_HSCL_1_REG_START - BCHP_HSCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_HSCL_3_REG_START
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId) \
-    ((BVDC_P_HscalerId_eHscl3==(eHsclId)) ? (BCHP_HSCL_3_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl2==(eHsclId)) ? (BCHP_HSCL_2_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl1==(eHsclId)) ? (BCHP_HSCL_1_REG_START - BCHP_HSCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_HSCL_2_REG_START
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId) \
-    ((BVDC_P_HscalerId_eHscl2==(eHsclId)) ? (BCHP_HSCL_2_REG_START - BCHP_HSCL_0_REG_START) \
-    :(BVDC_P_HscalerId_eHscl1==(eHsclId)) ? (BCHP_HSCL_1_REG_START - BCHP_HSCL_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_HSCL_1_REG_START
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId) \
-    ((BVDC_P_HscalerId_eHscl1==(eHsclId)) ? (BCHP_HSCL_1_REG_START - BCHP_HSCL_0_REG_START) \
-    :(0))
-#else
-#define BVDC_P_HSCL_GET_REG_OFFSET(eHsclId)           (0)
-#endif /* Hscl_1 */
-#endif /* Hscl_2 */
-#endif /* Hscl_3 */
-#endif /* Hscl_4 */
-#endif /* Hscl_5 */
 #define BVDC_P_HSCL_GET_REG_IDX(reg) \
     ((BCHP##_##reg - BCHP_HSCL_0_REG_START) / sizeof(uint32_t))
 
@@ -282,9 +238,6 @@ do { \
     (BVDC_P_HSCL_FIR_TAP_COUNT_MAX * BVDC_P_HSCL_FIR_PHASE_COUNT_MAX)
 
 #define BVDC_P_HSCL_LAST UINT32_C(-1)
-#else
-#define BVDC_P_HSCL_REGS_COUNT     1
-#endif
 
 /***************************************************************************
  * Hscaler private data structures

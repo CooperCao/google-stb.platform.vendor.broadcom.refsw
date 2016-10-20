@@ -541,3 +541,25 @@ int _astra_ioctl_file_read(
     *pBytes = fileReadData.bytes;
     return 0;
 }
+
+int _astra_ioctl_uapp_coredump(
+    astra_kuapp_handle hKUapp)
+{
+    struct astra_ioctl_uapp_coredump_data uappCoredumpData;
+    int err = 0;
+
+    uappCoredumpData.hUapp = hKUapp;
+
+    err = ioctl(
+        pAstra->fd,
+        ASTRA_IOCTL_UAPP_COREDUMP,
+        (void *)&uappCoredumpData);
+
+    if (err)
+        return -EIO;
+
+    if (uappCoredumpData.retVal)
+        return uappCoredumpData.retVal;
+
+    return 0;
+}

@@ -42,6 +42,7 @@
 
 #include "bvdc_gfxsurface_priv.h"
 #include "bvdc_feeder_priv.h"
+#include "bchp_gfd_0.h"
 
 
 BDBG_MODULE(BVDC_GFXSUR);
@@ -211,12 +212,12 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
 {
     BERR_Code              eResult = BERR_SUCCESS;
     const BPXL_Plane      *pSurface;
-    uint32_t               ulSurOffset;
+    BMMA_DeviceOffset      ullSurOffset;
     uint32_t               ulPitch;
     uint32_t               ulWidth;
     uint32_t               ulHeight;
     BPXL_Format            ePxlFmt;
-    uint32_t               ulRSurOffset;
+    BMMA_DeviceOffset      ullRSurOffset;
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
     const BPXL_Plane      *pRSurface;
     uint32_t               ulRPitch;
@@ -257,18 +258,18 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
             }
         }
 
-        ulSurOffset = BMMA_GetOffset_isr(pSurface->hPixels);
-        ulSurOffset += pSurface->ulPixelsOffset;
+        ullSurOffset = BMMA_GetOffset_isr(pSurface->hPixels);
+        ullSurOffset += pSurface->ulPixelsOffset;
         ePxlFmt = pSurface->eFormat;
 
         if (BPXL_eP0==ePxlFmt || BPXL_eA0==ePxlFmt)
         {
             /* to make later logic simple */
             ulPitch = (ulPitch)? ulPitch : 1;
-            ulSurOffset = (ulSurOffset)? ulSurOffset : 0x1;
+            ullSurOffset = (ullSurOffset)? ullSurOffset : 0x1;
         }
 
-        if (0==ulWidth || 0==ulHeight || 0==ulPitch || 0 == ulSurOffset)
+        if (0==ulWidth || 0==ulHeight || 0==ulPitch || 0 == ullSurOffset)
         {
             BDBG_ERR(("ulWidth %d, ulHeight %d, ulPitch %d",
                       ulWidth, ulHeight, ulPitch));
@@ -284,7 +285,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
         }
 #endif
 
-        ulRSurOffset = 0; /* mark for 2D case */
+        ullRSurOffset = 0; /* mark for 2D case */
 
 #if (BVDC_P_SUPPORT_GFD_VER >= BVDC_P_SUPPORT_GFD_VER_4)
         /* check right surface */
@@ -311,15 +312,15 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
                 }
             }
 
-            ulRSurOffset = BMMA_GetOffset_isr(pRSurface->hPixels);
-            ulRSurOffset += pRSurface->ulPixelsOffset;
+            ullRSurOffset = BMMA_GetOffset_isr(pRSurface->hPixels);
+            ullRSurOffset += pRSurface->ulPixelsOffset;
             eRPxlFmt = pRSurface->eFormat;
 
             if (ulPitch != ulRPitch ||
                 ulWidth != ulRWidth ||
                 ulHeight != ulRHeight ||
                 ePxlFmt != eRPxlFmt ||
-                0 == ulRSurOffset)
+                0 == ullRSurOffset)
             {
                 return BERR_INVALID_PARAMETER;
             }
@@ -340,7 +341,7 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
             ulRHeight = ulHeight;
             ulRWidth  = ulWidth;
 
-            ulRSurOffset = ulSurOffset +
+            ullRSurOffset = ullSurOffset +
                 (BFMT_Orientation_e3D_OverUnder == hSource->stCurInfo.eOrientation) * ulHeight* ulPitch +
                 (BFMT_Orientation_e3D_LeftRight == hSource->stCurInfo.eOrientation) * ulWidth * BPXL_BITS_PER_PIXEL(ePxlFmt)/8;
         }
@@ -386,11 +387,14 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
 
         /* store surface info
          */
-        pSurInfo->ulAddress = ulSurOffset;
+        pSurInfo->ullAddress = ullSurOffset;
         pSurInfo->ulPitch   = ulPitch;
-        pSurInfo->ulRAddress = ulRSurOffset;
-#ifndef BVDC_FOR_BOOTUPDATER
+        pSurInfo->ullRAddress = ullRSurOffset;
     } else { /* striped surface */
+#ifdef BVDC_FOR_BOOTUPDATER
+        BDBG_ERR(("Boot updater code does not support striped surface"));
+        return BERR_TRACE(BERR_INVALID_PARAMETER);
+#else
         BVDC_P_Feeder_Handle hFeeder = hSource->hMpegFeeder;
         BDBG_ASSERT(pAvcGfxPic->pstMfdPic);
         ulWidth  = pAvcGfxPic->pstMfdPic->ulSourceHorizontalSize;
@@ -400,10 +404,12 @@ BERR_Code BVDC_P_GfxSurface_SetSurface_isr
         pSurInfo->bChangePaletteTable = false;
         BVDC_P_Feeder_SetMpegAddr_isr(hFeeder, pAvcGfxPic->pstMfdPic, &hSource->stScanOut);
         /* only support y/c 2D and frame buffer format */
-        pSurInfo->ulAddress = BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_0);
-        pSurInfo->ulRAddress = BVDC_P_MFD_GET_REG_DATA(MFD_0_PICTURE0_LINE_ADDR_1);
-        BDBG_MSG(("yAddr=%#x, cAddr=%#x, %ux%u", pSurInfo->ulAddress, pSurInfo->ulRAddress, ulWidth, ulHeight));
-#endif /* #ifndef BVDC_FOR_BOOTUPDATER */
+        pSurInfo->ullAddress = hFeeder->stRegs.ullPic0Addr0;
+        pSurInfo->ullRAddress = hFeeder->stRegs.ullPic0Addr1;
+        BDBG_MSG(("yAddr="BDBG_UINT64_FMT", cAddr="BDBG_UINT64_FMT", %ux%u",
+            BDBG_UINT64_ARG(pSurInfo->ullAddress), BDBG_UINT64_ARG(pSurInfo->ullRAddress),
+            ulWidth, ulHeight));
+#endif /* #ifdef BVDC_FOR_BOOTUPDATER */
     }
     pSurInfo->ulWidth   = ulWidth;
     pSurInfo->ulHeight  = ulHeight;
@@ -448,7 +454,7 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
     BVDC_P_GfxSurNode  *pNode;
     uint32_t  ulVsyncCntr1, ulVsyncCntr2;
     int iNodeIdx;
-    uint32_t  ulSurAddr, ulRSurAddr, ulRegIdx;
+    BMMA_DeviceOffset  ullSurAddr, ullRSurAddr, ullRegIdx;
 
     hRegister = pGfxSurface->hRegister;
 
@@ -465,38 +471,41 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
     /* set surface addr to shadow registers
      * note: RUL will add pitch for bottom field
      */
-    ulSurAddr = pSurInfo->ulAddress + pGfxSurface->ulMainByteOffset;
-    BDBG_ASSERT(ulSurAddr);
+    ullSurAddr = pSurInfo->ullAddress + pGfxSurface->ulMainByteOffset;
+    BDBG_ASSERT(ullSurAddr);
     BSTD_UNUSED(hSource);
 
     if (pGfxSurface->b3dSrc || !pSurInfo->stAvcPic.pSurface)
     {
-        ulRSurAddr = pSurInfo->ulRAddress + pGfxSurface->ulMainByteOffset;
-        ulRegIdx = ~ pGfxSurface->ulRegIdx;
-        BREG_Write32_isr(hRegister, pGfxSurface->ulSurAddrReg[ulRegIdx & 1], ulSurAddr);
-        BREG_Write32_isr(hRegister, pGfxSurface->ulRSurAddrReg[ulRegIdx & 1], ulRSurAddr);
-        BREG_Write32_isr(hRegister, pGfxSurface->ulRegIdxReg, ulRegIdx);
-        pGfxSurface->ulRegIdx = ulRegIdx;
-        BDBG_MSG(("%s [%d] %d surface %x %x",
+        ullRSurAddr = pSurInfo->ullRAddress + pGfxSurface->ulMainByteOffset;
+        ullRegIdx = ~ pGfxSurface->ullRegIdx;
+        BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulSurAddrReg[ullRegIdx & 1], ullSurAddr);
+        BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRSurAddrReg[ullRegIdx & 1], ullRSurAddr);
+
+        BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulRegIdxReg,
+            BCHP_GET_FIELD_DATA(ullRegIdx, GFD_0_SRC_START,  ADDR));
+
+        pGfxSurface->ullRegIdx = ullRegIdx;
+        BDBG_MSG(("%s [%d] "BDBG_UINT64_FMT" surface "BDBG_UINT64_FMT" "BDBG_UINT64_FMT,
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? "vfd":
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?"gfd":"mfd"),
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? (pGfxSurface->eSrcId - BAVC_SourceId_eVfd0):
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?
             (pGfxSurface->eSrcId - BAVC_SourceId_eGfx0):(pGfxSurface->eSrcId - BAVC_SourceId_eMpeg0)),
-            ulRegIdx,
-            ulSurAddr, ulRSurAddr));
+            BDBG_UINT64_ARG(ullRegIdx),
+            BDBG_UINT64_ARG(ullSurAddr), BDBG_UINT64_ARG(ullRSurAddr)));
     }
     else
     {
-        BREG_Write32_isr(hRegister, pGfxSurface->ulSurAddrReg[0], ulSurAddr);
-        ulRSurAddr = 0;
-        BDBG_MSG(("%s [%d] %d surface %x, %x",
+        BREG_WriteAddr_isrsafe(hRegister, pGfxSurface->ulSurAddrReg[0], ullSurAddr);
+        ullRSurAddr = 0;
+        BDBG_MSG(("%s [%d] %d surface "BDBG_UINT64_FMT", %x",
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? "vfd":
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?"gfd":"mfd"),
             (pGfxSurface->eSrcId >= BAVC_SourceId_eVfd0) ? (pGfxSurface->eSrcId - BAVC_SourceId_eVfd0):
             ((pGfxSurface->eSrcId >= BAVC_SourceId_eGfx0)?
             (pGfxSurface->eSrcId - BAVC_SourceId_eGfx0):(pGfxSurface->eSrcId - BAVC_SourceId_eMpeg0)),
-            0, ulSurAddr, 0));
+            0, BDBG_UINT64_ARG(ullSurAddr), 0));
     }
 
     /* post-read of ulVsyncCntrReg after setting shadow registers.
@@ -516,9 +525,9 @@ void BVDC_P_GfxSurface_SetShadowRegs_isr
 
     /* record this setting to node */
     pNode->stAvcPic = pSurInfo->stAvcPic;
-    pNode->ulAddr = ulSurAddr;
+    pNode->ullAddr = ullSurAddr;
     pNode->ulPitch = pSurInfo->ulPitch;
-    pNode->ulRAddr = ulRSurAddr;
+    pNode->ullRAddr = ullRSurAddr;
     pNode->ulVsyncCntr = ulVsyncCntr2;  /* post read */
     pNode->bExeDuringSet = (ulVsyncCntr2 != ulVsyncCntr1);
 
@@ -535,7 +544,8 @@ BAVC_Gfx_Picture *BVDC_P_GfxSurface_GetSurfaceInHw_isr
     ( BVDC_P_GfxSurfaceContext        *pGfxSurface )
 {
     BVDC_P_GfxSurNode  *pNode;
-    uint32_t  ulVsyncCntr, ulAddr;
+    uint32_t  ulVsyncCntr;
+    BMMA_DeviceOffset ullAddr;
     int ii, iNodeIdx;
 
     /* when RUL is executed it will increase the value in ulVsyncCntrReg by 1 */
@@ -544,9 +554,9 @@ BAVC_Gfx_Picture *BVDC_P_GfxSurface_GetSurfaceInHw_isr
     iNodeIdx = pGfxSurface->ucNodeIdx;
     for (ii=0; ii<4; ii++)
     {
-        /* "&& pNode->ulAddr" here is for the first 4 surface setting after start */
+        /* "&& pNode->ullAddr" here is for the first 4 surface setting after start */
         pNode = &pGfxSurface->stSurNode[iNodeIdx];
-        if (ulVsyncCntr != pNode->ulVsyncCntr && pNode->ulAddr)
+        if (ulVsyncCntr != pNode->ulVsyncCntr && pNode->ullAddr)
         {
             /* at least one vsync passed after the setting of this node */
             return &pNode->stAvcPic;
@@ -555,12 +565,12 @@ BAVC_Gfx_Picture *BVDC_P_GfxSurface_GetSurfaceInHw_isr
         {
             if (pNode->bExeDuringSet)
             {
-                ulAddr = BREG_Read32_isr(pGfxSurface->hRegister, pGfxSurface->ulHwMainSurAddrReg);
-                if ((0 != ulAddr) &&
-                    (ulAddr == pNode->ulAddr || /* top field or frame */
-                     ulAddr == pNode->ulAddr + pNode->ulPitch || /* bottom field */
-                     ulAddr == pNode->ulRAddr || /* left/right swapped top field or frame */
-                     ulAddr == pNode->ulRAddr + pNode->ulPitch)) /* left/right swapped bottom */
+                ullAddr = BREG_ReadAddr_isrsafe(pGfxSurface->hRegister, pGfxSurface->ulHwMainSurAddrReg);
+                if ((0 != ullAddr) &&
+                    (ullAddr == pNode->ullAddr || /* top field or frame */
+                     ullAddr == pNode->ullAddr + pNode->ulPitch || /* bottom field */
+                     ullAddr == pNode->ullRAddr || /* left/right swapped top field or frame */
+                     ullAddr == pNode->ullRAddr + pNode->ulPitch)) /* left/right swapped bottom */
                 {
                     /* left sur and right sur always update together, so we only
                      * need to check main sur addr */

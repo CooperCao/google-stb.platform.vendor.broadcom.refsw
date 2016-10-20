@@ -50,6 +50,13 @@ typedef enum BASP_P_MessageType
     BASP_P_MessageType_FW2PI_eChannelStartStreamOutResponse,
     BASP_P_MessageType_FW2PI_eChannelStartStreamInResponse ,
     BASP_P_MessageType_FW2PI_eChannelStopResponse,
+
+     /* Message from ASP FW to Host due to events from network */
+    BASP_P_MessageType_FW2PI_eFinNotify = 40,
+    BASP_P_MessageType_FW2PI_eRstNotify = 41,
+
+    /* Server receiving data from client, Ex: another get request from client */
+    BASP_P_MessageType_FW2PI_ePacketAvailable = 42,
 }BASP_P_MessageType;
 
 /* The following structure is temporary, we will later replace it with fifo. This works only for a single message processing, no parallel context can be handled here.*/

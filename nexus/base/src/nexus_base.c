@@ -56,12 +56,15 @@
 #define BDBG_MSG_TRACE(x) BDBG_MSG(x)
 
 BDBG_MODULE(nexus_base);
+BDBG_FILE_MODULE(nexus_base_threadinfo);
 
 
 #define NEXUS_P_THREAD_ID_COMPARE(node, key) (((uint8_t *)(key) > (uint8_t *)(node)->threadId) ? 1 : ( ((uint8_t *)(key) < (uint8_t *)(node)->threadId) ? -1 : 0))
 BLST_AA_TREE_GENERATE_REMOVE(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 BLST_AA_TREE_GENERATE_INSERT(NEXUS_P_ThreadInfoTree, void *, NEXUS_P_ThreadInfo, node, NEXUS_P_THREAD_ID_COMPARE)
 BLST_AA_TREE_GENERATE_FIND(NEXUS_P_ThreadInfoTree, void *, NEXUS_P_ThreadInfo, node, NEXUS_P_THREAD_ID_COMPARE)
+BLST_AA_TREE_GENERATE_FIRST(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
+BLST_AA_TREE_GENERATE_NEXT(NEXUS_P_ThreadInfoTree, NEXUS_P_ThreadInfo, node)
 
 struct NEXUS_P_Base_State NEXUS_P_Base_State;
 
@@ -150,16 +153,6 @@ static const char *NEXUS_P_Scheduler_names[NEXUS_ModulePriority_eMax] = {
     "nx_sched_stndby",
     "nx_sched_high_stndby"
 };
-
-void
-NEXUS_CallbackDesc_Init(NEXUS_CallbackDesc *desc)
-{
-    BDBG_ASSERT(desc);
-    desc->callback = NULL;
-    desc->context = NULL;
-    desc->param = 0;
-    return;
-}
 
 NEXUS_ModuleHandle
 NEXUS_Module_Create(const char *pModuleName, const NEXUS_ModuleSettings *pSettings)
@@ -390,19 +383,46 @@ err_os:
     return BERR_TRACE(rc);
 }
 
+static void NEXUS_Base_P_RemoveThreadInfo_locked(NEXUS_P_ThreadInfo *threadInfo)
+{
+    BDBG_MODULE_MSG(nexus_base_threadinfo,("Remove %p,%p", (void *)threadInfo, (void *)threadInfo->threadId));
+    BLST_AA_TREE_REMOVE(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadInfo);
+    threadInfo->threadId = NULL;
+    return;
+}
+
+static void NEXUS_Base_P_RemoveAndFreeThreadInfo_locked(NEXUS_P_ThreadInfo *threadInfo)
+{
+    BDBG_MODULE_MSG(nexus_base_threadinfo,("FreeAndRemove %p,%p", (void *)threadInfo, (void *)threadInfo->threadId));
+    NEXUS_Base_P_RemoveThreadInfo_locked(threadInfo);
+    if(threadInfo->nexusThread==NULL) {
+        if(NEXUS_P_Base_State.userThreadInfo.threadInfoCount>0) {
+            NEXUS_P_Base_State.userThreadInfo.threadInfoCount--;
+        } else {
+            BDBG_ASSERT(0);
+        }
+        BKNI_Free(threadInfo);
+    }
+    return;
+}
+
+
 void
 NEXUS_Base_Core_Uninit(void)
 {
-    unsigned i;
     BDBG_ASSERT(NEXUS_Base==NULL);
     BDBG_MSG_TRACE(("NEXUS_Base_Core_Uninit: NEXUS_P_Base_Os_Uninit"));
-    BKNI_DestroyMutex(NEXUS_P_Base_State.userThreadInfo.lock);
-    for(i=0;i<NEXUS_BASE_P_MAX_USER_THREADS;i++) {
-        if(NEXUS_P_Base_State.userThreadInfo.info[i]) {
-            BKNI_Free(NEXUS_P_Base_State.userThreadInfo.info[i]);
-        }
-    }
     NEXUS_P_Base_Os_Uninit();
+    BKNI_AcquireMutex(NEXUS_P_Base_State.userThreadInfo.lock);
+    for(;;) {
+        NEXUS_P_ThreadInfo *threadInfo  = BLST_AA_TREE_FIRST(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree);
+        if(threadInfo==NULL) {
+            break;
+        }
+        NEXUS_Base_P_RemoveAndFreeThreadInfo_locked(threadInfo);
+    }
+    BKNI_ReleaseMutex(NEXUS_P_Base_State.userThreadInfo.lock);
+    BKNI_DestroyMutex(NEXUS_P_Base_State.userThreadInfo.lock);
     NEXUS_P_Base_State.coreInit = false;
     return;
 }
@@ -570,16 +590,20 @@ NEXUS_Module_Assert(NEXUS_ModuleHandle module)
     } 
     info = NEXUS_P_ThreadInfo_Get();
     if(info) {
+        bool result = false;
         if (BLIFO_READ_PEEK(&info->stack)>0) {
             /* check if lock is held anywhere in the stack */
             entry = BLIFO_READ(&info->stack);
             while (1) {
-                if (entry->module == module) return true;
+                if (entry->module == module) {
+                    result = true;
+                    break;
+                }
                 if (entry == info->locks) break;
                 entry--;
             }
         }
-        return false;
+        return result;
     }
 #endif
     return true;
@@ -597,7 +621,7 @@ NEXUS_Module_P_CheckLock(const char *function, NEXUS_P_ThreadInfo *info, NEXUS_M
         const NEXUS_P_LockEntry *entry;
         entry = BLIFO_READ(&info->stack);
         if(entry->module == module) {
-            BDBG_ERR(("%s[%s]: trying apply recursive lock:%s at %s:%u old at %s:%u", function, info->pThreadName, module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber, NEXUS_P_FILENAME(entry->pFileName), entry->lineNumber));
+            BDBG_ERR(("%p %s[%s]: trying apply recursive lock:%s at %s:%u old at %s:%u",  (void *)info, function, info->pThreadName, module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber, NEXUS_P_FILENAME(entry->pFileName), entry->lineNumber));
             BDBG_ASSERT(0);
         }
     }
@@ -633,6 +657,9 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     info = NEXUS_P_ThreadInfo_Get();
+    if(info) {
+        info->busy = true;
+    }
 #endif
     NEXUS_Module_P_CheckLock("NEXUS_Module_Lock_Tagged", info, module, pFileName, lineNumber);
     rc = BKNI_AcquireMutex_tagged(module->lock, pFileName, lineNumber);
@@ -646,7 +673,7 @@ NEXUS_Module_Lock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, unsig
             entry->lineNumber = lineNumber;
             BLIFO_WRITE_COMMIT(&info->stack, 1);
         } else {
-            BDBG_WRN(("NEXUS_Module_Lock[%s]: overflow of lock LIFO %s:%u", info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            BDBG_ERR(("NEXUS_Module_Lock[%s]: overflow of lock LIFO %s:%u", info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
         }
     }
 #endif
@@ -667,19 +694,26 @@ NEXUS_Module_TryLock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, un
     BDBG_OBJECT_ASSERT(module, NEXUS_Module);
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     info = NEXUS_P_ThreadInfo_Get();
+    if(info) {
+        info->busy = true;
+    }
 #endif
     NEXUS_Module_P_CheckLock("NEXUS_Module_TryLock_Tagged", info, module, pFileName, lineNumber);
     rc = BKNI_TryAcquireMutex_tagged(module->lock, pFileName, lineNumber);
 #if NEXUS_P_DEBUG_MODULE_LOCKS
-    if(rc==BERR_SUCCESS && info) {
-        if(BLIFO_WRITE_PEEK(&info->stack)>0) {
-            NEXUS_P_LockEntry *entry = BLIFO_WRITE(&info->stack);
-            entry->module = module;
-            entry->pFileName = pFileName;
-            entry->lineNumber = lineNumber;
-            BLIFO_WRITE_COMMIT(&info->stack, 1);
+    if(info) {
+        if(rc==BERR_SUCCESS) {
+            if(BLIFO_WRITE_PEEK(&info->stack)>0) {
+                NEXUS_P_LockEntry *entry = BLIFO_WRITE(&info->stack);
+                entry->module = module;
+                entry->pFileName = pFileName;
+                entry->lineNumber = lineNumber;
+                BLIFO_WRITE_COMMIT(&info->stack, 1);
+            } else {
+                BDBG_ERR(("NEXUS_Module_TryLock[%s]: overflow of lock LIFO %s:%u", info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            }
         } else {
-            BDBG_WRN(("NEXUS_Module_TryLock[%s]: overflow of lock LIFO %s:%u", info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            info->busy = BLIFO_READ_PEEK(&info->stack)!=0;
         }
     }
 #endif
@@ -701,12 +735,13 @@ NEXUS_Module_Unlock_Tagged(NEXUS_ModuleHandle module, const char *pFileName, uns
         if(BLIFO_READ_PEEK(&info->stack)>0) {
             NEXUS_P_LockEntry *entry = BLIFO_READ(&info->stack);
             if(entry->module!=module) {
-                BDBG_ERR(("NEXUS_Module_Unlock[%s]: not paired unlock operation %s(%s:%u), last lock:%s(%s:%u) ", info->pThreadName,  module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber, entry->module->pModuleName, NEXUS_P_FILENAME(entry->pFileName), entry->lineNumber));
+                BDBG_ERR(("%p NEXUS_Module_Unlock[%s]: not paired unlock operation %s(%s:%u), last lock:%s(%s:%u)", (void *)info, info->pThreadName,  module->pModuleName, NEXUS_P_FILENAME(pFileName), lineNumber, entry->module->pModuleName, NEXUS_P_FILENAME(entry->pFileName), entry->lineNumber));
                 BDBG_ASSERT(0);
             }
             BLIFO_READ_COMMIT(&info->stack, 1);
+            info->busy = BLIFO_READ_PEEK(&info->stack)!=0;
         } else {
-            BDBG_ERR(("NEXUS_Module_Unlock[%s]: underflow of lock LIFO (%s:%u)", info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
+            BDBG_ERR(("%p NEXUS_Module_Unlock[%s]: underflow of lock LIFO (%s:%u)", (void *)info, info->pThreadName, NEXUS_P_FILENAME(pFileName), lineNumber));
             BDBG_ASSERT(0);
         }
     }
@@ -802,10 +837,13 @@ NEXUS_P_ThreadInfo_Init(NEXUS_P_ThreadInfo *info)
 #if NEXUS_P_DEBUG_MODULE_LOCKS
     BLIFO_INIT(&info->stack, info->locks, NEXUS_P_BASE_MAX_LOCKS);
 #endif
+    info->idleCount = 0;
+    info->threadNo = 0;
     info->nexusThread = NULL;
     info->threadId = NULL;
     info->pThreadName = "";
     info->client = NULL;
+    info->busy = false;
     return ;
 }
 
@@ -934,7 +972,7 @@ void NEXUS_Base_P_CallbackHandler_Dispatch(void *context, int arg)
 #if NEXUS_P_DEBUG_CALLBACK_HANDLER
     /* bypass BDBG_OBJECT_ASSERT macro so that caller's filename & linenumber can appear on assert. This will work because handler is not dynamically allocated,
     so we can still deref after NEXUS_Base_P_CallbackHandler_Shutdown. */
-    BDBG_Object_Assert(handler, sizeof(*handler), &(handler)->bdbg_object_NEXUS_CallbackHandler, bdbg_id__NEXUS_CallbackHandler, handler->pFileName, handler->lineNumber);
+    BDBG_Object_Assert_isrsafe(handler, sizeof(*handler), &(handler)->bdbg_object_NEXUS_CallbackHandler, bdbg_id__NEXUS_CallbackHandler, handler->pFileName, handler->lineNumber);
 #else
     BDBG_OBJECT_ASSERT(handler, NEXUS_CallbackHandler);
 #endif
@@ -947,7 +985,7 @@ void NEXUS_Base_P_CallbackHandler_Dispatch(void *context, int arg)
     }
 
     if(NEXUS_Module_TryLock_Tagged(handler->module, handler->pFileName, handler->lineNumber)) {
-        /* don't check timer, if it was set it would just cause 1:1 mapping between schedulled callback and callbacks executed */
+        /* don't check timer, if it was set it would just cause 1:1 mapping between scheduled callback and callbacks executed */
         BDBG_MSG_CALLBACK(("Locked:%#x", (unsigned)handler));
         handler->pCallback(handler->pContext);
         NEXUS_Module_Unlock_Tagged(handler->module, handler->pFileName, handler->lineNumber);
@@ -989,92 +1027,57 @@ void NEXUS_Base_P_CallbackHandler_Shutdown(NEXUS_CallbackHandler *handler)
     return;
 }
 
-
-static void NEXUS_Base_P_FreeThreadInfo_locked(NEXUS_P_ThreadInfo *threadInfo)
-{
-    if (threadInfo->internal) {
-        NEXUS_P_Base_State.userThreadInfo.lastUsed[threadInfo->index] = 0;
-    }
-    BLST_AA_TREE_REMOVE(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadInfo);
-    threadInfo->nexusThread = NULL;
-    threadInfo->threadId = NULL;
-    return;
-}
-
-static void NEXUS_Base_P_TickThreadInfo_locked(NEXUS_P_ThreadInfo *threadInfo)
-{
-    unsigned tick;   
-    tick = NEXUS_P_Base_State.userThreadInfo.currentTick+1; 
-    tick = tick == 0 ? 1 : tick; /* skip 0 */
-    NEXUS_P_Base_State.userThreadInfo.currentTick = tick;
-    NEXUS_P_Base_State.userThreadInfo.lastUsed[threadInfo->index] = tick;
-    return;
-}
-
 static NEXUS_P_ThreadInfo *NEXUS_Base_P_AllocateThreadInfo_locked(void *threadId)
 {
-    unsigned i;
-    unsigned min = 0;
-    bool found = false;
     NEXUS_P_ThreadInfo *threadInfo = NULL;
     NEXUS_P_ThreadInfo *insertedThreadInfo = NULL;
+    unsigned threshold = NEXUS_BASE_P_MAX_USER_THREADS/4;
 
     BDBG_ASSERT(threadId!=NULL);
 
-    for(i=min;i<NEXUS_BASE_P_MAX_USER_THREADS;i++) {
-        if(!NEXUS_P_Base_State.userThreadInfo.info[i] || NEXUS_P_Base_State.userThreadInfo.lastUsed[i]==0) { /* BINGO found unused entry */
-            min = i;
-            found = true;
-            break;
-        } else {
-#if NEXUS_P_DEBUG_MODULE_LOCKS
-            if(BLIFO_READ_PEEK(&NEXUS_P_Base_State.userThreadInfo.info[i]->stack)==0) {
-                if(!found) {
-                    if(BLIFO_READ_PEEK(&NEXUS_P_Base_State.userThreadInfo.info[min]->stack)!=0) {
-                        min = i;
-                    }
-                }
-                if(NEXUS_P_Base_State.userThreadInfo.lastUsed[i] < NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* search minimal entry */
-                    min = i;
-                }
-                found = true;
+    if(NEXUS_P_Base_State.userThreadInfo.threadInfoCount>(NEXUS_BASE_P_MAX_USER_THREADS-threshold)) {
+        NEXUS_P_ThreadInfo *oldest=NULL;
+        for(threadInfo = BLST_AA_TREE_FIRST(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree);threadInfo;threadInfo=BLST_AA_TREE_NEXT(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadInfo)) {
+            if(threadInfo->nexusThread ) {
+                continue; /* this thread has explicit Destroy, and can't be freed or removed from the tree */
             }
-#else
-            if(!found || NEXUS_P_Base_State.userThreadInfo.lastUsed[i] < NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* search minimal entry */
-                min = i;
+            if(threadInfo->busy) {
+                threadInfo->idleCount=0;
+            } else {
+                threadInfo->idleCount++;
+                if(oldest==NULL || threadInfo->idleCount > oldest->idleCount || (threadInfo->idleCount == oldest->idleCount && threadInfo->threadNo<oldest->threadNo)) {
+                    oldest=threadInfo;
+                }
             }
-            found = true;
-#endif
+        }
+        if(oldest) {
+            BDBG_MODULE_MSG(nexus_base_threadinfo,("Scan oldest:%p (%p,%u(%u),%u)", (void *)oldest, (void *)oldest->threadId, oldest->idleCount, threshold, oldest->threadNo));
+            if(oldest->idleCount < threshold) {
+                oldest = NULL;
+            }
+        }
+        if(oldest) {
+            /* recycle old entry */
+            BDBG_MODULE_MSG(nexus_base_threadinfo,("Recycle:%p (%p,%u,%u) for %p", (void *)oldest, (void *)oldest->threadId, oldest->idleCount, oldest->threadNo, (void *)threadId));
+            threadInfo = oldest;
+            NEXUS_Base_P_RemoveThreadInfo_locked(threadInfo);
         }
     }
-    if(!found) {
-        BDBG_ERR(("Can't allocate ThreadInfo"));
-        return NULL;
-    }
-    if (!NEXUS_P_Base_State.userThreadInfo.info[min]) {
+    if(threadInfo==NULL) {
         threadInfo = BKNI_Malloc(sizeof(*threadInfo));
         if (!threadInfo) {
             return NULL;
         }
-        BKNI_Memset(threadInfo, 0, sizeof(*threadInfo));
-        threadInfo->index = min;
-        threadInfo->internal = true;
-        NEXUS_P_Base_State.userThreadInfo.info[min] = threadInfo;
-    }
-    else {
-        threadInfo = NEXUS_P_Base_State.userThreadInfo.info[min];
-        BDBG_ASSERT(threadInfo->index == min);
-        BDBG_ASSERT(threadInfo->internal);
-    }
-    if(NEXUS_P_Base_State.userThreadInfo.lastUsed[min]) { /* if found used entry, it should be freed first */
-        NEXUS_Base_P_FreeThreadInfo_locked(threadInfo);
+        NEXUS_P_Base_State.userThreadInfo.threadInfoCount++;
     }
     NEXUS_P_ThreadInfo_Init(threadInfo);
     threadInfo->threadId = threadId;
+    threadInfo->threadNo = NEXUS_P_Base_State.userThreadInfo.threadInfoLast;
+    NEXUS_P_Base_State.userThreadInfo.threadInfoLast++;
+    BDBG_MODULE_MSG(nexus_base_threadinfo,("Allocate %p:%p count:%u(%u)", (void *)threadInfo, (void *)threadId, NEXUS_P_Base_State.userThreadInfo.threadInfoCount, NEXUS_BASE_P_MAX_USER_THREADS));
     insertedThreadInfo = BLST_AA_TREE_INSERT(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadId, threadInfo);
-    BDBG_ASSERT(insertedThreadInfo == threadInfo); /* this could fail if there was already element with thes ame threadId */
+    BDBG_ASSERT(insertedThreadInfo == threadInfo); /* this could fail if there was already element with the same threadId */
     BSTD_UNUSED(insertedThreadInfo);
-    NEXUS_Base_P_TickThreadInfo_locked(threadInfo);
     return threadInfo;
 }
 
@@ -1083,7 +1086,7 @@ NEXUS_P_ThreadInfo *NEXUS_Base_P_AllocateThreadInfo(void *threadId)
     NEXUS_P_ThreadInfo *threadInfo;
     BKNI_AcquireMutex(NEXUS_P_Base_State.userThreadInfo.lock);
     threadInfo = BLST_AA_TREE_FIND(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadId); /* try to find it in already allocated pool */
-    if(threadInfo) { 
+    if(threadInfo) {
         NEXUS_P_ThreadInfo_Init(threadInfo);
         threadInfo->threadId = threadId;
     } else {
@@ -1098,16 +1101,17 @@ void NEXUS_Base_P_Thread_AssociateInfo(NEXUS_ThreadHandle thread, void *threadId
 {
     NEXUS_P_ThreadInfo *insertedThreadInfo;
     BKNI_AcquireMutex(NEXUS_P_Base_State.userThreadInfo.lock);
-    threadInfo->internal = false;
     threadInfo->nexusThread = thread;
     threadInfo->threadId = threadId;
+    BDBG_MODULE_MSG(nexus_base_threadinfo,("ThreadInfo: Associate %p:%p", (void *)threadInfo, (void *)threadId));
     insertedThreadInfo = BLST_AA_TREE_INSERT(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadId, threadInfo);
     if(insertedThreadInfo != threadInfo) { /* insertedThreadInfo points to thread with the same key _that_ is already in the tree */
+        BDBG_MODULE_MSG(nexus_base_threadinfo,("Associate Duplicate %p:%p %p", (void *)threadInfo, (void *)threadId, (void *)insertedThreadInfo));
         if(NEXUS_P_Base_State.userThreadInfo.cache.threadInfo == insertedThreadInfo) {
             NEXUS_P_Base_State.userThreadInfo.cache.threadId = NULL; /* clear stale cache entry */
             NEXUS_P_Base_State.userThreadInfo.cache.threadInfo = NULL;
         }
-        NEXUS_Base_P_FreeThreadInfo_locked(insertedThreadInfo);
+        NEXUS_Base_P_RemoveAndFreeThreadInfo_locked(insertedThreadInfo);
         insertedThreadInfo = BLST_AA_TREE_INSERT(NEXUS_P_ThreadInfoTree, &NEXUS_P_Base_State.userThreadInfo.tree, threadId, threadInfo);
         BDBG_ASSERT(insertedThreadInfo == threadInfo); /* now it should be really inserted */
         BSTD_UNUSED(insertedThreadInfo);
@@ -1125,7 +1129,7 @@ void NEXUS_Base_P_Thread_DisassociateInfo(NEXUS_ThreadHandle thread, NEXUS_P_Thr
         NEXUS_P_Base_State.userThreadInfo.cache.threadId = NULL; /* clear stale cache entry */
         NEXUS_P_Base_State.userThreadInfo.cache.threadInfo = NULL;
     }
-    NEXUS_Base_P_FreeThreadInfo_locked(threadInfo);
+    NEXUS_Base_P_RemoveThreadInfo_locked(threadInfo);
 
     BKNI_ReleaseMutex(NEXUS_P_Base_State.userThreadInfo.lock);
     return;
@@ -1148,23 +1152,12 @@ NEXUS_P_ThreadInfo *NEXUS_Base_P_Thread_GetInfo(void *threadId)
         }
         NEXUS_P_Base_State.userThreadInfo.cache.threadId = threadId; /* update cache */
         NEXUS_P_Base_State.userThreadInfo.cache.threadInfo = threadInfo;
-        if(threadInfo->internal) {
-            NEXUS_Base_P_TickThreadInfo_locked(threadInfo);
-        }
+    }
+    if(threadInfo) {
+        threadInfo->idleCount = 0;
     }
     BKNI_ReleaseMutex(NEXUS_P_Base_State.userThreadInfo.lock);
     return threadInfo;
-}
-
-void NEXUS_Base_P_TickThreadInfo(NEXUS_P_ThreadInfo *threadInfo)
-{
-    if(threadInfo->internal) {
-        /* delay serialization  point */
-        BKNI_AcquireMutex(NEXUS_P_Base_State.userThreadInfo.lock);
-        NEXUS_Base_P_TickThreadInfo_locked(threadInfo);
-        BKNI_ReleaseMutex(NEXUS_P_Base_State.userThreadInfo.lock);
-    }
-    return;
 }
 
 /* we can wrap NEXUS_Thread_Create, but cannot wrap NEXUS_Thread_Destroy because Destroy must synchronize with the thread

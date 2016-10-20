@@ -67,7 +67,7 @@ extern "C"
  * API Version  MM.mm.pp.bb
  */
 
-#define VICE_API_VERSION                  0x050E0000
+#define VICE_API_VERSION                  0x050F0000
 
 /*
  * Size of the command buffer between host (PI) and FW in bytes
@@ -183,7 +183,7 @@ extern "C"
 #define VICE_CMD_RETURN_ERR_INVALID_FORCE_INTRA_CONFIGURATION      (35)    /* Invlaid Forced Intra configuration setting */
 #define VICE_CMD_RETURN_ERR_LOW_DELAY_SUPPORTED_ONLY_CHANNEL_0     (36)    /* Low delay is supported only for single channel and the channel must be 0 */
 #define VICE_CMD_RETURN_ERR_LOW_DELAY_UNSUPPORTED_ON_TARGET        (37)    /* Low delay mode is not supported for this core version */
-#define VICE_CMD_RETURN_ERR_RESTART_GOP_SCENE_INVALID_GOP          (38)    /* Restarting GOP is only valid w/ I or IP GOP structures */
+#define VICE_CMD_RETURN_ERR_RESTART_GOP_SCENE_INVALID_GOP          (38)    /* Restarting GOP is only valid w/ I or IP GOP or IBBP open GOP structures */
 #define VICE_CMD_RETURN_ERR_ITFP_INVALID_IN_LOW_DELAY              (39)    /* ITFP command is not valid in Low-Delay mode */
 #define VICE_CMD_RETURN_ERR_TARGET_BITRATE_LARGER_MAX              (40)    /* Target bitrate is larger than the maximum bitrate */
 #define VICE_CMD_RETURN_ERR_WRONG_NUM_PARALLEL_ENC                 (41)    /* Too many parallel FNRT encode specified for the given version */
@@ -917,6 +917,8 @@ typedef struct ViceCmdConfigChannel_t
 #define GOP_LENGTH_RAMPING_N_SHIFT                          24
 #define GOP_LENGTH_RAMPING_M_MASK                           0x00F00000          /* GOP duration ramping factor M. The duration of the next M GOPs is GopDuration*(M+N-1)/M.  */
 #define GOP_LENGTH_RAMPING_M_SHIFT                          20
+#define GOP_LENGTH_MINIMAL_SCENE_CHANGE_MASK                0x000F0000          /* Minimal Gop length. A scene change can restart the GOP only if the minimal number of frames were encoded */
+#define GOP_LENGTH_MINIMAL_SCENE_CHANGE_SHIFT               16
 
 /* GOP STRUCTURE flags */
 /* This flags are part of the GopStructure field in ViceCmdConfigChannel_t */

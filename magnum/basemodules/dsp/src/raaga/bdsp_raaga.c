@@ -176,13 +176,9 @@ BERR_Code BDSP_Raaga_Open(
     pRaaga->device.powerStandby= BDSP_Raaga_P_PowerStandby;
     pRaaga->device.powerResume= BDSP_Raaga_P_PowerResume;
     pRaaga->device.getAlgorithmInfo= BDSP_Raaga_P_GetAlgorithmInfo;
-    pRaaga->device.getAlgorithmDefaultSettings = BDSP_Raaga_GetAlgorithmDefaultSettings;
     pRaaga->device.allocateExternalInterrupt = BDSP_Raaga_P_AllocateExternalInterrupt;
     pRaaga->device.freeExternalInterrupt = BDSP_Raaga_P_FreeExternalInterrupt;
     pRaaga->device.getExternalInterruptInfo = BDSP_Raaga_P_GetExternalInterruptInfo;
-    pRaaga->device.allocateRdbRegister = BDSP_Raaga_P_AllocateRdbRegisters;
-    pRaaga->device.freeRdbRegister = BDSP_Raaga_P_FreeRdbRegisters;
-    pRaaga->device.getRdbRegisterInfo = BDSP_Raaga_P_GetRdbRegistersInfo;
     pRaaga->device.processAudioCapture = BDSP_Raaga_P_ProcessAudioCapture;
 
     /* Init context lists */
@@ -190,9 +186,6 @@ BERR_Code BDSP_Raaga_Open(
 
     /* Init interrupt list */
     BLST_S_INIT(&pRaaga->interruptList);
-
-    /* Init Rdb register list */
-    BLST_S_INIT(&pRaaga->rdbRegisterList);
 
     /* Save Settings and params */
     pRaaga->settings = *pSettings;

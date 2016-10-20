@@ -202,7 +202,7 @@ If you call this, NEXUS_DisplayVbiSettings.gemStarEnabled should be true.
 **/
 NEXUS_Error NEXUS_Display_WriteGemStar(
     NEXUS_DisplayHandle handle,
-    const NEXUS_GemStarData *pEntries,          /* array of NEXUS_GemStarData entries to output */
+    const NEXUS_GemStarData *pEntries,          /* attr{nelem=numEntries;reserved=4} array of NEXUS_GemStarData entries to output */
     size_t numEntries,                          /* number of NEXUS_GemStarData entries pointed to by pEntries */
     size_t *pNumEntriesWritten                  /* [out] number of NEXUS_GemStarData entries written */
     );

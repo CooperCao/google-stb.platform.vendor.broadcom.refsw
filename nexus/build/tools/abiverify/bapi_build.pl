@@ -64,11 +64,44 @@ bapi_verify::print_struct($fout_h, $main->{STRUCTS},$main->{CLASS_HANDLES}, 1);
 bapi_verify::verify_struct($fout_h, $main->{STRUCTS},$main->{CLASS_HANDLES}, 'struct');
 
 if(not defined $main->{OUTPUT}) {
-    my $api_struct=bapi_verify::process_functions($fout_h, $main->{FUNCREFS} ,$main->{CLASS_HANDLES});
-    bapi_verify::print_struct($fout_h, $api_struct, $main->{CLASS_HANDLES}, 0);
-    bapi_parse_c::expand_structs($api_struct, $main->{STRUCTS}, {COMBINE => 0});
-    bapi_verify::print_struct($fout_h, $api_struct, $main->{CLASS_HANDLES}, 1);
-    bapi_verify::verify_struct($fout_h, $api_struct, $main->{CLASS_HANDLES},'func');
+    my $api_structs=bapi_verify::process_functions($fout_h, $module, $main->{FUNCREFS} ,$main->{CLASS_HANDLES}, $main->{STRUCTS});
+    my $args = pop @$api_structs;
+    my $ioctls = pop @$api_structs;
+    my $h_api_file = "nexus_${module}_api.h";
+    $file = "$destdir/$h_api_file";
+    open (my $fout_h_api, '>', $file) or die "Can't open $file";
+    print $fout_h_api "#define NEXUS_${module}_MODULE_VERSION " . (sprintf " 0x%08Xul", ( $main->{VERSION} & 0xFFFFFFFF)) . "\n";
+    for my $api  (@$args, @$api_structs) {
+        bapi_verify::print_struct($fout_h_api, $api, $main->{CLASS_HANDLES}, 0);
+    }
+    print $fout_h_api "enum NEXUS_P_API_${module}_id {\n";
+    for my $func (sort {$a->{FUNCNAME} cmp $b->{FUNCNAME}}  @{$main->{FUNCREFS}}) {
+        my $funcname = $func->{FUNCNAME};
+
+        next if(exists $func->{ATTR}->{'local'});
+        print $fout_h_api "\tNEXUS_P_API_${module}_${funcname}_id,\n";
+    }
+    print $fout_h_api "\tNEXUS_P_API_ID_${module}_Last\n";
+    print $fout_h_api "};\n\n";
+
+    close ($fout_h_api);
+    my $apis;
+    for my $api (@$api_structs) {
+        my ($name, $members);
+        while (($name, $members) = each %$api) {
+            $api->{$name} = [@$members];
+        }
+    }
+
+    my $expanded_api_struct = bapi_parse_c::copy_structs($apis);
+    for (@$args) {
+        bapi_parse_c::expand_structs($expanded_api_struct,$_);
+    }
+    bapi_parse_c::expand_structs($expanded_api_struct, $main->{STRUCTS}, {COMBINE => 0});
+    bapi_verify::print_struct($fout_h, $expanded_api_struct, $main->{CLASS_HANDLES}, 1);
+    bapi_verify::verify_struct($fout_h, $expanded_api_struct, $main->{CLASS_HANDLES},'func');
+
+    bapi_verify::generate($destdir, $module, $main->{FUNCREFS} ,$main->{CLASS_HANDLES}, $main->{STRUCTS}, $main->{VERSION}, $main->{MODULE_NUMBER}, $ioctls);
 
     $file = "$destdir/nexus_${module}_abiverify.c";
     open (my $fout_c, '>', $file) or die "Can't open $file";
@@ -76,6 +109,7 @@ if(not defined $main->{OUTPUT}) {
     print $fout_c "#define NEXUS_P_ABIVERIFY_MODULE    b_abi_verify_$main->{MODULE}\n";
     print $fout_c "#include \"nexus_${module}_module.h\"\n";
     print $fout_c "#include \"abiverify/nexus_abiverify_prologue.h\"\n";
+    print $fout_c "#include \"$h_api_file\"\n";
     print $fout_c "#include \"$h_file.h\"\n";
     print $fout_c "#if NEXUS_P_ABI_VERIFY_MODE_VERIFY\n";
     print $fout_c "#include \"${h_file}_aarch32.h\"\n";

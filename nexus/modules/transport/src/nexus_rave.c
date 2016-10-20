@@ -984,6 +984,7 @@ NEXUS_Error NEXUS_Rave_ConfigureAudio_priv(
     case NEXUS_AudioCodec_eAacAdts:
     case NEXUS_AudioCodec_eAacLoas:
     case NEXUS_AudioCodec_eAls:
+    case NEXUS_AudioCodec_eAlsLoas:
         if ( pSettings->audioDescriptor )
         {
             /* Currently there is no other way to specify this in RAVE */

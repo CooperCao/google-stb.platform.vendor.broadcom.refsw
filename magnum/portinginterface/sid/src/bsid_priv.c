@@ -657,14 +657,15 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
     BERR_Code err = BERR_SUCCESS;
 
     BDBG_ENTER(BSID_P_AbortDecode);
-    BKNI_ResetEvent(hSidCh->hAbortedEvent);
 
     do
     {
         BKNI_EnterCriticalSection();
+        BKNI_ResetEvent(hSidCh->hAbortedEvent);
         BSID_P_SetAbortDma_isr(hSidCh);
-        BKNI_LeaveCriticalSection();
         hSidCh->bAbortInitiated = true;
+        BKNI_LeaveCriticalSection();
+
         err = BKNI_WaitForEvent(hSidCh->hAbortedEvent, 100/*ms*/);
         if (BERR_TIMEOUT == err)
         {
@@ -672,7 +673,7 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
            iAbortAttempts++;
         }
     }
-    while ((BERR_TIMEOUT == err ) && (iAbortAttempts < 10));
+    while ((BERR_SUCCESS != err ) && (iAbortAttempts < 10));
     if (iAbortAttempts == 10)
     {
         BDBG_ERR(("AbortDecode:: Abort failed - invoking watchdog"));
@@ -687,7 +688,6 @@ void BSID_P_AbortDecode(BSID_ChannelHandle hSidCh)
     }
 
     hSidCh->bAbortInitiated = false;
-
     /* Clear the DMA info to avoid "sticky" abort status */
     BSID_P_ResetDmaInfo(hSidCh->hSid);
 

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:14 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,42 +70,42 @@
 /***************************************************************************
  *AON_CTRL - AON Control Registers
  ***************************************************************************/
-#define BCHP_AON_CTRL_RESET_CTRL                 0x20410000 /* [RW] Reset Control register for AON */
-#define BCHP_AON_CTRL_PM_CTRL                    0x20410004 /* [RW] Control register for Power Controller */
-#define BCHP_AON_CTRL_PM_STATUS                  0x20410008 /* [RO] Status register for Power Controller */
-#define BCHP_AON_CTRL_PM_IRQ_INPUT_STATUS        0x2041000c /* [RO] Power Management IRQ input status */
-#define BCHP_AON_CTRL_PM_CPU_WAIT_COUNT          0x20410010 /* [RW] Power Management Wait counter in place of Wait for Host CPU IRQ */
-#define BCHP_AON_CTRL_PM_CPU_GUARDBAND_TIMER     0x20410014 /* [RW] Power Good Guardband Timer for Host CPU */
-#define BCHP_AON_CTRL_PM_S3_STANDBY_TIMER        0x20410018 /* [RW] Deep Standby Assertion Timer */
-#define BCHP_AON_CTRL_PM_S3_WAKEUP_TIMER         0x2041001c /* [RW] Deep Standby Wakeup Timer */
-#define BCHP_AON_CTRL_PM_FAST_PWRDN_PRECHARGE    0x20410020 /* [RW] Control register for Power Controller */
-#define BCHP_AON_CTRL_PM_LED_CTRL                0x20410024 /* [RW] LED set control register */
-#define BCHP_AON_CTRL_PM_LED_AUTO_ON_ENABLES     0x20410028 /* [RW] LED set control register */
-#define BCHP_AON_CTRL_HLCD_CTRL                  0x20410030 /* [RW] HW LED Clock Driver Control */
-#define BCHP_AON_CTRL_SECOND_FRACTION_COUNTER    0x20410034 /* [RW] Second Fraction Counter Initial value */
-#define BCHP_AON_CTRL_TIME_COUNTER               0x20410038 /* [RW] Hour/Minute Counter Initial value */
-#define BCHP_AON_CTRL_LED_DIGIT_CODE_0           0x2041003c /* [RW] Digit Code for digit 0, 1, 2, 3 */
-#define BCHP_AON_CTRL_LED_DIGIT_CODE_1           0x20410040 /* [RW] Digit Code for digit 4, 5, 6, 7 */
-#define BCHP_AON_CTRL_LED_DIGIT_CODE_2           0x20410044 /* [RW] Digit Code for digit 8, 9 */
-#define BCHP_AON_CTRL_LED_DIGIT_ADDR_OFFSET      0x20410048 /* [RW] Hour MSD/LSD and minute MSD/LSD address offset */
-#define BCHP_AON_CTRL_LED_STATUS_CTRL            0x2041004c /* [RW] LED status control */
-#define BCHP_AON_CTRL_GENERAL_CTRL_0             0x20410050 /* [RW] General control register 0 */
-#define BCHP_AON_CTRL_GENERAL_STATUS_0           0x20410054 /* [RO] General status register 0 */
-#define BCHP_AON_CTRL_GENERAL_CTRL_NO_SCAN_0     0x20410058 /* [RW] General control register without scan 0 */
-#define BCHP_AON_CTRL_SPARE_CTRL_0               0x20410060 /* [RW] Spare control bits reserved for future use */
-#define BCHP_AON_CTRL_SPARE_CTRL_1               0x20410064 /* [RW] Spare control bits reserved for future use */
-#define BCHP_AON_CTRL_UNCLEARED_SCRATCH          0x20410068 /* [RW] Scratch register */
-#define BCHP_AON_CTRL_RESET_HISTORY              0x2041006c /* [RO] Reset History Register For AON */
-#define BCHP_AON_CTRL_NMI_CTRL                   0x20410070 /* [RW] Control register for NMI */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL           0x20410074 /* [RW] Ana xtal gisb control */
-#define BCHP_AON_CTRL_SUB_TEST_MODE_CTRL         0x20410078 /* [RW] Test_mode control register */
-#define BCHP_AON_CTRL_SUB_TEST_MODE              0x2041007c /* [RW] Register source for sub_test_mode */
-#define BCHP_AON_CTRL_LATCHED_TEST_MODE          0x20410080 /* [RO] Final latched testmode value */
-#define BCHP_AON_CTRL_LATCHED_SUB_TEST_MODE      0x20410084 /* [RO] Final latched sub-testmode value */
-#define BCHP_AON_CTRL_PM_INITIATE                0x20410088 /* [RW] Power down initiate */
-#define BCHP_AON_CTRL_HOST_MISC_CMDS             0x2041008c /* [RW] Power up restore */
-#define BCHP_AON_CTRL_ANA_XTAL_EXT_CML_CONTROL   0x20410090 /* [RW] Ana xtal external CML control */
-#define BCHP_AON_CTRL_PM_DRAM_READY_STATUS_MASK  0x20410094 /* [RW] DRAM Ready status mask control */
+#define BCHP_AON_CTRL_RESET_CTRL                 0x20410000 /* [RW][32] Reset Control register for AON */
+#define BCHP_AON_CTRL_PM_CTRL                    0x20410004 /* [RW][32] Control register for Power Controller */
+#define BCHP_AON_CTRL_PM_STATUS                  0x20410008 /* [RO][32] Status register for Power Controller */
+#define BCHP_AON_CTRL_PM_IRQ_INPUT_STATUS        0x2041000c /* [RO][32] Power Management IRQ input status */
+#define BCHP_AON_CTRL_PM_CPU_WAIT_COUNT          0x20410010 /* [RW][32] Power Management Wait counter in place of Wait for Host CPU IRQ */
+#define BCHP_AON_CTRL_PM_CPU_GUARDBAND_TIMER     0x20410014 /* [RW][32] Power Good Guardband Timer for Host CPU */
+#define BCHP_AON_CTRL_PM_S3_STANDBY_TIMER        0x20410018 /* [RW][32] Deep Standby Assertion Timer */
+#define BCHP_AON_CTRL_PM_S3_WAKEUP_TIMER         0x2041001c /* [RW][32] Deep Standby Wakeup Timer */
+#define BCHP_AON_CTRL_PM_FAST_PWRDN_PRECHARGE    0x20410020 /* [RW][32] Control register for Power Controller */
+#define BCHP_AON_CTRL_PM_LED_CTRL                0x20410024 /* [RW][32] LED set control register */
+#define BCHP_AON_CTRL_PM_LED_AUTO_ON_ENABLES     0x20410028 /* [RW][32] LED set control register */
+#define BCHP_AON_CTRL_HLCD_CTRL                  0x20410030 /* [RW][32] HW LED Clock Driver Control */
+#define BCHP_AON_CTRL_SECOND_FRACTION_COUNTER    0x20410034 /* [RW][32] Second Fraction Counter Initial value */
+#define BCHP_AON_CTRL_TIME_COUNTER               0x20410038 /* [RW][32] Hour/Minute Counter Initial value */
+#define BCHP_AON_CTRL_LED_DIGIT_CODE_0           0x2041003c /* [RW][32] Digit Code for digit 0, 1, 2, 3 */
+#define BCHP_AON_CTRL_LED_DIGIT_CODE_1           0x20410040 /* [RW][32] Digit Code for digit 4, 5, 6, 7 */
+#define BCHP_AON_CTRL_LED_DIGIT_CODE_2           0x20410044 /* [RW][32] Digit Code for digit 8, 9 */
+#define BCHP_AON_CTRL_LED_DIGIT_ADDR_OFFSET      0x20410048 /* [RW][32] Hour MSD/LSD and minute MSD/LSD address offset */
+#define BCHP_AON_CTRL_LED_STATUS_CTRL            0x2041004c /* [RW][32] LED status control */
+#define BCHP_AON_CTRL_GENERAL_CTRL_0             0x20410050 /* [RW][32] General control register 0 */
+#define BCHP_AON_CTRL_GENERAL_STATUS_0           0x20410054 /* [RO][32] General status register 0 */
+#define BCHP_AON_CTRL_GENERAL_CTRL_NO_SCAN_0     0x20410058 /* [RW][32] General control register without scan 0 */
+#define BCHP_AON_CTRL_SPARE_CTRL_0               0x20410060 /* [RW][32] Spare control bits reserved for future use */
+#define BCHP_AON_CTRL_SPARE_CTRL_1               0x20410064 /* [RW][32] Spare control bits reserved for future use */
+#define BCHP_AON_CTRL_UNCLEARED_SCRATCH          0x20410068 /* [RW][32] Scratch register */
+#define BCHP_AON_CTRL_RESET_HISTORY              0x2041006c /* [RO][32] Reset History Register For AON */
+#define BCHP_AON_CTRL_NMI_CTRL                   0x20410070 /* [RW][32] Control register for NMI */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL           0x20410074 /* [RW][32] Ana xtal gisb control */
+#define BCHP_AON_CTRL_SUB_TEST_MODE_CTRL         0x20410078 /* [RW][32] Test_mode control register */
+#define BCHP_AON_CTRL_SUB_TEST_MODE              0x2041007c /* [RW][32] Register source for sub_test_mode */
+#define BCHP_AON_CTRL_LATCHED_TEST_MODE          0x20410080 /* [RO][32] Final latched testmode value */
+#define BCHP_AON_CTRL_LATCHED_SUB_TEST_MODE      0x20410084 /* [RO][32] Final latched sub-testmode value */
+#define BCHP_AON_CTRL_PM_INITIATE                0x20410088 /* [RW][32] Power down initiate */
+#define BCHP_AON_CTRL_HOST_MISC_CMDS             0x2041008c /* [RW][32] Power up restore */
+#define BCHP_AON_CTRL_ANA_XTAL_EXT_CML_CONTROL   0x20410090 /* [RW][32] Ana xtal external CML control */
+#define BCHP_AON_CTRL_PM_DRAM_READY_STATUS_MASK  0x20410094 /* [RW][32] DRAM Ready status mask control */
 
 /***************************************************************************
  *RESET_CTRL - Reset Control register for AON
@@ -753,7 +753,7 @@
 /* AON_CTRL :: GENERAL_CTRL_0 :: pad_open_drain [00:00] */
 #define BCHP_AON_CTRL_GENERAL_CTRL_0_pad_open_drain_MASK           0x00000001
 #define BCHP_AON_CTRL_GENERAL_CTRL_0_pad_open_drain_SHIFT          0
-#define BCHP_AON_CTRL_GENERAL_CTRL_0_pad_open_drain_DEFAULT        0x00000000
+#define BCHP_AON_CTRL_GENERAL_CTRL_0_pad_open_drain_DEFAULT        0x00000001
 
 /***************************************************************************
  *GENERAL_STATUS_0 - General status register 0
@@ -1471,25 +1471,25 @@
 #define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bus_en_osc_cml_in_s3_DEFAULT 0x00000000
 
 /* union - case bit_blast [15:12] */
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_pcie0 [15:15] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_pcie0_MASK 0x00008000
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_pcie0_SHIFT 15
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_pcie0_DEFAULT 0x00000000
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_spare3 [15:15] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare3_MASK 0x00008000
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare3_SHIFT 15
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare3_DEFAULT 0x00000000
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_mocaphy [14:14] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_mocaphy_MASK 0x00004000
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_mocaphy_SHIFT 14
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_mocaphy_DEFAULT 0x00000000
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_spare2 [14:14] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare2_MASK 0x00004000
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare2_SHIFT 14
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_spare2_DEFAULT 0x00000000
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_usb0 [13:13] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_MASK 0x00002000
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_SHIFT 13
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_DEFAULT 0x00000000
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_usb0_sata_pcie [13:13] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_sata_pcie_MASK 0x00002000
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_sata_pcie_SHIFT 13
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_usb0_sata_pcie_DEFAULT 0x00000000
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_sata_pcie1 [12:12] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_sata_pcie1_MASK 0x00001000
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_sata_pcie1_SHIFT 12
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_sata_pcie1_DEFAULT 0x00000000
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: en_osc_cml_in_s3_dvpmht [12:12] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_dvpmht_MASK 0x00001000
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_dvpmht_SHIFT 12
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_en_osc_cml_in_s3_dvpmht_DEFAULT 0x00000000
 
 /* AON_CTRL :: ANA_XTAL_CONTROL :: osc_ldo_ctrl [11:08] */
 #define BCHP_AON_CTRL_ANA_XTAL_CONTROL_osc_ldo_ctrl_MASK           0x00000f00
@@ -1508,25 +1508,25 @@
 #define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bus_osc_cml_sel_en_DEFAULT  0x0000000f
 
 /* union - case bit_blast [06:03] */
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_pcie0 [06:06] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_pcie0_MASK 0x00000040
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_pcie0_SHIFT 6
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_pcie0_DEFAULT 0x00000001
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_spare3 [06:06] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare3_MASK 0x00000040
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare3_SHIFT 6
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare3_DEFAULT 0x00000001
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_mocaphy [05:05] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_mocaphy_MASK 0x00000020
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_mocaphy_SHIFT 5
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_mocaphy_DEFAULT 0x00000001
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_spare2 [05:05] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare2_MASK 0x00000020
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare2_SHIFT 5
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_spare2_DEFAULT 0x00000001
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_usb0 [04:04] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_MASK 0x00000010
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_SHIFT 4
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_DEFAULT 0x00000001
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_usb0_sata_pcie [04:04] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_sata_pcie_MASK 0x00000010
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_sata_pcie_SHIFT 4
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_usb0_sata_pcie_DEFAULT 0x00000001
 
-/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_sata_pcie1 [03:03] */
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_sata_pcie1_MASK 0x00000008
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_sata_pcie1_SHIFT 3
-#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_sata_pcie1_DEFAULT 0x00000001
+/* AON_CTRL :: ANA_XTAL_CONTROL :: bit_blast :: osc_cml_sel_en_dvpmht [03:03] */
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_dvpmht_MASK 0x00000008
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_dvpmht_SHIFT 3
+#define BCHP_AON_CTRL_ANA_XTAL_CONTROL_bit_blast_osc_cml_sel_en_dvpmht_DEFAULT 0x00000001
 
 /* AON_CTRL :: ANA_XTAL_CONTROL :: osc_d2cbias_gisb_control [02:00] */
 #define BCHP_AON_CTRL_ANA_XTAL_CONTROL_osc_d2cbias_gisb_control_MASK 0x00000007

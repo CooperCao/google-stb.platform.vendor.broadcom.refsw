@@ -79,21 +79,6 @@
 #endif
  };
 
- static const  BINT_Id ui32DSPAckInterruptId[] =
- {
-#if defined BCHP_INT_ID_HOST_MSG
-         BCHP_INT_ID_HOST_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    , BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
-#endif
-#else
-     BCHP_INT_ID_RAAGA_DSP_FW_INTH_HOST_MSG
-#if defined BCHP_RAAGA_DSP_INTH_1_REG_START
-    , BCHP_INT_ID_RAAGA_DSP_FW_INTH_1_HOST_MSG
-#endif
-#endif
- };
-
 static const  BINT_Id ui32DSPWatchDogInterruptId[] =
 {
 #if defined BCHP_INT_ID_WATCHDOG_TIMER_ATTN

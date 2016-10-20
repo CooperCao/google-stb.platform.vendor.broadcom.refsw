@@ -1,0 +1,87 @@
+<!-----------------------------------------------------------------------------
+* Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+*
+* This program is the proprietary software of Broadcom and/or its
+* licensors, and may only be used, duplicated, modified or distributed pursuant
+* to the terms and conditions of a separate, written license agreement executed
+* between you and Broadcom (an "Authorized License").  Except as set forth in
+* an Authorized License, Broadcom grants no license (express or implied), right
+* to use, or waiver of any kind with respect to the Software, and Broadcom
+* expressly reserves all rights in and to the Software and all intellectual
+* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+*
+* Except as expressly set forth in the Authorized License,
+*
+* 1. This program, including its structure, sequence and organization,
+*    constitutes the valuable trade secrets of Broadcom, and you shall use all
+*    reasonable efforts to protect the confidentiality thereof, and to use
+*    this information only in connection with your use of Broadcom integrated
+*    circuit products.
+*
+* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
+*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
+*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
+*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
+*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
+*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+*
+* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
+*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
+*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
+*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
+*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
+*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
+*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
+------------------------------------------------------------------------------>
+<html><head><title>Broadcom STB Web Applications</title><script  type="text/javascript" src="bconsole.js" ></script></head>
+<body lang=EN-US onload="MyLoad();" onbeforeunload="return MyBeforeUnload();" >
+
+<table border=0 style="border-collapse:collapse;" >
+    <tr><td width=220 ><img src="brcm-logo-white.jpg" width="200" id="brcmlogo" onclick="MyClick(event);" /></td>
+        <td valign=middle style="font-size:28pt;" ><b id=h1bconsole onclick="MyClick(event);" >Bconsole Tool</b></td>
+        <td valign=middle style="width:50px;" >&nbsp;</td> <!-- spacer -->
+        <td >Platform: <span id=platform >xxxxx</span>&nbsp;<span id=platver>YY</span><br><span id=stbtime valign=middle ></span></td>
+        <td id=cgicount valign=middle ></td>
+    </tr>
+</table>
+<hr>
+<table cols=2 border=0 id=overalltable style="border-collapse:collapse;" > <!-- this outer table is used to hide big sections when checkbox is not checked -->
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_checkboxes style="visibility:display;" >
+    <th align=left valign=top id=CHECKBOXES colspan=2 >
+      <table style="border-collapse:collapse;" >
+        <tr>
+            <td width=150 >
+              <table border=0 style="border-collapse:collapse;" >
+                <tr>
+                  <td><input type=checkbox id=checkboxconsole onclick="MyClick(event);" ></td><td><div id=ConsoleTag >Console</div></td>
+                </tr>
+              </table>
+            </td>
+        </tr>
+     </table>
+    </th>
+</tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+<tr id=row_console style="visibility:display;" ><th align=left valign=top id=th_ttyConsole colspan=2 >
+    <table style="border-collapse:collapse;" >
+      <tr><td><textarea id=text_ttyConsole border=1 rows=20 cols=180 readonly style="visibility:display;font-family:Courier New;font-weight:bold;font-size:10pt;" ></textarea></td></tr>
+      <tr><td><input id=input_ttyConsole size=155 onchange="MyClick(event);" onkeydown="MyKeyDown(event);" placeholder="Enter root to login. Enter exit to terminate connection." style="font-size:16px;font-family:'Lucida';" ></td></tr>
+    </table>
+</th></tr>
+
+<!---------------------------------------------------------------------------------------------------------------------------------------------------------------->
+
+</table>
+
+<textarea id=debugoutputbox border=1 rows=20 cols=180 readonly style="visibility:hidden;font-family:Courier New;font-weight:bold;font-size:10pt;" ></textarea>
+</body>
+</html>

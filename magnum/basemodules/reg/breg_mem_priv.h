@@ -40,10 +40,12 @@
 #define BREG_MEM_PRIV_H
 #include "bchp_common.h"
 
+#define BREG_P_Write64(RegHandle, reg, data) (*((volatile uint64_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF))))=data)
 #define BREG_P_Write32(RegHandle, reg, data) (*((volatile uint32_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF))))=data)
 #define BREG_P_Write16(RegHandle, reg, data) (*((volatile uint16_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF))))=data)
 #define BREG_P_Write8(RegHandle, reg, data) (*((volatile uint8_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF))))=data)
 
+#define BREG_P_Read64(RegHandle, reg) (*((volatile uint64_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF)))))
 #define BREG_P_Read32(RegHandle, reg) (*((volatile uint32_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF)))))
 #define BREG_P_Read16(RegHandle, reg) (*((volatile uint16_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF)))))
 #define BREG_P_Read8(RegHandle, reg) (*((volatile uint8_t *)((uintptr_t)((RegHandle)->BaseAddr)+((reg)-(BCHP_REGISTER_START & ~0xFFF)))))

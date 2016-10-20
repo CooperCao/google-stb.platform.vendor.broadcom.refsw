@@ -30,26 +30,26 @@ static GLXX_UNIFORM_MAP_T *format_uniform_map(uint32_t *uniform_map,
    return our_uniform_map;
 }
 
-static void write_cv_shader_data(GLXX_LINK_RESULT_DATA_T  *data,
-                                 int c_shader_varys,
-                                 const BINARY_PROGRAM_T   *prog)
-{
-   bool c_point_size = prog->vstages[SHADER_VERTEX][MODE_BIN   ]->u.vertex.has_point_size;
-   bool v_point_size = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size;
-   assert((c_point_size && v_point_size) || (!c_point_size && !v_point_size));
-   bool point_size_included = c_point_size;
-   if(point_size_included)
-      data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
+static bool prog_has_vstage(const BINARY_PROGRAM_T *p, ShaderFlavour f) {
+   assert( ( p->vstages[f][MODE_RENDER] &&  p->vstages[f][MODE_BIN]) ||
+           (!p->vstages[f][MODE_RENDER] && !p->vstages[f][MODE_BIN])   );
+   return p->vstages[f][MODE_RENDER] != NULL;
+}
 
+static void write_vertex_shader_data(GLXX_LINK_RESULT_DATA_T  *data,
+                                     const BINARY_PROGRAM_T   *prog,
+                                     int bin_mode_varys,
+                                     bool point_size_included)
+{
    for (unsigned m = 0; m != MODE_COUNT; ++m)
    {
-      unsigned inputs = prog->vstages[SHADER_VERTEX][m]->u.vertex.reads_total;
-      unsigned outputs = point_size_included + (m == MODE_BIN ? 6 + c_shader_varys : 4 + data->num_varys);
+      unsigned inputs = prog->vstages[SHADER_VERTEX][m]->u.vertex.input_words;
+      unsigned outputs = point_size_included + (m == MODE_BIN ? 6 + bin_mode_varys : 4 + data->num_varys);
 
       // Use separate IO blocks for TNG.
      #if GLXX_HAS_TNG
-      if (  prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER] == NULL
-         && prog->vstages[SHADER_GEOMETRY][MODE_RENDER] == NULL   )
+      if ( !prog_has_vstage(prog, SHADER_TESS_EVALUATION) &&
+           !prog_has_vstage(prog, SHADER_GEOMETRY)          )
      #endif
       {
          outputs = gfx_umax(inputs, outputs);
@@ -86,13 +86,18 @@ static bool write_common_data(GLXX_SHADER_DATA_T    *data,
 
 static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
                                    const IR_PROGRAM_T       *ir,
-                                   const BINARY_PROGRAM_T   *prog,
-                                   bool                      z_prepass)
+                                   const BINARY_PROGRAM_T   *prog)
 {
    memset(data, 0, sizeof(*data));
 
+#if GLXX_HAS_TNG
+   data->has_geom = prog_has_vstage(prog, SHADER_GEOMETRY);
+   data->has_tess = prog_has_vstage(prog, SHADER_TESS_CONTROL);
+   uint8_t has_tesse = prog_has_vstage(prog, SHADER_TESS_EVALUATION);
+   assert((data->has_tess ^ has_tesse) == 0);
+#endif
+
    /* Convert all the common data to the format expected by the driver */
-   bool uses_control_flow[MODE_COUNT] = { false,  };
    for (unsigned m = 0; m != MODE_COUNT; ++m)
    {
       // Map from vertex pipe stages to GLSL shader flavours.
@@ -108,36 +113,36 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
 
       for (unsigned s = 0; s != GLXX_SHADER_VPS_COUNT; ++s)
       {
-         BINARY_SHADER_T* bs = prog->vstages[flavours[s]][m];
+         BINARY_SHADER_T *bs = prog->vstages[flavours[s]][m];
          if (bs != NULL)
-         {
             if (!write_common_data(&data->vps[s][m], bs))
                return false;
-            uses_control_flow[m] |= bs->uses_control_flow;
-         }
       }
    }
 
    if (!write_common_data(&data->fs, prog->fshader))
       return false;
-   uses_control_flow[MODE_RENDER] |= prog->fshader->uses_control_flow;
 
-   // Bin-mode shaders runs during render-mode if z-prepass is enabled.
-   uses_control_flow[MODE_RENDER] |= (uses_control_flow[MODE_BIN] & z_prepass);
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+   bool uses_control_flow[MODE_COUNT] = { false,  };
+   for (unsigned m = 0; m < MODE_COUNT; m++) {
+      for (unsigned s = 0; s < SHADER_FRAGMENT; s++) {
+         if (prog->vstages[s][m])
+            uses_control_flow[m] |= prog->vstages[s][m]->uses_control_flow;
+      }
+   }
+   uses_control_flow[MODE_RENDER] |= prog->fshader->uses_control_flow;
 
    data->bin_uses_control_flow = uses_control_flow[MODE_BIN];
    data->render_uses_control_flow = uses_control_flow[MODE_RENDER];
+#endif
 
    assert(prog->vary_map.n <= GLXX_CONFIG_MAX_VARYING_SCALARS);
    data->num_varys = prog->vary_map.n;
    for (unsigned i = 0; i != prog->vary_map.n; ++i)
-   {
       data->vary_map[i] = prog->vary_map.entries[i];
-   }
 
-   /* Write out the LINK_RESULT_DATA based on the fshader compiler output */
-   data->flags = GLXX_SHADER_FLAGS_ENABLE_CLIPPING; /* write_cv_shader_data may add more */
-
+   /* Fill in the LINK_RESULT_DATA based on the fshader compiler output */
    if (prog->fshader->u.fragment.writes_z)
       data->flags |= GLXX_SHADER_FLAGS_FS_WRITES_Z;
 
@@ -150,10 +155,20 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
    if (ir->varyings_per_sample || prog->fshader->u.fragment.per_sample)
       data->flags |= GLXX_SHADER_FLAGS_PER_SAMPLE;
 
-   if (prog->vstages[SHADER_VERTEX][MODE_RENDER])
+   if (prog->fshader->u.fragment.reads_prim_id && !prog_has_vstage(prog, SHADER_GEOMETRY))
+      data->flags |= (GLXX_SHADER_FLAGS_PRIM_ID_USED | GLXX_SHADER_FLAGS_PRIM_ID_TO_FS);
+
+
+   /* Now fill in from any vertex pipeline stages that are present */
+   bool point_size_included = false;
+
+   if (prog_has_vstage(prog, SHADER_VERTEX))
    {
-      /* Now do the same for the coordinate and vertex shaders */
-      write_cv_shader_data(data, ir->tf_vary_map.n, prog);
+      if (!prog_has_vstage(prog, SHADER_TESS_EVALUATION) && !prog_has_vstage(prog, SHADER_GEOMETRY))
+         point_size_included = prog->vstages[SHADER_VERTEX][MODE_RENDER]->u.vertex.has_point_size;
+
+      /* Rely on the fact that if this isn't the last stage then point_size_included is still false */
+      write_vertex_shader_data(data, prog, ir->tf_vary_map.n, point_size_included);
 
       data->attr_count = 0;
       for (int i = 0; i < GLXX_CONFIG_MAX_VERTEX_ATTRIBS; i++) {
@@ -181,68 +196,84 @@ static bool write_link_result_data(GLXX_LINK_RESULT_DATA_T  *data,
       }
    }
 
-   #if GLXX_HAS_TNG
+#if GLXX_HAS_TNG
+   if (prog_has_vstage(prog, SHADER_TESS_CONTROL))
    {
-      if (prog->vstages[SHADER_TESS_CONTROL][MODE_RENDER] != NULL)
+      assert(prog_has_vstage(prog, SHADER_TESS_EVALUATION));
+
+      if (!prog_has_vstage(prog, SHADER_GEOMETRY))
+         point_size_included = prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER]->u.tess_e.has_point_size;
+
+      if (prog->vstages[SHADER_TESS_CONTROL   ][MODE_RENDER]->u.tess_c.prim_id_used ||
+          prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER]->u.tess_e.prim_id_used )
       {
-         assert(prog->vstages[SHADER_TESS_CONTROL][MODE_BIN] != NULL);
-         assert(prog->vstages[SHADER_TESS_EVALUATION][MODE_RENDER] != NULL);
-         assert(prog->vstages[SHADER_TESS_EVALUATION][MODE_BIN] != NULL);
-
-         data->tcs_output_vertices_per_patch = ir->tess_vertices;
-
-         v3d_cl_tess_type_t tess_type;
-         switch (ir->tess_mode)
-         {
-         case TESS_ISOLINES:  tess_type = V3D_CL_TESS_TYPE_ISOLINES; break;
-         case TESS_TRIANGLES: tess_type = V3D_CL_TESS_TYPE_TRIANGLE; break;
-         case TESS_QUADS:     tess_type = V3D_CL_TESS_TYPE_QUAD;     break;
-         default: unreachable();
-         }
-
-         v3d_cl_tess_edge_spacing_t tess_spacing;
-         switch (ir->tess_spacing)
-         {
-         case TESS_SPACING_EQUAL:      tess_spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;           break;
-         case TESS_SPACING_FRACT_EVEN: tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN; break;
-         case TESS_SPACING_FRACT_ODD:  tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD;  break;
-         default: unreachable();
-         }
-
-         data->tess_type = tess_type;
-         data->tess_edge_spacing = tess_spacing;
-         data->tess_point_mode = ir->tess_point_mode;
-         data->tess_clockwise = ir->tess_cw;
-
-         for (unsigned m = 0; m != MODE_COUNT; ++m)
-         {
-            // todo: actual value rather than maximum
-            data->tcs_output_words_per_patch[m] = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS;
-            data->tcs_output_words[m] = GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
-            data->tes_output_words[m] = GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS;
-         }
+         data->flags |= GLXX_SHADER_FLAGS_PRIM_ID_USED;
       }
 
-      if (prog->vstages[SHADER_GEOMETRY][MODE_RENDER] != NULL)
+      if (prog->vstages[SHADER_TESS_CONTROL][MODE_BIN]->u.tess_c.barrier)
+         data->flags |= GLXX_SHADER_FLAGS_TCS_BARRIERS;
+
+      data->tcs_output_vertices_per_patch = ir->tess_vertices;
+
+      v3d_cl_tess_type_t tess_type;
+      switch (ir->tess_mode)
       {
-         assert(prog->vstages[SHADER_GEOMETRY][MODE_BIN] != NULL);
-         switch (ir->gs_out) {
-            case GS_OUT_POINTS:     data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_POINTS;         break;
-            case GS_OUT_LINE_STRIP: data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP;     break;
-            case GS_OUT_TRI_STRIP:  data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP; break;
-            default: unreachable();
-         }
+      case TESS_ISOLINES:  tess_type = V3D_CL_TESS_TYPE_ISOLINES; break;
+      case TESS_TRIANGLES: tess_type = V3D_CL_TESS_TYPE_TRIANGLE; break;
+      case TESS_QUADS:     tess_type = V3D_CL_TESS_TYPE_QUAD;     break;
+      default: unreachable();
+      }
 
-         data->geom_invocations = ir->gs_n_invocations;
+      v3d_cl_tess_edge_spacing_t tess_spacing;
+      switch (ir->tess_spacing)
+      {
+      case TESS_SPACING_EQUAL:      tess_spacing = V3D_CL_TESS_EDGE_SPACING_EQUAL;           break;
+      case TESS_SPACING_FRACT_EVEN: tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_EVEN; break;
+      case TESS_SPACING_FRACT_ODD:  tess_spacing = V3D_CL_TESS_EDGE_SPACING_FRACTIONAL_ODD;  break;
+      default: unreachable();
+      }
 
-         for (unsigned m = 0; m != MODE_COUNT; ++m)
-         {
-            // todo: actual value rather than maximum
-            data->gs_output_words[m] = GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
-         }
+      data->tess_type = tess_type;
+      data->tess_edge_spacing = tess_spacing;
+      data->tess_point_mode = ir->tess_point_mode;
+      data->tess_clockwise = ir->tess_cw;
+
+      for (unsigned m = 0; m != MODE_COUNT; ++m)
+      {
+         // todo: actual value rather than maximum
+         data->tcs_output_words_per_patch[m] = GLXX_CONFIG_MAX_TESS_PATCH_COMPONENTS;
+         data->tcs_output_words[m] = GLXX_CONFIG_MAX_TESS_CONTROL_OUTPUT_COMPONENTS;
+         data->tes_output_words[m] = GLXX_CONFIG_MAX_TESS_EVALUATION_OUTPUT_COMPONENTS;
       }
    }
-   #endif
+
+   if (prog_has_vstage(prog, SHADER_GEOMETRY))
+   {
+      point_size_included = prog->vstages[SHADER_GEOMETRY][MODE_RENDER]->u.geometry.has_point_size;
+
+      if (prog->vstages[SHADER_GEOMETRY][MODE_RENDER]->u.geometry.prim_id_used)
+         data->flags |= GLXX_SHADER_FLAGS_PRIM_ID_USED;
+
+      switch (ir->gs_out) {
+         case GS_OUT_POINTS:     data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_POINTS;         break;
+         case GS_OUT_LINE_STRIP: data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_LINE_STRIP;     break;
+         case GS_OUT_TRI_STRIP:  data->geom_prim_type = V3D_CL_GEOM_PRIM_TYPE_TRIANGLE_STRIP; break;
+         default: unreachable();
+      }
+
+      data->geom_invocations = ir->gs_n_invocations;
+
+      for (unsigned m = 0; m != MODE_COUNT; ++m)
+      {
+         // todo: actual value rather than maximum
+         data->gs_output_words[m] = GLXX_CONFIG_MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
+      }
+   }
+#endif
+
+   if(point_size_included)
+      data->flags |= GLXX_SHADER_FLAGS_POINT_SIZE_SHADED_VERTEX_DATA;
+
 
    return true;
 }
@@ -252,29 +283,21 @@ bool glxx_hw_emit_shaders(GLXX_LINK_RESULT_DATA_T      *data,
                           const GLXX_LINK_RESULT_KEY_T *key,
                           IR_PROGRAM_T                 *ir)
 {
-   BINARY_PROGRAM_T *prog;
-   bool success = false;
-
    /* Hackily randomise the centroid-ness of the varyings */
-   for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++) {
+   for (int i=0; i<V3D_MAX_VARYING_COMPONENTS; i++)
       if (!ir->varying[i].flat && khrn_options_make_centroid()) ir->varying[i].centroid = true;
-   }
 
-   prog = glsl_binary_program_from_dataflow(ir, key);
-   if(!prog) {
-      goto cleanup;
-   }
+   BINARY_PROGRAM_T *prog = glsl_binary_program_from_dataflow(ir, key);
+   if(!prog) return false;
 
-   if(!write_link_result_data(data, ir, prog, (key->backend & GLXX_Z_ONLY_WRITE))) {
+   bool success = false;
+   if(!write_link_result_data(data, ir, prog))
       glxx_hw_cleanup_shaders(data);
-      goto cleanup;
-   }
+   else
+      success = true;
 
-   success = true;
-
- cleanup:
    /* Everything in the binary gets copied away into internal driver datastructures,
-      and the binary itself can be freed */
+      and the binary itself can be freed whether we succeed or not */
    glsl_binary_program_free(prog);
 
    return success;

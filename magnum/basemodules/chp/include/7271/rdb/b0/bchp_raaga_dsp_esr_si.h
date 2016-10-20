@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,12 +70,12 @@
 /***************************************************************************
  *RAAGA_DSP_ESR_SI - Raaga DSP Interrupts Status Register (Soft Interrupts to DSP)
  ***************************************************************************/
-#define BCHP_RAAGA_DSP_ESR_SI_INT_STATUS         0x20c22000 /* [RO] DSP Core Interrupt Status Register */
-#define BCHP_RAAGA_DSP_ESR_SI_INT_SET            0x20c22004 /* [WO] DSP Core Interrupt Set Register */
-#define BCHP_RAAGA_DSP_ESR_SI_INT_CLEAR          0x20c22008 /* [WO] DSP Core Interrupt Clear Register */
-#define BCHP_RAAGA_DSP_ESR_SI_MASK_STATUS        0x20c2200c /* [RO] DSP Core Interrupt Mask Status Register */
-#define BCHP_RAAGA_DSP_ESR_SI_MASK_SET           0x20c22010 /* [WO] DSP Core Interrupt Mask Set Register */
-#define BCHP_RAAGA_DSP_ESR_SI_MASK_CLEAR         0x20c22014 /* [WO] DSP Core Interrupt Mask Clear Register */
+#define BCHP_RAAGA_DSP_ESR_SI_INT_STATUS         0x20c22000 /* [RO][32] DSP Core Interrupt Status Register */
+#define BCHP_RAAGA_DSP_ESR_SI_INT_SET            0x20c22004 /* [WO][32] DSP Core Interrupt Set Register */
+#define BCHP_RAAGA_DSP_ESR_SI_INT_CLEAR          0x20c22008 /* [WO][32] DSP Core Interrupt Clear Register */
+#define BCHP_RAAGA_DSP_ESR_SI_MASK_STATUS        0x20c2200c /* [RO][32] DSP Core Interrupt Mask Status Register */
+#define BCHP_RAAGA_DSP_ESR_SI_MASK_SET           0x20c22010 /* [WO][32] DSP Core Interrupt Mask Set Register */
+#define BCHP_RAAGA_DSP_ESR_SI_MASK_CLEAR         0x20c22014 /* [WO][32] DSP Core Interrupt Mask Clear Register */
 
 /***************************************************************************
  *INT_STATUS - DSP Core Interrupt Status Register

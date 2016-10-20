@@ -51,41 +51,40 @@
  * B_VIRTUAL_IRQ_INC_L1(L1) - increments the interrupt count of a given L1 interrupt
  * B_VIRTUAL_IRQ_WAKE_L1_LISTENERS() - wakes up any listeners waiting for L1 to fire
  */
-static int g_brcm_irq0_verbose = 0; /* bool */
+#include "b_os_irq.h"
+static bool g_brcm_virq_verbose = false;
 
-struct b_virtual_irq_line_state {
+struct b_virtual_irq_line_desc {
+    struct b_os_irq_desc base;
     b_virtual_irq_line line;
-    unsigned linux_irq;
     unsigned group_id; /* 0 - means invalid */
-    int requested; /* bool */
-    int disabled; /* bool */
-    int linux_enabled; /* bool */
-    int fired; /* bool */
+    bool disabled;
+    bool fired;
 };
 
 static const struct b_virtual_irq_name_map_entry {
     b_virtual_irq_line irq_line;
     char name[5];
 } g_virtual_irq_name_map[] = {
-    {b_virtual_irq_line_iica, "iica"},
-    {b_virtual_irq_line_iicb, "iicb"},
-    {b_virtual_irq_line_iicc, "iicc"},
-    {b_virtual_irq_line_iicd, "iicd"},
-    {b_virtual_irq_line_iice, "iice"},
-    {b_virtual_irq_line_iicf, "iicf"},
-    {b_virtual_irq_line_iicg, "iicg"},
-    {b_virtual_irq_line_gio,  "gio"},
+    {b_virtual_irq_line_iica,     "iica"},
+    {b_virtual_irq_line_iicb,     "iicb"},
+    {b_virtual_irq_line_iicc,     "iicc"},
+    {b_virtual_irq_line_iicd,     "iicd"},
+    {b_virtual_irq_line_iice,     "iice"},
+    {b_virtual_irq_line_iicf,     "iicf"},
+    {b_virtual_irq_line_iicg,     "iicg"},
+    {b_virtual_irq_line_gio,      "gio"},
     {b_virtual_irq_line_gio_aon,  "gioa"},
-    {b_virtual_irq_line_irb,  "irb"},
-    {b_virtual_irq_line_icap, "icap"},
-    {b_virtual_irq_line_kbd1, "kbd1"},
-    {b_virtual_irq_line_kbd2, "kbd2"},
-    {b_virtual_irq_line_kbd3, "kbd3"},
-    {b_virtual_irq_line_ldk,  "ldk"},
-    {b_virtual_irq_line_spi,  "spi"},
-    {b_virtual_irq_line_ua,   "ua"},
-    {b_virtual_irq_line_ub,   "ub"},
-    {b_virtual_irq_line_uc,   "uc"}
+    {b_virtual_irq_line_irb,      "irb"},
+    {b_virtual_irq_line_icap,     "icap"},
+    {b_virtual_irq_line_kbd1,     "kbd1"},
+    {b_virtual_irq_line_kbd2,     "kbd2"},
+    {b_virtual_irq_line_kbd3,     "kbd3"},
+    {b_virtual_irq_line_ldk,      "ldk"},
+    {b_virtual_irq_line_spi,      "spi"},
+    {b_virtual_irq_line_ua,       "ua"},
+    {b_virtual_irq_line_ub,       "ub"},
+    {b_virtual_irq_line_uc,       "uc"}
 };
 
 static const char * b_virtual_irq_get_name(b_virtual_irq_line irq_line)
@@ -143,55 +142,61 @@ static brcmstb_l2_irq b_virtual_irq_find_linux_l2_by_line(b_virtual_irq_line irq
 
     return l2;
 }
+
+#define b_virtual_irq_get_feature_support() b_virtual_irq_check_linux_managed_upg_irqs()
+
+static bool b_virtual_irq_check_linux_managed_upg_irqs(void)
+{
+    int linux_irq = 0;
+    /* if iica isn't supported by linux, nothing else can be */
+    linux_irq = brcmstb_get_l2_irq_id(brcmstb_l2_irq_iica);
+    PINFO("virtual irq: %s (%d)\n", linux_irq <= 0 ? "disabled" : "enabled", linux_irq);
+    return (linux_irq <= 0) ? false : true;
+}
+#else
+#define b_virtual_irq_get_feature_support() false
 #endif /* B_VIRTUAL_IRQ_OS_SUPPORT */
 
 static struct b_virtual_irq_state
 {
     b_virtual_irq_capabilities caps;
-    struct b_virtual_irq_line_state irqs[b_virtual_irq_line_max];
-    int initialized; /* bool */
+    struct b_virtual_irq_line_desc lines[b_virtual_irq_line_max];
+    bool initialized;
 } g_virtual_irq_state;
 
 int b_virtual_irq_open_submodule(void)
 {
-    if (g_brcm_irq0_verbose) PINFO("virtual irq open submodule\n");
-
+    if (g_brcm_virq_verbose) PINFO("virtual irq open submodule\n");
     return 0;
 }
 
 void b_virtual_irq_close_submodule(void)
 {
     unsigned i = 0;
+    struct b_virtual_irq_line_desc * desc;
 
-    if (g_brcm_irq0_verbose) PINFO("virtual irq close submodule\n");
+    if (g_brcm_virq_verbose) PINFO("virtual irq close submodule\n");
 
-    for (i = 0; i < sizeof(g_virtual_irq_state.irqs)/sizeof(g_virtual_irq_state.irqs[0]); i++) {
-        if (g_virtual_irq_state.irqs[i].requested) {
-            if (g_brcm_irq0_verbose) PINFO("Freeing %s virtual irq (linux %d)\n", b_virtual_irq_get_name(i), g_virtual_irq_state.irqs[i].linux_irq);
-            g_virtual_irq_state.irqs[i].requested = 0;
-            free_irq(g_virtual_irq_state.irqs[i].linux_irq, (void*)&g_virtual_irq_state.irqs[i]);
-        }
+    for (i = 0; i < sizeof(g_virtual_irq_state.lines)/sizeof(g_virtual_irq_state.lines[0]); i++) {
+        desc = &g_virtual_irq_state.lines[i];
+        b_os_irq_uninit_tagged(&desc->base, "virq close", __LINE__);
     }
 }
 
 void b_virtual_irq_init_submodule(void)
 {
-    if (g_brcm_irq0_verbose) PINFO("virtual irq init submodule\n");
+    if (g_brcm_virq_verbose) PINFO("virtual irq init submodule\n");
 
     memset(&g_virtual_irq_state, 0, sizeof(g_virtual_irq_state));
-#if B_VIRTUAL_IRQ_OS_SUPPORT
-    g_virtual_irq_state.caps.feature_supported = 1;
-#else
-    g_virtual_irq_state.caps.feature_supported = 0;
-#endif
-    g_virtual_irq_state.initialized = 1;
+    g_virtual_irq_state.caps.feature_supported = b_virtual_irq_get_feature_support();
+    g_virtual_irq_state.initialized = true;
 }
 
 void b_virtual_irq_uninit_submodule(void)
 {
-    if (g_brcm_irq0_verbose) PINFO("virtual irq uninit submodule\n");
+    if (g_brcm_virq_verbose) PINFO("virtual irq uninit submodule\n");
     b_virtual_irq_close_submodule();
-    g_virtual_irq_state.initialized = 0;
+    g_virtual_irq_state.initialized = false;
 }
 
 void b_virtual_irq_get_capabilities(b_virtual_irq_capabilities * caps)
@@ -215,31 +220,36 @@ NULL
 #endif
 };
 
-int b_virtual_irq_l1_is_virtual(const char * name)
+bool b_virtual_irq_l1_is_virtual(const char * name)
 {
     unsigned i;
     const char *virtualIrq;
-    int virtual = 0; /* bool */
+    bool virtual = false;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return 0; }
 
     for (i = 0; i < sizeof(g_virtual_irqs)/sizeof(g_virtual_irqs[0]); i++) {
         virtualIrq = g_virtual_irqs[i];
         if (virtualIrq && !strcmp(virtualIrq, name)) {
-            virtual = 1;
+            virtual = true;
             break;
         }
     }
     return virtual;
 }
 
-static void b_virtual_irq_set_l1_status(b_virtual_irq_line line)
+static int b_virtual_irq_p_get_l1_shift(struct b_virtual_irq_line_desc * desc)
 {
-    unsigned virtual_l1 = g_virtual_irq_state.irqs[line].group_id - 1;
+    if (!desc || !desc->group_id) { BERR_TRACE(-EINVAL); return -EINVAL; }
+    else { return desc->group_id - 1; }
+}
 
-    if (!g_virtual_irq_state.irqs[line].group_id) { BERR_TRACE(-EINVAL); return; }
-
-    B_VIRTUAL_IRQ_SET_L1_STATUS(virtual_l1);
+static void b_virtual_irq_set_l1_status(struct b_virtual_irq_line_desc * desc)
+{
+    int l1_shift;
+    l1_shift = b_virtual_irq_p_get_l1_shift(desc);
+    if (l1_shift < 0) { BERR_TRACE(l1_shift); return; }
+    B_VIRTUAL_IRQ_SET_L1_STATUS(l1_shift);
 }
 
 int b_virtual_irq_get_linux_irq(b_virtual_irq_line line)
@@ -261,65 +271,58 @@ int b_virtual_irq_get_linux_irq(b_virtual_irq_line line)
     return linux_irq;
 }
 
-static void b_virtual_irq_inc_l1(b_virtual_irq_line line)
+static void b_virtual_irq_inc_l1(struct b_virtual_irq_line_desc * desc)
 {
-    unsigned virtual_l1 = g_virtual_irq_state.irqs[line].group_id - 1;
-
-    if (!g_virtual_irq_state.irqs[line].group_id) { BERR_TRACE(-EINVAL); return; }
-
-    B_VIRTUAL_IRQ_INC_L1(virtual_l1);
+    int l1_shift;
+    l1_shift = b_virtual_irq_p_get_l1_shift(desc);
+    if (l1_shift < 0) { BERR_TRACE(l1_shift); return; }
+    B_VIRTUAL_IRQ_INC_L1(l1_shift);
 }
 
 void b_virtual_irq_software_l2_isr(b_virtual_irq_line line)
 {
     unsigned long flags;
-
-    if (g_brcm_irq0_verbose) PINFO("virtual irq software l2 isr: %s\n", b_virtual_irq_get_name(line));
+    struct b_virtual_irq_line_desc * desc;
 
     if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return; }
 
+    desc = &g_virtual_irq_state.lines[line];
+
+    if (g_brcm_virq_verbose) PINFO("virtual irq software l2 isr: %s\n", b_os_irq_get_name(&desc->base));
+
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-    g_virtual_irq_state.irqs[line].fired = 1;
-    b_virtual_irq_set_l1_status(line);
+    desc->fired = true;
+    b_virtual_irq_set_l1_status(desc);
     B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
 
     B_VIRTUAL_IRQ_WAKE_L1_LISTENERS();
 
-    b_virtual_irq_inc_l1(line);
+    b_virtual_irq_inc_l1(desc);
 }
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30)
-static irqreturn_t b_virtual_irq_linux_l1_isr(int irq, void *dev_id)
-#else
-static irqreturn_t b_virtual_irq_linux_l1_isr(int irq, void *dev_id, struct pt_regs *regs)
-#endif
+static void b_virtual_irq_isr(struct b_os_irq_desc * irq, void * context)
 {
-    struct b_virtual_irq_line_state *line_state = dev_id;
-    b_virtual_irq_line irq_line = line_state->line;
+    struct b_virtual_irq_line_desc *desc = context;
     unsigned long flags;
 
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-    disable_irq_nosync(irq);
-    g_virtual_irq_state.irqs[irq_line].linux_enabled = 0;
-    if (!g_virtual_irq_state.irqs[irq_line].disabled)
+    if (!desc->disabled)
     {
-        g_virtual_irq_state.irqs[irq_line].fired = 1;
-        b_virtual_irq_set_l1_status(irq_line);
+        desc->fired = true;
+        b_virtual_irq_set_l1_status(desc);
     }
     B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
 
-    if (!g_virtual_irq_state.irqs[irq_line].disabled)
+    if (!desc->disabled)
     {
-        if (g_brcm_irq0_verbose) PINFO("virtual irq linux l1 isr line %s linux irq %u\n", b_virtual_irq_get_name(irq_line), irq);
+        if (g_brcm_virq_verbose) PINFO("virtual irq linux l1 isr line %s linux irq %u\n", b_os_irq_get_name(irq), b_os_irq_get_id(irq));
         B_VIRTUAL_IRQ_WAKE_L1_LISTENERS();
-        b_virtual_irq_inc_l1(irq_line);
+        b_virtual_irq_inc_l1(desc);
     }
     else
     {
-        PWARN("virtual irq spurious linux l1 isr line %s linux irq %u\n", b_virtual_irq_get_name(irq_line), irq);
+        PWARN("virtual irq spurious linux l1 isr line %s linux irq %u\n", b_os_irq_get_name(irq), b_os_irq_get_id(irq));
     }
-
-    return IRQ_HANDLED;
 }
 
 void b_virtual_irq_get_status(b_virtual_irq_status * status)
@@ -333,77 +336,76 @@ void b_virtual_irq_get_status(b_virtual_irq_status * status)
     for(i = 0; i < sizeof(status->lines)/sizeof(status->lines[0]); i++) {
         irq_line = status->lines[i];
         if (irq_line > b_virtual_irq_line_unused && irq_line < b_virtual_irq_line_max) {
-            if (g_virtual_irq_state.irqs[irq_line].fired) {
+            if (g_virtual_irq_state.lines[irq_line].fired) {
                 status->status_word |= 1<<i;
             }
         }
     }
-    if (g_brcm_irq0_verbose) PINFO("virtual irq status %#x\n", status->status_word);
+    if (g_brcm_virq_verbose) PINFO("virtual irq status %#x\n", status->status_word);
 }
 
 int b_virtual_irq_clear(b_virtual_irq_line line)
 {
     int result = 0;
     unsigned long flags;
-
-    if (g_brcm_irq0_verbose) PINFO("virtual irq clear %s\n", b_virtual_irq_get_name(line));
-
-    if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
+    struct b_virtual_irq_line_desc * desc;
 
     if (line == b_virtual_irq_line_unused || line >= b_virtual_irq_line_max) { result = -EINVAL; BERR_TRACE(result); goto end; }
-
+    if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
+    desc = &g_virtual_irq_state.lines[line];
+    if (g_brcm_virq_verbose) PINFO("virtual irq clear %s\n", b_os_irq_get_name(&desc->base));
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-    g_virtual_irq_state.irqs[line].fired = 0;
+    desc->fired = false;
     B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
 
 end:
     return result;
 }
 
-int b_virtual_irq_set_mask(b_virtual_irq_line line, int disable)
+int b_virtual_irq_set_mask(b_virtual_irq_line line, bool disabled)
 {
     int result = 0;
     unsigned long flags;
-
-    if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
+    struct b_virtual_irq_line_desc * desc;
 
     if (line == b_virtual_irq_line_unused || line >= b_virtual_irq_line_max) { result = -EINVAL; BERR_TRACE(result); goto end; }
-
+    if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
+    desc = &g_virtual_irq_state.lines[line];
     B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-    g_virtual_irq_state.irqs[line].disabled = disable;
-    if (disable)
-    {
-        if (g_virtual_irq_state.irqs[line].linux_enabled)
-        {
-            if (g_brcm_irq0_verbose) PINFO("virtual irq linux l1 int disable %s %u\n", b_virtual_irq_get_name(line), g_virtual_irq_state.irqs[line].linux_irq);
-            disable_irq_nosync(g_virtual_irq_state.irqs[line].linux_irq);
-            g_virtual_irq_state.irqs[line].linux_enabled = 0;
-        }
-    }
-    else
-    {
-        if (!g_virtual_irq_state.irqs[line].linux_enabled && g_virtual_irq_state.irqs[line].requested)
-        {
-            if (g_brcm_irq0_verbose) PINFO("virtual irq linux l1 int enable %s %u\n", b_virtual_irq_get_name(line), g_virtual_irq_state.irqs[line].linux_irq);
-            enable_irq(g_virtual_irq_state.irqs[line].linux_irq);
-            g_virtual_irq_state.irqs[line].linux_enabled = 1;
-        }
-    }
+    desc->disabled = disabled;
+    b_os_irq_set_enable_spinlocked_tagged(&desc->base, !disabled, "virq set mask", __LINE__);
     B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
 
 end:
     return result;
 }
 
-static int b_virtual_irq_is_indirect(const b_virtual_irq_group * group, b_virtual_irq_line line)
+void b_virtual_irq_reenable_irqs_spinlocked(void)
 {
-    int indirect = 0;
+    unsigned i;
+    struct b_virtual_irq_line_desc * desc;
+
+    if (!g_virtual_irq_state.initialized) { BERR_TRACE(-EINVAL); return; }
+
+    for(i = 0; i < sizeof(g_virtual_irq_state.lines)/sizeof(g_virtual_irq_state.lines[0]); i++)
+    {
+        desc = &g_virtual_irq_state.lines[i];
+        if (!desc->disabled)
+        {
+            b_os_irq_set_enable_spinlocked_tagged(&desc->base, true, "virq re-enable", __LINE__);
+        }
+    }
+}
+
+static bool b_virtual_irq_is_indirect(const b_virtual_irq_group * group, b_virtual_irq_line line)
+{
+    bool indirect = false;
     unsigned i;
     for (i = 0; i < sizeof(group->indirect) / sizeof(group->indirect[0]); i++)
     {
         if (group->indirect[i] == line)
         {
-            indirect = 1;
+            indirect = true;
             break;
         }
     }
@@ -415,6 +417,7 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
     unsigned i;
     int result = 0;
     unsigned long flags;
+    struct b_virtual_irq_line_desc * desc;
 
     if (!g_virtual_irq_state.initialized) { result = -EINVAL; BERR_TRACE(result); goto end; }
 
@@ -439,9 +442,10 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
         if (irq_line == b_virtual_irq_line_unused) {
             continue;
         }
-        if (g_virtual_irq_state.irqs[irq_line].requested) {
-            if (g_virtual_irq_state.irqs[irq_line].group_id != group->l1_shift+1) {
-                PERR("Can't remap irq %u from %u to %u\n", irq_line, g_virtual_irq_state.irqs[irq_line].group_id, group->l1_shift+1);
+        desc = &g_virtual_irq_state.lines[irq_line];
+        if (desc->base.acquired) {
+            if (desc->group_id != group->l1_shift+1) {
+                PERR("Can't remap irq %u from %u to %u\n", irq_line, desc->group_id, group->l1_shift+1);
                 /* can't remap to another L1 */
                 result = -EINVAL; BERR_TRACE(result); goto end;
             }
@@ -455,42 +459,35 @@ int b_virtual_irq_make_group(const b_virtual_irq_group * group)
                 result = -EINVAL; BERR_TRACE(result); goto end;
             }
             B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-            g_virtual_irq_state.irqs[irq_line].line = irq_line;
-            g_virtual_irq_state.irqs[irq_line].linux_irq = linux_irq;
-            g_virtual_irq_state.irqs[irq_line].fired = 0;
-            g_virtual_irq_state.irqs[irq_line].disabled = 1;
-            g_virtual_irq_state.irqs[irq_line].group_id = group->l1_shift + 1;
+            desc->line = irq_line;
+            desc->fired = false;
+            desc->disabled = true;
+            desc->group_id = group->l1_shift + 1;
             B_VIRTUAL_IRQ_UNMASK_L1(group->l1_shift);
-            g_virtual_irq_state.irqs[irq_line].requested = 1;
-            g_virtual_irq_state.irqs[irq_line].linux_enabled = 1;
             B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
-            /* request_irq can block, do not include in spinlock */
-            result = request_irq(linux_irq, b_virtual_irq_linux_l1_isr, IRQF_TRIGGER_HIGH, name, (void*)&g_virtual_irq_state.irqs[irq_line]);
+            b_os_irq_init(&desc->base, linux_irq, IRQF_TRIGGER_HIGH, name, &b_virtual_irq_isr, (void *)desc);
+            result = b_os_irq_acquire_tagged(&desc->base, "virq make group", __LINE__);
             if (result)
             {
                 PERR("request_irq failed with %d, irq:'%s' linux:%u line:%u\n", result, name, linux_irq , irq_line);
                 B_VIRTUAL_IRQ_SPIN_LOCK(flags);
                 B_VIRTUAL_IRQ_MASK_L1(group->l1_shift);
-                g_virtual_irq_state.irqs[irq_line].requested = 1;
-                g_virtual_irq_state.irqs[irq_line].linux_enabled = 1;
                 B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
                 result = -EINVAL; BERR_TRACE(-EINVAL); goto end;
             }
-            if (g_brcm_irq0_verbose) PINFO("virtual irq make group l1 %u direct l2 %s linux irq %u\n", group->l1_shift, name, linux_irq);
+            if (g_brcm_virq_verbose) PINFO("virtual irq make group l1 %u direct l2 %s linux irq %u\n", group->l1_shift, name, linux_irq);
         }
         else
         {
             /* indirect virtual l1's still need a group id and unmasked l1 */
-            if (g_brcm_irq0_verbose) PINFO("virtual irq make group l1 %u indirect l2 %s\n", group->l1_shift, name);
+            if (g_brcm_virq_verbose) PINFO("virtual irq make group l1 %u indirect l2 %s\n", group->l1_shift, name);
             B_VIRTUAL_IRQ_SPIN_LOCK(flags);
-            g_virtual_irq_state.irqs[irq_line].line = b_virtual_irq_line_max;
-            g_virtual_irq_state.irqs[irq_line].requested = 0;
-            g_virtual_irq_state.irqs[irq_line].linux_enabled = 0;
-            g_virtual_irq_state.irqs[irq_line].linux_irq = 0;
-            g_virtual_irq_state.irqs[irq_line].disabled = 0; /* indirect L2 must start enabled */
-            g_virtual_irq_state.irqs[irq_line].group_id = group->l1_shift + 1;
+            desc->line = b_virtual_irq_line_max;
+            desc->disabled = false; /* indirect L2 must start enabled */
+            desc->group_id = group->l1_shift + 1;
             B_VIRTUAL_IRQ_UNMASK_L1(group->l1_shift);
             B_VIRTUAL_IRQ_SPIN_UNLOCK(flags);
+            b_os_irq_init(&desc->base, 0, IRQF_TRIGGER_HIGH, name, &b_virtual_irq_isr, (void *)desc);
         }
     }
 

@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2012 Broadcom Corporation
+*  Broadcom Proprietary and Confidential. (c)2004-2016 Broadcom. All rights reserved.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*   API name: Platform (private)
-*    Common part of all kernel servers
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef _NEXUS_CLIENT_PROLOGUE_H_
@@ -56,10 +44,33 @@
 #include "../server/nexus_ipc_api.h"
 #include "priv/nexus_core.h"
 
+#define NEXUS_P_API_ID(module, api) NEXUS_P_API_##module##api##_id
+
 typedef struct NEXUS_P_ClientModule *NEXUS_P_ClientModuleHandle;
+
+typedef struct NEXUS_P_ClientCall_State {
+    NEXUS_P_ClientModuleHandle module;
+    void *data;
+    unsigned size;
+    unsigned varargs_begin;
+    unsigned varargs_offset;
+    unsigned header;
+} NEXUS_P_ClientCall_State;
 
 NEXUS_Error NEXUS_P_Client_LockModule(NEXUS_P_ClientModuleHandle module, void **data, unsigned *size);
 void NEXUS_P_Client_UnlockModule(NEXUS_P_ClientModuleHandle module);
 NEXUS_Error NEXUS_P_Client_CallServer(NEXUS_P_ClientModuleHandle module, const void *in_params, unsigned in_param_size, void **out_params, unsigned out_param_mem, unsigned *p_out_param_size);
+
+NEXUS_Error NEXUS_P_ClientCall_Begin(NEXUS_P_ClientModuleHandle module, NEXUS_P_ClientCall_State *state, unsigned header);
+NEXUS_Error NEXUS_P_ClientCall_Call(NEXUS_P_ClientCall_State *state);
+void NEXUS_P_ClientCall_VarArg_Begin(NEXUS_P_ClientCall_State *state, unsigned param_size);
+NEXUS_Error NEXUS_P_ClientCall_InVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, const void *src, int *field, bool *is_null);
+NEXUS_Error NEXUS_P_ClientCall_InVarArg_AddrField(NEXUS_P_ClientCall_State *state, unsigned struct_size, unsigned field_offset, unsigned count, int varArg, int *varArgField);
+void NEXUS_P_ClientCall_End(NEXUS_P_ClientCall_State *state);
+void *NEXUS_P_ClientCall_OffsetToAddr(NEXUS_Addr addr);
+NEXUS_Addr NEXUS_P_ClientCall_AddrToOffset(const void *ptr);
+void NEXUS_P_ClientCall_OutVarArg(NEXUS_P_ClientCall_State *state, unsigned vararg_size, void *dest, int field);
+
+
 
 #endif /* _NEXUS_CLIENT_PROLOGUE_H_ */

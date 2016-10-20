@@ -469,7 +469,7 @@ static void *standby_monitor(void *context)
 
         if(standbyStatus.transition == NxClient_StandbyTransition_eAckNeeded) {
             struct decoder *d;
-            if (!g_quiet) BDBG_WRN(("'live' acknowledges standby state: %s", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode)));
+            if (!g_quiet) printf("'live' acknowledges standby state: %s", lookup_name(g_platformStandbyModeStrs, standbyStatus.settings.mode));
             for (d = BLST_Q_FIRST(&g_decoders); d; d = BLST_Q_NEXT(d, link)) {
                 stop_decode(d);
             }

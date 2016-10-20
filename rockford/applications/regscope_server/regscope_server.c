@@ -182,7 +182,8 @@ unsigned long tb_r(unsigned long addr)
         unsigned long regval;
         unsigned long seq1;
         static unsigned long seq = 0;
-        seq1 = deref32 (seq, addr, g_stSysInfo.bregBaseAddr, &regval);
+        seq1 = deref32 (
+            seq, addr, g_stSysInfo.bregBaseAddr - BCHP_REGISTER_START, &regval);
         if (seq1 != (seq + 1))
         {
             bComplain = true;
@@ -257,18 +258,18 @@ void* convert_mem_offset_to_vaddr(uint32_t offset, uint32_t size)
     {
         printf("!!! regscope_server MemoryRead addr 0x%x size0x%x is outside mapped range:\n",
             offset, size);
-        printf("[0x%x, 0x%x)",
+        printf("[0x%lx, 0x%lx)",
             g_stSysInfo.bmemOffset, g_stSysInfo.bmemOffset + g_stSysInfo.bmemSize);
 #ifdef MEMC_0_MEM_UBASE
-        printf(", [0x%x, 0x%x)",
+        printf(", [0x%lx, 0x%lx)",
             g_stSysInfo.bmemOffsetU, g_stSysInfo.bmemOffsetU + g_stSysInfo.bmemSizeU);
 #endif
 #ifdef MEMC_1_MEM_PBASE
-        printf(", [0x%x, 0x%x)",
+        printf(", [0x%lx, 0x%lx)",
             g_stSysInfo.bmemOffset1, g_stSysInfo.bmemOffset1 + g_stSysInfo.bmemSize1);
 #endif
 #ifdef MEMC_2_MEM_PBASE
-        printf(", [0x%x, 0x%x)",
+        printf(", [0x%lx, 0x%lx)",
             g_stSysInfo.bmemOffset2, g_stSysInfo.bmemOffset2 + g_stSysInfo.bmemSize2);
 #endif
         printf("!!!\n");

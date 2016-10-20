@@ -62,49 +62,50 @@ include $(NEXUS_TOP)/platforms/$(NEXUS_PLATFORM)/build/platform_app.inc
 
 include dtcp_ip_lib.inc
 
-.PHONY: all
+.PHONY: all install dtcp_ip_lib clean
 all:  install
 
-.PHONY: prep_bcrypt prep_drmrootfs
-prep_bcrypt:
-    ifeq (${B_DTCP_IP_BUILD_MODE},stubs)
-		@echo [Skipping... bcrypt]
-    else
-		@echo [Building... bcrypt]
-		$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt install
-		$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt copy
-    endif
+BSEAV ?= $(abspath $(NEXUS_TOP)/../BSEAV)
 
-prep_drmrootfs:
-	@echo [..... prep_drmrootfs target];
-	@if [ ! -f "${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR}/libdrmrootfs.so" ]; then \
-		echo [ building drmrootfs .... ]; \
-		$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/drmrootfs install > /dev/null; \
-	fi
+include $(BSEAV)/lib/drmrootfs/b_drmrootfs_targets.inc
+ifneq ($(B_BUILD_DEPS),n)
+ B_EXTRA_BUILDS += b_drmrootfs_target_build
+ B_EXTRA_CLEANS += b_drmrootfs_target_clean_all
+endif
 
-.PHONY: install
-install: prep_bcrypt prep_drmrootfs
+include $(BSEAV)/lib/security/bcrypt/b_bcrypt_targets.inc
+ifneq (${B_DTCP_IP_BUILD_MODE},stubs)
+ ifneq ($(B_BUILD_DEPS),n)
+  B_EXTRA_BUILDS += b_bcrypt_target_build
+  B_EXTRA_CLEANS += b_bcrypt_target_clean_all
+ endif
+endif
+
+include $(BSEAV)/lib/security/common_drm/b_common_drm_targets.inc
+ifneq (${B_DTCP_IP_BUILD_MODE},stubs)
+ ifneq ($(B_BUILD_DEPS),n)
+  B_EXTRA_BUILDS += b_common_drm_target_build
+  B_EXTRA_CLEANS += b_common_drm_target_clean_all
+  B_INSTALL_COMMON_DRM_DEPS += b_common_drm_target_build
+ endif
+ install_common_drm: dtcp_ip_lib $(B_INSTALL_COMMON_DRM_DEPS)
+	@echo [Install... Common DRM binaries]
+	$(Q_)$(MKDIR) $(DTCP_IP_INSTALL_DIR)
+	$(Q_)cp -dfpu  $(COMMON_DRM_BIN_DEPS_LIST) $(DTCP_IP_INSTALL_DIR)
+
+   B_INSTALL_COMMON_DRM = install_common_drm
+endif
+
+ifneq ($(DTCP_IP_SUPPORT),y)
+    B_DTCP_BUILD_STATIC:=B_LIB_STATIC=1
+endif
+
+install: $(B_EXTRA_BUILDS) dtcp_ip_lib $(B_INSTALL_COMMON_DRM)
+
+dtcp_ip_lib:
 	@echo [Building... dtcp_ip_lib \(from $(B_DTCP_IP_BUILD_MODE)\)]
-	$(Q_)$(MAKE) -f Makefile.dtcp_ip_lib  B_DTCP_IP_LIB_SOURCES="$(B_DTCP_IP_LIB_SOURCES)" install
-    ifeq (${B_DTCP_IP_BUILD_MODE},stubs)
-		@echo [Skipping... Common DRM binaries]
-    else
-	    @echo [..... Common DRM target with j option]
-	    $(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/common_drm install
+	$(Q_)$(MAKE) -f Makefile.dtcp_ip_lib  $(B_DTCP_BUILD_STATIC) B_DTCP_IP_LIB_SOURCES="$(B_DTCP_IP_LIB_SOURCES)" install
 
-		@echo [Install... Common DRM binaries]
-		$(Q_)$(MKDIR) $(DTCP_IP_INSTALL_DIR)
-		$(Q_)cp -dfpu  $(COMMON_DRM_BIN_DEPS_LIST) $(DTCP_IP_INSTALL_DIR)
-    endif
-
-.PHONY: clean
-clean:
-	@echo [Cleaning... dtcp_ip_lib]
+clean: $(B_EXTRA_CLEANS)
+	@echo [Cleaning.. dtcp_ip_lib]
 	$(Q_)$(MAKE) -f Makefile.dtcp_ip_lib  B_DTCP_IP_LIB_SOURCES="$(B_DTCP_IP_LIB_SOURCES)" clean
-    ifeq (${B_DTCP_IP_BUILD_MODE},stubs)
-		@echo [Skipping... bcrypt]
-    else
-		@echo [Cleaning... bcrypt]
-		$(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/bcrypt clean
-	    $(Q_)$(MAKE) -C $(B_LIB_TOP)/../../BSEAV/lib/security/common_drm clean
-    endif

@@ -244,6 +244,7 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
         BVCE_OpenSettings  vceSettings;
         BVCE_CallbackSettings callbackSettings;
         NEXUS_VideoEncoder_P_Device *device = g_NEXUS_VideoEncoder_P_State.vceDevices+i;
+        NEXUS_MemoryStatus heapStatus;
         g_NEXUS_VideoEncoder_P_State.vceDevices[i].vce = NULL;
 
         BKNI_Memset(device->channels, 0, sizeof(device->channels));
@@ -267,7 +268,10 @@ static NEXUS_Error NEXUS_VideoEncoderModule_P_PostInit(void)
         }
 
         vceSettings.hFirmwareMem[0] = g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[0]].mma;
+        NEXUS_Heap_GetStatus(g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[0]].nexus, &heapStatus);
+        vceSettings.firmwareMemc[0] = heapStatus.memcIndex;
         vceSettings.hFirmwareMem[1] = g_pCoreHandles->heap[pSettings->heapIndex[i].firmware[1]].mma;
+        /* firmwareMemc[1] is unused, so don't set */
         vceSettings.hSecureMem = g_pCoreHandles->heap[pSettings->heapIndex[i].secure].mma;
         vceSettings.hPictureMem = g_pCoreHandles->heap[pSettings->heapIndex[i].picture].mma;
         if (Nexus_Core_P_Img_Create(NEXUS_CORE_IMG_ID_VCE,&device->img_context,&device->img_interface )== NEXUS_SUCCESS)
@@ -464,6 +468,7 @@ void NEXUS_VideoEncoder_GetDefaultOpenSettings(NEXUS_VideoEncoderOpenSettings *p
     BDBG_CASSERT((int)BVCE_MultiChannelMode_eMultiNRTOnly == (int)NEXUS_VideoEncoderType_eMultiNonRealTime);
     BDBG_CASSERT((int)BVCE_MultiChannelMode_eCustom == (int)NEXUS_VideoEncoderType_eCustom);
     BDBG_CWARNING((int)BVCE_MultiChannelMode_eMax == (int)NEXUS_VideoEncoderType_eMax);
+    NEXUS_CallbackDesc_Init(&pSettings->watchdogCallback);
     return ;
 }
 
@@ -597,7 +602,7 @@ NEXUS_VideoEncoder_Open(unsigned index, const NEXUS_VideoEncoderOpenSettings *pS
         channelSettings.stDimensions.stMax.uiHeight = pSettings->memoryConfig.maxHeight;
         channelSettings.eInputType = pSettings->memoryConfig.interlaced?BAVC_ScanType_eInterlaced:BAVC_ScanType_eProgressive;
 
-        rc = BCHP_GetMemoryInfo(g_pCoreHandles->reg, &memoryInfo);
+        rc = BCHP_GetMemoryInfo(g_pCoreHandles->chp, &memoryInfo);
         if(rc!=BERR_SUCCESS) {rc=BERR_TRACE(rc);goto error;}
         BKNI_Memset(&memSettings,0,sizeof(memSettings));
         memSettings.pstMemoryInfo = &memoryInfo;

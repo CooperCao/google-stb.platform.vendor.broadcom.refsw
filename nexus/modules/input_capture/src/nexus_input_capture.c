@@ -251,6 +251,7 @@ void NEXUS_InputCapture_GetDefaultSettings(NEXUS_InputCaptureSettings *pSettings
     pSettings->filter.enable = false;
     pSettings->filter.clockSelect = NEXUS_InputCaptureFilterClockSelect_eBicapClock;
     pSettings->filter.value = 0;
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
 }
 
 static void NEXUS_InputCapture_P_Event(void *context)

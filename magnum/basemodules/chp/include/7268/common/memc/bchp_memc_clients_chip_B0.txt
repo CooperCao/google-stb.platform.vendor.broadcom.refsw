@@ -1,0 +1,140 @@
+XPT_WR_RS	0			core_xpt_hif_inst	wr_rs	SCB				systemport -> systemport0			
+XPT_WR_XC	1			core_xpt_hif_inst	wr_xc								
+XPT_WR_CDB	2			core_xpt_hif_inst	wr_cdb								
+XPT_WR_ITB_MSG	3			core_xpt_hif_inst	wr_itb_msg								
+XPT_RD_RS	4			core_xpt_hif_inst	rd_rs								
+XPT_RD_XC_RMX_MSG	5			core_xpt_hif_inst	rd_xc_rmx_msg								
+XPT_RD_XC_RAVE	6			core_xpt_hif_inst	rd_xc_rave								
+XPT_RD_PB	7			core_xpt_hif_inst	rd_pb								
+XPT_WR_MEMDMA	8			core_xpt_hif_inst	wr_memdma								
+
+GENET0_WR	10			genet_top_inst	genet0_wr								
+GENET0_RD	11			genet_top_inst	genet0_rd								
+GENET1_WR	12			genet_top_inst	genet1_wr								
+GENET1_RD	13			genet_top_inst	genet1_rd								
+
+SATA	17			sata3_pcie_top_inst	sata0								
+
+BSP	22		dedicated port	sectop_inst	bsp								
+SCPU	23		dedicated port	sectop_inst	scpu								
+FLASH_DMA	24			core_xpt_hif_inst	flash_dma								
+
+SDIO_EMMC	26			core_xpt_hif_inst	sdio_emmc								
+SDIO_CARD	27			core_xpt_hif_inst	sdio_card								
+
+MCIF_RD	29		"M-Card, 1st port (read), (cablecard)"	sys_ctrl_inst	mcif0_rd								
+MCIF_WR	30		"M-Card, 1st port (write), (cablecard)"	sys_ctrl_inst	mcif0_wr								
+UART_DMA_RD	31			sys_ctrl_inst	uart_dma_rd								
+UART_DMA_WR	32			sys_ctrl_inst	uart_dma_wr								
+USB_HI_0	33		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	ehci								
+USB_LO_0	34		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	ohci								
+USB_X_WRITE_0	35		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	xhci_write								
+USB_X_READ_0	36		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	xhci_read								
+USB_X_CTRL_0	37		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	xhci_ctrl								
+USB_X_BDC_0	38		Port 0 (STB owned) of dual port USB interface	usb0_top_inst	bdc								
+
+RAAGA	40			raaga_dsp_top_0_inst	raaga_cl0								
+RAAGA_1	41			raaga_dsp_top_0_inst	raaga_cl1								
+														
+AUD_AIO	44			vec_aio_gfx_top_inst	aio								
+VEC_VIP0	55			vec_aio_gfx_top_inst	vip0								
+VEC_VIP1	56			vec_aio_gfx_top_inst	vip1								
+
+HVD0_DBLK	73			hvdp0_top_inst	db								
+HVD0_DBLK_1	74			hvdp0_top_inst	db2								
+HVD0_ILCPU	75			hvdp0_top_inst	il								
+HVD0_OLCPU	76			hvdp0_top_inst	ol								
+HVD0_CAB	77			hvdp0_top_inst	cab								
+HVD0_ILSI	78			hvdp0_top_inst	si								
+HVD0_ILCPU_p2	79		"HVD0 Inner Loop ARC, 2nd pipeline"	hvds0_top_inst	ilp2								
+HVD0_ILSI_p2	80		"HVD0 IL Symbol read, 2nd pipeline"	hvds0_top_inst	sip2								
+SID	87		HVD0 SID	hvdp0_top_inst	sid								
+
+BVN_MAD_PIX_FD	94			bvn_middle_top_inst	mvp0_pix_rd								
+BVN_MAD_QUANT	95			bvn_middle_top_inst	mvp0_quant								
+BVN_MAD_PIX_CAP	96			bvn_middle_top_inst	mvp0_pix_wr								
+BVN_MAD1_PIX_FD	97			bvn_middle_top_inst	mvp1_pix_rd								
+BVN_MAD1_QUANT	98			bvn_middle_top_inst	mvp1_quant								
+BVN_MAD1_PIX_CAP	99			bvn_middle_top_inst	mvp1_pix_wr								
+
+BVN_MFD0	106			bvn_edge_top_inst	mfd0_0								
+BVN_MFD0_1	107			bvn_edge_top_inst	mfd0_1								
+BVN_MFD1	108			bvn_edge_top_inst	mfd1_0								
+BVN_MFD1_1	109			bvn_edge_top_inst	mfd1_1								
+					bvn_edge_top_inst									
+BVN_VFD0	118			bvn_edge_top_inst	vfd0								
+BVN_VFD1	119			bvn_edge_top_inst	vfd1								
+					bvn_edge_top_inst									
+BVN_CAP0	126			bvn_edge_top_inst	cap0								
+BVN_CAP1	127			bvn_edge_top_inst	cap1								
+					bvn_edge_top_inst									
+BVN_GFD0	134			bvn_edge_top_inst	gfd0								
+BVN_GFD1	135			bvn_edge_top_inst	gfd1								
+
+BVN_RDC	144			bvn_edge_top_inst	rdc								
+VEC_VBI_ENC0	145			vec_aio_gfx_top_inst	vec0								
+VEC_LUT_LD	146		HDR LUT Refill Client	vec_aio_gfx_top_inst	vec1								
+
+M2MC_0	147		"2D graphics - instance 0 - client ""0"""	vec_aio_gfx_top_inst	m2mc0								
+M2MC_1	148		"2D graphics - instance 0 - client ""1"""	vec_aio_gfx_top_inst	m2mc01								
+M2MC_2	149		"2D graphics - instance 0 - client ""2"""	vec_aio_gfx_top_inst	m2mc02								
+
+PCIE_0	151			sata3_pcie_top_inst	pcie_0								
+
+HVD0_DBLK_p2	155		"HVD0 Deblock Writes, 2nd pipeline"	hvds0_top_inst	dbp2								
+HVD0_DBLK1_p2	156		"HVD0 Deblock Writes / alternate blockout, 2nd pipeline"	hvds0_top_inst	db2p2								
+
+BVN_CMP0	166			bvn_edge_top_inst	cmp0								
+														
+				Ports 200 and up have special purposes										
+HOST_CPU_MCP_R_HI	200		Host CPU MCP read client - high priority			MCP0 							
+HOST_CPU_MCP_R_LO	201		Host CPU MCP read client - low priority										
+HOST_CPU_MCP_W_HI	202		Host CPU MCP write client - high priority										
+HOST_CPU_MCP_W_LO	203		Host CPU MCP write client - low priority										
+V3D_MCP_R_HI	204		V3D (VC5 graphics core) MCP read client - high priority			MCP1							
+V3D_MCP_R_LO	205		V3D (VC5 graphics core) MCP read client - low priority										
+V3D_MCP_W_HI	206		V3D (VC5 graphics core) MCP write client (tile buffer writes) - high priority										
+V3D_MCP_W_LO	207		V3D (VC5 graphics core) MCP write client (tile buffer writes) - low priority										
+UBUS_RD	208					UBUS							
+UBUS_WR	209												
+				210:215 Reserved for UBUS clients										
+														
+HVD0_MOCOMP	216		HVD0 PFRI / MOCOMP			PFRI0							
+HVD1_MOCOMP	217		HVD1 PFRI / MOCOMP			PFRI1							
+VICE_PFRI	218		VICE2v2 instance 0 PFRI (required + optional)			PFRI2							
+				219:231 Reserved for additional PFRI clients			PFRI							
+														
+														
+														
+														
+														
+														
+														
+														
+														
+														
+														
+				232:247 Reserved for additional LMB ports										
+														
+														
+														
+							LMB							
+														
+														
+														
+														
+														
+														
+														
+														
+														
+														
+														
+TRACELOG	248					"MEMC Internal"							
+MEMC_RESERVED_0	249		Reserved										
+ZCQS_ENGINE	250		DRAM ZQ Calibration Short client										
+MSA	251		MSA (Memory Soft Access)										
+DIS0	252		DIS (DRAM Interface Stress) #0										
+DIS1	253		DIS (DRAM Interface Stress) #1										
+DRAM_INIT_ZQCS	254		DRAM Init and Low Power Mode Engine										
+REFRESH	255		Refresh										

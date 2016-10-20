@@ -49,8 +49,12 @@
 #include "bhsm.h"
 #include "bhsm_hmac_sha.h"
 
+#define MIN(a,b) (((a)<(b))?(a):(b))
+#define ROUND_UP_4(a)  ( ((a)&3)? ( (a)+(4-((a)&3)) ) : (a) )
 
 BDBG_MODULE(nexus_hmac_sha_cmd);
+
+static BERR_Code NEXUS_UserHmacSha ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo, bool byteSwap, bool useBounceBuffer );
 
 
 void NEXUS_HMACSHA_GetDefaultOpSettings(
@@ -74,6 +78,8 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     BHSM_Handle             hHsm;
     BHSM_UserHmacShaIO_t    hsmConf;
     NEXUS_Error             rc = NEXUS_SUCCESS;
+    bool byteSwap = false;
+    bool useBounceBuffer = false; /*data need to be copied into NEXUS memory*/
 
     NEXUS_Security_GetHsm_priv (&hHsm);
     if( NULL == hHsm )
@@ -96,7 +102,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     hsmConf.unInputDataLen = pOpSettings->dataSize;
     hsmConf.contMode       = pOpSettings->dataMode;
     hsmConf.keyIncMode     = (BHSM_HMACSHA_KeyInclusion_e)pOpSettings->keyIncMode;
-    hsmConf.byteSwap       = pOpSettings->byteSwap;
+    byteSwap               = pOpSettings->byteSwap;
 
     switch ( pOpSettings->context )
     {
@@ -128,7 +134,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     /* Make sure address is from a NEXUS_Memory_Allocate(), for this to work in both kernel and user mode Nexus */
     if( pOpSettings->dataAddress == NULL )
     {
-        if(pOpSettings->keyIncMode  == NEXUS_HMACSHA_KeyInclusion_Op_eNo)
+        if( pOpSettings->keyIncMode  == NEXUS_HMACSHA_KeyInclusion_Op_eNo )
         {
             /* No key is included */
             return BERR_TRACE( NEXUS_INVALID_PARAMETER );
@@ -138,7 +144,18 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     {
         if( NEXUS_GetAddrType( pOpSettings->dataAddress ) == NEXUS_AddrType_eUnknown )
         {
-            hsmConf.systemMemory = true; /*Its not BMEM ... it must be system memory */
+            BDBG_WRN(("Data address (dataAddress) should be NEXUS memory. Continuing best effort. "));
+            useBounceBuffer = true; /*Its not BMEM ... it must be system memory */
+        }
+
+        if( hsmConf.unInputDataLen <= sizeof(hsmConf.inputData) )
+        {
+            BHSM_MemcpySwap( hsmConf.inputData,
+                                pOpSettings->dataAddress,
+                                hsmConf.unInputDataLen,
+                                !byteSwap ); /* swap has inverse requirement for inplace. */
+
+            hsmConf.dataInplace = true;
         }
     }
     else
@@ -148,7 +165,7 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     }
 
     /* Submit the command now */
-    rc = BHSM_UserHmacSha( hHsm, &hsmConf );
+    rc = NEXUS_UserHmacSha( hHsm, &hsmConf, byteSwap, useBounceBuffer );
     if( rc != BERR_SUCCESS )
     {
         return BERR_TRACE( NEXUS_INVALID_PARAMETER );
@@ -162,4 +179,117 @@ NEXUS_Error NEXUS_HMACSHA_PerformOp(
     }
 
     return BERR_SUCCESS;
+}
+
+
+
+
+/*
+    BHSM_UserHmacSha performs prepocesing on the input parameters:
+        - if a byte swap is reqeusted, or memory data is stored in is no BMEM, a
+          shadow buffer is created.
+        - if the data is greater that 8M, it is submitted in chunks of of 8M to the BSP.
+
+*/
+BERR_Code NEXUS_UserHmacSha ( BHSM_Handle hHsm, BHSM_UserHmacShaIO_t *pIo, bool byteSwap, bool useBounceBuffer )
+{
+    BERR_Code rc = BERR_SUCCESS;
+
+    #define MAX_BYTE_SWAP_BUFFER_SIZE (1024*1024)
+    #define MAX_TRANSFER_SIZE 0x800000 /* max allowed by BSP. */
+
+    if( pIo->dataInplace )
+    {
+        return BHSM_UserHmacSha( hHsm, pIo );
+    }
+
+    /* handle a byteswap, or sysem memory. */
+    if( byteSwap || useBounceBuffer )
+    {
+        uint8_t *pInputData = pIo->pucInputData;
+        uint32_t inputDataLength = pIo->unInputDataLen;
+        uint8_t *pBuf = NULL;
+        unsigned bufSize  = MIN( pIo->unInputDataLen, MAX_BYTE_SWAP_BUFFER_SIZE );
+        BHSM_HMACSHA_ContinualMode_e contModeOrig = pIo->contMode;
+        NEXUS_MemoryAllocationSettings memSetting;
+
+        NEXUS_Memory_GetDefaultAllocationSettings( &memSetting );
+        memSetting.alignment = 32;
+        memSetting.heap = g_pCoreHandles->heap[g_pCoreHandles->defaultHeapIndex].nexus;
+        rc = NEXUS_Memory_Allocate( ROUND_UP_4(bufSize), &memSetting, (void*)&pBuf );
+        if( rc ) { return BERR_TRACE( BERR_OUT_OF_SYSTEM_MEMORY ); }
+
+        if( inputDataLength > bufSize )
+        {
+            pIo->contMode  = BHSM_HMACSHA_ContinualMode_eMoreSeg;
+        }
+
+        pIo->unInputDataLen = bufSize;
+        pIo->pucInputData = pBuf;
+
+        while( inputDataLength > bufSize )
+        {
+            BHSM_MemcpySwap( pBuf, pInputData, bufSize, byteSwap );
+            NEXUS_FlushCache( pBuf, ROUND_UP_4(bufSize) );
+
+            rc = BHSM_UserHmacSha( hHsm, pIo );
+            if( rc != BERR_SUCCESS )
+            {
+                NEXUS_Memory_Free( pBuf );
+                return BERR_TRACE(rc);
+            }
+
+            pInputData += bufSize;
+            inputDataLength -= bufSize;
+        }
+
+        pIo->unInputDataLen = inputDataLength;
+        pIo->contMode = contModeOrig;
+
+        BHSM_MemcpySwap( pBuf, pInputData, pIo->unInputDataLen, byteSwap );
+        NEXUS_FlushCache( pBuf, ROUND_UP_4(bufSize) );
+
+        rc = BHSM_UserHmacSha( hHsm, pIo );
+        if( rc != BERR_SUCCESS )
+        {
+            NEXUS_Memory_Free( pBuf );
+            return BERR_TRACE(rc);
+        }
+
+        NEXUS_Memory_Free( pBuf );
+        return BERR_SUCCESS;
+    }
+
+    /* The BSP can only handle 8Mbytes at a time. Here, larger data blocks are split. */
+    if( pIo->unInputDataLen > MAX_TRANSFER_SIZE )
+    {
+        uint32_t inputDataLength = pIo->unInputDataLen;
+        BHSM_HMACSHA_ContinualMode_e contModeOrig = pIo->contMode;
+
+        pIo->unInputDataLen = MAX_TRANSFER_SIZE;
+        pIo->contMode   = BHSM_HMACSHA_ContinualMode_eMoreSeg;
+
+        do
+        {
+            NEXUS_FlushCache( pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
+            rc = BHSM_UserHmacSha( hHsm, pIo );
+            if( rc != BERR_SUCCESS ){ return BERR_TRACE(rc); }
+
+            inputDataLength -= MAX_TRANSFER_SIZE;
+            pIo->pucInputData += MAX_TRANSFER_SIZE;
+
+        }while( inputDataLength > MAX_TRANSFER_SIZE );
+
+        pIo->unInputDataLen = inputDataLength;
+        pIo->contMode = contModeOrig;
+
+        NEXUS_FlushCache( pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
+        rc = BHSM_UserHmacSha( hHsm, pIo );
+        if( rc != BERR_SUCCESS ){ return BERR_TRACE(rc); }
+
+        return BERR_SUCCESS;
+    }
+
+    NEXUS_FlushCache( pIo->pucInputData, ROUND_UP_4(pIo->unInputDataLen) );
+    return BHSM_UserHmacSha( hHsm, pIo );
 }

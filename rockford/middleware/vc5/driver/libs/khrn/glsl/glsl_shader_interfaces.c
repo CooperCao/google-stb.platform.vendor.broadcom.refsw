@@ -106,7 +106,7 @@ Dataflow **glsl_shader_interface_create_uniform_dataflow(const Symbol *symbol, i
    } else {
       assert(symbol->flavour == SYMBOL_INTERFACE_BLOCK);
       for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
-         df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_UNIFORM_BUFFER, DF_INT);
+         df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_UNIFORM_BUFFER, DF_UINT);
          df[i]->u.linkable_value.row = ids[i];
       }
    }
@@ -118,7 +118,7 @@ Dataflow **glsl_shader_interface_create_buffer_dataflow(const Symbol *symbol, in
 
    assert(symbol->flavour == SYMBOL_INTERFACE_BLOCK);
    for (unsigned i = 0; i < symbol->type->scalar_count; i++) {
-      df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_STORAGE_BUFFER, DF_INT);
+      df[i] = glsl_dataflow_construct_linkable_value(DATAFLOW_STORAGE_BUFFER, DF_UINT);
       df[i]->u.linkable_value.row = ids[i];
    }
 

@@ -832,7 +832,8 @@ static void BVC5_P_HardwareTurnOff(
 
 void BVC5_P_RestorePerfCounters(
    BVC5_Handle hVC5,
-   uint32_t    uiCoreIndex
+   uint32_t    uiCoreIndex,
+   bool        bWriteSelectorsAndEnables
 )
 {
    if (hVC5->psCoreStates[uiCoreIndex].bPowered)
@@ -840,12 +841,13 @@ void BVC5_P_RestorePerfCounters(
       BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRC, 0xFFFF);
       BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_PM_CTRL, 1);     /* Holds the counters in reset until de-asserted */
 
-      /* re-write the performance monitor values/re-enable */
-      if (hVC5->sPerfCounters.uiPCTREShadow)
+      /* re-write the performance monitor selectors and enables */
+      if (bWriteSelectorsAndEnables && hVC5->sPerfCounters.uiPCTREShadow)
       {
          uint32_t c;
          for (c = 0; c < BVC5_P_PERF_COUNTER_MAX_HW_CTRS_ACTIVE; c++)
             BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRS0 + (c * 8), hVC5->sPerfCounters.uiPCTRSShadow[c]);
+
          BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_PCTR_PCTRE, hVC5->sPerfCounters.uiPCTREShadow);
       }
 
@@ -1070,8 +1072,6 @@ void BVC5_P_HardwareSetDefaultRegisterState(
 )
 {
    uint32_t uiIntMask;
-   uint32_t uiCacheId;
-   uint32_t uiLowPriId;
 
    /* Disable and clear interrupts from this core */
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_SET, 0xFFFFFFFF);
@@ -1082,14 +1082,32 @@ void BVC5_P_HardwareSetDefaultRegisterState(
                BCHP_FIELD_DATA(V3D_CTL_INT_MSK_CLR_INT, FRDONE, 1);
    BVC5_P_WriteRegister(hVC5, uiCoreIndex, BCHP_V3D_CTL_INT_MSK_CLR, uiIntMask);
 
-   /* Client IDs : 0=L2C, 1=CLE, 2=PTB, 3=PSE, 4=VC4, 5=VDW, 6=L2T, 7=TLB */
-   uiCacheId = BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, CACHE_ID_EN, 0x41) | /* Bypass the L3C for L2C & L2T data */
-               BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, INVERT_FUNCTION, 1);
-   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_CACHE_ID, uiCacheId);
+#if !V3D_VER_AT_LEAST(3,4,0,0)
+   {
+      uint32_t uiCachedMask, uiHighPriMask;
 
-   uiLowPriId = BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, LOW_PRI_ID_EN, 0x7F) | /* High-priority for all except TLB and TFU */
-                BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, INVERT_FUNCTION, 1);
-   BVC5_P_WriteNonCoreRegister(hVC5, BCHP_V3D_GCA_LOW_PRI_ID, uiLowPriId);
+      /* Enable GCA cache */
+      uiCachedMask = 1 << V3D_AXI_ID_CLE | 1 << V3D_AXI_ID_PTB | 1 << V3D_AXI_ID_PSE;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      uiCachedMask |= 1 << V3D_AXI_ID_VCD;
+#endif
+
+      /* Send cached, L2T and L2C traffic down the high priority path. */
+      uiHighPriMask = uiCachedMask | 1 << V3D_AXI_ID_L2T;
+#if !V3D_VER_AT_LEAST(3,3,0,0)
+      uiHighPriMask |= 1 << V3D_AXI_ID_L2C;
+#endif
+
+      BVC5_P_WriteNonCoreRegister(hVC5,
+         BCHP_V3D_GCA_CACHE_ID,
+         BCHP_FIELD_DATA(V3D_GCA_CACHE_ID, CACHE_ID_EN, uiCachedMask));
+
+      BVC5_P_WriteNonCoreRegister(hVC5,
+         BCHP_V3D_GCA_LOW_PRI_ID,
+         BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, LOW_PRI_ID_EN, uiHighPriMask)
+       | BCHP_FIELD_DATA(V3D_GCA_LOW_PRI_ID, INVERT_FUNCTION, 1));
+   }
+#endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
    if (hVC5->sOpenParams.bNoBurstSplitting || !V3D_VER_AT_LEAST(3,3,1,0))
@@ -1208,7 +1226,7 @@ static void BVC5_P_HardwareTurnOn(
       __sync_fetch_and_or(&hVC5->psCoreStates[uiCoreIndex].bPowered, 1);
 
       BVC5_P_HardwareSetDefaultRegisterState(hVC5, uiCoreIndex);
-      BVC5_P_RestorePerfCounters(hVC5, uiCoreIndex);
+      BVC5_P_RestorePerfCounters(hVC5, uiCoreIndex, true);
       BVC5_P_HardwareResetWatchdog(hVC5, uiCoreIndex);
    }
 }
@@ -1716,16 +1734,23 @@ static void BVC5_P_IssueTFUJob(
 
 bool BVC5_P_SwitchSecurityMode(
    BVC5_Handle          hVC5,
-   BVC5_P_InternalJob   *pJob
+   bool                 bSecure
 )
 {
-   bool  bSecure = pJob->pBase->bSecure;
-
    if (hVC5->bSecure != bSecure)
    {
+      /* nothing is available for index in the functions above, so fix to 0 for
+         now */
+      const uint32_t uiCoreIndex = 0;
+
+      BVC5_P_HardwarePowerAcquire(hVC5, 1 << uiCoreIndex);
+
       /* Mustn't change if there is anything in the hardware */
       if (!BVC5_P_HardwareIsIdle(hVC5))
+      {
+         BVC5_P_HardwarePowerRelease(hVC5, 1 << uiCoreIndex);
          return false;
+      }
 
       hVC5->bSecure = bSecure;
 
@@ -1742,6 +1767,8 @@ bool BVC5_P_SwitchSecurityMode(
       /* Core will have been reset, so reconfigure it */
       /* TODO will need to handle multiple cores */
       BVC5_P_HardwareSetDefaultRegisterState(hVC5, 0);
+
+      BVC5_P_HardwarePowerRelease(hVC5, 1 << uiCoreIndex);
    }
 
    return true;
@@ -1764,7 +1791,7 @@ void BVC5_P_HardwarePrepareForJob(
    if (!pJob->bFlushedV3D)
    {
       /* Anything other than only TFU access likely requires all the caches flushing. */
-      if (pJob->pBase->uiSyncFlags & (BVC5_SYNC_V3D & ~BVC5_SYNC_TFU))
+      if (pJob->pBase->uiSyncFlags & (BVC5_SYNC_V3D_RW & ~(BVC5_SYNC_TFU_READ | BVC5_SYNC_TFU_WRITE)))
       {
          /* Clean all VC5 caches. Outside in. */
          BVC5_P_AddFlushEvent(hVC5, hVC5->sEventMonitor.uiSchedTrackNextId, BVC5_EventBegin,

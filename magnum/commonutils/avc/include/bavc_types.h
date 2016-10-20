@@ -1166,8 +1166,9 @@ See Also:
 ****************************************************************************/
 typedef enum BAVC_VideoBitDepth
 {
-    BAVC_VideoBitDepth_e8Bit = 0,
-    BAVC_VideoBitDepth_e10Bit,
+    BAVC_VideoBitDepth_e8Bit = 8,
+    BAVC_VideoBitDepth_e9Bit = 9,
+    BAVC_VideoBitDepth_e10Bit = 10,
 
     BAVC_VideoBitDepth_eMax
 

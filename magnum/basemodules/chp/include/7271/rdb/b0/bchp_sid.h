@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,25 +70,25 @@
 /***************************************************************************
  *SID - Control
  ***************************************************************************/
-#define BCHP_SID_MAIN_CTL                        0x20980100 /* [RW] Main Control Register */
-#define BCHP_SID_COMMAND                         0x20980104 /* [WO] Command Register */
-#define BCHP_SID_STATUS                          0x20980108 /* [RW] Status Register */
-#define BCHP_SID_IMAGE_FMT                       0x2098010c /* [RW] Image Format */
-#define BCHP_SID_VERSION                         0x20980110 /* [RO] Version Register */
-#define BCHP_SID_IMAGE_WIDTH                     0x20980114 /* [RW] Image Width */
-#define BCHP_SID_IMAGE_HEIGHT                    0x20980118 /* [RW] Image Height */
-#define BCHP_SID_PROCESS_TIMEOUT_CNT             0x2098011c /* [RW] Process Timeout Cnt */
-#define BCHP_SID_INT_IS_EDGE                     0x20980120 /* [RW] Interrupt Type (Edge/Level) */
-#define BCHP_SID_INT_CLR                         0x20980124 /* [WO] Interrupt Clear */
-#define BCHP_SID_FIFO_DATA                       0x20980140 /* [WO] Image Fifo Data */
-#define BCHP_SID_DEBUG_IDCT                      0x20980180 /* [RO] IDCT Debug Register */
-#define BCHP_SID_DEBUG_RAS_HW                    0x20980184 /* [RO] RAS Debug */
-#define BCHP_SID_DEBUG_RAS_FLAG                  0x20980188 /* [RO] Ras Flag Debug */
-#define BCHP_SID_DEBUG_HORCOL                    0x2098018c /* [RO] HorCol Debug */
-#define BCHP_SID_DEBUG_PNG                       0x20980190 /* [RO] PNG Debug */
-#define BCHP_SID_DEBUG_RLE                       0x20980194 /* [RO] RLE Debug */
-#define BCHP_SID_DEBUG_GIF                       0x20980198 /* [RO] GIF Debug */
-#define BCHP_SID_DEBUG_SYM_DCD                   0x2098019c /* [RO] Symb Dcd Debug */
+#define BCHP_SID_MAIN_CTL                        0x20980100 /* [RW][32] Main Control Register */
+#define BCHP_SID_COMMAND                         0x20980104 /* [WO][32] Command Register */
+#define BCHP_SID_STATUS                          0x20980108 /* [RW][32] Status Register */
+#define BCHP_SID_IMAGE_FMT                       0x2098010c /* [RW][32] Image Format */
+#define BCHP_SID_VERSION                         0x20980110 /* [RO][32] Version Register */
+#define BCHP_SID_IMAGE_WIDTH                     0x20980114 /* [RW][32] Image Width */
+#define BCHP_SID_IMAGE_HEIGHT                    0x20980118 /* [RW][32] Image Height */
+#define BCHP_SID_PROCESS_TIMEOUT_CNT             0x2098011c /* [RW][32] Process Timeout Cnt */
+#define BCHP_SID_INT_IS_EDGE                     0x20980120 /* [RW][32] Interrupt Type (Edge/Level) */
+#define BCHP_SID_INT_CLR                         0x20980124 /* [WO][32] Interrupt Clear */
+#define BCHP_SID_FIFO_DATA                       0x20980140 /* [WO][32] Image Fifo Data */
+#define BCHP_SID_DEBUG_IDCT                      0x20980180 /* [RO][32] IDCT Debug Register */
+#define BCHP_SID_DEBUG_RAS_HW                    0x20980184 /* [RO][32] RAS Debug */
+#define BCHP_SID_DEBUG_RAS_FLAG                  0x20980188 /* [RO][32] Ras Flag Debug */
+#define BCHP_SID_DEBUG_HORCOL                    0x2098018c /* [RO][32] HorCol Debug */
+#define BCHP_SID_DEBUG_PNG                       0x20980190 /* [RO][32] PNG Debug */
+#define BCHP_SID_DEBUG_RLE                       0x20980194 /* [RO][32] RLE Debug */
+#define BCHP_SID_DEBUG_GIF                       0x20980198 /* [RO][32] GIF Debug */
+#define BCHP_SID_DEBUG_SYM_DCD                   0x2098019c /* [RO][32] Symb Dcd Debug */
 
 /***************************************************************************
  *MAIN_CTL - Main Control Register

@@ -1139,11 +1139,9 @@ static const BVDC_P_EnvelopGeneratorInfo s_aEnvelopGeneratorTable[] =
     {BVDC_P_Output_eYUV_M,           s_aulEG_Tbl_YUV_N                    },
     {BVDC_P_Output_eYUV_N,           s_aulEG_Tbl_YUV_N                    },
     {BVDC_P_Output_eYUV_NC,          s_aulEG_Tbl_YUV                      },
-#if BVDC_P_SUPPORT_VEC_SECAM
     {BVDC_P_Output_eYDbDr_LDK,       s_aulEG_Tbl_YUV                      },
     {BVDC_P_Output_eYDbDr_BG,        s_aulEG_Tbl_YUV                      },
     {BVDC_P_Output_eYDbDr_H,         s_aulEG_Tbl_YUV                      },
-#endif
     /* special handling for 480p and 576p, see above */
     {BVDC_P_Output_eSDYPrPb,         s_aulEG_Tbl_SDYPrPb                  },
     {BVDC_P_Output_eSDRGB,           s_aulEG_Tbl_RGB                      },
@@ -1248,11 +1246,9 @@ static const BVDC_P_ColorSpaceData s_aColorSpaceDataTable[] =
     {BVDC_P_Output_eYUV_M,     s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eYUV,       BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YUV,     NULL},
     {BVDC_P_Output_eYUV_N,     s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eYUV,       BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YUV,     NULL},
     {BVDC_P_Output_eYUV_NC,    s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eYUV,       BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YUV,     NULL},
-#if BVDC_P_SUPPORT_VEC_SECAM
     {BVDC_P_Output_eYDbDr_LDK, s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eSECAM,     BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YDbDr,   NULL},
     {BVDC_P_Output_eYDbDr_BG,  s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eSECAM,     BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YUV,     NULL},
     {BVDC_P_Output_eYDbDr_H,   s_aulSmTable_Tbl_YUV,     BVDC_P_OutputFilter_eSECAM,     BVDC_P_OutputFilter_eNone,    s_aulSdVfTable_Tbl_YUV,     NULL},
-#endif
     /* special handling for 480p and 576p, see above */
     {BVDC_P_Output_eSDYPrPb,   s_aulSmTable_Tbl_SDYPrPb, BVDC_P_OutputFilter_eSDYPrPb,   BVDC_P_OutputFilter_eED,      s_aulSdVfTable_Tbl_SDYPrPb, s_aulHdVfTable_Tbl_HDYPrPb},
     {BVDC_P_Output_eSDRGB,     s_aulSmTable_Tbl_RGB,     BVDC_P_OutputFilter_eSDRGB,     BVDC_P_OutputFilter_eSDRGB,   s_aulSdVfTable_Tbl_SDYPrPb, s_aulHdVfTable_Tbl_HDYPrPb},
@@ -2346,28 +2342,6 @@ bool  BVDC_P_IsVidfmtSupported
     const BVDC_P_FormatData *pFormatData;
 
     BDBG_ASSERT(eVideoFmt < BFMT_VideoFmt_eMaxCount);
-
-#if !BVDC_P_SUPPORT_VEC_SECAM
-    if(BFMT_IS_SECAM(eVideoFmt))
-    {
-        return false;
-    }
-#endif
-
-#if !BVDC_P_SUPPORT_1080p_60HZ
-    if((eVideoFmt == BFMT_VideoFmt_e1080p) ||
-       (eVideoFmt == BFMT_VideoFmt_e1080p_50Hz))
-    {
-        return false;
-    }
-#endif
-
-#if !BVDC_P_SUPPORT_3D_VIDEO
-    if(BFMT_IS_3D_MODE(eVideoFmt))
-    {
-        return false;
-    }
-#endif
 
     /* Support 4k ? */
     if(BFMT_IS_4kx2k(eVideoFmt))

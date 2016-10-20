@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,40 +70,40 @@
 /***************************************************************************
  *AVS_TOP_CTRL - AVS TOP Control Registers
  ***************************************************************************/
-#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST          0x204d1800 /* [RW] MEMORY ASSIST */
-#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_STATUS   0x204d1804 /* [RO] MEMORY ASSIST STATUS */
-#define BCHP_AVS_TOP_CTRL_VOLTAGE_REGULATOR_PWRDN 0x204d1808 /* [RW] VOLTAGE REGULATOR PWRDN */
-#define BCHP_AVS_TOP_CTRL_VOLTAGE_REGULATOR_STATUS 0x204d180c /* [RO] VOLTAGE REGULATOR STATUS */
-#define BCHP_AVS_TOP_CTRL_S2_STANDBY_STATUS      0x204d1810 /* [RO] S2 STANDBY STATUS */
-#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS           0x204d1814 /* [RO] VTRAP STATUS */
-#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_CLEAR     0x204d1818 /* [RW] VTRAP STATUS CLEAR */
-#define BCHP_AVS_TOP_CTRL_START_AVS_CPU          0x204d181c /* [RW] START AVS CPU */
-#define BCHP_AVS_TOP_CTRL_OTP_STATUS             0x204d1820 /* [RO] OTP STATUS */
-#define BCHP_AVS_TOP_CTRL_OTP_AVS_INFO           0x204d1824 /* [RO] OTP AVS INFO */
-#define BCHP_AVS_TOP_CTRL_RMON_HZ                0x204d1828 /* [RW] RMON_HZ */
-#define BCHP_AVS_TOP_CTRL_RMON_VT                0x204d182c /* [RW] RMON_VT */
-#define BCHP_AVS_TOP_CTRL_RMON_RAWR_INT_HZ       0x204d1830 /* [RW] RMON_RAWR_INT_HZ */
-#define BCHP_AVS_TOP_CTRL_RMON_RAWR_INT_VT       0x204d1834 /* [RW] RMON_RAWR_INT_VT */
-#define BCHP_AVS_TOP_CTRL_RMON_RAWR_EXT          0x204d1838 /* [RW] RMON_RAWR_EXT */
-#define BCHP_AVS_TOP_CTRL_AVS_CONVERGENCE_STATUS 0x204d183c /* [RW] AVS_CONVERGENCE_STATUS */
-#define BCHP_AVS_TOP_CTRL_REVID                  0x204d1840 /* [RO] REVID */
-#define BCHP_AVS_TOP_CTRL_SPARE_LOW              0x204d1844 /* [RW] SPARE LOW */
-#define BCHP_AVS_TOP_CTRL_SPARE_HIGH             0x204d1848 /* [RW] SPARE HIGH */
-#define BCHP_AVS_TOP_CTRL_AVS_STATUS_OUT         0x204d184c /* [RW] AVS STATUS OUT */
-#define BCHP_AVS_TOP_CTRL_AVS_STATUS_IN          0x204d1850 /* [RO] AVS STATUS IN */
-#define BCHP_AVS_TOP_CTRL_ADC_SEL                0x204d1854 /* [RW] ADC SEL */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR1_DAC_CODE     0x204d1858 /* [RW] PVT_MNTR1 DAC_CODE */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR2_DAC_CODE     0x204d185c /* [RW] PVT_MNTR2 DAC_CODE */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR3_DAC_CODE     0x204d1860 /* [RW] PVT_MNTR3 DAC_CODE */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR4_DAC_CODE     0x204d1864 /* [RW] PVT_MNTR4 DAC_CODE */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR1_CTRL         0x204d186c /* [RW] PVT_MNTR1 CTRL */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR2_CTRL         0x204d1870 /* [RW] PVT_MNTR2 CTRL */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR3_CTRL         0x204d1874 /* [RW] PVT_MNTR3 CTRL */
-#define BCHP_AVS_TOP_CTRL_PVT_MNTR4_CTRL         0x204d1878 /* [RW] PVT_MNTR4 CTRL */
-#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_1        0x204d1880 /* [RW] MEMORY ASSIST_1 */
-#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_STATUS_1 0x204d1884 /* [RO] MEMORY ASSIST STATUS_1 */
-#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_1         0x204d18a8 /* [RO] VTRAP STATUS 1 */
-#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_1_CLEAR   0x204d18ac /* [RW] VTRAP STATUS 1 CLEAR */
+#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST          0x204d1800 /* [RW][32] MEMORY ASSIST */
+#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_STATUS   0x204d1804 /* [RO][32] MEMORY ASSIST STATUS */
+#define BCHP_AVS_TOP_CTRL_VOLTAGE_REGULATOR_PWRDN 0x204d1808 /* [RW][32] VOLTAGE REGULATOR PWRDN */
+#define BCHP_AVS_TOP_CTRL_VOLTAGE_REGULATOR_STATUS 0x204d180c /* [RO][32] VOLTAGE REGULATOR STATUS */
+#define BCHP_AVS_TOP_CTRL_S2_STANDBY_STATUS      0x204d1810 /* [RO][32] S2 STANDBY STATUS */
+#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS           0x204d1814 /* [RO][32] VTRAP STATUS */
+#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_CLEAR     0x204d1818 /* [RW][32] VTRAP STATUS CLEAR */
+#define BCHP_AVS_TOP_CTRL_START_AVS_CPU          0x204d181c /* [RW][32] START AVS CPU */
+#define BCHP_AVS_TOP_CTRL_OTP_STATUS             0x204d1820 /* [RO][32] OTP STATUS */
+#define BCHP_AVS_TOP_CTRL_OTP_AVS_INFO           0x204d1824 /* [RO][32] OTP AVS INFO */
+#define BCHP_AVS_TOP_CTRL_RMON_HZ                0x204d1828 /* [RW][32] RMON_HZ */
+#define BCHP_AVS_TOP_CTRL_RMON_VT                0x204d182c /* [RW][32] RMON_VT */
+#define BCHP_AVS_TOP_CTRL_RMON_RAWR_INT_HZ       0x204d1830 /* [RW][32] RMON_RAWR_INT_HZ */
+#define BCHP_AVS_TOP_CTRL_RMON_RAWR_INT_VT       0x204d1834 /* [RW][32] RMON_RAWR_INT_VT */
+#define BCHP_AVS_TOP_CTRL_RMON_RAWR_EXT          0x204d1838 /* [RW][32] RMON_RAWR_EXT */
+#define BCHP_AVS_TOP_CTRL_AVS_CONVERGENCE_STATUS 0x204d183c /* [RW][32] AVS_CONVERGENCE_STATUS */
+#define BCHP_AVS_TOP_CTRL_REVID                  0x204d1840 /* [RO][32] REVID */
+#define BCHP_AVS_TOP_CTRL_SPARE_LOW              0x204d1844 /* [RW][32] SPARE LOW */
+#define BCHP_AVS_TOP_CTRL_SPARE_HIGH             0x204d1848 /* [RW][32] SPARE HIGH */
+#define BCHP_AVS_TOP_CTRL_AVS_STATUS_OUT         0x204d184c /* [RW][32] AVS STATUS OUT */
+#define BCHP_AVS_TOP_CTRL_AVS_STATUS_IN          0x204d1850 /* [RO][32] AVS STATUS IN */
+#define BCHP_AVS_TOP_CTRL_ADC_SEL                0x204d1854 /* [RW][32] ADC SEL */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR1_DAC_CODE     0x204d1858 /* [RW][32] PVT_MNTR1 DAC_CODE */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR2_DAC_CODE     0x204d185c /* [RW][32] PVT_MNTR2 DAC_CODE */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR3_DAC_CODE     0x204d1860 /* [RW][32] PVT_MNTR3 DAC_CODE */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR4_DAC_CODE     0x204d1864 /* [RW][32] PVT_MNTR4 DAC_CODE */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR1_CTRL         0x204d186c /* [RW][32] PVT_MNTR1 CTRL */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR2_CTRL         0x204d1870 /* [RW][32] PVT_MNTR2 CTRL */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR3_CTRL         0x204d1874 /* [RW][32] PVT_MNTR3 CTRL */
+#define BCHP_AVS_TOP_CTRL_PVT_MNTR4_CTRL         0x204d1878 /* [RW][32] PVT_MNTR4 CTRL */
+#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_1        0x204d1880 /* [RW][32] MEMORY ASSIST_1 */
+#define BCHP_AVS_TOP_CTRL_MEMORY_ASSIST_STATUS_1 0x204d1884 /* [RO][32] MEMORY ASSIST STATUS_1 */
+#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_1         0x204d18a8 /* [RO][32] VTRAP STATUS 1 */
+#define BCHP_AVS_TOP_CTRL_VTRAP_STATUS_1_CLEAR   0x204d18ac /* [RW][32] VTRAP STATUS 1 CLEAR */
 
 /***************************************************************************
  *MEMORY_ASSIST - MEMORY ASSIST

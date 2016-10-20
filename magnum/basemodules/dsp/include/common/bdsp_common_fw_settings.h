@@ -139,6 +139,10 @@ typedef struct BDSP_AudioTaskDatasyncSettings
         {
             BDSP_Audio_DtsEndianType              eDtsEndianType; /* Added for DTS-CD Little Endian Support */
         }sDtsConfig;
+        struct
+        {
+            BDSP_AF_P_EnableDisable             eContinuousFMMInput; /* Added for handling a continuous FMM Input to mixer */
+        }sMixerConfig;
     }uAlgoSpecConfigStruct;                                     /* The algo specific structures for configuration */
 
     BDSP_AF_P_EnableDisable               eForceCompleteFirstFrame;   /* If enabled, the first frame will always be entirely rendered to the

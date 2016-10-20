@@ -44,6 +44,7 @@
 BDBG_MODULE(BHDM_AUTO_I2C) ;
 
 #if BHDM_CONFIG_HAS_HDCP22
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 BERR_Code BHDM_AUTO_I2C_GetEventHandle
 Summary: Get the event handle for checking HDMI events.
@@ -126,6 +127,7 @@ BERR_Code BHDM_AUTO_I2C_GetHdcp22RxStatusData(const BHDM_Handle hHDMI,
 
 	return rc ;
 }
+#endif
 
 void BHDM_AUTO_I2C_EnableReadChannel_isr(const BHDM_Handle hHDMI,
 	BHDM_AUTO_I2C_P_CHANNEL eChannel, uint8_t enable

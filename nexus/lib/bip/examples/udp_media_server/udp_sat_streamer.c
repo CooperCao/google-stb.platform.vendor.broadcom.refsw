@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -55,9 +55,9 @@ BDBG_MODULE( udp_sat_streamer );
 #define UDP_SERVER_INFO_DIRECTORY_PATH  "/data/info"
 
 /* QAM Tuner specific defines */
-#define UDP_SERVER_SAT_FREQ            1119000000
-#define UDP_SERVER_SAT_MODE            NEXUS_FrontendSatelliteMode_eDvbs2Qpsk /*NEXUS_FrontendSatelliteMode_eDvb*/
-#define UDP_SERVER_SAT_SYM_RATE        22500000 /*20000000*/
+#define UDP_SERVER_SAT_FREQ            1430000000
+#define UDP_SERVER_SAT_MODE            NEXUS_FrontendSatelliteMode_eDvbs28psk /*NEXUS_FrontendSatelliteMode_eDvb*/
+#define UDP_SERVER_SAT_SYM_RATE        30000000 /*20000000*/
 #define UDP_SERVER_TRANSPORT_TYPE      NEXUS_TransportType_eTs
 #define UDP_SERVER_SAT_TONE_ENABLED    true
 #define UDP_SERVER_SAT_TONE_MODE       NEXUS_FrontendDiseqcToneMode_eEnvelope

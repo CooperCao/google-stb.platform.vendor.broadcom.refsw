@@ -1,19 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ *  Except as expressly set forth in the Authorized License,
  *
- * $brcm_Log: $
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- ***************************************************************************/
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
+
+ ******************************************************************************/
 
 #include "bhdr.h"
 #include "bhdr_priv.h"
@@ -59,8 +81,6 @@ typedef struct BHDR_P_RamPacketMap
 	bool bMonitorStoppedPackets ;
 } BHDR_P_RamPacketMap ;
 
-#define ACR_PACKET_LOCATION 1
-
 static const BHDR_P_RamPacketMap RamPacketMap[BHDR_P_NUM_PACKETS] =
 {
 	/* Packet 00 */ {BAVC_HDMI_PacketType_eGamutMetadataPacket, false},
@@ -71,6 +91,8 @@ static const BHDR_P_RamPacketMap RamPacketMap[BHDR_P_NUM_PACKETS] =
 
 	    DO NOT MOVE the AudioClockRegeneration Packet from Packet 01
 	    other code in this unit depend on this physical location
+
+	    See bhdr_packet_acr.c for usage
 	 */
 
 	/* Packet 01 */ {BAVC_HDMI_PacketType_eAudioClockRegeneration, false},
@@ -90,7 +112,7 @@ static const BHDR_P_RamPacketMap RamPacketMap[BHDR_P_NUM_PACKETS] =
 
 	/* Packet 12 */ {BAVC_HDMI_PacketType_eDirectStream, false},
 
-	/* Packet 13 */ {BAVC_HDMI_PacketType_eUnused, false},
+	/* Packet 13 */ {BAVC_HDMI_PacketType_eDrmInfoFrame, true},
 	/* Packet 14 */ {BAVC_HDMI_PacketType_eUnused, false},
 	/* Packet 15 */ {BAVC_HDMI_PacketType_eUnused, false},
 	/* Packet 16 */ {BAVC_HDMI_PacketType_eUnused, false},
@@ -259,7 +281,7 @@ BERR_Code BHDR_P_InitializePacketRAM_isr(
 Summary:
 Copy the Packet Bytes from the H/W registers
 *******************************************************************************/
-static void BHDR_P_GetPacketRAM_isr(
+void BHDR_P_GetPacketRAM_isr(
 	BREG_Handle hRegister, uint32_t PacketRegisterOffset, uint8_t *DataBytes)
 {
 	uint32_t Register ;
@@ -339,19 +361,19 @@ void BHDR_P_ClearPacketMemory_isr(BHDR_Handle hHDR)
 	BDBG_ENTER(BHDR_P_ClearPacketMemory_isr) ;
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
 
-	BKNI_Memset(&hHDR->AviInfoFrame, 0, sizeof(BAVC_HDMI_AviInfoFrame));
-	BKNI_Memset(&hHDR->AudioInfoFrame, 0, sizeof(BAVC_HDMI_AudioInfoFrame));
-	BKNI_Memset(&hHDR->SPDInfoFrame, 0, sizeof(BAVC_HDMI_SPDInfoFrame));
-	BKNI_Memset(&hHDR->AudioContentProtection, 0, sizeof(BAVC_HDMI_ACP)) ;
-	BKNI_Memset(&hHDR->AudioClockRegenerationPacket,
+	BKNI_Memset_isr(&hHDR->AviInfoFrame, 0, sizeof(BAVC_HDMI_AviInfoFrame));
+	BKNI_Memset_isr(&hHDR->AudioInfoFrame, 0, sizeof(BAVC_HDMI_AudioInfoFrame));
+	BKNI_Memset_isr(&hHDR->SPDInfoFrame, 0, sizeof(BAVC_HDMI_SPDInfoFrame));
+	BKNI_Memset_isr(&hHDR->AudioContentProtection, 0, sizeof(BAVC_HDMI_ACP)) ;
+	BKNI_Memset_isr(&hHDR->AudioClockRegenerationPacket,
 		0,  sizeof(BAVC_HDMI_AudioClockRegenerationPacket)) ;
-	BKNI_Memset(&hHDR->VSInfoFrame, 0, sizeof(BAVC_HDMI_VendorSpecificInfoFrame));
+	BKNI_Memset_isr(&hHDR->VSInfoFrame, 0, sizeof(BAVC_HDMI_VendorSpecificInfoFrame));
 
 #if BHDR_CONFIG_GAMUT_PACKET_SUPPORT
-	BKNI_Memset(&hHDR->GamutPacket, 0, sizeof(BAVC_HDMI_GamutPacket)) ;
+	BKNI_Memset_isr(&hHDR->GamutPacket, 0, sizeof(BAVC_HDMI_GamutPacket)) ;
 #endif
 #if BHDR_CONFIG_ISRC_PACKET_SUPPORT
-	BKNI_Memset(&hHDR->ISRC, 0, sizeof(BAVC_HDMI_ISRC)) ;
+	BKNI_Memset_isr(&hHDR->ISRC, 0, sizeof(BAVC_HDMI_ISRC)) ;
 #endif
 
 	BDBG_LEAVE(BHDR_P_ClearPacketMemory_isr) ;
@@ -574,9 +596,7 @@ BERR_Code BHDR_P_ProcessReceivedPackets_isr(BHDR_Handle hHDR)
 
 			case BAVC_HDMI_PacketType_eSpdInfoFrame    :
 
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_SPD
 				BHDR_P_DEBUG_DumpPacketRam_isr(hHDR, i, &hHDR->RamPacket) ;
-#endif
 				BHDR_P_ParseSPDInfoFrameData_isr(hHDR, &hHDR->RamPacket) ;
 
 				hHDR->SPDInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eUpdated ;
@@ -590,9 +610,7 @@ BERR_Code BHDR_P_ProcessReceivedPackets_isr(BHDR_Handle hHDR)
 
 			case BAVC_HDMI_PacketType_eVendorSpecificInfoframe :
 
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_VENDOR_SPECIFIC
 				BHDR_P_DEBUG_DumpPacketRam_isr(hHDR, i, &hHDR->RamPacket) ;
-#endif
 				rc = BHDR_P_ParseVendorSpecificInfoFrameData_isr(hHDR, &hHDR->RamPacket) ;
 				if (rc) /* error in packet; do not callback with UNKNOWN VSI packet */
 					break  ;
@@ -607,12 +625,9 @@ BERR_Code BHDR_P_ProcessReceivedPackets_isr(BHDR_Handle hHDR)
 				break ;
 
 
-
 			case BAVC_HDMI_PacketType_eAviInfoFrame :
 
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_AVI
 				BHDR_P_DEBUG_DumpPacketRam_isr(hHDR, i, &hHDR->RamPacket) ;
-#endif
 				BHDR_P_ParseAviInfoFrameData_isr(hHDR, &hHDR->RamPacket) ;
 
 				hHDR->AviInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eUpdated ;
@@ -632,9 +647,7 @@ BERR_Code BHDR_P_ProcessReceivedPackets_isr(BHDR_Handle hHDR)
 
 			case BAVC_HDMI_PacketType_eAudioInfoFrame :
 
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_AUDIO
 				BHDR_P_DEBUG_DumpPacketRam_isr(hHDR, i, &hHDR->RamPacket) ;
-#endif
 				BHDR_P_ParseAudioInfoFrameData_isr(hHDR, &hHDR->RamPacket) ;
 
 				hHDR->AudioInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eUpdated ;
@@ -647,6 +660,20 @@ BERR_Code BHDR_P_ProcessReceivedPackets_isr(BHDR_Handle hHDR)
 
 				break ;
 
+			case BAVC_HDMI_PacketType_eDrmInfoFrame :
+
+				BHDR_P_DEBUG_DumpPacketRam_isr(hHDR, i, &hHDR->RamPacket) ;
+				BHDR_P_ParseDrmInfoFrameData_isr(hHDR, &hHDR->RamPacket) ;
+
+				hHDR->DRMInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eUpdated ;
+
+				if (hHDR->pfPacketChangeCallback)
+				{
+					hHDR->pfPacketChangeCallback(hHDR->pvPacketChangeParm1,
+						hHDR->RamPacket.Type, &hHDR->DRMInfoFrame) ;
+				}
+
+				break ;
 			case BAVC_HDMI_PacketType_eGeneralControl :
 				/* AvMute in the GCP is handled at Isr time */
 
@@ -836,12 +863,15 @@ BERR_Code BHDR_P_ProcessStoppedPackets_isr(BHDR_Handle hHDR)
 			pvPacketData = &hHDR->SPDInfoFrame ;
 			break ;
 
-
 		case BAVC_HDMI_PacketType_eVendorSpecificInfoframe:
 			hHDR->VSInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eStopped ;
 			hHDR->VSInfoFrame.eHdmiVideoFormat = BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_eNone ;
 			pvPacketData = &hHDR->VSInfoFrame ;
+			break ;
 
+		case BAVC_HDMI_PacketType_eDrmInfoFrame:
+			hHDR->DRMInfoFrame.ePacketStatus = BAVC_HDMI_PacketStatus_eStopped ;
+			pvPacketData = &hHDR->DRMInfoFrame ;
 			break ;
 
 		/* loss of audio ??? */
@@ -940,10 +970,10 @@ BERR_Code BHDR_P_ParseGeneralControlPacket_isr(
 	BDBG_ENTER(BHDR_P_ParseGeneralControlPacket_isr) ;
 	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
 
-	BKNI_Memset(&stNewGcpPacket, 0, sizeof(BAVC_HDMI_GcpData)) ;
+	BKNI_Memset_isr(&stNewGcpPacket, 0, sizeof(BAVC_HDMI_GcpData)) ;
 
 	/* Keep a raw copy of the HDMI Packet structure  */
-	BKNI_Memcpy(&stNewGcpPacket.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
+	BKNI_Memcpy_isr(&stNewGcpPacket.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
 
 
 	/* check for SetAvMute */
@@ -1096,969 +1126,9 @@ done :
 #endif
 
 	/* copy the new packet to the handle for use later */
-	BKNI_Memcpy(&hHDR->GeneralControlPacket, &stNewGcpPacket, sizeof(BAVC_HDMI_GcpData)) ;
+	BKNI_Memcpy_isr(&hHDR->GeneralControlPacket, &stNewGcpPacket, sizeof(BAVC_HDMI_GcpData)) ;
 
 	BDBG_LEAVE(BHDR_P_ParseGeneralControlPacket_isr) ;
 
 	return BERR_SUCCESS ;
 }
-
-
-/******************************************************************************
-Summary:
-Parse AVI Info Frame data from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseAviInfoFrameData_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-
-	BERR_Code rc = BERR_SUCCESS ;
-	BAVC_HDMI_AviInfoFrame stNewAviInfoFrame ;
-	uint8_t temp ;
-
-	BDBG_ENTER(BHDR_P_ParseAviInfoFrameData_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-
-	if (hHDR->DeviceSettings.bParseAVI == false)
-	{
-		/* return with just a raw copy of the HDMI Packet structure  */
-		BKNI_Memcpy(&hHDR->AviInfoFrame.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
-		return rc ;
-	}
-
-	BKNI_Memset(&stNewAviInfoFrame, 0, sizeof(BAVC_HDMI_AviInfoFrame)) ;
-
-	/* Keep a raw copy of the HDMI Packet structure  */
-	BKNI_Memcpy(&stNewAviInfoFrame.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
-
-
-	/* parse all fields and store in the local HDMI structure */
-
- 	/* AVI Infoframe Data Byte 1 */
-	/* AviInfoFrame.ePixelEncoding */
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0x60 ;
-	temp = temp >> 5 ;
-	stNewAviInfoFrame.ePixelEncoding = temp ;
-
-	/* AviInfoFrame.eActiveInfo*/
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0x10 ;
-	temp = temp >> 4 ;
-	stNewAviInfoFrame.eActiveInfo = temp ;
-
-	/* AviInfoFrame.eBarInfo */
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0x0C ;
-	temp = temp >> 2 ;
-	stNewAviInfoFrame.eBarInfo = temp ;
-
- 	/* AviInfoFrame.eScanInfo */
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0x03 ;
-	stNewAviInfoFrame.eScanInfo = temp ;
-
-
- 	/* AVI Infoframe Data Byte 2 */
-	/* AviInfoFrame.eColorimetry */
- 	temp = Packet->DataBytes[2];
-	temp = temp & 0xC0 ;
-	temp = temp >> 6 ;
-	stNewAviInfoFrame.eColorimetry = temp ;
-
-	/* AviInfoFrame.ePictureAspectRatio */
- 	temp = Packet->DataBytes[2];
-	temp = temp & 0x30 ;
-	temp = temp >> 4 ;
-	stNewAviInfoFrame.ePictureAspectRatio = temp ;
-
-	/* AviInfoFrame.eActiveFormatAspectRatio */
- 	temp = Packet->DataBytes[2] ;
-	temp = temp & 0x0F ;
-	stNewAviInfoFrame.eActiveFormatAspectRatio = temp ;
-
- 	/* AVI Infoframe Data Byte 3 */
-	/* AviInfoFrame.eITContent */
- 	temp = Packet->DataBytes[3] ;
-	temp = temp & 0x80 ;
-	temp = temp >> 7 ;
-	stNewAviInfoFrame.eITContent= temp ;
-
- 	/* AVI Infoframe Data Byte 3 */
-	/* AviInfoFrame.eExtendedColorimetry */
- 	temp = Packet->DataBytes[3] ;
-	temp = temp & 0x70 ;
-	temp = temp >> 4 ;
-	stNewAviInfoFrame.eExtendedColorimetry= temp ;
-
-
- 	/* AVI Infoframe Data Byte 3 */
-	/* AviInfoFrame.eRGBQuantizationRange */
- 	temp = Packet->DataBytes[3] ;
-	temp = temp & 0x0c ;
-	temp = temp >> 2 ;
-	stNewAviInfoFrame.eRGBQuantizationRange= temp ;
-
- 	/* AVI Infoframe Data Byte 3 */
-	/* AviInfoFrame.eScaling */
- 	temp = Packet->DataBytes[3] ;
-	temp = temp & 0x03 ;
-	stNewAviInfoFrame.eScaling = temp ;
-
-
- 	/* AVI Infoframe Data Byte 4 */
-	/* AviInfoFrame.VideoIdCode */
- 	temp = Packet->DataBytes[4] ;
-	temp = temp & 0x7F ;
-	stNewAviInfoFrame.VideoIdCode = temp ;
-
-
- 	/* AVI Infoframe Data Byte 5 */
-	/* AviInfoFrame.PixelRepeat */
- 	temp = Packet->DataBytes[5] ;
-	temp = temp & 0x0F ;
-	stNewAviInfoFrame.PixelRepeat = temp ;
-
- 	/* AVI Infoframe Data Byte 5 */
-	/* AviInfoFrame.eContentType */
- 	temp = Packet->DataBytes[5] ;
-	temp = temp & 0x30 ;
-	temp = temp >> 4 ;
-	stNewAviInfoFrame.eContentType = temp ;
-
- 	/* AVI Infoframe Data Byte 5 */
-	/* AviInfoFrame.eYccQuantizationRange */
- 	temp = Packet->DataBytes[5] ;
-	temp = temp & 0xC0 ;
-	temp = temp >> 6 ;
-	stNewAviInfoFrame.eYccQuantizationRange = temp ;
-
-	if (hHDR->AviInfoFrame.eBarInfo != BAVC_HDMI_AviInfoFrame_BarInfo_eInvalid)
-	{
-		/* get bar info */
-		stNewAviInfoFrame.TopBarEndLineNumber =
-			(uint16_t) ((Packet->DataBytes[7] << 8) | Packet->DataBytes[6]) ;
-
-		stNewAviInfoFrame.BottomBarStartLineNumber =
-			(uint16_t) ((Packet->DataBytes[9] << 8) | Packet->DataBytes[8]) ;
-
-		stNewAviInfoFrame.LeftBarEndPixelNumber =
-			(uint16_t) ((Packet->DataBytes[11] << 8) | Packet->DataBytes[10]) ;
-
-		stNewAviInfoFrame.RightBarEndPixelNumber =
-			(uint16_t) ((Packet->DataBytes[13] << 8) | Packet->DataBytes[12]) ;
-	}
-
-
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_AVI
-	BHDR_P_DEBUG_AviInfoFrame(&hHDR->AviInfoFrame, &stNewAviInfoFrame) ;
-#endif
-
-	/* copy the new packet */
-	BKNI_Memcpy(&hHDR->AviInfoFrame, &stNewAviInfoFrame, sizeof(BAVC_HDMI_AviInfoFrame)) ;
-
-	/* call  the callback functions for Format Change notification  */
-	if (hHDR->pfVideoFormatChangeCallback)
-	{
-		hHDR->pfVideoFormatChangeCallback(hHDR->pvVideoFormatChangeParm1,
-			hHDR->iVideoFormatChangeParm2, &hHDR->AviInfoFrame) ;
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseAviInfoFrameData_isr) ;
-	return rc ;
-}
-
-
-/******************************************************************************
-Summary:
-Parse Audio Info Frame data from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseAudioInfoFrameData_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-	uint8_t temp ;
-	BAVC_HDMI_AudioInfoFrame stNewAudioInfoFrame ;
-
-	BDBG_ENTER(BHDR_P_ParseAudioInfoFrameData_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* zero out the declared Audio Infoframe Structure */
-	BKNI_Memset(&stNewAudioInfoFrame, 0, sizeof(stNewAudioInfoFrame)) ;
-
-	/* keep a copy of the raw HDMI Packet structure */
-	BKNI_Memcpy(&stNewAudioInfoFrame.stPacket, Packet, sizeof(BAVC_HDMI_Packet));
-
-	/* parse the various fields in the packet */
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0x07 ;
-	stNewAudioInfoFrame.ChannelCount = temp ;
-
-	temp = Packet->DataBytes[1] ;
-	temp = temp & 0xF0 ;
-	temp = temp >> 4 ;
-	stNewAudioInfoFrame.CodingType = temp ;
-
-
-	temp = Packet->DataBytes[2] ;
-	temp = temp & 0x03,
-	 stNewAudioInfoFrame.SampleSize = temp ;
-
-	temp = Packet->DataBytes[2] ;
-	temp = temp & 0x1C ;
-	temp = temp >> 2 ;
-	stNewAudioInfoFrame.SampleFrequency = temp ;
-
-
-	temp = Packet->DataBytes[4] ;
-	temp = temp & 0x1F ;
-	stNewAudioInfoFrame.SpeakerAllocation = temp ;
-
-
-	temp = Packet->DataBytes[5] ;
-	temp = temp & 0x78 ;
-	temp = temp >> 3 ;
-	stNewAudioInfoFrame.LevelShift = temp ;
-
-	temp = Packet->DataBytes[5] ;
-	temp = temp & 0x80 ;
-	temp = temp >> 7 ;
-	stNewAudioInfoFrame.DownMixInhibit = temp ;
-
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_AUDIO
-	BHDR_P_DEBUG_AudioInfoFrame(&hHDR->AudioInfoFrame, &stNewAudioInfoFrame) ;
-#endif
-
-	/* copy the new packet to the handle for use later */
-	BKNI_Memcpy(&hHDR->AudioInfoFrame, &stNewAudioInfoFrame, sizeof(BAVC_HDMI_AudioInfoFrame)) ;
-
-	/* make sure MAI bus reflects any updated channel count info */
-	BHDR_P_ConfigureAudioMaiBus_isr(hHDR) ;
-
-	/* call  the callback functions for Audio Change notification  */
-	if (hHDR->pfAudioFormatChangeCallback)
-	{
-		hHDR->pfAudioFormatChangeCallback(hHDR->pvAudioFormatChangeParm1,
-			hHDR->iAudioFormatChangeParm2, &hHDR->AudioData);
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseAudioInfoFrameData_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-/******************************************************************************
-Summary:
-Parse SPD Info Frame data from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseSPDInfoFrameData_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-	BAVC_HDMI_SPDInfoFrame stNewSpdInfoFrame ;
-
-	BDBG_ENTER(BHDR_P_ParseSPDInfoFrameData_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	BKNI_Memset(&stNewSpdInfoFrame, 0, sizeof(BAVC_HDMI_SPDInfoFrame)) ;
-
-	/* Keep a raw copy of the SPD packet  */
-	BKNI_Memcpy(&stNewSpdInfoFrame.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
-
-
-	BKNI_Memcpy(stNewSpdInfoFrame.VendorName,
-		&Packet->DataBytes[BAVC_HDMI_SPD_IF_VENDOR_OFFSET],
-		BAVC_HDMI_SPD_IF_VENDOR_LEN) ;
-
-	stNewSpdInfoFrame.VendorName[BAVC_HDMI_SPD_IF_VENDOR_LEN] = '\0' ;
-
-	BKNI_Memcpy(stNewSpdInfoFrame.ProductDescription,
-		&Packet->DataBytes[BAVC_HDMI_SPD_IF_DESC_OFFSET],
-		BAVC_HDMI_SPD_IF_DESC_LEN) ;
-
-	stNewSpdInfoFrame.ProductDescription[BAVC_HDMI_SPD_IF_DESC_LEN] = '\0' ;
-
-	stNewSpdInfoFrame.SourceDeviceInfo =
-		Packet->DataBytes[BAVC_HDMI_SPD_IF_DEVICE_INFO_OFFSET] ;
-
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_SPD
-	BHDR_P_DEBUG_SpdInfoFrame(&hHDR->SPDInfoFrame, &stNewSpdInfoFrame) ;
-#endif
-
-	/* copy the new packet struct data */
-	BKNI_Memcpy(&hHDR->SPDInfoFrame, &stNewSpdInfoFrame, sizeof(BAVC_HDMI_SPDInfoFrame)) ;
-
-
-	BDBG_LEAVE(BHDR_P_ParseSPDInfoFrameData_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-static void BHDR_P_ParseVSI_0xA05DE7_isr(BAVC_HDMI_VendorSpecificInfoFrame *stNewVsInfoFrame , BAVC_HDMI_Packet *Packet)
-{
-	/* parse the various fields in the packet */
-
-	uint8_t temp ;
-	/* HDMI Video Format */
-	temp = Packet->DataBytes[4] ;
-	temp = temp & 0xF0 ;
-	temp = temp >> 4 ;
-	stNewVsInfoFrame->eHdmiVideoFormat = temp ;
-
-	BDBG_WRN(("VideoFormat: %d", stNewVsInfoFrame->eHdmiVideoFormat)) ;
-
-	/* HDMI 3D Structure */
-	temp = Packet->DataBytes[5] ;
-	temp = temp & 0xF0 ;
-	temp = temp >> 4 ;
-	stNewVsInfoFrame->e3DStructure = temp ;
-	BDBG_WRN(("3D Struct: %d", stNewVsInfoFrame->e3DStructure)) ;
-
-	/* get the 3D Ext Data regardless if we know it is valid or not */
-	temp = Packet->DataBytes[6] ;
-	temp = temp & 0xF0 ;
-	temp = temp >> 4 ;
-	stNewVsInfoFrame->e3DExtData = temp ;
-
-
-}
-
-
-BERR_Code BHDR_P_ParseVendorSpecificInfoFrameData_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-	uint8_t temp ;
-	static const uint8_t HDMI_IEEE_0x00C003[] = {0x03, 0x0C, 0x00} ;
-	static const uint8_t HDMI_IEEE_0xA05DE7[] = {0xE7, 0x5D, 0xA0} ;
-
-	BAVC_HDMI_VendorSpecificInfoFrame stNewVsInfoFrame ;
-
-	BDBG_ENTER(BHDR_P_ParseVendorSpecificInfoFrameData_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	BKNI_Memset(&stNewVsInfoFrame, 0, sizeof(BAVC_HDMI_VendorSpecificInfoFrame)) ;
-
-	/* Keep a raw copy of the SPD packet  */
-	BKNI_Memcpy(&stNewVsInfoFrame.stPacket, Packet, sizeof(BAVC_HDMI_Packet)) ;
-
-
-	/* copy the IEEE Reg ID value */
-	BKNI_Memcpy_isr(&stNewVsInfoFrame.uIEEE_RegId,
-		&Packet->DataBytes[ BAVC_HDMI_VS_IEEE_REGID_OFFSET],
-		BAVC_HDMI_IEEE_REGID_LEN) ;
-
-	if (BKNI_Memcmp(&stNewVsInfoFrame.uIEEE_RegId, HDMI_IEEE_0x00C003,
-		BAVC_HDMI_IEEE_REGID_LEN))
-	{
-		BDBG_MSG(("Proprietary IEEE RegId: <0x%02X%02X%02X>",
-			stNewVsInfoFrame.uIEEE_RegId[2], stNewVsInfoFrame.uIEEE_RegId[1],
-			stNewVsInfoFrame.uIEEE_RegId[0])) ;
-
-
-		if (!BKNI_Memcmp(&stNewVsInfoFrame.uIEEE_RegId, &HDMI_IEEE_0xA05DE7,
-			BAVC_HDMI_IEEE_REGID_LEN))
-		{
-			BHDR_P_ParseVSI_0xA05DE7_isr(&stNewVsInfoFrame, Packet) ;
-			goto done ;
-		}
-		else
-		{
-			BDBG_MSG(("IEEE RegId: <0x%02x%02X%02X> is UNSUPPORTED",
-				stNewVsInfoFrame.uIEEE_RegId[2], stNewVsInfoFrame.uIEEE_RegId[1],
-				stNewVsInfoFrame.uIEEE_RegId[0])) ;
-			return BERR_UNKNOWN ;
-		}
-	}
-
-	/* parse the various fields in the packet */
-
-	/* HDMI Video Format */
-	temp = Packet->DataBytes[4] ;
-	temp = temp & 0xE0 ;
-	temp = temp >> 5 ;
-	stNewVsInfoFrame.eHdmiVideoFormat = temp ;
-
-	switch(stNewVsInfoFrame.eHdmiVideoFormat)
-	{
-	case BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_eExtendedResolution :
-	/* HDMI VIC */
-		temp = Packet->DataBytes[5] ;
-		stNewVsInfoFrame.eHdmiVic = temp ;
-		break ;
-
-	case BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_e3DFormat :
-	/* OR  HDMI 3D Structure */
-		temp = Packet->DataBytes[5] ;
-		temp = temp & 0xF0 ;
-		temp = temp >> 4 ;
-		stNewVsInfoFrame.e3DStructure = temp ;
-
-		/* get the 3D Ext Data regardless if we know it is valid or not */
-		temp = Packet->DataBytes[6] ;
-		temp = temp & 0xF0 ;
-		temp = temp >> 4 ;
-		stNewVsInfoFrame.e3DExtData = temp ;
-
-		break ;
-
-	case BAVC_HDMI_VSInfoFrame_HDMIVideoFormat_eNone :
-		/* do nothing */
-		break ;
-
-	default :
-		BDBG_WRN(("VSI HDMI Video Format Reserved (%d)",
-			stNewVsInfoFrame.eHdmiVideoFormat)) ;
-	}
-
-done:
-#if BHDR_CONFIG_DEBUG_INFO_PACKET_VENDOR_SPECIFIC
-	BHDR_P_DEBUG_VsInfoFrame(& hHDR->VSInfoFrame, &stNewVsInfoFrame) ;
-#endif
-
-	/* copy the new packet to the handle for use later */
-	BKNI_Memcpy(&hHDR->VSInfoFrame, &stNewVsInfoFrame,
-		sizeof(BAVC_HDMI_VendorSpecificInfoFrame)) ;
-
-	BDBG_LEAVE(BHDR_P_ParseVendorSpecificInfoFrameData_isr) ;
-
-	return BERR_SUCCESS ;
-}
-
-
-/******************************************************************************
-Summary:
-Parse Audio Content Protection  from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseAudioContentProtection_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-
-	uint8_t i ;
-
-	BDBG_ENTER(BHDR_P_ParseAudioContentProtection_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* Firstly don't  parse all fields but store in the local HDMI structure */
-	BKNI_Memcpy(&hHDR->AudioContentProtection.stPacket, Packet, sizeof(BAVC_HDMI_Packet));
-
-
-	hHDR->AudioContentProtection.ACP_Type = Packet->Version;
-	for (i =0; i<BAVC_HDMI_PB_LENGTH; i++)
-	{
-		hHDR->AudioContentProtection.ACP_Type_Dependent[i] = Packet->DataBytes[i] ;
-	}
-
-	/* call  the callback functions for Audio Content Protection Change notification  */
-	if (hHDR->pfAudioContentProtectionChangeCallback)
-	{
-		hHDR->pfAudioContentProtectionChangeCallback(
-			hHDR->pvAudioContentProtectionChangeParm1,
-			hHDR->iAudioContentProtectionChangeParm2,
-			&hHDR->AudioContentProtection);
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseAudioContentProtection_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-#if BHDR_CONFIG_ISRC_PACKET_SUPPORT
-/******************************************************************************
-Summary:
-Parse ISRC1 from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseISRC1_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-
-	uint8_t i ;
-
-	BDBG_ENTER(BHDR_P_ParseISRC1_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* Firstly don't  parse all fields but store in the local HDMI structure */
-	BKNI_Memcpy(&hHDR->ISRC.stISRC1_Packet, Packet, sizeof(BAVC_HDMI_Packet));
-
-	hHDR->ISRC.ISRC1_PacketReceived = true  ;
-
-	hHDR->ISRC.ISRC_Cont = Packet->Version & 0x80 ;
-	hHDR->ISRC.ISRC_Valid = Packet->Version & 0x40 ;
-	hHDR->ISRC.ISRC_Status = Packet->Version & 0x07 ;
-
-	for (i =0; i < BAVC_HDMI_PB_LENGTH; i++)
-	{
-		hHDR->ISRC.ISRC_UPC_EAN[i] = Packet->DataBytes[i] ;
-	}
-
-	/* call callback if there is no ISRC2 packet, otherwise wait for the Recd ISRC2 packet to call the cb */
-	if (!hHDR->ISRC.ISRC_Cont)
-	{
-		/* call  the callback functions for ISRC Change notification  */
-		if (hHDR->pfISRCChangeCallback)
-		{
-			hHDR->pfISRCChangeCallback(hHDR->pvISRCChangeParm1,
-				hHDR->iISRCChangeParm2, &hHDR->ISRC);
-		}
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseISRC1_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-/******************************************************************************
-Summary:
-Parse ISRC2 from received packet
-*******************************************************************************/
-BERR_Code BHDR_P_ParseISRC2_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-
-	uint8_t i ;
-
-	BDBG_ENTER(BHDR_P_ParseISRC2_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* Store a copy of the packet first before parsing the fields  */
-	BKNI_Memcpy(&hHDR->ISRC.stISRC2_Packet, Packet, sizeof(BAVC_HDMI_Packet));
-
-
-	/* there is no Header data in ISRC2; only packet byte data */
-
-	for (i =0; i < BAVC_HDMI_PB_LENGTH; i++)
-	{
-		hHDR->ISRC.ISRC_UPC_EAN[BAVC_HDMI_IRSC2_PACKET_OFFSET + i]
-			= Packet->DataBytes[i] ;
-	}
-
-
-	/* always call  the callback function for ISRC Change notification  when 2nd part of ISRC packet is sent */
-	if (hHDR->pfISRCChangeCallback)
-	{
-		hHDR->pfISRCChangeCallback(hHDR->pvISRCChangeParm1,
-			hHDR->iISRCChangeParm2, &hHDR->ISRC);
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseISRC2_isr) ;
-	return BERR_SUCCESS ;
-}
-#endif
-
-BERR_Code BHDR_P_ParseAudioClockRegeneration_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_Packet *Packet)
-{
-
-#if BHDR_CONFIG_DEBUG_ACR_PACKET
-	BAVC_HDMI_AudioClockRegenerationPacket stNewAudioClockRegenerationPacket ;
-#endif
-	uint32_t N, CTS ;
-
-	BDBG_ENTER(BHDR_P_ParseAudioClockRegeneration_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* Keep a raw copy of the HDMI Packet structure  */
-	BKNI_Memcpy(&hHDR->AudioClockRegenerationPacket.stPacket, Packet,
-		sizeof(BAVC_HDMI_Packet)) ;
-
-	/* display modified N and CTS values for debug purposes */
-	CTS =
-		  (uint32_t) ((Packet->DataBytes[1] & 0xF) << 16)
-		|(uint32_t) ((Packet->DataBytes[2] << 8))
-		|(uint32_t) ((Packet->DataBytes[3])) ;
-
-	N =
-		  (uint32_t) ((Packet->DataBytes[4] & 0xF) << 16)
-		|(uint32_t) ((Packet->DataBytes[5] << 8))
-		|(uint32_t) ((Packet->DataBytes[6])) ;
-
-
-	/* For audio sample freq, CTS and N from packet are more exact than the value from register. */
-	if ((hHDR->AudioClockRegenerationPacket.N != N)
-	|| (hHDR->AudioClockRegenerationPacket.CTS > (CTS + 20))
-	|| ((hHDR->AudioClockRegenerationPacket.CTS + 20) < CTS))
-	{
-#if BHDR_CONFIG_DEBUG_ACR_PACKET
-		BDBG_MSG(("RAM_PACKET_%02d received '%s' Packet (0x%02x)",
-			ACR_PACKET_LOCATION, BAVC_HDMI_PacketTypeToStr_isrsafe(Packet->Type),
-			Packet->Type)) ;
-
-		stNewAudioClockRegenerationPacket.CTS = CTS ;
-		stNewAudioClockRegenerationPacket.N = N ;
-		/* always report significant changes in audio clock recovery packet */
-		BHDR_P_DEBUG_AcrPacket(
-			&hHDR->AudioClockRegenerationPacket,
-			&stNewAudioClockRegenerationPacket) ;
-#endif
-
-		hHDR->AudioClockRegenerationPacket.CTS = CTS ;
-		hHDR->AudioClockRegenerationPacket.N = N ;
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseAudioClockRegeneration_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-#if BHDR_CONFIG_GAMUT_PACKET_SUPPORT
-BERR_Code BHDR_P_GetGamutPacketData_isr(
-	BHDR_Handle hHDR, uint8_t PacketNum, BAVC_HDMI_GamutPacket *Packet )
-{
-	BREG_Handle hRegister ;
-	uint32_t ulOffset ;
-
-	uint32_t Register ;
-	uint32_t PacketRegisterOffset ;
-
-	BDBG_ENTER(BHDR_P_GetGamutPacketData_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	hRegister= hHDR->hRegister ;
-	ulOffset = hHDR->ulOffset;
-
-	/* calculate the offset of where the Packet RAM begins */
-	PacketRegisterOffset = BCHP_HDMI_RX_0_RAM_PACKET_0_HEADER + ulOffset
-		+ BHDR_P_PACKET_WORDS * 4 * PacketNum ;
-
-	/* read the Header Bytes (HBn) first */
-
-	Register = BREG_Read32(hRegister, PacketRegisterOffset) ;
-
-	hHDR->GamutPacket.NextField               = ((Register & 0x00008000) >> 15) ;
-	hHDR->GamutPacket.Profile                 = ((Register & 0x00007000) >> 12) ;
-	hHDR->GamutPacket.AffectedGamutSeqNumber  = ((Register & 0x00000F00) >>  8) ;
-	hHDR->GamutPacket.NoCurrentGamut          = ((Register & 0x00800000) >> 23) ;
-	hHDR->GamutPacket.PacketSeq               = ((Register & 0x00300000) >> 20) ;
-	hHDR->GamutPacket.CurrentGamutSeqNumber   = ((Register & 0x000F0000) >> 16) ;
-
-	/* advance to the next packet register */
-	PacketRegisterOffset +=  4 ;
-
-	/* now read the Packet Bytes (PBn) */
-	BHDR_P_GetPacketRAM_isr(hRegister, PacketRegisterOffset, (uint8_t *) Packet->DataBytes) ;
-
-#if BHDR_CONFIG_DEBUG_GAMUT_PACKET
-	{
-		static char *ucProfile[] = {"P0", "P1", "P2", "P3"} ;
-		static char *ucPacketSequence[] =
-			{"Intermediate", "First", "Last", "Only"} ;
-
-		BDBG_WRN(("Next Field:           %d", hHDR->GamutPacket.NextField)) ;
-		BDBG_WRN(("No Current GBD:       %d", hHDR->GamutPacket.NoCurrentGamut)) ;
-		BDBG_WRN(("GBD Profile:          %s", ucProfile[hHDR->GamutPacket.Profile])) ;
-		BDBG_WRN(("GBD Affected Gamut Sequence Number:    %d",
-			hHDR->GamutPacket.AffectedGamutSeqNumber)) ;
-		BDBG_WRN(("GBD Current Gamut Sequence Number:     %d",
-			hHDR->GamutPacket.CurrentGamutSeqNumber)) ;
-		BDBG_WRN(("GBD Packet Sequence:  %s Packet",
-			ucPacketSequence[hHDR->GamutPacket.PacketSeq])) ;
-
-	}
-#endif
-	BDBG_LEAVE(BHDR_P_GetGamutPacketData_isr) ;
-	return BERR_SUCCESS ;
-}
-
-
-
-BERR_Code BHDR_P_ParseGamutMetadataPacket_isr(
-	BHDR_Handle hHDR, BAVC_HDMI_GamutPacket *Packet)
-{
-	uint8_t temp ;
-	uint8_t index ;
-	uint8_t i ;
-
-	BDBG_ENTER(BHDR_P_ParseGamutMetadataPacket_isr) ;
-	BDBG_OBJECT_ASSERT(hHDR, BHDR_P_Handle) ;
-
-	/* First, store original contents in the local HDMI structure */
-	BKNI_Memcpy(&hHDR->GamutPacket, Packet, sizeof(BAVC_HDMI_Packet));
-
-
-	/* Format Flag */
-	temp = Packet->DataBytes[0] ;
-	temp = temp & 0x80 ;
-	if (temp)
-		hHDR->GamutPacket.Format = BAVC_HDMI_GamutFormat_eRange ;
-	else
-		hHDR->GamutPacket.Format = BAVC_HDMI_GamutFormat_eVerticesFacets ;
-
-	/* facet mode */
-	temp = Packet->DataBytes[0] ;
-	hHDR->GamutPacket.bFacets = (bool) (temp & 0x40) ;
-
-	/* color precision */
-	temp = Packet->DataBytes[0] & 0x18 ;
-	temp = temp >> 3 ;
-	hHDR->GamutPacket.eColorPrecision = (BAVC_HDMI_GamutColorPrecision) temp ;
-
-	/* color space */
-	temp = Packet->DataBytes[0] & 0x07 ;
-
-	hHDR->GamutPacket.eColorSpace = (BAVC_HDMI_GamutColorspace) temp ;
-
-#if BHDR_CONFIG_DEBUG_GAMUT_PACKET
-	{
-		static char *ucPacketFormat[] = {"Vertices/Facets", "Range Data"} ;
-		static char *ucColorPrecision[] = {"8 Bit", "10 Bit", "12 bit"} ;
-		static char *ucColorSpace[] = {
-			"ITU-R BT.709 (using RGB)",
-			"xvYCC601 (IEC 61966-2-4  SD) (using YCbCr)",
-			"xvYCC709 (IEC 61966-2-4  HD) (using YCbCr)",
-			"XYZ (see above)" } ;
-
-		BDBG_WRN(("GBD Format: %s %s - %s",
-			ucColorPrecision[hHDR->GamutPacket.eColorPrecision],
-			ucPacketFormat[hHDR->GamutPacket.Format],
-			ucColorSpace[hHDR->GamutPacket.eColorSpace])) ;
-	}
-#endif
-
-
-	if (hHDR->GamutPacket.Format == BAVC_HDMI_GamutFormat_eVerticesFacets)
-	{
-		/* Number_Vertices */
-		hHDR->GamutPacket.uiNumberVertices =
-			  (uint16_t)  (Packet->DataBytes[1] << 8)
-			|(uint16_t)  (Packet->DataBytes[2]) ;
-
-		if (hHDR->GamutPacket.uiNumberVertices != 4)
-		{
-			BDBG_ERR(("GBD Vertices:        %d invalid; Assuming 4",
-				hHDR->GamutPacket.uiNumberVertices)) ;
-			hHDR->GamutPacket.uiNumberVertices = 4 ;
-		}
-#if BHDR_CONFIG_DEBUG_GAMUT_PACKET
-		BDBG_WRN(("GBD Vertices:        %d",
-			hHDR->GamutPacket.uiNumberVertices )) ;
-#endif
-
-		if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e8Bit)
-		{
-			for (i = 0 ; i < 4 ; i++)  /* for each pixel value black/red/green/blue */
-			{
-				index = 3 + (3 * i ) ;
-				hHDR->GamutPacket.uiY[i]   = Packet->DataBytes[index] ;
-				hHDR->GamutPacket.uiCb[i] = Packet->DataBytes[index + 1] ;
-				hHDR->GamutPacket.uiCr[i]  = Packet->DataBytes[index + 2] ;
-			}
-		}
-		else if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e10Bit)
-		{
-			index = 3;
-
-			/* point 0: Black Y, Cb, Cr */
-			hHDR->GamutPacket.uiY[0]   =
-				  (uint16_t) (Packet->DataBytes[index]	<< 2)
-				| (uint16_t) ((Packet->DataBytes[index + 1] & 0xC0) >> 6) ;
-
-			hHDR->GamutPacket.uiCb[0] =
-				(uint16_t) ((Packet->DataBytes[index + 1] & 0x3F) << 4)
-				| (uint16_t) ((Packet->DataBytes[index + 2] & 0xF0) >> 4) ;
-
-			hHDR->GamutPacket.uiCr[0] =
-				(uint16_t) ((Packet->DataBytes[index + 2] & 0x0F) << 6)
-				| (uint16_t) ((Packet->DataBytes[index + 3] & 0xFC) >> 2) ;
-
-
-			/* point 1: Red Y, Cb, Cr	*/
-			hHDR->GamutPacket.uiY[1]   =
-				  (uint16_t) ((Packet->DataBytes[index + 3] & 0x03) << 8)
-				| (uint16_t) (Packet->DataBytes[index + 4]) ;
-
-			hHDR->GamutPacket.uiCb[1] =
-				  (uint16_t) (Packet->DataBytes[index+5]  << 2)
-				| (uint16_t) ((Packet->DataBytes[index + 6] & 0xC0) >> 6) ;
-
-			hHDR->GamutPacket.uiCr[1] =
-				(uint16_t) ((Packet->DataBytes[index + 6] & 0x3F) << 4)
-				| (uint16_t) ((Packet->DataBytes[index + 7] & 0xF0) >> 4) ;
-
-			/* point 2: Green Y, Cb, Cr */
-			hHDR->GamutPacket.uiY[2] =
-				(uint16_t) ((Packet->DataBytes[index + 7] & 0x0F) << 6)
-				| (uint16_t) ((Packet->DataBytes[index + 8] & 0xFC) >> 2) ;
-
-			hHDR->GamutPacket.uiCb[2]	=
-				  (uint16_t) ((Packet->DataBytes[index + 8] & 0x03) << 8)
-				| (uint16_t) (Packet->DataBytes[index + 9]) ;
-
-			hHDR->GamutPacket.uiCr[2] =
-				  (uint16_t) (Packet->DataBytes[index+10]  << 2)
-				| (uint16_t) ((Packet->DataBytes[index + 11] & 0xC0) >> 6) ;
-
-
-			/* point 3: Blue Y, Cb, Cr	*/
-			hHDR->GamutPacket.uiY[3] =
-				(uint16_t) ((Packet->DataBytes[index + 11] & 0x3F) << 4)
-				| (uint16_t) ((Packet->DataBytes[index + 12] & 0xF0) >> 4) ;
-
-			hHDR->GamutPacket.uiCb[3] =
-				(uint16_t) ((Packet->DataBytes[index + 12] & 0x0F) << 6)
-				| (uint16_t) ((Packet->DataBytes[index + 13] & 0xFC) >> 2) ;
-
-			hHDR->GamutPacket.uiCr[3]	=
-				  (uint16_t) ((Packet->DataBytes[index + 13] & 0x03) << 8)
-				| (uint16_t) (Packet->DataBytes[index + 14]) ;
-
-		}
-		else if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e12Bit)
-		{
-			index = 3;
-			for (i = 0 ; i < 4 ; i++)  /* for each pixel value black/red/green/blue */
-			{
-				hHDR->GamutPacket.uiY[i]   =
-					  (uint16_t) (Packet->DataBytes[index]	<< 4)
-					| (uint16_t) ((Packet->DataBytes[index+1] & 0xF0) >> 4) ;
-
-				hHDR->GamutPacket.uiCb[i] =
-					(uint16_t) ((Packet->DataBytes[index+1] & 0x0F) << 8)
-					| (uint16_t) (Packet->DataBytes[index+2]) ;
-
-				hHDR->GamutPacket.uiCr[i]	=
-					  (uint16_t) (Packet->DataBytes[index+3]  << 4)
-					| (uint16_t) ((Packet->DataBytes[index+4] & 0xF0) >> 4) ;
-
-				hHDR->GamutPacket.uiY[i] =
-					(uint16_t) ((Packet->DataBytes[index+4] & 0x0F) << 8)
-					| (uint16_t) (Packet->DataBytes[index+5]) ;
-
-				hHDR->GamutPacket.uiCb[i]	=
-					  (uint16_t) (Packet->DataBytes[index+6]  << 4)
-					| (uint16_t) ((Packet->DataBytes[index+7] & 0xF0) >> 4) ;
-
-				hHDR->GamutPacket.uiCr[i] =
-					(uint16_t) ((Packet->DataBytes[index+7] & 0x0F) << 8)
-					| (uint16_t) (Packet->DataBytes[index+8]) ;
-
-				index += 9;
-			}
-		}
-
-#if BHDR_CONFIG_DEBUG_GAMUT_PACKET
-		for (i=0; i<4; i++)
-		{
-			BDBG_MSG(("Point %d Y= %3d	Cb= %3d, Cr= %3d",
-				i+1, hHDR->GamutPacket.uiY[i],
-				hHDR->GamutPacket.uiCb[i], hHDR->GamutPacket.uiCr[i]))	;
-		}
-#endif
-
-		/* FACET DATA not supported by HDMI 1.3 */
-
-	}
-	else if (hHDR->GamutPacket.Format == BAVC_HDMI_GamutFormat_eRange)
-	{
-		if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e8Bit)
-		{
-			/* RED Data */
-			hHDR->GamutPacket.uiMinRedData = (uint16_t) Packet->DataBytes[1]  ;
-			hHDR->GamutPacket.uiMaxRedData = (uint16_t) Packet->DataBytes[2] ;
-
-
-			/* GREEN Data */
-			hHDR->GamutPacket.uiMinGreenData = (uint16_t) Packet->DataBytes[3] ;
-			hHDR->GamutPacket.uiMaxGreenData = (uint16_t) Packet->DataBytes[4] ;
-
-
-			/* BLUE Data */
-			hHDR->GamutPacket.uiMinBlueData = (uint16_t) Packet->DataBytes[5]  ;
-			hHDR->GamutPacket.uiMaxBlueData = (uint16_t) Packet->DataBytes[6] ;
-		}
-		else if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e10Bit)
-		{
-			/* RED Data */
-			hHDR->GamutPacket.uiMinRedData =
-				  (uint16_t) (Packet->DataBytes[1]  << 2)
-				| (uint16_t) ((Packet->DataBytes[2] & 0xC0) >> 6) ;
-
-			hHDR->GamutPacket.uiMaxRedData =
-				  (uint16_t) ((Packet->DataBytes[2] & 0x3F)  << 4)
-				| (uint16_t) ((Packet->DataBytes[3] & 0xF0) >> 4) ;
-
-
-			/* GREEN Data */
-			hHDR->GamutPacket.uiMinGreenData =
-				  (uint16_t) ((Packet->DataBytes[3] & 0x0F) << 6)
-				| (uint16_t) ((Packet->DataBytes[4] & 0xFC) >> 2) ;
-
-			hHDR->GamutPacket.uiMaxGreenData =
-				  (uint16_t) ((Packet->DataBytes[4] & 0x03)  << 8)
-				| (uint16_t) (Packet->DataBytes[5]) ;
-
-
-			/* BLUE Data */
-			hHDR->GamutPacket.uiMinBlueData =
-				  (uint16_t) (Packet->DataBytes[6]  << 2)
-				| (uint16_t) ((Packet->DataBytes[7] & 0xC0) >> 6) ;
-
-			hHDR->GamutPacket.uiMaxBlueData =
-				  (uint16_t) ((Packet->DataBytes[7] & 0x3F)  << 4)
-				| (uint16_t) ((Packet->DataBytes[8] & 0xF0) >> 4) ;
-
-		}
-		else if (hHDR->GamutPacket.eColorPrecision == BAVC_HDMI_GamutColorPrecision_e12Bit)
-		{
-			/* RED Data */
-			hHDR->GamutPacket.uiMinRedData =
-				  (uint16_t) (Packet->DataBytes[1]  << 4)
-				| (uint16_t) ((Packet->DataBytes[2] & 0xF0) >> 4) ;
-
-			hHDR->GamutPacket.uiMaxRedData =
-				  (uint16_t) ((Packet->DataBytes[2] & 0x0F)  << 8)
-				| (uint16_t) (Packet->DataBytes[3]) ;
-
-
-			/* GREEN Data */
-			hHDR->GamutPacket.uiMinGreenData =
-				  (uint16_t) (Packet->DataBytes[4]  << 4)
-				| (uint16_t) ((Packet->DataBytes[5] & 0xF0) >> 4) ;
-
-			hHDR->GamutPacket.uiMaxGreenData =
-				  (uint16_t) ((Packet->DataBytes[5] & 0x0F)  << 8)
-				| (uint16_t) (Packet->DataBytes[6]) ;
-
-
-			/* BLUE Data */
-			hHDR->GamutPacket.uiMinBlueData =
-				  (uint16_t) (Packet->DataBytes[7]  << 4)
-				| (uint16_t) ((Packet->DataBytes[8] & 0xF0) >> 4) ;
-
-			hHDR->GamutPacket.uiMaxBlueData =
-				  (uint16_t) ((Packet->DataBytes[8] & 0x0F)  << 8)
-				| (uint16_t) (Packet->DataBytes[9]) ;
-		}
-		else
-		{
-			BDBG_ERR(("Unknown Gamut Color Precision Format",
-				hHDR->GamutPacket.eColorPrecision)) ;
-		}
-
-#if BHDR_CONFIG_DEBUG_GAMUT_PACKET
-		BDBG_MSG(("RED RANGE:     %d to %d",
-			hHDR->GamutPacket.uiMinRedData, hHDR->GamutPacket.uiMaxRedData)) ;
-		BDBG_MSG(("GREEN RANGE:   %d to %d",
-			hHDR->GamutPacket.uiMinGreenData, hHDR->GamutPacket.uiMaxGreenData)) ;
-		BDBG_MSG(("BLUE RANGE:    %d to %d",
-			hHDR->GamutPacket.uiMinBlueData, hHDR->GamutPacket.uiMaxBlueData)) ;
-#endif
-	}
-
-
-	/* notify users of gamut change */
-	BDBG_WRN(("Gamut Change Notification")) ;
-
-	/* call  the callback functions for Format Change notification  */
-	if (hHDR->pfGamutChangeCallback)
-	{
-		hHDR->pfGamutChangeCallback(hHDR->pvGamutChangeParm1,
-			hHDR->iGamutChangeParm2, &hHDR->GamutPacket) ;
-	}
-
-	BDBG_LEAVE(BHDR_P_ParseGamutMetadataPacket_isr) ;
-	return BERR_SUCCESS ;
- }
-
-
-
-#endif
-
-

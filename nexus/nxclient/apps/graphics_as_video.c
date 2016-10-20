@@ -114,8 +114,8 @@ int main(int argc, char **argv)
     BKNI_EventHandle event,imageEvent;
     NEXUS_VideoImageInputSettings imageInputSetting;
     NEXUS_VideoImageInputStatus imageInputStatus;
-    unsigned i;
-    unsigned submitIdx = 0,releaseIdx = 0;
+    unsigned i, iter = 0;
+    unsigned submitIdx, releaseIdx;
     unsigned timeout = 0;
     int curarg = 1;
     bool xdm=false;
@@ -165,14 +165,6 @@ int main(int argc, char **argv)
     gfxSettings.checkpointCallback.context = event;
     NEXUS_Graphics2D_SetSettings(gfx, &gfxSettings);
 
-restart:
-    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
-    startSettings.lowDelayImageInput = !xdm;    /* Low delay mode bypasses xdm display management */
-    imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
-    BDBG_ASSERT(imageInput);
-
-    NEXUS_VideoImageInput_GetStatus(imageInput, &imageInputStatus);
-
     NEXUS_Surface_GetDefaultCreateSettings(&surfaceCreateSettings);
     surfaceCreateSettings.width  = 720;
     surfaceCreateSettings.height = 480;
@@ -192,15 +184,28 @@ restart:
     for (i=0; i<NUM_SURFACES; i++) {
         g_surface[i].handle = NEXUS_Surface_Create(&surfaceCreateSettings);
         BDBG_ASSERT(g_surface[i].handle);
+    }
+
+
+restart:
+    NEXUS_SimpleVideoDecoder_GetDefaultStartSettings(&startSettings);
+    startSettings.lowDelayImageInput = !xdm;    /* Low delay mode bypasses xdm display management */
+    imageInput = NEXUS_SimpleVideoDecoder_StartImageInput(videoDecoder, &startSettings);
+    BDBG_ASSERT(imageInput);
+
+    NEXUS_VideoImageInput_GetStatus(imageInput, &imageInputStatus);
+
+    for (i=0; i<NUM_SURFACES; i++) {
         g_surface[i].submitted = false;
     }
+    submitIdx = releaseIdx = 0;
 
     NEXUS_VideoImageInput_GetSettings(imageInput, &imageInputSetting);
     imageInputSetting.imageCallback.callback = imageBufferCallback;
     imageInputSetting.imageCallback.context  = imageEvent;
     NEXUS_VideoImageInput_SetSettings(imageInput, &imageInputSetting);
 
-    for (i=0;!timeout || i<timeout*60;i++) {
+    for (;!timeout || iter<timeout*60;iter++) {
         NEXUS_Graphics2DFillSettings fillSettings;
         NEXUS_SurfaceHandle freeSurface=NULL;
         NEXUS_VideoImageInputSurfaceSettings surfaceSettings;
@@ -253,7 +258,7 @@ restart:
         fillSettings.rect.x = 0;
         fillSettings.rect.width = 720;
         fillSettings.rect.y = 0;
-        fillSettings.rect.height = (i*4)%960;
+        fillSettings.rect.height = (iter*4)%960;
         if (fillSettings.rect.height > 480) fillSettings.rect.height = 960 - fillSettings.rect.height;
         if (fillSettings.rect.height) {
             rc = NEXUS_Graphics2D_Fill(gfx, &fillSettings);
@@ -281,6 +286,9 @@ restart:
                 BDBG_ASSERT(!rc);
             }
             else if (rc) {
+                if (!wait_for_idle_decoder(videoDecoder)) {
+                    goto restart;
+                }
                 BERR_TRACE(rc);
                 break;
             }

@@ -208,9 +208,6 @@ typedef struct BDSP_sVDecoderIPBuffCfg
     unsigned                MaxFrameHeight;
     unsigned                MaxFrameWidth;
 
-    /* Stripe width frame buffers allocated */
-    unsigned                StripeWidth;
-
     /* Decode and display buffer handles */
     sFrameBuffHandle        sDisplayFrameBuffParams;
     sFrameBuffHandle        sReferenceBuffParams;
@@ -230,14 +227,6 @@ Description:
 See Also:
    None.
 ****************************************************************************/
-
-typedef struct
-{
-   uint32_t                    ui32StartPhysicalOffset;     /* start physical addres of the memory bank to which this scb is connected */
-   uint32_t                    ui32Size;                    /* size of memory this scb addresses */
-
-}BDSP_VF_P_sScbAddrRange;
-
 typedef struct BDSP_sVEncoderIPConfig
 {
     BDSP_VF_P_sEncodeParams sEncoderParams;
@@ -246,13 +235,6 @@ typedef struct BDSP_sVEncoderIPConfig
     /* Max Picture size supported */
     unsigned                MaxFrameHeight;
     unsigned                MaxFrameWidth;
-
-    /* Stripe width frame buffers allocated */
-    unsigned                StripeWidth;
-
-
-    uint32_t                    ui32NumOfScbs;
-    BDSP_VF_P_sScbAddrRange     sScbAddrRange[BDSP_FWMAX_SCB_AVAIL];
 
      /* Reference buff 2 buffers in case of B pictures */
     sFrameBuffHandle        sReferenceBuffParams;

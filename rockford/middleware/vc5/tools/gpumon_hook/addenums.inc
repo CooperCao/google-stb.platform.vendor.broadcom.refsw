@@ -1429,9 +1429,16 @@ AddEnum(EGL_NO_IMAGE_KHR);
 AddEnum(EGL_IMAGE_PRESERVED_KHR);
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 AddEnum(EGL_PLATFORM_ANDROID_KHR);
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+AddEnum(EGL_PLATFORM_WAYLAND_KHR);
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 AddEnum(EGL_PLATFORM_X11_KHR);
@@ -1443,6 +1450,28 @@ AddEnum(EGL_PLATFORM_X11_SCREEN_KHR);
 
 #if EGL_KHR_wait_sync
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+AddEnum(GL_MULTIPLY_KHR);
+AddEnum(GL_SCREEN_KHR);
+AddEnum(GL_OVERLAY_KHR);
+AddEnum(GL_DARKEN_KHR);
+AddEnum(GL_LIGHTEN_KHR);
+AddEnum(GL_COLORDODGE_KHR);
+AddEnum(GL_COLORBURN_KHR);
+AddEnum(GL_HARDLIGHT_KHR);
+AddEnum(GL_SOFTLIGHT_KHR);
+AddEnum(GL_DIFFERENCE_KHR);
+AddEnum(GL_EXCLUSION_KHR);
+AddEnum(GL_HSL_HUE_KHR);
+AddEnum(GL_HSL_SATURATION_KHR);
+AddEnum(GL_HSL_COLOR_KHR);
+AddEnum(GL_HSL_LUMINOSITY_KHR);
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+AddEnum(GL_BLEND_ADVANCED_COHERENT_KHR);
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 AddEnum(GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR);
@@ -1555,6 +1584,9 @@ AddEnum(GL_DEPTH_COMPONENT24_OES);
 #if GL_OES_draw_buffers_indexed
 #endif /* GL_OES_draw_buffers_indexed*/
 
+#if GL_OES_draw_elements_base_vertex
+#endif /* GL_OES_draw_elements_base_vertex*/
+
 #if GL_OES_draw_texture
 AddEnum(GL_TEXTURE_CROP_RECT_OES);
 #endif /* GL_OES_draw_texture*/
@@ -1658,6 +1690,10 @@ AddEnum(GL_POINT_SIZE_ARRAY_POINTER_OES);
 AddEnum(GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES);
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+AddEnum(GL_PRIMITIVE_BOUNDING_BOX_OES);
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 #endif /* GL_OES_query_matrix*/
 
@@ -1665,6 +1701,11 @@ AddEnum(GL_POINT_SIZE_ARRAY_BUFFER_BINDING_OES);
 AddEnum(GL_RGB8_OES);
 AddEnum(GL_RGBA8_OES);
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+AddEnum(GL_SAMPLE_SHADING_OES);
+AddEnum(GL_MIN_SAMPLE_SHADING_VALUE_OES);
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -1864,6 +1905,10 @@ AddEnum(EGL_LOSE_CONTEXT_ON_RESET_EXT);
 #if EGL_EXT_platform_base
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+AddEnum(EGL_PLATFORM_WAYLAND_EXT);
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 AddEnum(EGL_PLATFORM_X11_EXT);
 AddEnum(EGL_PLATFORM_X11_SCREEN_EXT);
@@ -1875,6 +1920,15 @@ AddEnum(EGL_PROTECTED_CONTENT_EXT);
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+AddEnum(EGL_WAYLAND_BUFFER_WL);
+AddEnum(EGL_WAYLAND_PLANE_WL);
+AddEnum(EGL_WAYLAND_Y_INVERTED_WL);
+AddEnum(EGL_TEXTURE_Y_U_V_WL);
+AddEnum(EGL_TEXTURE_Y_UV_WL);
+AddEnum(EGL_TEXTURE_Y_XUXV_WL);
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 AddEnum(GL_CLAMP_TO_BORDER_BRCM);
@@ -1906,12 +1960,6 @@ AddEnum(GL_UNSIGNED_INT_SAMPLER_1D_ARRAY_BRCM);
 AddEnum(GL_TEXTURE_BINDING_1D_BRCM);
 AddEnum(GL_TEXTURE_BINDING_1D_ARRAY_BRCM);
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-AddEnum(GL_TEXTURE_FLIP_X);
-AddEnum(GL_TEXTURE_FLIP_Y);
-AddEnum(GL_TEXTURE_SWAP_ST);
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 AddEnum(GL_R16_BRCM);

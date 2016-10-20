@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -164,7 +164,7 @@ error:
 
 unsigned int CChannelBip::getLastPosition(void)
 {
-    unsigned int position=0;
+    unsigned int position = 0;
 
     if (getState() != BMediaPlayerState_eDisconnected)
     {
@@ -187,7 +187,7 @@ unsigned int CChannelBip::getLastPosition(void)
 
 unsigned int CChannelBip::getCurrentPosition(void)
 {
-    unsigned int position=0;
+    unsigned int position = 0;
 
     if (getState() != BMediaPlayerState_eDisconnected)
     {
@@ -233,7 +233,7 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
     eRet             ret       = eRet_Ok;
     BIP_Status       bipStatus = BIP_SUCCESS;
     BIP_PlayerStatus playerStatus;
-    CModel * pModel = getModel();
+    CModel *         pModel = getModel();
 
     if (_pPlayer == NULL)
     {
@@ -258,11 +258,12 @@ BIP_Status CChannelBip::mediaStateMachine(BMediaPlayerAction playerAction)
         {
             BIP_String_StrcpyChar(_pUrl, MString(_url + ".xcode"+ ".480p"));
         }
-        else if (pModel->getIpClientTranscodeProfile() == 2)
+        else
+        if (pModel->getIpClientTranscodeProfile() == 2)
         {
             BIP_String_StrcpyChar(_pUrl, MString(_url + ".xcode"+ ".720p"));
         }
-       pModel->setIpClientTranscodeEnabled(false);
+        pModel->setIpClientTranscodeEnabled(false);
     }
 
     switch (getState())
@@ -1438,7 +1439,7 @@ eRet CChannelBip::stop(void)
         }
     }
     return(ret);
-}
+} /* stop */
 
 eRet CChannelBip::seek(
         bool     relative,

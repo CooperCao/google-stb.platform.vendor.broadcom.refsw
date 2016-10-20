@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2014 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "nexus_platform_features.h"
@@ -129,7 +120,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
 #if NEXUS_BASE_OS_ucos_ii
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = 256 * 1024 * 1024;
 #else
-    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = pMemory->memc[1].region[0].length > 512*1024*1024 ? 768 * 1024 * 1024 : -1;
+    pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].size = pMemory->memoryLayout.memc[1].region[0].size > 512*1024*1024 ? 768 * 1024 * 1024 : -1;
 #endif
     pSettings->heap[NEXUS_MEMC1_GRAPHICS_HEAP].memoryType = NEXUS_MemoryType_eApplication; /* cached only */
 

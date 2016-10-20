@@ -42,6 +42,7 @@ export BOLT_BIN=none
 #These settings apply to all signing operations unless overridden by an engine/block specific parameter setting.
 export MARKET_ID?=0x0
 export MARKET_ID_MASK?=0xFFFFFFFF
+export MARKET_ID_SEL?=0x0
 export EPOCH_SEL=0x0
 export EPOCH=0x0
 export EPOCH_MASK=0xFF
@@ -81,9 +82,12 @@ export MEMSYS_KEY2_SIGNING_RIGHT=0x20
 export MEMSYS_KEY2_EXPONENT=0x1
 
 #Settings Specific to Firmware Key2 Signing
+export KEY2_MARKET_ID?=0x0
+export KEY2_MARKET_ID_SEL?=0x0
 export KEY2_EPOCH?=0x0
+export KEY2_SIG_VER?=0x1
 export KEY2_SIG_TYPE=0x1
-export KEY2_SIGNING_RIGHT=0x2
+export KEY2_SIGNING_RIGHT?=0x2
 export KEY2_EXPONENT=0x1
 
 #Settings Specific to RAVE Firmware Signing

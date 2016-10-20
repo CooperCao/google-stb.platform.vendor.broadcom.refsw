@@ -40,13 +40,37 @@ GFX_LFMT_T gfx_lfmt_translate_from_memory_format(
 }
 
 GFX_LFMT_T gfx_lfmt_translate_from_tfu_iformat(
-   v3d_tfu_iformat_t tfu_iformat)
+   v3d_tfu_iformat_t tfu_iformat, unsigned dram_map_version)
 {
    switch (tfu_iformat)
    {
    case V3D_TFU_IFORMAT_RASTER:     return GFX_LFMT_2D_RSO;
-   case V3D_TFU_IFORMAT_SAND_128:   return GFX_LFMT_2D_SAND_128;
-   case V3D_TFU_IFORMAT_SAND_256:   return GFX_LFMT_2D_SAND_256;
+   case V3D_TFU_IFORMAT_SAND_128:
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      switch (dram_map_version)
+      {
+      case 2:  return GFX_LFMT_2D_SAND_128_MAP2_BIGEND;
+      case 8:  /* Same as MAP 5.0 for 128-byte-wide stripes... */
+      case 5:  return GFX_LFMT_2D_SAND_128_MAP5_BIGEND;
+      default: unreachable(); return GFX_LFMT_NONE;
+      }
+#else
+      assert(dram_map_version == 2);
+      return GFX_LFMT_2D_SAND_128_MAP2;
+#endif
+   case V3D_TFU_IFORMAT_SAND_256:
+#if V3D_VER_AT_LEAST(3,3,0,0)
+      switch (dram_map_version)
+      {
+      case 2:  return GFX_LFMT_2D_SAND_256_MAP2_BIGEND;
+      case 5:  return GFX_LFMT_2D_SAND_256_MAP5_BIGEND;
+      case 8:  return GFX_LFMT_2D_SAND_256_MAP8_BIGEND;
+      default: unreachable(); return GFX_LFMT_NONE;
+      }
+#else
+      assert(dram_map_version == 2);
+      return GFX_LFMT_2D_SAND_256_MAP2;
+#endif
    case V3D_TFU_IFORMAT_LINEARTILE: return GFX_LFMT_2D_LT;
    case V3D_TFU_IFORMAT_UBLINEAR_1:
    case V3D_TFU_IFORMAT_UBLINEAR_2: return GFX_LFMT_2D_UBLINEAR;
@@ -825,7 +849,7 @@ static void reorder_tfu_fmts(
 
 void gfx_lfmt_translate_from_tfu_type(
    GFX_LFMT_T *fmts, uint32_t *num_planes, v3d_tfu_yuv_col_space_t *yuv_col_space,
-   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_sand)
+   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_bigend_sand)
 {
    gfx_buffer_lfmts_none(fmts);
    *num_planes = 1;
@@ -860,12 +884,12 @@ void gfx_lfmt_translate_from_tfu_type(
       fmts[0] = GFX_LFMT_Y8_U8_Y8_V8_2X1_UNORM;
       break;
    default:
-      assert(!is_sand);
+      assert(!is_bigend_sand);
       /* the tfu ttype should be a valid tmu ttype */
       fmts[0] = gfx_lfmt_translate_from_tmu_type((v3d_tmu_type_t)tfu_type, srgb);
    }
 
-   if (is_sand)
+   if (is_bigend_sand)
       /* See GFXH-1344 */
       rgbord = v3d_tfu_reverse_rgbord(rgbord);
    reorder_tfu_fmts(*num_planes, fmts, tfu_type, rgbord, srgb);
@@ -1024,7 +1048,7 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
          return false;
       }
 
-      if (gfx_lfmt_is_sand_family(src_lfmts[0]))
+      if (gfx_lfmt_is_bigend_sand_family(src_lfmts[0]))
          /* See GFXH-1344 */
          *rgbord = v3d_tfu_reverse_rgbord(*rgbord);
 
@@ -1033,7 +1057,7 @@ bool gfx_lfmt_maybe_translate_to_tfu_type(
       return true;
    }
 
-   if ((src_num_planes > 1) || gfx_lfmt_is_sand_family(src_lfmts[0]))
+   if ((src_num_planes > 1) || gfx_lfmt_is_bigend_sand_family(src_lfmts[0]))
       return false;
 
    GFX_LFMT_T src_out_fmt;

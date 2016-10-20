@@ -1,24 +1,41 @@
-/***************************************************************************
- *     Copyright (c) 2004-2011, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
- *   See Module Overview below.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
+
 #include "bstd.h"
 #include "bxvd_platform.h"
 #include "bxvd_priv.h"
@@ -34,222 +51,22 @@ uint32_t BXVD_Reg_Read32_isr(BXVD_Handle hXvd, uint32_t offset)
 {
    uint32_t uiValue;
 
-#if 0
-/* #if BXVD_P_SVD_GISB_ERR_WORKAROUND */
-
-   if (hXvd->bSVCCapable)
-   {
-      uint32_t uiLoop;
-      bool bSuccess=true;
-
-      for ( uiLoop=0; uiLoop < BXVD_REG_READ_MAX_RETRIES; uiLoop++ )
-      {
-
-         /* SW7425-628: work around for the bus error caused by register reads. */
-         uint32_t uiStatus;
-
-         uiValue = BREG_Read32_isr(hXvd->hReg, offset);
-
-         /* Check if the AVD_RGR_BRIDGE_INTR bit is set in the CPU status register. */
-         uiStatus = BREG_Read32_isr(hXvd->hReg, BCHP_SVD_INTR2_0_CPU_STATUS);
-
-         if ( uiStatus & BCHP_SVD_INTR2_0_CPU_STATUS_AVD_RGR_BRIDGE_INTR_MASK )
-         {
-            /* If the bit is set, the read failed.  Clear the AVD_RGR_BRIDGE_INTR
-             * bit and read the register again.
-             */
-            bSuccess = false;
-
-            /* Clear the RBUS-GISB-RBUS Bridge interrupt.  */
-            BREG_Write32_isr(
-               hXvd->hReg, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR_AVD_RGR_BRIDGE_INTR_MASK
-               );
-
-            BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Read32_isr read failed: offset: %08x uiStatus: %08x", offset, uiStatus ));
-         }
-         else
-         {
-            bSuccess = true;
-         }
-
-         if ( true == bSuccess )
-         {
-            break;
-         }
-
-      }    /* end of for ( uiLoop < BXVD_REG_READ_MAX_RETRIES ) */
- 
-      if ( uiLoop == BXVD_REG_READ_MAX_RETRIES )
-      {
-         BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Read32_isr: didn't get a clean read of %08x", offset ));
-      }
-   }
-   else
-   {
-      uiValue = BREG_Read32_isr(hXvd->hReg, offset);
-   }
-#else
-
    uiValue = BREG_Read32_isr(hXvd->hReg, offset);
-
-#endif
 
    return uiValue;
 }
 
-#define MAX_LOOP_CNT 10
-
 void BXVD_Reg_Write32_isr(BXVD_Handle hXvd, uint32_t offset, uint32_t data)
 {
 
-#if 0
-/* #if BXVD_P_SVD_GISB_ERR_WORKAROUND */
-
-   bool bDone= false;
-   uint32_t loopCnt=0;
-#if 0
-   volatile uint32_t uiVal = data;
-   uint32_t delayLoopCnt = 20000;
-#endif
-
-   while (!bDone)
-   {
-      BREG_Write32_isr(hXvd->hReg, offset, data);
-
-      if (hXvd->bSVCCapable)
-      {
-         uint32_t uiStatus;
-      
-#if 1
-         BKNI_Delay( 1 );  /* not a long one */
-#else
-         while(delayLoopCnt--)
-         {
-            uiVal = data;
-         }
-#endif
-
-         /* Check if the AVD_RGR_BRIDGE_INTR bit is set in the CPU status register. */
-         uiStatus = BREG_Read32_isr(hXvd->hReg, BCHP_SVD_INTR2_0_CPU_STATUS);
-
-         if ( uiStatus & BCHP_SVD_INTR2_0_CPU_STATUS_AVD_RGR_BRIDGE_INTR_MASK )
-         {
-            /* If the write "fails", clear the interrupt bit and then wait
-             * for the write to complete.
-             */
-            BREG_Write32_isr(
-               hXvd->hReg, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR_AVD_RGR_BRIDGE_INTR_MASK
-               );
-
-            BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Write32_isr write failed: LoopCnt:%d  offset: %08x data: %08x uiStatus: %08x",
-                                loopCnt, offset, data, uiStatus ));
-
-            BKNI_Delay( BXVD_REG_WRITE_POST_FAILURE_DELAY );
-#if 0
-            uiVal = BREG_Read32_isr(hXvd->hReg, offset);
-
-            BKNI_Printf("\t**** BXVD_Write_ISR bus error:cnt: %d addr:%08x  data:%08x val:%08x ****\n", 
-                        loopCnt, offset, data, uiVal); 
-
-            if ((data == uiVal) || (loopCnt==MAX_LOOP_CNT))
-            {
-               bDone=true;
-            }
-#else
-            if (loopCnt==MAX_LOOP_CNT)
-            {
-               bDone=true;
-            }
-#endif
-         }
-         else
-         {
-            bDone=true;
-         }
-      }
-      else /* Not SVD Capable */
-      {
-         bDone=true;
-      }
-      
-      loopCnt++;
-   }
-#else
-
    BREG_Write32_isr(hXvd->hReg, offset, data);
-
-#endif
 }
 
 uint32_t BXVD_Reg_Read32(BXVD_Handle hXvd, uint32_t offset)
 {
    uint32_t uiValue;
 
-#if 0
-/* #if BXVD_P_SVD_GISB_ERR_WORKAROUND */
-
-   if (hXvd->bSVCCapable)
-   {
-      uint32_t uiLoop;
-      bool bSuccess=true;
-
-      for ( uiLoop=0; uiLoop < BXVD_REG_READ_MAX_RETRIES; uiLoop++ )
-      {
-
-         /* SW7425-628: work around for the bus error caused by register reads. */
-         uint32_t uiStatus;
-
-         uiValue = BREG_Read32(hXvd->hReg, offset);
-
-         /* Check if the AVD_RGR_BRIDGE_INTR bit is set in the CPU status register. */
-         uiStatus = BREG_Read32(hXvd->hReg, BCHP_SVD_INTR2_0_CPU_STATUS);
-
-         if ( uiStatus & BCHP_SVD_INTR2_0_CPU_STATUS_AVD_RGR_BRIDGE_INTR_MASK )
-         {
-            /* If the bit is set, the read failed.  Clear the AVD_RGR_BRIDGE_INTR
-             * bit and read the register again.
-             */
-            bSuccess = false;
-
-            /* Clear the RBUS-GISB-RBUS Bridge interrupt.  */
-            BREG_Write32(
-               hXvd->hReg, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR, 
-               BCHP_SVD_INTR2_0_CPU_CLEAR_AVD_RGR_BRIDGE_INTR_MASK
-               );
-
-            BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Read32 read failed: offset: %08x uiStatus: %08x", offset, uiStatus ));
-         }
-         else
-         {
-            bSuccess = true;
-         }
-
-         if ( true == bSuccess )
-         {
-            break;
-         }
-
-      }     /* end of for ( uiLoop < BXVD_REG_READ_MAX_RETRIES ) */
-
-      if ( uiLoop == BXVD_REG_READ_MAX_RETRIES )
-      {
-         BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Read32: didn't get a clean read of %08x", offset ));
-      }
-   }
-   else
-   {
-      uiValue = BREG_Read32(hXvd->hReg, offset);
-   }
-#else
-
    uiValue = BREG_Read32(hXvd->hReg, offset);
-
-#endif
 
    return uiValue;
 }
@@ -257,34 +74,20 @@ uint32_t BXVD_Reg_Read32(BXVD_Handle hXvd, uint32_t offset)
 void BXVD_Reg_Write32(BXVD_Handle hXvd, uint32_t offset, uint32_t data)
 {
    BREG_Write32(hXvd->hReg, offset, data);
-
-#if 0
-/* #if BXVD_P_SVD_GISB_ERR_WORKAROUND */
-
-   if (hXvd->bSVCCapable)
-   {
-      uint32_t uiStatus;
-
-      /* Check if the AVD_RGR_BRIDGE_INTR bit is set in the CPU status register. */
-      uiStatus = BREG_Read32(hXvd->hReg, BCHP_SVD_INTR2_0_CPU_STATUS);
-
-      if ( uiStatus & BCHP_SVD_INTR2_0_CPU_STATUS_AVD_RGR_BRIDGE_INTR_MASK )
-      {
-         /* If the write "fails", clear the interrupt bit and then wait
-          * for the write to complete.
-          */
-         BREG_Write32(
-            hXvd->hReg, 
-            BCHP_SVD_INTR2_0_CPU_CLEAR, 
-            BCHP_SVD_INTR2_0_CPU_CLEAR_AVD_RGR_BRIDGE_INTR_MASK
-            );
-
-         BXVD_DBG_MSG(hXvd, ("BXVD_Reg_Write32 write failed: offset: %08x uiStatus: %08x", offset, uiStatus ));
-
-         BKNI_Delay( BXVD_REG_WRITE_POST_FAILURE_DELAY );
-      }
-   }
-
-#endif   
 }
 
+#if BXVD_P_CORE_40BIT_ADDRESSIBLE
+uint64_t BXVD_Reg_Read64(BXVD_Handle hXvd, uint64_t offset)
+{
+   uint64_t uiValue;
+
+   uiValue = BREG_Read64(hXvd->hReg, offset);
+
+   return uiValue;
+}
+
+void BXVD_Reg_Write64(BXVD_Handle hXvd, uint64_t offset, uint64_t data)
+{
+   BREG_Write64(hXvd->hReg, offset, data);
+}
+#endif

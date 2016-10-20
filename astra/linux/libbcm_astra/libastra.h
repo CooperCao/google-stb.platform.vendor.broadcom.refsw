@@ -64,6 +64,9 @@ struct astra_struct
     /* astra device file descriptor */
     int fd;
 
+    /* Core dump device file descriptor */
+    int core_fd;
+
     /* astra version, config and status */
     struct astra_version version;
     struct astra_config config;
@@ -181,6 +184,9 @@ int _astra_file_read(
 int _astra_call_smc(
     struct astra_client *pClient,
     uint8_t ucMode);
+
+void _astra_uapp_coredump(
+    struct astra_uapp *pUapp);
 
 /* global variables */
 extern struct astra_struct *pAstra;

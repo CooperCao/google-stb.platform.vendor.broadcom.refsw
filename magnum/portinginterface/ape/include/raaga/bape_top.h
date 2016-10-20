@@ -213,6 +213,11 @@ typedef struct BAPE_Settings
     bool rampPcmSamples;                /* If true (default), PCM samples will be ramped up/down on startup, shutdown, and underflow conditions.
                                           Set to false if you want to disable this feature for testing or verification purposes. */
     BAPE_LoudnessEquivalenceMode loudnessMode;  /* Loudness Equivalence Mode.  Default is BAPE_LoudnessEquivalenceMode_eNone. */
+    struct {
+        BSTD_DeviceOffset baseAddress; /* Physical base address of the lowest physical address region for each MEMC.
+            [0] is always 0 and it is assumed to always exist. For [1] and [2], an address of 0 means the MEMC is not populated.
+            APE is unable to access a discontiguous upper memory region, so its base address and size is not needed. */
+    } memc[3]; /* for each MEMC */
 } BAPE_Settings;
 
 /***************************************************************************

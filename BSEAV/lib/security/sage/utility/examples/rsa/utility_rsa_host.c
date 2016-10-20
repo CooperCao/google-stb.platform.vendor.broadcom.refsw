@@ -1,7 +1,7 @@
-/***************************************************************************
- *     (c)2014 Broadcom Corporation
+/******************************************************************************
+ *  Copyright (C) 2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -40,9 +40,8 @@
  * $brcm_Date: 6/14/14 12:41p $
  *
  * Module Description: SAGE DRM bin file Validation tool (host-side)
- *
- *
- **************************************************************************/
+
+ ******************************************************************************/
 
 #include <ftw.h>
 #include <stdio.h>
@@ -69,6 +68,10 @@
 #include "nexus_platform_init.h"
 
 #include "drm_metadata_tl.h"
+
+#ifdef NXCLIENT_SUPPORT
+#include "nxclient.h"
+#endif
 
 BDBG_MODULE(sage_utility_rsa_tool);
 
@@ -181,11 +184,20 @@ int main(int argc, char* argv[])
 {
     static RsaSettings rsaModuleSettings;
 
+#ifdef NXCLIENT_SUPPORT
+    NxClient_JoinSettings joinSettings;
+    NxClient_AllocSettings nxAllocSettings;
+    NxClient_AllocResults allocResults;
+    int rc = NEXUS_SUCCESS;
+#else
     BERR_Code rc = BERR_SUCCESS;
+#endif
+
+
     BDBG_LOG(("\n\n\n\n\n"));
     BDBG_LOG(("***************************************************************************************"));
     BDBG_LOG(("***************************************************************************************"));
-    BDBG_LOG(("***\tBroadcom Corporation RSA test utility (Copyright 2014)"));
+    BDBG_LOG(("***\tBroadcom Limited RSA test utility (Copyright 2014)"));
     BDBG_LOG(("***************************************************************************************"));
     BDBG_LOG(("***************************************************************************************\n"));
 
@@ -197,10 +209,18 @@ int main(int argc, char* argv[])
         goto handle_error;
     }
 
+#ifdef NXCLIENT_SUPPORT
+    NxClient_GetDefaultJoinSettings(&joinSettings);
+    snprintf(joinSettings.name, NXCLIENT_MAX_NAME, "util_rsa_host");
+    joinSettings.ignoreStandbyRequest = true;
+    rc = NxClient_Join(&joinSettings);
+    if (rc) return -1;
+#else
     rc = SAGE_app_join_nexus();
     if(rc != 0){
         goto handle_error;
     }
+#endif
 
     /* Initialize Rsa TL module */
     RsaTl_GetDefaultSettings(&rsaModuleSettings);
@@ -242,10 +262,13 @@ int main(int argc, char* argv[])
 handle_error:
 
     RsaTl_Uninit(hRsaTl);
-
+#ifdef NXCLIENT_SUPPORT
+    NxClient_Uninit();
+#else
     /* Leave Nexus: Finalize platform ... */
     BDBG_LOG(("Closing Nexus driver..."));
     SAGE_app_leave_nexus();
+#endif
 
     if (rc) {
         BDBG_ERR(("Failure in SAGE Utility RSA test\n"));

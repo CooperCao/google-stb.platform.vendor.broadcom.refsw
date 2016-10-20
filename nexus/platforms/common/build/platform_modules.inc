@@ -273,14 +273,3 @@ ifeq ($(NEXUS_MPOD_SUPPORT),y)
 # deprecated. NEXUS_HAS_XXX is reserved for modules and is auto-defined.
 NEXUS_PLATFORM_DEFINES += NEXUS_HAS_MPOD
 endif
-
-#
-# SPI Front Panel
-# Defaults on for Specified Platforms.
-# Set NEXUS_SPI_FRONTPANEL=n to turn off.
-#
-ifneq ($(filter $(BCHP_CHIP),7335 7336 7325 7342 7340),)
-ifneq ($(NEXUS_SPI_FRONTPANEL),n)
-NEXUS_CFLAGS += -DNEXUS_HAS_SPI_FRONTPANEL=1
-endif
-endif

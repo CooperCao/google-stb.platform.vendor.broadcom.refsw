@@ -40,6 +40,7 @@
  * FAILURE OF ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
  *****************************************************************************/
 
+#include "bsg_glapi.h"
 #include "bsg_pass_state.h"
 #include "bsg_parse_utils.h"
 #include "bsg_exception.h"
@@ -96,6 +97,7 @@ private:
 };
 
 #define EMAP(a) m_enumMap.insert(pair<std::string, GLenum>(#a, GL_##a))
+#define EMAP_KHR(a) m_enumMap.insert(pair<std::string, GLenum>(#a, GL_##a##_KHR))
 
 bool                          PassStateEnum::m_enumMapInited = false;
 std::map<std::string, GLenum> PassStateEnum::m_enumMap;
@@ -159,6 +161,42 @@ void PassStateEnum::FillMap()
    EMAP(REPEAT);
    EMAP(CLAMP_TO_EDGE);
    EMAP(MIRRORED_REPEAT);
+
+#if GL_ES_VERSION_3_2
+   EMAP(MULTIPLY);
+   EMAP(SCREEN);
+   EMAP(OVERLAY);
+   EMAP(DARKEN);
+   EMAP(LIGHTEN);
+   EMAP(COLORDODGE);
+   EMAP(COLORBURN);
+   EMAP(HARDLIGHT);
+   EMAP(SOFTLIGHT);
+   EMAP(DIFFERENCE);
+   EMAP(EXCLUSION);
+   EMAP(HSL_HUE);
+   EMAP(HSL_SATURATION);
+   EMAP(HSL_COLOR);
+   EMAP(HSL_LUMINOSITY);
+#else
+#if GL_KHR_blend_equation_advanced
+   EMAP_KHR(MULTIPLY);
+   EMAP_KHR(SCREEN);
+   EMAP_KHR(OVERLAY);
+   EMAP_KHR(DARKEN);
+   EMAP_KHR(LIGHTEN);
+   EMAP_KHR(COLORDODGE);
+   EMAP_KHR(COLORBURN);
+   EMAP_KHR(HARDLIGHT);
+   EMAP_KHR(SOFTLIGHT);
+   EMAP_KHR(DIFFERENCE);
+   EMAP_KHR(EXCLUSION);
+   EMAP_KHR(HSL_HUE);
+   EMAP_KHR(HSL_SATURATION);
+   EMAP_KHR(HSL_COLOR);
+   EMAP_KHR(HSL_LUMINOSITY);
+#endif
+#endif
 
    m_enumMapInited = true;
 }
@@ -724,7 +762,13 @@ void ShadowState::MergeFrom(const PassState &state, uint32_t dirty)
    {
       m_blendEquationSeparate = state.m_blendEquationSeparate;
       m_notDefault |= BlendEquationSeparate;
-      glBlendEquationSeparate(m_blendEquationSeparate[0], m_blendEquationSeparate[1]);
+
+      // Advanced blending isn't valid for separate, so use non-separate version if both modes are
+      // the same
+      if (m_blendEquationSeparate[0] != m_blendEquationSeparate[1])
+         glBlendEquationSeparate(m_blendEquationSeparate[0], m_blendEquationSeparate[1]);
+      else
+         glBlendEquation(m_blendEquationSeparate[0]);
    }
 
    if ((dirty & BlendFuncSeparate) && (m_blendFuncSeparate != state.m_blendFuncSeparate))

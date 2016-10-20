@@ -146,7 +146,7 @@ BERR_Code BRDC_P_SoftReset
         BKNI_EnterCriticalSection();
 
         /* write address and config */
-        BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_addr + ulRegOffset * i, 0);
+        BREG_WriteAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset * i, 0);
         BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset * i, ulRegConfig);
 
         BKNI_LeaveCriticalSection();
@@ -248,7 +248,7 @@ BERR_Code BRDC_Slot_P_Write_Registers_isr
     BDBG_ENTER(BRDC_Slot_P_Write_Registers_isr);
 
     /* Set RDC_desc_x_addr */
-    BRDC_Slot_P_Write32(hSlot, BCHP_RDC_desc_0_addr + hSlot->ulRegOffset,
+    BREG_WriteAddr_isrsafe(hSlot->hRdc->hReg, BCHP_RDC_desc_0_addr + hSlot->ulRegOffset,
         hSlot->hList->ulAddrOffset);
 
     /* Set RDC_desc_x_config */
@@ -367,7 +367,6 @@ Returns:
 BERR_Code BRDC_P_AcquireSemaphore_isr
 (
     BRDC_Handle      hRdc,
-    BRDC_List_Handle hList,
     BRDC_SlotId      eSlotId
 )
 {
@@ -401,7 +400,7 @@ BERR_Code BRDC_P_AcquireSemaphore_isr
         {
             /* could not acquire semaphore within a reasonable amount of time */
             BDBG_ERR(( "Cannot acquire semaphore" ));
-            BRDC_P_DumpSlot_isr(hRdc, hList, eSlotId);
+            BRDC_P_DumpSlot_isr(hRdc, eSlotId);
             return BERR_TRACE(BERR_TIMEOUT);
         }
 
@@ -414,7 +413,6 @@ BERR_Code BRDC_P_AcquireSemaphore_isr
     }
 #else /* TODO: add new RDC support */
     BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(hList);
     BSTD_UNUSED(eSlotId);
 #endif
 
@@ -440,15 +438,12 @@ Returns:
 void BRDC_P_ReleaseSemaphore_isr
 (
     BRDC_Handle      hRdc,
-    BRDC_List_Handle hList,
     BRDC_SlotId      eSlotId
 )
 {
 #if BCHP_RDC_desc_0_lock
     uint32_t ulRegVal;
     uint32_t ulRegOffset;
-
-    BSTD_UNUSED(hList);
 
     /* calculate offset for this slot */
     ulRegOffset = 16 * (eSlotId - BRDC_SlotId_eSlot0);
@@ -458,7 +453,6 @@ void BRDC_P_ReleaseSemaphore_isr
     BRDC_P_Write32(hRdc, BCHP_RDC_desc_0_lock + ulRegOffset, ulRegVal);
 #else /* TODO: add new RDC support */
     BSTD_UNUSED(hRdc);
-    BSTD_UNUSED(hList);
     BSTD_UNUSED(eSlotId);
 #endif
 }
@@ -487,8 +481,6 @@ BERR_Code BRDC_P_AcquireSync
 {
 #ifdef BCHP_RDC_sync_0_arm
     uint32_t i;
-    uint32_t ulReg;
-    uint32_t ulAddr;
     BERR_Code rc = BERR_SUCCESS;
     BDBG_ENTER(BRDC_P_AcquireSync);
 
@@ -504,11 +496,9 @@ BERR_Code BRDC_P_AcquireSync
     }
 
     if(i < BRDC_P_MAX_SYNC) {
-        ulAddr = BCHP_RDC_sync_0_arm + sizeof(uint32_t) * i;
-        ulReg = BCHP_FIELD_ENUM(RDC_sync_0_arm, arm, DISARMED);
-        BRDC_P_Write32(hRdc, ulAddr, ulReg);
         BDBG_MSG(("RDC_sync_%u is acquired", i));
         hRdc->abSyncUsed[i] = true;
+        rc = BRDC_P_ArmSync_isr(hRdc, i, false);
         *pulId = i;
     } else {
         *pulId = (uint32_t)(-1);
@@ -597,7 +587,7 @@ BERR_Code BRDC_P_ArmSync_isr
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    ulAddr = BCHP_RDC_sync_0_arm + sizeof(uint32_t) * ulSyncId;
+    ulAddr = BCHP_RDC_sync_0_arm + (BCHP_RDC_sync_1_arm - BCHP_RDC_sync_0_arm) * ulSyncId;
     ulReg = BCHP_FIELD_DATA(RDC_sync_0_arm, arm, bArm);
     BRDC_P_Write32(hRdc, ulAddr, ulReg);
     BDBG_MSG(("RDC_sync_%u is %s", ulSyncId, bArm? "armed" : "disarmed"));
@@ -614,14 +604,13 @@ BERR_Code BRDC_P_ArmSync_isr
 void BRDC_P_DumpSlot_isr
 (
     BRDC_Handle      hRdc,
-    BRDC_List_Handle hList,
     BRDC_SlotId      eSlotId
 )
 {
+#if (BDBG_DEBUG_BUILD)
     uint32_t  ulRegOffset;
     uint32_t  ulRegVal;
-
-    BSTD_UNUSED(hList);
+    uint64_t  ulAddr;
 
     /* determine offset of registers for this slot */
     ulRegOffset = (BCHP_RDC_desc_1_addr - BCHP_RDC_desc_0_addr) * (eSlotId - BRDC_SlotId_eSlot0);
@@ -630,9 +619,13 @@ void BRDC_P_DumpSlot_isr
     BDBG_MSG(("-------------------------------"));
 
     /* read and display address register */
-    ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_addr + ulRegOffset);
+    ulAddr = BREG_ReadAddr_isrsafe(hRdc->hReg, BCHP_RDC_desc_0_addr + ulRegOffset);
     BDBG_MSG(("RDC_desc_%d_addr", eSlotId));
-    BDBG_MSG(("    addr: 0x%08x", ulRegVal));
+    #if BRDC_P_64BIT_SUPPORT
+    BDBG_MSG(("    addr: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(ulAddr)));
+    #else
+    BDBG_MSG(("    addr: 0x%08x", (uint32_t)ulAddr));
+    #endif
 
     /* read and display config register */
     ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_config + ulRegOffset);
@@ -667,9 +660,9 @@ void BRDC_P_DumpSlot_isr
 #else
     BDBG_MSG(("    sync_sel:         %d",
         BCHP_GET_FIELD_DATA(ulRegVal, RDC_desc_0_config, sync_sel)));
-    BDBG_MSG(("    count:            %d", eSlotId,
+    BDBG_MSG(("    count:            %d",
         BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count + ulRegOffset)));
-    BDBG_MSG(("    count_direct:     %d", eSlotId,
+    BDBG_MSG(("    count_direct:     %d",
         BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_count_direct + ulRegOffset)));
 
     ulRegVal = BRDC_P_Read32(hRdc, BCHP_RDC_desc_0_status + ulRegOffset);
@@ -684,7 +677,10 @@ void BRDC_P_DumpSlot_isr
 
     /* contents of RUL */
     BDBG_MSG(("See RUL dump for RUL contents."));
-    BSTD_UNUSED(ulRegVal);
+#else
+    BSTD_UNUSED(hRdc);
+    BSTD_UNUSED(eSlotId);
+#endif
 }
 
 /* end of file */

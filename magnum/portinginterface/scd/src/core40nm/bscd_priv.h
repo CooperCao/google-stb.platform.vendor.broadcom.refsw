@@ -66,7 +66,7 @@ typedef struct
 } BSCD_P_DFSmartCardStruct;
 
 
-#if (BCHP_CHIP==7366)&&(BCHP_VER>A0) || (BCHP_CHIP==7364)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
+#if (BCHP_CHIP==7366)&&(BCHP_VER>A0) || (BCHP_CHIP==7364)|| (BCHP_CHIP==7586)|| (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)|| (BCHP_CHIP==7278)
 #define SMARTCARD_32_BIT_REGISTER
 #endif
 
@@ -83,9 +83,7 @@ typedef struct
 #define BSCD_P_INTR_EN_1		0x50 /* SMART CARD INTERRUPT ENABLE REGISTER */
 #define BSCD_P_INTR_EN_2		0x54 /* SMART CARD INTERRUPT ENABLE REGISTER */
 #define BSCD_P_CLK_CMD			0x08 /* SMART CARD CLOCK COMMAND */
-#if(BCHP_CHIP==7420) ||(BCHP_CHIP==7340) ||(BCHP_CHIP==7342)||(BCHP_CHIP==7125)
 #define BSCD_P_CLK_CMD_2		0x3c /* SMART CARD CLOCK COMMAND */
-#endif
 #define BSCD_P_PRESCALE			0x10 /* SMART CARD CLOCK PRESCALE */
 #define BSCD_P_TIMER_CMD		0x48 /* SMART CARD TIMER COMMAND REGISTER */
 #define BSCD_P_BGT				0x44 /* SMART CARD BLOCK GUARD TIME REGISTER */
@@ -720,7 +718,7 @@ BERR_Code BSCD_Channel_P_T14IrdetoTransmit(
 		unsigned long                    in_ulNumXmitBytes
 );
 
-BERR_Code BSCD_Channel_P_ConfigTimer_generic(
+BERR_Code BSCD_Channel_P_ConfigTimer_generic_isrsafe(
         BSCD_ChannelHandle   in_channelHandle,
         BSCD_Timer                  *inp_timer,
         BSCD_TimerValue             *inp_unCount,

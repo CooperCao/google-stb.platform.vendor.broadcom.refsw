@@ -47,7 +47,7 @@ static void signal(void *context, int fence)
 }
 
 
-void FenceInteraface_InitNexus(struct FenceInterface *fi,
+void FenceInteraface_InitNexus(FenceInterface *fi,
       const BEGL_SchedInterface *sched)
 {
    fi->base.context = (void*)sched;

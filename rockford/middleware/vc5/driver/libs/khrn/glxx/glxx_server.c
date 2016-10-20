@@ -78,7 +78,6 @@ static void init_glxx(void)
 static void queries_of_type_init(struct glxx_queries_of_type *queries,
       enum glxx_query_type type)
 {
-   queries->type =  type;
    queries->active = NULL;
    khrn_timeline_init(&queries->timeline);
 }
@@ -112,8 +111,8 @@ static void queries_deinit(struct glxx_queries *queries)
 
 static void init_blend_cfg(glxx_blend_cfg *cfg)
 {
-   cfg->color_eqn  = V3D_BLEND_EQN_ADD;
-   cfg->alpha_eqn  = V3D_BLEND_EQN_ADD;
+   cfg->color_eqn  = GLXX_BLEND_EQN_ADD;
+   cfg->alpha_eqn  = GLXX_BLEND_EQN_ADD;
    cfg->src_rgb    = V3D_BLEND_MUL_ONE;
    cfg->src_alpha  = V3D_BLEND_MUL_ONE;
    cfg->dst_rgb    = V3D_BLEND_MUL_ZERO;
@@ -187,12 +186,15 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->depth_func = GL_LESS;
    state->depth_mask = GL_TRUE;
 
+   state->sample_shading_fraction  = 0.0f;
+
    state->caps.cull_face            = false;
    state->caps.polygon_offset_fill  = false;
    state->caps.scissor_test         = false;
    state->caps.dither               = true;
    state->caps.stencil_test         = false;
    state->caps.depth_test           = false;
+   state->caps.sample_shading       = false;
 
    // ES 3.0 only
    state->caps.primitive_restart   = false;
@@ -263,6 +265,7 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    state->blend.enable = false;
    init_blend_cfg(&state->blend.cfg);
 #endif
+   state->blend.advanced_coherent = true;
 
    state->blend_color[0] = 0.0f;
    state->blend_color[1] = 0.0f;
@@ -318,12 +321,12 @@ bool glxx_server_state_init(GLXX_SERVER_STATE_T *state, GLXX_SHARED_T *shared)
    if (!queries_init(&state->queries))
       goto end;
 
-   state->transform_feedback.default_obj = glxx_tf_create_default(state);
-   if (state->transform_feedback.default_obj == NULL)
+   state->transform_feedback.default_tf = glxx_tf_create(0);
+   if (state->transform_feedback.default_tf == NULL)
       goto end;
 
    state->transform_feedback.next = 1;
-   KHRN_MEM_ASSIGN(state->transform_feedback.binding, state->transform_feedback.default_obj);
+   KHRN_MEM_ASSIGN(state->transform_feedback.bound, state->transform_feedback.default_tf);
    if (!khrn_map_init(&state->transform_feedback.objects, 256))
       goto end;
 
@@ -512,8 +515,8 @@ void glxx_server_state_destroy(GLXX_SERVER_STATE_T *state)
       gl11_server_state_destroy(state);
    }
 
-   KHRN_MEM_ASSIGN(state->transform_feedback.default_obj, NULL);
-   KHRN_MEM_ASSIGN(state->transform_feedback.binding, NULL);
+   KHRN_MEM_ASSIGN(state->transform_feedback.default_tf, NULL);
+   KHRN_MEM_ASSIGN(state->transform_feedback.bound, NULL);
    khrn_map_term(&state->transform_feedback.objects);
 
    glxx_vao_uninitialise(state);
@@ -589,6 +592,29 @@ static inline bool validate_func_es11(GLenum func, bool is_src)
       return false;
    }
 
+}
+
+bool glxx_advanced_blend_eqn_set(const GLXX_SERVER_STATE_T *state) {
+#if V3D_HAS_PER_RT_BLEND
+   return state->blend.rt_cfgs[0].color_eqn & GLXX_ADV_BLEND_EQN_BIT;
+#else
+   return state->blend.cfg.color_eqn & GLXX_ADV_BLEND_EQN_BIT;
+#endif
+}
+
+// Returns encoding for blend equation for backend
+// 0 means it is not an advanced blend or blending is disabled
+uint32_t glxx_advanced_blend_eqn(const GLXX_SERVER_STATE_T *state)
+{
+#if V3D_HAS_PER_RT_BLEND
+   if ((state->blend.rt_enables & 1) && state->blend.rt_cfgs[0].color_eqn >= GLXX_ADV_BLEND_EQN_BIT)
+      return state->blend.rt_cfgs[0].color_eqn - GLXX_ADV_BLEND_EQN_BIT;
+#else
+   if (state->blend.enable && state->blend.cfg.color_eqn >= GLXX_ADV_BLEND_EQN_BIT)
+      return state->blend.cfg.color_eqn - GLXX_ADV_BLEND_EQN_BIT;
+#endif
+
+   return 0;
 }
 
 GL_API void GL_APIENTRY glBlendFunc(GLenum sfactor, GLenum dfactor)
@@ -1134,11 +1160,15 @@ static bool is_valid_server_cap(const GLXX_SERVER_STATE_T *state, GLenum cap)
    case GL_DITHER:
    case GL_DEBUG_OUTPUT_KHR:
    case GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR:
+   case GL_BLEND_ADVANCED_COHERENT_KHR:
       return true;
 
    case GL_PRIMITIVE_RESTART_FIXED_INDEX:
    case GL_RASTERIZER_DISCARD:
       return !IS_GL_11(state);
+#if V3D_HAS_SRS || KHRN_GLES32_DRIVER
+   case GL_SAMPLE_SHADING:
+#endif
    case GL_SAMPLE_MASK:
       return KHRN_GLES31_DRIVER && !IS_GL_11(state);
 
@@ -1288,7 +1318,7 @@ static void set_enabled(GLenum cap, bool enabled)
       break;
    case GL_COLOR_LOGIC_OP:
       SET_MULTI(state->gl11.statebits.f_enable, GL11_LOGIC_M, enabled);
-      /* TODO: We now need to remember to switch blending off everywhere */
+      /* Set dirty.cfg so that blending gets switched off */
       state->dirty.cfg = KHRN_RENDER_STATE_SET_ALL;
       break;
    case GL_MATRIX_PALETTE_OES:
@@ -1310,6 +1340,14 @@ static void set_enabled(GLenum cap, bool enabled)
    case GL_DEBUG_OUTPUT_SYNCHRONOUS_KHR:
       state->khr_debug.debug_output_synchronous = enabled;
       break;
+   case GL_BLEND_ADVANCED_COHERENT_KHR:
+      state->blend.advanced_coherent = enabled;
+      break;
+#if V3D_HAS_SRS || KHRN_GLES32_DRIVER
+   case GL_SAMPLE_SHADING:
+      state->caps.sample_shading = enabled;
+      break;
+#endif
    default:
       unreachable();
       break;
@@ -3032,5 +3070,33 @@ GL_API void GL_APIENTRY glPrimitiveBoundingBoxEXT(GLfloat minX, GLfloat minY, GL
                                                   GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
 {
    primitive_bounding_box(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+}
+GL_API void GL_APIENTRY glPrimitiveBoundingBoxOES(GLfloat minX, GLfloat minY, GLfloat minZ, GLfloat minW,
+                                                  GLfloat maxX, GLfloat maxY, GLfloat maxZ, GLfloat maxW)
+{
+   primitive_bounding_box(minX, minY, minZ, minW, maxX, maxY, maxZ, maxW);
+}
+#endif
+
+#if KHRN_GLES32_DRIVER || V3D_HAS_SRS
+static void min_sample_shading(float value) {
+   GLXX_SERVER_STATE_T *state = glxx_lock_server_state(OPENGL_ES_3X);
+   if (!state) return;
+
+   state->sample_shading_fraction = gfx_fclamp(value, 0.0f, 1.0f);
+
+   glxx_unlock_server_state();
+}
+#endif
+
+#if KHRN_GLES32_DRIVER
+GL_API void GL_APIENTRY glMinSampleShading(GLfloat value) {
+   min_sample_shading(value);
+}
+#endif
+
+#if V3D_HAS_SRS
+GL_API void GL_APIENTRY glMinSampleShadingOES(GLfloat value) {
+   min_sample_shading(value);
 }
 #endif

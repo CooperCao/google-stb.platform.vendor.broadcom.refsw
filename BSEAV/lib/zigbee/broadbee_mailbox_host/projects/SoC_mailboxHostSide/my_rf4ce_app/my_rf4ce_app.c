@@ -329,7 +329,13 @@ static void rf4ce_Test_Set_WakeUpActionCode()
         if(0 == conf->status)
             statusSetPowerFilterKey = 1;
     }
+//                                               00  10  21  32  33  44  54  65  76
+//                                               70  58  36  14  92  70  58  36  14
+#if 0
+    memcpy(req.params.wakeUpActionCodeFilter, "\x00\x00\x00\x00\x00\x00\x00\x00\x02", 9); // bit 65 (volume up)
+#else
     memcpy(req.params.wakeUpActionCodeFilter, "\x00\x20\x00\x00\x00\x00\x00\x00\x00", 9); // bit 13 (exit)
+#endif
     req.callback = rf4ce_Test_Set_PowerFilterKey_Callback;
 
     RF4CE_ZRC_SetWakeUpActionCodeReq(&req);

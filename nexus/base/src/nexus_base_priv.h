@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2008-2013 Broadcom Corporation
+*  Copyright (C) 2008-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,6 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* API Description:
-*
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 #ifndef NEXUS_BASE_PRIV_H__
 #define NEXUS_BASE_PRIV_H__
@@ -133,9 +123,8 @@ struct NEXUS_P_Base_State {
     struct {
         BKNI_MutexHandle lock;
         struct NEXUS_P_ThreadInfoTree tree;
-        unsigned currentTick; /* this is incremented on each call to get threadInfo, and it's used to keep contant of time */
-        NEXUS_P_ThreadInfo *info[NEXUS_BASE_P_MAX_USER_THREADS];
-        unsigned lastUsed[NEXUS_BASE_P_MAX_USER_THREADS]; /* on each call it's get copied from the  currentTick, and it's used at the recycle time to get node that should be recycled (e.g. node that was not accessed for long */
+        unsigned threadInfoCount;
+        unsigned threadInfoLast;
         struct {
             void *threadId;
             NEXUS_P_ThreadInfo *threadInfo;

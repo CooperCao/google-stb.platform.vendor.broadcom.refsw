@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,11 +70,11 @@
 /***************************************************************************
  *AVS_RO_REGISTERS_1 - AVS RO Registers 1 Core
  ***************************************************************************/
-#define BCHP_AVS_RO_REGISTERS_1_POW_WDOG_FAILURE_STATUS 0x204d2800 /* [RO] Indicate power watchdog failure measurement data and validity of the data */
-#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG 0x204d2804 /* [RO] Indicate power watchdogs' status for static monitoring by software */
-#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_1 0x204d2808 /* [RO] Indicate power watchdogs' status for static monitoring by software */
-#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_2 0x204d280c /* [RO] Indicate power watchdogs' status for static monitoring by software */
-#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_3 0x204d2810 /* [RO] Indicate power watchdogs' status for static monitoring by software */
+#define BCHP_AVS_RO_REGISTERS_1_POW_WDOG_FAILURE_STATUS 0x204d2800 /* [RO][32] Indicate power watchdog failure measurement data and validity of the data */
+#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG 0x204d2804 /* [RO][32] Indicate power watchdogs' status for static monitoring by software */
+#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_1 0x204d2808 /* [RO][32] Indicate power watchdogs' status for static monitoring by software */
+#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_2 0x204d280c /* [RO][32] Indicate power watchdogs' status for static monitoring by software */
+#define BCHP_AVS_RO_REGISTERS_1_INTERRUPT_STATUS_FAULTY_POW_WDOG_3 0x204d2810 /* [RO][32] Indicate power watchdogs' status for static monitoring by software */
 
 /***************************************************************************
  *POW_WDOG_FAILURE_STATUS - Indicate power watchdog failure measurement data and validity of the data

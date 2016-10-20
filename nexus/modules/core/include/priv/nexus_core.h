@@ -116,6 +116,7 @@ typedef struct NEXUS_Core_MagnumHandles
         BMRC_Handle mrc;
         BMEM_MonitorInterface mem_monitor;
     } memc[NEXUS_MAX_HEAPS]; /* index of this array is memc index, which must be < NEXUS_MAX_HEAPS */
+    BCHP_MemoryLayout   memoryLayout;
     BBOX_Handle         box;
     const BBOX_Config  *boxConfig;
     BTEE_InstanceHandle tee;
@@ -518,6 +519,8 @@ NEXUS_ModulePriority NEXUS_AdjustModulePriority(
 void NEXUS_VideoFormat_GetInfo_isrsafe(NEXUS_VideoFormat videoFormat, NEXUS_VideoFormatInfo *pInfo);
 
 NEXUS_Error NEXUS_Core_HeapMemcIndex_isrsafe(unsigned heapIndex, unsigned *pMemcIndex);
+
+unsigned NEXUS_Heap_GetMemcIndex_isrsafe(NEXUS_HeapHandle heap);
 
 struct b_objdb_client;
 void NEXUS_CoreModule_Uninit_Client_priv(struct b_objdb_client *client);

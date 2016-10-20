@@ -46,8 +46,10 @@ for customers who have developed their own servers.
 #include "display_framework.h"
 #include "../common/fence_interface_nexus.h"
 #include "../common/surface_interface_nexus.h"
-#include "../common/display_interface_nexus.h"
-#include "display_nexus_priv.h"
+
+#include "display_nexus_exclusive.h"
+#include "display_nexus_multi.h"
+
 #include "platform_common.h"
 #include "fence_queue.h"
 
@@ -68,17 +70,14 @@ enum
    PIXMAP_INFO_MAGIC        = 0x15EEB1A5
 };
 
-struct PlatformState
+typedef struct PlatformState
 {
-   struct SurfaceInterface surface_interface;
-   struct FenceInterface fence_interface;
-   struct DisplayInterface display_interface;
-
+   SurfaceInterface surface_interface;
+   FenceInterface fence_interface;
+   DisplayInterface display_interface;
    NXPL_NativeWindow *native_window;
-   NXPL_Display display;
-
-   struct DisplayFramework display_framework;
-};
+   DisplayFramework display_framework;
+} PlatformState;
 
 /* Called to determine current size of the window referenced by the opaque window handle.
  * This is needed by EGL in order to know the size of a native 'window'. */
@@ -88,7 +87,7 @@ static BEGL_Error DispWindowGetInfo(void *context,
                                     BEGL_WindowInfo *info)
 {
    UNUSED(context);
-   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *) nativeWindow;
    NXPL_NativeWindow *nw = state->native_window;
 
    if (nw != NULL)
@@ -166,7 +165,7 @@ static BEGL_Error DispGetNextSurface(
 {
    UNUSED(context);
 
-   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *) nativeWindow;
 
    if (state == NULL || nativeSurface == NULL || actualFormat == NULL)
       return BEGL_Fail;
@@ -185,7 +184,7 @@ static BEGL_Error DispGetNextSurface(
 static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
 {
    UNUSED(context);
-   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *) nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_DisplaySurface(&state->display_framework,
@@ -199,7 +198,7 @@ static BEGL_Error DispDisplaySurface(void *context, void *nativeWindow, void *na
 static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nativeSurface, int fence)
 {
    UNUSED(context);
-   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *) nativeWindow;
    if (state && nativeSurface)
    {
       DisplayFramework_CancelSurface(&state->display_framework, nativeSurface,
@@ -213,7 +212,7 @@ static BEGL_Error DispCancelSurface(void *context, void *nativeWindow, void *nat
 static void DispSetSwapInterval(void *context, void *nativeWindow, int interval)
 {
    UNUSED(context);
-   struct PlatformState *state = (struct PlatformState *) nativeWindow;
+   PlatformState *state = (PlatformState *) nativeWindow;
    if (interval >= 0)
       state->native_window->swapInterval = interval;
 }
@@ -270,28 +269,27 @@ static void *DispWindowPlatformStateCreate(void *context, void *native)
 {
    NXPL_DisplayContext *ctx = (NXPL_DisplayContext *)context;
    NXPL_NativeWindow *nw = (NXPL_NativeWindow*)native;
-   struct PlatformState *state = NULL;
+   PlatformState *state = NULL;
 
    if (ctx && nw)
    {
       state = calloc(1, sizeof(*state));
       if (state)
       {
-#ifdef NXPL_PLATFORM_EXCLUSIVE
-         if (!InitializeDisplayExclusive(&state->display, ctx->displayType,
-               ctx->display, &nw->bound, &nw->windowInfo))
-            goto error_display;
-#else
-         if (!InitializeDisplayMulti(&state->display, ctx->displayType,
-               nw->numSurfaces, nw->clientID, nw->surfaceClient,
-               &nw->windowInfo))
-            goto error_display;
-#endif
-
          FenceInteraface_InitNexus(&state->fence_interface, ctx->schedIface);
          SurfaceInterface_InitNexus(&state->surface_interface);
-         DisplayInterface_InitNexus(&state->display_interface, &state->display,
-               &state->fence_interface, nw->numSurfaces);
+
+#ifdef NXPL_PLATFORM_EXCLUSIVE
+         if (!DisplayInterface_InitNexusExclusive(&state->display_interface,
+               &state->fence_interface, &nw->windowInfo, ctx->displayType,
+               ctx->display, &nw->bound))
+            goto error_display;
+#else
+         if (!DisplayInterface_InitNexusMulti(&state->display_interface,
+               &state->fence_interface, &nw->windowInfo, ctx->displayType,
+               nw->numSurfaces, nw->clientID, nw->surfaceClient))
+            goto error_display;
+#endif
 
          state->native_window = nw;
 
@@ -319,7 +317,7 @@ error_display:
 static BEGL_Error DispWindowPlatformStateDestroy(void *context, void *windowState)
 {
    UNUSED(context);
-   struct PlatformState *state = (struct PlatformState *) windowState;
+   PlatformState *state = (PlatformState *) windowState;
 
    if (state)
    {

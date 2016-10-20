@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,10 +35,6 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  * This module interfaces with tmn PI module and the application.
  * It provides to the application an average temperature at a programmed
@@ -46,10 +42,6 @@
  * nexus module.Based on the Fan Operation returned, the application can call
  * Nexus PWM to adjust the speed the of the fan to control the temperature
  * of an System On Chip.
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  **************************************************************************/
 
@@ -273,6 +265,7 @@ void NEXUS_TempMonitor_GetDefaultSettings(NEXUS_TempMonitorSettings *pSettings)
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
     pSettings->enabled = true;
     pSettings->measureInterval = 1000; /* 1 second */
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
 }
 
 NEXUS_TempMonitorHandle NEXUS_TempMonitor_Open(unsigned index, const NEXUS_TempMonitorSettings *pSettings)

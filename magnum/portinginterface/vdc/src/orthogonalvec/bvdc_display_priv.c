@@ -351,10 +351,10 @@ void BVDC_P_Display_Init
     hDisplay->stNewInfo.eRfmOutput = BVDC_RfmOutput_eUnused;
 
     /* Set Hdmi default
-     * note: "eHdmiOutput = BAVC_MatrixCoefficients_eUnknown" is also used to indicate hdmi is NOT enabled
+     * note: "stHdmiSettings.stSettings.eMatrixCoeffs = BAVC_MatrixCoefficients_eUnknown" is also used to indicate hdmi is NOT enabled
      */
-    hDisplay->stNewInfo.ulHdmi      = BVDC_Hdmi_0;
-    hDisplay->stNewInfo.eHdmiOutput = BAVC_MatrixCoefficients_eUnknown;
+    hDisplay->stNewInfo.stHdmiSettings.stSettings.ulPortId      = BVDC_Hdmi_0;
+    hDisplay->stNewInfo.stHdmiSettings.stSettings.eMatrixCoeffs = BAVC_MatrixCoefficients_eUnknown;
     hDisplay->stNewInfo.bEnableHdmi = false;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eEotf = BAVC_HDMI_DRM_EOTF_eSDR;
     hDisplay->stNewInfo.stHdmiSettings.stSettings.eColorComponent = BAVC_Colorspace_eYCbCr444;
@@ -590,21 +590,10 @@ void BVDC_P_ResetVec
     }
 #endif
 
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     BREG_Write32(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
           BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, vec_sw_init, 1 ));
     BREG_Write32(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR,
           BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, vec_sw_init, 1 ));
-#else
-    /* Software Reset entire VEC block!  This will reset RM  */
-    BREG_AtomicUpdate32_isr(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_RESET,
-        BCHP_MASK( SUN_TOP_CTRL_SW_RESET, vec_sw_reset),
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_RESET, vec_sw_reset, 1 ));
-
-    BREG_AtomicUpdate32_isr(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_RESET,
-        BCHP_MASK( SUN_TOP_CTRL_SW_RESET, vec_sw_reset),
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_RESET, vec_sw_reset, 0 ));
-#endif
 
 #if BVDC_P_SUPPORT_VIP && BCHP_SUN_TOP_CTRL_SW_INIT_1_SET_vip_sw_init_MASK
     BREG_Write32(pVdc->hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,
@@ -663,7 +652,6 @@ void BVDC_P_Vec_Init_Misc_isr
 
     BDBG_ENTER(BVDC_P_Vec_Init_Misc_isr);
 
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_INIT_VEC_MISC, INIT, 1);
     BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_INIT_VEC_MISC, ulReg);
 
@@ -675,13 +663,6 @@ void BVDC_P_Vec_Init_Misc_isr
 
     ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_INIT_CABLE_DETECT_0, INIT, 0);
     BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_INIT_CABLE_DETECT_0, ulReg);
-#endif
-#else
-    ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_RESET_VEC_MISC, RESET, 1);
-    BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_RESET_VEC_MISC, ulReg);
-
-    ulReg = BCHP_FIELD_DATA(VEC_CFG_SW_RESET_VEC_MISC, RESET, 0);
-    BREG_Write32(pVdc->hRegister, BCHP_VEC_CFG_SW_RESET_VEC_MISC, ulReg);
 #endif
 
 #ifdef BCHP_MISC_DAC_BG_CTRL_0
@@ -974,7 +955,6 @@ static void BVDC_P_Display_AssignCSOutput
         {
             *peOutputCS = BVDC_P_Output_eYQI_M;
         }
-#if BVDC_P_SUPPORT_VEC_SECAM
         else if(BFMT_IS_SECAM(pNewInfo->pFmtInfo->eVideoFmt))
         {
             if ((pNewInfo->pFmtInfo->eVideoFmt == BFMT_VideoFmt_eSECAM_L) ||
@@ -993,7 +973,6 @@ static void BVDC_P_Display_AssignCSOutput
                 *peOutputCS = BVDC_P_Output_eYDbDr_H;
             }
         }
-#endif
         else if(pNewInfo->pFmtInfo->eVideoFmt == BFMT_VideoFmt_ePAL_NC)
         {
             *peOutputCS = BVDC_P_Output_eYUV_NC;
@@ -1760,7 +1739,7 @@ void BVDC_P_Display_ApplyChanges_isr
             BREG_Write32(hDisplay->hVdc->hRegister,
                 BCHP_VEC_CFG_DVI_DTG_0_SOURCE + hDisplay->stDviChan.ulDvi * 4, BCHP_VEC_CFG_DVI_DTG_0_SOURCE_SOURCE_DISABLE);
         }
-        BVDC_P_FreeDviChanResources_isr(hDisplay->hCompositor->hVdc->hResource, &hDisplay->stDviChan);
+        BVDC_P_FreeDviChanResources_isr(hDisplay->hCompositor->hVdc->hResource, hDisplay, &hDisplay->stDviChan);
         if (BVDC_P_HW_ID_INVALID != hDisplay->stMpaaComp.ulHwId ||
             BVDC_P_HW_ID_INVALID != hDisplay->stMpaaHdmi.ulHwId)
         {
@@ -2157,6 +2136,24 @@ void BVDC_P_Vec_BuildVsync_isr
         *pList->pulCurrent++ = BRDC_OP_NOP();
     }
 
+    /* set hdmi display synchronizer */
+    /* TODO: support multiple HDMI outputs when RDC adds multiple sync blocks */
+    if(pCurInfo->bEnableHdmi && pCurInfo->stHdmiSettings.stSettings.ulPortId == BVDC_Hdmi_0)
+    {
+        BRDC_SyncBlockSettings stSyncSettings;
+        /* sync-locked hdmi display is sync'd with source slot's synchronizer */
+        if(hDisplay->hCompositor->hSyncLockSrc) {
+            stSyncSettings.hSlot = hDisplay->hCompositor->hSyncLockSrc->ahSlot[0];
+        } else {/* sync-slipped hdmi display is sync'd with display slot's synchronizer */
+            stSyncSettings.hSlot = hDisplay->hCompositor->ahSlot[0];
+        }
+        if(BRDC_SetSyncBlockSettings_isr(hDisplay->hCompositor->hVdc->hRdc, BRDC_SyncBlockId_eHdmi0, &stSyncSettings)
+           != BERR_SUCCESS)
+        {
+            BDBG_ERR(("Failed to set HDMI synchronizer"));
+        }
+    }
+
     /* Write the ariticial L2 interrupt bit */
     if(hDisplay->stCurInfo.bArtificialVsync)
     {
@@ -2244,7 +2241,6 @@ void BVDC_P_Vec_BuildVsync_isr
             pCbData->stMask.bPerVsync = 0;
         }
 
-#if BVDC_P_SUPPORT_CMP_CRC
         if (pCurInfo->stCallbackSettings.stMask.bCrc
 #if BVDC_P_SUPPORT_STG/* SW7445-2544: don't callback CRC for ignore picture in NRT mode */
             && !(BVDC_P_DISPLAY_USED_STG(hDisplay->eMasterTg) &&
@@ -2274,7 +2270,6 @@ void BVDC_P_Vec_BuildVsync_isr
         {
             pCbData->stMask.bCrc = 0;
         }
-#endif
 
         if (pCurInfo->stCallbackSettings.stMask.bStgPictureId &&
            (hDisplay->hCompositor->ulPicId != pCbData->ulStgPictureId))

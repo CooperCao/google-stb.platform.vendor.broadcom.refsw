@@ -71,7 +71,7 @@ BDBG_OBJECT_ID(BAPE_InputPort);
 #define  BURST_PREAM_C_DATA_TYPE_DEPENDENT_INFO             0x1f00
 #define  BURST_PREAM_C_BIT_STREAM_NUMBER                    0xD000
 
-unsigned BAPE_InputPort_P_GetNumConsumersAttached(BAPE_InputPort inputPort)
+unsigned BAPE_InputPort_P_GetNumConsumersAttached_isrsafe(BAPE_InputPort inputPort)
 {
     unsigned count = 0;
     BAPE_PathNode * consumer;
@@ -88,7 +88,7 @@ unsigned BAPE_InputPort_P_GetNumConsumersAttached(BAPE_InputPort inputPort)
     return count;
 }
 
-bool BAPE_InputPort_P_HasConsumersAttached(BAPE_InputPort inputPort)
+bool BAPE_InputPort_P_HasConsumersAttached_isrsafe(BAPE_InputPort inputPort)
 {
     BAPE_PathNode * consumer;
     for ( consumer = BLST_S_FIRST(&inputPort->consumerList);
@@ -299,7 +299,7 @@ BERR_Code BAPE_InputPort_P_SetFormat_isr(
     oldFormat = inputPort->format;
     inputPort->format = *pNewFormat;
 
-    if ( BAPE_InputPort_P_HasConsumersAttached(inputPort) &&
+    if ( BAPE_InputPort_P_HasConsumersAttached_isrsafe(inputPort) &&
          !inputPort->consumerAttaching )
     {
         BAPE_PathNode * pConsumer;

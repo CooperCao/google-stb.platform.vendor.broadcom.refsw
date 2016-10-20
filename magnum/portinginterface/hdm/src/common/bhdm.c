@@ -684,7 +684,7 @@ Summary: Get the current version of the HDM PI (used to identify the HDM PI) for
 *******************************************************************************/
 const char * BHDM_P_GetVersion(void)
 {
-	static const char Version[] = "BHDM URSR 16.3" ;
+	static const char Version[] = "BHDM URSR 16.4" ;
 	return Version ;
 }
 
@@ -4209,6 +4209,7 @@ void BHDM_P_CaptureFIFOData(const BHDM_Handle hHDMI, BHDM_P_FIFO_DATA *FifoData)
 }
 
 
+#if !B_REFSW_MINIMAL
 BERR_Code BHDM_SetTimebase(
    const BHDM_Handle hHDMI,          /* [in] HDMI handle */
    BAVC_Timebase eTimebase     /* [in] Timebase */
@@ -4235,6 +4236,7 @@ BERR_Code BHDM_GetTimebase(
 	*eTimebase = hHDMI->DeviceSettings.eTimebase  ;
 	return rc ;
 }
+#endif
 
 
 void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
@@ -4513,6 +4515,7 @@ void BHDM_P_VideoFmt2CEA861Code(BFMT_VideoFmt eVideoFmt,
 
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
 Set the pixel repetition setting
@@ -4574,6 +4577,7 @@ BERR_Code BHDM_GetPixelRepetition(
 	BDBG_LEAVE(BHDM_GetPixelRepetition) ;
 	return BERR_SUCCESS;
 }
+#endif
 
 
 /******************************************************************************
@@ -4620,6 +4624,7 @@ BERR_Code BHDM_InstallHotplugChangeCallback(
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary: Uninstall HotPlug Change Callback
 *******************************************************************************/
@@ -4647,6 +4652,7 @@ BERR_Code BHDM_UnInstallHotplugChangeCallback(
 	BDBG_LEAVE(BHDM_UnInstallHotplugChangeCallback) ;
 	return rc;
 }
+#endif
 
 BERR_Code BHDM_GetCrcValue_isr(
 	const BHDM_Handle hHDMI,	/* [in] HDMI Handle */
@@ -4898,6 +4904,30 @@ static void BHDM_P_TimerExpiration_isr (const BHDM_Handle hHDMI, int parm2)
 		}
 		break ;
 
+	case BHDM_P_TIMER_ePacketChangeDelay :
+		{
+			BHDM_Packet PacketId ;
+			uint32_t PacketMask ;
+
+			for (PacketId = 0 ; PacketId < BHDM_Packet_eMax; PacketId++)
+			{
+				PacketMask = 1 << (uint32_t) PacketId ;
+				if (PacketMask & hHDMI->uiPacketRestartMask)
+				{
+					BDBG_MSG(("Enable Packet: %d", PacketId)) ;
+					BHDM_P_EnablePacketTransmission_isr(hHDMI, PacketId) ;
+
+					/* clear the Restart Mask for this packet */
+					BDBG_MSG(("Before RestartMask: %x", hHDMI->uiPacketRestartMask)) ;
+					hHDMI->uiPacketRestartMask &= ~PacketMask ;
+					BDBG_MSG(("After RestartMask: %x", hHDMI->uiPacketRestartMask)) ;
+				}
+			}
+		}
+
+		break ;
+
+
 	default :
 		BDBG_ERR(("Tx%d: hHDM %p Timer %d not handled", hHDMI->eCoreId, (void *)hHDMI, parm2)) ;
 	}
@@ -4922,8 +4952,12 @@ void BHDM_P_AllocateTimers(const BHDM_Handle hHDMI)
 	/* create a timer to delay before enabling scrambling */
 	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
 		&hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble)) ;
-
 #endif
+
+	/* create a packet delay timer  */
+	BHDM_CHECK_RC(rc, BHDM_P_CreateTimer(hHDMI,
+		&hHDMI->TimerPacketChangeDelay, BHDM_P_TIMER_ePacketChangeDelay)) ;
+
 
 done:
 	(void) BERR_TRACE(rc) ;
@@ -4936,16 +4970,17 @@ void BHDM_P_FreeTimers(const BHDM_Handle hHDMI)
 	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerHotPlug, BHDM_P_TIMER_eHotPlug) ;
 	BHDM_MONITOR_P_DestroyTimers(hHDMI) ;
 
-
 #if BHDM_CONFIG_HAS_HDCP22
 	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerScdcStatus, BHDM_P_TIMER_eScdcStatus) ;
 	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerTxScramble, BHDM_P_TIMER_eTxScramble) ;
 #endif
 
+	BHDM_P_DestroyTimer(hHDMI, hHDMI->TimerPacketChangeDelay, BHDM_P_TIMER_ePacketChangeDelay) ;
 }
 #endif
 
 
+#if !B_REFSW_MINIMAL
 BERR_Code BHDM_ConfigurePreEmphasis(
 	const BHDM_Handle hHDMI, BHDM_PreEmphasisSetting eValue)
 {
@@ -4980,6 +5015,7 @@ done:
 
 	return rc ;
 }
+#endif
 #endif /*#ifndef BHDM_FOR_BOOTUPDATER */
 
 
@@ -5197,6 +5233,7 @@ done:
 }
 
 
+#if !B_REFSW_MINIMAL
 /******************************************************************************
 Summary:
 Get the current color depth setting
@@ -5215,6 +5252,7 @@ BERR_Code BHDM_GetColorDepth(
 	BDBG_LEAVE(BHDM_GetColorDepth);
 	return BERR_SUCCESS;
 }
+#endif
 
 
 /******************************************************************************

@@ -44,9 +44,10 @@
 #include <assert.h>
 #include <unistd.h>
 
-#include "netinet/ip.h"
+#include <netinet/ip.h>
+#include <netinet/ether.h>
 #include "linux/tcp.h"
-/*#include "linux/in.h"*/
+
 
 #include "asp_utils.h"
 
@@ -400,6 +401,7 @@ void generateEthernetFrameFromPayload(
     int payloadSize
     )
 {
+    struct ether_header eth_hdr;
     struct iphdr ip_hdr;
     struct tcphdr tcp_hdr;
     int totalbytes;
@@ -409,9 +411,27 @@ void generateEthernetFrameFromPayload(
 
     printf("%s: Create a raw socket to simulate ASP and send the raw frame for payload size:%d \n", __FUNCTION__, payloadSize);
 
+    memset(&eth_hdr, 0, sizeof(struct ether_header));
     memset(&ip_hdr, 0, sizeof(struct iphdr));
     memset(&tcp_hdr, 0, sizeof(struct tcphdr));
-    totalbytes = sizeof(struct iphdr) + sizeof(struct tcphdr)+payloadSize;
+    totalbytes = sizeof(struct ether_header) + sizeof(struct iphdr) + sizeof(struct tcphdr) + payloadSize;
+
+    eth_hdr.ether_shost[0] = pSocketState->localMacAddress[0];
+    eth_hdr.ether_shost[1] = pSocketState->localMacAddress[1];
+    eth_hdr.ether_shost[2] = pSocketState->localMacAddress[2];
+    eth_hdr.ether_shost[3] = pSocketState->localMacAddress[3];
+    eth_hdr.ether_shost[4] = pSocketState->localMacAddress[4];
+    eth_hdr.ether_shost[5] = pSocketState->localMacAddress[5];
+
+    eth_hdr.ether_dhost[0] = pSocketState->remoteMacAddress[0];
+    eth_hdr.ether_dhost[1] = pSocketState->remoteMacAddress[1];
+    eth_hdr.ether_dhost[2] = pSocketState->remoteMacAddress[2];
+    eth_hdr.ether_dhost[3] = pSocketState->remoteMacAddress[3];
+    eth_hdr.ether_dhost[4] = pSocketState->remoteMacAddress[4];
+    eth_hdr.ether_dhost[5] = pSocketState->remoteMacAddress[5];
+
+    eth_hdr.ether_type = htons(ETH_P_IP);
+
 
     ip_hdr.ihl = 5;
     ip_hdr.version = 4;
@@ -450,11 +470,17 @@ void generateEthernetFrameFromPayload(
     //printf("checksum %x\n",tcp_hdr.check);
 
     memset(pFrameBuffer,0,packet_len);
-    memcpy(pFrameBuffer,&ip_hdr,sizeof(struct iphdr));
-    memcpy((pFrameBuffer+sizeof(struct iphdr)),&tcp_hdr,sizeof(struct tcphdr));
-    memcpy((pFrameBuffer+sizeof(struct iphdr)+sizeof(struct tcphdr)), pPlayload, payloadSize);
 
-    printf("%s: ==========+++++++++++++++++++++> Payload |%s| and payload size = %d and pFrameBuffer|%s|",__FUNCTION__, pPlayload, payloadSize, pFrameBuffer);
+    memcpy(pFrameBuffer,&eth_hdr,sizeof(struct ether_header));
+    memcpy((pFrameBuffer + sizeof(struct ether_header)),&ip_hdr,sizeof(struct iphdr));
+    memcpy((pFrameBuffer + sizeof(struct ether_header) + sizeof(struct iphdr)),&tcp_hdr,sizeof(struct tcphdr));
+    memcpy((pFrameBuffer + sizeof(struct ether_header) + sizeof(struct iphdr)+ sizeof(struct tcphdr)), pPlayload, payloadSize);
+
+    printf("\n%s: ==========+++++++++++++++++++++> Payload |%s| and payload size = %d and pFrameBuffer|%s| and totalSize=%d\n",
+           __FUNCTION__, pPlayload,
+           payloadSize, pFrameBuffer,
+           totalbytes
+           );
 
     /* Now call ASP_NwSwFlow_FeedRawFrameFromAspSimulator(
     void *pRawFrame,

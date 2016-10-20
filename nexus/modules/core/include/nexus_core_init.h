@@ -152,16 +152,6 @@ typedef struct NEXUS_CoreImageInterface
     NEXUS_CoreImageInterface_Close close;     /* close method */
 } NEXUS_CoreImageInterface;
 
-
-/***************************************************************************
-Summary:
-Settings for the Core module
-****************************************************************************/
-typedef struct  NEXUS_Core_Memc_Information {
-    NEXUS_Addr offset; /* offset e.g. physical address of first memory location addressable by MEMC */
-    uint64_t length; /* size of the memory region addressable by MEMC */
-} NEXUS_Core_Memc_Information;
-
 /***************************************************************************
 Summary:
 Settings for the Core module
@@ -172,7 +162,7 @@ typedef struct NEXUS_Core_Settings
     NEXUS_Core_MemoryRegion heapRegion[NEXUS_MAX_HEAPS]; /* heaps to allocate. set heapRegion[].length == 0 to terminate. */
     NEXUS_CoreInterruptInterface interruptInterface;
     NEXUS_CoreImageInterface imgInterface; /* Image interface */
-    NEXUS_Core_Memc_Information memcRegion[NEXUS_MAX_MEMC];
+    BCHP_MemoryLayout memoryLayout;
     unsigned defaultHeapIndex;
     BTEE_InstanceHandle teeHandle;
 } NEXUS_Core_Settings;

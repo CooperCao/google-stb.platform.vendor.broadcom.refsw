@@ -110,6 +110,7 @@ sub verify_tree {
 
 	for (sort keys %$clk_tree) {
 		foreach my $src (@{$clk_tree->{$_}{_srcs}}) {
+            my $cnt = 0;
 			if(exists $clk_tree->{$src}) {
 				# Eliminate node's functions from parents functions.
 				# Do this till we reach null. This will give a list of top level nodes
@@ -126,8 +127,10 @@ sub verify_tree {
 					}
 				}
 			} elsif($src ne "null") {
-				print "$clk_tree->{$_}{_srcs} not found\n";
+				print "$src does not exist in tree. Removing it from $_"."'s source\n";
+                splice(@{$clk_tree->{$_}{_srcs}}, $cnt, 1);
 			}
+            $cnt++;
 		}
 	}
 }
@@ -184,6 +187,7 @@ sub rename_function {
     $func =~ s/\bDVPHRLP\b/DVPHR/g;
     $func =~ s/\bDVPHR\b/DVPHR0/g;
     $func =~ s/\bDVPHR_PDA(R|W)\b/DVPHR0_PDA$1/g;
+    $func =~ s/\bBVN(.*?)_PDA(R|W)\b/BVN_PDA$2/g;
     $func =~ s/\bXPTWAKEUP\b/XPT_WAKEUP/g;
     $func =~ s/\bAIFSAT\b/AIFSAT0/g;
     $func =~ s/OBSERVE//g;
@@ -195,6 +199,8 @@ sub parse_rdb_file {
 	my ($file, $clk_tree) = @_;
 	my ($reg, $field, $resource, $default, $case);
     my $coreprefix;
+    my %featuredef;
+    my $disabled = 0;
 
     open(INFILE,"$file") or die "Can't open input file $file";
 
@@ -209,7 +215,24 @@ sub parse_rdb_file {
 		s/\s+$//;   # Remove whitespace at end of line
 		s/"//g;
 
-        if (/^coreprefix\s*(\w+)/) {
+        if (/^endfeature/) {
+            $disabled = 0;
+            next;
+        }
+        if ($disabled == 1) {
+            next;
+        }
+
+        if (/^featuredef\s*(.*?)\s*(\d+)/) {
+            $featuredef{$1} = $2;
+        } elsif (/^feature\s*(.*)/) {
+            my $feature = $1;
+            if(exists $featuredef{$1}) {
+               if ($featuredef{$1} == 0) {
+                   $disabled = 1;
+               }
+            }
+        } elsif (/^coreprefix\s*(\w+)/) {
             $coreprefix = $1;
         } elsif (/^regtype32\s*(\w+)/) {
 			$reg = $1;
@@ -255,8 +278,7 @@ sub parse_rdb_file {
             $clk_tree->{$resource}{_div} = $1;
         } elsif (/^\/\/PMPState:\s*STB:(.*?)(\d+):(.*?)(\d+):(\d+)/) {
             $clk_tree->{$resource}{_pmap}{$2}{_pstate}{$4} = $5;
-        }
-        elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
+        } elsif (/^\/\/PMPowerProfile:\s*STB\s*:\s*(.*?)\s*:\s*PMap(\d+)/) {
             $profiles[$2] = $1;
         }
 	}
@@ -269,6 +291,11 @@ sub skip_node {
 
     if(($src eq "null") ||
        ($src =~ /PLL_(SYS|SCB).*_PLL/)){
+        return 1;
+    }
+
+    if(!exists $clk_tree->{$src}) {
+        print "$src does not exist in tree\n";
         return 1;
     }
 
@@ -414,6 +441,7 @@ sub rename_node {
     $function =~ s/^VICE2(\d*)_PDA(R|W)$/VICE$1_PWR/g;
     $function =~ s/^AIO(\d*)$/AIO$1_CLK/g;
     $function =~ s/^RAAGA(\d*)$/RAAGA$1_CLK/g;
+    $function =~ s/^RAAGA(\d*)_CPU$/RAAGA$1_DSP/g;
     $function =~ s/^VDAC(\d*)$/VDC_DAC$1/g;
     $function =~ s/^VEC/VDC_VEC/g;
     $function =~ s/^ITU656(\d*)/VDC_656_OUT$1/g;
@@ -612,7 +640,7 @@ sub generate_user_defined_nodes {
             $nodes->{"MAGNUM_CONTROLLED"}{_list}{"AUD_PLL1"}++;  # TODO : Remove when fixed in rdb
         } elsif($node =~ /AIO_SRAM/) {
             $nodes->{"AUD_AIO"}{_list}{"$node"}++;
-        } elsif($node =~ /^(AVD|RAAGA|VICE)(\d*)(.*?)$/) {
+        } elsif($node =~ /^(AVD|VICE)(\d*)(.*?)$/) {
             if($3 eq "_CPU") {
                 foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
                     foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
@@ -636,6 +664,20 @@ sub generate_user_defined_nodes {
                 $nodes->{"BINT_OPEN"}{_list}{$1}++;
                 $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
             }
+        } elsif($node =~ /^(RAAGA)(\d*)(.*?)$/) {
+            if($3 eq "_DSP") {
+                foreach my $clk_node (keys %{$nodes->{$1.$2."_CLK"}{_list}}) {
+                    foreach my $cpu_node (keys %{$nodes->{$1.$2.$3}{_list}}) {
+                        $nodes->{$cpu_node}{_list}{$clk_node}++;
+                        push(@{$nodes->{$cpu_node}{_order}}, $clk_node);
+
+                    }
+                }
+            }
+            $nodes->{$1}{_list}{$node}++;
+
+            $nodes->{"BINT_OPEN"}{_list}{$1}++;
+            $nodes->{"MAGNUM_CONTROLLED"}{_list}{$1}++;
         } elsif($node =~ /^(SID|GRAPHICS3D)(_CPU)$/) {
             foreach my $clk_node (keys %{$nodes->{$1}{_list}}) {
                 foreach my $cpu_node (keys %{$nodes->{$1.$2}{_list}}) {
@@ -1274,11 +1316,18 @@ sub generate_dv_table
     push @lines2, "const ${prefix3} ${prefix3}List[BCHP_PWR_P_NUM_DIVS] = {\n";
 
     foreach (sort @$nodes) {
+        my $postdiv = 1;
+        my $prediv = 1 ;
+        my $mult = 1;
         foreach my $reg (sort keys %{$hw_desc->{$_}}) {
             foreach my $type (keys %{$hw_desc->{$_}{$reg}{_field}}) {
                 foreach my $field (keys %{$hw_desc->{$_}{$reg}{_field}{$type}}) {
                     if($field eq "_pmap") {next;}
                     if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}) {
+                        my $entries = scalar keys %{$hw_desc->{$_}{$reg}{_field}{$type}{_pmap}};
+                        if($num_profiles < $entries) {
+                            print "Mismatch between PMPowerProfile tag and number of profiles profiles found for $reg:$type\n";
+                        }
                         foreach my $profile (0..$num_profiles) {
                             if(exists $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}) {
                                 push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{_pmap}{$profile}{_pstate}{0});
@@ -1291,6 +1340,14 @@ sub generate_dv_table
                             }
                         }
                     } else {
+                        #print "no PMAP found for $reg:$type\n";
+                        if ($type eq "MULT") {
+                            $mult = 0;
+                        } elsif ($type eq "PREDIV") {
+                            $prediv = 0;
+                        } elsif ($type eq "POSTDIV") {
+                            $postdiv = 0;
+                        }
                         foreach my $profile (0..$num_profiles) {
                             push(@{$div_table{$_}{$type}}, $hw_desc->{$_}{$reg}{_field}{$type}{$field});
                         }
@@ -1298,12 +1355,49 @@ sub generate_dv_table
                 }
             }
         }
-        push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
-        foreach my $profile (0..$num_profiles) {
-            push @lines1, "{$div_table{$_}{MULT}[$profile],$div_table{$_}{PREDIV}[$profile],$div_table{$_}{POSTDIV}[$profile]},";
+        if(exists $div_table{$_}{MULT}) {
+            my $len= scalar(@{$div_table{$_}{MULT}});
+            if($num_profiles>$len+1) {
+                printf "Missing entries for $:MULT\n";
+                next;
+            }
+        } else {
+            printf "$_:MULT does not exist\n";
+            next;
         }
-        push @lines1, "};\n";
-        push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
+        if(exists $div_table{$_}{PREDIV}) {
+            my $len= scalar(@{$div_table{$_}{PREDIV}});
+            if($num_profiles>$len+1) {
+                printf "Missing entries for $:PREDIV\n";
+                next;
+            }
+        } else {
+            printf "$_:PREDIV does not exist\n";
+            next;
+        }
+        if(exists $div_table{$_}{POSTDIV}) {
+            my $len= scalar(@{$div_table{$_}{POSTDIV}});
+            if($num_profiles>$len+1) {
+                printf "Missing entries for $_:POSTDIV\n";
+                next;
+            }
+        } else {
+            printf "$_:POSTDIV does not exist\n";
+            next;
+        }
+        if ($prediv == 0 && $mult == 0 && $postdiv == 0) {
+            print "No pmap for $_\n";
+            delete $div_table{$_};
+        }
+
+        if (exists $div_table{$_}{MULT} && exists $div_table{$_}{PREDIV} && exists $div_table{$_}{POSTDIV}) {
+            push @lines1, "const ${prefix2} ${prefix2}_${_}[] = {";
+            foreach my $profile (0..$num_profiles) {
+                push @lines1, "{$div_table{$_}{MULT}[$profile],$div_table{$_}{PREDIV}[$profile],$div_table{$_}{POSTDIV}[$profile]},";
+            }
+            push @lines1, "};\n";
+            push @lines2, "    {${prefix1}_${_}, ${prefix2}_${_}},\n";
+        }
     }
     push @lines2, "};\n";
 
@@ -1471,6 +1565,7 @@ sub generate_bchp_files {
 sub main {
 	my (%clk_tree, %functions, %nodes, %hw_desc);
     my ($chp, $ver, $dir, $perf, $dbg);
+    my @files;
 
     foreach (@ARGV) {
         if(/^\d\d\d\d$/) {
@@ -1512,10 +1607,13 @@ sub main {
     }
     print"\n\n";
 
-    my $clkgen_dir = $dir."/design/clkgen/rdb/*.rdb";
-    my $avstop_dir = $dir."/design/avs_top/rdb/*.rdb";
+    my $clkgen_dir = $dir."/design/clkgen/rdb/*.rdb" if -e $dir."/design/clkgen/rdb/clkgen.rdb";
+    my $avstop_dir = $dir."/design/avs_top/rdb/avs_top_ctrl.rdb" if -e $dir."/design/avs_top/rdb/avs_top_ctrl.rdb";
     my $sysctrl_dir = $dir."/design/sys_ctrl/rdb/sram_pda.rdb" if -e $dir."/design/sys_ctrl/rdb/sram_pda.rdb";
-    my @files = glob("$clkgen_dir $avstop_dir $sysctrl_dir");
+
+    push(@files, glob("$clkgen_dir")) if ($clkgen_dir);
+    push(@files, glob("$avstop_dir")) if ($avstop_dir);
+    push(@files, glob("$sysctrl_dir")) if ($sysctrl_dir);
 
 	parse_rdb_file($_, \%clk_tree)  foreach (@files);
 

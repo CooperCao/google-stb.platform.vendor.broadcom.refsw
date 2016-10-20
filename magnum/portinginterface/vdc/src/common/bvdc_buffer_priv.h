@@ -98,10 +98,10 @@ extern "C" {
  ***************************************************************************/
 /* check parameters */
 #define BVDC_P_Buffer_GetDeviceOffset(pPictureNode)   \
-    pPictureNode->pHeapNode->ulDeviceOffset
+    pPictureNode->pHeapNode->ullDeviceOffset
 
 #define BVDC_P_Buffer_GetDeviceOffset_R(pPictureNode)   \
-    pPictureNode->pHeapNode_R->ulDeviceOffset
+    pPictureNode->pHeapNode_R->ullDeviceOffset
 
 #define BVDC_P_Buffer_GetNextNode(pPictureNode)   \
     BLST_CQ_NEXT(pPictureNode, link)
@@ -280,6 +280,7 @@ typedef struct BVDC_P_PictureNode
     BVDC_3dSourceBufferSelect          e3dSrcBufSel;
     /* 8 or 10-bit depth */
     BAVC_VideoBitDepth                 eBitDepth;
+    BAVC_VideoBitDepth                 eChromaBitDepth;
     bool                               bEnable10Bit;
     bool                               bEnableDcxm;
 
@@ -326,9 +327,9 @@ typedef struct BVDC_P_PictureNode
     uint32_t                           ulTopLeftBarValue;
     uint32_t                           ulBotRightBarValue;
     /*  Fast non real time (FNRT) meta data support */
-    bool                              bPreChargePicture;
-    bool                              bEndofChunk;
-    uint32_t                          ulChunkId;
+    bool                               bPreChargePicture;
+    bool                               bEndofChunk;
+    uint32_t                           ulChunkId;
 
     /* Working rectangles for mpeg feeder, scaler, capture and the following video
      * feeder:
@@ -362,6 +363,7 @@ typedef struct BVDC_P_PictureNode
     BVDC_P_Rect                        stWinIn;              /* vsur size and L/T cut*/
     BVDC_P_Rect                        stWinOut;             /* vdisp size and pos */
     BVDC_P_Rect                        stSclCut;             /* rect for scaler to pickup src cnt */
+    BVDC_P_Rect                        stHsclCut;            /* rect for h-scaler */
     BVDC_P_Rect                        stCapOut;             /* rect for cap out, with cut */
     BVDC_P_Rect                        stVfdOut;             /* rect for vfd out, with cut */
     BVDC_P_Rect                        stMadOut;             /* What MAD output. */
@@ -402,6 +404,7 @@ typedef struct BVDC_P_PictureNode
 
     /* Dest information */
     BVDC_P_VnetMode                    stVnetMode;           /* Dictates what resources to use. */
+    BVDC_P_MvpMode                     stMvpMode;            /* Dictates what modules inside Mvp in use*/
 
     /* mcvp/madr/mad buffer config */
     uint32_t                           usMadPixelBufferCnt;
@@ -422,12 +425,8 @@ typedef struct BVDC_P_PictureNode
     uint32_t                           ulNonlinearSclOutWidth;/* in pxl unit */
     uint32_t                           ulCentralRegionSclOutWidth;/* in pxl unit */
 
-    /* TODO: Use hSclCut */
     /* for h-scaling before deinterlacing */
     uint32_t                           ulHsclNrmHrzSrcStep; /* normalized hrz scl factor in fixed point format */
-    int32_t                            lHsclCutLeft; /* S11.6, same fmt as SclCut->lLeft */
-    uint32_t                           ulHsclCutWidth; /* similar to SclCut->ulWidth */
-    int32_t                            lHsclCutLeft_R; /* S11.6, same fmt as SclCut->lLeft_R */
 
     /* for h-scaling at Xsrc */
     uint32_t                           ulXsrcNrmHrzSrcStep; /* normalized hrz scl factor in fixed point format */
@@ -470,9 +469,6 @@ typedef struct BVDC_P_PictureNode
 
     /* bit flags used by picture node */
     BVDC_P_PicNodeFlags                stFlags;
-
-    BVDC_LumaStatus                    stCurHistData;
-    uint32_t                           ulCurHistSize;
 
     uint8_t                            ucAlpha;
 
@@ -738,13 +734,11 @@ BVDC_P_PictureNode * BVDC_P_Buffer_GetCurWriterNode_isr
 BVDC_P_PictureNode * BVDC_P_Buffer_GetCurReaderNode_isr
     ( const BVDC_P_Buffer_Handle       hBuffer);
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
 BERR_Code BVDC_P_Buffer_SetRightBufferPictureNodes_isr
     ( BVDC_P_Buffer_Handle             hBuffer,
       BVDC_P_HeapNodePtr               apHeapNode_R[],
       uint32_t                         ulCount,
       bool                             bAdd);
-#endif
 
 #if (BVDC_BUF_LOG == 1)
 void BVDC_P_Buffer_SetLogStateAndDumpTrigger

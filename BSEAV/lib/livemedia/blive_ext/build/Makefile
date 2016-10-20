@@ -1,18 +1,39 @@
 ############################################################
-#     Copyright (c) 2003-2014, Broadcom Corporation
-#     All Rights Reserved
-#     Confidential Property of Broadcom Corporation
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-#  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
-#  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
-#  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
-#  $brcm_Workfile: $
-#  $brcm_Revision: $
-#  $brcm_Date: $
+# This program is the proprietary software of Broadcom and/or its licensors,
+# and may only be used, duplicated, modified or distributed pursuant to the terms and
+# conditions of a separate, written license agreement executed between you and Broadcom
+# (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+# no license (express or implied), right to use, or waiver of any kind with respect to the
+# Software, and Broadcom expressly reserves all rights in and to the Software and all
+# intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+# HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+# NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
 #
-#  Revision History:
-#  $brcm_Log: $
+# Except as expressly set forth in the Authorized License,
 #
+# 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+# secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+# and to use this information only in connection with your use of Broadcom integrated circuit products.
+#
+# 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+# AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+# WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+# THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+# OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+# LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+# OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+# USE OR PERFORMANCE OF THE SOFTWARE.
+#
+# 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+# LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+# EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+# USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+# THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+# ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+# LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+# ANY LIMITED REMEDY.
 ############################################################
 
 B_THIS_DIR:=BSEAV/lib/livemedia/blive_ext/build
@@ -42,7 +63,7 @@ BLIVE_EXT_ODIR := ${BLIVE_EXT_LIBDIR}
 BLIVE_EXT_LIB = $(BLIVE_EXT_ODIR)/libblive_ext.a
 
 .PHONY: check_environment clean
-all: $(BLIVE_EXT_LIB) LM_ADD_TO_LIVEMEDIA
+all: $(BLIVE_EXT_LIB)
 
 ifeq ($(VERBOSE),)
 MAKEFLAGS += -s
@@ -71,15 +92,6 @@ BLIVE_EXT_OBJS = bsap.o bscheduler.o
 $(BLIVE_EXT_ODIR)/%.o: %.cpp         |     check_environment
 	@echo [Compile... $(notdir $<)]
 	${Q_}$(CXX) $(CXXFLAGS) -c $< -o $@
-
-LM_ADD_TO_LIVEMEDIA: $(BLIVE_EXT_ODIR)/lm_lgpl.o
-ifeq ($(SPF_SUPPORT),y)
-	#Changes for RTSP-ES support
-	export SPF_SUPPORT=y
-
-	@echo [Compile... lm_lgpl.cpp ]
-	${Q_}$(CXX) -DSPF_SUPPORT $(CXXFLAGS) -c $(BLIVE_EXT_DIR)/src/lm_lgpl.cpp -o $(BLIVE_EXT_ODIR)/lm_lgpl.o
-endif
 
 $(BLIVE_EXT_LIB): $(addprefix $(BLIVE_EXT_ODIR)/,$(BLIVE_EXT_OBJS))
 	@echo [Linking... $(notdir $@)]

@@ -52,4 +52,8 @@
 #include <GLES2/gl2ext.h>
 #endif
 
+#ifdef BSG_USE_ES32
+#include <GLES3/gl32.h>
+#endif
+
 #endif // __BSG_GLAPI_H__

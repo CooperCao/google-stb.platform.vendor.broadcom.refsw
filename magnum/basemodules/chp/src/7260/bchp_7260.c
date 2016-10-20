@@ -48,20 +48,7 @@
 #include "bchp_priv.h"
 #include "bchp_7260.h"
 #include "bchp_sun_top_ctrl.h"
-#include "bchp_clkgen.h"
-#include "bchp_sun_gisb_arb.h"
-
-#include "bchp_memc_ddr_0.h"
-#include "bchp_memc_arb_0.h"
 #include "bchp_pwr.h"
-
-#include "bchp_avs_ro_registers_0.h"
-#include "bchp_avs.h"
-
-#include "bchp_v3d_top_gr_bridge.h"
-#include "bchp_v3d_ctl_0.h"
-#include "bchp_v3d_hub_ctl.h"
-#include "bchp_zone0_fs.h"
 
 BDBG_MODULE(BCHP);
 
@@ -93,19 +80,6 @@ static BERR_Code BCHP_P_GetFeature
       const BCHP_Feature               eFeature,
       void                            *pFeatureValue );
 
-static BERR_Code BCHP_P_ResetMagnumCores
-    ( const BCHP_Handle                hChip );
-
-#ifndef EMULATION
-static void BCHP_P_ResetRaagaCore
-    ( const BCHP_Handle                hChip,
-      const BREG_Handle                hReg );
-
-static void BCHP_P_ResetV3dCore
-    ( const BCHP_Handle                hChip,
-      const BREG_Handle                hReg );
-#endif
-
 BERR_Code BCHP_Open7260
     ( BCHP_Handle                     *phChip,
       BREG_Handle                      hRegister )
@@ -132,8 +106,6 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
     }
     pChip->pGetFeatureFunc  = BCHP_P_GetFeature;
 
-    BCHP_P_ResetMagnumCores( pChip );
-
     /* Open BCHP_PWR */
     rc = BCHP_PWR_Open(&pChip->pwrManager, pChip);
     if (rc) {
@@ -151,27 +123,6 @@ BERR_Code BCHP_Open( BCHP_Handle *phChip, const BCHP_OpenSettings *pSettings )
 
     /* All done. now return the new fresh context to user. */
     *phChip = (BCHP_Handle)pChip;
-
-    /* Clear AVD/SVD shutdown enable bit */
-#if BCHP_PWR_RESOURCE_AVD0
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD0);
-#endif
-    /* TDB
-    BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_0_SOFTSHUTDOWN_CTRL_REG, 0x0);
-    */
-#if BCHP_PWR_RESOURCE_AVD0
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD0);
-#endif
-
-#if BCHP_PWR_RESOURCE_AVD1
-    BCHP_PWR_AcquireResource(pChip, BCHP_PWR_RESOURCE_AVD1);
-#endif
-    /* TDB
-    BREG_Write32(hRegister, BCHP_DECODE_IP_SHIM_1_SOFTSHUTDOWN_CTRL_REG, 0x0);
-    */
-#if BCHP_PWR_RESOURCE_AVD1
-    BCHP_PWR_ReleaseResource(pChip, BCHP_PWR_RESOURCE_AVD1);
-#endif
 
     BDBG_LEAVE(BCHP_Open7260);
     return BERR_SUCCESS;
@@ -254,248 +205,4 @@ static BERR_Code BCHP_P_GetFeature
     return rc;
 }
 
-
-/***************************************************************************
- * {private}
- *
- */
-static BERR_Code BCHP_P_ResetMagnumCores
-    ( const BCHP_Handle                hChip )
-{
-
-    BREG_Handle  hRegister = hChip->regHandle;
-    uint32_t ulRegVal;
-
-    BSTD_UNUSED(ulRegVal);
-
-#ifndef EMULATION
-    BCHP_P_ResetRaagaCore(hChip, hRegister); /* must be done first before all other cores. */
-    BCHP_P_ResetV3dCore(hChip, hRegister);
-#endif
-
-    /* Reset some cores. This is needed to avoid L1 interrupts before BXXX_Open can be called per core. */
-    /* Note, SW_INIT set/clear registers don't need read-modify-write. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_SET,
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, xpt_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, hvd0_sw_init,   1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, vec_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, aio_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, bvn_sw_init,    1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, raaga0_sw_init, 1 ) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, gfx_sw_init,    1)  |
-
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_SET, dvp_ht_sw_init, 1 ));
-
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_SET,
-
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, v3d_top_sw_init, 1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_SET, sid_sw_init,  1));
-
-    /* Now clear the reset. */
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_0_CLEAR,
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, xpt_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, hvd0_sw_init,   1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, vec_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, aio_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, bvn_sw_init,    1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, raaga0_sw_init, 1) |
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, gfx_sw_init,    1) |
-
-         BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_0_CLEAR, dvp_ht_sw_init, 1) );
-
-    BREG_Write32(hRegister, BCHP_SUN_TOP_CTRL_SW_INIT_1_CLEAR,
-
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, v3d_top_sw_init, 1) |
-        BCHP_FIELD_DATA( SUN_TOP_CTRL_SW_INIT_1_CLEAR, sid_sw_init,   1));
-
-    /* use 324 MHz BVB clock */
-    ulRegVal = BREG_Read32(hRegister, BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1);
-    ulRegVal &= ~(BCHP_MASK(CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1));
-    ulRegVal |= BCHP_FIELD_ENUM(CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1, MDIV_CH1, DEFAULT);
-    BREG_Write32(hRegister, BCHP_CLKGEN_PLL_SYS0_PLL_CHANNEL_CTRL_CH_1, ulRegVal);
-    BDBG_MSG(("Set BVB clock at 324 MHz."));
-
-    return BERR_SUCCESS;
-}
-
-#ifdef BCHP_PWR_HAS_RESOURCES
-#include "bchp_pwr_resources_priv.h"
-#endif
-#include "bchp_raaga_dsp_misc.h"
-
-
-#ifndef EMULATION
-/* SW workaround to ensure we can hit the Raaga SW_INIT safely */
-static void BCHP_P_ResetRaagaCore(const BCHP_Handle hChip, const BREG_Handle hReg)
-{
-    uint32_t val;
-    BSTD_UNUSED(hChip);
-
-    /* unconditionally turn on everything that's needed to do the register write below.
-       we don't know what power state we were left in. BCHP_PWR_Open() will later turn stuff off as needed */
-#if BCHP_PWR_HW_CTRL_RAAGA_PWRDN_REQ
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CTRL_RAAGA_PWRDN_REQ, true);
-#endif
-#if BCHP_PWR_HW_RAAGA_CH_CTRL_CH_0_POST_DIV_HOLD_CH0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA_CH_CTRL_CH_0_POST_DIV_HOLD_CH0, true);
-#endif
-#if BCHP_PWR_HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CPU_CH_CTRL_CH_5_POST_DIV_HOLD_CH5, true);
-#endif
-#if BCHP_PWR_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0, true);
-#endif
-#if BCHP_PWR_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0, true);
-#endif
-#if BCHP_PWR_HW_RAAGA0_AIO
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0_AIO, true);
-#endif
-#if BCHP_PWR_HW_RAAGA0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_RAAGA0, true);
-#endif
-
-    val = BREG_Read32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT) ;
-    val = (val & ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT)))|
-     (BCHP_FIELD_DATA(RAAGA_DSP_MISC_SOFT_INIT, DO_SW_INIT,1));
-    BREG_Write32(hReg,BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
-
-    val = BREG_Read32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT);
-    val &= ~(BCHP_MASK(RAAGA_DSP_MISC_SOFT_INIT, INIT_PROC_B));
-    BREG_Write32(hReg, BCHP_RAAGA_DSP_MISC_SOFT_INIT, val);
-
-    return;
-}
-
-static void BCHP_P_HardwarePowerUpV3D(
-   const BREG_Handle hReg
-   )
-{
-   uint32_t uiSuccess, uiMask;
-   uint32_t uiZoneControl;
-
-   uiZoneControl = BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_DPG_CNTL_EN, 1) |
-      BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_PWR_UP_REQ, 1) |
-      BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_BLK_RST_ASSERT, 1) |
-      BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_MEM_PWR_CNTL_EN, 1);
-
-   BREG_Write32(hReg, BCHP_ZONE0_FS_PWR_CONTROL, uiZoneControl);
-
-   uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-
-   uiSuccess = BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_MEM_PWR_STATE) |
-      BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_DPG_PWR_STATE) |
-      BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_PWR_ON_STATE);
-
-   uiMask = BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_ISO_STATE) |
-      BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_MEM_PWR_STATE) |
-      BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_DPG_PWR_STATE) |
-      BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_PWR_ON_STATE);
-
-   uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-
-   while ((uiZoneControl & uiMask) != uiSuccess)
-      uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-}
-
-static void BCHP_P_HardwarePowerDownV3D(
-   const BREG_Handle hReg
-   )
-{
-   uint32_t uiZoneControl;
-
-   /* Power down V3D */
-   uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-
-   /* Check PWR_ON_STATE bit */
-   if (BCHP_GET_FIELD_DATA(uiZoneControl, ZONE0_FS_PWR_CONTROL, ZONE_PWR_ON_STATE))
-   {
-      uint32_t uiSuccess, uiMask;
-
-      uiZoneControl = BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_DPG_CNTL_EN, 1) |
-         BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_PWR_DN_REQ, 1) |
-         BCHP_FIELD_DATA(ZONE0_FS_PWR_CONTROL, ZONE_MEM_PWR_CNTL_EN, 1);
-
-      BREG_Write32(hReg, BCHP_ZONE0_FS_PWR_CONTROL, uiZoneControl);
-
-      uiSuccess = BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_ISO_STATE) |
-         BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_PWR_OFF_STATE);
-
-      uiMask = BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_ISO_STATE) |
-         BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_MEM_PWR_STATE) |
-         BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_DPG_PWR_STATE) |
-         BCHP_MASK(ZONE0_FS_PWR_CONTROL, ZONE_PWR_OFF_STATE);
-
-      uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-      while ((uiZoneControl & uiMask) != uiSuccess)
-         uiZoneControl = BREG_Read32(hReg, BCHP_ZONE0_FS_PWR_CONTROL);
-   }
-}
-
-static void BCHP_P_ResetV3dCore( const BCHP_Handle hChip, const BREG_Handle hReg )
-{
-    BSTD_UNUSED(hChip);
-
-#if BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ, true);
-#endif
-#if BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4, true);
-#endif
-#if BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4, true);
-#endif
-#if BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0, true);
-#endif
-#if BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ, true);
-#endif
-#if BCHP_PWR_HW_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, true);
-#endif
-#if BCHP_PWR_HW_STB_V3D_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_STB_V3D_V3D, true);
-#endif
-#if BCHP_PWR_HW_V3D_SRAM
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_SRAM, true);
-#endif
-
-    /* We will briefly power up the clocks and the v3d core, reset to clear any interrupts, then power off again */
-    BCHP_P_HardwarePowerUpV3D(hReg);
-
-    BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, ASSERT));
-    BREG_Write32(hReg, BCHP_V3D_TOP_GR_BRIDGE_SW_INIT_0, BCHP_FIELD_ENUM(V3D_TOP_GR_BRIDGE_SW_INIT_0, V3D_CLK_108_SW_INIT, DEASSERT));
-
-    BREG_Write32(hReg, BCHP_V3D_CTL_0_INT_CLR, ~0);
-    BREG_Write32(hReg, BCHP_V3D_HUB_CTL_INT_CLR, ~0);
-
-    BCHP_P_HardwarePowerDownV3D(hReg);
-
-#if BCHP_PWR_HW_V3D_SRAM
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_SRAM, false);
-#endif
-#if BCHP_PWR_HW_STB_V3D_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_STB_V3D_V3D, false);
-#endif
-#if BCHP_PWR_HW_V3D
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D, false);
-#endif
-#if BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CTRL_V3D_PWRDN_REQ, false);
-#endif
-#if BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_V3D_CH_CTRL_CH_0_POST_DIV_HOLD_CH0, false);
-#endif
-#if BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CPU_CH_CTRL_CH_4_POST_DIV_HOLD_CH4, false);
-#endif
-#if BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_AVX_CH_CTRL_CH_4_POST_DIV_HOLD_CH4, false);
-#endif
-#if BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ
-    BCHP_PWR_P_HW_ControlId(hChip, BCHP_PWR_HW_CTRL_AVX_PWRDN_REQ, false);
-#endif
-}
-#endif
 /* End of File */

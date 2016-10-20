@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2012, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * Module Description:
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- * 
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bled.h"
 #include "bchp_ldk.h"
@@ -28,61 +45,61 @@
 
 BDBG_MODULE(bled);
 
-#define	DEV_MAGIC_ID			((BERR_LED_ID<<16) | 0xFACE)
+#define DEV_MAGIC_ID            ((BERR_LED_ID<<16) | 0xFACE)
 
-#define	BLED_CHK_RETCODE( rc, func )		\
-do {										\
+#define BLED_CHK_RETCODE( rc, func )        \
+do {                                        \
 	if( (rc = BERR_TRACE(func)) != BERR_SUCCESS ) \
-	{										\
-		goto done;							\
-	}										\
+	{                                       \
+		goto done;                          \
+	}                                       \
 } while(0)
 
 /* Default values */
-#define LED_DEFAULT_PRESCALE_HI		0x00
-#define LED_DEFAULT_PRESCALE_LO		0x55
-#define LED_DEFAULT_DUTYCYCLE_OFF	0x01
-#define LED_DEFAULT_DUTYCYCLE_ON	0xAA
-#define LED_DEFAULT_DEBOUNCE		0x40
+#define LED_DEFAULT_PRESCALE_HI     0x00
+#define LED_DEFAULT_PRESCALE_LO     0x55
+#define LED_DEFAULT_DUTYCYCLE_OFF   0x01
+#define LED_DEFAULT_DUTYCYCLE_ON    0xAA
+#define LED_DEFAULT_DEBOUNCE        0x40
 
 /*******************************************************************************
 *
-*	Private Module Handles
+*   Private Module Handles
 *
 *******************************************************************************/
 
 typedef struct BLED_P_Handle
 {
-	uint32_t		magicId;					/* Used to check if structure is corrupt */
-	BCHP_Handle 	hChip;
-	BREG_Handle		hRegister;
+	uint32_t        magicId;                    /* Used to check if structure is corrupt */
+	BCHP_Handle     hChip;
+	BREG_Handle     hRegister;
 } BLED_P_Handle;
 
 /*******************************************************************************
 *
-*	Default Module Settings
+*   Default Module Settings
 *
 *******************************************************************************/
-static const BLED_Settings defLedSettings = 
+static const BLED_Settings defLedSettings =
 {
-	100									/* percent brightness */
+	100                                 /* percent brightness */
 };
 
 /*******************************************************************************
 *
-*	Public Module Functions
+*   Public Module Functions
 *
 *******************************************************************************/
 BERR_Code BLED_Open(
-	BLED_Handle *pLed,					/* [output] Returns handle */
-	BCHP_Handle hChip,					/* Chip handle */
-	BREG_Handle hRegister,				/* Register handle */
-	const BLED_Settings *pDefSettings	/* Default settings */
+	BLED_Handle *pLed,                  /* [output] Returns handle */
+	BCHP_Handle hChip,                  /* Chip handle */
+	BREG_Handle hRegister,              /* Register handle */
+	const BLED_Settings *pDefSettings   /* Default settings */
 	)
 {
-	BERR_Code 		retCode = BERR_SUCCESS;
- 	BLED_Handle 	hDev;
- 	uint32_t		lval;
+	BERR_Code       retCode = BERR_SUCCESS;
+	BLED_Handle     hDev;
+	uint32_t        lval;
 
 	/* Sanity check on the handles we've been given. */
 	BDBG_ASSERT( hChip );
@@ -94,21 +111,21 @@ BERR_Code BLED_Open(
 	{
 		*pLed = NULL;
 		retCode = BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
-		BDBG_ERR(("BLED_Open: BKNI_malloc() failed\n"));
+		BDBG_ERR(("BLED_Open: BKNI_malloc() failed"));
 		goto done;
 	}
 
-	hDev->magicId	= DEV_MAGIC_ID;
-	hDev->hChip		= hChip;
+	hDev->magicId   = DEV_MAGIC_ID;
+	hDev->hChip     = hChip;
 	hDev->hRegister = hRegister;
 	*pLed = hDev;
 
 	/* Reset LED/Keypad core */
 	lval = BREG_Read32 (hDev->hRegister, BCHP_LDK_CONTROL);
 	lval |= BCHP_LDK_CONTROL_swr_MASK;
-	lval &= 0x0f;						/* only keep lower 4 bits */
+	lval &= 0x0f;                       /* only keep lower 4 bits */
 	BREG_Write32 (hDev->hRegister, BCHP_LDK_CONTROL, lval);
-	
+
 	lval &= ~BCHP_LDK_CONTROL_swr_MASK;
 	lval |=  BCHP_LDK_CONTROL_ver_MASK;
 	BREG_Write32 (hDev->hRegister, BCHP_LDK_CONTROL, lval);
@@ -124,7 +141,7 @@ done:
 }
 
 BERR_Code BLED_Close(
-	BLED_Handle hDev					/* Device handle */
+	BLED_Handle hDev                    /* Device handle */
 	)
 {
 	BERR_Code retCode = BERR_SUCCESS;
@@ -139,8 +156,8 @@ BERR_Code BLED_Close(
 }
 
 BERR_Code BLED_GetDefaultSettings(
-	BLED_Settings *pDefSettings,		/* [output] Returns default setting */
-	BCHP_Handle hChip					/* Chip handle */
+	BLED_Settings *pDefSettings,        /* [output] Returns default setting */
+	BCHP_Handle hChip                   /* Chip handle */
 )
 {
 	BERR_Code retCode = BERR_SUCCESS;
@@ -152,14 +169,14 @@ BERR_Code BLED_GetDefaultSettings(
 	return( retCode );
 }
 
-BERR_Code BLED_Write ( 
-	BLED_Handle 		hLed, 			/* Device handle */
-	uint8_t				digit,			/* digit to write to */
-	uint8_t				value			/* value to write */
+BERR_Code BLED_Write (
+	BLED_Handle         hLed,           /* Device handle */
+	uint8_t             digit,          /* digit to write to */
+	uint16_t            value           /* value to write */
 )
 {
-	uint32_t	offset;
-	
+	uint32_t    offset;
+
 	switch (digit)
 	{
 		case 1:
@@ -169,7 +186,7 @@ BERR_Code BLED_Write (
 		case 2:
 			offset = BCHP_LDK_DIGIT2;
 			break;
-			
+
 		case 3:
 			offset = BCHP_LDK_DIGIT3;
 			break;
@@ -177,31 +194,31 @@ BERR_Code BLED_Write (
 		case 4:
 			offset = BCHP_LDK_DIGIT4;
 			break;
-			
+
 		default:
 			return BERR_INVALID_PARAMETER;
 	}
-	
+
 	BREG_Write32 (hLed->hRegister, offset, (uint32_t)value);
 
 	return BERR_SUCCESS;
 }
 
-BERR_Code BLED_AdjustBrightness ( 
-	BLED_Handle 		hLed,				/* Device handle */
-	uint8_t				percentBrightness	/* percent of brightness */
+BERR_Code BLED_AdjustBrightness (
+	BLED_Handle         hLed,               /* Device handle */
+	uint8_t             percentBrightness   /* percent of brightness */
 )
 {
-	uint8_t				ucDutyCycleOn;
-	uint8_t				ucDutyCycleOff;
-	uint32_t			dutyCycleClks;
-	uint32_t			valueOn;
+	uint8_t             ucDutyCycleOn;
+	uint8_t             ucDutyCycleOff;
+	uint32_t            dutyCycleClks;
+	uint32_t            valueOn;
 
-	dutyCycleClks 	= LED_DEFAULT_DUTYCYCLE_ON + LED_DEFAULT_DUTYCYCLE_OFF;
+	dutyCycleClks   = LED_DEFAULT_DUTYCYCLE_ON + LED_DEFAULT_DUTYCYCLE_OFF;
 
-	valueOn 		= dutyCycleClks * percentBrightness / 100;
-	ucDutyCycleOn 	= (uint8_t)valueOn;
-	ucDutyCycleOff 	= dutyCycleClks - ucDutyCycleOn;
+	valueOn         = dutyCycleClks * percentBrightness / 100;
+	ucDutyCycleOn   = (uint8_t)valueOn;
+	ucDutyCycleOff  = dutyCycleClks - ucDutyCycleOn;
 
 	BREG_Write32 (hLed->hRegister, BCHP_LDK_DUTYOFF, (uint32_t)ucDutyCycleOff);
 	BREG_Write32 (hLed->hRegister, BCHP_LDK_DUTYON,  (uint32_t)ucDutyCycleOn);
@@ -209,17 +226,17 @@ BERR_Code BLED_AdjustBrightness (
 	return BERR_SUCCESS;
 }
 
-BERR_Code BLED_SetDiscreteLED ( 
-	BLED_Handle 		hLed, 			/* Device handle */
-	bool				on,				/* turn on or off */
-	uint8_t				ledStatusBit	/* bit to turn on or off */
+BERR_Code BLED_SetDiscreteLED (
+	BLED_Handle         hLed,           /* Device handle */
+	bool                on,             /* turn on or off */
+	uint8_t             ledStatusBit    /* bit to turn on or off */
 )
 {
-	uint32_t			lval;
+	uint32_t            lval;
 
 	if (ledStatusBit > 7)
 		return BERR_INVALID_PARAMETER;
-		
+
 	lval = BREG_Read32 (hLed->hRegister, BCHP_LDK_STATUS);
 	if (on)
 		lval &= ~(1 << ledStatusBit);
@@ -232,19 +249,19 @@ BERR_Code BLED_SetDiscreteLED (
 }
 
 #if (HLCD_SUPPORT==1)
-BERR_Code BLED_StartHLCD ( 
-	BLED_Handle 		hLed, 			/* Device handle */
-	uint8_t				hour,			/* used to initialize the hour counter */
-	uint8_t				min,			/* used	to initialize the minute counter */
-	uint8_t				sec,			/* used to initialize the second counter */
-	bool				hour_mode,		/* 1 count hours from 0 to 23. 0 count hours from 0 to 11 */
-	bool				display_mode	/* 0: in 12-hour mode: display from 1 to 12; in 24-hour mode: display from 0 to 23 */
+BERR_Code BLED_StartHLCD (
+	BLED_Handle         hLed,           /* Device handle */
+	uint8_t             hour,           /* used to initialize the hour counter */
+	uint8_t             min,            /* used to initialize the minute counter */
+	uint8_t             sec,            /* used to initialize the second counter */
+	bool                hour_mode,      /* 1 count hours from 0 to 23. 0 count hours from 0 to 11 */
+	bool                display_mode    /* 0: in 12-hour mode: display from 1 to 12; in 24-hour mode: display from 0 to 23 */
 										/* 1: in 12-hour mode: display from 0 to 11; in 24-hour mode: display from 1 to 24 */
 )
 {
-	uint32_t			lval;
+	uint32_t            lval;
 
-    BDBG_ASSERT( hLed );
+	BDBG_ASSERT( hLed );
 
 	if (hour_mode)
 	{
@@ -260,7 +277,7 @@ BERR_Code BLED_StartHLCD (
 			return BERR_INVALID_PARAMETER;
 		}
 	}
-	
+
 	if (min >= 60)
 	{
 		return BERR_INVALID_PARAMETER;
@@ -296,7 +313,7 @@ BERR_Code BLED_StartHLCD (
 	lval |= (LED_NUM9 << BCHP_AON_CTRL_LED_DIGIT_CODE_2_digit_code_9_SHIFT);
 	BREG_Write32 (hLed->hRegister, BCHP_AON_CTRL_LED_DIGIT_CODE_2, lval);
 
-	/* 	program address offset of the hour/minute */
+	/*  program address offset of the hour/minute */
 	lval = BREG_Read32 (hLed->hRegister, BCHP_AON_CTRL_LED_DIGIT_ADDR_OFFSET);
 	lval &= ~BCHP_AON_CTRL_LED_DIGIT_ADDR_OFFSET_hour_msd_addr_offset_MASK;
 	lval &= ~BCHP_AON_CTRL_LED_DIGIT_ADDR_OFFSET_hour_lsd_addr_offset_MASK;
@@ -316,21 +333,21 @@ BERR_Code BLED_StartHLCD (
 }
 
 
-BERR_Code BLED_StopHLCD ( 
-	BLED_Handle 		hLed 			/* Device handle */
+BERR_Code BLED_StopHLCD (
+	BLED_Handle         hLed            /* Device handle */
 )
 {
-	uint32_t		lval;
-	uint8_t			cnt;
-	BERR_Code 		retCode = BERR_SUCCESS;
+	uint32_t        lval;
+	uint8_t         cnt;
+	BERR_Code       retCode = BERR_SUCCESS;
 
-    BDBG_ASSERT( hLed );
+	BDBG_ASSERT( hLed );
 
 	/* Disable HLCD */
 	BREG_Write32 (hLed->hRegister, BCHP_AON_CTRL_HLCD_CTRL, 0);
 
 	/* wait until status becomes 0 */
-      for(cnt = 0; cnt < 10; cnt++)
+	  for(cnt = 0; cnt < 10; cnt++)
 	{
 		lval = BREG_Read32 (hLed->hRegister, BCHP_AON_CTRL_HLCD_CTRL);
 

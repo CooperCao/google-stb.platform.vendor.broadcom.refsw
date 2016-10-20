@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2004-2013 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *     LED output control
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  ***************************************************************************/
 
@@ -181,11 +173,15 @@ Write a custom value to a single LED digit.
 
 Description:
 Use bitwise OR of NEXUS_LedSegment elements to construct the value to be written.
+
+Nexus will do a bitwise negation, then write to LDK hardware.
+For Nexus, 1 means the segment is lit; 0 means it is not.
+For LDK hardware, 0 means the segment is lit; 1 means it is not.
 ****************************************************************************/
 NEXUS_Error NEXUS_Led_WriteSegments(
     NEXUS_LedHandle handle,
     NEXUS_LedDigit digit,
-    uint8_t value /* Value to be written to the digit. Writing 0 clears the digit */
+    uint16_t value /* Value to be written to the digit. Writing 0 clears the digit */
     );
 
 /***************************************************************************

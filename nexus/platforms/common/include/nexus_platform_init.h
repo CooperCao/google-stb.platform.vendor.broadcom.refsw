@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -58,6 +58,7 @@
 #include "nexus_display_init.h"
 #endif
 #ifdef NEXUS_HAS_AUDIO
+#include "nexus_audio.h"
 #include "nexus_audio_init.h"
 #include "nexus_audio_dac.h"
 #include "nexus_spdif_output.h"
@@ -249,7 +250,7 @@ Get default settings to pass into NEXUS_Platform_Init.
 ***************************************************************************/
 #define NEXUS_Platform_GetDefaultSettings(pSettings) NEXUS_Platform_GetDefaultSettings_tagged((pSettings), sizeof(NEXUS_PlatformSettings))
 
-void NEXUS_Platform_GetDefaultSettings_tagged(
+void NEXUS_Platform_GetDefaultSettings_tagged( /* attr{thunk=false}  */
     NEXUS_PlatformSettings *pSettings, /* [out] */
     size_t size
     );
@@ -276,7 +277,7 @@ This will perform basic version checking to make sure you have a properly config
 See Also:
 NEXUS_Platform_Uninit
  ***************************************************************************/
-NEXUS_Error NEXUS_Platform_Init_tagged(
+NEXUS_Error NEXUS_Platform_Init_tagged( /* attr{thunk=false} */
     const NEXUS_PlatformSettings *pSettings,     /* attr{null_allowed=y} Pass NULL for defaults */
     const NEXUS_MemoryConfigurationSettings *pMemConfig, /* attr{null_allowed=y} Pass NULL for defaults */
     unsigned platformCheck,                      /* set by NEXUS_Platform_Init macro. Only tested if NEXUS_PlatformSettings.checkPlatformType is true. */
@@ -312,7 +313,7 @@ NEXUS_Platform_Uninit will also clean up pre-init proxy state from NEXUS_Platfor
 even if NEXUS_Platform_Init was never called.
 ***************************************************************************/
 /*
-void NEXUS_Platform_Uninit(void) is defined in nexus_platform_client.h, which is included by nexus_platform.h
+ NEXUS_Platform_Uninit is defined in nexus_platform_client.h, which is included by nexus_platform.h
 */
 
 /***************************************************************************
@@ -320,7 +321,7 @@ Summary:
 ***************************************************************************/
 #define  NEXUS_GetDefaultMemoryConfigurationSettings(pSettings)  NEXUS_GetDefaultMemoryConfigurationSettings_tagged((pSettings), sizeof(NEXUS_MemoryConfigurationSettings))
 
-void NEXUS_GetDefaultMemoryConfigurationSettings_tagged(
+void NEXUS_GetDefaultMemoryConfigurationSettings_tagged( /* attr{thunk=false} */
     NEXUS_MemoryConfigurationSettings *pSettings,
     size_t size
     );
@@ -331,9 +332,34 @@ NEXUS_GetPlatformCapabilities is callable before NEXUS_Platform_Init
 ***************************************************************************/
 #define NEXUS_GetPlatformCapabilities(pCap) NEXUS_GetPlatformCapabilities_tagged((pCap), sizeof(NEXUS_PlatformCapabilities))
 
-void NEXUS_GetPlatformCapabilities_tagged(
+void NEXUS_GetPlatformCapabilities_tagged(  /* attr{thunk=false} */
     NEXUS_PlatformCapabilities *pCap,
     size_t size
+    );
+
+typedef struct NEXUS_PlatformConfigCapabilities
+{
+    struct {
+        bool valid;
+        unsigned heapIndex; /* corresponds to NEXUS_MEMCx_SECURE_GRAPHICS_HEAP */
+        unsigned memcIndex;
+    } secureGraphics[1]; /* only one possible secure graphics heap now, but could be multiple in future */
+} NEXUS_PlatformConfigCapabilities;
+
+/***************************************************************************
+Summary:
+Unlike NEXUS_GetPlatformCapabilities, these capabilities are based on HW and SW configuration.
+NEXUS_GetPlatformConfigCapabilities is callable before NEXUS_Platform_Init
+***************************************************************************/
+#define NEXUS_GetPlatformConfigCapabilities(pSettings,pMemConfig,pCap) \
+    NEXUS_GetPlatformConfigCapabilities_tagged((pSettings),(pMemConfig),(pCap), \
+        sizeof(NEXUS_PlatformSettings)+sizeof(NEXUS_MemoryConfigurationSettings)+sizeof(NEXUS_PlatformConfigCapabilities))
+
+NEXUS_Error NEXUS_GetPlatformConfigCapabilities_tagged( /* attr{thunk=false} */
+    const NEXUS_PlatformSettings *pSettings,
+    const NEXUS_MemoryConfigurationSettings *pMemConfig,
+    NEXUS_PlatformConfigCapabilities *pCap,
+    unsigned size
     );
 
 #ifdef __cplusplus
@@ -341,4 +367,3 @@ void NEXUS_GetPlatformCapabilities_tagged(
 #endif
 
 #endif /* #ifndef NEXUS_PLATFORM_INIT_H__ */
-

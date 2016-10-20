@@ -424,6 +424,10 @@ typedef struct zigbeeCallback {
     extern void server_##name(unsigned int *buf, int socket);           \
     extern void server_##name##_callback(reqType  *request, confType *conf);
 
+#define DECLARE_NON_RPC_REQUEST_API_FUNCTION(name, reqType, confType)    \
+    extern void name(reqType *request); \
+    extern void non_rpc_##name##_callback(reqType  *request, confType *conf);
+
 #define DECLARE_SERVER_INDICATION_API_FUNCTION(name, indType, respType) \
     extern void server_##name(indType *indication, int socket);         \
     extern void server_##name##_callback(unsigned int *buf, int socket);\
@@ -503,6 +507,7 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC2_CheckValidationResp, RF4CE_ZRC2_C
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_ZRC1_TargetBindReq, RF4CE_ZRC1_BindReqDescr_t, RF4CE_ZRC1_BindConfParams_t)
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
+DECLARE_NON_RPC_REQUEST_API_FUNCTION(RF4CE_UnpairReq, RF4CE_UnpairReqDescr_t, RF4CE_UnpairConfParams_t)
 
 //DECLARE_SERVER_REQUEST_API_FUNCTION(Mail_Host2Uart1, TE_Host2Uart1ReqDescr_t,   NoAppropriateType_t)
 
@@ -719,7 +724,7 @@ DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_SapIasAcePanelStatusChangedReq, ZB
 
 DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdStartWarningReq, ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t, ZBPRO_ZCL_IASWDCmdStartWarningConfParams_t)
 
-DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdSquawkgReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t)
+DECLARE_SERVER_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdSquawkReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t)
 
 DECLARE_SERVER_INDICATION_API_FUNCTION(ZBPRO_ZCL_IdentifyInd, ZBPRO_ZCL_IdentifyIndParams_t, NoAppropriateType_t)
 
@@ -1041,7 +1046,7 @@ DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_SapIasAcePanelStatusChangedReq, ZB
 
 DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdStartWarningReq, ZBPRO_ZCL_IASWDCmdStartWarningReqDescr_t, ZBPRO_ZCL_IASWDCmdStartWarningConfParams_t)
 
-DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdSquawkgReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t)
+DECLARE_CLIENT_REQUEST_API_FUNCTION(ZBPRO_ZCL_IASWDCmdSquawkReq, ZBPRO_ZCL_IASWDCmdSquawkReqDescr_t, ZBPRO_ZCL_IASWDCmdSquawkConfParams_t)
 
 DECLARE_CLIENT_INDICATION_API_FUNCTION(ZBPRO_ZCL_IdentifyInd, ZBPRO_ZCL_IdentifyIndParams_t, NoAppropriateType_t)
 

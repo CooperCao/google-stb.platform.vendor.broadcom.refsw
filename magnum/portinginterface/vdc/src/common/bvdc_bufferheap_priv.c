@@ -41,7 +41,7 @@
 #include "bvdc_bufferheap_priv.h"
 #include "bvdc_priv.h"
 #include "bvdc_displayfmt_priv.h"
-#include "bvdc_capture_priv.h"
+#include "bvdc_window_priv.h"
 
 
 BDBG_MODULE(BVDC_HEAP);
@@ -69,15 +69,15 @@ static void BVDC_P_BufferHeap_DumpHeapNode_isr
 /*#if 1*/
 #if (BDBG_DEBUG_BUILD)
     /* ulBufIndex (ulNodeCntPerParent eOrigBufHeapId) (Continous)
-     *       (Used - ulNumChildNodeUsed) at ulDeviceOffset (pvBufAddr) */
-    BDBG_MSG(("    - Node %p %2d (%s) (%s) (%s - %d/%d) at 0x%x, block offset 0x%x",
+     *       (Used - ulNumChildNodeUsed) at ullDeviceOffset (pvBufAddr) */
+    BDBG_MSG(("    - Node %p %2d (%s) (%s) (%s - %d/%d) at " BDBG_UINT64_FMT ", block offset 0x%x",
     (void *)pBufferHeapNode,
     pBufferHeapNode->ulBufIndex,
     BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pBufferHeapNode->eOrigBufHeapId),
     pBufferHeapNode->bContinous? "c" : "n",
     pBufferHeapNode->bUsed ? "x" : " ",
     pBufferHeapNode->ulNumChildNodeUsed, pBufferHeapNode->ulNumChildNodeSplit,
-    pBufferHeapNode->ulDeviceOffset,
+    BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset),
     pBufferHeapNode->ulBlockOffset));
 #else
     BSTD_UNUSED(pBufferHeapNode); /* hush warning. */
@@ -193,10 +193,10 @@ uint32_t BVDC_P_BufferHeap_GetHeapSize
     /* Get pitch */
     BPXL_GetBytesPerNPixels(ePixelFmt, ulWidth, &uiPitch);
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     /* TODO: Optimize */
-    uiPitch += BVDC_P_MAX(BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_3D,
-        BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_2D);
+    uiPitch += BVDC_P_MAX(BVDC_P_MAX_CAP_GUARD_MEMORY_3D,
+        BVDC_P_MAX_CAP_GUARD_MEMORY_2D);
 #endif
 
     /* Make sure 32 byte aligned */
@@ -585,7 +585,7 @@ void BVDC_P_BufferHeap_GetHeapOrder
         }
     }
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     if(pBufferHeap)
     {
         uint32_t   ulIntNum, ulFrac;
@@ -643,7 +643,8 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
     ( BMMA_Heap_Handle             hMemory,
       BVDC_P_BufferHeap_Info      *pHeapInfo )
 {
-    uint32_t               i, ulDeviceOffset = 0, ulBlockOffset = 0;
+    uint32_t               i, ulBlockOffset = 0;
+    BMMA_DeviceOffset      ullDeviceOffset = 0;
     uint32_t               ulBufSize = pHeapInfo->ulBufSize;
     uint32_t               ulPrimaryBufCnt = pHeapInfo->ulPrimaryBufCnt;
     BERR_Code              err = BERR_SUCCESS;
@@ -653,7 +654,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
 
     if (ulPrimaryBufCnt)
     {
-        ulDeviceOffset = BMMA_LockOffset(pHeapInfo->hMmaBlock);
+        ullDeviceOffset = BMMA_LockOffset(pHeapInfo->hMmaBlock);
     }
 
     for(i = 0; i < ulPrimaryBufCnt; i++)
@@ -664,7 +665,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
         pBufferHeapNode->ulBufIndex   = i;
         pBufferHeapNode->pHeapInfo    = pHeapInfo;
         pBufferHeapNode->bUsed        = false;
-        pBufferHeapNode->ulDeviceOffset = ulDeviceOffset;
+        pBufferHeapNode->ullDeviceOffset = ullDeviceOffset;
         pBufferHeapNode->ulBlockOffset  = ulBlockOffset;
         pBufferHeapNode->ulNumChildNodeUsed = 0;
         pBufferHeapNode->ulNumChildNodeSplit = 0;
@@ -673,7 +674,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildPrimaryNodeList
         pBufferHeapNode->ulParentNodeBufIndex = 0xffffffff;
         pBufferHeapNode->ulFirstChildNodeBufIndex = 0xffffffff;
 
-        ulDeviceOffset += ulBufSize;
+        ullDeviceOffset += ulBufSize;
         ulBlockOffset += ulBufSize;
     }
 
@@ -691,7 +692,8 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
     uint32_t                aulNumNodesSplit[BVDC_P_BufferHeapId_eCount];
     uint32_t                aulMaxParentNodes2Split[BVDC_P_BufferHeapId_eCount];
     uint32_t                i, j;
-    uint32_t                ulBufSize, ulDeviceOffset, ulBlockOffset;
+    uint32_t                ulBufSize, ulBlockOffset;
+    BMMA_DeviceOffset       ullDeviceOffset;
     BVDC_P_BufferHeapNode  *pBufferHeapNode, *pParentHeapNode;
     BVDC_P_BufferHeap_Info *pParentHeapInfo = pHeapInfo->pParentHeapInfo;
     BSTD_UNUSED(hMemory);
@@ -732,7 +734,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
     {
         /* Break a larger buffer into smaller buffers */
         pParentHeapNode = &(pParentHeapInfo->pBufList[j]);
-        ulDeviceOffset = pParentHeapNode->ulDeviceOffset;
+        ullDeviceOffset = pParentHeapNode->ullDeviceOffset;
         ulBlockOffset = 0;
 
         for(i = 0; i < pHeapInfo->ulNodeCntPerParent; i++ )
@@ -757,7 +759,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
             pBufferHeapNode->bUsed        = false;
             pBufferHeapNode->ulNumChildNodeUsed = 0;
             pBufferHeapNode->ulNumChildNodeSplit = 0;
-            pBufferHeapNode->ulDeviceOffset = ulDeviceOffset;
+            pBufferHeapNode->ullDeviceOffset = ullDeviceOffset;
             pBufferHeapNode->ulBlockOffset = ulBlockOffset;
             pBufferHeapNode->ulParentNodeBufIndex = pParentHeapNode->ulBufIndex;
             pBufferHeapNode->eOrigBufHeapId = pParentHeapNode->eOrigBufHeapId;
@@ -778,7 +780,7 @@ static BERR_Code BVDC_P_BufferHeap_BuildChildNodeList
             }
             pParentHeapNode->ulNumChildNodeSplit++;
 
-            ulDeviceOffset += ulBufSize;
+            ullDeviceOffset += ulBufSize;
             ulBlockOffset += ulBufSize;
 
             pHeapInfo->ulTotalBufCnt++;
@@ -918,7 +920,7 @@ static BERR_Code BVDC_P_BufferHeap_MarkParentNode_isr
         {
             pParentHeapNode->bUsed = true;
             pParentHeapInfo->ulBufUsed++;
-            BDBG_MSG(("Mark parent node: 0x%x", pParentHeapNode->ulDeviceOffset));
+            BDBG_MSG(("Mark parent node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pParentHeapNode->ullDeviceOffset)));
             BVDC_P_BufferHeap_DumpHeapNode_isr(pParentHeapNode);
 
             BVDC_P_BufferHeap_MarkParentNode_isr(
@@ -958,7 +960,7 @@ static BERR_Code BVDC_P_BufferHeap_MarkChildNodes_isr
             pChildNode->bUsed = true;
             pChildHeapInfo->ulBufUsed++;
             pCurrentNode->ulNumChildNodeUsed++;
-            BDBG_MSG(("Mark child nodes: 0x%x", pChildNode->ulDeviceOffset));
+            BDBG_MSG(("Mark child node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pChildNode->ullDeviceOffset)));
             BVDC_P_BufferHeap_DumpHeapNode_isr(pChildNode);
 
             BVDC_P_BufferHeap_MarkChildNodes_isr(pChildHeapInfo->pChildHeapInfo,
@@ -982,7 +984,7 @@ static BERR_Code BVDC_P_BufferHeap_MarkNode_isr
     /* Mark the found node */
     pBufferHeapNode->bUsed = true;
     pHeapInfo->ulBufUsed++;
-    BDBG_MSG(("Mark node: 0x%x", pBufferHeapNode->ulDeviceOffset));
+    BDBG_MSG(("Mark node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset)));
     BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapNode);
 
     /* Mark parent node and parent heap */
@@ -1031,7 +1033,7 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkParentNode_isr
             {
                 pParentHeapNode->bUsed = false;
                 pParentHeapInfo->ulBufUsed--;
-                BDBG_MSG(("Unmark parent node: 0x%x", pParentHeapNode->ulDeviceOffset));
+                BDBG_MSG(("Unmark parent node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pParentHeapNode->ullDeviceOffset)));
                 BVDC_P_BufferHeap_DumpHeapNode_isr(pParentHeapNode);
             }
 
@@ -1073,7 +1075,7 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkChildNodes_isr
         pChildHeapInfo->ulBufUsed--;
         pCurrentNode->ulNumChildNodeUsed--;
         BVDC_P_BufferHeap_DumpHeapNode_isr(pChildNode);
-        BDBG_MSG(("Unmark child nodes: 0x%x", pChildNode->ulDeviceOffset));
+        BDBG_MSG(("Unmark child node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pChildNode->ullDeviceOffset)));
         BVDC_P_BufferHeap_UnmarkChildNodes_isr(pChildHeapInfo->pChildHeapInfo,
             pChildNode);
         i++;
@@ -1097,7 +1099,7 @@ static BERR_Code BVDC_P_BufferHeap_UnmarkNode_isr
     pBufferHeapNode->ulNumChildNodeUsed = 0;
     */
     pHeapInfo->ulBufUsed--;
-    BDBG_MSG(("UnMark node: 0x%x", pBufferHeapNode->ulDeviceOffset));
+    BDBG_MSG(("Unmark node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset)));
     BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapNode);
 
     /* Unmark parent node and parent heap */
@@ -1148,7 +1150,7 @@ static BERR_Code BVDC_P_BufferHeap_AllocateNodes_isr
         /* Find the node */
         if( pBufferHeapNode && bFound )
         {
-            BDBG_MSG(("Found an available node: 0x%x", pBufferHeapNode->ulDeviceOffset));
+            BDBG_MSG(("Found an available node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pBufferHeapNode->ullDeviceOffset)));
 
             /* Mark the node and its parent node */
             BVDC_P_BufferHeap_MarkNode_isr(pHeapInfo, pBufferHeapNode);
@@ -1202,7 +1204,7 @@ static BERR_Code BVDC_P_BufferHeap_FreeNode_isr
     while((i < pHeapInfo->ulTotalBufCnt) && !bFound)
     {
         pTempNode = &pHeapInfo->pBufList[i];
-        if(pTempNode->ulDeviceOffset != pHeapNode->ulDeviceOffset)
+        if(pTempNode->ullDeviceOffset != pHeapNode->ullDeviceOffset)
             i++;
         else
             bFound = true;
@@ -1212,12 +1214,12 @@ static BERR_Code BVDC_P_BufferHeap_FreeNode_isr
     {
         /* Unmark the node and its parent node */
         BVDC_P_BufferHeap_UnmarkNode_isr(pTempNode);
-        BDBG_MSG(("Free node: 0x%x", pTempNode->ulDeviceOffset));
+        BDBG_MSG(("Free node: "BDBG_UINT64_FMT, BDBG_UINT64_ARG(pTempNode->ullDeviceOffset)));
     }
     else
     {
-        BDBG_MSG(("Can not find a matching node %p at 0x%x (%d)",
-            (void *)pTempNode, pTempNode->ulDeviceOffset, pTempNode->bUsed));
+        BDBG_MSG(("Can not find a matching node %p at "BDBG_UINT64_FMT "(%d)",
+            (void *)pTempNode, BDBG_UINT64_ARG(pTempNode->ullDeviceOffset), pTempNode->bUsed));
 
         BVDC_P_BufferHeap_Dump_isr(pHeapInfo->hBufferHeap);
         BDBG_ASSERT(0);
@@ -1280,8 +1282,8 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
             break;
         }
 
-        BDBG_MSG(("Find first available node(%d): 0x%x",
-            ulAllocCnt, pBufferHeapNodeStart->ulDeviceOffset));
+        BDBG_MSG(("Find first available node(%d): "BDBG_UINT64_FMT,
+            ulAllocCnt,BDBG_UINT64_ARG( pBufferHeapNodeStart->ullDeviceOffset)));
         BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapNodeStart);
 
         bNext = true;
@@ -1291,14 +1293,16 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
             pBufferHeapTempNode= &pHeapInfo->pBufList[j];
             if( pBufferHeapTempNode->bUsed )
             {
-                BDBG_MSG(("Find a non-available node: 0x%x", pBufferHeapTempNode->ulDeviceOffset));
+                BDBG_MSG(("Find a non-available node: "BDBG_UINT64_FMT,
+                    BDBG_UINT64_ARG(pBufferHeapTempNode->ullDeviceOffset)));
                 BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapTempNode);
                 bNext  = false;
                 break;
             }
             else if( !pBufferHeapTempNode->bContinous )
             {
-                BDBG_MSG(("Find a non-continous node: 0x%x", pBufferHeapTempNode->ulDeviceOffset));
+                BDBG_MSG(("Find a non-continous node: "BDBG_UINT64_FMT,
+                    BDBG_UINT64_ARG(pBufferHeapTempNode->ullDeviceOffset)));
                 BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapTempNode);
                 bNext  = false;
                 break;
@@ -1306,7 +1310,8 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
             else
             {
                 ulAllocCnt++;
-                BDBG_MSG(("Find next available node (%d): 0x%x", ulAllocCnt, pBufferHeapTempNode->ulDeviceOffset));
+                BDBG_MSG(("Find next available node (%d): "BDBG_UINT64_FMT,
+                    ulAllocCnt, BDBG_UINT64_ARG(pBufferHeapTempNode->ullDeviceOffset)));
                 BVDC_P_BufferHeap_DumpHeapNode_isr(pBufferHeapTempNode);
             }
 
@@ -1336,7 +1341,8 @@ static BERR_Code BVDC_P_BufferHeap_AllocateContNodes_isr
         else
         {
             BDBG_MSG((" "));
-            BDBG_MSG(("Find %d available nodes 0x%x", ulCount, pBufferHeapNodeStart->ulDeviceOffset));
+            BDBG_MSG(("Find %d available nodes "BDBG_UINT64_FMT,
+                ulCount, BDBG_UINT64_ARG(pBufferHeapNodeStart->ullDeviceOffset)));
             for( j = 0; j < ulCount; j++ )
             {
                 /* Mark the node and its parent node */
@@ -1381,7 +1387,7 @@ static BERR_Code BVDC_P_BufferHeap_FreeContNodes_isr
     {
         ulStartNodeIndex = j;
         pTempNode = &pHeapInfo->pBufList[j];
-        if(pTempNode->ulDeviceOffset != (*pHeapNode)->ulDeviceOffset)
+        if(pTempNode->ullDeviceOffset != (*pHeapNode)->ullDeviceOffset)
             j++;
         else
             bFound = true;
@@ -1392,7 +1398,8 @@ static BERR_Code BVDC_P_BufferHeap_FreeContNodes_isr
         for(i = 0; i < ulCount; i++ )
         {
             pTempNode = &pHeapInfo->pBufList[ulStartNodeIndex+i];
-            BDBG_MSG(("Free Cnt node: 0x%x", pTempNode->ulDeviceOffset));
+            BDBG_MSG(("Free Cnt node: "BDBG_UINT64_FMT,
+                BDBG_UINT64_ARG(pTempNode->ullDeviceOffset)));
             BVDC_P_BufferHeap_DumpHeapNode_isr(pTempNode);
 
             if( pTempNode && pTempNode->bUsed )
@@ -1474,7 +1481,7 @@ BERR_Code BVDC_P_BufferHeap_Create
         return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
     }
 
-    pBufferHeap->ulMosaicDrainOffset = (uint32_t) BMMA_LockOffset(pBufferHeap->hMosaicDrainBlock);
+    pBufferHeap->ullMosaicDrainOffset = BMMA_LockOffset(pBufferHeap->hMosaicDrainBlock);
 
     for( i = 0; i < BVDC_P_BufferHeapId_eCount; i++ )
     {
@@ -1521,7 +1528,7 @@ BERR_Code BVDC_P_BufferHeap_Destroy
     if(hBufferHeap->hMosaicDrainBlock)
     {
         /* free drain buffer */
-        BMMA_UnlockOffset(hBufferHeap->hMosaicDrainBlock, hBufferHeap->ulMosaicDrainOffset);
+        BMMA_UnlockOffset(hBufferHeap->hMosaicDrainBlock, hBufferHeap->ullMosaicDrainOffset);
         BMMA_Free(hBufferHeap->hMosaicDrainBlock);
     }
 
@@ -1773,14 +1780,11 @@ void BVDC_P_BufferHeap_GetHeapSizeById_isr
 #if (BVDC_P_CHECK_MEMC_INDEX)
 BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
     ( BVDC_P_BufferHeapContext      *pHeap,
-      BCHP_MemoryInfo               *pMemoryInfo,
       uint32_t                       ulMemcIndex,
       BVDC_DisplayId                 eDispId,
       BVDC_WindowId                  eWinId )
 {
     uint32_t    i;
-    uint64_t    ulHeapStartOffset, ulHeapEndOffset;
-    uint64_t    ulMemcStartOffset, ulMemcEndOffset;
     BVDC_P_BufferHeap_Info   *pHeapInfo;
 
 #if (!BDBG_DEBUG_BUILD)
@@ -1789,14 +1793,10 @@ BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
 #endif
 
     BDBG_ASSERT(pHeap);
-    BDBG_ASSERT(pMemoryInfo);
     BDBG_ASSERT(ulMemcIndex != BBOX_MemcIndex_Invalid);
 
     if(ulMemcIndex == BBOX_VDC_DISREGARD)
         return BERR_SUCCESS;
-
-    ulMemcStartOffset = (uint64_t)pMemoryInfo->memc[ulMemcIndex].offset;
-    ulMemcEndOffset = ulMemcStartOffset + pMemoryInfo->memc[ulMemcIndex].size;
 
     /* TODO: Call BCHP API to validate heap (SW7445-2325) */
     for(i = 0; i < BVDC_P_BufferHeapId_eCount; i++)
@@ -1804,26 +1804,12 @@ BERR_Code BVDC_P_BufferHeap_CheckHeapMemcIndex
         pHeapInfo = &pHeap->astHeapInfo[i];
         if(pHeapInfo->ulPrimaryBufCnt)
         {
-            ulHeapStartOffset = (uint64_t)pHeapInfo->pBufList[0].ulDeviceOffset;
-            ulHeapEndOffset = ulHeapStartOffset + (uint64_t)pHeapInfo->ulBufSize;
-
-            BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                ("Boxmode[%d]: Memc[%d] device offset: " BDBG_UINT64_FMT " - " BDBG_UINT64_FMT,
-                pHeap->hVdc->stBoxConfig.stBox.ulBoxId, ulMemcIndex,
-                BDBG_UINT64_ARG(ulMemcStartOffset), BDBG_UINT64_ARG(ulMemcEndOffset)));
-            BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                ("Window Heap[%s]: device offset: " BDBG_UINT64_FMT "-  " BDBG_UINT64_FMT,
-                BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(pHeapInfo->eBufHeapId),
-                BDBG_UINT64_ARG(ulHeapStartOffset), BDBG_UINT64_ARG(ulHeapEndOffset)));
-
-            if( !((ulHeapStartOffset >= ulMemcStartOffset) &&
-                (ulHeapStartOffset < ulMemcEndOffset) &&
-                (ulHeapEndOffset > ulMemcStartOffset) &&
-                (ulHeapEndOffset <= ulMemcEndOffset)) )
+            BSTD_DeviceOffset ulHeapStartOffset = (uint64_t)pHeapInfo->pBufList[0].ullDeviceOffset;
+            if( !BCHP_OffsetOnMemc(pHeap->hVdc->hChip, ulHeapStartOffset, ulMemcIndex) )
             {
                 BDBG_MODULE_MSG(BVDC_MEMC_INDEX_CHECK,
-                    ("Disp[%d]Win[%d] Possible mismatch between Memory heap and Box mode settings:",
-                    eDispId, eWinId));
+                    ("Disp[%d]Win[%d] mismatch between memory heap " BDBG_UINT64_FMT " and Box mode MEMC%u",
+                    eDispId, eWinId, BDBG_UINT64_ARG(ulHeapStartOffset), ulMemcIndex));
             }
         }
     }

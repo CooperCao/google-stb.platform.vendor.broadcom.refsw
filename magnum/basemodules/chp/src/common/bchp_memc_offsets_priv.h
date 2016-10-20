@@ -43,8 +43,9 @@
 
 /* Table of Physical addresses per memory controller per SOC. */
 
-/* All SOCs have the same MEMC_0 offset. */
+#if BCHP_CHIP != 7278
 #define BCHP_P_MEMC_0_OFFSET               0x00000000
+#endif
 
 #if BCHP_CHIP == 7422 || BCHP_CHIP == 7425 || BCHP_CHIP == 7435
 #define BCHP_P_MEMC_1_OFFSET               0x90000000
@@ -68,6 +69,19 @@
 /* MEMC2 addr space: 0x8000_0000 ~ 0xbFFF_FFFF */
 #define BCHP_P_MEMC_1_OFFSET               0x40000000
 #define BCHP_P_MEMC_2_OFFSET               0x80000000
+#endif
+
+#if BCHP_CHIP == 7278
+/* MEMC0 addr space: 0x00_4000_0000 ~ 0x02_3FFF_FFFF */
+/* v7-32 MEMC0 addr space: 0x00_4000_0000 ~ 0x00_BFFF_FFFF */
+/* v7-64 MEMC0 addr space: 0x00_4000_0000 ~ 0x02_3FFF_FFFF */
+#define BCHP_P_MEMC_0_OFFSET               0x40000000
+/* v7-32 MEMC1 addr space: 0x00_C000_0000 ~ 0x00_FFFF_FFFF */
+#define BCHP_P_MEMC_1_OFFSET32             0xC0000000
+/* v7-64 MEMC1 addr space: 0x03_0000_0000 ~ 0x04_FFFF_FFFF */
+#define BCHP_P_MEMC_1_OFFSET64             BCHP_UINT64_C(0x03, 0x00000000)
+/* Default to v7-64 */
+#define BCHP_P_MEMC_1_OFFSET               BCHP_P_MEMC_1_OFFSET64
 #endif
 
 #endif /* BCHP_MEMC_OFFSETS_PRIV_H__ */

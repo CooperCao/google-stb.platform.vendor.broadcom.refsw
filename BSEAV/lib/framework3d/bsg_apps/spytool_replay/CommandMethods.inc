@@ -4472,6 +4472,16 @@ if (f != NULL) f(GetEGLDisplay(EGLDisplay, 0), GetEGLSync(EGLSyncKHR, 1), GetI32
  WarnNotAvailable("eglWaitSyncKHR");
 #endif
 }
+void Command::run_glBlendBarrierKHR()
+{
+#if GL_KHR_blend_equation_advanced
+ if (m_packet.NumItems() > 1) WarnDataNotHandled("glBlendBarrierKHR");
+ PFNGLBLENDBARRIERKHRPROC f = (PFNGLBLENDBARRIERKHRPROC)eglGetProcAddress("glBlendBarrierKHR");
+if (f != NULL) f();
+#else
+ WarnNotAvailable("glBlendBarrierKHR");
+#endif
+}
 void Command::run_glDebugMessageControlKHR()
 {
 #if GL_KHR_debug
@@ -4680,6 +4690,46 @@ void Command::run_glIsEnablediOES()
 if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1));
 #else
  WarnNotAvailable("glIsEnablediOES");
+#endif
+}
+void Command::run_glDrawElementsBaseVertexOES()
+{
+#if GL_OES_draw_elements_base_vertex
+ if (m_packet.NumItems() > 7) WarnDataNotHandled("glDrawElementsBaseVertexOES");
+ PFNGLDRAWELEMENTSBASEVERTEXOESPROC f = (PFNGLDRAWELEMENTSBASEVERTEXOESPROC)eglGetProcAddress("glDrawElementsBaseVertexOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 5), GetI32(GLint, 4));
+#else
+ WarnNotAvailable("glDrawElementsBaseVertexOES");
+#endif
+}
+void Command::run_glDrawRangeElementsBaseVertexOES()
+{
+#if GL_OES_draw_elements_base_vertex
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glDrawRangeElementsBaseVertexOES");
+ PFNGLDRAWRANGEELEMENTSBASEVERTEXOESPROC f = (PFNGLDRAWRANGEELEMENTSBASEVERTEXOESPROC)eglGetProcAddress("glDrawRangeElementsBaseVertexOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetU32(GLuint, 1), GetU32(GLuint, 2), GetI32(GLsizei, 3), GetU32(GLenum, 4), GetArrayPtr(const void *, 7), GetI32(GLint, 6));
+#else
+ WarnNotAvailable("glDrawRangeElementsBaseVertexOES");
+#endif
+}
+void Command::run_glDrawElementsInstancedBaseVertexOES()
+{
+#if GL_OES_draw_elements_base_vertex
+ if (m_packet.NumItems() > 8) WarnDataNotHandled("glDrawElementsInstancedBaseVertexOES");
+ PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC f = (PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXOESPROC)eglGetProcAddress("glDrawElementsInstancedBaseVertexOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetU32(GLenum, 2), GetArrayPtr(const void *, 6), GetI32(GLsizei, 4), GetI32(GLint, 5));
+#else
+ WarnNotAvailable("glDrawElementsInstancedBaseVertexOES");
+#endif
+}
+void Command::run_glMultiDrawElementsBaseVertexOES()
+{
+#if GL_OES_draw_elements_base_vertex
+ if (m_packet.NumItems() > 10) WarnDataNotHandled("glMultiDrawElementsBaseVertexOES");
+ PFNGLMULTIDRAWELEMENTSBASEVERTEXOESPROC f = (PFNGLMULTIDRAWELEMENTSBASEVERTEXOESPROC)eglGetProcAddress("glMultiDrawElementsBaseVertexOES");
+if (f != NULL) f(GetU32(GLenum, 0), GetArrayPtr(const GLsizei *, 6), GetU32(GLenum, 2), GetArrayPtr(const void *const*, 7), GetI32(GLsizei, 4), GetArrayPtr(const GLint *, 8));
+#else
+ WarnNotAvailable("glMultiDrawElementsBaseVertexOES");
 #endif
 }
 void Command::run_glDrawTexsOES()
@@ -4962,6 +5012,16 @@ if (f != NULL) f(GetU32(GLenum, 0), GetI32(GLsizei, 1), GetArrayPtr(const void *
  WarnNotAvailable("glPointSizePointerOES");
 #endif
 }
+void Command::run_glPrimitiveBoundingBoxOES()
+{
+#if GL_OES_primitive_bounding_box
+ if (m_packet.NumItems() > 9) WarnDataNotHandled("glPrimitiveBoundingBoxOES");
+ PFNGLPRIMITIVEBOUNDINGBOXOESPROC f = (PFNGLPRIMITIVEBOUNDINGBOXOESPROC)eglGetProcAddress("glPrimitiveBoundingBoxOES");
+if (f != NULL) f(GetF(GLfloat, 0), GetF(GLfloat, 1), GetF(GLfloat, 2), GetF(GLfloat, 3), GetF(GLfloat, 4), GetF(GLfloat, 5), GetF(GLfloat, 6), GetF(GLfloat, 7));
+#else
+ WarnNotAvailable("glPrimitiveBoundingBoxOES");
+#endif
+}
 void Command::run_glQueryMatrixxOES()
 {
 #if GL_OES_query_matrix
@@ -4970,6 +5030,16 @@ void Command::run_glQueryMatrixxOES()
 if (f != NULL) f(dummyGLfixed, dummyGLint);
 #else
  WarnNotAvailable("glQueryMatrixxOES");
+#endif
+}
+void Command::run_glMinSampleShadingOES()
+{
+#if GL_OES_sample_shading
+ if (m_packet.NumItems() > 2) WarnDataNotHandled("glMinSampleShadingOES");
+ PFNGLMINSAMPLESHADINGOESPROC f = (PFNGLMINSAMPLESHADINGOESPROC)eglGetProcAddress("glMinSampleShadingOES");
+if (f != NULL) f(GetF(GLfloat, 0));
+#else
+ WarnNotAvailable("glMinSampleShadingOES");
 #endif
 }
 void Command::run_glPatchParameteriOES()
@@ -5275,6 +5345,33 @@ void Command::run_eglCreatePlatformPixmapSurfaceEXT()
 if (f != NULL) f(GetEGLDisplay(EGLDisplay, 0), GetEGLConfig(EGLConfig, 1), dummyvoid, GetArrayPtr(const EGLint *, 4));
 #else
  WarnNotAvailable("eglCreatePlatformPixmapSurfaceEXT");
+#endif
+}
+void Command::run_eglBindWaylandDisplayWL()
+{
+#if EGL_WL_bind_wayland_display
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("eglBindWaylandDisplayWL");
+ eglBindWaylandDisplayWL(GetEGLDisplay(EGLDisplay, 0), GetPtr(struct wl_display *, 1));
+#else
+ WarnNotAvailable("eglBindWaylandDisplayWL");
+#endif
+}
+void Command::run_eglUnbindWaylandDisplayWL()
+{
+#if EGL_WL_bind_wayland_display
+ if (m_packet.NumItems() > 3) WarnDataNotHandled("eglUnbindWaylandDisplayWL");
+ eglUnbindWaylandDisplayWL(GetEGLDisplay(EGLDisplay, 0), GetPtr(struct wl_display *, 1));
+#else
+ WarnNotAvailable("eglUnbindWaylandDisplayWL");
+#endif
+}
+void Command::run_eglQueryWaylandBufferWL()
+{
+#if EGL_WL_bind_wayland_display
+ if (m_packet.NumItems() > 5) WarnDataNotHandled("eglQueryWaylandBufferWL");
+ eglQueryWaylandBufferWL(GetEGLDisplay(EGLDisplay, 0), GetPtr(struct wl_resource *, 1), GetI32(EGLint, 2), dummyEGLint);
+#else
+ WarnNotAvailable("eglQueryWaylandBufferWL");
 #endif
 }
 void Command::run_glPolygonModeBRCM()

@@ -1,44 +1,41 @@
 /******************************************************************************
-* (c) 2012-2014 Broadcom Corporation
-*
-* This program is the proprietary software of Broadcom Corporation and/or its
-* licensors, and may only be used, duplicated, modified or distributed pursuant
-* to the terms and conditions of a separate, written license agreement executed
-* between you and Broadcom (an "Authorized License").  Except as set forth in
-* an Authorized License, Broadcom grants no license (express or implied), right
-* to use, or waiver of any kind with respect to the Software, and Broadcom
-* expressly reserves all rights in and to the Software and all intellectual
-* property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
-* HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
-* NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
-*
-* Except as expressly set forth in the Authorized License,
-*
-* 1. This program, including its structure, sequence and organization,
-*    constitutes the valuable trade secrets of Broadcom, and you shall use all
-*    reasonable efforts to protect the confidentiality thereof, and to use
-*    this information only in connection with your use of Broadcom integrated
-*    circuit products.
-*
-* 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
-*    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
-*    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
-*    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
-*    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
-*    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
-*    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
-*    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
-*
-* 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
-*    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
-*    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
-*    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
-*    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
-*    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
-*    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
-*    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
-******************************************************************************/
+ *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ *  This program is the proprietary software of Broadcom and/or its licensors,
+ *  and may only be used, duplicated, modified or distributed pursuant to the terms and
+ *  conditions of a separate, written license agreement executed between you and Broadcom
+ *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ *  no license (express or implied), right to use, or waiver of any kind with respect to the
+ *  Software, and Broadcom expressly reserves all rights in and to the Software and all
+ *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ *  Except as expressly set forth in the Authorized License,
+ *
+ *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ *  and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ *  USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ *  ANY LIMITED REMEDY.
 
+ ******************************************************************************/
 #define LOGE BDBG_ERR
 #define LOGW BDBG_WRN
 #define LOGD BDBG_MSG
@@ -157,9 +154,6 @@ int bmp4_parse_sinf(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
     bool found_cenc = false;
     bool found_tenc = false;
     uint32_t alg_id;
-
-    uint32_t defaultIsEncrypted;
-    uint16_t defaultIVSize;
 
     BDBG_ASSERT(cursor != NULL);
     BDBG_ASSERT(pBox->type == BMP4_PROTECTIONSCHEMEINFO);
@@ -325,7 +319,7 @@ int bmp4_parse_stsd(batom_cursor *cursor, bmp4_box *pBox, bmp4_trackInfo *pTrack
 
             pTrack->scheme.trackType = entry_box.type;
             LOGD(("%s: scheme=%p trackType=%d", __FUNCTION__,
-                pTrack->scheme, pTrack->scheme.trackType));
+                (void*)&pTrack->scheme, pTrack->scheme.trackType));
             batom_cursor_skip(cursor, skip_bytes);
 
             for(j = skip_bytes + entry_hdr_size; j < entry_box.size; j += box.size)
@@ -559,7 +553,7 @@ int bmp4_parse_trak(bmp4_mp4_headers *header, batom_t atom, batom_cursor *cursor
         pScheme = &header->scheme[track.scheme.trackId];
         BKNI_Memcpy(pScheme, &track.scheme, sizeof(bmp4_protectionSchemeInfo));
         LOGD(("%s:scheme=%p trackId=%d trackType=0x%x", __FUNCTION__,
-            pScheme, track.scheme.trackId, pScheme->trackType));
+            (void*)pScheme, track.scheme.trackId, pScheme->trackType));
         header->nbOfSchemes++;
     }
 
@@ -740,11 +734,11 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
     uint32_t trackId;
     uint32_t trackType;
 
-    LOGD(("%s: traf.size %u", __FUNCTION__, traf.size));
+    LOGD(("%s: traf.size %llu", __FUNCTION__, (long long unsigned)traf.size));
     for (i = box_size; i < traf.size; i += box.size) {
         box_hdr_size = bmp4_parse_box(cursor, &box);
-        LOGD(("%s: i=%d box_hdr_size %u box.size %u", __FUNCTION__, i,
-            box_hdr_size, box.size));
+        LOGD(("%s: i=%d box_hdr_size %u box.size %llu", __FUNCTION__, i,
+            box_hdr_size, (long long unsigned)box.size));
         if (box_hdr_size == 0)
             break;
 
@@ -776,7 +770,7 @@ int bmp4_parse_traf(bmp4_mp4_headers *header, bmp4_mp4_frag_headers *frag_header
                     LOGW(("%s: Detected unexpected track type in fragment 0x%x, skip over.\n",
                         __func__, trackType));
                 for (j=0; j < BMP4_MAX_NB_OF_TRACKS; j++) {
-                    LOGD(("scheme[trackId=%d]=%p trackType=0x%x",j, &header->scheme[j],header->scheme[j].trackType));
+                    LOGD(("scheme[trackId=%d]=%p trackType=0x%x",j, (void*)&header->scheme[j],header->scheme[j].trackType));
                 }
                     skip_frag = true;
                 } else {

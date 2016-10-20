@@ -180,11 +180,6 @@ static int rf4ce_Test_Get_Fa_Attr(uint8_t attrId)
     return value;
 }
 
-const char usage[] = "\nrf4ce_reset - rf4ce reset utility\n\n"
-                     "    usage: rf4ce_reset [reset_default_settings]\n"
-                     "    reset_default_settings\n"
-                     "        1 -- reset with factory default settings.\n";
-
 int main(int argc, char *argv[])
 {
     struct zigbeeCallback zcb;

@@ -121,6 +121,12 @@ void BRDC_DBG_ReadCapture_isr(BRDC_Handle rdc, uint8_t *mem, int size, int *read
 
 void BRDC_DBG_EnableCapture_isr(BRDC_Handle rdc, bool enable);
 
+#ifdef BRDC_DEBUG
+BERR_Code BRDC_Slot_SetList_NoArmSync_isr
+    ( BRDC_Slot_Handle                 hSlot,
+      BRDC_List_Handle                 hList );
+#endif
+
 #ifdef __cplusplus
 }
 #endif

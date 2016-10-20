@@ -272,7 +272,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eALSDecode */
 		{
 			0x00000d92,
-			0x00000d9e,
+			0x00000d9f,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eAC4Decode */
@@ -956,7 +956,7 @@ const BDSP_VOM_Table BDSP_sVomTable =
 		/* BDSP_AF_P_AlgoId_eDpcmrPostProc */
 		{
 			0x0000065e,
-			0x0000067c,
+			0x0000067d,
 			0x00000000,
 		},
 		/* BDSP_AF_P_AlgoId_eGenCdbItbPostProc */

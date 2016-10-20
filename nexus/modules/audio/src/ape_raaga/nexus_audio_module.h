@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -129,6 +129,7 @@ typedef struct NEXUS_AudioModuleData
     BAPE_Handle apeHandle;
     BAPE_DebugHandle debugHandle;
     NEXUS_AudioModuleSettings settings;
+    NEXUS_AudioModuleInternalSettings internalSettings;
     void *pImageContext;
     bool watchdogDeferred;
     unsigned numDsps;
@@ -1024,7 +1025,8 @@ Summary:
     Iterate the connector's downstream list the next downstream object.
  ***************************************************************************/
 NEXUS_AudioInputHandle NEXUS_AudioInput_P_LocateDownstream(
-    NEXUS_AudioInputHandle source
+    NEXUS_AudioInputHandle source,
+    NEXUS_AudioInputHandle hLastAudioInput
     );
 
 /***************************************************************************

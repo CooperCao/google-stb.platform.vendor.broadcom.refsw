@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -50,8 +50,8 @@
 #include "bvdc_capture_priv.h"
 #include "bvdc_scaler_priv.h"
 #include "bvdc_xsrc_priv.h"
+#include "bvdc_vfc_priv.h"
 #include "bvdc_hscaler_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_dnr_priv.h"
 #include "bvdc_vnetcrc_priv.h"
 #include "bvdc_feeder_priv.h"
@@ -67,7 +67,6 @@
 #include "bvdc_anr_priv.h"
 #include "bvdc_mcvp_priv.h"
 #include "bvdc_mcdi_priv.h"
-#include "bvdc_hist_priv.h"
 #include "bvdc_tnt_priv.h"
 #include "bvdc_tntd_priv.h"
 
@@ -79,7 +78,6 @@ BDBG_FILE_MODULE(BVDC_WIN_VNET);
 BDBG_FILE_MODULE(BVDC_WIN_BUF);
 BDBG_FILE_MODULE(BVDC_WIN_BUF_SIZE);
 BDBG_FILE_MODULE(BVDC_BAR);
-BDBG_FILE_MODULE(display_proc);
 BDBG_FILE_MODULE(BVDC_REPEATPOLARITY);
 BDBG_FILE_MODULE(BVDC_DEINTERLACER_MOSAIC);
 BDBG_FILE_MODULE(BVDC_MTGW);
@@ -167,7 +165,6 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
     BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
 
-
 #elif (BCHP_CHIP==7366) || ((BCHP_CHIP==7439)&& (BCHP_VER==BCHP_VER_A0))|| \
       ((BCHP_CHIP==74371) && (BCHP_VER==BCHP_VER_A0))
     BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0,    Vfd0,    Scl0,    Unknown),
@@ -212,6 +209,17 @@ static const BVDC_P_ResourceRequire s_aResourceRequireTable[] =
     BVDC_P_MAKE_RES(Comp4_V0, 1, 1, 1, 0, 0, Cap5, Vfd5, Scl5,    Unknown),
     BVDC_P_MAKE_RES(Comp5_V0, 1, 1, 1, 0, 0, Cap6, Vfd6, Scl6,    Unknown),
     BVDC_P_MAKE_RES(Comp6_V0, 1, 1, 1, 0, 0, Cap7, Vfd7, Scl7,    Unknown),
+
+#elif (BCHP_CHIP==7278)
+    BVDC_P_MAKE_RES(Comp0_V0, 1, 1, 1, 0, 1, Cap0, Vfd0, Scl0, Unknown),
+    BVDC_P_MAKE_RES(Comp0_V1, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp2_V0 */
+    BVDC_P_MAKE_RES(Comp1_V0, 1, 1, 1, 0, 0, Cap2, Vfd2, Scl2, Unknown),
+    BVDC_P_MAKE_RES(Comp1_V1, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp2_V0, 1, 1, 1, 0, 0, Cap1, Vfd1, Scl1, Unknown),    /* shared w/ Comp0_V1 */
+    BVDC_P_MAKE_RES(Comp3_V0, 1, 1, 1, 0, 0, Cap3, Vfd3, Scl3, Unknown),
+    BVDC_P_MAKE_RES(Comp4_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp5_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
+    BVDC_P_MAKE_RES(Comp6_V0, 0, 0, 0, 0, 0, Unknown, Unknown, Unknown, Unknown),
 
 #else
 #error "Unknown chip!  Not yet supported in VDC."
@@ -388,6 +396,18 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     /*Comp5_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR3, FTR___ },
     /*Comp6_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR4, FTR___ },
 
+#elif (BCHP_CHIP==7278)
+    /*            ulCap;  ulVfd;  ulScl;  ulMad;  ulAnr; */
+    /*Comp0_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD,     FTR___ },
+    /*Comp0_V1*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR0, FTR___ },
+    /*Comp1_V0*/{ FTR_M0, FTR_M0, FTR_SD, FTR_SD,     FTR___ },
+    /*Comp1_V1*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp2_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR1, FTR___ },
+    /*Comp3_V0*/{ FTR_M0, FTR_M0, FTR_HD, FTR_HD_MR2, FTR___ },
+    /*Comp4_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp5_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+    /*Comp6_V0*/{ FTR___, FTR___, FTR___, FTR___,     FTR___ },
+
 #else
 #error "Unknown chip!  Not yet supported in VDC."
 #endif
@@ -411,18 +431,22 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
     (sizeof(s_aResourceFeatureTable) / sizeof(BVDC_P_ResourceFeature))
 
 #if (BVDC_P_CMP_0_MAX_VIDEO_WINDOW_COUNT < 2)
+#undef  BCHP_VNET_B_CMP_0_V1_SRC
 #define BCHP_VNET_B_CMP_0_V1_SRC  0
 #endif
 
 #if (BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_1_V0_SRC
 #define BCHP_VNET_B_CMP_1_V0_SRC  0
 #endif
 
 #if (BVDC_P_CMP_1_MAX_VIDEO_WINDOW_COUNT < 2)
+#undef  BCHP_VNET_B_CMP_1_V1_SRC
 #define BCHP_VNET_B_CMP_1_V1_SRC  0
 #endif
 
 #if (BVDC_P_CMP_2_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_2_V0_SRC
 #define BCHP_VNET_B_CMP_2_V0_SRC  0
 #else
 #ifndef BCHP_VNET_B_CMP_2_V0_SRC
@@ -431,6 +455,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 #endif
 
 #if (BVDC_P_CMP_3_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_3_V0_SRC
 #define BCHP_VNET_B_CMP_3_V0_SRC  0
 #else
 #ifndef BCHP_VNET_B_CMP_3_V0_SRC
@@ -439,6 +464,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 #endif
 
 #if (BVDC_P_CMP_4_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_4_V0_SRC
 #define BCHP_VNET_B_CMP_4_V0_SRC  0
 #else
 #ifndef BCHP_VNET_B_CMP_4_V0_SRC
@@ -447,6 +473,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 #endif
 
 #if (BVDC_P_CMP_5_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_5_V0_SRC
 #define BCHP_VNET_B_CMP_5_V0_SRC  0
 #else
 #ifndef BCHP_VNET_B_CMP_5_V0_SRC
@@ -455,6 +482,7 @@ static const BVDC_P_ResourceFeature s_aResourceFeatureTable[] =
 #endif
 
 #if (BVDC_P_CMP_6_MAX_VIDEO_WINDOW_COUNT < 1)
+#undef  BCHP_VNET_B_CMP_6_V0_SRC
 #define BCHP_VNET_B_CMP_6_V0_SRC  0
 #else
 #ifndef BCHP_VNET_B_CMP_6_V0_SRC
@@ -783,29 +811,21 @@ void BVDC_P_Window_DumpRects_isr
     ( const BVDC_Window_Handle         hWindow,
       const BVDC_P_PictureNode        *pPicture )
 {
-    bool bForcePrint, bLog=false;
+    bool bForcePrint;
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
     BDBG_OBJECT_ASSERT(hWindow->hCompositor->hVdc, BVDC_VDC);
     BDBG_OBJECT_ASSERT(hWindow->stCurInfo.hSource, BVDC_SRC);
 
     bForcePrint = hWindow->hCompositor->hVdc->bForcePrint;
-#if BVDC_SUPPORT_BVN_DEBUG
-    bLog = hWindow->hCompositor->hVdc->bLog;
-#endif
 
     if(bForcePrint)
     {
         BDBG_ERR(("---------------Window[%d] chan[%d]'s VnetMode: 0x%04x-------------",
             hWindow->eId, pPicture->ulPictureIdx, *(unsigned int *)&hWindow->stVnetMode));
-        BVDC_P_PRINT_CLIP("SrcClip*", &hWindow->stCurInfo.stSrcClip, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("DstRect*", &hWindow->stCurInfo.stDstRect, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("SclOut* ", &hWindow->stCurInfo.stScalerOutput, bForcePrint, bLog);
-    }
-    else if (bLog)
-    {
-        BDBG_MODULE_LOG(display_proc, ("    ---------------Window[%d] chan[%d]'s VnetMode: 0x%x--------------",
-            hWindow->eId, pPicture->ulPictureIdx, *(unsigned int *)&pPicture->stVnetMode));
+        BVDC_P_PRINT_CLIP("SrcClip*", &hWindow->stCurInfo.stSrcClip, bForcePrint);
+        BVDC_P_PRINT_RECT("DstRect*", &hWindow->stCurInfo.stDstRect, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("SclOut* ", &hWindow->stCurInfo.stScalerOutput, bForcePrint, 0, 0);
     }
     else
     {
@@ -813,92 +833,99 @@ void BVDC_P_Window_DumpRects_isr
             hWindow->eId, pPicture->ulPictureIdx, *(unsigned int *)&pPicture->stVnetMode));
     }
 
-    BVDC_P_PRINT_RECT("ScanOut", &hWindow->stCurInfo.hSource->stScanOut, bForcePrint, bLog);
-    BVDC_P_PRINT_CNT_RECT("pSrcCnt", &(hWindow->stSrcCnt), bForcePrint, bLog);
+    BVDC_P_PRINT_RECT("ScanOut", &hWindow->stCurInfo.hSource->stScanOut, bForcePrint, 0, 0);
+    BVDC_P_PRINT_RECT("pSrcCnt", &(hWindow->stSrcCnt), bForcePrint, BVDC_P_16TH_PIXEL_SHIFT, BVDC_P_16TH_PIXEL_MASK);
 
-    BVDC_P_PRINT_RECT("pSrcOut", pPicture->pSrcOut, bForcePrint, bLog);
+    BVDC_P_PRINT_RECT("pSrcOut", pPicture->pSrcOut, bForcePrint, 0, 0);
     if(BVDC_P_VNET_USED_DNR_AT_WRITER(pPicture->stVnetMode))
     {
-        BVDC_P_PRINT_RECT("pDnrIn ", pPicture->pDnrIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pDnrOut", pPicture->pDnrOut, bForcePrint, bLog);
+        BVDC_P_PRINT_RECT("pDnrIn ", pPicture->pDnrIn, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("pDnrOut", pPicture->pDnrOut, bForcePrint, 0, 0);
     }
     if(BVDC_P_VNET_USED_XSRC_AT_WRITER(pPicture->stVnetMode))
     {
-        BVDC_P_PRINT_RECT("pXsrcIn ", pPicture->pXsrcIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pXsrcOut", pPicture->pXsrcOut, bForcePrint, bLog);
+        BVDC_P_PRINT_RECT("pXsrcIn ", pPicture->pXsrcIn, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("pXsrcOut", pPicture->pXsrcOut, bForcePrint, 0, 0);
     }
-    if(BVDC_P_VNET_USED_HSCL_AT_WRITER(pPicture->stVnetMode))
+
+    if(BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode))
     {
-        BVDC_P_PRINT_RECT("pHsclIn ", pPicture->pHsclIn, bForcePrint, bLog);
-        BVDC_P_PRINT_HSCLCUT("pHsclCut", pPicture, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pHsclOut", pPicture->pHsclOut, bForcePrint, bLog);
-    }
-    if(BVDC_P_VNET_USED_ANR_AT_WRITER(pPicture->stVnetMode))
-    {
-        BVDC_P_PRINT_RECT("pAnrIn ", pPicture->pAnrIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pAnrOut", pPicture->pAnrOut, bForcePrint, bLog);
-    }
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(pPicture->stVnetMode) ||
-        BVDC_P_VNET_BYPASS_MCVP_AT_WRITER(pPicture->stVnetMode) )
-    {
-        BVDC_P_PRINT_RECT("pMadIn ", pPicture->pMadIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pMadOut", pPicture->pMadOut, bForcePrint, bLog);
+        /* not bypass */
+        if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
+        {
+            BVDC_P_PRINT_RECT("pHsclIn ", pPicture->pHsclIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_SCLCUT_RECT("stHsclCut", &pPicture->stHsclCut, bForcePrint);
+            BVDC_P_PRINT_RECT("pHsclOut", pPicture->pHsclOut, bForcePrint, 0, 0);
+        }
+        if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
+        {
+            BVDC_P_PRINT_RECT("pAnrIn ", pPicture->pAnrIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pAnrOut", pPicture->pAnrOut, bForcePrint, 0, 0);
+        }
+        if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
+        {
+            BVDC_P_PRINT_RECT("pMadIn ", pPicture->pMadIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pMadOut", pPicture->pMadOut, bForcePrint, 0, 0);
+        }
     }
     if(BVDC_P_VNET_USED_SCALER(pPicture->stVnetMode))
     {
         if(BVDC_P_VNET_USED_SCALER_AT_READER(pPicture->stVnetMode) &&
            BVDC_P_VNET_USED_CAPTURE(pPicture->stVnetMode))
         {
-            BVDC_P_PRINT_RECT("pCapIn ", pPicture->pCapIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pCapOut", pPicture->pCapOut, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pVfdIn ", pPicture->pVfdIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pVfdOut", pPicture->pVfdOut, bForcePrint, bLog);
+            BVDC_P_PRINT_RECT("pCapIn ", pPicture->pCapIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pCapOut", pPicture->pCapOut, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pVfdIn ", pPicture->pVfdIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pVfdOut", pPicture->pVfdOut, bForcePrint, 0, 0);
         }
 
         if(BVDC_P_VNET_USED_DNR_AT_READER(pPicture->stVnetMode))
         {
-            BVDC_P_PRINT_RECT("pDnrIn ", pPicture->pDnrIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pDnrOut", pPicture->pDnrOut, bForcePrint, bLog);
+            BVDC_P_PRINT_RECT("pDnrIn ", pPicture->pDnrIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pDnrOut", pPicture->pDnrOut, bForcePrint, 0, 0);
         }
         if(BVDC_P_VNET_USED_XSRC_AT_READER(pPicture->stVnetMode))
         {
-            BVDC_P_PRINT_RECT("pXsrcIn ", pPicture->pXsrcIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pXsrcOut", pPicture->pXsrcOut, bForcePrint, bLog);
+            BVDC_P_PRINT_RECT("pXsrcIn ", pPicture->pXsrcIn, bForcePrint, 0, 0);
+            BVDC_P_PRINT_RECT("pXsrcOut", pPicture->pXsrcOut, bForcePrint, 0, 0);
         }
-        if(BVDC_P_VNET_USED_HSCL_AT_READER(pPicture->stVnetMode))
+        if(BVDC_P_VNET_USED_MVP_AT_READER(pPicture->stVnetMode))
         {
-            BVDC_P_PRINT_RECT("pHsclIn ", pPicture->pHsclIn, bForcePrint, bLog);
-            BVDC_P_PRINT_HSCLCUT("pHsclCut", pPicture, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pHsclOut", pPicture->pHsclOut, bForcePrint, bLog);
-        }
-        if(BVDC_P_VNET_USED_ANR_AT_READER(pPicture->stVnetMode))
-        {
-            BVDC_P_PRINT_RECT("pAnrIn ", pPicture->pAnrIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pAnrOut", pPicture->pAnrOut, bForcePrint, bLog);
-        }
-        if(BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode) ||
-            BVDC_P_VNET_BYPASS_MCVP_AT_READER(pPicture->stVnetMode))
-        {
-            BVDC_P_PRINT_RECT("pMadIn ", pPicture->pMadIn, bForcePrint, bLog);
-            BVDC_P_PRINT_RECT("pMadOut", pPicture->pMadOut, bForcePrint, bLog);
+            /* not bypass */
+            if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
+            {
+                BVDC_P_PRINT_RECT("pHsclIn ", pPicture->pHsclIn, bForcePrint, 0, 0);
+                BVDC_P_PRINT_SCLCUT_RECT("stHsclCut", &pPicture->stHsclCut, bForcePrint);
+                BVDC_P_PRINT_RECT("pHsclOut", pPicture->pHsclOut, bForcePrint, 0, 0);
+            }
+            if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
+            {
+                BVDC_P_PRINT_RECT("pAnrIn ", pPicture->pAnrIn, bForcePrint, 0, 0);
+                BVDC_P_PRINT_RECT("pAnrOut", pPicture->pAnrOut, bForcePrint, 0, 0);
+            }
+            if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
+            {
+                BVDC_P_PRINT_RECT("pMadIn ", pPicture->pMadIn, bForcePrint, 0, 0);
+                BVDC_P_PRINT_RECT("pMadOut", pPicture->pMadOut, bForcePrint, 0, 0);
+            }
         }
 
-        BVDC_P_PRINT_RECT("pSclIn ", pPicture->pSclIn, bForcePrint, bLog);
-        BVDC_P_PRINT_SCLCUT_RECT("pSclCut", &(pPicture->stSclCut), bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pSclOut", pPicture->pSclOut, bForcePrint, bLog);
+        BVDC_P_PRINT_RECT("pSclIn ", pPicture->pSclIn, bForcePrint, 0, 0);
+        BVDC_P_PRINT_SCLCUT_RECT("pSclCut", &(pPicture->stSclCut), bForcePrint);
+        BVDC_P_PRINT_RECT("pSclOut", pPicture->pSclOut, bForcePrint, 0, 0);
     }
 
     if(BVDC_P_VNET_USED_CAPTURE(pPicture->stVnetMode) &&
        !BVDC_P_VNET_USED_SCALER_AT_READER(pPicture->stVnetMode))
     {
-        BVDC_P_PRINT_RECT("pCapIn ", pPicture->pCapIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pCapOut", pPicture->pCapOut, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pVfdIn ", pPicture->pVfdIn, bForcePrint, bLog);
-        BVDC_P_PRINT_RECT("pVfdOut", pPicture->pVfdOut, bForcePrint, bLog);
+        BVDC_P_PRINT_RECT("pCapIn ", pPicture->pCapIn, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("pCapOut", pPicture->pCapOut, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("pVfdIn ", pPicture->pVfdIn, bForcePrint, 0, 0);
+        BVDC_P_PRINT_RECT("pVfdOut", pPicture->pVfdOut, bForcePrint, 0, 0);
     }
 
-    BVDC_P_PRINT_RECT("pWinIn ", pPicture->pWinIn, bForcePrint, bLog);
-    BVDC_P_PRINT_RECT("pWinOut", pPicture->pWinOut, bForcePrint, bLog);
+    BVDC_P_PRINT_RECT("pWinIn ", pPicture->pWinIn, bForcePrint, 0, 0);
+    BVDC_P_PRINT_RECT("pWinOut", pPicture->pWinOut, bForcePrint, 0, 0);
 
     bForcePrint
         ? BDBG_ERR(("--------------------------------------------------------"))
@@ -1346,10 +1373,6 @@ void BVDC_P_Window_Compression_Init_isr
       BVDC_P_Compression_Settings     *pMadCompSetting,
       BVDC_P_MvpDcxCore                eDcxCore)
 {
-#if (!((BVDC_P_SUPPORT_MCVP) || (BVDC_P_SUPPORT_MADR)))
-    BSTD_UNUSED(bIs10BitCore);
-    BSTD_UNUSED(eDcxCore);
-#endif
 
     /* Default setting for capture compression */
     if(pCapCompSetting)
@@ -1373,22 +1396,10 @@ void BVDC_P_Window_Compression_Init_isr
     /* Default setting for deinterlacer compression */
     if(pMadCompSetting)
     {
-#if ((BVDC_P_SUPPORT_MCVP_VER > BVDC_P_MCVP_VER_1) || (BVDC_P_SUPPORT_MADR))
         pMadCompSetting->bEnable = true;
         pMadCompSetting->ulPixelPerGroup = BVDC_DCX_PIXEL_PER_GROUP;
         pMadCompSetting->ulBitsPerGroup =
             (bIs10BitCore && (eDcxCore==BVDC_P_Mvp_Dcxs2))?BVDC_37BITS_PER_GROUP: BVDC_36BITS_PER_GROUP;
-#elif ((BVDC_P_SUPPORT_MAD) && (BVDC_P_SUPPORT_MAD_SRC_1080I))
-        pMadCompSetting->bEnable = true;
-        pMadCompSetting->ulPixelPerGroup = BVDC_DCX_PIXEL_PER_GROUP;
-        pMadCompSetting->ulBitsPerGroup =  BVDC_38BITS_PER_GROUP;
-#else
-        pMadCompSetting->bEnable = false;
-        pMadCompSetting->ulPixelPerGroup = 0;
-        pMadCompSetting->ulBitsPerGroup = 0;
-        BSTD_UNUSED(bIs10BitCore);
-        BSTD_UNUSED(eDcxCore);
-#endif
         pMadCompSetting->ulPredictionMode = 0;
     }
 
@@ -1463,13 +1474,6 @@ void BVDC_P_Window_Init
     hWindow->bSetAppliedEventPending = false;
     BKNI_ResetEvent(hWindow->hDestroyDoneEvent);
     BKNI_ResetEvent(hWindow->hAppliedDoneEvent);
-
-    /* This flag indicate if the stand alone HIST block is available */
-#if (BVDC_P_SUPPORT_HIST_VER >= BVDC_P_SUPPORT_HIST_VER_2)
-    hWindow->bHistAvail = 1;
-#else
-    hWindow->bHistAvail = 0;
-#endif
 
     /* Initialize cadence handling related fields */
     hWindow->stCadHndl.bForceAltCap = false;
@@ -1685,20 +1689,18 @@ void BVDC_P_Window_Init
     pNewInfo->iBoxDetectParm2 = 0;
 
     /* Init mad default settings */
-    BVDC_P_Mad_Init_Default(
+    BVDC_P_Mvp_Init_Default(
         &pNewInfo->stMadSettings.eGameMode,
         &pNewInfo->stMadSettings.ePixelFmt,
         &pNewInfo->stMadSettings.ePqEnhancement,
         &pNewInfo->stMadSettings.bShrinkWidth,
         &pNewInfo->stMadSettings.bReverse32Pulldown,
-        &pNewInfo->stMadSettings.stReverse32Settings,
         &pNewInfo->stMadSettings.bReverse22Pulldown,
-        &pNewInfo->stMadSettings.stReverse22Settings,
         &pNewInfo->stMadSettings.stChromaSettings,
         &pNewInfo->stMadSettings.stMotionSettings);
 
     /* Init mad custom settings */
-    BVDC_P_Mad_Init_Custom(
+    BVDC_P_Mvp_Init_Custom(
         &pNewInfo->stMadSettings.stUpSampler,
         &pNewInfo->stMadSettings.stDnSampler,
         &pNewInfo->stMadSettings.stLowAngles);
@@ -1764,10 +1766,7 @@ void BVDC_P_Window_Init
     pNewInfo->stLumaRect.aulLevelThres[1]  =  500;
     pNewInfo->stLumaRect.aulLevelThres[2]  = 9000;
     pNewInfo->stLumaRect.aulLevelThres[3]  = 9500;
-    pNewInfo->stLumaRect.eNumBins = (hWindow->bHistAvail) ?
-        BVDC_HistBinSelect_e64_Bins: BVDC_HistBinSelect_e16_Bins;
-    pNewInfo->bHistEnable              = false;
-    pNewInfo->bHistAtSrc               = true;
+    pNewInfo->stLumaRect.eNumBins = BVDC_HistBinSelect_e16_Bins;
 
     /* Pulldown capture */
     hWindow->bDoPulldown     = false;
@@ -2007,13 +2006,13 @@ static BERR_Code BVDC_P_Window_ValidateMosaicCoverage
     pCoverageTbl = &hWindow->hCompositor->hVdc->stMosaicCoverageTbl[eDisplayId];
     ulCoverage = pCoverageTbl->ulCanvasCoverage[ulMosaicCount-1];
 
-    if(BFMT_IS_4kx2k(eBoxmodeMaxVideoFmt) &&
+    if( BFMT_IS_4kx2k(eBoxmodeMaxVideoFmt) &&
        !BFMT_IS_4kx2k(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt))
     {
             ulCoverage *= BVDC_P_4K_TO_1080P_NORM_FACTOR;
     }
     else if(!BFMT_IS_4kx2k(eBoxmodeMaxVideoFmt) &&
-       BFMT_IS_4kx2k(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt))
+             BFMT_IS_4kx2k(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt))
     {
             ulCoverage /= BVDC_P_4K_TO_1080P_NORM_FACTOR;
     }
@@ -2142,14 +2141,12 @@ BERR_Code BVDC_P_Window_ValidateChanges
     /* SW7563-101:if display is dvi master,
      * hdmi output needed to be connected before window open */
     if(BVDC_P_DISPLAY_USED_DVI(eMasterTg) &&
-       (pDispCurInfo->eHdmiOutput == BAVC_MatrixCoefficients_eUnknown))
+       (pDispCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs == BAVC_MatrixCoefficients_eUnknown))
     {
         BDBG_ERR(("displaying [%d], hdmi output to be connected before window is created",
             hWindow->hCompositor->hDisplay->eId));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    /* Hist is either enabled by dynamic contrast */
-    pNewInfo->bHistEnable = pNewInfo->bContrastStretch;
 
     /* Check if destination rectangle is bigger than BOX limits */
     pBoxVdc = &hWindow->hCompositor->hVdc->stBoxConfig.stVdc;
@@ -2247,7 +2244,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
     {
         BDBG_ERR(("DstRect[%dx%d], SclOut[%d, %d, %dx%d].",
             pNewInfo->stDstRect.ulWidth, pNewInfo->stDstRect.ulHeight, pNewInfo->stScalerOutput.lLeft,
-            pNewInfo->stScalerOutput.lTop, ulHsize, ulVsize));
+            pNewInfo->stScalerOutput.lTop, pNewInfo->stScalerOutput.ulWidth, pNewInfo->stScalerOutput.ulHeight));
         return BERR_TRACE(BVDC_ERR_DST_SIZE_LARGER_THAN_SCL_OUTPUT);
     }
 
@@ -2262,7 +2259,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
         return BERR_TRACE(BVDC_ERR_DST_RECT_OUT_OF_BOUND);
     }
 
-#if BVDC_P_SUPPORT_3D_VIDEO
     /* (2.6) DstRect cannot be out of bound of canvas, right window for 3D Left right*/
     if((pNewInfo->stDstRect.ulWidth  + pNewInfo->lRWinXOffsetDelta + pNewInfo->stDstRect.lLeft > ulHsize) ||
         (pNewInfo->lRWinXOffsetDelta + pNewInfo->stDstRect.lLeft < 0))
@@ -2271,7 +2267,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
             pNewInfo->stDstRect.lLeft, pNewInfo->lRWinXOffsetDelta, pNewInfo->stDstRect.ulWidth));
         return BERR_TRACE(BVDC_ERR_DST_RECT_OUT_OF_BOUND);
     }
-#endif
 
 #if BVDC_P_SUPPORT_XCODE_WIN_CAP
     /*(2.7) check capture usage for xcode path*/
@@ -2680,43 +2675,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
                 }
         }
 
-#if (BVDC_P_SUPPORT_MAD)
-        /* (10) Aquire MAD */
-        if(pNewInfo->bDeinterlace)
-        {
-            if (NULL == hWindow->stCurResource.hMad32)
-            {
-                BVDC_P_Mad_Handle *phMad32 = &hWindow->stNewResource.hMad32;
-
-                if (hWindow->stResourceFeature.ulMad != BVDC_P_Able_eInvalid)
-                {
-                    /* acquire a HW module */
-                    BKNI_EnterCriticalSection();
-                    BVDC_P_Resource_AcquireHandle_isr(hResource,
-                        BVDC_P_ResourceType_eMad, hWindow->stResourceFeature.ulMad, hWindow->eId, (void **)phMad32, true);
-                    BKNI_LeaveCriticalSection();
-
-                    if (NULL == hWindow->stNewResource.hMad32)
-                    {
-                        BDBG_ERR(("Window %d failed to allocate MAD.", hWindow->eId));
-                        goto fail_res;
-                    }
-
-                    hWindow->bAllocResource = true;
-                }
-                else
-                {
-                    BDBG_WRN(("Window %d does not have MAD resource. BOX mode policy may be limiting this.", hWindow->eId));
-                    hWindow->bAllocResource = false;
-                }
-            }
-            else
-            {
-                hWindow->stNewResource.hMad32 = hWindow->stCurResource.hMad32;
-            }
-        }
-#endif
-#if (BVDC_P_SUPPORT_MCVP)
         /* (9-11') Aquire MCVP */
         if((pNewInfo->bDeinterlace || pNewInfo->bAnr))
         {
@@ -2751,7 +2709,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
                 hWindow->stNewResource.hMcvp = hWindow->stCurResource.hMcvp;
             }
         }
-#endif
 
 #if (BVDC_P_SUPPORT_XSRC)
         /* (12) Aquire XSRC */
@@ -2779,6 +2736,36 @@ BERR_Code BVDC_P_Window_ValidateChanges
             else
             {
                 hWindow->stNewResource.hXsrc = hWindow->stCurResource.hXsrc;
+            }
+        }
+#endif
+
+#if (BVDC_P_SUPPORT_VFC)
+        /* (13) Aquire VFC */
+        if((hWindow->stNewInfo.hSource->bIs10BitCore && !hWindow->bIs10BitCore &&
+            BVDC_P_STATE_IS_CREATE(hWindow)))
+        {
+            BVDC_P_Vfc_Handle *phVfc=&hWindow->stNewResource.hVfc;
+
+            if (NULL == hWindow->stCurResource.hVfc)
+            {
+                /* acquire a HW module */
+                BKNI_EnterCriticalSection();
+                BVDC_P_Resource_AcquireHandle_isr(hResource,
+                    BVDC_P_ResourceType_eVfc, 0, hWindow->eId, (void **)phVfc, true);
+                BKNI_LeaveCriticalSection();
+
+                if (NULL == hWindow->stNewResource.hVfc)
+                {
+                    BDBG_ERR(("Window %d failed to allocate VFC ", hWindow->eId));
+                    goto fail_res;
+                }
+
+                hWindow->bAllocResource = true;
+            }
+            else
+            {
+                hWindow->stNewResource.hVfc = hWindow->stCurResource.hVfc;
             }
         }
 #endif
@@ -2870,36 +2857,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
         }
 #endif
 
-#if BVDC_P_SUPPORT_HIST
-        /* (15) Shared HIST */
-        if((pNewInfo->bHistEnable) && (hWindow->bHistAvail))
-        {
-            BVDC_P_Hist_Handle *phHist=&hWindow->stNewResource.hHist;
-
-            if (NULL == hWindow->stCurResource.hHist)
-            {
-                /* acquire a HW module */
-                BKNI_EnterCriticalSection();
-                BVDC_P_Resource_AcquireHandle_isr(hResource,
-                    BVDC_P_ResourceType_eHist, 0, hWindow->eId, (void **)phHist, true);
-                BKNI_LeaveCriticalSection();
-
-                if (NULL == hWindow->stNewResource.hHist)
-                {
-                    BDBG_ERR(("Window %d failed to allocate Hist", hWindow->eId));
-                    goto fail_res;
-                }
-
-                hWindow->bAllocResource = true;
-            }
-            else
-            {
-                hWindow->stNewResource.hHist = hWindow->stCurResource.hHist;
-            }
-        }
-#endif
-
-#if BVDC_P_SUPPORT_VNET_CRC
         /* (16) Shared vnet crc  */
         if(pNewInfo->stCbSettings.stMask.bCrc)
         {
@@ -2923,10 +2880,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
             {
                 hWindow->stNewResource.hVnetCrc = hWindow->stCurResource.hVnetCrc;
             }
-
         }
-#endif
-
     }
     else
     {
@@ -2951,7 +2905,7 @@ BERR_Code BVDC_P_Window_ValidateChanges
        (pNewInfo->lOffsetB        != pCurInfo->lOffsetB       ) ||
        (pNewInfo->bCscRgbMatching != pCurInfo->bCscRgbMatching) ||
        (pDispNewInfo->bXvYcc      != pDispCurInfo->bXvYcc)||
-       (pDispNewInfo->eHdmiOutput != pDispCurInfo->eHdmiOutput)||
+       (pDispNewInfo->stHdmiSettings.stSettings.eMatrixCoeffs != pDispCurInfo->stHdmiSettings.stSettings.eMatrixCoeffs)||
        (pDispNewInfo->stHdmiSettings.stSettings.eEotf != pDispCurInfo->stHdmiSettings.stSettings.eEotf)||
        (pDispNewInfo->stDirty.stBits.bTiming))
     {
@@ -3002,12 +2956,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
             return BERR_TRACE(BERR_INVALID_PARAMETER);
 #endif
         pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
-#endif
-#if BVDC_P_SUPPORT_TAB
-        BVDC_P_Sharpness_Calculate_Peak_Values(pNewInfo->sSharpness,
-                                               &pNewInfo->ulSharpnessPeakSetting,
-                                               &pNewInfo->ulSharpnessPeakScale);
-        pNewDirty->stBits.bTabAdjust = BVDC_P_DIRTY;
 #endif
     }
 
@@ -3171,9 +3119,6 @@ BERR_Code BVDC_P_Window_ValidateChanges
            ((pNewInfo->stSplitScreenSetting.eSharpness != BVDC_SplitScreenMode_eDisable) &&
             (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect))))
         {
-#if BVDC_P_SUPPORT_TAB
-            pNewDirty->stBits.bTabAdjust = BVDC_P_DIRTY;
-#endif
 #if BVDC_P_SUPPORT_TNT
             pNewDirty->stBits.bTntAdjust = BVDC_P_DIRTY;
 #endif
@@ -3189,12 +3134,11 @@ BERR_Code BVDC_P_Window_ValidateChanges
        (pNewRect->ulBottom != pCurRect->ulBottom) ||
        (!BVDC_P_Hist_Level_Cmp(&pNewInfo->stLumaRect.aulLevelThres[0], &pCurInfo->stLumaRect.aulLevelThres[0])) ||
        (pNewInfo->stLumaRect.eNumBins != pCurInfo->stLumaRect.eNumBins) ||
-       (pNewInfo->bHistEnable != pCurInfo->bHistEnable) ||
+       (pNewInfo->bContrastStretch != pCurInfo->bContrastStretch) ||
        (!BVDC_P_RECT_CMP_EQ(&pNewInfo->stDstRect, &pCurInfo->stDstRect) ||
        (hWindow->hCompositor->stNewInfo.pFmtInfo->bInterlaced != hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)))
     {
-        if((hWindow->stCurResource.hHist) ||
-           ((BVDC_P_WindowId_eComp0_V0 == hWindow->eId) && (!hWindow->bHistAvail)))
+        if(BVDC_P_WindowId_eComp0_V0 == hWindow->eId)
         {
             pNewDirty->stBits.bHistoRect = BVDC_P_DIRTY;
         }
@@ -3998,12 +3942,8 @@ void BVDC_P_Window_SetDisplaySize_isr
         BCHP_FIELD_DATA(CMP_0_V0_DISPLAY_SIZE, HSIZE, pDstRect->ulWidth) |
         BCHP_FIELD_DATA(CMP_0_V0_DISPLAY_SIZE, VSIZE, ulHeight));
 
-#if BVDC_P_SUPPORT_3D_VIDEO
     BVDC_P_WIN_GET_REG_DATA(CMP_0_V0_CANVAS_X_OFFSET_R) =
         BCHP_FIELD_DATA(CMP_0_V0_CANVAS_X_OFFSET_R, X_OFFSET, ulRWinXOffset);
-#else
-    BSTD_UNUSED(ulRWinXOffset);
-#endif
 
     BDBG_LEAVE(BVDC_P_Window_SetDisplaySize_isr);
     return;
@@ -4157,9 +4097,10 @@ static void BVDC_P_Window_TryXferHrzSclToHscl_isr
             {
                 /* hscl perform hrz SclCut and scale, SCL should just pass through */
                 bBypassSCL = true;
-                pPicture->lHsclCutLeft = pPicture->stSclCut.lLeft;
-                pPicture->lHsclCutLeft_R = pPicture->stSclCut.lLeft_R;
-                pPicture->ulHsclCutWidth = pPicture->stSclCut.ulWidth;
+
+                pPicture->stHsclCut.lLeft = pPicture->stSclCut.lLeft;
+                pPicture->stHsclCut.lLeft_R = pPicture->stSclCut.lLeft_R;
+                pPicture->stHsclCut.ulWidth = pPicture->stSclCut.ulWidth;
                 pPicture->ulHsclNrmHrzSrcStep = pPicture->ulNrmHrzSrcStep;
 
                 pPicture->stSclCut.lLeft = 0;
@@ -4223,17 +4164,13 @@ static void BVDC_P_Window_TryXferHrzSclToHscl_isr
 #endif
 
         /* if HSCL is separate, or inside MCVP  */
-#if (BVDC_P_SUPPORT_MCVP)
-        if(pPicture->stVnetMode.stBits.bUseMcvp)
-#else
-        if(pPicture->stVnetMode.stBits.bUseHscl)
-#endif
+        if(BVDC_P_VNET_USED_MVP(pPicture->stVnetMode))
         {
             pPicture->pHsclOut = &pPicture->stMadOut;
             pPicture->pMadIn   = pPicture->pHsclOut;
             pPicture->pMadOut  = pPicture->pMadIn;
 
-            if(pPicture->stVnetMode.stBits.bUseAnr)
+            if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
             {
                 pPicture->pAnrIn = pPicture->pHsclOut;
                 pPicture->pAnrOut = pPicture->pHsclOut;
@@ -4242,15 +4179,13 @@ static void BVDC_P_Window_TryXferHrzSclToHscl_isr
         else /* HSCL is inside MAD */
         {
             pPicture->pMadOut = &pPicture->stMadOut;
-            if(pPicture->stVnetMode.stBits.bUseAnr)
+            if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
             {
                 pPicture->pAnrOut = &pPicture->stMadOut;
             }
         }
-        pPicture->pSclIn = (pPicture->stVnetMode.stBits.bUseMad) ?
+        pPicture->pSclIn = (BVDC_P_MVP_USED_MAD(pPicture->stMvpMode)) ?
             pPicture->pMadOut : pPicture->pAnrOut;
-
-        BDBG_ASSERT(pPicture->stVnetMode.stBits.bUseAnr || pPicture->stVnetMode.stBits.bUseMad);
     }
 }
 
@@ -4299,7 +4234,6 @@ static void BVDC_P_Window_EnforceMinSizeLimit_isr
  * to left or top before mad changed, because to mad, its input is no-longer
  * the same.
  */
-#if (BVDC_P_SUPPORT_MAD || BVDC_P_SUPPORT_MCVP)
 static void BVDC_P_Window_AdjustPicRepeatBit_isr
     ( BVDC_Window_Handle               hWindow,
       BVDC_P_PictureNode              *pPicture )
@@ -4310,20 +4244,15 @@ static void BVDC_P_Window_AdjustPicRepeatBit_isr
     if (((hWindow->lPrevSrcOutLeft != pPicture->stSrcOut.lLeft) ||
          (hWindow->lPrevSrcOutTop  != pPicture->stSrcOut.lTop)) ||
         (BVDC_P_VNET_USED_CAPTURE(pPicture->stVnetMode) &&
-         BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode) &&
+         BVDC_P_MVP_USED_MAD_AT_READER(pPicture->stVnetMode, pPicture->stMvpMode) &&
          ((hWindow->lPrevCapOutLeft != pPicture->stCapOut.lLeft) ||
           (hWindow->lPrevCapOutTop  != pPicture->stCapOut.lTop))))
     {
-        if(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
+        if(BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
         {
-#if BVDC_P_SUPPORT_MAD
-            hWindow->ulMadFlushCntr = 1 + BVDC_P_Mad_GetVsyncDelayNum_isr(
-                hWindow->stCurInfo.stMadSettings.eGameMode);
-#elif BVDC_P_SUPPORT_MCVP
             hWindow->ulMadFlushCntr = 1 + BVDC_P_Mcdi_GetVsyncDelayNum_isr(
                 hWindow->stCurResource.hMcvp->hMcdi,
                 hWindow->stCurInfo.stMadSettings.eGameMode);
-#endif
         }
     }
     if (hWindow->ulMadFlushCntr > 0)
@@ -4404,19 +4333,13 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
     ulPrevDeferIdxWr = hWindow->ulDeferIdxWr[ulPictureIdx];
 
 
-    if(BVDC_P_VNET_USED_MAD(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
     {
-#if BVDC_P_SUPPORT_MAD
-        bMadHardStart = BVDC_P_Mad_BeHardStart_isr(hWindow->stCurResource.hMad32);
-        usMadVsyncDelay = BVDC_P_Mad_GetVsyncDelayNum_isr(
-            hWindow->stCurInfo.stMadSettings.eGameMode);
-#elif BVDC_P_SUPPORT_MCVP
         bMadHardStart = BVDC_P_Mcdi_BeHardStart_isr(hWindow->stCurResource.hMcvp->hMcdi->bInitial,
             hWindow->stCurResource.hMcvp->hMcdi);
         usMadVsyncDelay = BVDC_P_Mcdi_GetVsyncDelayNum_isr(
             hWindow->stCurResource.hMcvp->hMcdi,
             hWindow->stCurInfo.stMadSettings.eGameMode);
-#endif
     }
 
     /* Note: mad hard start must reset the pipeline!
@@ -4490,9 +4413,6 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
     pWriter->eDispOrientation     = pPicture->eDispOrientation;
     pWriter->eTransferCharacteristics = pPicture->eTransferCharacteristics;
 
-    pWriter->stHistData = pPicture->stCurHistData;
-    pWriter->ulHistSize = pPicture->ulCurHistSize;
-
     /* It is very important for modules to read the correctly delayed picture info! */
     if (usMadVsyncDelay > 0)
     {
@@ -4505,8 +4425,8 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
             hWindow->ulDropCntNonIgnoredPics --;
         }
 
-        pPicture->stSrcOut = pReader->stSrcOut;
-        pPicture->ulOrigPTS = pReader->ulOrigPTS;
+        pPicture->stSrcOut             = pReader->stSrcOut;
+        pPicture->ulOrigPTS            = pReader->ulOrigPTS;
         pPicture->bLast                = pReader->bLast;
         pPicture->bChannelChange       = pReader->bChannelChange;
         pPicture->bMute                = pReader->bMute;
@@ -4533,11 +4453,9 @@ static void BVDC_P_Window_AdjustForMadDelay_isr
             }
             pReader = &hWindow->stMadDelayed[ulPictureIdx][ulDeferHistIdxRd];
         }
-        pPicture->stCurHistData = pReader->stHistData;
-        pPicture->ulCurHistSize = pReader->ulHistSize;
     }
 }
-#endif
+
 
 /* -----------------------------------------------------------------------------------
  * {private}
@@ -4680,7 +4598,8 @@ void BVDC_P_Window_PreMadAdjustWidth_isr
             }
 
             ulIncrease = BVDC_P_ALIGN_UP(i, 1<<ulAlign);
-            BDBG_MODULE_MSG(BVDC_MADR_PICSIZE,("Delta: %d, i: 0x%lx, Round up i: %d", ulDelta, i, ulIncrease));
+            BDBG_MODULE_MSG(BVDC_MADR_PICSIZE,(
+                "Delta: %d, i: 0x%x, Round up i: %d", ulDelta, i, ulIncrease));
             ulIncrease = ulIncrease >> ulAlign;
             ulNewPicWidth += 4 * ulIncrease;
 
@@ -4867,23 +4786,13 @@ static void BVDC_P_Window_GetDeinterlacerMaxResolution_isr
     ulHsclSizeThreshold = BVDC_P_MAD_SRC_HORZ_THRESHOLD;
     BSTD_UNUSED(pMvdFieldData); /* hush warnings */
 
-#if BVDC_P_SUPPORT_MAD
-    if(hWindow->stCurResource.hMad32)
-    {
-        ulMaxWidth  = hWindow->stCurResource.hMad32->ulMaxWidth;
-        ulMaxHeight = hWindow->stCurResource.hMad32->ulMaxHeight;
-        ulHsclSizeThreshold = hWindow->stCurResource.hMad32->ulHsclSizeThreshold;
-    }
-#elif BVDC_P_SUPPORT_MCVP
     if(hWindow->stCurResource.hMcvp)
     {
         ulMaxWidth  = hWindow->stCurResource.hMcvp->ulMaxWidth;
         ulMaxHeight = hWindow->stCurResource.hMcvp->ulMaxHeight;
         ulHsclSizeThreshold = hWindow->stCurResource.hMcvp->ulHsclSizeThreshold;
     }
-#endif
 
-#if (BVDC_P_SUPPORT_MAD || BVDC_P_SUPPORT_MCVP)
     if(bApplyRestriction)
     {
 #if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
@@ -4937,9 +4846,6 @@ static void BVDC_P_Window_GetDeinterlacerMaxResolution_isr
         }
 #endif
     }
-#else
-    BSTD_UNUSED(pMvdFieldData);
-#endif
 
     if(pulMaxWidth)
     {
@@ -4988,14 +4894,12 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
     int32_t                         lCntTop, lCntLeft;
     int32_t                         lCntLeft_R;
     uint32_t                        ulCntWidth, ulCntHeight;
-    bool                            bInterlaced;
     bool                            bDispFmtIs3d;
     uint32_t                        ulMinCapHsize, ulMinCapVsize;
     uint32_t                        ulMinVfdHsize, ulMinVfdVsize;
-#if BVDC_P_SUPPORT_MCVP
+
 #if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
     bool                            bMvpBypass = false;
-#endif
 #endif
 
     BDBG_ENTER(BVDC_P_Window_UpdateSrcAndUserInfo_isr);
@@ -5131,6 +5035,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         pPicture->bEndofChunk                    = pMvdFieldData->bEndOfChunk;
         pPicture->ulChunkId                      = pMvdFieldData->ulChunkId;
         pPicture->eBitDepth                      = pMvdFieldData->eBitDepth;
+        pPicture->eChromaBitDepth                = pMvdFieldData->eChromaBitDepth;
 
         /* hSource->hMpegFeeder->eOutputOrientation is set in BVDC_P_Feeder_SetMpegInfo_isr */
         pPicture->eSrcOrientation = hSource->hMpegFeeder->eOutputOrientation;
@@ -5141,7 +5046,6 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         hWindow->ulDecPicId = pMvdFieldData->ulDecodePictureId;
         hWindow->ulSourceRate = hSource->ulVertFreq;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode) &&
             (BFMT_Orientation_e3D_LeftRight == pPicture->eSrcOrientation) &&
             (false == BVDC_P_Scaler_Validate_VertDepth_isr(hWindow, hWindow->stCurResource.hScaler)))
@@ -5149,7 +5053,6 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
             pPicture->eOrigSrcOrientation = pPicture->eSrcOrientation;
             pPicture->eSrcOrientation = pPicture->eDispOrientation;
         }
-#endif
         /* Note: the following logic is intended to detect field repeat to
            properly config MAD in C0 to support 50to60Hz or trick mode deinterlacing;
            vdc detects the field repeat by checking both polarity and frame
@@ -5239,23 +5142,9 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         pPicture->eSrcOrientation = pCurSur->stAvcPic.eInOrientation;
         pPicture->ulOrigPTS = pCurSur->stAvcPic.ulOrigPTS;
 
-        pPicture->stFlags.bMute = (0 == pCurSur->ulAddress);
+        pPicture->stFlags.bMute = (0 == pCurSur->ullAddress);
         pPicture->stFlags.bMuteFixedColor = pPicture->stFlags.bMute;
-#if 0
-        if (pCurSur->ulHeight == hWindow->stAdjSclOut.ulHeight)
-        {
-            /* no need to vertically scale */
-            pPicture->eSrcPolarity = eFieldId; /* equal to display polarity */
-        }
-        else
-        {
-            /* need vertically scale */
-            pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
-        }
-#else
-        /* it looks better if we always use vertical FIR? */
         pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
-#endif
         pPicture->PicComRulInfo.eSrcOrigPolarity = pPicture->eSrcPolarity;
 
         pPicture->eMatrixCoefficients = hSource->eMatrixCoefficients;
@@ -5305,19 +5194,20 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
     /* (2) Determine the VNET mode and properly assign the rectangles according
      * to the modes.  If there are source_size changes or panscan vectors changes. */
     pPicture->stVnetMode = hWindow->stVnetMode;
+    pPicture->stMvpMode  = hWindow->stMvpMode;
 #if (BVDC_P_SUPPORT_MOSAIC_DEINTERLACE)
     if(hWindow->stCurResource.hMcvp)
     {
         bMvpBypass =
         ((!hWindow->stCurInfo.bMosaicMode) && (ulPictureIdx)) ? true : false;
-        pPicture->stVnetMode.stBits.bUseMad =
-            bMvpBypass?0:hWindow->stVnetMode.stBits.bUseMad;
-        pPicture->stVnetMode.stBits.bUseAnr =
-            bMvpBypass?0:hWindow->stVnetMode.stBits.bUseAnr;
-        pPicture->stVnetMode.stBits.bUseMvpBypass =
-            bMvpBypass?1:hWindow->stVnetMode.stBits.bUseMvpBypass;
-        pPicture->stVnetMode.stBits.bUseHscl =
-            bMvpBypass?0:hWindow->stVnetMode.stBits.bUseHscl;
+        pPicture->stMvpMode.stBits.bUseMad =
+            bMvpBypass?0:hWindow->stMvpMode.stBits.bUseMad;
+        pPicture->stMvpMode.stBits.bUseAnr =
+            bMvpBypass?0:hWindow->stMvpMode.stBits.bUseAnr;
+        pPicture->stMvpMode.stBits.bUseMvpBypass =
+            bMvpBypass?1:hWindow->stMvpMode.stBits.bUseMvpBypass;
+        pPicture->stMvpMode.stBits.bUseHscl =
+            bMvpBypass?0:hWindow->stMvpMode.stBits.bUseHscl;
     }
 #endif
 
@@ -5425,30 +5315,26 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 
     /* Connecting the rect based on vnet */
 
-#if BVDC_P_SUPPORT_MCVP
-    if(BVDC_P_VNET_USED_MCVP(pPicture->stVnetMode) ||
-#else
-    if(BVDC_P_VNET_USED_HSCL(pPicture->stVnetMode) ||
-#endif
-       BVDC_P_VNET_USED_MAD(pPicture->stVnetMode)  ||
-       BVDC_P_VNET_USED_ANR(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
     {
         /* init as pass through */
         pPicture->pHsclIn = pPicture->pSrcOut;
-        pPicture->pHsclOut= pPicture->pSrcOut;
+        pPicture->pHsclOut = pPicture->pSrcOut;
         pPicture->ulHsclNrmHrzSrcStep = (1 << BVDC_P_NRM_SRC_STEP_F_BITS); /* unit scale by default */
-        pPicture->lHsclCutLeft = 0; /* no src clip in hscl by default */
-        pPicture->lHsclCutLeft_R = 0; /* no src clip in hscl by default */
-        pPicture->ulHsclCutWidth = pPicture->pHsclIn->ulWidth;
+        pPicture->stHsclCut.lTop = 0;
+        pPicture->stHsclCut.lLeft = 0; /* no src clip in hscl by default */
+        pPicture->stHsclCut.lLeft_R = 0; /* no src clip in hscl by default */
+        pPicture->stHsclCut.ulWidth = pPicture->pHsclIn->ulWidth;
+        pPicture->stHsclCut.ulHeight = 0;
     }
 
-    if(BVDC_P_VNET_USED_ANR(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
     {
         pPicture->pAnrIn = pPicture->pSrcOut;
         pPicture->pAnrOut= pPicture->pSrcOut;
     }
 
-    if(BVDC_P_VNET_USED_MAD(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
     {
         pPicture->pMadIn = pPicture->pSrcOut;
         pPicture->pMadOut= pPicture->pSrcOut;
@@ -5579,9 +5465,9 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 
                 pPicture->stWinIn.lLeft = pPicture->stSclOut.lLeft - pPicture->stCapOut.lLeft;
                 pPicture->stWinIn.lLeft_R = pPicture->stSclOut.lLeft_R - pPicture->stCapOut.lLeft_R;
+
                 pPicture->stWinOut.ulWidth = BVDC_P_MIN(pPicture->stWinOut.ulWidth,
                     pPicture->stWinIn.ulWidth - pPicture->stWinIn.lLeft);
-
                 pPicture->pCapIn = pPicture->pSclOut;
                 pPicture->pCapOut= &pPicture->stCapOut;
                 pPicture->pVfdIn = pPicture->pCapOut;
@@ -5633,7 +5519,7 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 #endif
 
 #if (BVDC_P_MADR_PICSIZE_WORKAROUND)
-                if(pUserInfo->bDeinterlace && BVDC_P_VNET_USED_MCVP(hWindow->stVnetMode))
+                if(pUserInfo->bDeinterlace && BVDC_P_VNET_USED_MVP(hWindow->stVnetMode))
                 {
                     uint32_t  ulNewWidth;
                     BVDC_P_Window_PreMadAdjustWidth_isr(pPicture->stCapOut.ulWidth,
@@ -5717,33 +5603,27 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
                 pPicture->pSclIn = pPicture->pVfdOut;
 
                 /* before this point pPicture->pVfdOut is not decided yet */
-                if(pPicture->stVnetMode.stBits.bUseCap &&
-#if BVDC_P_SUPPORT_MCVP
-                   pPicture->stVnetMode.stBits.bUseMcvp &&
-#else
-                    pPicture->stVnetMode.stBits.bUseHscl &&
-#endif
-                   !pPicture->stVnetMode.stBits.bSclBeforeCap)
+                if(BVDC_P_VNET_USED_MVP_AT_READER(pPicture->stVnetMode))
                 {
-                    pPicture->pHsclIn = pPicture->pVfdOut;
-                    pPicture->pHsclOut= pPicture->pVfdOut;
-                    pPicture->ulHsclCutWidth = pPicture->pHsclIn->ulWidth;
-                }
+                    if(BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode))
+                    {
+                        pPicture->pHsclIn  = pPicture->pVfdOut;
+                        pPicture->pHsclOut = pPicture->pVfdOut;
+                        pPicture->stHsclCut.ulWidth = pPicture->pHsclIn->ulWidth;
+                    }
 
-                if(pPicture->stVnetMode.stBits.bUseCap &&
-                   pPicture->stVnetMode.stBits.bUseAnr &&
-                  !pPicture->stVnetMode.stBits.bSclBeforeCap)
-                {
-                    pPicture->pAnrIn = pPicture->pVfdOut;
-                    pPicture->pAnrOut= pPicture->pVfdOut;
-                }
+                    if(BVDC_P_MVP_USED_ANR(pPicture->stMvpMode))
+                    {
+                        pPicture->pAnrIn = pPicture->pVfdOut;
+                        pPicture->pAnrOut= pPicture->pVfdOut;
+                    }
 
-                if(pPicture->stVnetMode.stBits.bUseCap &&
-                   pPicture->stVnetMode.stBits.bUseMad &&
-                   !pPicture->stVnetMode.stBits.bSclBeforeCap)
-                {
-                    pPicture->pMadIn = pPicture->pVfdOut;
-                    pPicture->pMadOut= pPicture->pVfdOut;
+                    if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
+                    {
+
+                        pPicture->pMadIn = pPicture->pVfdOut;
+                        pPicture->pMadOut= pPicture->pVfdOut;
+                    }
                 }
             }
         }
@@ -5777,14 +5657,12 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
     }
 #endif
 
-    if(BVDC_P_VNET_USED_MAD(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
     {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         bool bMadIs3dLR = false;
-#endif
         uint32_t ulHsclSrcHrzSclThr, ulMaxMadWidth;
 
-        BDBG_ASSERT(hWindow->stCurResource.hMad32 || hWindow->stCurResource.hMcvp);
+        BDBG_ASSERT(hWindow->stCurResource.hMcvp);
         BVDC_P_Window_GetDeinterlacerMaxResolution_isr(hWindow, NULL,
             &ulMaxMadWidth, NULL, &ulHsclSrcHrzSclThr, false);
 
@@ -5792,15 +5670,13 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         ulHsclSrcHrzSclThr = BREG_Read32(hSource->hVdc->hRegister, BCHP_HSCL_0_SCRATCH_0);
 #endif
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         /* ulMaxMadWidth is 960 when MCVP is in 3D */
         /* BVDC_P_VNET_USED_MCVP_AT_WRITER = BVDC_P_VNET_USED_MAD_AT_WRITER,
          * BVDC_P_VNET_USED_MCVP_AT_READER = BVDC_P_VNET_USED_MAD_AT_READER
-         * if BVDC_P_SUPPORT_3D_VIDEO
          */
-        if((BVDC_P_VNET_USED_MCVP_AT_WRITER(pPicture->stVnetMode) &&
+        if((BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode) &&
             (pPicture->eSrcOrientation != BFMT_Orientation_e2D)) ||
-            (BVDC_P_VNET_USED_MCVP_AT_READER(pPicture->stVnetMode) &&
+            (BVDC_P_VNET_USED_MVP_AT_READER(pPicture->stVnetMode) &&
             (pPicture->eDispOrientation != BFMT_Orientation_e2D)))
         {
             bMadIs3dLR = true;
@@ -5808,7 +5684,6 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 
         if(bMadIs3dLR)
             ulMaxMadWidth = ulMaxMadWidth / 2;
-#endif
         ulHsclSrcHrzSclThr = BVDC_P_MIN(ulHsclSrcHrzSclThr, ulMaxMadWidth);
         if (ulHsclSrcHrzSclThr < pPicture->pMadIn->ulWidth)
         {
@@ -5854,40 +5729,71 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
         ulMinVfdVsize = BVDC_P_WIN_VFD_OUTPUT_V_MIN;
     }
 
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pCapIn,   BDBG_STRING("CAP"), ulMinCapHsize,  ulMinCapVsize, hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced);
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pVfdOut,  BDBG_STRING("VFD"), ulMinVfdHsize, ulMinVfdVsize, hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced);
-    bInterlaced = BVDC_P_VNET_USED_SCALER_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, &pPicture->stSclCut,  BDBG_STRING("SCLCUT"), ulMinVfdHsize, ulMinVfdVsize, bInterlaced);
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pSclOut,  BDBG_STRING("SCL"), BVDC_P_WIN_SCL_OUTPUT_H_MIN, BVDC_P_WIN_SCL_OUTPUT_V_MIN, bInterlaced);
 
-    bInterlaced = BVDC_P_VNET_USED_HSCL_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pHsclOut, BDBG_STRING("HCL"), BVDC_P_WIN_SCL_OUTPUT_H_MIN, BVDC_P_WIN_SCL_OUTPUT_V_MIN, bInterlaced);
+    {
+        uint32_t                        ulWriterHLimit,ulWriterVLimit, ulReaderHLimit, ulReaderVLimit, ulCapHSize, ulCapVSize, ulVfdHSize, ulVfdVSize;
+        bool bSrcInterlaced = hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
+        bool bDstInterlaced = hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced;
 
-#if BVDC_P_SUPPORT_MCVP
-    bInterlaced = BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pMadIn,   BDBG_STRING("MCVP"), BVDC_P_WIN_MAD_INPUT_H_MIN,  BVDC_P_WIN_MAD_INPUT_V_MIN, bInterlaced);
-#else
-    bInterlaced = BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pMadIn,   BDBG_STRING("MAD"), BVDC_P_WIN_MAD_INPUT_H_MIN,  BVDC_P_WIN_MAD_INPUT_V_MIN, bInterlaced);
-#endif
+        /* pPicture->stSclCut*/
+        ulWriterHLimit = BVDC_P_VNET_USED_DNR(pPicture->stVnetMode)?BVDC_P_WIN_DNR_INPUT_H_MIN:0;
+        ulWriterHLimit = BVDC_P_MAX(ulWriterHLimit, BVDC_P_MVP_USED_MAD(pPicture->stMvpMode)?BVDC_P_WIN_MAD_INPUT_H_MIN:0);
+        ulWriterHLimit = BVDC_P_MAX(ulWriterHLimit, BVDC_P_MVP_USED_ANR(pPicture->stMvpMode)?BVDC_P_WIN_ANR_INPUT_H_MIN:0);
+        ulWriterHLimit = BVDC_P_MAX(ulWriterHLimit, BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode)?BVDC_P_WIN_SCL_OUTPUT_H_MIN:0);
 
-    bInterlaced = BVDC_P_VNET_USED_DNR_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pDnrIn,   BDBG_STRING("DNR"), BVDC_P_WIN_DNR_INPUT_H_MIN,  BVDC_P_WIN_DNR_INPUT_V_MIN, bInterlaced);
+        /* vertical */
+        ulWriterVLimit = BVDC_P_VNET_USED_DNR(pPicture->stVnetMode)?BVDC_P_WIN_DNR_INPUT_V_MIN:0;
+        ulWriterVLimit = BVDC_P_MAX(ulWriterVLimit, BVDC_P_MVP_USED_MAD(pPicture->stMvpMode)?BVDC_P_WIN_MAD_INPUT_V_MIN:0);
+        ulWriterVLimit = BVDC_P_MAX(ulWriterVLimit, BVDC_P_MVP_USED_ANR(pPicture->stMvpMode)?BVDC_P_WIN_ANR_INPUT_V_MIN:0);
+        ulWriterVLimit = BVDC_P_MAX(ulWriterVLimit, BVDC_P_MVP_USED_HSCL(pPicture->stMvpMode)?BVDC_P_WIN_SCL_OUTPUT_V_MIN:0);
 
-    bInterlaced = BVDC_P_VNET_USED_ANR_AT_READER(pPicture->stVnetMode) ?
-        hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced :
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced;
-    BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pAnrIn,   BDBG_STRING("ANR"), BVDC_P_WIN_ANR_INPUT_H_MIN,  BVDC_P_WIN_ANR_INPUT_V_MIN, bInterlaced);
+
+        ulReaderHLimit = pPicture->bMosaicMode?BVDC_P_WIN_MOSAIC_OUTPUT_H_MIN : BVDC_P_WIN_DST_OUTPUT_H_MIN;
+        ulReaderHLimit = BVDC_P_MAX(ulReaderHLimit, BVDC_P_WIN_SCL_OUTPUT_H_MIN);
+        ulReaderVLimit = pPicture->bMosaicMode?BVDC_P_WIN_MOSAIC_OUTPUT_V_MIN : BVDC_P_WIN_DST_OUTPUT_V_MIN;
+        ulReaderVLimit = BVDC_P_MAX(ulReaderVLimit, BVDC_P_WIN_SCL_OUTPUT_V_MIN);
+
+
+
+        if(BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode))
+        {
+            ulReaderHLimit = BVDC_P_MAX(ulReaderHLimit, ulMinCapHsize);
+            ulReaderHLimit = BVDC_P_MAX(ulReaderHLimit, ulMinVfdHsize);
+
+            ulReaderVLimit = BVDC_P_MAX(ulReaderVLimit, ulMinCapVsize);
+            ulReaderVLimit = BVDC_P_MAX(ulReaderVLimit, ulMinVfdVsize);
+        }
+        else
+        {
+            ulWriterHLimit = BVDC_P_MAX(ulWriterHLimit, ulMinCapHsize);
+            ulWriterHLimit = BVDC_P_MAX(ulWriterHLimit, ulMinVfdHsize);
+
+            ulWriterVLimit = BVDC_P_MAX(ulWriterVLimit, ulMinCapVsize);
+            ulWriterVLimit = BVDC_P_MAX(ulWriterVLimit, ulMinVfdVsize);
+        }
+
+        ulWriterVLimit <<= bSrcInterlaced;
+        ulReaderVLimit <<= bDstInterlaced;
+
+        ulVfdHSize = ulCapHSize = BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode)?ulReaderHLimit:ulWriterHLimit;
+        ulVfdVSize = ulCapVSize = BVDC_P_VNET_USED_SCALER_AT_WRITER(pPicture->stVnetMode)?ulReaderVLimit:ulWriterVLimit;
+
+        /* possible src/dstlimit */
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pCapIn,   BDBG_STRING("CAPIn"), ulCapHSize, ulCapVSize, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pVfdOut,  BDBG_STRING("VFDOut"), ulVfdHSize, ulVfdVSize, 0);
+
+        /* Destination limit */
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pWinIn,   BDBG_STRING("WinIn"), ulReaderHLimit, ulReaderVLimit, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pSclOut,  BDBG_STRING("SCL"), ulReaderHLimit, ulReaderVLimit, 0);
+
+
+        /* source limit */
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, &pPicture->stSclCut,  BDBG_STRING("SCLCUT"), ulWriterHLimit, ulWriterVLimit, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pDnrIn,   BDBG_STRING("DNR"), ulWriterHLimit,ulWriterVLimit, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pHsclOut, BDBG_STRING("HCL"), ulWriterHLimit, ulWriterVLimit, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pMadIn,   BDBG_STRING("MAD"), ulWriterHLimit, ulWriterVLimit, 0);
+        BVDC_P_Window_EnforceMinSizeLimit_isr(hWindow, pPicture->pAnrIn,   BDBG_STRING("ANR"), ulWriterHLimit, ulWriterVLimit, 0);
+    }
 
     hWindow->ulNrmHrzSrcStep = BVDC_P_CAL_HRZ_SRC_STEP(
             ulCntWidth, pPicture->stSclOut.ulWidth);
@@ -5897,10 +5803,6 @@ static void BVDC_P_Window_UpdateSrcAndUserInfo_isr
 
     if(hWindow->stCurInfo.stDirty.stBits.bRecAdjust)
     {
-#if BVDC_SUPPORT_BVN_DEBUG
-        hWindow->hCompositor->hVdc->bLog = false;
-#endif
-
         BVDC_P_Window_DumpRects_isr(hWindow, pPicture);
 
         /*Update the delay VSYNC for seamless transcode*/
@@ -6058,7 +5960,6 @@ void BVDC_P_Window_DecideCapture_isr
         bCapture = true;
     }
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     /* Always capture if source orientation and display orientation not match */
     if((BFMT_IS_3D_MODE(pCmpInfo->pFmtInfo->eVideoFmt) &&
         pSrcFmtInfo->eOrientation != pCmpInfo->pFmtInfo->eOrientation) ||
@@ -6066,7 +5967,6 @@ void BVDC_P_Window_DecideCapture_isr
     {
         bCapture = true;
     }
-#endif
 
     /* user force capture frame */
     if (hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture)
@@ -6078,7 +5978,7 @@ void BVDC_P_Window_DecideCapture_isr
      * decide vnetMode */
     if(bCapture != hWindow->bCapture)
     {
-        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
         hWindow->bCapture = bCapture;
     }
 
@@ -6095,8 +5995,6 @@ void BVDC_P_Window_DecideCapture_isr
         ulBufCntNeeded = BVDC_P_BYPASS_MULTI_BUFFER_COUNT;
     }
 
-    hWindow->bBufCntNeededChanged = (ulBufCntNeeded != hWindow->ulPrevBufCntNeeded);
-    hWindow->ulPrevBufCntNeeded = ulBufCntNeeded;
 
     /* Update ulBufDelay & ulBufCntNeeded based on delay offset */
     if( bEnableCaptureByDelay )
@@ -6118,11 +6016,6 @@ void BVDC_P_Window_DecideCapture_isr
         ulBufCntNeeded += pWinInfo->uiVsyncDelayOffset ;
     }
 
-    hWindow->ulBufCntNeeded = ulBufCntNeeded;
-    hWindow->ulBufDelay     = ulBufDelay;
-    BDBG_MSG(("Win[%d] need %d buffers, cap: %d, synclock: %d",
-        hWindow->eId, hWindow->ulBufCntNeeded, bCapture,
-        hWindow->bSyncLockSrc || hWindow->stSettings.bForceSyncLock));
 
     /* Determine rate gap */
     BVDC_P_Buffer_CalculateRateGap_isr(hWindow->stNewInfo.hSource->ulVertFreq,
@@ -6149,9 +6042,9 @@ void BVDC_P_Window_DecideCapture_isr
         ((VIDEO_FORMAT_IS_PROGRESSIVE(hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
         && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) || bProgressivePullDown) && bCapture)
     {
-        hWindow->ulBufCntNeeded--;
+        ulBufCntNeeded--;
         if(eWriterVsReaderRateCode == eReaderVsWriterRateCode)
-            hWindow->ulBufDelay--;
+            ulBufDelay--;
         else
             /* Progressive pull down case */
             hWindow->bBufferCntDecrementedForPullDown = true;
@@ -6161,7 +6054,67 @@ void BVDC_P_Window_DecideCapture_isr
             hWindow->eId, hWindow->ulBufCntNeeded));
     }
 
-    hWindow->bBufCntAddedByMtg = false;
+    /* if source dynamic format change results in possible buffer count change,
+       do it as soon as possible to avoid unnecessary big allocation in the 1st
+       place;
+       Note, ulBufCntNeeded computed at ApplyChanges time might not reflect
+       the current situation since the source format might have changed! */
+    if(bCapture) {
+        bool bDoPulldown;
+
+        bDoPulldown =
+            (!hWindow->bSyncLockSrc && !hWindow->stSettings.bForceSyncLock && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
+            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
+            && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) ||
+               (hWindow->bDoPulldown && eReaderVsWriterRateCode > BVDC_P_WrRate_Faster /* not for 50i-to-60i */)));
+
+        /* This doesn't apply to 50i-to-60i. */
+        if(bDoPulldown && !hWindow->bBufferCntDecremented)
+        {
+            if (hWindow->bBufferCntIncremented)
+            {
+                /* From N+1 buffers to the N buffers first */
+                ulBufCntNeeded --;
+                ulBufDelay--;
+
+                hWindow->bBufferCntIncremented = false;
+            }
+
+            /* From N buffers to N-1 buffers */
+            ulBufCntNeeded --;
+
+            hWindow->bBufferCntDecrementedForPullDown = true;
+            hWindow->bBufferCntDecremented = true;
+            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count to %d in BVDC_P_Window_DecideBufsCfgs_isr",
+                hWindow->eId, hWindow->ulBufCntNeeded));
+        }
+        else if(!bDoPulldown && hWindow->bBufferCntDecremented)
+        {
+            /* From N-1 buffers to N buffers first */
+            ulBufCntNeeded ++;
+            if (!hWindow->bBufferCntDecrementedForPullDown)
+            {
+                ulBufDelay++;
+                hWindow->hBuffer->ulVsyncDelay++;
+            }
+            else
+            {
+                hWindow->bBufferCntDecrementedForPullDown = false;
+            }
+            hWindow->bBufferCntDecremented = false;
+
+            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Change buffer count back to %d in BVDC_P_Window_DecideBufsCfgs_isr",
+                hWindow->eId, hWindow->ulBufCntNeeded));
+        }
+    }
+
+    hWindow->bBufCntNeededChanged = (ulBufCntNeeded != hWindow->ulPrevBufCntNeeded);
+    hWindow->ulPrevBufCntNeeded = ulBufCntNeeded;
+    hWindow->ulBufCntNeeded = ulBufCntNeeded;
+    hWindow->ulBufDelay     = ulBufDelay;
+    BDBG_MSG(("Win[%d] need %d buffers, cap: %d, synclock: %d",
+        hWindow->eId, hWindow->ulBufCntNeeded, bCapture,
+        hWindow->bSyncLockSrc || hWindow->stSettings.bForceSyncLock));
 
     BDBG_LEAVE(BVDC_P_Window_DecideCapture_isr);
     return;
@@ -6226,7 +6179,7 @@ void BVDC_P_Window_GetBufSize_isr
     uint32_t             ulBufSize; /* in bytes */
     unsigned int         uiPitch;
     BVDC_P_Rect          stSrcRect;
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     uint32_t  ulStride;
 #endif
 
@@ -6234,12 +6187,12 @@ void BVDC_P_Window_GetBufSize_isr
     BSTD_UNUSED(eWinId);
 #endif
 
-#if (!BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (!BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     BSTD_UNUSED(bMosaicMode);
     BSTD_UNUSED(b3DMode);
 #endif
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     ulStride = pSrcRect->ulWidth * 2;
 #endif
 
@@ -6293,7 +6246,7 @@ void BVDC_P_Window_GetBufSize_isr
 
             stSrcRect = *pSrcRect;
 #if BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_CAP_DCXM
-            if(eBitDepth == BAVC_VideoBitDepth_e10Bit)
+            if(eBitDepth != BAVC_VideoBitDepth_e8Bit)
             {
                 if(pCompression->ulBitsPerGroup >= BVDC_48BITS_PER_GROUP)
                     ulBitsPerGroup = BVDC_48BITS_PER_GROUP;
@@ -6305,12 +6258,12 @@ void BVDC_P_Window_GetBufSize_isr
             }
 #endif
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
             if(bMosaicMode)
             {
                 ulStride = (stSrcRect.ulWidth * BVDC_P_DCXM_BITS_PER_PIXEL) / 8;
-                ulStride += b3DMode ? BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_3D
-                    : BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_2D;
+                ulStride += b3DMode ? BVDC_P_MAX_CAP_GUARD_MEMORY_3D
+                    : BVDC_P_MAX_CAP_GUARD_MEMORY_2D;
                 ulBufSize = (ulStride * pSrcRect->ulHeight) >> bInterlaced;
             }
             else
@@ -6324,11 +6277,11 @@ void BVDC_P_Window_GetBufSize_isr
         {
             BPXL_GetBytesPerNPixels_isr(eBufPxlFmt, pSrcRect->ulWidth, &uiPitch);
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
             if(bMosaicMode)
             {
-                uiPitch += b3DMode ? BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_3D
-                    : BVDC_P_MAX_CAP_LPDDR4_GUARD_MEMORY_2D;
+                uiPitch += b3DMode ? BVDC_P_MAX_CAP_GUARD_MEMORY_3D
+                    : BVDC_P_MAX_CAP_GUARD_MEMORY_2D;
             }
             else
 #endif
@@ -6336,7 +6289,7 @@ void BVDC_P_Window_GetBufSize_isr
                 /* Need to be aligned for capture buffers */
                 uiPitch = BVDC_P_ALIGN_UP(uiPitch, BVDC_P_PITCH_ALIGN);
             }
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
             ulStride = uiPitch;
 #endif
             ulBufSize = (uiPitch * pSrcRect->ulHeight) >> bInterlaced;
@@ -6351,7 +6304,7 @@ void BVDC_P_Window_GetBufSize_isr
     /* Make sure 32 byte aligned */
     ulBufSize = BVDC_P_ALIGN_UP(ulBufSize, BVDC_P_HEAP_ALIGN_BYTES);
 
-#if (BVDC_P_BUFFER_ADD_LPDDR4_GUARD_MEMORY)
+#if (BVDC_P_BUFFER_ADD_GUARD_MEMORY)
     BDBG_MODULE_MSG(BVDC_WIN_BUF_SIZE, ("Win[%d] (%6s) pSrcRect : %d(%d)x%d (%d) ulBufSize %d",
         eWinId, (eBufHeapType == BVDC_P_BufHeapType_eCapture)   ? "Cap"    :
         (eBufHeapType == BVDC_P_BufHeapType_eMad_Pixel) ? "Mad_PX" :
@@ -6468,27 +6421,7 @@ static void BVDC_P_Window_AcquireBvnResources_isr
         BVDC_P_Scaler_Init_isr(hWindow->stCurResource.hScaler, hWindow);
     }
 
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hMad32)
-    {
-        BVDC_P_Mad_Handle *phMad32=&hWindow->stNewResource.hMad32;
 
-        BVDC_P_Resource_AcquireHandle_isr(hResource,
-            BVDC_P_ResourceType_eMad, hWindow->stResourceFeature.ulMad, hWindow->eId,
-            (void **)phMad32, false);
-
-        BDBG_ASSERT(NULL != hWindow->stNewResource.hMad32);
-        hWindow->stCurResource.hMad32 = hWindow->stNewResource.hMad32;
-
-        BVDC_P_Mad_AcquireConnect_isr(hWindow->stCurResource.hMad32,
-            hWindow->hDeinterlacerHeap, hWindow);
-
-        BVDC_P_Window_Compression_Init_isr(hWindow->bIs10BitCore, hWindow->bSupportDcxm,
-        NULL, &hWindow->stMadCompression, BVDC_P_Mvp_DcxNoComp);
-    }
-#endif
-
-#if (BVDC_P_SUPPORT_MCVP)
     if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hMcvp)
     {
         BVDC_P_Mcvp_Handle *phMcvp=&hWindow->stNewResource.hMcvp;
@@ -6505,7 +6438,6 @@ static void BVDC_P_Window_AcquireBvnResources_isr
         NULL, &hWindow->stMadCompression, hWindow->stCurResource.hMcvp->eDcxCore);
 
     }
-#endif
 
 #if (BVDC_P_SUPPORT_XSRC)
     if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hXsrc)
@@ -6520,6 +6452,22 @@ static void BVDC_P_Window_AcquireBvnResources_isr
         hWindow->stCurResource.hXsrc = hWindow->stNewResource.hXsrc;
 
         BVDC_P_Xsrc_AcquireConnect_isr(hWindow->stCurResource.hXsrc, hWindow->stNewInfo.hSource);
+    }
+#endif
+
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hVfc)
+    {
+        BVDC_P_Vfc_Handle *phVfc=&hWindow->stNewResource.hVfc;
+
+        BVDC_P_Resource_AcquireHandle_isr(hResource,
+            BVDC_P_ResourceType_eVfc, 0, hWindow->eId,
+            (void **)phVfc, false);
+
+        BDBG_ASSERT(NULL != hWindow->stNewResource.hVfc);
+        hWindow->stCurResource.hVfc = hWindow->stNewResource.hVfc;
+
+        BVDC_P_Vfc_AcquireConnect_isr(hWindow->stCurResource.hVfc, hWindow);
     }
 #endif
 
@@ -6555,7 +6503,7 @@ static void BVDC_P_Window_AcquireBvnResources_isr
         BVDC_P_Dnr_AcquireConnect_isr(hWindow->stCurResource.hDnr, hWindow->stNewInfo.hSource);
 
         /* Reconfig vnet */
-        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
     }
 #endif
 
@@ -6575,22 +6523,6 @@ static void BVDC_P_Window_AcquireBvnResources_isr
     }
 #endif
 
-#if BVDC_P_SUPPORT_HIST
-    if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hHist)
-    {
-        BVDC_P_Hist_Handle *phHist=&hWindow->stNewResource.hHist;
-
-        BVDC_P_Resource_AcquireHandle_isr(hResource,
-            BVDC_P_ResourceType_eHist, 0, hWindow->eId, (void **)phHist, false);
-
-        BDBG_ASSERT(NULL != hWindow->stNewResource.hHist);
-        hWindow->stCurResource.hHist = hWindow->stNewResource.hHist;
-
-        BVDC_P_Hist_AcquireConnect_isr(hWindow->stCurResource.hHist, hWindow);
-    }
-#endif
-
-#if BVDC_P_SUPPORT_VNET_CRC
     if(BVDC_P_RESOURCE_ID_AVAIL == (unsigned long) hWindow->stNewResource.hVnetCrc)
     {
         BVDC_P_VnetCrc_Handle *phVnetCrc=&hWindow->stNewResource.hVnetCrc;
@@ -6604,7 +6536,6 @@ static void BVDC_P_Window_AcquireBvnResources_isr
         BVDC_P_VnetCrc_AcquireConnect_isr(
             hWindow->stCurResource.hVnetCrc, hWindow);
     }
-#endif
 }
 
 /***************************************************************************
@@ -6663,19 +6594,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
     /* Release resources that are allocated but unused!  Since it's unused
      * it does not trigger shutdown to release them.  Release them here
      * to avoid forced-shutdown side-effects. */
-#if BVDC_P_SUPPORT_MAD
-    if((!hWindow->stVnetMode.stBits.bUseMad) &&
-       (!hWindow->stNewInfo.bDeinterlace) &&
-       ( hWindow->stCurResource.hMad32))
-    {
-        BDBG_MSG(("window[%d] releases shared MAD", hWindow->eId));
-        BVDC_P_Mad_ReleaseConnect_isr(&hWindow->stCurResource.hMad32);
-        hWindow->stNewResource.hMad32 = NULL;
-    }
-#endif
-
-#if BVDC_P_SUPPORT_MCVP
-    if((!hWindow->stVnetMode.stBits.bUseMcvp) &&
+    if((!hWindow->stVnetMode.stBits.bUseMvp) &&
        (!hWindow->stNewInfo.bDeinterlace) &&
        (!hWindow->stNewInfo.bAnr) &&
        ( hWindow->stCurResource.hMcvp))
@@ -6684,7 +6603,6 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
         BVDC_P_Mcvp_ReleaseConnect_isr(&hWindow->stCurResource.hMcvp);
         hWindow->stNewResource.hMcvp = NULL;
     }
-#endif
 
 #if BVDC_P_SUPPORT_TNTD
     if((!hWindow->stVnetMode.stBits.bUseTntd) &&
@@ -6713,14 +6631,14 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
             if(hWindow->stNewInfo.hSource->stNewInfo.eResumeMode)
             {
                 BDBG_MSG(("Source[%d] is pending mode!", hWindow->stNewInfo.hSource->eId));
-                BVDC_P_Window_SetReconfiguring_isr(hWindow, true, false);
+                BVDC_P_Window_SetReconfiguring_isr(hWindow, true, false, false);
             }
             else  /* start the new win now! */
             {
                 /* pCurInfo->eWriterState  = BVDC_P_State_eShutDownPending;
                  * will cause a shudown before vnet start, but it is not needed.
                  * without that, the following cause vnet start right away */
-                BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+                BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
             }
         }
         else /* gfx window */
@@ -6760,7 +6678,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
          * BVDC_P_Window_SetBlender_isr, the next reader RUL must start to
          * shut down. Therefore we can not wait for writer_isr to setReconfig
          * in the case that reader builds RUL next */
-        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
     }
 
     /* Update does not affect the number of buffer nodes nor vnet. */
@@ -6927,7 +6845,7 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
                  * if MAD is at vnet reader side!
                  * since it might not cause vnet reconfig and MAD delay pipeline might not
                  * have hard_start initialization, which may result in BVN error! */
-                if(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
+                if(BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
                     hWindow->bResetMadDelaySwPipe = true;
             }
         }
@@ -6983,6 +6901,14 @@ BERR_Code BVDC_P_Window_ApplyChanges_isr
 
     }
 #endif
+
+    if(hWindow->bNotEnoughCapBuf)
+    {
+        /* Clear bBufferPending so we can re-check if there is enough
+         * buffers for user change */
+        pNewDirty->stBits.bBufferPending = BVDC_P_CLEAN;
+        BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
+    }
 
     BDBG_LEAVE(BVDC_P_Window_ApplyChanges_isr);
     return BERR_SUCCESS;
@@ -7073,7 +6999,6 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         BDBG_ERR(("pCurDirty->stBits.bRecAdjust             = %d", pCurDirty->stBits.bRecAdjust));
         BDBG_ERR(("pCurDirty->stBits.bReDetVnet             = %d", pCurDirty->stBits.bReDetVnet));
         BDBG_ERR(("pCurDirty->stBits.bCscAdjust             = %d", pCurDirty->stBits.bCscAdjust));
-        BDBG_ERR(("pCurDirty->stBits.bTabAdjust             = %d", pCurDirty->stBits.bTabAdjust));
         BDBG_ERR(("pCurDirty->stBits.bTntAdjust             = %d", pCurDirty->stBits.bTntAdjust));
         BDBG_ERR(("pCurDirty->stBits.bLabAdjust             = %d", pCurDirty->stBits.bLabAdjust));
         BDBG_ERR(("pCurDirty->stBits.bCabAdjust             = %d", pCurDirty->stBits.bCabAdjust));
@@ -7093,6 +7018,7 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         BDBG_ERR(("pCurDirty->stBits.bBoxDetect             = %d", pCurDirty->stBits.bBoxDetect));
         BDBG_ERR(("pCurDirty->stBits.bHistoRect             = %d", pCurDirty->stBits.bHistoRect));
         BDBG_ERR(("pCurDirty->stBits.bVnetCrc               = %d", pCurDirty->stBits.bVnetCrc));
+        BDBG_ERR(("pCurDirty->stBits.bBufferPending         = %d", pCurDirty->stBits.bBufferPending));
 #if BVDC_P_SUPPORT_TNTD
         BDBG_ERR(("pCurDirty->stBits.bTntd                  = %d", pCurDirty->stBits.bTntd));
 #endif
@@ -7162,20 +7088,6 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         }
 #endif
 
-#if BVDC_P_SUPPORT_HIST
-        /* relase unneeded Hist */
-        if((hWindow->stCurResource.hHist) &&
-           (pCurDirty->stBits.bDestroy ||
-            (!hWindow->stCurInfo.bHistEnable &&
-             !hWindow->stNewInfo.bHistEnable)))
-        {
-            BDBG_MSG(("Window %d releases shared Hist", hWindow->eId));
-            BVDC_P_Hist_ReleaseConnect_isr(&hWindow->stCurResource.hHist);
-            hWindow->stNewResource.hHist = NULL;
-        }
-#endif
-
-#if BVDC_P_SUPPORT_VNET_CRC
         /* relase unneeded VnetCrc */
         if((hWindow->stCurResource.hVnetCrc) &&
            (pCurDirty->stBits.bDestroy ||
@@ -7186,7 +7098,6 @@ static void BVDC_P_Window_ProcPostShutDown_isr
             BVDC_P_VnetCrc_ReleaseConnect_isr(&hWindow->stCurResource.hVnetCrc);
             hWindow->stNewResource.hVnetCrc = NULL;
         }
-#endif
 
 #if BVDC_P_SUPPORT_TNTD
         if((hWindow->stCurResource.hTntd) &&
@@ -7201,6 +7112,16 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         }
 #endif
 
+#if BVDC_P_SUPPORT_VFC
+        if((hWindow->stCurResource.hVfc) &&
+           (pCurDirty->stBits.bDestroy))
+        {
+            BDBG_MSG(("window %d releases shared VFC", hWindow->eId));
+            BVDC_P_Vfc_ReleaseConnect_isr(&hWindow->stCurResource.hVfc);
+            hWindow->stNewResource.hVfc = NULL;
+        }
+#endif
+
 #if BVDC_P_SUPPORT_XSRC
         if((hWindow->stCurResource.hXsrc) &&
            (pCurDirty->stBits.bDestroy))
@@ -7211,20 +7132,6 @@ static void BVDC_P_Window_ProcPostShutDown_isr
         }
 #endif
 
-#if BVDC_P_SUPPORT_MAD
-        /* release unneeded mad */
-        if((hWindow->stCurResource.hMad32) &&
-           (pCurDirty->stBits.bDestroy ||
-           (!hWindow->stCurInfo.bDeinterlace &&
-            !hWindow->stNewInfo.bDeinterlace)))
-        {
-            BDBG_MSG(("window %d releases shared MAD", hWindow->eId));
-            BVDC_P_Mad_ReleaseConnect_isr(&hWindow->stCurResource.hMad32);
-            hWindow->stNewResource.hMad32 = NULL;
-        }
-#endif
-
-#if BVDC_P_SUPPORT_MCVP
         if((hWindow->stCurResource.hMcvp) &&
            (pCurDirty->stBits.bDestroy ||
             (!hWindow->stCurInfo.bDeinterlace &&
@@ -7236,7 +7143,6 @@ static void BVDC_P_Window_ProcPostShutDown_isr
             BVDC_P_Mcvp_ReleaseConnect_isr(&hWindow->stCurResource.hMcvp);
             hWindow->stNewResource.hMcvp = NULL;
         }
-#endif
 
         /* The window shutdown is completed for SHUTDOWN::DESTROY. */
         if(pCurDirty->stBits.bDestroy)
@@ -7296,7 +7202,8 @@ void BVDC_P_Window_UpdateState_isr
         /* (1) apply done event. */
         if((hWindow->bSetAppliedEventPending) &&
            ((BVDC_P_IS_CLEAN(pCurDirty)) ||
-            (pCurDirty->stBits.bSrcPending && !pCurDirty->stBits.bShutdown)))
+            ((pCurDirty->stBits.bSrcPending || pCurDirty->stBits.bBufferPending) &&
+            !pCurDirty->stBits.bShutdown)))
         {
             hWindow->bSetAppliedEventPending = false;
             BDBG_MSG(("Window[%d] set apply done event", hWindow->eId));
@@ -7446,7 +7353,6 @@ void BVDC_P_Window_GetNewDispOrientation
     ( const BVDC_Window_Handle         hWindow,
       BFMT_Orientation                 *pOrientation)
 {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     BVDC_Display_Handle   hDisplay;
 
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -7458,10 +7364,6 @@ void BVDC_P_Window_GetNewDispOrientation
         *pOrientation = hDisplay->stNewInfo.pFmtInfo->eOrientation;
     else
         *pOrientation = hDisplay->stNewInfo.eOrientation;
-#else
-    BSTD_UNUSED(hWindow);
-    *pOrientation = BFMT_Orientation_e2D;
-#endif
 }
 
 /***************************************************************************
@@ -9437,10 +9339,6 @@ void BVDC_P_Window_InitMuteRec_isr
     hWindow->bAdjRectsDirty = false;
     hWindow->stCurInfo.stDirty.stBits.bRecAdjust = BVDC_P_DIRTY;
     hWindow->stCurInfo.stDirty.stBits.bReDetVnet = BVDC_P_DIRTY;
-    if(hWindow->stCurInfo.bHistEnable && hWindow->bHistAvail)
-    {
-        hWindow->stCurInfo.stDirty.stBits.bHistoRect = BVDC_P_DIRTY;
-    }
 
     /* The source also need to adjust it output rect. */
     hWindow->stCurInfo.hSource->stCurInfo.stDirty.stBits.bRecAdjust = BVDC_P_DIRTY;
@@ -9619,7 +9517,6 @@ void BVDC_P_Window_AdjustRectangles_isr
         }
 #endif
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         /* bOrientationOverride only valid when original
          * orientation from FMT is 2D */
         if(pSrcInfo->pFmtInfo->eOrientation == BFMT_Orientation_e2D)
@@ -9636,8 +9533,6 @@ void BVDC_P_Window_AdjustRectangles_isr
                 }
             }
         }
-#endif
-
     }
     else if (BVDC_P_SRC_IS_VFD(hWindow->stCurInfo.hSource->eId))
     {
@@ -9812,7 +9707,7 @@ void BVDC_P_Window_AdjustRectangles_isr
         hWindow->stAdjDstRect = pUserInfo->stDstRect;
 
         BDBG_MSG(("--------------------------"));
-        BVDC_P_PRINT_RECT("New stSrcCnt", &hWindow->stSrcCnt, false, false);
+        BVDC_P_PRINT_RECT("New stSrcCnt", &hWindow->stSrcCnt, false, 0, 0);
         BDBG_MSG(("Window[%d] usr change = %d, src change = %d",
             hWindow->eId, hWindow->bAdjRectsDirty,
             !BVDC_P_RECT_CMP_EQ(&hWindow->stPrevSrcCnt, &stSrcCnt)));
@@ -10076,10 +9971,6 @@ void BVDC_P_Window_AdjustRectangles_isr
         hWindow->bAdjRectsDirty = false;
         hWindow->stCurInfo.stDirty.stBits.bRecAdjust = BVDC_P_DIRTY;
         hWindow->stCurInfo.stDirty.stBits.bReDetVnet = BVDC_P_DIRTY;
-        if(hWindow->stCurInfo.bHistEnable && hWindow->bHistAvail)
-        {
-            hWindow->stCurInfo.stDirty.stBits.bHistoRect = BVDC_P_DIRTY;
-        }
 
         /* The source also need to adjust it output rect. */
         hWindow->stCurInfo.hSource->stCurInfo.stDirty.stBits.bRecAdjust = BVDC_P_DIRTY;
@@ -10150,7 +10041,8 @@ void BVDC_P_Window_GetSourceContentRect_isr
 void BVDC_P_Window_SetReconfiguring_isr
     ( BVDC_Window_Handle               hWindow,
       bool                             bSrcPending,
-      bool                             bReConfigVnet )
+      bool                             bReConfigVnet,
+      bool                             bBufferPending )
 {
     BVDC_P_Window_Info *pCurInfo;
     BVDC_P_Window_DirtyBits *pCurDirty;
@@ -10163,14 +10055,19 @@ void BVDC_P_Window_SetReconfiguring_isr
     /* Need to do the following when we want the window to shutdown,
      * Notes there are mutually exclusive. */
     if((bReConfigVnet) &&
-       (!bSrcPending) &&
+       (!bSrcPending) && (!bBufferPending) &&
        (!pCurDirty->stBits.bSrcPending))
     {
         pCurDirty->stBits.bReConfigVnet = BVDC_P_DIRTY;
     }
-    else if(bSrcPending)
+    else if(bSrcPending || bBufferPending)
     {
-        pCurDirty->stBits.bSrcPending   = BVDC_P_DIRTY;
+        if(bSrcPending)
+            pCurDirty->stBits.bSrcPending   = BVDC_P_DIRTY;
+
+        if(bBufferPending)
+            pCurDirty->stBits.bBufferPending = BVDC_P_DIRTY;
+
         pCurDirty->stBits.bReConfigVnet = BVDC_P_CLEAN;
     }
 
@@ -10213,6 +10110,7 @@ bool BVDC_P_Window_NotReconfiguring_isr
     {
         return ((BVDC_P_CLEAN == pCurDirty->stBits.bShutdown) &&
                 (BVDC_P_CLEAN == pCurDirty->stBits.bSrcPending) &&
+                (BVDC_P_CLEAN == pCurDirty->stBits.bBufferPending) &&
                 (BVDC_P_CLEAN == pCurDirty->stBits.bReConfigVnet));
     }
 }
@@ -10360,22 +10258,10 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
         /* MAD output rate is chip specific, SD-MAD: 27MHz, HD-MAD: 148.5MHz */
         /* (sx' * sy') is the SCL scaling ratio */
         /* where sy = 2sy' when MAD is used and sx = hx*sx' when HSCL is used */
-#if BVDC_P_SUPPORT_MAD_SRC_1080I
 #define BVDC_P_MAD_OUTPUT_RATE   (1485 * BFMT_FREQ_FACTOR / 10)
-#else
-#define BVDC_P_MAD_OUTPUT_RATE   (27 * BFMT_FREQ_FACTOR)
-#endif
         /* be careful with 32-bit math overflow! */
         uint32_t ulSclRatio = (ulOutX * ulOutY * (BVDC_P_BW_RATE_FACTOR/10) / (ulInX * hWindow->stSrcCnt.ulHeight)) * 10;
-#if 0
-        /* TODO: Currently line buffering is not working, will include this */
-        /* again for #if BVDC_P_SUPPORT_1080p_60HZ once it's fixed */
-        /* HD-MAD/MCDI always have line-averaging FIFO after CMP */
-        /* so oclk = Pixel Clk Rate * active pixel / pixels including blanking */
-        uint32_t ulOclk = pDstFmt->ulPxlFreq * pDstFmt->ulWidth / pDstFmt->ulScanWidth;
-#else
         uint32_t ulOclk = pDstFmt->ulPxlFreq ;
-#endif
         uint32_t ulMadOutClk = ulOclk * BVDC_P_BW_RATE_FACTOR / ulSclRatio;
 
         BDBG_MSG(("BW+MAD: InX=%d InY'=%d OutX=%d OutY=%d SclRatio=%d oclk=%d MadOutClk=%d BVDC_P_MAD_OUTPUT_RATE=%d",
@@ -10401,12 +10287,16 @@ static uint32_t BVDC_P_Window_DecideSclCapAsymmetric_isr
  * needed, no window context is changed here, and return true if a vnet
  * reconfiguring is needed.  If bApplyNewVnet is true, we store new
  * vnetMode into win context.
+ *
+ * bForceBypassMcvp should be false normally, it should only be set to true
+ * to force bypass mcvp when there are not enough buffers for mcvp
  */
 static bool BVDC_P_Window_DecideVnetMode_isr
     ( BVDC_Window_Handle               hWindow,
       const BAVC_MVD_Field            *pMvdFieldData,
       bool                             bApplyNewVnet,
       bool                            *pbRfcgMcvp,
+      bool                             bForceBypassMcvp,
       uint32_t                         ulPictureIdx)
 {
     const BFMT_VideoInfo *pSrcFmt;
@@ -10415,10 +10305,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     BVDC_P_Window_Info *pCurInfo;
     BVDC_P_VnetMode stVnetMode;
     BVDC_P_VnetMode *pVnetMode, *pCurVnetMode;
-#if (BVDC_P_SUPPORT_MCVP)
-    BVDC_P_VnetMode stMcvpMode;
-    BVDC_P_VnetMode *pMcvpMode;
-#endif
+    BVDC_P_MvpMode stMvpMode, *pMvpMode;
     uint32_t ulCapFdrRate;
     bool bSclCapBaseOnRate;
     bool bSrcInterlace = false;
@@ -10513,26 +10400,19 @@ static bool BVDC_P_Window_DecideVnetMode_isr
        could contain dynamic format change while MAD on-the-fly toggling
        requires vnet reconfig process which take multiple vsyncs now; */
     /*bDeinterlace = false;*/
-#if (BVDC_P_SUPPORT_MAD || BVDC_P_SUPPORT_MCVP)
     if (hWindow->stCurInfo.bDeinterlace &&
-#if BVDC_P_SUPPORT_MCVP
         (NULL !=hWindow->stCurResource.hMcvp) &&
-#else
-        (NULL !=hWindow->stCurResource.hMad32) &&
-#endif
         pBoxVdc->astDisplay[eDisplayId].astWindow[ulBoxWinId].stResource.ulMad != BBOX_FTR_INVALID)
     {
         bool bMadSrcSizeOk;
         BVDC_P_WrRateCode eWriterVsReaderRateCode;
         BVDC_P_WrRateCode eReaderVsWriterRateCode;
-#if BVDC_P_SUPPORT_3D_VIDEO
         BFMT_Orientation eOrientation;
-#endif
 
         BVDC_P_Window_GetDeinterlacerMaxResolution_isr(hWindow, pMvdFieldData,
             &ulMaxMadWidth, &ulMaxMadHeight, &ulHsclSrcHrzSclThr, true);
 
-        BDBG_ASSERT(hWindow->stCurResource.hMad32 || hWindow->stCurResource.hMcvp);
+        BDBG_ASSERT(hWindow->stCurResource.hMcvp);
 
         if(pCurInfo->stMadSettings.bShrinkWidth)
         {
@@ -10540,13 +10420,11 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         }
         else
             ulWidth = hWindow->stCurInfo.hSource->stScanOut.ulWidth;
-#if BVDC_P_SUPPORT_3D_VIDEO
-        eOrientation = BVDC_P_VNET_USED_MCVP_AT_WRITER(hWindow->stVnetMode)?
+        eOrientation = BVDC_P_VNET_USED_MVP_AT_WRITER(hWindow->stVnetMode)?
             hWindow->eSrcOrientation:hWindow->eDispOrientation;
 
         ulMaxMadWidth >>=(eOrientation == BFMT_Orientation_e3D_LeftRight);
         ulMaxMadHeight>>=(eOrientation == BFMT_Orientation_e3D_OverUnder);
-#endif
 
         bMadSrcSizeOk =
              (hWindow->stCurInfo.hSource->stScanOut.ulHeight <= ulMaxMadHeight) &&
@@ -10613,7 +10491,6 @@ static bool BVDC_P_Window_DecideVnetMode_isr
             }
         }
     }
-#endif
 
     if(hWindow->bSclCapSymmetric)
     {
@@ -10701,47 +10578,37 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     pCurVnetMode = &hWindow->stVnetMode;
     BVDC_P_CLEAN_ALL_DIRTY(pVnetMode);
 
-#if (BVDC_P_SUPPORT_MAD)
-    pVnetMode->stBits.bUseMad = (bDeinterlace)? BVDC_P_ON : BVDC_P_OFF;
-#endif
     pVnetMode->stBits.bUseScl = (NULL != hWindow->stCurResource.hScaler)? BVDC_P_ON : BVDC_P_OFF;
     pVnetMode->stBits.bUseCap = (hWindow->bCapture)? BVDC_P_ON : BVDC_P_OFF;
 
     pVnetMode->stBits.bUseDnr = (hWindow->stCurInfo.hSource->stCurInfo.bDnr && hWindow->stCurResource.hDnr)
         ? BVDC_P_ON : BVDC_P_OFF;
-    pVnetMode->stBits.bUseHist = (hWindow->stCurInfo.bHistEnable && hWindow->bHistAvail) ? BVDC_P_ON : BVDC_P_OFF;
-    pVnetMode->stBits.bUseHistAtSrc = (pVnetMode->stBits.bUseHist && hWindow->stCurInfo.bHistAtSrc) ? BVDC_P_ON : BVDC_P_OFF;
     pVnetMode->stBits.bSclBeforeCap = (pVnetMode->stBits.bUseCap && bScalerFirst) ? BVDC_P_ON : BVDC_P_OFF;
-#if (!BVDC_P_SUPPORT_MANR)
-    pVnetMode->stBits.bUseAnr = (bAnr)? BVDC_P_ON : BVDC_P_OFF;
-#endif
 #if BVDC_P_SUPPORT_XSRC
     pVnetMode->stBits.bUseXsrc = (hWindow->stCurResource.hXsrc)? BVDC_P_ON : BVDC_P_OFF;
 #endif
+#if BVDC_P_SUPPORT_VFC
+    pVnetMode->stBits.bUseVfc = (hWindow->stCurResource.hVfc)? BVDC_P_ON : BVDC_P_OFF;
+#endif
 
-#if (BVDC_P_SUPPORT_MCVP)
-    pMcvpMode = &stMcvpMode;
-    BVDC_P_CLEAN_ALL_DIRTY(pMcvpMode);
-    pMcvpMode->stBits.bUseMcvp = pVnetMode->stBits.bUseMcvp =
+    pMvpMode = &stMvpMode;
+    BVDC_P_CLEAN_ALL_DIRTY(pMvpMode);
+    pMvpMode->stBits.bUseMvp = pVnetMode->stBits.bUseMvp =
 #if (!BVDC_P_SUPPORT_MOSAIC_DEINTERLACE)
          (!pCurInfo->bMosaicMode)&&
 #endif
          (pCurInfo->bDeinterlace || pCurInfo->bAnr) &&
          ( hWindow->stCurResource.hMcvp); /* to be sure the hmcvp resource available)*/
 
-    pMcvpMode->stBits.bUseMvpBypass = ((BVDC_P_ON == pMcvpMode->stBits.bUseMcvp) && (!bDeinterlace) && (!bAnr)) ? BVDC_P_ON : BVDC_P_OFF;
-    pMcvpMode->stBits.bUseMad = (bDeinterlace)? BVDC_P_ON : BVDC_P_OFF;
+    pMvpMode->stBits.bUseMvpBypass =
+        (((BVDC_P_ON == pMvpMode->stBits.bUseMvp) && (!bDeinterlace) && (!bAnr)) || bForceBypassMcvp)
+        ? BVDC_P_ON : BVDC_P_OFF;
+    pMvpMode->stBits.bUseMad = (bDeinterlace && !bForceBypassMcvp)? BVDC_P_ON : BVDC_P_OFF;
+
     /* clear off all the mcvp detail configuration for mode compare */
-    pCurVnetMode->stBits.bUseMvpBypass = BVDC_P_OFF;
-    pCurVnetMode->stBits.bUseMad = BVDC_P_OFF;
-#if BVDC_P_SUPPORT_HSCL_MAD_HARD_WIRED
-    pMcvpMode->stBits.bUseHscl = (bDeinterlace || bAnr)? BVDC_P_ON : BVDC_P_OFF;
-    pCurVnetMode->stBits.bUseHscl = BVDC_P_OFF; /* clear off all the mcvp detail configuration for mode compare */
-#endif
+    pMvpMode->stBits.bUseHscl = ((bDeinterlace || bAnr) && !bForceBypassMcvp)? BVDC_P_ON : BVDC_P_OFF;
 #if BVDC_P_SUPPORT_MANR
-    pMcvpMode->stBits.bUseAnr = (bAnr)? BVDC_P_ON : BVDC_P_OFF;
-    pCurVnetMode->stBits.bUseAnr = BVDC_P_OFF; /* clear off all the mcvp detail configuration for mode compare */
-#endif
+    pMvpMode->stBits.bUseAnr = (bAnr && !bForceBypassMcvp)? BVDC_P_ON : BVDC_P_OFF;
 #endif
 
 #if BVDC_P_SUPPORT_TNTD
@@ -10756,12 +10623,18 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         else
         {
             ulVertRatio = BVDC_P_Tntd_CalcVertSclRatio_isr(hWindow->stSrcCnt.ulHeight,
-                    bSrcInterlace & !pMcvpMode->stBits.bUseMcvp,
+                    bSrcInterlace & !pVnetMode->stBits.bUseMvp,
                     hWindow->stAdjSclOut.ulHeight,
                     pDstFmt->bInterlaced);
-            pVnetMode->stBits.bTntdBeforeScl = (
-                (hWindow->stCurInfo.eSclCapBias == BVDC_SclCapBias_eAuto) &&
-                (ulVertRatio >= BVDC_P_TNTD_BEFORE_SCL_THRESH)) ? BVDC_P_ON : BVDC_P_OFF;
+            if(hWindow->stCurInfo.eSclCapBias == BVDC_SclCapBias_eAuto)
+            {
+                pVnetMode->stBits.bTntdBeforeScl =
+                    (ulVertRatio >= BVDC_P_TNTD_BEFORE_SCL_THRESH) ? BVDC_P_ON : BVDC_P_OFF;
+            }
+            else
+            {
+                pVnetMode->stBits.bTntdBeforeScl = pCurVnetMode->stBits.bTntdBeforeScl;
+            }
         }
         BDBG_MSG(("%s", pVnetMode->stBits.bTntdBeforeScl ? "TNTD->SCL" : "SCL->TNTD"));
     }
@@ -10771,7 +10644,6 @@ static bool BVDC_P_Window_DecideVnetMode_isr
     if(BVDC_P_IS_CLEAN(pVnetMode))
         pVnetMode->stBits.bInvalid = BVDC_P_ON;
 
-#if BVDC_P_SUPPORT_VNET_CRC
     /* add vnetMode bits for vnet crc */
     if(pCurInfo->stCbSettings.stMask.bCrc)
     {
@@ -10786,7 +10658,6 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         hWindow->stNewResource.hVnetCrc = NULL;
         hWindow->stCurInfo.stDirty.stBits.bVnetCrc = BVDC_P_OFF;
     }
-#endif
 
     bVnetDiff = BVDC_P_DIRTY_COMPARE(pVnetMode, pCurVnetMode);
     if(bVnetDiff)
@@ -10794,7 +10665,7 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] ch[%d] %s vnetMode 0x%08lx -> 0x%08lx UseMAD %d -> %d",
             hWindow->eId, ulPictureIdx, bApplyNewVnet ? "changes" : "checks",
             (long unsigned int)pVnetMode->aulInts[0], (long unsigned int)pCurVnetMode->aulInts[0],
-            hWindow->stVnetMode.stBits.bUseMad, pVnetMode->stBits.bUseMad));
+            hWindow->stMvpMode.stBits.bUseMad, pMvpMode->stBits.bUseMad));
 
         bRecfgVnet = true;
         if (bApplyNewVnet)
@@ -10804,17 +10675,16 @@ static bool BVDC_P_Window_DecideVnetMode_isr
         }
     }
 
-#if (BVDC_P_SUPPORT_MCVP)
     BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] ch[%d] %s McvpMode 0x%08lx",
     hWindow->eId, ulPictureIdx, bApplyNewVnet ? "changes" : "checks",
-    (long unsigned int)pMcvpMode->aulInts[0]));
-    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseMcvp %d", pMcvpMode->stBits.bUseMcvp));
-    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseMad %d", pMcvpMode->stBits.bUseMad));
-    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" BypassMcvp %d", pMcvpMode->stBits.bUseMvpBypass));
-    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseAnr %d", pMcvpMode->stBits.bUseAnr));
+    (long unsigned int)pMvpMode->aulInts[0]));
+    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseMcvp %d", pMvpMode->stBits.bUseMvp));
+    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseMad %d", pMvpMode->stBits.bUseMad));
+    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" BypassMcvp %d", pMvpMode->stBits.bUseMvpBypass));
+    BDBG_MODULE_MSG(BVDC_WIN_VNET,(" UseAnr %d", pMvpMode->stBits.bUseAnr));
 
-    BVDC_P_OR_ALL_DIRTY(&hWindow->stVnetMode, pMcvpMode);
-#endif
+    /* store new MvpMode into win contrext */
+    hWindow->stMvpMode = *pMvpMode;
 
     return bRecfgVnet;
 }
@@ -10858,7 +10728,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
 {
     uint32_t ulSrcVertRate, ulDspVertRate, ulBufSize, ulMinDspSize;
     const BFMT_VideoInfo * pMinDspFmt = NULL, *pDstFmtInfo = NULL;
-    bool  bCapInterlaced, bDoPulldown, bCapture, bRecfgVnet = false;
+    bool  bCapInterlaced, bDoPulldown, bCapture, bRecfgVnet = false, bUseMadAtWriter = false;
     BVDC_P_Window_Info *pCurInfo;
     BVDC_P_Rect stMinBufRect, stCapBufRect;
     BVDC_P_BufferHeapId  eBufferHeapIdRequest, eBufferHeapIdPrefer;
@@ -10874,6 +10744,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     ulDspVertRate = BVDC_P_ROUND_OFF(
         pDstFmtInfo->ulVertFreq, (BFMT_FREQ_FACTOR/2), BFMT_FREQ_FACTOR);
 
+    bUseMadAtWriter = BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode);
     if((!bInterlace) && BVDC_P_DO_PULLDOWN(ulSrcVertRate, ulDspVertRate))
     {
         /* P2I frame rate conversion case: frame capture -> fields playback,
@@ -10883,10 +10754,10 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     }
 #if BVDC_P_SUPPORT_MTG
     else if (hWindow->stCurInfo.hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-             (BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode) ||
+             (bUseMadAtWriter ||
              /* For progressive sources displayed as interlaced without a deinterlacer, ie., SD path,
                 capture as frame to prevent field inversion. Refer to SW7439-881 */
-              (!BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode) &&
+              (!bUseMadAtWriter &&
                !hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->bInterlaced)))
     {
         bCapInterlaced = false;
@@ -10894,7 +10765,7 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
     }
 #endif
     else if (bInterlace && BVDC_P_DO_PULLDOWN(ulSrcVertRate, ulDspVertRate) &&
-             BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode) &&
+             bUseMadAtWriter &&
              BVDC_P_VNET_USED_SCALER_AT_WRITER(hWindow->stVnetMode))
     {
         /* This is only for 50i to 60i frame rate conversion case with the
@@ -10916,8 +10787,6 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
 
     if(bCapture)
     {
-        BVDC_P_WrRateCode eWriterVsReaderRateCode;
-        BVDC_P_WrRateCode eReaderVsWriterRateCode;
 
         if(BVDC_P_VNET_USED_SCALER_AT_READER(hWindow->stVnetMode))
         {
@@ -10943,12 +10812,10 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
             stMinBufRect.lLeft    = stMinBufRect.lLeft_R = stMinBufRect.lTop = 0;
             /* guaranteed some minimal memory allocation to avoid reallocations
              * when display output format changes. */
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             if(BFMT_IS_3D_MODE(hWindow->hCompositor->stCurInfo.pFmtInfo->eVideoFmt))
                 eDspOrientation = hWindow->hCompositor->stCurInfo.pFmtInfo->eOrientation;
             else
                 eDspOrientation = hWindow->hCompositor->stCurInfo.eOrientation;
-#endif
             if(pMinDspFmt)
             {
                 ulMinDspWidth = pMinDspFmt->ulWidth >> (eDspOrientation==BFMT_Orientation_e3D_LeftRight);
@@ -11126,156 +10993,11 @@ static bool BVDC_P_Window_DecideCapBufsCfgs_isr
             /* (4) force frame capture*/
             (hWindow->stCurInfo.hSource->stCurInfo.bForceFrameCapture));
 
-        /* if source dynamic format change results in possible buffer count change,
-           do it as soon as possible to avoid unnecessary big allocation in the 1st
-           place;
-           Note, ulBufCntNeeded computed at ApplyChanges time might not reflect
-           the current situation since the source format might have changed! */
-        BVDC_P_Buffer_CalculateRateGap_isr(hWindow->stCurInfo.hSource->ulVertFreq,
-            hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq,
-            &eWriterVsReaderRateCode, &eReaderVsWriterRateCode);
-
-        bDoPulldown =
-            (!hWindow->bSyncLockSrc && !hWindow->stSettings.bForceSyncLock && !BVDC_P_SRC_IS_VFD(hWindow->stNewInfo.hSource->eId) &&
-            ((VIDEO_FORMAT_IS_PROGRESSIVE(hWindow->hCompositor->stNewInfo.pFmtInfo->eVideoFmt)
-            && (eWriterVsReaderRateCode == eReaderVsWriterRateCode)) ||
-               (bDoPulldown && eReaderVsWriterRateCode > BVDC_P_WrRate_Faster /* not for 50i-to-60i */)));
-
-        /* This doesn't apply to 50i-to-60i. */
-        if(bDoPulldown && !hWindow->bBufferCntDecremented)
-        {
-            if (hWindow->bBufferCntIncremented)
-            {
-                /* From N+1 buffers to the N buffers first */
-                hWindow->ulBufCntNeeded --;
-                hWindow->ulBufDelay--;
-
-                hWindow->bBufferCntIncremented = false;
-            }
-
-            /* From N buffers to N-1 buffers */
-            hWindow->ulBufCntNeeded --;
-
-            hWindow->bBufferCntDecrementedForPullDown = true;
-            hWindow->bBufferCntDecremented = true;
-            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Decrementing buffer count to %d in BVDC_P_Window_DecideBufsCfgs_isr",
-                hWindow->eId, hWindow->ulBufCntNeeded));
-        }
-        else if(!bDoPulldown && hWindow->bBufferCntDecremented)
-        {
-            /* From N-1 buffers to N buffers first */
-            hWindow->ulBufCntNeeded ++;
-            if (!hWindow->bBufferCntDecrementedForPullDown)
-            {
-                hWindow->ulBufDelay++;
-                hWindow->hBuffer->ulVsyncDelay++;
-            }
-            else
-            {
-                hWindow->bBufferCntDecrementedForPullDown = false;
-            }
-            hWindow->bBufferCntDecremented = false;
-
-            BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] Change buffer count back to %d in BVDC_P_Window_DecideBufsCfgs_isr",
-                hWindow->eId, hWindow->ulBufCntNeeded));
-        }
     }
     return (bRecfgVnet);
 }
 
-#if BVDC_P_SUPPORT_MAD
-static bool BVDC_P_Window_DecideMadBufsCfgs_isr
-    ( BVDC_Window_Handle               hWindow,
-      bool                             bApplyNewCfg,
-      const BVDC_P_Rect               *pMadBufRect,
-      bool                             bSrcInterlace)
-{
-    bool bRecfgVnet = false;
-    BVDC_P_Window_Info *pCurInfo;
-    uint32_t ulBufSize;
-    BVDC_P_BufferHeapId eNewMadPixelHeapId, eNewMadQmHeapId;
-    uint16_t  usMadPixBufCnt;
-    BVDC_P_Rect stMadBufRect;
-    const BVDC_P_Compression_Settings *pWinCompression = NULL;
-    pCurInfo  = &hWindow->stCurInfo;
 
-    /* Changing MAD buffer cntr causes VNET reconfiguration */
-    stMadBufRect = *pMadBufRect;
-    usMadPixBufCnt = BVDC_P_Mad_GetPixBufCnt_isr(
-        hWindow->stSettings.bDeinterlacerAllocFull ?
-        BVDC_MadGameMode_eOff : hWindow->stCurInfo.stMadSettings.eGameMode);
-
-    if(hWindow->usMadPixelBufferCnt[0] != usMadPixBufCnt)
-    {
-        BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] changes mad buf cntr %d->%d", hWindow->eId,
-            hWindow->usMadPixelBufferCnt[0], usMadPixBufCnt));
-
-        bRecfgVnet = true;
-
-        if(!bApplyNewCfg)
-        {
-            return (bRecfgVnet);
-        }
-        else
-        {
-            /* store new values into win context */
-            hWindow->usMadPixelBufferCnt[0] = usMadPixBufCnt;
-        }
-    }
-
-#if (BVDC_P_SUPPORT_VIDEO_TESTFEATURE1_MAD_ANR)
-    pWinCompression = &hWindow->stMadCompression;
-#endif
-    if (pCurInfo->stMadSettings.bShrinkWidth)
-    {
-        /* horizontal scl before MAD will shrink width to the MAD supported size */
-        stMadBufRect.ulWidth = BVDC_P_MIN(stMadBufRect.ulWidth,
-            hWindow->stCurResource.hMad32->ulMaxWidth);
-    }
-
-    /* pixel filed buffer  */
-    BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMadBufRect,
-        bSrcInterlace, false, false, false,
-        hWindow->stCurInfo.stMadSettings.ePixelFmt,
-        pWinCompression, BVDC_P_BufHeapType_eMad_Pixel, &ulBufSize, BAVC_VideoBitDepth_e8Bit);
-
-    BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize, hWindow->hDeinterlacerHeap,
-        &eNewMadPixelHeapId, NULL);
-
-    /* Qm filed buffer */
-    BVDC_P_Window_GetBufSize_isr(hWindow->eId, &stMadBufRect,
-        bSrcInterlace, false, false, false, hWindow->stCurInfo.stMadSettings.ePixelFmt,
-        pWinCompression, BVDC_P_BufHeapType_eMad_QM, &ulBufSize, BAVC_VideoBitDepth_e8Bit);
-    BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize, hWindow->hDeinterlacerHeap,
-        &eNewMadQmHeapId, NULL);
-
-    /* Changing MAD buffer heapId causes VNET reconfiguration */
-    if( (hWindow->eMadPixelHeapId[0] != eNewMadPixelHeapId) ||
-        (hWindow->eMadQmHeapId[0] != eNewMadQmHeapId) )
-    {
-        BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] changes mad buf MStartHpId[%s->%s], QmHpId[%s->%s]", hWindow->eId,
-            BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hWindow->eMadPixelHeapId[0]),
-            BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eNewMadPixelHeapId),
-            BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hWindow->eMadQmHeapId[0]),
-            BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eNewMadQmHeapId)));
-
-        bRecfgVnet = true;
-        if(!bApplyNewCfg)
-        {
-            return (bRecfgVnet);
-        }
-        else
-        {
-            /* store new values into win context */
-            hWindow->eMadPixelHeapId[0] = eNewMadPixelHeapId;
-            hWindow->eMadQmHeapId[0] = eNewMadQmHeapId;
-        }
-    }
-    return (bRecfgVnet);
-}
-#endif
-
-#if BVDC_P_SUPPORT_MCVP
 static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
     ( BVDC_Window_Handle               hWindow,
       bool                             bApplyNewCfg,
@@ -11298,9 +11020,9 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
     uint32_t ulBufHeapSize = 0, ulPxlBufSize =0, ulCurPxlBufSize =0 ;
     BVDC_P_Compression_Settings *pWinCompression = NULL;
 
-    bDeinterlace = BVDC_P_VNET_USED_MAD(hWindow->stVnetMode);
-    bAnr = BVDC_P_VNET_USED_ANR(hWindow->stVnetMode);
-    bBypass = BVDC_P_VNET_BYPASS_MCVP(hWindow->stVnetMode);
+    bDeinterlace = BVDC_P_MVP_USED_MAD(hWindow->stMvpMode);
+    bAnr = BVDC_P_MVP_USED_ANR(hWindow->stMvpMode);
+    bBypass = BVDC_P_MVP_BYPASS_MVP(hWindow->stMvpMode);
     pCurInfo  = &hWindow->stCurInfo;
 
     pWinCompression = &hWindow->stMadCompression;
@@ -11368,7 +11090,6 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
             pCurInfo->stMadSettings.ePixelFmt,
             pWinCompression, bDeinterlace?BVDC_P_BufHeapType_eMad_Pixel: BVDC_P_BufHeapType_eAnr,
             &ulBufSize, eBitDepth);
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         ulBufSize = ulBufSize << bDoubleBufSize;
         BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize,
             hWindow->hDeinterlacerHeap, &eNewMcvpHeapId, NULL);
@@ -11380,11 +11101,6 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
             hWindow->usMadPixelBufferCnt[0] = 2*hWindow->usMadPixelBufferCnt[0];
             bBufIsContinuous = true;
         }
-#else
-        BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize,
-            hWindow->hDeinterlacerHeap, &eNewMcvpHeapId, NULL);
-        BSTD_UNUSED(bDoubleBufSize);
-#endif
 
         ulPxlBufSize = ulBufSize;
 
@@ -11405,9 +11121,7 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
             pCurInfo->stMadSettings.ePixelFmt,
             pWinCompression, BVDC_P_BufHeapType_eMad_QM,
             &ulBufSize, eBitDepth);
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         ulBufSize = ulBufSize <<bDoubleBufSize;
-#endif
         BVDC_P_Window_GetBufHeapId_isr(hWindow, ulBufSize,
             hWindow->hDeinterlacerHeap, &eNewMcvpQmHeapId, NULL);
 
@@ -11468,6 +11182,9 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
         hWindow->usMadQmBufCnt[ulChannelId]       = usMcvpQmBufCnt;
         hWindow->ulMadPxlBufSize[ulChannelId]     = ulPxlBufSize;
         hWindow->bContinuous[ulChannelId]         = bBufIsContinuous;
+
+        /* Reconfig vnet if buffer changes */
+        bRecfgVnet = (!hWindow->stSettings.bDeinterlacerAllocFull) && (hWindow->stSettings.pMinSrcFmt==NULL);
     }
 
     /* fill the rest channel if the dimention remains the same*/
@@ -11518,7 +11235,6 @@ static bool BVDC_P_Window_DecideMcvpBufsCfgs_isr
     return bRecfgVnet;
 }
 
-#endif
 
 static void BVDC_P_Window_GetOrientation_isr
     ( BVDC_Window_Handle               hWindow,
@@ -11554,6 +11270,185 @@ static void BVDC_P_Window_GetOrientation_isr
 
 }
 
+
+/***************************************************************************
+ * {private}
+ *
+ */
+static void BVDC_P_Window_DumpCapBufHeapConfigure_isr
+    ( BVDC_Window_Handle               hWindow,
+      bool                             bLeftBuffer )
+{
+#if (BDBG_DEBUG_BUILD)
+    BDBG_ERR(("Win[%d] Not enough memory for %s! Configuration:",
+        hWindow->eId, bLeftBuffer ? "CAP" : "CAP_R"));
+    BDBG_ERR(("Win[%d] stVnetMode: 0x%x, ulBufCntNeeded: %d, ulBufCntAllocated: %d",
+        hWindow->eId, *(unsigned int *)&hWindow->stVnetMode, hWindow->ulBufCntNeeded,
+        hWindow->ulBufCntAllocated));
+    BDBG_ERR(("Win[%d] Src: %s, Disp: %s", hWindow->eId,
+        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->pchFormatStr,
+        hWindow->hCompositor->stCurInfo.pFmtInfo->pchFormatStr));
+    BDBG_ERR(("Win[%d] uiVsyncDelayOffset: %d, uiCaptureBufCnt: %d", hWindow->eId,
+        hWindow->stCurInfo.uiVsyncDelayOffset,
+        hWindow->stCurInfo.uiCaptureBufCnt));
+    BDBG_ERR(("Win[%d] bDoPulldown: %d, bFrameCapture: %d, bSyncLockSrc: %d",
+        hWindow->eId, hWindow->bDoPulldown,
+        hWindow->bFrameCapture, hWindow->bSyncLockSrc));
+    BDBG_ERR(("Win[%d] SrcVertRate: %d, DstVertRate: %d", hWindow->eId,
+        hWindow->stCurInfo.hSource->ulVertFreq,
+        hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq));
+#else
+    BSTD_UNUSED(hWindow);
+    BSTD_UNUSED(bLeftBuffer);
+#endif
+
+    return;
+}
+
+/***************************************************************************
+ * {private}
+ *
+ * Check if there is enough buffers for deinterlacer.
+ */
+static void  BVDC_P_Window_CheckBuffers_isr
+    ( BVDC_Window_Handle               hWindow,
+      uint32_t                         ulPictureIdx,
+      bool                            *pbNotEnoughCapBuf,
+      bool                            *pbNotEnoughMcvpBuffers )
+{
+    bool                  bNotEnoughCaptureBuffers = false;
+    bool                  bNotEnoughMcvpBuffers = false;
+    bool                  bCapBufAllocated = false, bCapRBufAllocated = false;
+    BERR_Code             err = BERR_SUCCESS;
+    BVDC_P_HeapNodePtr    apCapHeapNode[BVDC_P_MAX_MULTI_BUFFER_COUNT];
+    BVDC_P_HeapNodePtr    apCapHeapNode_R[BVDC_P_MAX_MULTI_BUFFER_COUNT];
+
+    bool                  bMadPxlBufAllocated = false, bMadQmBufAllocated = false;
+    BVDC_P_BufferHeapId   eBufferHeapId;
+    BVDC_P_HeapNodePtr    apMadPxlHeapNode[BVDC_P_MAX_MCDI_BUFFER_COUNT];
+    BVDC_P_HeapNodePtr    apMadQmHeapNode[BVDC_P_MAX(BVDC_P_MCDI_QM_BUFFER_COUNT, 1)];
+
+    /* Both capture and deinterlacer buffers should be released by now */
+
+    /* Check capture buffers */
+    if(hWindow->eBufferHeapIdRequest != BVDC_P_BufferHeapId_eUnknown)
+    {
+        err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hCapHeap,
+            apCapHeapNode, hWindow->ulBufCntNeeded, false,
+            hWindow->eBufferHeapIdRequest, hWindow->eBufferHeapIdPrefer);
+        if(err == BERR_OUT_OF_DEVICE_MEMORY)
+        {
+            bCapBufAllocated = false;
+            bNotEnoughCaptureBuffers = true;
+        }
+        else
+        {
+            bCapBufAllocated = true;
+        }
+
+        if(hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)
+        {
+            err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hCapHeap,
+                apCapHeapNode_R, hWindow->ulBufCntNeeded, false,
+                hWindow->eBufferHeapIdRequest, hWindow->eBufferHeapIdPrefer);
+            if(err == BERR_OUT_OF_DEVICE_MEMORY)
+            {
+                bCapRBufAllocated = false;
+                bNotEnoughCaptureBuffers = true;
+            }
+            else
+            {
+                bCapRBufAllocated = true;
+            }
+        }
+    }
+
+    /* Check pixel buffers */
+    eBufferHeapId = hWindow->eMadPixelHeapId[ulPictureIdx];
+    if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
+    {
+        err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
+            apMadPxlHeapNode, hWindow->usMadPixelBufferCnt[ulPictureIdx],
+            hWindow->bContinuous[ulPictureIdx], eBufferHeapId,
+            BVDC_P_BufferHeapId_eUnknown);
+
+        if(err == BERR_OUT_OF_DEVICE_MEMORY)
+        {
+            BDBG_ERR(("Win[%d] Check MCVP Pixel buffer : ", hWindow->eId));
+            BDBG_ERR(("App needs to alloc more memory for MCVP Pixel buffers: [%d] %s",
+                hWindow->usMadPixelBufferCnt[ulPictureIdx],
+                BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
+            BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+
+            bMadPxlBufAllocated = false;
+            bNotEnoughMcvpBuffers = true;
+        }
+        else
+        {
+            bMadPxlBufAllocated = true;
+        }
+    }
+
+    /* Check qm buffers */
+    eBufferHeapId = hWindow->eMadQmHeapId[ulPictureIdx];
+    if(eBufferHeapId != BVDC_P_BufferHeapId_eUnknown)
+    {
+        err = BVDC_P_BufferHeap_AllocateBuffers_isr(hWindow->hDeinterlacerHeap,
+            apMadQmHeapNode, hWindow->usMadQmBufCnt[ulPictureIdx], false,
+            eBufferHeapId, BVDC_P_BufferHeapId_eUnknown);
+
+        if(err == BERR_OUT_OF_DEVICE_MEMORY)
+        {
+            BDBG_ERR(("Win[%d] Check MCVP QM buffer : ", hWindow->eId));
+            BDBG_ERR(("App needs to alloc more memory for MCVP QM buffers [%d] %s buffers",
+                hWindow->usMadQmBufCnt[ulPictureIdx],
+                BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(eBufferHeapId)));
+            BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
+
+            bMadQmBufAllocated = false;
+            bNotEnoughMcvpBuffers = true;
+        }
+        else
+        {
+            bMadQmBufAllocated = true;
+        }
+    }
+
+    /* Release previous allocated buffers */
+    if(bCapBufAllocated)
+    {
+        BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hCapHeap,
+            apCapHeapNode, hWindow->ulBufCntNeeded, false);
+    }
+
+    if(bCapRBufAllocated)
+    {
+        BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hCapHeap,
+            apCapHeapNode_R, hWindow->ulBufCntNeeded, false);
+    }
+
+    if(bMadPxlBufAllocated)
+    {
+        BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hDeinterlacerHeap,
+            apMadPxlHeapNode, hWindow->usMadPixelBufferCnt[ulPictureIdx],
+            hWindow->bContinuous[ulPictureIdx]);
+    }
+
+    if(bMadQmBufAllocated)
+    {
+        BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hDeinterlacerHeap,
+            apMadQmHeapNode, hWindow->usMadQmBufCnt[ulPictureIdx],
+            false);
+    }
+
+    if(pbNotEnoughCapBuf)
+        *pbNotEnoughCapBuf = bNotEnoughCaptureBuffers;
+
+    if(pbNotEnoughMcvpBuffers)
+        *pbNotEnoughMcvpBuffers = bNotEnoughMcvpBuffers;
+
+    return;
+}
 
 /***************************************************************************
  * {private}
@@ -11679,32 +11574,8 @@ static bool BVDC_P_Window_DecideBufsCfgs_isr
         return true;
     }
 
-#if BVDC_P_SUPPORT_MAD
-    /* (2) decide mad buf heapId.
-     * changing MAD buffer heapId or cnt causes VNET reconfiguration */
-    if((NULL != hWindow->stCurResource.hMad32) &&
-       BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
-    {
-        /* Make sure it's bounded by boxmode/hw size */
-        uint32_t ulMaxMadWidth, ulMaxMadHeight;
-        BVDC_P_Window_GetDeinterlacerMaxResolution_isr(hWindow, pMvdFieldData,
-            &ulMaxMadWidth, &ulMaxMadHeight, NULL, true);
-
-        stCapBufRect.ulWidth  = BVDC_P_MIN(stCapBufRect.ulWidth, ulMaxMadWidth);
-        stCapBufRect.ulHeight = BVDC_P_MIN(stCapBufRect.ulHeight, ulMaxMadHeight);
-        stCapBufRect.ulHeight >>= (pMinSrcFmt) ? (!bMinSrcNoOptimize) : (!bInterlace);
-
-        bRecfgVnet |= BVDC_P_Window_DecideMadBufsCfgs_isr (hWindow, bApplyNewCfg, &stCapBufRect, bInterlace);
-        if((!bApplyNewCfg) && bRecfgVnet)
-        {
-            return true;
-        }
-    }
-#endif
-
     /* (2) decide mad buf heapId.
      * changing MCVP buffer heapId or cnt causes VNET reconfiguration */
-#if BVDC_P_SUPPORT_MCVP
     if(NULL!= hWindow->stCurResource.hMcvp)
     {
         bool bDoubleBufSize = false;
@@ -11718,19 +11589,14 @@ static bool BVDC_P_Window_DecideBufsCfgs_isr
         stCapBufRect.ulHeight = BVDC_P_MIN(stCapBufRect.ulHeight, ulMaxMadHeight);
         stCapBufRect.ulHeight >>= (pMinSrcFmt) ? (!bMinSrcNoOptimize) : (!bInterlace);
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         /* double buffer size for 3D format due to two buffers needed*/
         bDoubleBufSize =
-            (bSrcIs3d && BVDC_P_VNET_USED_MCVP_AT_WRITER(hWindow->stVnetMode)) ||
-            (bDispIs3d && BVDC_P_VNET_USED_MCVP_AT_READER(hWindow->stVnetMode));
-#endif
+            (bSrcIs3d && BVDC_P_VNET_USED_MVP_AT_WRITER(hWindow->stVnetMode)) ||
+            (bDispIs3d && BVDC_P_VNET_USED_MVP_AT_READER(hWindow->stVnetMode));
         bRecfgVnet |= BVDC_P_Window_DecideMcvpBufsCfgs_isr(hWindow, bApplyNewCfg, &stCapBufRect, bDoubleBufSize, eBitDepth, ulPictureIdx, bInterlace);
         if((!bApplyNewCfg) && (bRecfgVnet))
             return true;
     }
-#else
-    BSTD_UNUSED(ulPictureIdx);
-#endif
 
     return bRecfgVnet;
 }
@@ -11777,7 +11643,7 @@ void BVDC_P_Window_SetCadenceHandling_isr
         hWindow->stCadHndl.bHandleFldInv =
             (bSrcInterlaced &&
              hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced &&
-             !(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode)) &&
+             !(BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)) &&
              pMvdFieldData->bIgnoreCadenceMatch);
     }
     else
@@ -11786,7 +11652,7 @@ void BVDC_P_Window_SetCadenceHandling_isr
         hWindow->stCadHndl.bHandleFldInv =
             (bSrcInterlaced &&
              hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced &&
-             !(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode)) &&
+             !(BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)) &&
              ((ulSrcVertRate == 50 && ulDstVertRate == 60) ||
               (ulSrcVertRate == 60 && ulDstVertRate == 50)));
     }
@@ -11870,7 +11736,7 @@ void BVDC_P_Window_SetCadenceHandling_isr
          */
         if ((!hWindow->hCompositor->stCurInfo.pFmtInfo->bInterlaced)    ||
             (hWindow->bFrameCapture) ||
-            (BVDC_P_VNET_USED_MAD_AT_READER(hWindow->stVnetMode)))
+            (BVDC_P_MVP_USED_MAD_AT_READER(hWindow->stVnetMode, hWindow->stMvpMode)))
         {
             hWindow->stCadHndl.bForceAltCap = false;
             hWindow->stCadHndl.bReaderCadMatching = false;
@@ -12009,21 +11875,13 @@ void BVDC_P_Window_SetCapturePolarity_isr
 
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
     BDBG_OBJECT_ASSERT(hWindow->hCompositor, BVDC_CMP);
-#if BVDC_P_SUPPORT_MAD
-    if (BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
-    {
-        usMadVsyncDelay = BVDC_P_Mad_GetVsyncDelayNum_isr(
-            hWindow->stCurInfo.stMadSettings.eGameMode);
-    }
-#endif
-#if BVDC_P_SUPPORT_MCVP
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+
+    if(BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
     {
         usMadVsyncDelay = BVDC_P_Mcdi_GetVsyncDelayNum_isr(
             hWindow->stCurResource.hMcvp->hMcdi,
             hWindow->stCurInfo.stMadSettings.eGameMode);
     }
-#endif
 
     /* Predicting capture polarity is needed only if scaler is at writer side
      * Sync-locked path always uses interrupt polarity carried by picture to
@@ -12126,17 +11984,8 @@ static void BVDC_P_Window_UpdateCallback_isr
     }
 
     /* (1.2) deinterlace delay */
-#if BVDC_P_SUPPORT_MAD
-    if(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
-    {
-        usMadVsyncDelay = BVDC_P_Mad_GetVsyncDelayNum_isr(
-            hWindow->stCurInfo.stMadSettings.eGameMode);
-        uiNewVsyncDelay += usMadVsyncDelay;
-        ulAdjustCnt     += usMadVsyncDelay;
-    }
-#endif
-#if BVDC_P_SUPPORT_MCVP
-    if(BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
+
+    if(BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
     {
         usMadVsyncDelay = BVDC_P_Mcdi_GetVsyncDelayNum_isr(
             hWindow->stCurResource.hMcvp->hMcdi,
@@ -12144,11 +11993,8 @@ static void BVDC_P_Window_UpdateCallback_isr
         uiNewVsyncDelay += usMadVsyncDelay;
         ulAdjustCnt     += usMadVsyncDelay;
     }
-#endif
 
-#if (!BVDC_P_SUPPORT_MAD && !BVDC_P_SUPPORT_MCVP)
-    BSTD_UNUSED(usMadVsyncDelay);
-#endif
+
 
     /* total delay includes user offset minus VEC delay; this is for MPEG source trigger field swap logic; */
     hWindow->ulTotalBvnDelay = uiNewVsyncDelay + pCurInfo->uiVsyncDelayOffset - ulMpegVecDelay;
@@ -12271,7 +12117,6 @@ static void BVDC_P_Window_UpdateCallback_isr
             pCbMask->bGameModeDelay = BVDC_P_DIRTY;
         }
 
-#if BVDC_P_SUPPORT_VNET_CRC
         if(pCbSettings->stMask.bCrc) {
 #if BVDC_P_SUPPORT_STG /* SW7445-2544: don't callback CRC for ignore picture in NRT mode */
             if((BVDC_P_DISPLAY_USED_STG(hWindow->hCompositor->hDisplay->eMasterTg) &&
@@ -12283,7 +12128,6 @@ static void BVDC_P_Window_UpdateCallback_isr
 #endif
             pCbMask->bCrc = BVDC_P_DIRTY;
         }
-#endif
 
         if(BVDC_P_CB_IS_DIRTY_isr(pCbMask))
         {
@@ -12344,7 +12188,6 @@ static void BVDC_P_Window_UpdateCallback_isr
                 BDBG_MSG(("     %d", pCbData->bSyncLock));
             }
 
-#if BVDC_P_SUPPORT_VNET_CRC
             if(pCbMask->bCrc)
             {
                 pCbData->ulCrcLuma = hWindow->stCurResource.hVnetCrc->ulCrcLuma;
@@ -12352,7 +12195,6 @@ static void BVDC_P_Window_UpdateCallback_isr
                 BDBG_MSG(("Window[%d] callback CrcLuma 0x%08x, CrcChroma 0x%08x",
                           hWindow->eId, pCbData->ulCrcLuma, pCbData->ulCrcChroma));
             }
-#endif
             /* Callback application with the above data */
             pCurInfo->pfGenCallback(pCurInfo->pvGenCallbackParm1,
                 pCurInfo->iGenCallbackParm2, (void*)pCbData);
@@ -12390,19 +12232,10 @@ static BERR_Code BVDC_P_Window_SetWriterVnet_isr
     eVnetPatchMode = BVDC_P_VnetPatch_eNone;
     ulSrcMuxValue = BVDC_P_Source_PostMuxValue(hWindow->stCurInfo.hSource);
 
-#if (BVDC_P_SUPPORT_HIST)
-    if(BVDC_P_VNET_USED_HIST_AT_WRITER(*pVnetMode))
-    {
-        BVDC_P_Hist_SetVnet_isr(hWindow->stCurResource.hHist, ulSrcMuxValue, BVDC_P_VnetPatch_eFreeCh);
-    }
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
     if(BVDC_P_VNET_USED_VNETCRC_AT_WRITER(*pVnetMode))
     {
         BVDC_P_VnetCrc_SetVnet_isr(hWindow->stCurResource.hVnetCrc);
     }
-#endif
 
 #if (BVDC_P_SUPPORT_DNR)
     /* DNR is always upstream of ANR */
@@ -12423,27 +12256,24 @@ static BERR_Code BVDC_P_Window_SetWriterVnet_isr
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(*pVnetMode))
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC_AT_WRITER(*pVnetMode))
     {
-        BVDC_P_Mad_SetVnetAllocBuf_isr(hWindow->stCurResource.hMad32, ulSrcMuxValue, eVnetPatchMode,
-            hWindow->eMadPixelHeapId[0], hWindow->eMadQmHeapId[0], hWindow->usMadPixelBufferCnt[0]);
-        ulSrcMuxValue = BVDC_P_Mad_PostMuxValue(hWindow->stCurResource.hMad32);
+        BVDC_P_Vfc_SetVnet_isr(hWindow->stCurResource.hVfc, ulSrcMuxValue, eVnetPatchMode);
+        ulSrcMuxValue = BVDC_P_Vfc_PostMuxValue(hWindow->stCurResource.hVfc);
         eVnetPatchMode = BVDC_P_VnetPatch_eLpBack;
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
     /* note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-     * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-    if(BVDC_P_VNET_USED_MCVP_AT_WRITER(*pVnetMode))
+     * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+    if(BVDC_P_VNET_USED_MVP_AT_WRITER(*pVnetMode))
     {
         BVDC_P_Mcvp_SetVnetAllocBuf_isr(hWindow->stCurResource.hMcvp, ulSrcMuxValue, eVnetPatchMode,
             true);
         ulSrcMuxValue = BVDC_P_Mcvp_PostMuxValue(hWindow->stCurResource.hMcvp);
         eVnetPatchMode = BVDC_P_VnetPatch_eLpBack;
     }
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_WRITER(*pVnetMode) && pVnetMode->stBits.bTntdBeforeScl)
@@ -12527,27 +12357,24 @@ static BERR_Code BVDC_P_Window_SetReaderVnet_isr
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_VNET_USED_MAD_AT_READER(*pVnetMode))
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC_AT_READER(*pVnetMode))
     {
-        BVDC_P_Mad_SetVnetAllocBuf_isr(hWindow->stCurResource.hMad32, ulSrcMuxValue, eVnetPatchMode,
-            hWindow->eMadPixelHeapId[0], hWindow->eMadQmHeapId[0], hWindow->usMadPixelBufferCnt[0]);
-        ulSrcMuxValue = BVDC_P_Mad_PostMuxValue(hWindow->stCurResource.hMad32);
+        BVDC_P_Vfc_SetVnet_isr(hWindow->stCurResource.hVfc, ulSrcMuxValue, eVnetPatchMode);
+        ulSrcMuxValue = BVDC_P_Vfc_PostMuxValue(hWindow->stCurResource.hVfc);
         eVnetPatchMode = BVDC_P_VnetPatch_eLpBack;
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
     /* note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-     * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-    if(BVDC_P_VNET_USED_MCVP_AT_READER(*pVnetMode))
+     * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+    if(BVDC_P_VNET_USED_MVP_AT_READER(*pVnetMode))
     {
         BVDC_P_Mcvp_SetVnetAllocBuf_isr(hWindow->stCurResource.hMcvp, ulSrcMuxValue, eVnetPatchMode,
             true);
         ulSrcMuxValue = BVDC_P_Mcvp_PostMuxValue(hWindow->stCurResource.hMcvp);
         eVnetPatchMode = BVDC_P_VnetPatch_eLpBack;
     }
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_READER(*pVnetMode) && pVnetMode->stBits.bTntdBeforeScl)
@@ -12580,20 +12407,10 @@ static BERR_Code BVDC_P_Window_SetReaderVnet_isr
     BVDC_P_SubRul_SetVnet_isr(&(hWindow->stWinOutVnet),
         ulSrcMuxValue, eVnetPatchMode);
 
-#if (BVDC_P_SUPPORT_HIST)
-    if(BVDC_P_VNET_USED_HIST_AT_READER(*pVnetMode))
-    {
-        /*eVnetPatchMode is decided above with WinOut */
-        BVDC_P_Hist_SetVnet_isr(hWindow->stCurResource.hHist, ulSrcMuxValue, eVnetPatchMode);
-    }
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
     if(BVDC_P_VNET_USED_VNETCRC_AT_READER(*pVnetMode))
     {
         BVDC_P_VnetCrc_SetVnet_isr(hWindow->stCurResource.hVnetCrc);
     }
-#endif
 
     return BERR_SUCCESS;
 }
@@ -12615,15 +12432,8 @@ static void BVDC_P_Window_UnsetWriterVnet_isr
     if(BVDC_P_VNET_IS_INVALID(*pVnetMode))
         return;
 
-#if (BVDC_P_SUPPORT_VNET_CRC)
     if(BVDC_P_VNET_USED_VNETCRC_AT_WRITER(*pVnetMode))
         BVDC_P_VnetCrc_UnsetVnet_isr(hWindow->stCurResource.hVnetCrc);
-#endif
-
-#if (BVDC_P_SUPPORT_HIST)
-    if(BVDC_P_VNET_USED_HIST_AT_WRITER(*pVnetMode))
-        BVDC_P_Hist_UnsetVnet_isr(hWindow->stCurResource.hHist);
-#endif
 
 #if (BVDC_P_SUPPORT_DNR)
     if(BVDC_P_VNET_USED_DNR_AT_WRITER(*pVnetMode))
@@ -12635,19 +12445,16 @@ static void BVDC_P_Window_UnsetWriterVnet_isr
         BVDC_P_Xsrc_UnsetVnet_isr(hWindow->stCurResource.hXsrc);
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-    /* this will also release mad bufs */
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(*pVnetMode))
-        BVDC_P_Mad_UnsetVnetFreeBuf_isr(hWindow->stCurResource.hMad32);
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC_AT_WRITER(*pVnetMode))
+        BVDC_P_Vfc_UnsetVnet_isr(hWindow->stCurResource.hVfc);
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
     /* this will also release anr/mad bufs.
      * note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-     * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-    if(BVDC_P_VNET_USED_MCVP_AT_WRITER(*pVnetMode))
+     * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+    if(BVDC_P_VNET_USED_MVP_AT_WRITER(*pVnetMode))
         BVDC_P_Mcvp_UnsetVnetFreeBuf_isr(hWindow->stCurResource.hMcvp);
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_WRITER(*pVnetMode) && pVnetMode->stBits.bTntdBeforeScl)
@@ -12671,7 +12478,6 @@ static void BVDC_P_Window_UnsetWriterVnet_isr
         BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] free %d cap buffers (%s)", hWindow->eId, ulCount,
             BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hWindow->eBufferHeapIdRequest)));
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(((hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate) &&
              (BVDC_P_CLEAN == hWindow->stCurInfo.stDirty.stBits.bBufAllocMode)) ||
            ((hWindow->ePrevBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)  &&
@@ -12688,7 +12494,6 @@ static void BVDC_P_Window_UnsetWriterVnet_isr
             hWindow->stCurInfo.stDirty.stBits.bBufAllocMode = BVDC_P_CLEAN;
         }
         else
-#endif
         {
             BVDC_P_Buffer_ReleasePictureNodes_isr(hWindow->hBuffer,
                 hWindow->apHeapNode, NULL, ulCount, hWindow->ulBufDelay);
@@ -12733,17 +12538,15 @@ static void BVDC_P_Window_UnsetReaderVnet_isr
         BVDC_P_Xsrc_UnsetVnet_isr(hWindow->stCurResource.hXsrc);
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_VNET_USED_MAD_AT_READER(*pVnetMode))
-        BVDC_P_Mad_UnsetVnetFreeBuf_isr(hWindow->stCurResource.hMad32);
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC_AT_READER(*pVnetMode))
+        BVDC_P_Vfc_UnsetVnet_isr(hWindow->stCurResource.hVfc);
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
     /* note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-     * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-    if(BVDC_P_VNET_USED_MCVP_AT_READER(*pVnetMode))
+     * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+    if(BVDC_P_VNET_USED_MVP_AT_READER(*pVnetMode))
         BVDC_P_Mcvp_UnsetVnetFreeBuf_isr(hWindow->stCurResource.hMcvp);
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_READER(*pVnetMode) && pVnetMode->stBits.bTntdBeforeScl)
@@ -12758,15 +12561,8 @@ static void BVDC_P_Window_UnsetReaderVnet_isr
         BVDC_P_Tntd_UnsetVnet_isr(hWindow->stCurResource.hTntd);
 #endif
 
-#if (BVDC_P_SUPPORT_HIST)
-    if(BVDC_P_VNET_USED_HIST_AT_READER(*pVnetMode))
-        BVDC_P_Hist_UnsetVnet_isr(hWindow->stCurResource.hHist);
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
     if(BVDC_P_VNET_USED_VNETCRC_AT_READER(*pVnetMode))
         BVDC_P_VnetCrc_UnsetVnet_isr(hWindow->stCurResource.hVnetCrc);
-#endif
 
     /* unset vnet for compositor's win src */
     BVDC_P_SubRul_UnsetVnet_isr(&(hWindow->stWinOutVnet));
@@ -12887,56 +12683,6 @@ void BVDC_P_Window_WriterShutDown_isr
 
 /***************************************************************************
  * {private}
- *
- * This function save histogram data to picture node and compensate for mad
- * delay as well.
- */
-static void BVDC_P_Window_UpdateHistInfo_isr
-    ( BVDC_Window_Handle               hWindow,
-      BVDC_P_PictureNode              *pPicture )
-{
-    BDBG_ENTER(BVDC_P_Window_UpdateHistInfo_isr);
-    BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
-
-    pPicture->stCurHistData = hWindow->stCurResource.hHist->stHistData;
-    pPicture->ulCurHistSize = hWindow->stCurResource.hHist->ulHistSize;
-
-    BDBG_LEAVE(BVDC_P_Window_UpdateHistInfo_isr);
-    return;
-}
-
-static void BVDC_P_Window_DumpBufHeapConfigure_isr
-    ( BVDC_Window_Handle               hWindow,
-      bool                             bLeftBuffer )
-{
-#if (BDBG_DEBUG_BUILD)
-    BDBG_ERR(("Win[%d] Not enough memory for %s! Configuration:",
-        hWindow->eId, bLeftBuffer ? "CAP" : "CAP_R"));
-    BDBG_ERR(("Win[%d] stVnetMode: 0x%x, ulBufCntNeeded: %d, ulBufCntAllocated: %d",
-        hWindow->eId, *(unsigned int *)&hWindow->stVnetMode, hWindow->ulBufCntNeeded,
-        hWindow->ulBufCntAllocated));
-    BDBG_ERR(("Win[%d] Src: %s, Disp: %s", hWindow->eId,
-        hWindow->stCurInfo.hSource->stCurInfo.pFmtInfo->pchFormatStr,
-        hWindow->hCompositor->stCurInfo.pFmtInfo->pchFormatStr));
-    BDBG_ERR(("Win[%d] uiVsyncDelayOffset: %d, uiCaptureBufCnt: %d", hWindow->eId,
-        hWindow->stCurInfo.uiVsyncDelayOffset,
-        hWindow->stCurInfo.uiCaptureBufCnt));
-    BDBG_ERR(("Win[%d] bDoPulldown: %d, bFrameCapture: %d, bSyncLockSrc: %d",
-        hWindow->eId, hWindow->bDoPulldown,
-        hWindow->bFrameCapture, hWindow->bSyncLockSrc));
-    BDBG_ERR(("Win[%d] SrcVertRate: %d, DstVertRate: %d", hWindow->eId,
-        hWindow->stCurInfo.hSource->ulVertFreq,
-        hWindow->hCompositor->stCurInfo.pFmtInfo->ulVertFreq));
-#else
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(bLeftBuffer);
-#endif
-
-    return;
-}
-
-/***************************************************************************
- * {private}
  * This function does the following as needed
  *    (1) change the reader state according to writer state.
  *    (2) set flush data flag for mute color buffer
@@ -12974,14 +12720,15 @@ static void BVDC_P_Window_AdjustRdState_isr
             else
             {
                 /* flush mute color buffer */
-                if((NULL !=pbFlushPicQueue) && (BVDC_P_VNET_USED_MCVP(hWindow->stVnetMode)))
+                if((NULL !=pbFlushPicQueue) && (BVDC_P_VNET_USED_MVP(hWindow->stVnetMode)))
                     *pbFlushPicQueue = true;
             }
         }
 #if (BVDC_P_SHOW_VNET_MSG==1)
         else if((false == pPicture->stFlags.bMute) &&
                  (BVDC_P_State_eActive != hWindow->stCurInfo.eWriterState) &&
-                 (false == hWindow->stCurInfo.stDirty.stBits.bSrcPending))
+                 (false == hWindow->stCurInfo.stDirty.stBits.bSrcPending) &&
+                 (false == hWindow->stCurInfo.stDirty.stBits.bBufferPending))
         {
             BDBG_MODULE_MSG(BVDC_WIN_VNET,("Win[%d] reader see pic un-muted before writeState to eActive", hWindow->eId));
         }
@@ -13046,7 +12793,7 @@ void BVDC_P_Window_Writer_isr
            (pSrcDirty->stBits.bInputFormat))
         {
             BDBG_MSG(("Source[%d] is pending mode!", hWindow->stCurInfo.hSource->eId));
-            BVDC_P_Window_SetReconfiguring_isr(hWindow, true, false);
+            BVDC_P_Window_SetReconfiguring_isr(hWindow, true, false, false);
         }
 
         if((pSrcDirty->stBits.bResume) &&
@@ -13054,7 +12801,16 @@ void BVDC_P_Window_Writer_isr
         {
             pCurDirty->stBits.bSrcPending = BVDC_P_CLEAN;
             BDBG_MSG(("Source[%d] is now resumed!", hWindow->stCurInfo.hSource->eId));
-            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
+        }
+
+        if(pCurDirty->stBits.bBufferPending)
+        {
+            /* Clear bBufferPending so we can re-check if there is enough
+             * buffers for source change */
+            pCurDirty->stBits.bBufferPending = BVDC_P_CLEAN;
+            BDBG_MSG(("Source[%d] is now resumed!", hWindow->stCurInfo.hSource->eId));
+            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
         }
 
 #if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
@@ -13070,7 +12826,6 @@ void BVDC_P_Window_Writer_isr
         }
 #endif
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(pSrcDirty->stBits.bOrientation ||
         ((pSrcInfo->eOrientation == BFMT_Orientation_e2D) &&
            hWindow->stCurInfo.hSource->stCurInfo.bOrientationOverride))
@@ -13087,12 +12842,10 @@ void BVDC_P_Window_Writer_isr
             pCurDirty->stBits.bReDetVnet = BVDC_P_DIRTY;
             pCurDirty->stBits.bRecAdjust = BVDC_P_DIRTY;
         }
-#endif
     }
 
     if(BVDC_P_IS_DIRTY(pCurDirty))
     {
-
         /* NOTE: Most of these does not require additional actions, but they do
          * needed to be cleaned.  Otherwise hWindow->hAppliedDoneEvent won't
          * be set and resulted in timeout.  Be aware that these dirty are still
@@ -13111,10 +12864,6 @@ void BVDC_P_Window_Writer_isr
         /* defer MAD changes until MAD is configured */
         if(pCurDirty->stBits.bDeinterlace)
         {
-            if(hWindow->stCurResource.hMad32) /* if have MAD */
-            {
-                hWindow->stCurResource.hMad32->bUsrChanges = true;
-            }
             pCurDirty->stBits.bDeinterlace = BVDC_P_CLEAN;
         }
 
@@ -13163,12 +12912,45 @@ void BVDC_P_Window_Writer_isr
                 hWindow->ulDropCntNonIgnoredPics += pMvdFieldData && !pMvdFieldData->bIgnorePicture;
                 return;
             }
+            else if(pCurDirty->stBits.bBufferPending)
+            {
+                pCurDirty->stBits.bReConfigVnet = BVDC_P_CLEAN;
+                return;
+            }
             else
             {
                 bool bRfcgMcvp = false;
+                bool bNotEnoughMcvpBuffers;
+
+                /* If there is not enough memory, wait for user change or source
+                 * change to start new vnet */
+                if(pCurDirty->stBits.bBufferPending)
+                {
+                    return;
+                }
+
                 /* start new vnet right now */
-                BVDC_P_Window_DecideVnetMode_isr(hWindow, pMvdFieldData, true, &bRfcgMcvp, ulPictureIdx);
+                BVDC_P_Window_DecideVnetMode_isr(hWindow, pMvdFieldData, true,
+                    &bRfcgMcvp, false, ulPictureIdx);
                 BVDC_P_Window_DecideBufsCfgs_isr(hWindow, pMvdFieldData, pXvdFieldData, true, ulPictureIdx);
+
+                BVDC_P_Window_CheckBuffers_isr(hWindow, ulPictureIdx,
+                    &hWindow->bNotEnoughCapBuf, &bNotEnoughMcvpBuffers);
+
+                if(bNotEnoughMcvpBuffers)
+                {
+                    /* Reset heapId */
+                    hWindow->eMadPixelHeapId[ulPictureIdx] = BVDC_P_BufferHeapId_eUnknown;
+                    hWindow->eMadQmHeapId[ulPictureIdx] = BVDC_P_BufferHeapId_eUnknown;
+
+                    /* Bypass mcvp */
+                    BDBG_ERR(("Win[%d] force bypass MCVP because there is not enough buffers",
+                        hWindow->eId));
+                    BVDC_P_Window_DecideVnetMode_isr(hWindow, pMvdFieldData, true,
+                        &bRfcgMcvp, true, ulPictureIdx);
+                }
+
+
                 if(hWindow->stCurInfo.hSource->ulMosaicFirstUnmuteRectIndex == ulPictureIdx)
                     BVDC_P_Window_SetCadenceHandling_isr(hWindow, pMvdFieldData, false, true, true);
 
@@ -13207,7 +12989,8 @@ void BVDC_P_Window_Writer_isr
                 bool bRfcgMcvp = false;
 
                 /* check for vnetMode change */
-                bRfcgVnet = BVDC_P_Window_DecideVnetMode_isr(hWindow, pMvdFieldData, false, &bRfcgMcvp, ulPictureIdx);
+                bRfcgVnet = BVDC_P_Window_DecideVnetMode_isr(hWindow,
+                    pMvdFieldData, false, &bRfcgMcvp, false, ulPictureIdx);
 
                 /* if vnetMode does not change, futher check for mad/anr/cap buf heapId changes */
                 if(!bRfcgVnet)
@@ -13224,7 +13007,7 @@ void BVDC_P_Window_Writer_isr
                 if(bRfcgVnet)
                 {
                     /* this sets bShutDown to true unless vnet is already inactive */
-                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true);
+                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, true, false);
                 }
             }
 
@@ -13258,9 +13041,8 @@ void BVDC_P_Window_Writer_isr
         /* this vsync. Therefore no fragmentation are generated             */
         /* ---------------------------------------------------------------- */
         if(pCurDirty->stBits.bBufAllocMode && !pCurDirty->stBits.bReConfigVnet &&
-           !pCurDirty->stBits.bSrcPending)
+           !pCurDirty->stBits.bSrcPending && !pCurDirty->stBits.bBufferPending)
         {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             if((hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate) &&
                (hWindow->ePrevBufAllocMode == BVDC_P_BufHeapAllocMode_eLeftOnly) &&
                BVDC_P_VNET_USED_CAPTURE(hWindow->stVnetMode))
@@ -13278,12 +13060,15 @@ void BVDC_P_Window_Writer_isr
                 /* Not enough memory, dump out configuration */
                 if(err == BERR_OUT_OF_DEVICE_MEMORY)
                 {
-                    BVDC_P_Window_DumpBufHeapConfigure_isr(hWindow, false);
+                    BVDC_P_Window_DumpCapBufHeapConfigure_isr(hWindow, false);
                     BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
-                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false);
+                    hWindow->bNotEnoughCapBuf = true;
+                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false, true);
+                    return;
                 }
                 else
                 {
+                    hWindow->bNotEnoughCapBuf = false;
                     BVDC_P_Buffer_SetRightBufferPictureNodes_isr(hWindow->hBuffer,
                         hWindow->apHeapNode_R, hWindow->ulBufCntAllocated, true);
                 }
@@ -13298,13 +13083,13 @@ void BVDC_P_Window_Writer_isr
                 BVDC_P_BufferHeap_FreeBuffers_isr(hWindow->hCapHeap,
                     hWindow->apHeapNode_R, hWindow->ulBufCntAllocated, false);
             }
-#endif
 
             pCurDirty->stBits.bBufAllocMode = BVDC_P_CLEAN;
         }
 
         if(pCurDirty->stBits.bReallocBuffers &&
-           !pCurDirty->stBits.bReConfigVnet && !pCurDirty->stBits.bSrcPending)
+           !pCurDirty->stBits.bReConfigVnet && !pCurDirty->stBits.bSrcPending &&
+           !pCurDirty->stBits.bBufferPending)
         {
             uint32_t  ulCount;
 
@@ -13322,21 +13107,16 @@ void BVDC_P_Window_Writer_isr
                 /* Not enough memory, dump out configuration */
                 if(err == BERR_OUT_OF_DEVICE_MEMORY)
                 {
-                    BVDC_P_Window_DumpBufHeapConfigure_isr(hWindow, true);
+                    BVDC_P_Window_DumpCapBufHeapConfigure_isr(hWindow, true);
 
                     BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
-                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false);
-                    hWindow->ulBufCntNeeded = hWindow->ulBufCntAllocated;
-
-                    /* In case there is no buffer allocated, just return.
-                     * No need to call SetInfo for various blocks */
-                    if(BVDC_P_VNET_USED_CAPTURE(hWindow->stVnetMode) &&
-                       !hWindow->ulBufCntAllocated)
-                        return;
+                    hWindow->bNotEnoughCapBuf = true;
+                    BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false, true);
+                    return;
                 }
                 else
                 {
-#if (BVDC_P_SUPPORT_3D_VIDEO)
+                    hWindow->bNotEnoughCapBuf = false;
                     if(hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)
                     {
                         BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] alloc %d cap right buffers (req %s, prefer %s)",
@@ -13350,14 +13130,17 @@ void BVDC_P_Window_Writer_isr
                         /* Not enough memory, dump out configuration */
                         if(err == BERR_OUT_OF_DEVICE_MEMORY)
                         {
-                            BVDC_P_Window_DumpBufHeapConfigure_isr(hWindow, false);
+                            BVDC_P_Window_DumpCapBufHeapConfigure_isr(hWindow, false);
 
                             BVDC_P_PRINT_BUF_DEBUG_INSTRUCTION();
-                            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false);
+                            hWindow->bNotEnoughCapBuf = true;
+                            BVDC_P_Window_SetReconfiguring_isr(hWindow, false, false, true);
+                            return;
                         }
                         else
                         {
                             hWindow->stCurInfo.stDirty.stBits.bBufAllocMode = BVDC_P_CLEAN;
+                            hWindow->bNotEnoughCapBuf = false;
 
                             BVDC_P_Buffer_AddPictureNodes_isr(hWindow->hBuffer, hWindow->apHeapNode,
                                 hWindow->apHeapNode_R, ulCount,
@@ -13365,7 +13148,6 @@ void BVDC_P_Window_Writer_isr
                         }
                     }
                     else
-#endif
                     {
                         BVDC_P_Buffer_AddPictureNodes_isr(hWindow->hBuffer, hWindow->apHeapNode,
                             NULL, ulCount,
@@ -13383,7 +13165,6 @@ void BVDC_P_Window_Writer_isr
                 BDBG_MODULE_MSG(BVDC_WIN_BUF, ("Win[%d] free %d cap buffers (%s)", hWindow->eId, ulCount,
                     BVDC_P_BUFFERHEAP_GET_HEAP_ID_NAME(hWindow->eBufferHeapIdRequest)));
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
                 if(((hWindow->eBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate) &&
                      (BVDC_P_CLEAN == hWindow->stCurInfo.stDirty.stBits.bBufAllocMode)) ||
                    ((hWindow->ePrevBufAllocMode == BVDC_P_BufHeapAllocMode_eLRSeparate)  &&
@@ -13402,7 +13183,6 @@ void BVDC_P_Window_Writer_isr
                     hWindow->stCurInfo.stDirty.stBits.bBufAllocMode = BVDC_P_CLEAN;
                 }
                 else
-#endif
                 {
                 BVDC_P_Buffer_ReleasePictureNodes_isr(hWindow->hBuffer,
                     hWindow->apHeapNode, NULL,
@@ -13449,13 +13229,6 @@ void BVDC_P_Window_Writer_isr
         bVideoDetect = true;
     }
 
-    if(BVDC_P_VNET_USED_HIST_AT_WRITER(hWindow->stVnetMode))
-    {
-        /* Sample histogram data and store to previous picture node */
-        BVDC_P_Hist_UpdateHistData_isr(hWindow->stCurResource.hHist);
-        BVDC_P_Window_UpdateHistInfo_isr(hWindow, hWindow->pCurWriterNode);
-    }
-
     /* Get next buffer node */
     /* MosaicMode: don't advance multi-buffer node for the chained mosaic rects; */
     /* Done advance writer node when in repeat mute mode */
@@ -13471,18 +13244,11 @@ void BVDC_P_Window_Writer_isr
         /* we read after RUL-done, and hWindow->pCurWriterNode is pointing to the buffer MAD is writing */
         if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode)
         {
-#if (BVDC_P_SUPPORT_MAD)
-            if(BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
-            {
-                BVDC_P_Mad_ReadOutPhase_isr(hWindow->stCurResource.hMad32, hWindow->pCurWriterNode);
-            }
-#endif
-#if (BVDC_P_SUPPORT_MCVP)
-            if(BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+
+            if(BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
             {
                 BVDC_P_Mcdi_ReadOutPhase_isr(hWindow->stCurResource.hMcvp->hMcdi, hWindow->pCurWriterNode);
             }
-#endif
         }
 
         /*  The multi-buffer mechanism will operate in MTG mode when
@@ -13496,14 +13262,14 @@ void BVDC_P_Window_Writer_isr
             If only items 1 and 2 above are true and the deinterlacer is not active, the bPictureRepeat flag from
             the DM will be used to select which pictures will be dropped by the multi-buffer mechanism. */
 
-       if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode && BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
+       if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode && BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
         {
             eMtgMode = BVDC_P_Buffer_MtgMode_eMadPhase;
         }
         else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
                  (hWindow->hBuffer->pCurWriterBuf->bChannelChange ||
                   hWindow->hBuffer->pCurWriterBuf->stFlags.bPictureRepeatFlag) &&
-                 !BVDC_P_VNET_USED_MAD(hWindow->stVnetMode))
+                 !BVDC_P_MVP_USED_MAD(hWindow->stMvpMode))
         {
                 eMtgMode = BVDC_P_Buffer_MtgMode_eXdmRepeat;
         }
@@ -13522,7 +13288,7 @@ void BVDC_P_Window_Writer_isr
                 BDBG_MODULE_MSG(BVDC_MTGW,("w win%d (n%d p%d)", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
             {
                 BDBG_MODULE_MSG(BVDC_MTGW,("w win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
@@ -13612,7 +13378,7 @@ void BVDC_P_Window_Writer_isr
     {
         /* restore dropped non-ignore pictures while shutdown/reconfig in NRT mode */
         if((hWindow->ulDropCntNonIgnoredPics) &&
-            (!BVDC_P_VNET_USED_MAD(hWindow->stVnetMode)))
+            (!BVDC_P_MVP_USED_MAD(hWindow->stMvpMode)))
         {
             /* assume non-ignore pic always needs to advance STC */
             pPicture->bIgnorePicture = false;
@@ -13660,41 +13426,32 @@ void BVDC_P_Window_Writer_isr
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC(hWindow->stVnetMode))
     {
-        if(bVideoDetect)
-        {
-            BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
-            BVDC_P_Mad_SetInfo_isr(hWindow->stCurResource.hMad32, hWindow, pPicture);
-            BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
+        if(BVDC_P_VNET_USED_VFC_AT_WRITER(hWindow->stVnetMode)) {
+            BVDC_P_Vfc_SetInfo_isr(hWindow->stCurResource.hVfc, hWindow, pPicture);
         }
-        else
-        {
-            /* TODO: why we could see NULL hWindow->hMad32 here? */
-            if(hWindow->stCurResource.hMad32)
-                BVDC_P_Mad_SetEnable_isr(hWindow->stCurResource.hMad32, false);
-        }
+        /* shared eBldWin ownership for source block - XSRC */
+        BVDC_P_Vfc_SetRulBuildWinId_isr(hWindow->stCurResource.hVfc, hWindow->eId);
     }
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
-    if(BVDC_P_VNET_USED_MCVP_AT_WRITER(pPicture->stVnetMode))
+    if(BVDC_P_VNET_USED_MVP_AT_WRITER(pPicture->stVnetMode))
     {
         BVDC_P_MCVP_SetInfo_isr(hWindow->stCurResource.hMcvp,hWindow, pPicture);
-    }
-    if(BVDC_P_VNET_USED_MAD_AT_WRITER(pPicture->stVnetMode))
-    {
-        if(bVideoDetect)
+        if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
         {
-            BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
-            /* this is for downstream submodules like scl and fgt */
-            pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
-            /* adjust mad delay for non-mosaic and mosaic both*/
-            BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
+            if(bVideoDetect)
+            {
+                BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
+                /* this is for downstream submodules like scl and fgt */
+                pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
+                /* adjust mad delay for non-mosaic and mosaic both*/
+                BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
+            }
         }
     }
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_WRITER(hWindow->stVnetMode) && hWindow->stVnetMode.stBits.bTntdBeforeScl)
@@ -14037,7 +13794,7 @@ void BVDC_P_Window_Reader_isr
                 }
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
             {
                 BDBG_MODULE_MSG(BVDC_MTGR,("read win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
                 hWindow->iPhaseCntr = 0;
@@ -14050,7 +13807,7 @@ void BVDC_P_Window_Reader_isr
                 BDBG_MODULE_MSG(BVDC_MTGR__,("read win%d (n%d p%d)", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
             else if (pCurInfo->hSource->bMtgSrc && !hWindow->stCurInfo.bMosaicMode &&
-                     BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+                     BVDC_P_MVP_USED_MAD_AT_WRITER(hWindow->stVnetMode, hWindow->stMvpMode))
             {
                 BDBG_MODULE_MSG(BVDC_MTGR__,("read win%d (n%d p%d), no lock", hWindow->eId, pPicture->ulBufferId, pPicture->ulMadOutPhase));
             }
@@ -14441,30 +14198,26 @@ void BVDC_P_Window_Reader_isr
     }
 #endif
 
+#if (BVDC_P_SUPPORT_VFC)
+    if(BVDC_P_VNET_USED_VFC_AT_READER(hWindow->stVnetMode))
+    {
+        BVDC_P_Vfc_SetInfo_isr(hWindow->stCurResource.hVfc, hWindow, pPicture);
+    }
+#endif
+
     /* NOTE: we should config MAD32 before SCL since the picture node's source
      * polarity could be modified by mad setinfo_isr; */
-#if (BVDC_P_SUPPORT_MAD)
-    if(BVDC_P_VNET_USED_MAD_AT_READER(hWindow->stVnetMode))
-    {
-        BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
-        BVDC_P_Mad_SetInfo_isr(hWindow->stCurResource.hMad32, hWindow, pPicture);
-        BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
-    }
-#endif
-
-#if (BVDC_P_SUPPORT_MCVP)
-    if(BVDC_P_VNET_USED_MCVP_AT_READER(pPicture->stVnetMode))
+    if(BVDC_P_VNET_USED_MVP_AT_READER(pPicture->stVnetMode))
     {
         BVDC_P_MCVP_SetInfo_isr(hWindow->stCurResource.hMcvp, hWindow, pPicture);
-    }
 
-    if(BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode))
-    {
-        BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
-        pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
-        BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
+        if(BVDC_P_MVP_USED_MAD(pPicture->stMvpMode))
+        {
+            BVDC_P_Window_AdjustPicRepeatBit_isr(hWindow, pPicture);
+            pPicture->eSrcPolarity = BAVC_Polarity_eFrame;
+            BVDC_P_Window_AdjustForMadDelay_isr(hWindow, pPicture);
+        }
     }
-#endif
 
 #if (BVDC_P_SUPPORT_TNTD)
     if(BVDC_P_VNET_USED_TNTD_AT_READER(hWindow->stVnetMode) && hWindow->stVnetMode.stBits.bTntdBeforeScl)
@@ -14485,13 +14238,13 @@ void BVDC_P_Window_Reader_isr
     }
 #endif
 
-    if(BVDC_P_VNET_USED_MAD_AT_READER(pPicture->stVnetMode))
+    if(BVDC_P_MVP_USED_MAD_AT_READER(pPicture->stVnetMode, pPicture->stMvpMode))
     {
         /* restore original source polarity in case the next time sync slip */
         pPicture->eSrcPolarity = pPicture->PicComRulInfo.eSrcOrigPolarity;
     }
 
-#if(BVDC_P_SUPPORT_HIST && BVDC_P_SUPPORT_HIST_VER == BVDC_P_SUPPORT_HIST_VER_1)
+#if(BVDC_P_SUPPORT_HIST)
     if(hWindow->eId == BVDC_P_WindowId_eComp0_V0)
         BVDC_P_Histo_UpdateHistoData_isr(hWindow->stCurResource.hPep);
 #endif
@@ -14661,7 +14414,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         if((BVDC_P_State_eActive == eReaderState) &&
            ((hCompositor->hDisplay->bAlignAdjusting && !hCompositor->hDisplay->stCurInfo.stAlignCfg.bKeepBvnConnected)||
 
-            (0==hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ulAddress) || /* no valid sur */
+            (0==hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress) || /* no valid sur */
 
             (!hWindow->stCurInfo.bVisible)))  /* muted by user */
         {
@@ -14681,7 +14434,7 @@ static bool BVDC_P_Window_BuildReaderRul_isr
             BVDC_P_WIN_WRITE_TO_RUL(CMP_0_V0_SURFACE_CTRL, pList->pulCurrent);
         }
 
-        if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ulAddress)
+        if (hWindow->stCurInfo.hSource->hGfxFeeder->stGfxSurface.stCurSurInfo.ullAddress)
         {
             BVDC_P_GfxFeeder_BuildRul_isr(hWindow->stCurInfo.hSource->hGfxFeeder,
                 &(hWindow->stCurInfo.hSource->stCurInfo), pList, eNextFieldId, eReaderState);
@@ -14760,20 +14513,11 @@ static bool BVDC_P_Window_BuildReaderRul_isr
             }
         }
 
-#if (BVDC_P_SUPPORT_HIST)
-        if(BVDC_P_VNET_USED_HIST_AT_READER(hWindow->stVnetMode))
-        {
-            BVDC_P_Hist_BuildRul_isr(hWindow->stCurResource.hHist, pList, eReaderState, pPicComRulInfo);
-        }
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
         if(BVDC_P_VNET_USED_VNETCRC_AT_READER(hWindow->stVnetMode))
         {
             BVDC_P_VnetCrc_BuildRul_isr(&(hWindow->stCurResource.hVnetCrc), pList, eReaderState,
                 pPicComRulInfo, hWindow->stCurInfo.stCbSettings.stMask.bCrc);
         }
-#endif
 
         BVDC_P_Window_WinOutBuildRul_isr(hWindow, pPicture, pList, eReaderState);
         if (bBuildCanvasCtrl)
@@ -14802,10 +14546,9 @@ static bool BVDC_P_Window_BuildReaderRul_isr
         }
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
         /* note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-         * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-        if(BVDC_P_VNET_USED_MCVP_AT_READER(hWindow->stVnetMode))
+         * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+        if(BVDC_P_VNET_USED_MVP_AT_READER(hWindow->stVnetMode))
         {
 #if BVDC_P_STG_RUL_DELAY_WORKAROUND
             bool bMadr;
@@ -14814,12 +14557,12 @@ static bool BVDC_P_Window_BuildReaderRul_isr
 #endif
             BVDC_P_Mcvp_BuildRul_isr(hWindow->stCurResource.hMcvp, pList, eReaderState, hWindow, pPicture);
         }
-#endif
 
-#if (BVDC_P_SUPPORT_MAD)
-        if(BVDC_P_VNET_USED_MAD_AT_READER(hWindow->stVnetMode))
+#if (BVDC_P_SUPPORT_VFC)
+        if(BVDC_P_VNET_USED_VFC_AT_READER(hWindow->stVnetMode))
         {
-            BVDC_P_Mad_BuildRul_isr(hWindow->stCurResource.hMad32, pList, eReaderState, pPicComRulInfo);
+            BVDC_P_Vfc_BuildRul_isr(hWindow->stCurResource.hVfc, pList, eReaderState, pPicComRulInfo);
+
         }
 #endif
 
@@ -14945,19 +14688,17 @@ static void BVDC_P_Window_BuildWriterRul_isr
         }
 #endif
 
-#if (BVDC_P_SUPPORT_MCVP)
         /* note: with 7420, BVDC_P_SUPPORT_HSCL/ANR/MAD is 0, and
-         * BVDC_P_VNET_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
-        if(BVDC_P_VNET_USED_MCVP_AT_WRITER(hWindow->stVnetMode))
+                * BVDC_P_MVP_USED_HSCL/ANR/MAD(hWindow->stVnetMode) is false too */
+        if(BVDC_P_VNET_USED_MVP_AT_WRITER(hWindow->stVnetMode))
         {
             BVDC_P_Mcvp_BuildRul_isr(hWindow->stCurResource.hMcvp, pList, eWriterState, hWindow, pPicture);
         }
-#endif
 
-#if (BVDC_P_SUPPORT_MAD)
-        if(BVDC_P_VNET_USED_MAD_AT_WRITER(hWindow->stVnetMode))
+#if (BVDC_P_SUPPORT_VFC)
+        if(BVDC_P_VNET_USED_VFC_AT_WRITER(hWindow->stVnetMode))
         {
-            BVDC_P_Mad_BuildRul_isr(hWindow->stCurResource.hMad32, pList, eWriterState, pPicComRulInfo);
+            BVDC_P_Vfc_BuildRul_isr(hWindow->stCurResource.hVfc, pList, eWriterState, pPicComRulInfo);
         }
 #endif
 
@@ -14986,20 +14727,11 @@ static void BVDC_P_Window_BuildWriterRul_isr
         }
 #endif
 
-#if (BVDC_P_SUPPORT_HIST)
-        if(BVDC_P_VNET_USED_HIST_AT_WRITER(hWindow->stVnetMode))
-        {
-            BVDC_P_Hist_BuildRul_isr(hWindow->stCurResource.hHist, pList, eWriterState, pPicComRulInfo);
-        }
-#endif
-
-#if (BVDC_P_SUPPORT_VNET_CRC)
         if(BVDC_P_VNET_USED_VNETCRC_AT_WRITER(hWindow->stVnetMode))
         {
             BVDC_P_VnetCrc_BuildRul_isr(&(hWindow->stCurResource.hVnetCrc), pList, eWriterState,
                 pPicComRulInfo, hWindow->stCurInfo.stCbSettings.stMask.bCrc);
         }
-#endif
 
         if(BVDC_P_SRC_IS_MPEG(hWindow->stCurInfo.hSource->eId))
         {
@@ -15104,12 +14836,9 @@ BERR_Code BVDC_P_Window_CapturePicture_isr
     BVDC_P_BufferHeapNode  *pHeapNode;
     BVDC_P_BufferHeap_Info *pHeapInfo;
     uint32_t ulBlockOffset = 0;
-
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     BVDC_P_BufferHeapNode  *pHeapNode_R;
     BVDC_P_BufferHeap_Info *pHeapInfo_R;
     uint32_t ulBlockOffset_R = 0;
-#endif
 
     BDBG_ENTER(BVDC_P_Window_CapturePicture_isr);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
@@ -15146,7 +14875,6 @@ BERR_Code BVDC_P_Window_CapturePicture_isr
         pCapturedPic->hPicBlock = pHeapNode->pHeapInfo->hMmaBlock;
         pCapturedPic->ulPicBlockOffset = pHeapNode->ulBlockOffset + ulBlockOffset;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
         if(pCapturedPic->pPicture->pHeapNode_R != NULL)
         {
             pHeapNode_R = pCapturedPic->pPicture->pHeapNode_R;
@@ -15164,7 +14892,6 @@ BERR_Code BVDC_P_Window_CapturePicture_isr
         }
 
         pCapturedPic->eDispOrientation = pCapturedPic->pPicture->eDispOrientation;
-#endif
 
         /* Get polarity */
         pCapturedPic->ePolarity = (BVDC_P_VNET_USED_SCALER_AT_WRITER(pCapturedPic->pPicture->stVnetMode)
@@ -15389,7 +15116,6 @@ BERR_Code BVDC_P_Window_SetMcvp_DeinterlaceConfiguration
      bool                             bDeinterlace,
      const BVDC_Deinterlace_Settings *pMadSettings)
 {
-#if (0 != BVDC_P_SUPPORT_MCVP)
     BVDC_P_Deinterlace_Settings *pNewMad;
 
     pNewMad = &hWindow->stNewInfo.stMadSettings;
@@ -15399,80 +15125,10 @@ BERR_Code BVDC_P_Window_SetMcvp_DeinterlaceConfiguration
     {
         pNewMad->eGameMode = pMadSettings->eGameMode;
     }
-#else
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(bDeinterlace);
-    BSTD_UNUSED(pMadSettings);
-#endif
 
     return (BERR_SUCCESS);
 }
 
-
-/***************************************************************************
-*
-*/
-BERR_Code BVDC_P_Window_SetMad_DeinterlaceConfiguration
-    (BVDC_Window_Handle               hWindow,
-     bool                             bDeinterlace,
-     const BVDC_Deinterlace_Settings *pMadSettings)
-{
-#if (0!=BVDC_P_SUPPORT_MAD)
-
-    BVDC_P_Deinterlace_Settings *pNewMad;
-    pNewMad = &hWindow->stNewInfo.stMadSettings;
-
-    /* set new value */
-    hWindow->stNewInfo.bDeinterlace = bDeinterlace;
-
-    /* only set new 3:2 and 2:2 pulldown setting if Mad is enable, */
-    /* otherwise ignore the setting, use default setting instead   */
-    if(bDeinterlace)
-    {
-#if (5>BVDC_P_SUPPORT_MAD_VER)
-        if((pMadSettings->eGameMode == BVDC_MadGameMode_e3Fields_1Delay) ||
-            (pMadSettings->eGameMode == BVDC_MadGameMode_e3Fields_0Delay) ||
-            (pMadSettings->eGameMode == BVDC_MadGameMode_e3Fields_ForceSpatial))
-        {
-            BDBG_ERR(("This chipset doesn't support 3-Field MAD Game Mode!"));
-            return BERR_TRACE(BVDC_ERR_MAD_NOT_SUPPORTED);
-        }
-#endif
-        if((pMadSettings->eGameMode >= BVDC_MadGameMode_eMaxCount)       ||
-            (pMadSettings->eGameMode == BVDC_MadGameMode_e5Fields_2Delay)||
-            (pMadSettings->eGameMode == BVDC_MadGameMode_e4Fields_2Delay)||
-            (pMadSettings->eGameMode == BVDC_MadGameMode_e3Fields_2Delay))
-        {
-            BDBG_ERR(("This MAD Game Mode is not supported!"));
-            return BERR_TRACE(BVDC_ERR_MAD_NOT_SUPPORTED);
-        }
-
-#if (BVDC_P_SUPPORT_MAD_VER < 6)
-        if(!BPXL_IS_YCbCr422_FORMAT(pMadSettings->ePxlFormat))
-        {
-            BDBG_MSG(("This chip will ignore MAD pixel format user setting!"));
-            /* ignore user setting for now */
-            pNewMad->ePixelFmt = BVDC_P_CAP_PIXEL_FORMAT_8BIT422;
-        }
-#else
-        if(!BPXL_IS_YCbCr422_FORMAT(pMadSettings->ePxlFormat) &&
-            !BPXL_IS_YCbCr422_10BIT_FORMAT(pMadSettings->ePxlFormat) &&
-            !BPXL_IS_YCbCr422_10BIT_PACKED_FORMAT(pMadSettings->ePxlFormat))
-        {
-            BDBG_ERR(("This chip only supports 8-bit or 10-bit 4:2:2 MAD pixel format!"));
-            return BERR_TRACE(BVDC_ERR_MAD_NOT_SUPPORTED);
-        }
-        pNewMad->ePixelFmt = pMadSettings->ePxlFormat;
-#endif
-    }
-#else
-    BSTD_UNUSED(hWindow);
-    BSTD_UNUSED(bDeinterlace);
-    BSTD_UNUSED(pMadSettings);
-#endif
-
-    return (BERR_SUCCESS);
-}
 
 const BVDC_P_ResourceFeature* BVDC_P_Window_GetResourceFeature_isrsafe
     ( BVDC_P_WindowId                  eWindowId )

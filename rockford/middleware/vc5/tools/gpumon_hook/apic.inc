@@ -566,8 +566,14 @@ HOOK(eglDestroyImageKHR);
 #if EGL_KHR_image_base
 #endif /* EGL_KHR_image_base*/
 
+#if EGL_KHR_image_pixmap
+#endif /* EGL_KHR_image_pixmap*/
+
 #if EGL_KHR_platform_android
 #endif /* EGL_KHR_platform_android*/
+
+#if EGL_KHR_platform_wayland
+#endif /* EGL_KHR_platform_wayland*/
 
 #if EGL_KHR_platform_x11
 #endif /* EGL_KHR_platform_x11*/
@@ -578,6 +584,13 @@ HOOK(eglDestroyImageKHR);
 #if EGL_KHR_wait_sync
 HOOK(eglWaitSyncKHR);
 #endif /* EGL_KHR_wait_sync*/
+
+#if GL_KHR_blend_equation_advanced
+HOOK(glBlendBarrierKHR);
+#endif /* GL_KHR_blend_equation_advanced*/
+
+#if GL_KHR_blend_equation_advanced_coherent
+#endif /* GL_KHR_blend_equation_advanced_coherent*/
 
 #if GL_KHR_debug
 HOOK(glDebugMessageControlKHR);
@@ -626,6 +639,13 @@ HOOK(glBlendFuncSeparateiOES);
 HOOK(glColorMaskiOES);
 HOOK(glIsEnablediOES);
 #endif /* GL_OES_draw_buffers_indexed*/
+
+#if GL_OES_draw_elements_base_vertex
+HOOK(glDrawElementsBaseVertexOES);
+HOOK(glDrawRangeElementsBaseVertexOES);
+HOOK(glDrawElementsInstancedBaseVertexOES);
+HOOK(glMultiDrawElementsBaseVertexOES);
+#endif /* GL_OES_draw_elements_base_vertex*/
 
 #if GL_OES_draw_texture
 HOOK(glDrawTexsOES);
@@ -679,12 +699,20 @@ HOOK(glGetBufferPointervOES);
 HOOK(glPointSizePointerOES);
 #endif /* GL_OES_point_size_array*/
 
+#if GL_OES_primitive_bounding_box
+HOOK(glPrimitiveBoundingBoxOES);
+#endif /* GL_OES_primitive_bounding_box*/
+
 #if GL_OES_query_matrix
 HOOK(glQueryMatrixxOES);
 #endif /* GL_OES_query_matrix*/
 
 #if GL_OES_rgb8_rgba8
 #endif /* GL_OES_rgb8_rgba8*/
+
+#if GL_OES_sample_shading
+HOOK(glMinSampleShadingOES);
+#endif /* GL_OES_sample_shading*/
 
 #if GL_OES_sample_variables
 #endif /* GL_OES_sample_variables*/
@@ -808,6 +836,9 @@ HOOK(eglCreatePlatformWindowSurfaceEXT);
 HOOK(eglCreatePlatformPixmapSurfaceEXT);
 #endif /* EGL_EXT_platform_base*/
 
+#if EGL_EXT_platform_wayland
+#endif /* EGL_EXT_platform_wayland*/
+
 #if EGL_EXT_platform_x11
 #endif /* EGL_EXT_platform_x11*/
 
@@ -816,6 +847,12 @@ HOOK(eglCreatePlatformPixmapSurfaceEXT);
 
 #if EGL_EXT_protected_surface
 #endif /* EGL_EXT_protected_surface*/
+
+#if EGL_WL_bind_wayland_display
+HOOK(eglBindWaylandDisplayWL);
+HOOK(eglUnbindWaylandDisplayWL);
+HOOK(eglQueryWaylandBufferWL);
+#endif /* EGL_WL_bind_wayland_display*/
 
 #if GL_BRCM_mirror_once_border
 #endif /* GL_BRCM_mirror_once_border*/
@@ -831,9 +868,6 @@ HOOK(glProvokingVertexBRCM);
 #if GL_BRCM_texture_1D
 HOOK(glTexImage1DBRCM);
 #endif /* GL_BRCM_texture_1D*/
-
-#if GL_BRCM_texture_mirror_swap
-#endif /* GL_BRCM_texture_mirror_swap*/
 
 #if GL_BRCM_texture_norm16
 #endif /* GL_BRCM_texture_norm16*/

@@ -1,23 +1,40 @@
-/***************************************************************************
- *     Copyright (c) 2003-2013, Broadcom Corporation
- *     All Rights Reserved
- *     Confidential Property of Broadcom Corporation
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- *  THIS SOFTWARE MAY ONLY BE USED SUBJECT TO AN EXECUTED SOFTWARE LICENSE
- *  AGREEMENT  BETWEEN THE USER AND BROADCOM.  YOU HAVE NO RIGHT TO USE OR
- *  EXPLOIT THIS MATERIAL EXCEPT SUBJECT TO THE TERMS OF SUCH AN AGREEMENT.
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
+ * Except as expressly set forth in the Authorized License,
  *
- * [File Description:]
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * Revision History:
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * $brcm_Log: $
- *
- ***************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bast.h"
 #include "bast_priv.h"
@@ -973,7 +990,7 @@ BERR_Code BAST_g3_Ftm_P_StopTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t)
          break;
 
       default:
-         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StopTimer_isr() - should not get here!\n")));
+         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StopTimer_isr() - should not get here!")));
          return BERR_UNKNOWN;
    }
 
@@ -1027,7 +1044,7 @@ BERR_Code BAST_g3_Ftm_P_StartTimer_isr(BAST_Handle h, BAST_Ftm_TimerSelect t, ui
          break;
 
       default:
-         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StartTimer_isr() - should not get here!\n")));
+         BAST_FTM_DEBUG(BDBG_MSG(("BAST_g3_Ftm_P_StartTimer_isr() - should not get here!")));
          return BERR_UNKNOWN;
    }
 
@@ -1087,7 +1104,7 @@ BERR_Code BAST_g3_Ftm_P_SendLocalMessage_isrsafe(BAST_Handle h, uint8_t *pBuf, u
 
    if (hFtm->buf_status & BAST_FTM_BUF_HOST_NOT_EMPTY)
    {
-      BDBG_MSG(("BAST_g3_Ftm_P_SendLocalMessage_isrsafe(): host buffer full\n"));
+      BDBG_MSG(("BAST_g3_Ftm_P_SendLocalMessage_isrsafe(): host buffer full"));
       hFtm->err_status |= BAST_FTM_ERR_HOST_MSG_DROPPED;
    }
    else
@@ -2344,7 +2361,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessRegRespPacket_isr(BAST_Handle h)
    }
    else
    {
-      BDBG_MSG(("unexpected RID in reg resp (0x%08X)\n", rid));
+      BDBG_MSG(("unexpected RID in reg resp (0x%08X)", rid));
       hFtm->bForwardPacket = false;
    }
 
@@ -2746,7 +2763,7 @@ BERR_Code BAST_g3_Ftm_P_ProcessMyPacket_isr(BAST_Handle h)
       /* check destination address for broadcast */
       if (hFtm->rx_packet_dest_addr == 0x0F)
       {
-         BAST_FTM_DEBUG(BDBG_MSG(("broadcast error\n")));
+         BAST_FTM_DEBUG(BDBG_MSG(("broadcast error")));
          BAST_FTM_READ(FTM_PHY_ASSIST_STS, &mb);
          bPacketSentLast = (mb & 0x0200) >> 9;
 
@@ -3239,7 +3256,7 @@ void BAST_g3_Ftm_P_HandleInterrupt_isr(void *p, int param)
          break;
 
       case BAST_Ftm_IntID_eFBadCrcCnt:
-         BAST_FTM_DEBUG(BDBG_MSG(("bad crc!\n")));
+         BAST_FTM_DEBUG(BDBG_MSG(("bad crc!")));
 
       #if defined(BAST_FTM_ODU_RESET_RCVR) && (BAST_FTM_CORE_REV == BAST_FTM_CORE_REV_1P6)
          /* reset receiver and reprogram LPF coefficient data after received packet */

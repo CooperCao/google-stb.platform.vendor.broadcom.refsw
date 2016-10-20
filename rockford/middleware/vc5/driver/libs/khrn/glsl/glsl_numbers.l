@@ -46,13 +46,17 @@ INTSUFF  [uU]
 
 {INTDEC}|{INTOCT}|{INTHEX} {
                               // Base of 0 does automatic dec/oct/hex recognition.
-                              *yylval = (uint32_t)strtoul(yytext, NULL, 0);
+                              uintmax_t val = strtoumax(yytext, NULL, 0);
+                              if (val > UINT32_MAX) return NUM_INVALID;
+                              *yylval = (uint32_t)val;
                               return NUM_INT;
                            }
 
 {INTDEC}{INTSUFF}|{INTOCT}{INTSUFF}|{INTHEX}{INTSUFF} {
                               // Base of 0 does automatic dec/oct/hex recognition.
-                              *yylval = (uint32_t)strtoul(strtok(yytext, "uU"), NULL, 0);
+                              uintmax_t val = strtoumax(yytext, NULL, 0);
+                              if (val > UINT32_MAX) return NUM_INVALID;
+                              *yylval = (uint32_t)val;
                               return NUM_UINT;
                            }
 

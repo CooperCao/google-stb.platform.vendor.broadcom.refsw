@@ -343,6 +343,7 @@ typedef enum BSAGElib_Crypto_Region_e
 
 }   BSAGElib_Crypto_Region_e;
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
 typedef enum BSAGElib_Crypto_KeySlotPermission_e
 {
     BSAGElib_Crypto_KeySlotPermission_eNone    = 0x0,
@@ -363,6 +364,7 @@ typedef enum BSAGElib_Crypto_KeySlotPermission_e
                                            BSAGElib_Crypto_KeySlotPermission_eAllowRG |
                                            BSAGElib_Crypto_KeySlotPermission_eAllowRR)
 }   BSAGElib_Crypto_KeySlotPermission_e;
+#endif
 
 /**
 Summary:

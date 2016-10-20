@@ -48,6 +48,7 @@
 #include "bvbi_chip_priv.h"
 #include "blst_list.h"
 #include "bavc_hdmi.h"
+#include "bmma.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -122,7 +123,7 @@ typedef struct BVBI_P_TTData
     uint8_t   ucLineSize;
     uint8_t   firstLine;
     uint32_t  lineMask;
-    uint8_t  *pucData;
+    BVBI_P_MmaData mmaData;
 
 } BVBI_P_TTData;
 typedef BVBI_P_LCOP_OWNERPROP(BVBI_P_TTData) BVBI_P_TTData_Owner;
@@ -135,7 +136,7 @@ typedef struct BVBI_P_Handle
     /* handed down from app. */
     BCHP_Handle hChip;
     BREG_Handle hReg;
-    BMEM_Handle hMem;
+    BMMA_Heap_Handle hMmaHeap;
     size_t      in656bufferSize;
     bool        tteShiftDirMsb2Lsb;
 
@@ -219,7 +220,7 @@ typedef struct
     uint8_t* nrtv_data[2];
     size_t pam_data_count;
     size_t pam_data_size;
-    uint8_t* pam_data;
+    BVBI_P_MmaData* pam_data;
     uint8_t* mono_data[2];
 
 } BVBI_P_SCTE_Data;
@@ -270,8 +271,8 @@ typedef struct BVBI_P_Decode_Handle
     BVBI_P_TTData_Owner botTTDataO;
 
     /* Double buffer storage for ITU-R 656 ancillary data */
-    uint8_t* top656Data;
-    uint8_t* bot656Data;
+    BVBI_P_MmaData top656Data;
+    BVBI_P_MmaData bot656Data;
 
     /* Linked list membership */
     BLST_D_ENTRY(BVBI_P_Decode_Handle) link;
@@ -367,13 +368,7 @@ typedef struct BVBI_P_Encode_Handle
     BVBI_LineBuilder_Handle hBotScteNrtv[2];
     BVBI_LineBuilder_Handle hTopScteMono[2];
     BVBI_LineBuilder_Handle hBotScteMono[2];
-    uint8_t* sctePamData;
-
-    /* Cache CGMS data from user */
-#ifdef P_CGMS_SOFTWARE_CRC
-    uint32_t last_cgms_user;
-    uint32_t last_cgms_formatted;
-#endif /* P_CGMS_SOFTWARE_CRC */
+    BVBI_P_MmaData*         sctePamData;
 
     /* ARIB video? */
     bool bArib480p;
@@ -490,8 +485,6 @@ BERR_Code BVBI_P_CGMSA_Encode_Enable_isr (
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
-#if defined(BVBI_P_CGMSAE_VER2) || defined(BVBI_P_CGMSAE_VER3) || \
-    defined(BVBI_P_CGMSAE_VER5) /** { **/
 BERR_Code BVBI_P_CGMSB_Enc_Program (
     BREG_Handle hReg,
     bool is656,
@@ -500,21 +493,18 @@ BERR_Code BVBI_P_CGMSB_Enc_Program (
     BFMT_VideoFmt eVideoFormat,
     bool bArib480p,
     bool bCea805dStyle);
-
 BERR_Code BVBI_P_CGMSB_Encode_Data_isr (
     BREG_Handle hReg,
     bool is656,
     uint8_t hwCoreIndex,
     BAVC_Polarity polarity,
     BVBI_CGMSB_Datum cgmsbDatum );
-
 BERR_Code BVBI_P_CGMSB_Encode_Enable_isr (
     BREG_Handle hReg,
     bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
     bool bEnable);
-#endif /** } **/
 
 void BVBI_P_CGMS_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 
@@ -608,7 +598,6 @@ BERR_Code BVBI_P_TT_Init ( BVBI_P_Handle *pVbi );
 void BVBI_P_TT_Enc_Init (BREG_Handle hReg, bool is656, uint8_t hwCoreIndex);
 BERR_Code BVBI_P_TT_Enc_Program (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     bool bActive,
@@ -621,7 +610,6 @@ BERR_Code BVBI_P_TT_Enc_Program (
 );
 uint32_t BVBI_P_TT_Encode_Data_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -638,7 +626,7 @@ BERR_Code BVBI_P_TT_Encode_Enable_isr (
 void BVBI_P_TT_Dec_Init (BREG_Handle hReg, uint32_t ulCoreOffset);
 BERR_Code BVBI_P_TT_Dec_Program (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
+    BMMA_Heap_Handle hMmaHeap,
     BAVC_SourceId eSource,
     bool bActive,
     BFMT_VideoFmt eVideoFormat,
@@ -647,7 +635,7 @@ BERR_Code BVBI_P_TT_Dec_Program (
 );
 uint32_t BVBI_P_TT_Decode_Data_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
+    BMMA_Heap_Handle hMmaHeap,
     BAVC_SourceId eSource,
     BFMT_VideoFmt eVideoFormat,
     BAVC_Polarity polarity,
@@ -655,7 +643,7 @@ uint32_t BVBI_P_TT_Decode_Data_isr (
 
 uint32_t BVBI_P_TT_Size_Storage(uint32_t ulMaxLines, uint32_t ulMaxLineSize);
 BERR_Code BVBI_P_TTData_Alloc (
-    BMEM_Handle hMem, uint8_t ucMaxLines, uint8_t ucLineSize,
+    BMMA_Heap_Handle hMmaHeap, uint8_t ucMaxLines, uint8_t ucLineSize,
     BVBI_P_TTData* pTTData);
 
 /***************************************************************************
@@ -767,7 +755,6 @@ BERR_Code BVBI_P_SCTE_Enc_Program (
 );
 uint32_t BVBI_P_SCTE_Encode_Data_isr (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     bool is656,
     uint8_t hwCoreIndex,
     BFMT_VideoFmt eVideoFormat,
@@ -778,7 +765,7 @@ uint32_t BVBI_P_SCTE_Encode_Data_isr (
     BVBI_LineBuilder_Handle hBotScteNrtv[2],
     BVBI_LineBuilder_Handle hTopScteMono[2],
     BVBI_LineBuilder_Handle hBotScteMono[2],
-    uint8_t** pSctePamData
+    BVBI_P_MmaData**        pSctePamData
 );
 BERR_Code BVBI_P_SCTE_Encode_Enable_isr (
     BREG_Handle hReg,
@@ -788,22 +775,21 @@ BERR_Code BVBI_P_SCTE_Encode_Enable_isr (
     BVBI_SCTE_Type scteType,
     bool bEnable);
 BERR_Code BVBI_P_SCTEData_Alloc (
-    BMEM_Handle hMem, size_t cc_size, bool scteEnableNrtv, size_t pam_size,
-    bool scteEnableMono, BVBI_P_SCTE_Data* pPScteData);
+    BMMA_Heap_Handle hMmaHeap, size_t cc_size, bool scteEnableNrtv,
+    size_t pam_size, bool scteEnableMono, BVBI_P_SCTE_Data* pPScteData);
 BERR_Code BVBI_P_Encode_AllocScte (
-    BMEM_Handle hMem,
+    BMMA_Heap_Handle hMmaHeap,
     BVBI_LineBuilder_Handle topScteNrtv[2],
     BVBI_LineBuilder_Handle botScteNrtv[2],
     BVBI_LineBuilder_Handle topScteMono[2],
     BVBI_LineBuilder_Handle botScteMono[2],
-    uint8_t** pSctePam);
+    BVBI_P_MmaData* pSctePam);
 void BVBI_P_Encode_FreeScte (
-    BMEM_Handle hMem,
     BVBI_LineBuilder_Handle topScteNrtv[2],
     BVBI_LineBuilder_Handle botScteNrtv[2],
     BVBI_LineBuilder_Handle topScteMono[2],
     BVBI_LineBuilder_Handle botScteMono[2],
-    uint8_t** pSctePam);
+    BVBI_P_MmaData* pSctePam);
 
 /***************************************************************************
  * VBI private VDTOP functions
@@ -870,14 +856,13 @@ BERR_Code BVBI_P_A656_Enc_Program (
 BERR_Code BVBI_P_IN656_Init  ( BVBI_P_Handle *pVbi );
 BERR_Code BVBI_P_IN656_Dec_Program (
     BREG_Handle hReg,
-    BMEM_Handle hMem,
     BAVC_SourceId eSource,
     bool bActive,
     BVBI_656Fmt anci656Fmt,
     BVBI_P_SMPTE291Moptions* pMoptions,
     BFMT_VideoFmt eVideoFormat,
-    uint8_t* topData,
-    uint8_t* botData);
+    BMMA_DeviceOffset topData,
+    BMMA_DeviceOffset botData);
 BERR_Code BVBI_P_IN656_Decode_Data_isr (
     BREG_Handle hReg,
     BAVC_SourceId eSource,

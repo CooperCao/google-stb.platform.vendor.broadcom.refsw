@@ -115,6 +115,7 @@ const BDSP_Raaga_Audio_MpegConfigParams  BDSP_sMpegDefaultUserConfig =
     {0, 1,0xFFFFFFFF,0xFFFFFFFF,
     0xFFFFFFFF, 0xFFFFFFFF,
     0xFFFFFFFF,0xFFFFFFFF},                 /* ui32OutputChannelMatrix */
+    BDSP_Raaga_TRUE                         /* Boolean MonotoStereoDownscale*/
 };
 
 const BDSP_Raaga_Audio_AacheConfigParams BDSP_sAacheDefaultUserConfig =
@@ -1129,13 +1130,6 @@ const BDSP_Raaga_Audio_MacDecConfigParams BDSP_sMacDecUserConfig =
     }
 };
 
-const BDSP_Raaga_Audio_AMRWBConfigParams BDSP_sAmrwbDefaultUserConfig =
-{
-    1,                                  /*ui32allow_dtx*/
-    1,                      /*ui32bitstreamformat*/
-    1                       /*ui32mode*/
-};
-
 const BDSP_Raaga_Audio_G723EncoderUserConfig BDSP_sDefG723_1EncodeConfigSettings =
 {
     0,                                          /* WrkRate */
@@ -1400,95 +1394,10 @@ const BDSP_Raaga_Audio_DpcmrConfigParams BDSP_sDefDpcmrUserConfig=
             0,          /* b_discard_drc */
             1           /*compressor_profile*/
 };
-const BDSP_Raaga_Audio_DolbyVolumeUserConfig BDSP_sDefDolbyVolUserConfig =
-{
-    true,                                       /* i32DolbyVolumeEnable */
-    512,                                        /* i32BlockSize */
-    20,                                         /* i32nBands */
-    2,                                          /* i32nChans*/
-    0x4A000000,                                         /* i32InputReferenceLevel */
-    0x4A000000,                                         /* i32OutputReferenceLevel */
-    0x00000000,                                          /* i32Calibration */
-    true,                                       /* i32VlmEnable */
-    false,                                      /* i32ResetNowFlag */
-    0x00000000,                                          /* i32DigitalVolumeLevel */
-    0x00000000,                                          /* i32AnalogVolumeLevel */
-    9,                                          /* i32LvlAmount */
-    true,                                       /* i32LvlEnable */
-    false,                                      /* i32EnableMidsideProc */
-    false,                                      /* i32HalfmodeFlag */
-    true                                        /* i32LimiterEnable*/
-};
-
-const BDSP_Raaga_Audio_PL2ConfigParams BDSP_sDefProLogicIIConfigSettings =
-{
-    1,                                          /* ui32enable */
-    0,                                          /* ui32abalflg */
-    3,                                          /* ui32decmode */
-    7,                                          /* ui32chancfg */
-    3,                                          /* ui32cwidthcfg */
-    3,                                          /* ui32dimcfg */
-    0,                                          /* ui32panoramaflg */
-    0,                                          /* ui32sfiltflg */
-    0,                                          /* ui32rspolinvflg */
-    100,                                        /* ui32pcmscl */
-    0,                                          /* ui32debugOn */
-    0                                           /* ui32outputch */
-};
-
-const BDSP_Raaga_Audio_TruSurrndXTConfigParams BDSP_sDefTruSurroundXtSettings =
-{
-    true,                                       /* bTruSurroundEnable */
-    false,                                      /* bTsHeadphoneEnable */
-    100,                                        /* uiTruSurroundInputGain */
-    true,                                       /* bDialogClarityEnable */
-    50,                                         /* uiDialogClarityLevel */
-    true,                                       /* bTruBassEnable */
-    50,                                         /* bTbLevel */
-    BDSP_Raaga_Audio_SpeakerSize_eLFResponse60Hz,           /* eTbSpeakerSize */
-    false,                                      /* bCertificationEnable */
-    BDSP_Raaga_Audio_AcMode_eMode20                  /* eAcMode */
-};
 
 const BDSP_Raaga_Audio_SRCUserConfigParams   BDSP_sDefaultSrcSettings =
 {
     0                                       /* ui32SrcDummyUserConfig */
-};
-
-const  BDSP_Raaga_Audio_CustomSurroundUserConfig BDSP_sDefCustomSurroundConfigSettings =
-{
-    false,                                      /* bBypassShSurround */
-    false,                                      /* bCombOn */
-    0,                                          /* uiDelay */
-    0,                                          /* uiVolume1 */
-    0,                                          /* uiVolume2 */
-    0,                                          /* uiVolume3 */
-    0x1E,                                       /* uiVolume4 */
-    0x1E,                                       /* uiVolume5 */
-    0x74,                                       /* uiLpfFc */
-    0x44,                                       /* uiLpfQ */
-    0x56,                                       /* uiLpfGain */
-    0x40,                                       /* uiFuncVol */
-    0x14                                        /* uiTrim */
-};
-
-const BDSP_Raaga_Audio_CustomBassUserConfig BDSP_sDefaultCustomBassSettings =
-{
-    true,                                       /* bBypassCustomBass */
-    0,                                          /* eCustomBassOperation */
-    0,                                          /* eCustomBassAgcType */
-    0,                                          /* eCustomBassHarmonicsType */
-    1,                                          /* iAgcGainMax */
-    1,                                          /* iAgcGainMin */
-    0x0,                                        /* uiAgcAttackTime */
-    0x0,                                        /* uiAgcRelTime */
-    1,                                          /* iAgcThreshold */
-    1,                                          /* uiHarmonicsLevel */
-    1,                                          /* uiLpfFc */
-    1,                                          /* uiHpfFc */
-    1,                                          /* uiAgcHpfFc */
-    1,                                          /* uiHarmonicsLpfFc */
-    1                                           /* uiHarmonicsHpfFc */
 };
 
 const BDSP_Raaga_Audio_CustomVoiceConfigParams BDSP_sDefCustomVoiceConfigSettings =
@@ -1762,15 +1671,6 @@ const BDSP_Raaga_Audio_KaraokeConfigParams   BDSP_sDefKaraokeConfigSettings =
     3    /* scale outputs */
 };
 
-const BDSP_Raaga_Audio_AudioDescPanConfigParams BDSP_sDefAdPanConfigSettings =
-{
-    0x7fffffff,                                 /* uiVol */
-    0x00000000,                                 /* ui32PanFadeInterfaceAddr*/
-    BDSP_Raaga_Audio_ADChannelConfig_eADChannelOff, /* eADChannelConfig */
-    0,                                          /*ui32PanFadeInterfaceValidFlag*/
-    1000                                        /* uiAudioRampTimeInMs */
-};
-
 const BDSP_Raaga_Audio_DtsBroadcastEncConfigParams BDSP_sDefDTSENCConfigSettings =
 {
     1,                                          /* ui32SpdifHeaderEnable */
@@ -1795,22 +1695,6 @@ const BDSP_Raaga_Audio_AacheEncConfigParams BDSP_sDefAacHeENCConfigSettings =
 
 };
 
-const BDSP_Raaga_Audio_Ac3EncConfigParams BDSP_sDefAc3ENCConfigSettings =
-{
-    8,                                          /* i32NumChans */
-    7,                                          /* i32AudCodMode */
-    18,                                         /* i32DataRate */
-    0,                                          /* i32LoFreqEffOn */
-    0x2,                                        /* i32SampRateCod */
-    false,                                      /* i32LfeFiltInUse */
-    false,                                      /* i32CompChar */
-    false,                                      /* i32CompChar2 */
-    false,                                       /* i32SurDelayArg */
-    true,                                       /* eSpdifHeaderEnable */
-    true,                                       /* eTranscodeEnable */
-};
-
-
 const BDSP_Raaga_Audio_DDTranscodeConfigParams BDSP_sDefDDTranscodeConfigSettings =
 {
     0,                                          /* i32AudCodMode*/
@@ -1833,15 +1717,6 @@ const BDSP_Raaga_Audio_Mpeg1L3EncConfigParams   BDSP_sDefMpeg1L3EncConfigSetting
     BDSP_Raaga_Audio_Mp3EncodeMono_Mix /* Channel Selection when bEncodeMono flag is set */
 };
 
-const BDSP_Raaga_Audio_SbcEncoderUserConfig   BDSP_sDefSbcEncConfigSettings =
-{
-    8,                                          /* NumBlocks */
-    8,                                          /* NumSubbands */
-    true,                                       /* JointStereo */
-    0,                                          /* BitAllocation */
-    45                                          /* BitPool */
-};
-
 const BDSP_Raaga_Audio_G711_G726EncConfigParams BDSP_sDefG711G726EncConfigSettings =
 {
     BDSP_Raaga_Audio_eCompressionType_uLaw_disableG726,     /* eCompressionType */
@@ -1859,6 +1734,7 @@ const BDSP_Raaga_Audio_G722EncConfigParams BDSP_sDefG722EncConfigSettings =
 {
     0                                          /* dummy */
 };
+
 const BDSP_Raaga_Audio_AmrEncoderUserConfig BDSP_sDefAmrEncConfigSettings =
 {
     0,                                          /* ui32DtxEnable */
@@ -1954,11 +1830,6 @@ const BDSP_Raaga_Audio_Brcm3DSurroundConfigParams   BDSP_sDefBrcm3DSurroundConfi
     1,                                          /* i32BRCM3DSurroundEnableFlag */
     1,                                          /* eSurroundMode */
     0                                           /* eBroadcom3DSurroundMode */
-};
-
-const BDSP_Raaga_Audio_MonoDownMixConfigParams   BDSP_sDefMonoDownmixConfigSettings =
-{
-    1                                           /* i32MonoDownMixEnableFlag */
 };
 
 const BDSP_Raaga_Audio_MixerConfigParams  BDSP_sDefFwMixerConfigSettings =
@@ -2207,34 +2078,4 @@ const BDSP_Raaga_VideoBXVP8UserConfig BDSP_sBXVP8EncodeUserConfigSettings =
     0,
     0,
     1
-};
-
-
-const BDSP_VF_P_sOutputBuffInfo sOutputBuffInfo[BDSP_AF_P_AlgoId_eEndOfDecodeAlgos - BDSP_VF_P_AlgoId_eVideoAlgoStartIdx] =
-{
-    /*  RealVideo Decoder */
-    {
-      2,    /* ui32NumRefBuff */
-      2,    /* ui32MinNumRefBuff */
-      0,    /* eRefPixelDataType */
-      16,   /* ui32NumDispBuff */
-      4,    /* ui32MinNumDispBuff */
-      0,    /* eDispPixelDataType */
-      32,   /* ui32PaddingX */
-      32    /* ui32PaddingY */
-    },
-    /* RealVideo Decoder - End */
-    /*  VP6 Decoder */
-    {
-      3,    /* ui32NumRefBuff */
-      3,    /* ui32MinNumRefBuff */
-      0,    /* eRefPixelDataType */
-      16,   /* ui32NumDispBuff */
-      4,    /* ui32MinNumDispBuff */
-      0,    /* eDispPixelDataType */
-      48,   /* ui32PaddingX */
-      48    /* ui32PaddingY */
-    }
-    /* VP6 Decoder - End */
-
 };

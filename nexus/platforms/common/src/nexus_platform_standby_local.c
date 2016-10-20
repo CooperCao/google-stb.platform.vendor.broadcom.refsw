@@ -314,7 +314,7 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
     rc = NEXUS_Platform_P_InitWakeupDriver();
     if (!rc) {
         /*Disable all wakeups first */
-        wakeups.ir = wakeups.uhf = wakeups.keypad = wakeups.cec = wakeups.transport = 1;
+        wakeups.ir = wakeups.uhf = wakeups.keypad = wakeups.gpio = wakeups.cec = wakeups.transport = 1;
         if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_DISABLE, &wakeups)) {
             BDBG_ERR(("Unable to clear wakeup devices"));
             rc = BERR_TRACE(BERR_OS_ERROR);
@@ -324,6 +324,7 @@ NEXUS_Error NEXUS_Platform_SetStandbySettings( const NEXUS_PlatformStandbySettin
         wakeups.ir = pSettings->wakeupSettings.ir;
         wakeups.uhf = pSettings->wakeupSettings.uhf;
         wakeups.keypad = pSettings->wakeupSettings.keypad;
+        wakeups.gpio = pSettings->wakeupSettings.gpio;
         wakeups.cec = pSettings->wakeupSettings.cec;
         wakeups.transport = pSettings->wakeupSettings.transport;
         if(ioctl(g_Standby_State.wakeFd, BRCM_IOCTL_WAKEUP_ENABLE, &wakeups)) {
@@ -386,13 +387,13 @@ NEXUS_Error NEXUS_Platform_GetStandbyStatus(NEXUS_PlatformStandbyStatus *pStatus
         if(NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake_eTimer, &wktmr_count)) { rc |= BERR_TRACE(rc); }
         if(NEXUS_Platform_P_GetSysWake(NEXUS_Platform_P_SysWake_eGpio, &wkgpio_count)) { rc |= BERR_TRACE(rc); }
 
-        if(wakeups.ir || wakeups.uhf || wakeups.keypad || wakeups.cec || wakeups.transport || wktmr_count || wkgpio_count) {
+        if(wakeups.ir || wakeups.uhf || wakeups.keypad || wakeups.gpio || wakeups.cec || wakeups.transport || wktmr_count || wkgpio_count) {
             g_Standby_State.standbyStatus.wakeupStatus.ir = wakeups.ir;
             g_Standby_State.standbyStatus.wakeupStatus.uhf = wakeups.uhf;
             g_Standby_State.standbyStatus.wakeupStatus.keypad = wakeups.keypad;
             g_Standby_State.standbyStatus.wakeupStatus.cec = wakeups.cec;
             g_Standby_State.standbyStatus.wakeupStatus.transport = wakeups.transport;
-            g_Standby_State.standbyStatus.wakeupStatus.gpio = wkgpio_count;
+            g_Standby_State.standbyStatus.wakeupStatus.gpio = wkgpio_count || wakeups.gpio;
             g_Standby_State.standbyStatus.wakeupStatus.timeout = wktmr_count;
 
             g_Standby_State.wakeupStatusCached = true;

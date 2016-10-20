@@ -1,7 +1,7 @@
 /***************************************************************************
- *     (c)2007-2012 Broadcom Corporation
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
  *  conditions of a separate, written license agreement executed between you and Broadcom
  *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,16 +35,8 @@
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
  *
- * Revision History:
- *
- * $brcm_Log: $
- * 
  **************************************************************************/
 #include "nexus_keypad_module.h"
 #include "priv/nexus_core.h"
@@ -124,6 +116,7 @@ void NEXUS_Keypad_GetDefaultSettings(NEXUS_KeypadSettings *pSettings)
     pSettings->prescale = 0x0055; /* taken from KPD PI default */
     pSettings->debounce = 0x40; /* taken from KPD PI default */
     pSettings->repeatFilterTime = 250; /* milliseconds */
+    NEXUS_CallbackDesc_Init(&pSettings->dataReady);
 }
 
 /* This is the low-level SPI read */

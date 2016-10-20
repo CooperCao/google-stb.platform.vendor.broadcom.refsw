@@ -39,6 +39,7 @@ Implementation of common OpenGL ES 1.1 and 2.0 state machine functions.
 #include "vcos.h"
 
 #include "libs/core/lfmt_translate_gl/lfmt_translate_gl.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 
 static uint32_t component_bits(GLXX_FRAMEBUFFER_T *fbo, GLenum component);
 
@@ -112,6 +113,14 @@ static glxx_get_type_count glxx_get_params_and_type_common(
    case GL_SAMPLE_COVERAGE_INVERT:
       booleans[0] = state->sample_coverage.invert;
       return glxx_get_bool_1;
+#if V3D_HAS_SRS || KHRN_GLES32_DRIVER
+   case GL_SAMPLE_SHADING:
+      booleans[0] = state->caps.sample_shading;
+      return glxx_get_bool_1;
+   case GL_MIN_SAMPLE_SHADING_VALUE:
+      floats[0] = state->sample_shading_fraction;
+      return glxx_get_float_1;
+#endif
    case GL_COLOR_WRITEMASK:
       /* Non-indexed glGet functions query the color write mask of buffer 0 */
       for (unsigned i = 0; i != 4; ++i)
@@ -763,10 +772,10 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       booleans[0] = state->caps.primitive_restart;
       return glxx_get_bool_1;
    case GL_TRANSFORM_FEEDBACK_ACTIVE:
-      booleans[0] = glxx_tf_is_active(state);
+      booleans[0] = glxx_tf_is_active(glxx_get_bound_tf(state));
       return glxx_get_bool_1;
    case GL_TRANSFORM_FEEDBACK_PAUSED:
-      booleans[0] = glxx_tf_is_paused(state);
+      booleans[0] = glxx_tf_is_paused(glxx_get_bound_tf(state));
       return glxx_get_bool_1;
    case GL_RASTERIZER_DISCARD:
       booleans[0] = state->caps.rasterizer_discard;
@@ -898,11 +907,17 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       uints[0] = state->bound_buffer[GLXX_BUFTGT_UNIFORM_BUFFER].buffer;
       return glxx_get_uint_1;
    case GL_TRANSFORM_FEEDBACK_BINDING:
-      uints[0] = glxx_tf_get_bound(state);
-      return glxx_get_uint_1;
+      {
+         GLXX_TRANSFORM_FEEDBACK_T *tf = glxx_get_bound_tf(state);
+         uints[0] = tf->name;
+         return glxx_get_uint_1;
+      }
    case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:
-      uints[0] = glxx_tf_get_bound_buffer(state);
-      return glxx_get_uint_1;
+      {
+         GLXX_TRANSFORM_FEEDBACK_T *tf = glxx_get_bound_tf(state);
+         uints[0] = tf->bound_buffer.buffer;
+         return glxx_get_uint_1;
+      }
    case GL_MAX_TRANSFORM_FEEDBACK_INTERLEAVED_COMPONENTS:
       uints[0] = GLXX_CONFIG_MAX_TF_INTERLEAVED_COMPONENTS;
       return glxx_get_uint_1;
@@ -1194,6 +1209,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    case GL_MAX_TESS_CONTROL_UNIFORM_COMPONENTS:
    case GL_MAX_TESS_EVALUATION_UNIFORM_COMPONENTS:
+   case GL_MAX_GEOMETRY_UNIFORM_COMPONENTS:
       uints[0] = GLXX_CONFIG_MAX_UNIFORM_SCALARS;
       return glxx_get_uint_1;
    case GL_MAX_TESS_CONTROL_TEXTURE_IMAGE_UNITS:
@@ -1226,7 +1242,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       return glxx_get_uint_1;
    case GL_MAX_COMBINED_TESS_CONTROL_UNIFORM_COMPONENTS:
    case GL_MAX_COMBINED_TESS_EVALUATION_UNIFORM_COMPONENTS:
-   case GL_MAX_GEOMETRY_UNIFORM_COMPONENTS:
+   case GL_MAX_COMBINED_GEOMETRY_UNIFORM_COMPONENTS:
       uints[0] = GLXX_CONFIG_MAX_UNIFORM_SCALARS + GLXX_CONFIG_MAX_SHADER_UNIFORM_BLOCKS * GLXX_CONFIG_MAX_UNIFORM_BLOCK_SIZE / 4;
       return glxx_get_uint_1;
    case GL_MAX_TESS_CONTROL_ATOMIC_COUNTER_BUFFERS:
@@ -1268,7 +1284,13 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
    case GL_MAX_GEOMETRY_SHADER_INVOCATIONS:
       uints[0] = V3D_MAX_GEOMETRY_INVOCATIONS;
       return glxx_get_uint_1;
+   case GL_LAYER_PROVOKING_VERTEX:
+      ints[0] = GL_UNDEFINED_VERTEX;   /* TODO: It's possible that GL_LAST_VERTEX_CONVENTION is correct here */
+      return glxx_get_int_1;
 
+   case GL_MAX_FRAMEBUFFER_LAYERS:
+      uints[0] = GLXX_CONFIG_MAX_FRAMEBUFFER_LAYERS;
+      return glxx_get_uint_1;
 #endif
 
 #if V3D_VER_AT_LEAST(3,3,0,0)
@@ -1292,6 +1314,10 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x(
       floats[0] = GLXX_CONFIG_MULTISAMPLE_LINE_WIDTH_GRANULARITY;
       return glxx_get_float_1;
 #endif
+
+   case GL_BLEND_ADVANCED_COHERENT_KHR:
+      booleans[0] = state->blend.advanced_coherent ? GL_TRUE : GL_FALSE;
+      return glxx_get_bool_1;
 
    default:
       return glxx_get_invalid_enum_0;
@@ -1633,9 +1659,6 @@ bool glxx_is_int_texparam(GLXX_SERVER_STATE_T *state, GLenum target, GLenum pnam
       case GL_TEXTURE_SWIZZLE_A:
       case GL_TEXTURE_BASE_LEVEL:
       case GL_TEXTURE_MAX_LEVEL:
-      case GL_TEXTURE_FLIP_X:
-      case GL_TEXTURE_FLIP_Y:
-      case GL_TEXTURE_SWAP_ST:
       case GL_TEXTURE_IMMUTABLE_FORMAT:
       case GL_TEXTURE_IMMUTABLE_LEVELS:
       case GL_TEXTURE_PROTECTED_EXT:
@@ -1751,18 +1774,6 @@ uint32_t glxx_get_texparameter_internal(GLXX_SERVER_STATE_T *state, GLenum targe
          break;
       case GL_TEXTURE_MAX_LEVEL:
          params[0] = texture->max_level;
-         result = 1;
-         break;
-      case GL_TEXTURE_FLIP_X:
-         params[0] = texture->flip_x;
-         result = 1;
-         break;
-      case GL_TEXTURE_FLIP_Y:
-         params[0] = texture->flip_y;
-         result = 1;
-         break;
-      case GL_TEXTURE_SWAP_ST:
-         params[0] = texture->swap_st;
          result = 1;
          break;
       case GL_TEXTURE_IMMUTABLE_FORMAT:
@@ -2203,7 +2214,7 @@ static glxx_get_type_count glxx_get_params_and_type_gl3x_indexed(
    {
       if (index >= GLXX_CONFIG_MAX_TF_SEPARATE_ATTRIBS)
          return glxx_get_invalid_index_0;
-      const GLXX_TRANSFORM_FEEDBACK_T *tf = state->transform_feedback.binding;
+      const GLXX_TRANSFORM_FEEDBACK_T *tf = glxx_get_bound_tf(state);
       switch (target)
       {
       case GL_TRANSFORM_FEEDBACK_BUFFER_BINDING:

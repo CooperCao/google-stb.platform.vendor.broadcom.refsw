@@ -152,7 +152,6 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
     BHSM_BspMsgConfigure_t bspMsgConfig;
 
     BDBG_ENTER( BHSM_Open );
-    BDBG_ASSERT( hChip );
     BDBG_ASSERT( hReg );
     BDBG_ASSERT( hInterrupt );
 
@@ -167,7 +166,8 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
 
     BKNI_Memset( hHsm, 0, sizeof( BHSM_P_Handle) );
 
-    hHsm->ulMagicNumber = BHSM_P_HANDLE_MAGIC_NUMBER;
+    BDBG_OBJECT_SET( hHsm, BHSM_P_Handle );
+
     hHsm->chipHandle = hChip;
     hHsm->regHandle = hReg;
     hHsm->interruptHandle = hInterrupt;
@@ -195,10 +195,13 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
        #endif
     }
 
-    BCHP_GetInfo( hHsm->chipHandle, &chipInfo);  /* Get the chip information */
-    BDBG_MSG(("Chip[%x], Rev[0x%x] Client[%s]", chipInfo.familyId
+    if( hHsm->chipHandle )
+    {
+        BCHP_GetInfo( hHsm->chipHandle, &chipInfo);  /* Get the chip information */
+        BDBG_MSG(("Chip[%x], Rev[0x%x] Client[%s]", chipInfo.familyId
                                                 , chipInfo.rev
                                                 , hHsm->currentSettings.clientType==BHSM_ClientType_eHost?"HOST":"SAGE" ));
+    }
 
     /* Initialize PidChannelToKeySlotNum matrices */
     for( i = 0; i < BCMD_TOTAL_PIDCHANNELS; i++ )
@@ -247,6 +250,7 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
         goto BHSM_P_DONE_LABEL;
     }
 
+
    #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(3,0)
     if( hHsm->currentSettings.clientType == BHSM_ClientType_eSAGE )
     {
@@ -277,7 +281,6 @@ BERR_Code BHSM_Open( BHSM_Handle            *hpHsm,
         goto BHSM_P_DONE_LABEL;
     }
 
-    BDBG_OBJECT_SET( hHsm, BHSM_P_Handle );
     *hpHsm = hHsm;
 
 BHSM_P_DONE_LABEL:
@@ -328,7 +331,6 @@ BERR_Code BHSM_Close( BHSM_Handle hHsm )
     #endif
 
     hHsm->bIsOpen = false;
-    hHsm->ulMagicNumber = 0; /* kill the magic */
 
     for( i=0; i < BHSM_MAX_KEYLSOTS; i++ )
     {

@@ -14,6 +14,7 @@ All rights reserved.
 #include "glxx_shader_cache.h"
 #include "glxx_draw.h"
 #include "glxx_ez.h"
+#include "glxx_tf.h"
 
 typedef struct {
    uint32_t color;
@@ -197,7 +198,9 @@ typedef struct glxx_hw_render_state
    GLXX_BLIT_T             tlb_blits[GLXX_RS_MAX_BLITS];
    unsigned                num_blits;
 
+#if !V3D_VER_AT_LEAST(3,3,0,0)
    bool                    workaround_gfxh_1313;
+#endif
 
    bool                    z_prepass_allowed;         // can enable z-prepass for this control list
    bool                    z_prepass_started;         // z-prepass function is now set, using z-prepass for at least some of this control list
@@ -205,21 +208,30 @@ typedef struct glxx_hw_render_state
    int8_t                  z_prepass_dir;
    unsigned                num_z_prepass_bins;
 
-   /* last occlusion query that was enabled on this rs and the instance for
-    * that query at the point when the query was enabled on this render state ;
-    * if query = NULL, occlusion query was disabled  on this rs */
-   struct
-   {
-      GLXX_QUERY_T *query;
-      uint64_t instance;
-   } last_occlusion_query;
+
+   /* last query of this type that was started on this rs and the instance for
+    * that query at the point when the query was started on this render state ;
+    * if query = NULL, there is no query of this type in progress on this rs */
+   glxx_instanced_query_t last_started_query[GLXX_Q_COUNT];
 
    /* If transform feedback is used in renderstate, we can no longer
     * discard fmem on clears.
     */
-   bool                    tf_used;
-   unsigned                tf_started_count;  // Number of transform feedbacks started
-   unsigned                tf_waited_count;   // Number of transform feedbacks waited for
+   struct
+   {
+      bool                    used;
+      /* tf started_count = number of 'Draw Flush and Count' control items +
+       * number of 'Prim Counts Feedback' control items.
+       * 'Prim Counts Feedback' control items that don't do any feedback
+       * do not count towards tf started count: i.e restore of TF buffer state
+       * or PCF when feedback address is zero; */
+      unsigned                started_count;
+      unsigned                waited_count;   // Number of transform feedbacks waited for
+
+      GLXX_TRANSFORM_FEEDBACK_T *last_used;
+      KHRN_RES_INTERLOCK_T *res_i;
+      bool enabled;
+   }tf;
 
    GLXX_EZ_STATE_T         ez;
 
@@ -228,6 +240,7 @@ typedef struct glxx_hw_render_state
    unsigned num_cl_records;        // num entries written to cl_records
    GLXX_CL_RECORD_T cl_records[GLXX_MAX_CL_RECORDS];
    bool do_multicore_bin;
+   bool has_tcs_barriers;
 } glxx_hw_render_state;
 
 #include "glxx_hw_render_state.inl"

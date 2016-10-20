@@ -85,94 +85,103 @@ static BERR_Code BAPE_Decoder_P_GetAc3Status(
     pStatus->codecStatus.ac3.channelMode = BAPE_Decoder_P_ChannelModeFromDsp(mode);
     pStatus->codecStatus.ac3.bitrate = pBitRateInfo->ui32BitRate/1024; /* FW reports in bps */
 
-    if ( !handle->passthrough )
+#define BAPE_GET_AC3_STATUS(h, _field) ((h)->passthrough?(h)->streamInfo.ddpPassthrough._field:(h)->streamInfo.ddp._field)
+
+    if ( handle->passthrough )
+    {
+        errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.ddpPassthrough, sizeof(handle->streamInfo.ddpPassthrough));
+    }
+    else
     {
         errCode = BDSP_Stage_GetStatus(handle->hPrimaryStage, &handle->streamInfo.ddp, sizeof(handle->streamInfo.ddp));
-        if ( errCode )
-        {
-            return errCode;
-        }
+    }
+    if ( errCode )
+    {
+        return errCode;
+    }
 
-        switch(handle->streamInfo.ddp.ui32SamplingFrequency)
-        {
-            case 0:
-                pStatus->codecStatus.ac3.samplingFrequency = 48000;
-                break;
-            case 1:
-                pStatus->codecStatus.ac3.samplingFrequency = 44100;
-                break;
-            case 2:
-                pStatus->codecStatus.ac3.samplingFrequency = 32000;
-                break;
-            default:
-                pStatus->codecStatus.ac3.samplingFrequency = 0;
-                break;
-        }
+    switch( BAPE_GET_AC3_STATUS(handle,ui32SamplingFrequency) )
+    {
+        case 0:
+            pStatus->codecStatus.ac3.samplingFrequency = 48000;
+            break;
+        case 1:
+            pStatus->codecStatus.ac3.samplingFrequency = 44100;
+            break;
+        case 2:
+            pStatus->codecStatus.ac3.samplingFrequency = 32000;
+            break;
+        default:
+            pStatus->codecStatus.ac3.samplingFrequency = 0;
+            break;
+    }
 
-        pStatus->codecStatus.ac3.bitstreamId = handle->streamInfo.ddp.ui32BitStreamIdentification;
-        /* This enum is defined to match the AC3 spec */
-        pStatus->codecStatus.ac3.bsmod = handle->streamInfo.ddp.ui32BsmodValue;
-        /* This enum is defined to match the AC3 spec */
-        switch ( handle->streamInfo.ddp.ui32DsurmodValue )
-        {
-        case 0:
-            pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eNotIndicated;
-            break;
-        case 1:
-            pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eNotEncoded;
-            break;
-        case 2:
-            pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eEncoded;
-            break;
-        default:
-            pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eReserved;
-            break;
-        }
-        /* This enum is defined to match the AC3 spec */
-        switch ( handle->streamInfo.ddp.ui32CmixLevel )
-        {
-        case 0:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e3;
-            break;
-        case 1:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e4_5;
-            break;
-        case 2:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e6;
-            break;
-        default:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_eReserved;
-            break;
-        }
-        /* This enum is defined to match the AC3 spec */
-        switch ( handle->streamInfo.ddp.ui32SurmixLevel )
-        {
-        case 0:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e3;
-            break;
-        case 1:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e6;
-            break;
-        case 2:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e0;
-            break;
-        default:
-            pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_eReserved;
-            break;
-        }
-        /* TODO: Doesn't this have the same race condition as acmod? */
-        pStatus->codecStatus.ac3.lfe = handle->streamInfo.ddp.ui32LfeOn?true:false;
-        pStatus->codecStatus.ac3.copyright = handle->streamInfo.ddp.ui32CopyrightBit?true:false;
-        pStatus->codecStatus.ac3.original = handle->streamInfo.ddp.ui32OriginalBitStream?true:false;
-        pStatus->codecStatus.ac3.frameSizeCode = handle->streamInfo.ddp.ui32FrmSizeCod;
+    pStatus->codecStatus.ac3.bitstreamId = BAPE_GET_AC3_STATUS(handle, ui32BitStreamIdentification);
+    /* This enum is defined to match the AC3 spec */
+    pStatus->codecStatus.ac3.bsmod = BAPE_GET_AC3_STATUS(handle, ui32BsmodValue);
+    /* This enum is defined to match the AC3 spec */
+    switch ( BAPE_GET_AC3_STATUS(handle, ui32DsurmodValue) )
+    {
+    case 0:
+        pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eNotIndicated;
+        break;
+    case 1:
+        pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eNotEncoded;
+        break;
+    case 2:
+        pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eEncoded;
+        break;
+    default:
+        pStatus->codecStatus.ac3.dolbySurround = BAPE_Ac3DolbySurround_eReserved;
+        break;
+    }
+    /* This enum is defined to match the AC3 spec */
+    switch ( BAPE_GET_AC3_STATUS(handle, ui32CmixLevel) )
+    {
+    case 0:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e3;
+        break;
+    case 1:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e4_5;
+        break;
+    case 2:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_e6;
+        break;
+    default:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3CenterMixLevel_eReserved;
+        break;
+    }
+    /* This enum is defined to match the AC3 spec */
+    switch ( BAPE_GET_AC3_STATUS(handle, ui32SurmixLevel) )
+    {
+    case 0:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e3;
+        break;
+    case 1:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e6;
+        break;
+    case 2:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_e0;
+        break;
+    default:
+        pStatus->codecStatus.ac3.centerMixLevel = BAPE_Ac3SurroundMixLevel_eReserved;
+        break;
+    }
+    /* TODO: Doesn't this have the same race condition as acmod? */
+    pStatus->codecStatus.ac3.lfe = BAPE_GET_AC3_STATUS(handle, ui32LfeOn)?true:false;
+    pStatus->codecStatus.ac3.copyright = BAPE_GET_AC3_STATUS(handle, ui32CopyrightBit)?true:false;
+    pStatus->codecStatus.ac3.original = BAPE_GET_AC3_STATUS(handle, ui32OriginalBitStream)?true:false;
+    pStatus->codecStatus.ac3.frameSizeCode = BAPE_GET_AC3_STATUS(handle, ui32FrmSizeCod);
+    if ( !handle->passthrough )
+    {
         pStatus->codecStatus.ac3.dependentFrameChannelMap = handle->streamInfo.ddp.ui32DepFrameChanmapMode;
         pStatus->codecStatus.ac3.dialnorm = handle->streamInfo.ddp.ui32CurrentDialNorm;
         pStatus->codecStatus.ac3.previousDialnorm = handle->streamInfo.ddp.ui32PreviousDialNorm;
         pStatus->codecStatus.ac3.bitrate = handle->streamInfo.ddp.ui32BitRate/1000;
-        pStatus->framesDecoded = handle->streamInfo.ddp.ui32TotalFramesDecoded;
-        pStatus->frameErrors = handle->streamInfo.ddp.ui32TotalFramesInError;
-        pStatus->dummyFrames = handle->streamInfo.ddp.ui32TotalFramesDummy;
     }
+    pStatus->framesDecoded = BAPE_GET_AC3_STATUS(handle, ui32TotalFramesDecoded);
+    pStatus->frameErrors = BAPE_GET_AC3_STATUS(handle, ui32TotalFramesInError);
+    pStatus->dummyFrames = BAPE_GET_AC3_STATUS(handle, ui32TotalFramesDummy);
 
     return BERR_SUCCESS;
 }
@@ -185,6 +194,7 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
     )
 {
     BERR_Code errCode;
+    unsigned i;
 
     pStatus->codecStatus.ac4.acmod = mode;  /* Use the value from the interrupt.  The streamInfo value is last decoded frame not last parsed. */
     pStatus->codecStatus.ac4.channelMode = BAPE_Decoder_P_ChannelModeFromDsp(mode);
@@ -228,6 +238,11 @@ static BERR_Code BAPE_Decoder_P_GetAc4Status(
         else
         {
             pStatus->codecStatus.ac4.numPresentations = handle->streamInfo.ac4.ui32NumPresentations;
+        }
+        BKNI_Memset(pStatus->codecStatus.ac4.currentPresentationId, 0, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
+        for ( i = 0; i < BAPE_AC4_PRESENTATION_ID_LENGTH; i++ )
+        {
+            pStatus->codecStatus.ac4.currentPresentationId[i] = (handle->streamInfo.ac4.i32ProgramIdentifier[i/sizeof(uint32_t)] >> (8*(4-((i+1)%4)))) & 0xff;
         }
         pStatus->codecStatus.ac4.currentPresentationIndex = handle->streamInfo.ac4.ui32DecodedPresentationIndex;
         pStatus->codecStatus.ac4.dialogEnhanceMax = handle->streamInfo.ac4.ui32DecodedPresentationMaxDialogGain;
@@ -273,10 +288,6 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
             return BERR_TRACE(BERR_INVALID_PARAMETER);
         }
 
-        #if 0
-        BKNI_Memcpy((void*)pInfo->info.ac4.name, (void*)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName, (BAPE_AC4_PRESENTATION_NAME_LENGTH/sizeof(uint32_t))*sizeof(uint32_t));
-        BKNI_Memcpy((void*)pInfo->info.ac4.language, (void*)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage, (BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH/sizeof(uint32_t))*sizeof(uint32_t));
-        #else
         {
             unsigned i;
             for (i=0; i<AC4_DEC_PRESENTATION_NAME_LENGTH/4; i++)
@@ -287,7 +298,7 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
                 pInfo->info.ac4.name[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i])&0xFF);
                 /*BDBG_ERR(("  name[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationName[i]));*/
             }
-            for (i=0; i<BAPE_AC4_PRESENTATION_LANGUAGE_NAME_LENGTH/4; i++)
+            for (i=0; i<BAPE_AC4_LANGUAGE_NAME_LENGTH/4; i++)
             {
                 pInfo->info.ac4.language[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>24)&0xFF);
                 pInfo->info.ac4.language[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]>>16)&0xFF);
@@ -295,12 +306,20 @@ BERR_Code BAPE_Decoder_P_GetAc4PresentationInfo(
                 pInfo->info.ac4.language[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i])&0xFF);
                 /*BDBG_ERR(("  language[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32MainLanguage[i]));*/
             }
+            for (i=0; i<BAPE_AC4_PRESENTATION_ID_LENGTH/4; i++)
+            {
+                pInfo->info.ac4.id[4*i]   = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>24)&0xFF);
+                pInfo->info.ac4.id[4*i+1] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>16)&0xFF);
+                pInfo->info.ac4.id[4*i+2] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]>>8)&0xFF);
+                pInfo->info.ac4.id[4*i+3] = (char)((handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i])&0xFF);
+                /*BDBG_ERR(("  id[%d]: %lu", i, (unsigned long)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].i32ProgramIdentifier[i]));*/
+            }
         }
-        #endif
-        pInfo->info.ac4.id = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationIndex;
+        pInfo->info.ac4.index = handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32PresentationIndex;
         pInfo->info.ac4.associateType = (BAPE_Ac4AssociateType)handle->streamInfo.ac4.AC4DECPresentationInfo[presentationIndex].ui32AssociateType;
         BDBG_MSG(("Presentation Info for idx %lu:", (unsigned long)presentationIndex));
-        BDBG_MSG(("  id: %lu", (unsigned long)pInfo->info.ac4.id));
+        BDBG_MSG(("  index: %lu", (unsigned long)pInfo->info.ac4.index));
+        BDBG_MSG(("  id: %s", pInfo->info.ac4.id));
         BDBG_MSG(("  assocType: %d", pInfo->info.ac4.associateType));
         BDBG_MSG(("  name: %s", pInfo->info.ac4.name));
         BDBG_MSG(("  language: %s", pInfo->info.ac4.language));
@@ -1379,6 +1398,7 @@ BERR_Code BAPE_Decoder_P_GetCodecStatus(BAPE_DecoderHandle handle, BAPE_DecoderS
     case BAVC_AudioCompressionStd_eOpus:
         return BAPE_Decoder_P_GetOpusStatus(handle, mode, &bitRateInfo, pStatus);
     case BAVC_AudioCompressionStd_eAls:
+    case BAVC_AudioCompressionStd_eAlsLoas:
         return BAPE_Decoder_P_GetAlsStatus(handle, mode, &bitRateInfo, pStatus);
     default:
         return BERR_SUCCESS;

@@ -294,7 +294,7 @@ int main(
                             strncpy( temp_str, pos_dnr0, len );      /* save the dnr string values */
                             strncpy( pos_dnr0+0, "tntd_0\",\"", 9 ); /* copy the tntd_0 string to before dnr_0 */
                             strncpy( pos_dnr0+9, temp_str, len );    /* copy the original dnr_0 strings to AFTER tntd_0 string */
-                            free( temp_str );
+                            Bsysperf_Free( temp_str );
                         }
                     }
                 }
@@ -320,7 +320,7 @@ int main(
                             strncat( bvnview_addrs, &bvnview_addrs_2_f[0], len - strlen( bvnview_addrs ));
                             strncat( bvnview_addrs, &bvnview_addrs_3_f[0], len - strlen( bvnview_addrs ));
                             printf( "<bvnview_addrs>%s</bvnview_addrs>", bvnview_addrs );
-                            free( bvnview_addrs );
+                            Bsysperf_Free( bvnview_addrs );
                         }
                         else
                         {
@@ -338,7 +338,7 @@ int main(
 
                 printf( "</u:GetRegisterCollectionWithElmErrsResponse></s:Body></s:Envelope>" );
             }
-            if (xml_contents) {free( xml_contents ); }
+            Bsysperf_Free( xml_contents );
         }
     }
 

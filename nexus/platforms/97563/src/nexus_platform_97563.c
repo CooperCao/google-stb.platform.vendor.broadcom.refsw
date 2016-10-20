@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2010-2015 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,15 +34,6 @@
 *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
-*
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
-* Revision History:
-*
-* $brcm_Log: $
-*
 ***************************************************************************/
 #include "nexus_platform_priv.h"
 #include "bchp_common.h"
@@ -85,13 +76,7 @@ void NEXUS_Platform_P_SetSpecificOps(struct NEXUS_PlatformSpecificOps *pOps)
 
 void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings, unsigned boxMode)
 {
-    BCHP_MemoryInfo memInfo;
-
-    BCHP_GetMemoryInfo(g_pPreInitState->hReg, &memInfo);
-
     BSTD_UNUSED(boxMode);
-
-    BDBG_WRN(("Nexus built for 97563%s platform with %dMB RAM",NEXUS_PLATFORM_STRING, memInfo.memc[0].size / MB ));
 
     /* bmem=192M@64M for 256MB platforms or bmem=100M@28M for 128MB platforms which both use only one heap. */
     /* bmem=192M@64M bmem=192M@512M for the boards with 512 MB or more of memory. */
@@ -108,7 +93,7 @@ void NEXUS_Platform_P_GetPlatformHeapSettings(NEXUS_PlatformSettings *pSettings,
         pSettings->heap[NEXUS_VIDEO_SECURE_HEAP].memoryType = NEXUS_MemoryType_eSecure;
     }
 
-    if (memInfo.memc[0].size > 256*MB) {
+    if (g_platformMemory.memoryLayout.memc[0].size > 256*MB) {
 
         pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].memcIndex = 0;
         pSettings->heap[NEXUS_MEMC0_PICTURE_BUFFER_HEAP].subIndex = 1;

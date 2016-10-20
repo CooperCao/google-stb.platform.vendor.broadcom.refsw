@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Fri Jul 15 16:01:43 2016
- *                 Full Compile MD5 Checksum  a61c3e77c3e4762495be1e815ba7b1be
+ * Date:           Generated on               Mon Sep 12 16:51:55 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               ebfb721f4d0dacb1abc72ab93bc4f8f3
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,40 +70,40 @@
 /***************************************************************************
  *DVI_DTG_0 - DVI Frontend Timing Control 0
  ***************************************************************************/
-#define BCHP_DVI_DTG_0_DTG_REV_ID                0x206e6000 /* [RO] Revision ID register */
-#define BCHP_DVI_DTG_0_DTG_DATA_CTRL             0x206e6004 /* [RW] DTG BVB data type */
-#define BCHP_DVI_DTG_0_DTG_CONFIG                0x206e6008 /* [RW] DTG Configuration Register */
-#define BCHP_DVI_DTG_0_CCIR_PCL                  0x206e6010 /* [RW] PCL Registers for CCIR control singals */
-#define BCHP_DVI_DTG_0_DVI_PCL                   0x206e6014 /* [RW] PCL Registers for DVI control signals */
-#define BCHP_DVI_DTG_0_CNTL_PCL                  0x206e6018 /* [RW] PCL Registers for Misc. control singals */
-#define BCHP_DVI_DTG_0_RAM_ADDR                  0x206e601c /* [RW] DTG Starting Address Register */
-#define BCHP_DVI_DTG_0_DTG_BVB_SIZE              0x206e6020 /* [RW] BVB Size Register. */
-#define BCHP_DVI_DTG_0_DTG_BVB_RSTATUS           0x206e6024 /* [RO] BVB status read Register. */
-#define BCHP_DVI_DTG_0_DTG_BVB_CSTATUS           0x206e6028 /* [WO] BVB status clear Register. */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_0             0x206e602c /* [RW] DTG Trigger Register 0 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_1             0x206e6030 /* [RW] DTG Trigger Register 1 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_2             0x206e6034 /* [RW] DTG Trigger Register 2 */
-#define BCHP_DVI_DTG_0_DTG_TRIGGER_3             0x206e6038 /* [RW] DTG Trigger Register 3 */
-#define BCHP_DVI_DTG_0_DTG_CTRL_STAT             0x206e603c /* [RO] DTG Control Bus Status Register */
-#define BCHP_DVI_DTG_0_DTG_MSYNC_CTRL            0x206e6040 /* [RW] Master Sync Control */
-#define BCHP_DVI_DTG_0_DTG_SSYNC_CTRL            0x206e6044 /* [RW] Slave Sync Control */
-#define BCHP_DVI_DTG_0_DTG_MS_TIMEOUT            0x206e6048 /* [RW] Master Slave Time Out register */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_START          0x206e604c /* [RW] Master Slave Sync Start */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_PCL            0x206e6050 /* [RW] Master Slave flag select PCL */
-#define BCHP_DVI_DTG_0_DTG_MSYNC_PHASE           0x206e6054 /* [RW] Master Sync Phase */
-#define BCHP_DVI_DTG_0_DTG_EOF0_LINE             0x206e6058 /* [RW] Field0 End line number for interlaced format */
-#define BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         0x206e605c /* [RO] "Status register for MSSYNC" */
-#define BCHP_DVI_DTG_0_DTG_AS_CONTROL            0x206e60f0 /* [RW] Active Space Control register */
-#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C0_C1        0x206e60f4 /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C2           0x206e60f8 /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_DTG_AS_LINE_NUMBER        0x206e60fc /* [RW] Active Space Pixel Value Register */
-#define BCHP_DVI_DTG_0_PARAM_PROG_DONE           0x206e6150 /* [RW] Parameter Programming Done Register */
-#define BCHP_DVI_DTG_0_MC_FRM_BOUNDARY           0x206e6154 /* [RW] DTG Param Load Register */
-#define BCHP_DVI_DTG_0_DTG_LCNTR                 0x206e6170 /* [RO] DTG Line Counter Register */
-#define BCHP_DVI_DTG_0_DTG_L_CTRL                0x206e6174 /* [RW] DTG 3D L Control register */
-#define BCHP_DVI_DTG_0_DTG_R_CTRL                0x206e6178 /* [RW] DTG 3D R Control register */
-#define BCHP_DVI_DTG_0_DTG_HW_CONFIGURATION      0x206e617c /* [RO] Hardware Configuration Register */
-#define BCHP_DVI_DTG_0_DTRAM_CONFIG              0x206e6180 /* [RW] DTRAM Configuration Register */
+#define BCHP_DVI_DTG_0_DTG_REV_ID                0x206e6000 /* [RO][32] Revision ID register */
+#define BCHP_DVI_DTG_0_DTG_DATA_CTRL             0x206e6004 /* [RW][32] DTG BVB data type */
+#define BCHP_DVI_DTG_0_DTG_CONFIG                0x206e6008 /* [RW][32] DTG Configuration Register */
+#define BCHP_DVI_DTG_0_CCIR_PCL                  0x206e6010 /* [RW][32] PCL Registers for CCIR control singals */
+#define BCHP_DVI_DTG_0_DVI_PCL                   0x206e6014 /* [RW][32] PCL Registers for DVI control signals */
+#define BCHP_DVI_DTG_0_CNTL_PCL                  0x206e6018 /* [RW][32] PCL Registers for Misc. control singals */
+#define BCHP_DVI_DTG_0_RAM_ADDR                  0x206e601c /* [RW][32] DTG Starting Address Register */
+#define BCHP_DVI_DTG_0_DTG_BVB_SIZE              0x206e6020 /* [RW][32] BVB Size Register. */
+#define BCHP_DVI_DTG_0_DTG_BVB_RSTATUS           0x206e6024 /* [RO][32] BVB status read Register. */
+#define BCHP_DVI_DTG_0_DTG_BVB_CSTATUS           0x206e6028 /* [WO][32] BVB status clear Register. */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_0             0x206e602c /* [RW][32] DTG Trigger Register 0 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_1             0x206e6030 /* [RW][32] DTG Trigger Register 1 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_2             0x206e6034 /* [RW][32] DTG Trigger Register 2 */
+#define BCHP_DVI_DTG_0_DTG_TRIGGER_3             0x206e6038 /* [RW][32] DTG Trigger Register 3 */
+#define BCHP_DVI_DTG_0_DTG_CTRL_STAT             0x206e603c /* [RO][32] DTG Control Bus Status Register */
+#define BCHP_DVI_DTG_0_DTG_MSYNC_CTRL            0x206e6040 /* [RW][32] Master Sync Control */
+#define BCHP_DVI_DTG_0_DTG_SSYNC_CTRL            0x206e6044 /* [RW][32] Slave Sync Control */
+#define BCHP_DVI_DTG_0_DTG_MS_TIMEOUT            0x206e6048 /* [RW][32] Master Slave Time Out register */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_START          0x206e604c /* [RW][32] Master Slave Sync Start */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_PCL            0x206e6050 /* [RW][32] Master Slave flag select PCL */
+#define BCHP_DVI_DTG_0_DTG_MSYNC_PHASE           0x206e6054 /* [RW][32] Master Sync Phase */
+#define BCHP_DVI_DTG_0_DTG_EOF0_LINE             0x206e6058 /* [RW][32] Field0 End line number for interlaced format */
+#define BCHP_DVI_DTG_0_DTG_MSSYNC_STATUS         0x206e605c /* [RO][32] "Status register for MSSYNC" */
+#define BCHP_DVI_DTG_0_DTG_AS_CONTROL            0x206e60f0 /* [RW][32] Active Space Control register */
+#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C0_C1        0x206e60f4 /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_DTG_AS_PIXEL_C2           0x206e60f8 /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_DTG_AS_LINE_NUMBER        0x206e60fc /* [RW][32] Active Space Pixel Value Register */
+#define BCHP_DVI_DTG_0_PARAM_PROG_DONE           0x206e6150 /* [RW][32] Parameter Programming Done Register */
+#define BCHP_DVI_DTG_0_MC_FRM_BOUNDARY           0x206e6154 /* [RW][32] DTG Param Load Register */
+#define BCHP_DVI_DTG_0_DTG_LCNTR                 0x206e6170 /* [RO][32] DTG Line Counter Register */
+#define BCHP_DVI_DTG_0_DTG_L_CTRL                0x206e6174 /* [RW][32] DTG 3D L Control register */
+#define BCHP_DVI_DTG_0_DTG_R_CTRL                0x206e6178 /* [RW][32] DTG 3D R Control register */
+#define BCHP_DVI_DTG_0_DTG_HW_CONFIGURATION      0x206e617c /* [RO][32] Hardware Configuration Register */
+#define BCHP_DVI_DTG_0_DTRAM_CONFIG              0x206e6180 /* [RW][32] DTRAM Configuration Register */
 
 /***************************************************************************
  *DTG_REV_ID - Revision ID register

@@ -39,12 +39,11 @@
 #include "bkni.h"                 /* memcpy calls */
 #include "bvdc.h"                 /* Video display */
 #include "bvdc_priv.h"
-#include "bvdc_mad_priv.h"
 #include "bvdc_window_priv.h"
 #include "bvdc_source_priv.h"
+#include "bvdc_mcvp_priv.h"
 #include "bvdc_compositor_priv.h"
 #include "bvdc_gfxfeeder_priv.h"  /* for blend factor validation */
-#include "bvdc_hist_priv.h"
 #include "bvdc_csc_priv.h"
 #include "bvdc_tnt_priv.h"
 #include "bvdc_feeder_priv.h"
@@ -144,7 +143,6 @@ BERR_Code BVDC_Window_Create
     BVDC_Window_Handle hWindow;
 #if (BVDC_P_CHECK_MEMC_INDEX)
     uint32_t    ulMemcIndex = BBOX_VDC_DISREGARD;
-    BCHP_MemoryInfo  stMemoryInfo;
     BBOX_Vdc_MemcIndexSettings  *pVdcMemcSettings = NULL;
 #endif
     BERR_Code eRet = BERR_SUCCESS;
@@ -306,7 +304,6 @@ BERR_Code BVDC_Window_Create
 
 #if (BVDC_P_CHECK_MEMC_INDEX)
         pVdcMemcSettings = &hCompositor->hVdc->stBoxConfig.stMemConfig.stVdcMemcIndex;
-        BCHP_GetMemoryInfo(hCompositor->hVdc->hRegister, &stMemoryInfo);
 
         /* Check capture heap */
         ulMemcIndex = pVdcMemcSettings->astDisplay[hCompositor->hDisplay->eId].aulVidWinCapMemcIndex[ulWinIdex];
@@ -315,7 +312,7 @@ BERR_Code BVDC_Window_Create
             /* Checking assumes memory is continous, possible problem when there is
              * hole in memory address. Disable the checking till we have correction
              * information from BCHP. */
-            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hCapHeap, &stMemoryInfo,
+            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hCapHeap,
                 ulMemcIndex, hCompositor->hDisplay->eId, ulWinIdex);
             if (BERR_SUCCESS != eRet)
             {
@@ -327,7 +324,7 @@ BERR_Code BVDC_Window_Create
         ulMemcIndex = pVdcMemcSettings->astDisplay[hCompositor->hDisplay->eId].aulVidWinMadMemcIndex[ulWinIdex];
         if(ulMemcIndex != BBOX_MemcIndex_Invalid)
         {
-            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hDeinterlacerHeap, &stMemoryInfo,
+            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hDeinterlacerHeap,
                 ulMemcIndex, hCompositor->hDisplay->eId, ulWinIdex);
             if (BERR_SUCCESS != eRet)
             {
@@ -359,7 +356,6 @@ BERR_Code BVDC_Window_Create
 
 #if (BVDC_P_CHECK_MEMC_INDEX)
         pVdcMemcSettings = &hCompositor->hVdc->stBoxConfig.stMemConfig.stVdcMemcIndex;
-        BCHP_GetMemoryInfo(hCompositor->hVdc->hRegister, &stMemoryInfo);
         ulGfxWinMemcIndex = ulWinIdex - BVDC_P_WindowId_eComp0_G0;
 
         /* Check capture heap */
@@ -369,7 +365,7 @@ BERR_Code BVDC_Window_Create
             /* Checking assumes memory is continous, possible problem when there is
              * hole in memory address. Disable the checking till we have correction
              * information from BCHP. */
-            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hCapHeap, &stMemoryInfo,
+            eRet = BVDC_P_BufferHeap_CheckHeapMemcIndex(hWindow->hCapHeap,
                 ulMemcIndex, hCompositor->hDisplay->eId, ulWinIdex);
             if (BERR_SUCCESS != eRet)
             {
@@ -420,12 +416,12 @@ BERR_Code BVDC_Window_Create
         /* Allocate drain buffer from window heap */
         if(hWindow->stSettings.ulMaxMosaicRect)
         {
-            hWindow->ulNullBufOffset = pDefSettings->hHeap->ulMosaicDrainOffset;
+            hWindow->ullNullBufOffset = pDefSettings->hHeap->ullMosaicDrainOffset;
         }
         else
         {
             hWindow->hMosaicMmaBlock = NULL;
-            hWindow->ulNullBufOffset = 0;
+            hWindow->ullNullBufOffset = 0;
         }
     }
     else
@@ -433,7 +429,7 @@ BERR_Code BVDC_Window_Create
         /* Use the drain buffer from VDC main heap. Set pvNullBufAddr to NULL
          * so it will not be free in BVDC_Window_Destroy */
         hWindow->hMosaicMmaBlock = NULL;
-        hWindow->ulNullBufOffset = hCompositor->hVdc->ulVdcNullBufOffset;
+        hWindow->ullNullBufOffset = hCompositor->hVdc->ullVdcNullBufOffset;
     }
 #endif
 
@@ -727,16 +723,6 @@ BERR_Code BVDC_Window_SetDstRect
             hWindow->eId, ulWidth, ulHeight));
     }
 
-    /* 4:2:2 BVB round down the pixel position and width to even number */
-    if((BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) &&
-       ((lLeft & 1) || (ulWidth & 1))))
-    {
-        BDBG_MSG(("left=%d, width=%u; to round down to even pixels:", lLeft, ulWidth));
-        lLeft   = BVDC_P_ALIGN_DN(lLeft, 2);
-        ulWidth = BVDC_P_ALIGN_DN(ulWidth, 2);
-        BDBG_MSG(("left=%d, width=%u now!", lLeft, ulWidth));
-    }
-
     /* set new value */
     hWindow->stNewInfo.stDstRect.lLeft    = lLeft;
     hWindow->stNewInfo.stDstRect.lTop     = lTop;
@@ -810,14 +796,12 @@ BERR_Code BVDC_Window_SetScalerOutput
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-    /* 4:2:2 BVB round down the pixel position and width to even number */
-    if((BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) &&
-       ((ulLeft & 1) || (ulWidth & 1))))
+    /* 4:2:2 BVB round up the width to even number */
+    if(BVDC_P_WIN_IS_VIDEO_WINDOW(hWindow->eId) && (ulWidth & 1))
     {
-        BDBG_MSG(("left=%d, width=%u; to round down to even pixels:", ulLeft, ulWidth));
-        ulLeft  = BVDC_P_ALIGN_DN(ulLeft, 2);
-        ulWidth = BVDC_P_ALIGN_DN(ulWidth, 2);
-        BDBG_MSG(("left=%d, width=%u now!", ulLeft, ulWidth));
+        BDBG_MSG(("width=%u; to round up to even pixels:", ulWidth));
+        ulWidth = BVDC_P_ALIGN_UP(ulWidth, 2);
+        BDBG_MSG((" width=%u now!", ulWidth));
     }
 
     if((ulWidth < BVDC_P_WIN_DST_OUTPUT_H_MIN) ||(ulHeight < BVDC_P_WIN_DST_OUTPUT_V_MIN))
@@ -1100,17 +1084,6 @@ BERR_Code BVDC_Window_SetDeinterlaceConfiguration
     BDBG_ENTER(BVDC_Window_SetDeinterlaceConfiguration);
     BDBG_OBJECT_ASSERT(hWindow, BVDC_WIN);
 
-#if (!(BVDC_P_SUPPORT_MAD || BVDC_P_SUPPORT_MCVP))
-    BSTD_UNUSED(pMadSettings);
-
-    if(bDeinterlace)
-    {
-        BDBG_ERR(("This chipset doesn't support deinterlace!"));
-        return BERR_TRACE(BVDC_ERR_MAD_NOT_SUPPORTED);
-    }
-
-#endif
-
     pNewMad = &hWindow->stNewInfo.stMadSettings;
     pCurMad = &hWindow->stCurInfo.stMadSettings;
 
@@ -1120,13 +1093,6 @@ BERR_Code BVDC_Window_SetDeinterlaceConfiguration
     if(bDeinterlace && pMadSettings)
     {
         eResult = BVDC_P_Window_SetMcvp_DeinterlaceConfiguration(hWindow, bDeinterlace, pMadSettings);
-        if(eResult != BERR_SUCCESS)
-        {
-            return BERR_TRACE(BERR_NOT_SUPPORTED);
-        }
-
-        /*Mad: validate game mode */
-        eResult = BVDC_P_Window_SetMad_DeinterlaceConfiguration(hWindow, bDeinterlace, pMadSettings);
         if(eResult != BERR_SUCCESS)
         {
             return BERR_TRACE(BERR_NOT_SUPPORTED);
@@ -1185,7 +1151,7 @@ BERR_Code BVDC_Window_SetDeinterlaceConfiguration
         }
         else
         {
-            BVDC_P_Mad_Init_Custom(&pNewMad->stUpSampler, NULL, NULL);
+            BVDC_P_Mvp_Init_Custom(&pNewMad->stUpSampler, NULL, NULL);
         }
         if(pMadSettings->pDnSampler)
         {
@@ -1193,7 +1159,7 @@ BERR_Code BVDC_Window_SetDeinterlaceConfiguration
         }
         else
         {
-            BVDC_P_Mad_Init_Custom(NULL, &pNewMad->stDnSampler, NULL);
+            BVDC_P_Mvp_Init_Custom(NULL, &pNewMad->stDnSampler, NULL);
         }
 
         /* low angles setting */
@@ -1203,7 +1169,7 @@ BERR_Code BVDC_Window_SetDeinterlaceConfiguration
         }
         else
         {
-            BVDC_P_Mad_Init_Custom(NULL, NULL, &pNewMad->stLowAngles);
+            BVDC_P_Mvp_Init_Custom(NULL, NULL, &pNewMad->stLowAngles);
         }
     }
 
@@ -1325,30 +1291,20 @@ BERR_Code BVDC_Window_GetDeinterlaceDefaultConfiguration
     BSTD_UNUSED(hWindow);
 
     /* Get static default */
-    BVDC_P_Mad_Init_Default(
+    BVDC_P_Mvp_Init_Default(
         &pMadSettings->eGameMode,
         &pMadSettings->ePxlFormat,
         &pMadSettings->ePqEnhancement,
         &pMadSettings->bShrinkWidth,
         &pMadSettings->bReverse32Pulldown,
-         pMadSettings->pReverse32Settings,
         &pMadSettings->bReverse22Pulldown,
-         pMadSettings->pReverse22Settings,
          pMadSettings->pChromaSettings,
          pMadSettings->pMotionSettings);
 
-    BVDC_P_Mad_Init_Custom(
+    BVDC_P_Mvp_Init_Custom(
         pMadSettings->pUpSampler,
         pMadSettings->pDnSampler,
         pMadSettings->pLowAngles);
-
-#if BVDC_P_SUPPORT_MAD
-    /* Get dynamic default */
-    BVDC_P_Mad_Init_DynamicDefault(hWindow,
-        pMadSettings->pReverse32Settings,
-        pMadSettings->pReverse22Settings,
-        pMadSettings->pChromaSettings);
-#endif
 
     BDBG_LEAVE(BVDC_Window_GetDeinterlaceDefaultConfiguration);
     return BERR_SUCCESS;
@@ -3301,25 +3257,6 @@ BERR_Code BVDC_Window_SetPixelFormat
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
-#if (!BVDC_P_MFD_SUPPORT_BYTE_ORDER)
-#if (BSTD_CPU_ENDIAN == BSTD_ENDIAN_LITTLE)
-    if ((ePixelFormat == BPXL_eY08_Cr8_Y18_Cb8) ||
-        (ePixelFormat == BPXL_eCr8_Y08_Cb8_Y18) ||
-        (ePixelFormat == BPXL_eY08_Cb8_Y18_Cr8) ||
-        (ePixelFormat == BPXL_eCb8_Y08_Cr8_Y18))
-#else
-    if ((ePixelFormat == BPXL_eCb8_Y18_Cr8_Y08) ||
-        (ePixelFormat == BPXL_eY18_Cb8_Y08_Cr8) ||
-        (ePixelFormat == BPXL_eCr8_Y18_Cb8_Y08) ||
-        (ePixelFormat == BPXL_eY18_Cr8_Y08_Cb8))
-#endif
-    {
-        BDBG_WRN(("Pixel format %s is not supported by Video feeders",
-            BPXL_ConvertFmtToStr(ePixelFormat)));
-        BDBG_WRN(("Video display has wrong color, data in capture buffer is correct"));
-    }
-#endif
-
     hWindow->stNewInfo.ePixelFormat = ePixelFormat;
 
     if(ePixelFormat != hWindow->stCurInfo.ePixelFormat)
@@ -3385,7 +3322,6 @@ BERR_Code BVDC_Window_GetBuffer
             /* Store surface in picture node */
             stCaptPic.pPicture->pSurface = &pCapturedImage->captureBuffer;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
             if(stCaptPic.hPicBlock_R)
             {
                 BPXL_Plane_Init(&pCapturedImage->rCaptureBuffer, stCaptPic.ulWidth, stCaptPic.ulHeight, stCaptPic.ePxlFmt);
@@ -3398,7 +3334,6 @@ BERR_Code BVDC_Window_GetBuffer
                 pCapturedImage->eOutOrientation = stCaptPic.eDispOrientation;
             }
             else
-#endif
             {
                 pCapturedImage->rCaptureBuffer.hPixels = NULL;
             }
@@ -3447,7 +3382,6 @@ BERR_Code BVDC_Window_ReturnBuffer
         pCapturedImage->captureBuffer.hPixels = NULL;
     }
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     if(pCapturedImage->rCaptureBuffer.hPixels)
     {
         BKNI_EnterCriticalSection();
@@ -3463,7 +3397,6 @@ BERR_Code BVDC_Window_ReturnBuffer
             pCapturedImage->rCaptureBuffer.hPixels = NULL;
         }
     }
-#endif
 
     BDBG_LEAVE(BVDC_Window_ReturnBuffer);
     return BERR_SUCCESS;
@@ -4245,19 +4178,12 @@ void BVDC_Window_GetCores
                 uint32_t ulMad = (pBoxVdcResource->ulMad == BBOX_VDC_DISREGARD)
                     ? pResourceFeature->ulMad : pBoxVdcResource->ulMad;
 
-#if (BVDC_P_SUPPORT_MAD)
-                eType = BVDC_P_ResourceType_eMad;
-#endif
-#if (BVDC_P_SUPPORT_MCVP)
                 eType = BVDC_P_ResourceType_eMcvp;
-#endif
                 BVDC_P_Resource_GetResourceId(eType, ulMad, &ulResId);
 
                 if (ulResId != BVDC_P_HW_ID_INVALID)
                 {
-#if (BVDC_P_SUPPORT_MAD)
-                    pCoreList->aeCores[BAVC_CoreId_eMAD_0 + ulResId] = true;
-#elif (BVDC_P_SUPPORT_MCVP > BVDC_P_SUPPORT_MADR)
+#if (BVDC_P_SUPPORT_MCVP > BVDC_P_SUPPORT_MADR)
                     /* Has MCDI */
                     pCoreList->aeCores[BAVC_CoreId_eMVP_0 + ulResId] = true;
 #else

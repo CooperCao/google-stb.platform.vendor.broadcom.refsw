@@ -170,6 +170,9 @@ void UserAppDmon::run()
         case UAPPD_MSG_FILE_READ:
             ufileReadProc(pHdr);
             break;
+        case UAPPD_MSG_UAPP_COREDUMP:
+            uappCoreDumpProc(pHdr);
+            break;
         default:
             LOGW("Unknown uappd msg %d", pHdr->ucType);
         }

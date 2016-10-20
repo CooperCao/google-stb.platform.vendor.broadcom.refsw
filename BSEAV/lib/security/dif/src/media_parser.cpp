@@ -268,7 +268,7 @@ bool MediaParser::SetDrmSchemes(uint8_t index)
     }
 }
 
-void* MediaParser::GetFragmentData(mp4_parse_frag_info &fragInfo, uint8_t *pPayload, size_t &decoderLength)
+void* MediaParser::GetFragmentData(mp4_parse_frag_info &fragInfo, uint8_t *pPayload, uint32_t &decoderLength)
 {
     if(feof(m_filePtr)){
         LOGW(("Reached EOF"));

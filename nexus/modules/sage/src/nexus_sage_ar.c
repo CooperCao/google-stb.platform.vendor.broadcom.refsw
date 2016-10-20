@@ -80,7 +80,6 @@ struct sageARInfo {
 static struct sageARInfo *lHandle;
 
 #define SAGERESPONSE_TIMEOUT 5000 /* in ms */
-#define SAGERESPONSE_TOGGLE_TIMEOUT 20000 /* in ms */
 
 NEXUS_SageMemoryBlock ar_ta;         /* raw ta binary in memory */
 
@@ -166,7 +165,7 @@ done:
     return rc;
 }
 
-void NEXUS_Sage_P_ARUninit()
+void NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyMode standbyMode)
 {
     NEXUS_Error rc;
     BDBG_ASSERT(lHandle);
@@ -194,9 +193,13 @@ void NEXUS_Sage_P_ARUninit()
     /* Close System Crit Platform */
     if(lHandle->hSysCritPlatformHandle)
     {
-        BSAGElib_Rai_Platform_Close(lHandle->hSysCritPlatformHandle, &lHandle->uiLastAsyncId);
-        /* During S3 transtion Sys Crit needs to closed for clean up but SAGE cannont close Sys Crit. Hence SAGE command is not sent for this case */
-        /*NEXUS_Sage_AR_P_WaitForSage(SAGERESPONSE_TIMEOUT);*/
+        /* For S3 transition, we can't close the platform, but we need to "clean resources" */
+        /* "BSAGElib_Rpc_RemoveRemote" w/o a matching BSAGElib_Rai_Platform_Close will accomplish this */
+        if(standbyMode!=BSAGElib_eStandbyModeDeepSleep)
+        {
+            BSAGElib_Rai_Platform_Close(lHandle->hSysCritPlatformHandle, &lHandle->uiLastAsyncId);
+            NEXUS_Sage_AR_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        }
         BSAGElib_Rpc_RemoveRemote(lHandle->hSysCritPlatformHandle);
         lHandle->hSysCritPlatformHandle=NULL;
     }
@@ -255,6 +258,74 @@ void NEXUS_Sage_P_ARUninit()
     lHandle=NULL;
 }
 
+NEXUS_Error NEXUS_Sage_P_SystemCritRestartCheck(
+    void *pSettings)
+{
+    BSAGElib_RpcRemoteHandle RpcModuleHandle;
+    uint8_t *pMem=NULL;
+    BERR_Code rc;
+    BSAGElib_BootSettings *pBootSettings=(BSAGElib_BootSettings *)pSettings;
+
+    BDBG_ASSERT(pBootSettings);
+
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
+
+    lHandle->sageContainer->basicIn[1]=FrameworkModule_CommandId_eHostRestartVerify;
+
+    lHandle->sageContainer->blocks[0].len=pBootSettings->regionMapNum * sizeof(*pBootSettings->pRegionMap);
+    pMem = BSAGElib_Rai_Memory_Allocate(lHandle->sagelibClientHandle, lHandle->sageContainer->blocks[0].len, BSAGElib_MemoryType_Global);
+    BKNI_Memcpy(pMem, pBootSettings->pRegionMap, lHandle->sageContainer->blocks[0].len);
+    lHandle->sageContainer->blocks[0].data.ptr=pMem;
+
+    rc = BSAGElib_Rai_Module_Init(lHandle->hSysCritPlatformHandle, SystemCrit_ModuleId_eFramework,
+                                lHandle->sageContainer, &RpcModuleHandle,  /*out */
+                                (void *) lHandle, &lHandle->uiLastAsyncId /*out */);
+    if (rc != BERR_SUCCESS)
+    {
+        BDBG_ERR(("Error initializing framework module, error [0x%x] '%s'",
+                    rc, BSAGElib_Tools_ReturnCodeToString(rc)));
+        BERR_TRACE(rc);
+        /* Handle will still be valid even if init failed.. clear handle since cleanup will
+        * not know if uninit will need to be called or not */
+        BSAGElib_Rpc_RemoveRemote(RpcModuleHandle);
+        RpcModuleHandle=NULL;
+        goto EXIT;
+    }
+
+    /* wait for sage response */
+    rc = NEXUS_Sage_AR_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+    if(rc!=BERR_SUCCESS)
+    {
+        goto EXIT;
+    }
+
+    rc=lHandle->sageContainer->basicOut[0];
+
+    if(rc==BERR_LEAKED_RESOURCE)
+    {
+        BDBG_ERR(("Region info has CHANGED since SAGE was booted... SYSTEM CANNOT BE USED!"));
+    }
+
+EXIT:
+    if(RpcModuleHandle)
+    {
+        if(rc==BERR_SUCCESS)
+        {
+            /* Only un-init if the init was succesfull */
+            BSAGElib_Rai_Module_Uninit(RpcModuleHandle, &lHandle->uiLastAsyncId);
+            NEXUS_Sage_AR_P_WaitForSage(SAGERESPONSE_TIMEOUT);
+        }
+        BSAGElib_Rpc_RemoveRemote(RpcModuleHandle);
+    }
+
+    if(pMem)
+    {
+        BSAGElib_Rai_Memory_Free(lHandle->sagelibClientHandle, pMem);
+    }
+
+    return rc;
+}
+
 /* Some of the init needs to be delayed until SAGE is running */
 /* TODO: Move some of this (platform open/init, module open/init, into
 * more generic functions that can be used across nexus */
@@ -274,7 +345,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
         {"AR TA", SAGE_IMAGE_FirmwareID_eSage_TA_AR, NULL};
 
     if(lHandle){
-        NEXUS_Sage_P_ARUninit();
+        NEXUS_Sage_P_ARUninit(BSAGElib_eStandbyModeOn);
     }
 
     lHandle=BKNI_Malloc(sizeof(*lHandle));
@@ -310,7 +381,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
     ar_ta.len = 0;
     arTAImg.raw = &ar_ta;
 
-    /* Load SAGE bootloader into memory */
+    /* Load AR TA into memory */
     rc = NEXUS_SageModule_P_Load(&arTAImg, &img_interface, img_context);
     if(rc != NEXUS_SUCCESS) {
         BDBG_WRN(("%s - Cannot Load IMG %s ", __FUNCTION__, arTAImg.name));
@@ -348,8 +419,8 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
         goto EXIT;
     }
 
-
     /* Open AR platform */
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     rc = BSAGElib_Rai_Platform_Open(lHandle->sagelibClientHandle, BSAGE_PLATFORM_ID_ANTIROLLBACK,
                     lHandle->sageContainer, &lHandle->hSagelibRpcPlatformHandle,
                     (void *)lHandle, &lHandle->uiLastAsyncId);
@@ -389,6 +460,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
     }
 
     /* Initialize platform */
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     rc = BSAGElib_Rai_Platform_Init(lHandle->hSagelibRpcPlatformHandle, lHandle->sageContainer, &lHandle->uiLastAsyncId);
     if (rc != BERR_SUCCESS)
     {
@@ -419,6 +491,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
         goto EXIT;
     }
 
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     lHandle->sageContainer->blocks[0].data.ptr = pDmaMemoryPool;
     lHandle->sageContainer->blocks[0].len = size;
 
@@ -444,8 +517,7 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
         if(rc == BSAGE_ERR_PLATFORM_ID)
         {
             /* Note warning, but don't return error (i.e. allow nexus to continue) */
-            /* System will run w/ no secure buffers */
-            BDBG_WRN(("AR will not be possible"));
+            BDBG_WRN(("Standby will not be possible"));
         }
         /* Handle will still be valid even if open failed.. clear handle since cleanup will
                 * not know if close will need to be called or not */
@@ -483,10 +555,10 @@ NEXUS_Error NEXUS_Sage_P_ARInit()
     BDBG_MSG(("Initialized System Crit SAGE platform: assignedAsyncId [0x%x]", lHandle->uiLastAsyncId));
     /***********************************************************************************************************/
 
-
     /* Init AR Monitor Module */
     /* Doesn't seem to be a way to query of a module has been initialized or not.... */
     /* TODO */
+    BKNI_Memset(lHandle->sageContainer, 0, sizeof(*lHandle->sageContainer));
     rc = BSAGElib_Rai_Module_Init(lHandle->hSagelibRpcPlatformHandle, antirollback_ModuleId,
         lHandle->sageContainer, &lHandle->hSagelibRpcModuleHandle,  /*out */
         (void *) lHandle, &lHandle->uiLastAsyncId /*out */);

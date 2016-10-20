@@ -351,13 +351,19 @@ static int nexus_surfaceclient_p_setvideo( NEXUS_SurfaceClientHandle client )
                 }
             }
 
-            /* 2x2 is VDC's enforced minimum, but use larger-than-minimum threshold because of BVN bandwidth */
-            if(pWindowSettings->position.width < 10 || pWindowSettings->position.height < 10) {
+            /* 16x10 is VDC's enforced minimum */
+            if(pWindowSettings->position.width < 16 || pWindowSettings->position.height < 10) {
                 visible = false;
                 /* SW7445-1796: position should be a don't care if invisible, but there's a race condition which causes a full-screen flash.
                 just keep the dimensions from falling below a minimum. */
-                pWindowSettings->position.width = 10;
+                pWindowSettings->position.width = 16;
                 pWindowSettings->position.height = 10;
+                if (pWindowSettings->position.x + pWindowSettings->position.width > display.width) {
+                    pWindowSettings->position.x = display.width - pWindowSettings->position.width;
+                }
+                if (pWindowSettings->position.y + pWindowSettings->position.height > display.height) {
+                    pWindowSettings->position.y = display.height - pWindowSettings->position.height;
+                }
                 pWindowSettings->clipRect = pWindowSettings->clipBase;
             }
             BDBG_MSG(("setvideo %d,%d,%d,%d => from:%dx%d to:%dx%d ==> %d,%d,%d,%d (%d,%d,%d,%d) %s",

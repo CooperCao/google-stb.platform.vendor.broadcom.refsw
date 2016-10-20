@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2010-2014 Broadcom Corporation
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,15 +35,7 @@
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
  *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
  * Module Description:
- *
- * Revision History:
- *
- * $brcm_Log: $
  *
  *****************************************************************************/
 #include "bstd.h"
@@ -639,6 +631,7 @@ static NEXUS_SurfaceHandle picdecoder_p_decode_bmp(const char *pictureFilename)
     header.reserved1 = B_GET_U16(ptr); ptr += 2;
     header.reserved2 = B_GET_U16(ptr); ptr += 2;
     header.offset    = B_GET_U32(ptr); ptr += 4;
+    /* assumes *at least* BITMAPINFOHEADER, all future BMP headers add data after the end of BITMAPINFOHEADER */
     infoheader.size        = B_GET_U32(ptr); ptr += 4;
     infoheader.width       = B_GET_U32(ptr); ptr += 4;
     infoheader.height      = B_GET_U32(ptr); ptr += 4;
@@ -655,8 +648,8 @@ static NEXUS_SurfaceHandle picdecoder_p_decode_bmp(const char *pictureFilename)
         ((unsigned char *)&header.type)[0], ((unsigned char *)&header.type)[1],
         header.size, infoheader.width, infoheader.height, infoheader.bits));
 
-    if (header.offset != sizeof(header) + sizeof(infoheader) ||
-        infoheader.size != sizeof(infoheader)) {
+    if (header.offset < sizeof(header) + sizeof(infoheader) ||
+        infoheader.size < sizeof(infoheader)) {
         BDBG_ERR(("file '%s': different header %d %d", pictureFilename, header.offset, infoheader.size));
         rc = -1;
         goto done;

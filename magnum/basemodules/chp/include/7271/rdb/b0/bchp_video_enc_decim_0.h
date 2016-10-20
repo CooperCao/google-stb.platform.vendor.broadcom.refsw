@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 23 10:47:05 2016
- *                 Full Compile MD5 Checksum  23af2db02a4ebd1aa573cb181f364336
+ * Date:           Generated on               Mon Sep 12 16:49:51 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               2ca98119a9d04d3939770dcc0844ff43
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1048
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,8 +70,8 @@
 /***************************************************************************
  *VIDEO_ENC_DECIM_0 - VEC Decimator  Controls
  ***************************************************************************/
-#define BCHP_VIDEO_ENC_DECIM_0_DECIM_REV_ID      0x206e7d00 /* [RO] Decimator Revision ID register */
-#define BCHP_VIDEO_ENC_DECIM_0_DECIM_CONTROL     0x206e7d08 /* [RW] Control Register for decimator */
+#define BCHP_VIDEO_ENC_DECIM_0_DECIM_REV_ID      0x206e7d00 /* [RO][32] Decimator Revision ID register */
+#define BCHP_VIDEO_ENC_DECIM_0_DECIM_CONTROL     0x206e7d08 /* [RW][32] Control Register for decimator */
 
 /***************************************************************************
  *DECIM_REV_ID - Decimator Revision ID register

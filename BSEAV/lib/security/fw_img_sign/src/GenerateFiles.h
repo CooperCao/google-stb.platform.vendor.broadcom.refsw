@@ -199,10 +199,11 @@ struct ParamStruct
   unsigned char Reserved1;
   unsigned int  MarketID;
   unsigned int  MarketIDMask;
-  unsigned char Reserved2;
 #if BHSM_ZEUS_VERSION >= BHSM_ZEUS_VERSION_CALC(4,2)
+  unsigned char MarketIDSelect;
   unsigned char EpochSelect;
 #else
+  unsigned char Reserved2;
   unsigned char Reserved3;
 #endif
   unsigned char EpochMask;

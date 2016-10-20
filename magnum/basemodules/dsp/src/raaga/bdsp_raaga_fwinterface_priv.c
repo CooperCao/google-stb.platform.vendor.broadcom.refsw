@@ -1187,41 +1187,6 @@ BERR_Code BDSP_Raaga_P_GetAlgorithmSettings(
     return BERR_SUCCESS;
 }
 
-BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams(
-    BMEM_Handle     hHeap,
-    BDSP_Algorithm eAlgorithm,
-    void            *pConfigBuf,    /* [in] Config Buf Address */
-    uint32_t        uiConfigBufSize,     /* [in] Config Buf Size */
-    void           *pSettingsBuffer,
-    size_t          settingsBufferSize
-    )
-{
-    BERR_Code err=BERR_SUCCESS;
-    BDBG_ASSERT(pSettingsBuffer);
-    BKNI_EnterCriticalSection();
-    err = BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(hHeap, eAlgorithm, pConfigBuf, uiConfigBufSize, pSettingsBuffer, settingsBufferSize);
-    BKNI_LeaveCriticalSection();
-    return err;
-}
-
-BERR_Code BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams(
-    BMEM_Handle         hHeap,
-    BDSP_Algorithm      eAlgorithm,
-    void                *pConfigBuf,    /* [in] Config Buf Address */
-    uint32_t            uiConfigBufSize,     /* [in] Config Buf Size */
-    const void         *pSettingsBuffer,
-    size_t              settingsBufferSize
-    )
-{
-    BERR_Code err=BERR_SUCCESS;
-    BDBG_ASSERT(pSettingsBuffer);
-    BKNI_EnterCriticalSection();
-    err = BDSP_Raaga_P_SetFrameSyncTsmStageConfigParams_isr(hHeap, eAlgorithm, pConfigBuf, uiConfigBufSize, pSettingsBuffer, settingsBufferSize);
-    BKNI_LeaveCriticalSection();
-    return err;
-}
-
-
 BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(
     BMEM_Handle     hHeap,
     BDSP_Algorithm eAlgorithm,
@@ -1245,7 +1210,7 @@ BERR_Code BDSP_Raaga_P_GetFrameSyncTsmStageConfigParams_isr(
     if ( settingsBufferSize != pInfo->idsConfigSize )
     {
         BDBG_ERR(("Datasync settings buffer size provided (%lu) does not match expected size (%lu) for algorithm %u (%s)",
-                  (unsigned long)settingsBufferSize, (unsigned long)pInfo->userConfigSize, eAlgorithm, pInfo->pName));
+                  (unsigned long)settingsBufferSize, (unsigned long)pInfo->idsConfigSize, eAlgorithm, pInfo->pName));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
 
@@ -1616,7 +1581,7 @@ BERR_Code BDSP_Raaga_P_GetVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle  hMsgQueue,/*
     /*Reading Message from the message queue into the message buffer*/
     *pMsgBuf=BDSP_P_MemRead32_isr(hMsgQueue->hHeap,pvMsgQueueReadAddr);
 
-    BDBG_MSG(("In BRAP_P_GetMsg_isr *pMsgBuf = 0x%x\n",*pMsgBuf));
+    BDBG_MSG(("In BRAP_P_GetMsg_isr *pMsgBuf = 0x%x",*pMsgBuf));
 
     if ((bReadUpdate == true)&&(i32BytesToBeRead!=0))
     {
@@ -1762,7 +1727,7 @@ BERR_Code BDSP_Raaga_P_WriteVideoMsg_isr(BDSP_Raaga_P_MsgQueueHandle   hMsgQueue
 
 
     /*Writing into Message queue*/
-    BDBG_MSG(("In BRAP_P_WriteMsg_isr *(uint32_t *)pMsgBuf > 0x%x\n", *((uint32_t *)pMsgBuf)));
+    BDBG_MSG(("In BRAP_P_WriteMsg_isr *(uint32_t *)pMsgBuf > 0x%x", *((uint32_t *)pMsgBuf)));
     BDSP_P_MemWrite32_isr(hMsgQueue->hHeap,pvMsgQueueWriteAddr, *((uint32_t *)pMsgBuf));
     ui32dramWriteAddr=ui32dramWriteAddr+4;
 

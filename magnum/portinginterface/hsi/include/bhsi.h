@@ -205,7 +205,6 @@ This is a synchronous function that will return when it is done.
 
 Input:
 hRegister  - BREG_Handle, use to access Host Secure register.
-hChip - BCHP_Handle,  Chip handle.
 hInt - BINT_Handle, Interrupt handle to handle Host Secure interrupt.
 pSettings - BHSI_Settings, the settings that apply to multiple
                 channels.  If NULL, a default setting shall be used.
@@ -224,7 +223,6 @@ BHSI_Close
 BERR_Code BHSI_Open(
     BHSI_Handle *hHsi, /* [out] */
     BREG_Handle hRegister,
-    BCHP_Handle hChip,
     BINT_Handle hInt,
     const BHSI_Settings *pSettings
 );

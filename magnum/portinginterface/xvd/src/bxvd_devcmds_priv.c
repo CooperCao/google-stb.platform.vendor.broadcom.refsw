@@ -164,10 +164,11 @@ BERR_Code BXVD_P_SendDecoderCommand(
    uInBox = 0;
    for ( i = 0; i < 200; i++)
    {
-      BKNI_Sleep(1);
+      BKNI_Sleep(100);
 
       uInBox = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
 
+      BXVD_DBG_MSG(hXvd, ("Poll Loop %d Decoder:%d, mbx:%08x", i, uInstance, uInBox));
       if (uInBox !=0)
          break;
    }
@@ -231,11 +232,16 @@ BERR_Code BXVD_P_SendDecoderCommand(
       return BERR_TRACE(eStatus);
    }
 
+#ifdef EMULATION
+   BKNI_Sleep(2000);
+#endif
+
    /* get the response from the AVC  */
 
    uInBox = BXVD_Reg_Read32(hXvd, hXvd->stPlatformInfo.stReg.uiDecode_OuterCPU2HostMailbox);
 
 #endif
+
 
    /* Clear device busy */
    hXvd->stDecoderContext.bIfBusy = 0;
@@ -254,7 +260,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
       if (((pCmd->cmd) | BXVD_CMD_RESPONSE) != (pRsp->cmd))
       {
          BDBG_LEAVE(BXVD_P_SendDecoderCommand);
-         return BERR_TRACE(BERR_INVALID_PARAMETER);
+/*         return BERR_TRACE(BERR_INVALID_PARAMETER); */
       }
 
       pGenericRsp = (BXVD_P_RspGeneric *)(pRsp);
@@ -264,7 +270,7 @@ BERR_Code BXVD_P_SendDecoderCommand(
       {
          BDBG_ERR(("AVD firmware command: %08x error return %d", pCmd->cmd, pGenericRsp->ulStatus ));
          BDBG_LEAVE(BXVD_P_SendDecoderCommand);
-         return BERR_TRACE(BERR_INVALID_PARAMETER);
+/*          return BERR_TRACE(BERR_INVALID_PARAMETER); */
       }
 
    }
@@ -319,7 +325,9 @@ BERR_Code BXVD_P_HostCmdSendInit
    pInit->stripe_width = hXvd->uiDecode_StripeWidth;
    pInit->stripe_height = hXvd->uiDecode_StripeMultiple;
    pInit->bvnf_intr_context_base = hXvd->stPlatformInfo.stReg.uiBvnf_Intr2_3_AvdStatus;
+#if !BXVD_P_FW_40BIT_API
    pInit->host_L2_intr_set = hXvd->stPlatformInfo.stReg.uiAvd_CPUL2InterruptSet;
+#endif
    pInit->chip_prod_revision = hXvd->uiChip_ProductRevision;
    pInit->rave_context_reg_size = BXVD_P_RAVE_CONTEXT_SIZE;
    pInit->rave_cx_hold_clr_status = BXVD_P_RAVE_CX_HOLD_CLR_STATUS;
@@ -341,7 +349,9 @@ BERR_Code BXVD_P_HostCmdSendInit
    BXVD_DBG_MSG(hXvd, (" stripe_width: %d", pInit->stripe_width));
    BXVD_DBG_MSG(hXvd, (" stripe_height: %d", pInit->stripe_height));
    BXVD_DBG_MSG(hXvd, (" bvnf_intr_context base: %08x", pInit->bvnf_intr_context_base));
+#if !BXVD_P_FW_40BIT_API
    BXVD_DBG_MSG(hXvd, (" host_L2_intr_set: %08x", pInit->host_L2_intr_set));
+#endif
    BXVD_DBG_MSG(hXvd, (" chip_prod_revision: %08x", pInit->chip_prod_revision));
    BXVD_DBG_MSG(hXvd, (" rave_context_reg_size: %08x", pInit->rave_context_reg_size));
    BXVD_DBG_MSG(hXvd, (" rave_cx_hold_clr_status: %08x", pInit->rave_cx_hold_clr_status));
@@ -371,7 +381,7 @@ BERR_Code BXVD_P_HostCmdSendInit
    {
       BXVD_DBG_WRN(hXvd, ("Incompatible FW version"));
 
-      eStatus = BERR_INVALID_PARAMETER;
+      /*  eStatus = BERR_INVALID_PARAMETER; */
    }
 
    /*
@@ -518,16 +528,16 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
 
    pChOpen->direct_mode_storage_base = pstDecodeFWBaseAddrs->uiFWDirectModeBase;
    pChOpen->direct_mode_storage_size = pstDecodeFWMemSize->uiFWDirectModeSize;
-
    pChOpen->il_wl_base = pstDecodeFWBaseAddrs->uiFWInnerLoopWorklistBase;
    pChOpen->il_wl_size = pstDecodeFWMemSize->uiFWInnerLoopWorklistSize;
 
+#if !BXVD_P_FW_40BIT_API
    pChOpen->bl_mv_store_base = pstDecodeFWBaseAddrs->uiFWInterLayerMVBase;
    pChOpen->bl_mv_store_size = pstDecodeFWMemSize->uiFWInterLayerMVSize;
 
    pChOpen->bl_video_store_base = pstDecodeFWBaseAddrs->uiFWInterLayerPicBase;
    pChOpen->bl_video_store_size = pstDecodeFWMemSize->uiFWInterLayerPicSize;
-
+#endif
    /* parameters */
 
    BXVD_DBG_MSG(hXvd, ("BXVD_CMD_CHANNELOPEN:"));
@@ -544,16 +554,18 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
    BXVD_DBG_MSG(hXvd, (" video_block_count: %d", pChOpen->video_block_count));
    BXVD_DBG_MSG(hXvd, (" cabac_memory_base: %#x", pChOpen->cabac_memory_base));
    BXVD_DBG_MSG(hXvd, (" cabac_memory_size: %#x", pChOpen->cabac_memory_size));
+#if !BXVD_P_FW_40BIT_API
    BXVD_DBG_MSG(hXvd, (" bl_mv_store_base: %#x", pChOpen->bl_mv_store_base));
    BXVD_DBG_MSG(hXvd, (" bl_mv_store_size: %#x", pChOpen->bl_mv_store_size));
+   BXVD_DBG_MSG(hXvd, (" bl_video_store_base: %#x", pChOpen->bl_video_store_base));
+   BXVD_DBG_MSG(hXvd, (" bl_video_store_size: %#x", pChOpen->bl_video_store_size));
+#endif
    BXVD_DBG_MSG(hXvd, (" cabac_worklist_base: %#x", pChOpen->cabac_wl_base));
    BXVD_DBG_MSG(hXvd, (" cabac_worklist_size: %#x", pChOpen->cabac_wl_size));
    BXVD_DBG_MSG(hXvd, (" direct_mode_storage_base: %#x", pChOpen->direct_mode_storage_base));
    BXVD_DBG_MSG(hXvd, (" direct_mode_storage_size: %#x", pChOpen->direct_mode_storage_size));
    BXVD_DBG_MSG(hXvd, (" il_wl_base: %#x", pChOpen->il_wl_base));
    BXVD_DBG_MSG(hXvd, (" il_wl_size: %#x", pChOpen->il_wl_size));
-   BXVD_DBG_MSG(hXvd, (" bl_video_store_base: %#x", pChOpen->bl_video_store_base));
-   BXVD_DBG_MSG(hXvd, (" bl_video_store_size: %#x", pChOpen->bl_video_store_size));
 
    eStatus = BERR_TRACE(BXVD_P_SendDecoderCommand(hXvd,
                                                   hXvd->uDecoderInstance,
@@ -575,8 +587,11 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
     */
    BKNI_Memset( &(hXvdCh->stDeliveryQueue), 0, sizeof ( BXVD_P_AVD_Queue ) );
 
-   hXvdCh->stDeliveryQueue.ulQueueOffset              = pChOpenRsp->picture_delivery_buffer;
-
+#if !BXVD_P_FW_40BIT_API
+   hXvdCh->stDeliveryQueue.ulQueueOffset  = (unsigned long) (pChOpenRsp->picture_delivery_buffer);
+#else
+   hXvdCh->stDeliveryQueue.ulQueueOffset  = (unsigned long) (pChOpenRsp->picture_delivery_buffer) + (unsigned long) (pChOpen->context_memory_base);
+#endif
    hXvdCh->stDeliveryQueue.stReadIndex.ulByteOffset   = pChOpenRsp->delivery_q_read_byte_offset;
    BXVD_P_HOSTINTERFACEMEMORY_COOK_OFFSETS( hXvdCh->stDeliveryQueue.stReadIndex, 1 );
 
@@ -587,7 +602,11 @@ BERR_Code BXVD_P_HostCmdSendDecChannelOpen
     */
    BKNI_Memset( &(hXvdCh->stReleaseQueue), 0, sizeof ( BXVD_P_AVD_Queue ) );
 
+#if !BXVD_P_FW_40BIT_API
    hXvdCh->stReleaseQueue.ulQueueOffset = pChOpenRsp->picture_release_buffer;
+#else
+   hXvdCh->stReleaseQueue.ulQueueOffset = (unsigned long) pChOpenRsp->picture_release_buffer + (unsigned long) (pChOpen->context_memory_base);
+#endif
 
    hXvdCh->stReleaseQueue.stReadIndex.ulByteOffset = pChOpenRsp->release_q_read_byte_offset;
    BXVD_P_HOSTINTERFACEMEMORY_COOK_OFFSETS( hXvdCh->stReleaseQueue.stReadIndex, 1 );

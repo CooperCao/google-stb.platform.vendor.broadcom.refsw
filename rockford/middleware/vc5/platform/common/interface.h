@@ -8,13 +8,13 @@ All rights reserved.
 
 #include <stddef.h>
 
-struct Interface
+typedef struct Interface
 {
    void *context;
    void (*destroy)(void *context);
-};
+} Interface;
 
-static inline void Interface_Destroy(struct Interface *interface)
+static inline void Interface_Destroy(Interface *interface)
 {
    if (interface)
    {

@@ -548,10 +548,17 @@ CASE(eglDestroyImageKHR, 0x3fe4c7ee);
 
 // EGL_KHR_image_base
 
+// EGL_KHR_image_pixmap
+
 // EGL_KHR_surfaceless_context
 
 // EGL_KHR_wait_sync
 CASE(eglWaitSyncKHR, 0xc6231f18);
+
+// GL_KHR_blend_equation_advanced
+CASE(glBlendBarrierKHR, 0x9d4da8a7);
+
+// GL_KHR_blend_equation_advanced_coherent
 
 // GL_KHR_debug
 CASE(glDebugMessageControlKHR, 0xd34e527f);
@@ -593,6 +600,12 @@ CASE(glBlendFuncSeparateiOES, 0x44075e60);
 CASE(glColorMaskiOES, 0xfc4e4570);
 CASE(glIsEnablediOES, 0x2701ca07);
 #endif /* V3D_HAS_PER_RT_BLEND*/
+
+// GL_OES_draw_elements_base_vertex
+CASE(glDrawElementsBaseVertexOES, 0xec855e6d);
+CASE(glDrawRangeElementsBaseVertexOES, 0x21ea17f7);
+CASE(glDrawElementsInstancedBaseVertexOES, 0xe07f7dc6);
+CASE(glMultiDrawElementsBaseVertexOES, 0x2d281ed1);
 
 // GL_OES_draw_texture
 CASE(glDrawTexsOES, 0xbfbaaeb2);
@@ -644,10 +657,20 @@ CASE(glGetBufferPointervOES, 0x0f261795);
 // GL_OES_point_size_array
 CASE(glPointSizePointerOES, 0xa8681224);
 
+// GL_OES_primitive_bounding_box
+#if KHRN_GLES31_DRIVER
+CASE(glPrimitiveBoundingBoxOES, 0xbd5865c0);
+#endif /* KHRN_GLES31_DRIVER*/
+
 // GL_OES_query_matrix
 CASE(glQueryMatrixxOES, 0x06ffa6b6);
 
 // GL_OES_rgb8_rgba8
+
+// GL_OES_sample_shading
+#if V3D_HAS_SRS
+CASE(glMinSampleShadingOES, 0x9326b44c);
+#endif /* V3D_HAS_SRS*/
 
 // GL_OES_sample_variables
 #if KHRN_GLES31_DRIVER && V3D_HAS_SRS
@@ -770,8 +793,6 @@ CASE(glProvokingVertexBRCM, 0xe8a03b96);
 
 // GL_BRCM_texture_1D
 CASE(glTexImage1DBRCM, 0xc6130655);
-
-// GL_BRCM_texture_mirror_swap
 
 // GL_BRCM_texture_norm16
 

@@ -37,7 +37,7 @@
 
  ******************************************************************************/
 
-#if !defined(NEXUS_MODE_driver)
+#if !defined(NEXUS_MODE_driver) && !defined(NEXUS_BASE_OS_linuxkernel)
 
 #include "bstd.h"
 #include "bkni.h"

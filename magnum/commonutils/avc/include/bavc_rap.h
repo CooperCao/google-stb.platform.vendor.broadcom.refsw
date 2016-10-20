@@ -1,5 +1,5 @@
 /***************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -105,7 +105,8 @@ typedef enum BAVC_AudioCompressionStd
     BAVC_AudioCompressionStd_eIlbc,             /* iLbc speech codec */
     BAVC_AudioCompressionStd_eIsac,             /* iSac speech codec */
     BAVC_AudioCompressionStd_eOpus,             /* Opus speech codec */
-    BAVC_AudioCompressionStd_eAls,              /* MPEG-4 Audio Lossless Codec */
+    BAVC_AudioCompressionStd_eAls,              /* MPEG-4 Audio Lossless Codec - ES */
+    BAVC_AudioCompressionStd_eAlsLoas,          /* MPEG-4 Audio Lossless Codec - LOAS packed */
     BAVC_AudioCompressionStd_eAc4,              /* Dolby AC-4 Audio Codec */
     BAVC_AudioCompressionStd_eMax               /* Max value */
 } BAVC_AudioCompressionStd;

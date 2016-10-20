@@ -18,16 +18,18 @@ V3D_DRIVER_TOP := $(ROCKFORD_TOP)/middleware/v3d
 LOCAL_PATH := $(V3D_DRIVER_TOP)
 
 LOCAL_C_INCLUDES := \
-	$(ROCKFORD_TOP)/middleware/v3d/driver/ \
-	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/khronos/include/ \
-	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/pthreads/ \
-	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/generic/ \
+	$(ROCKFORD_TOP)/middleware/v3d/driver \
+	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/khronos/include \
+	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/pthreads \
+	$(ROCKFORD_TOP)/middleware/v3d/driver/interface/vcos/generic \
+	$(ROCKFORD_TOP)/middleware/vc5/tools/gpumon_hook \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/default_android \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/android \
 	$(ROCKFORD_TOP)/middleware/v3d/platform/nexus
 
 LOCAL_CFLAGS := \
 	-fpic -DPIC \
+	-std=c99 \
 	-DKHAPI="__attribute__((visibility(\"default\")))" \
 	-DSPAPI="__attribute__((visibility(\"default\")))" \
 	-DFASTMEM_USE_MALLOC \
@@ -38,6 +40,8 @@ LOCAL_CFLAGS := \
 	-DTIMELINE_EVENT_LOGGING \
 	-DBCG_VC4_FAST_ATOMICS \
 	-DBCG_MULTI_THREADED \
+	-D_XOPEN_SOURCE=600 \
+	-D_GNU_SOURCE \
 	-DANDROID \
 	-DLOGD=ALOGD \
 	-DLOGE=ALOGE \
@@ -100,6 +104,10 @@ endif
 endif
 endif
 
+ifeq ($(KHRN_AUTOCLIF),1)
+LOCAL_CFLAGS += -DKHRN_AUTOCLIF
+endif
+
 # Remove unwanted warnings
 LOCAL_CFLAGS += \
 	-Wno-unused-parameter \
@@ -140,7 +148,6 @@ LOCAL_SRC_FILES := \
 	driver/interface/khronos/ext/egl_khr_image_client.c \
 	driver/interface/khronos/ext/egl_brcm_flush_client.c \
 	driver/interface/khronos/ext/egl_brcm_driver_monitor_client.c \
-	driver/interface/khronos/ext/egl_brcm_image_update_control_client.c \
 	driver/interface/khronos/ext/ext_gl_oes_query_matrix.c \
 	driver/interface/khronos/ext/ext_gl_oes_draw_texture.c \
 	driver/interface/khronos/ext/ext_gl_debug_marker.c \
@@ -174,7 +181,6 @@ LOCAL_SRC_FILES := \
 	driver/middleware/khronos/ext/gl_oes_egl_image.c \
 	driver/middleware/khronos/ext/gl_oes_draw_texture.c \
 	driver/middleware/khronos/ext/egl_brcm_driver_monitor.c \
-	driver/middleware/khronos/ext/egl_brcm_image_update_control.c \
 	driver/middleware/khronos/ext/egl_khr_image.c \
 	driver/middleware/khronos/gl11/2708/gl11_shader_4.c \
 	driver/middleware/khronos/gl11/2708/gl11_shadercache_4.c \
@@ -247,6 +253,7 @@ LOCAL_SRC_FILES := \
 	driver/interface/vcos/generic/vcos_mem_from_malloc.c \
 	driver/interface/vcos/generic/vcos_generic_named_sem.c \
 	driver/interface/vcos/generic/vcos_abort.c \
+	driver/interface/vcos/android/vcos_log.c \
 	driver/android_platform_library_loader.c \
 	platform/android/default_RSO_android.c \
 	platform/android/display_RSO_android.c \
@@ -294,6 +301,9 @@ LOCAL_SHARED_LIBRARIES += liblog
 LOCAL_SHARED_LIBRARIES += libnexus
 LOCAL_SHARED_LIBRARIES += libnexuseglclient
 LOCAL_SHARED_LIBRARIES += libnxclient
+ifeq ($(KHRN_AUTOCLIF),1)
+LOCAL_STATIC_LIBRARIES += libautoclif
+endif
 
 ifeq ($(TARGET_2ND_ARCH),arm)
 LOCAL_MODULE_RELATIVE_PATH := egl

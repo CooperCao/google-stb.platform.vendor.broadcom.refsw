@@ -26,28 +26,6 @@ abstract platform layer
 #include "interface/khronos/common/khrn_client_platform.h"
 #include "interface/khronos/common/abstract/khrn_client_platform_abstract.h"
 
-#ifdef KHRONOS_CLIENT_LOGGING
-#include <stdio.h>
-#include <stdarg.h>
-FILE *xxx_vclog = NULL;
-
-void khronos_client_log(const char *fmt, ...)
-{
-   va_list ap;
-   va_start(ap,fmt);
-   vprintf(fmt, ap);
-   fflush(stdout);
-   if(xxx_vclog!=NULL)
-   {
-      vfprintf(xxx_vclog, fmt, ap);
-      fflush(xxx_vclog);
-   }
-   va_end(ap);
-   printf("\n");
-}
-
-#endif
-
 // Client is single-threaded on direct platform so no mutex stuff necessary
 
 // TODO: find somewhere better to put this function?
@@ -446,7 +424,7 @@ bool khrn_platform_decode_native(EGLClientBuffer buffer,
       BEGL_BufferSettings settings;
 
       res = driverInterfaces->displayInterface->DecodeNativeFormat(driverInterfaces->displayInterface->context,
-         (uint32_t)buffer,
+         (void *)buffer,
          &settings);
 
       if (res == BEGL_Success)
@@ -457,21 +435,82 @@ bool khrn_platform_decode_native(EGLClientBuffer buffer,
          *offset = settings.physOffset;
          *p = settings.cachedAddr;
 
+         KHRN_IMAGE_FORMAT_T f = IMAGE_FORMAT_INVALID;
          switch (settings.format)
          {
-         case BEGL_BufferFormat_eA8B8G8R8:         *format = ABGR_8888_RSO;       break;
-         case BEGL_BufferFormat_eX8B8G8R8:         *format = XBGR_8888_RSO;       break;
-         case BEGL_BufferFormat_eR5G6B5:           *format = RGB_565_RSO;         break;
-         case BEGL_BufferFormat_eYV12_Texture:     *format = YV12_RSO;            break;
+         case BEGL_BufferFormat_eA8B8G8R8:         f = ABGR_8888_RSO;   break;
+         case BEGL_BufferFormat_eX8B8G8R8:         f = XBGR_8888_RSO;   break;
+         case BEGL_BufferFormat_eR5G6B5:           f = RGB_565_RSO;     break;
+         case BEGL_BufferFormat_eYV12_Texture:     f = YV12_RSO;        break;
+         case BEGL_BufferFormat_eA8B8G8R8_TFormat: f = ABGR_8888_TF;    break;
+         case BEGL_BufferFormat_eX8B8G8R8_TFormat: f = XBGR_8888_TF;    break;
+         case BEGL_BufferFormat_eR5G6B5_TFormat:   f = RGB_565_TF;      break;
+         case BEGL_BufferFormat_eR5G5B5A1_TFormat: f = RGBA_5551_TF;    break;
+         case BEGL_BufferFormat_eR4G4B4A4_TFormat: f = RGBA_4444_TF;    break;
+
          default:
             break;
          }
+
+         if (khrn_image_prefer_lt(f, *w, *h))
+            *format = khrn_image_to_lt_format(f);
+         else
+            *format = f;
 
          return true;
       }
    }
 
    return false;
+}
+
+void khrn_platform_image_wrap_term(MEM_HANDLE_T handle)
+{
+   EGLClientBuffer buffer = (EGLClientBuffer)mem_get_param(handle);
+   khrn_platform_dec_refcnt(buffer);
+}
+
+MEM_HANDLE_T khrn_platform_image_wrap(EGLClientBuffer buffer)
+{
+   MEM_HANDLE_T handle;
+   void * p;
+   uint32_t offset, w, h, stride;
+   KHRN_IMAGE_FORMAT_T format = ABGR_8888_RSO;
+
+   khrn_platform_decode_native(buffer, &w, &h, &stride, &format, &offset, &p);
+
+   khrn_platform_inc_refcnt(buffer);
+
+   handle = mem_wrap(p, offset,
+      h * stride,
+      1, MEM_FLAG_DIRECT,
+      "EGL_NATIVE_BUFFER_ANDROID");
+
+   mem_set_term(handle, khrn_platform_image_wrap_term, (void *)buffer);
+
+   MEM_HANDLE_T res = khrn_image_create_from_storage(format,
+      w, h, stride,
+      MEM_INVALID_HANDLE, handle, 0, IMAGE_CREATE_FLAG_TEXTURE | IMAGE_CREATE_FLAG_RSO_TEXTURE, false);
+
+   mem_release(handle);
+
+   return res;
+}
+
+MEM_HANDLE_T khrn_platform_image_new(EGLClientBuffer buffer, EGLenum target, EGLint *error)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces != NULL) &&
+      (driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceVerifyImageTarget != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceVerifyImageTarget(driverInterfaces->displayInterface->context, (void *)buffer, target) != BEGL_Success))
+   {
+      *error = EGL_BAD_PARAMETER;
+      return MEM_HANDLE_INVALID;
+   }
+
+   return khrn_platform_image_wrap(buffer);
 }
 
 EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id)
@@ -497,6 +536,32 @@ EGLDisplay khrn_platform_set_display_id(EGLNativeDisplayType display_id)
       return (EGLDisplay)1;
    else
       return EGL_NO_DISPLAY;
+}
+
+void khrn_platform_inc_refcnt(EGLClientBuffer buffer)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces != NULL) &&
+      (driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceChangeRefCount != NULL))
+   {
+      driverInterfaces->displayInterface->SurfaceChangeRefCount(driverInterfaces->displayInterface->context,
+         (void *)buffer, BEGL_Increment);
+   }
+}
+
+void khrn_platform_dec_refcnt(EGLClientBuffer buffer)
+{
+   BEGL_DriverInterfaces   *driverInterfaces = BEGL_GetDriverInterfaces();
+
+   if ((driverInterfaces != NULL) &&
+      (driverInterfaces->displayInterface != NULL) &&
+      (driverInterfaces->displayInterface->SurfaceChangeRefCount != NULL))
+   {
+      driverInterfaces->displayInterface->SurfaceChangeRefCount(driverInterfaces->displayInterface->context,
+         (void *)buffer, BEGL_Decrement);
+   }
 }
 
 uint32_t khrn_platform_get_window_position(EGLNativeWindowType win)

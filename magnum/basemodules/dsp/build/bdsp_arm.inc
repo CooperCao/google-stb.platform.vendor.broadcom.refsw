@@ -1,7 +1,7 @@
 #############################################################################
-# Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+# Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 #
-# This program is the proprietary software of Broadcom and/or its
+# This program is the proprietary software of Broadcom and/or its licensors,
 # and may only be used, duplicated, modified or distributed pursuant to the terms and
 # conditions of a separate, written license agreement executed between you and Broadcom
 # (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -62,6 +62,8 @@ BDSP_SOURCES += \
         $(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_mm_priv.c \
 		$(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_priv.c \
 		$(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_cit_priv.c \
+        $(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_cit_log.c \
+		$(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_cit_log_ext.c \
         $(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_fwdownload_priv.c \
         $(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_fw_algo.c \
         $(MAGNUM)/basemodules/dsp/src/arm/bdsp_arm_int_priv.c \

@@ -111,17 +111,13 @@ void System::init(const void *devTree) {
     Futex::init();
     Console::init(false);
 
-    int size = (int)&_initramfs_end - (int)&_initramfs_start;
-    printf("File system start %p end %p. size %d\n", &_initramfs_start, &_initramfs_end, size);
-
-    rootDir = RamFS::load(&_initramfs_start);
+    /* Load initramfs and release its memory */
+    rootDir = RamFS::load(&_initramfs_start, &_initramfs_end);
     if (rootDir == nullptr) {
         err_msg("Could not mount Root FS\n");
         kernelHalt("No root fs\n");
     }
-
-    TzMem::freeInitRamFS();
-    printf("File system loaded. Freed up %d kbytes\n", size/1024);
+    printf("Root FS mounted\n");
 
     /* Unmap the bootstrap part of the kernel */
     PageTable::kernelPageTable()->unmapBootstrap(devTree);

@@ -87,6 +87,23 @@ sub generate_ipc_code
     return \%result;
 }
 
+sub get_thunked_funcs
+{
+    my ($funcs)=@_;
+    my $func;
+    my @thunked_funcs;
+
+    for $func (sort @{$funcs}) {
+        next if(exists $func->{ATTR}->{'local'});
+        if(exists $func->{ATTR}->{'thunk'}) {
+            next if($func->{ATTR}->{'thunk'} eq 'false');
+            print STDERR "Unsupported attribute 'thunk'='$func->{ATTR}->{'thunk'}' in $func->{FUNCNAME}\n";
+        }
+        push @thunked_funcs, $func;
+    }
+    return \@thunked_funcs;
+}
+
 sub build_thunks
 {
     my ($module, $filename, $funcs, $structs) = @_;
@@ -123,22 +140,17 @@ sub build_thunks
     print FILE "static void module_lock(void) { NEXUS_LockModule();}\n";
     print FILE "static void module_unlock(void) { NEXUS_UnlockModule();}\n";
 
+    my $thunked_funcs = get_thunked_funcs($funcs);
 
     # generate prototypes for all the _impl functions
-    for $func (@{$funcs}) {
-        # NOTE: If there's an exception and a function does not belong in the thunk layer, add it here.
-        next if(exists $func->{ATTR}->{'local'});
-
+    for $func (@$thunked_funcs) {
         my $impl = $func->{PROTOTYPE};
         $impl =~ s/$func->{FUNCNAME}/$func->{FUNCNAME}_impl/;
         print FILE "$impl;\n";
     }
 
     # generate the actual thunk layer functions which call the impl functions
-    for $func (@{$funcs}) {
-        # NOTE: If there's an exception and a function does not belong in the thunk layer, add it here.
-        next if(exists $func->{ATTR}->{'local'});
-        
+    for $func (@$thunked_funcs) {
         my $params = $func->{PARAMS};
         my $param;
         my $generated_code = generate_ipc_code $func, $destructors, $classes;
@@ -246,10 +258,8 @@ sub build_remapping
     print FILE "*********************************/\n";
     print FILE "#ifndef NEXUS_THUNK_LAYER\n";
 
-    for $func (@{$funcs}) {
-        # NOTE: If there's an exception and a function does not belong in the thunk layer, add it here.
-        next if(exists $func->{ATTR}->{'local'});
-        
+    my $thunked_funcs = get_thunked_funcs($funcs);
+    for $func (@{$thunked_funcs}) {
         print FILE "#define $func->{FUNCNAME} $func->{FUNCNAME}_impl\n";
     }
     print FILE "#endif\n";

@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:04 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:26 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,21 +70,21 @@
 /***************************************************************************
  *RM_0 - Rate Manger RM_0
  ***************************************************************************/
-#define BCHP_RM_0_CONTROL                        0x206e2400 /* [RW] Rate Manager Controls */
-#define BCHP_RM_0_RATE_RATIO                     0x206e2404 /* [RW] Rate Manager Output Rate Setting I */
-#define BCHP_RM_0_SAMPLE_INC                     0x206e2408 /* [RW] Rate Manager Output Rate Setting II */
-#define BCHP_RM_0_PHASE_INC                      0x206e240c /* [RW] Rate Manager NCO Phase Increment */
-#define BCHP_RM_0_INTEGRATOR_HI                  0x206e2410 /* [WO] Loop Filter Integrator HI Value */
-#define BCHP_RM_0_INTEGRATOR_LO                  0x206e2414 /* [WO] Loop Filter Integrator LO Value */
-#define BCHP_RM_0_OFFSET                         0x206e2418 /* [RW] Rate Manager Output Formatting */
-#define BCHP_RM_0_FORMAT                         0x206e241c /* [RW] Rate Manager Output Formatting */
-#define BCHP_RM_0_SKIP_REPEAT_CONTROL            0x206e2420 /* [RW] Time Base Skip or Repeat Control Register */
-#define BCHP_RM_0_SKIP_REPEAT_GAP                0x206e2424 /* [RW] Time Base Skip or Repeat Gap Count Register */
-#define BCHP_RM_0_SKIP_REPEAT_NUMBER             0x206e2428 /* [RW] Time Base Skip or Repeat Count Register */
-#define BCHP_RM_0_INTEGRATOR_HI_STATUS           0x206e242c /* [RO] Loop Filter Integrator HI Status */
-#define BCHP_RM_0_INTEGRATOR_LO_STATUS           0x206e2430 /* [RO] Loop Filter Integrator LO Status */
-#define BCHP_RM_0_STATUS                         0x206e2434 /* [RO] Rate Manager Status Register */
-#define BCHP_RM_0_STATUS_CLEAR                   0x206e2438 /* [RW] Rate Manager Status Clear Register */
+#define BCHP_RM_0_CONTROL                        0x206e2400 /* [RW][32] Rate Manager Controls */
+#define BCHP_RM_0_RATE_RATIO                     0x206e2404 /* [RW][32] Rate Manager Output Rate Setting I */
+#define BCHP_RM_0_SAMPLE_INC                     0x206e2408 /* [RW][32] Rate Manager Output Rate Setting II */
+#define BCHP_RM_0_PHASE_INC                      0x206e240c /* [RW][32] Rate Manager NCO Phase Increment */
+#define BCHP_RM_0_INTEGRATOR_HI                  0x206e2410 /* [WO][32] Loop Filter Integrator HI Value */
+#define BCHP_RM_0_INTEGRATOR_LO                  0x206e2414 /* [WO][32] Loop Filter Integrator LO Value */
+#define BCHP_RM_0_OFFSET                         0x206e2418 /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_RM_0_FORMAT                         0x206e241c /* [RW][32] Rate Manager Output Formatting */
+#define BCHP_RM_0_SKIP_REPEAT_CONTROL            0x206e2420 /* [RW][32] Time Base Skip or Repeat Control Register */
+#define BCHP_RM_0_SKIP_REPEAT_GAP                0x206e2424 /* [RW][32] Time Base Skip or Repeat Gap Count Register */
+#define BCHP_RM_0_SKIP_REPEAT_NUMBER             0x206e2428 /* [RW][32] Time Base Skip or Repeat Count Register */
+#define BCHP_RM_0_INTEGRATOR_HI_STATUS           0x206e242c /* [RO][32] Loop Filter Integrator HI Status */
+#define BCHP_RM_0_INTEGRATOR_LO_STATUS           0x206e2430 /* [RO][32] Loop Filter Integrator LO Status */
+#define BCHP_RM_0_STATUS                         0x206e2434 /* [RO][32] Rate Manager Status Register */
+#define BCHP_RM_0_STATUS_CLEAR                   0x206e2438 /* [RW][32] Rate Manager Status Clear Register */
 
 /***************************************************************************
  *CONTROL - Rate Manager Controls

@@ -219,16 +219,16 @@ const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA[] = {{
     BDBG_STRING("RAAGA")
 }};
 
-const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA0[] = {{
-    BCHP_PWR_P_ResourceType_eNonLeaf,
-    BCHP_PWR_RESOURCE_RAAGA0,
-    BDBG_STRING("RAAGA0")
-}};
-
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA0_CLK[] = {{
     BCHP_PWR_P_ResourceType_eNonLeaf,
     BCHP_PWR_RESOURCE_RAAGA0_CLK,
     BDBG_STRING("RAAGA0_CLK")
+}};
+
+const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA0_DSP[] = {{
+    BCHP_PWR_P_ResourceType_eNonLeaf,
+    BCHP_PWR_RESOURCE_RAAGA0_DSP,
+    BDBG_STRING("RAAGA0_DSP")
 }};
 
 const BCHP_PWR_P_Resource BCHP_PWR_P_Resource_RAAGA0_SRAM[] = {{
@@ -981,8 +981,8 @@ const BCHP_PWR_P_Resource* const BCHP_PWR_P_ResourceList[BCHP_PWR_P_NUM_ALLNODES
     BCHP_PWR_P_Resource_M2MC_SRAM,
     BCHP_PWR_P_Resource_MAGNUM_CONTROLLED,
     BCHP_PWR_P_Resource_RAAGA,
-    BCHP_PWR_P_Resource_RAAGA0,
     BCHP_PWR_P_Resource_RAAGA0_CLK,
+    BCHP_PWR_P_Resource_RAAGA0_DSP,
     BCHP_PWR_P_Resource_RAAGA0_SRAM,
     BCHP_PWR_P_Resource_SECURE_ACCESS,
     BCHP_PWR_P_Resource_SID,
@@ -1289,19 +1289,21 @@ static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_MAGNUM_CONTROLLED[] = 
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA[] = {
-    BCHP_PWR_P_Resource_RAAGA0,
-    NULL
-};
-
-static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA0[] = {
+    BCHP_PWR_P_Resource_RAAGA0_DSP,
     BCHP_PWR_P_Resource_RAAGA0_SRAM,
     BCHP_PWR_P_Resource_RAAGA0_CLK,
     NULL
 };
 
 static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA0_CLK[] = {
-    BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0,
+    BCHP_PWR_P_Resource_HW_RAAGA0_AIO,
+    BCHP_PWR_P_Resource_HW_RAAGA0,
+    NULL
+};
+
+static const BCHP_PWR_P_Resource* const BCHP_PWR_P_Depend_RAAGA0_DSP[] = {
     BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_AIO_RAAGA0_DSP_AIO_RAAGA0,
+    BCHP_PWR_P_Resource_HW_STB_RAAGA_DSP_0_RAAGA0_DSP_RAAGA0,
     NULL
 };
 
@@ -1775,8 +1777,8 @@ const BCHP_PWR_P_Resource* const * const BCHP_PWR_P_DependList[BCHP_PWR_P_NUM_AL
     BCHP_PWR_P_Depend_M2MC_SRAM,
     BCHP_PWR_P_Depend_MAGNUM_CONTROLLED,
     BCHP_PWR_P_Depend_RAAGA,
-    BCHP_PWR_P_Depend_RAAGA0,
     BCHP_PWR_P_Depend_RAAGA0_CLK,
+    BCHP_PWR_P_Depend_RAAGA0_DSP,
     BCHP_PWR_P_Depend_RAAGA0_SRAM,
     BCHP_PWR_P_Depend_SECURE_ACCESS,
     BCHP_PWR_P_Depend_SID,

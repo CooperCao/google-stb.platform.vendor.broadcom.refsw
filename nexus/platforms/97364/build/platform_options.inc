@@ -72,6 +72,15 @@ NEXUS_PLATFORM_DEFINES += NEXUS_USE_73649_SFF=1
 SAGE_SUPPORT := n
 endif
 
+#
+# Until JIRA SW7364-329 is resolved, we need to turn off SAGE security
+#
+# ifeq ($(filter $(BCHP_VER),C0), $(BCHP_VER))
+# export NEXUS_SECURITY_SUPPORT=n
+# export SAGE_SUPPORT=n
+# endif
+
+
 NEXUS_POWER_MANAGEMENT ?= y
 
 #

@@ -63,16 +63,6 @@ extern "C"
 /**
 Summary:
 Input from user for NEXUS_Platform_MemConfigInit
-
-Description:
-Some platforms (for instance, 65nm) do not support this memconfig API. To tell if memconfig is
-supported, do the following:
-
-    NEXUS_MemoryConfigurationSettings memConfigSettings;
-    NEXUS_GetDefaultMemoryConfigurationSettings(&memConfigSettings);
-    if (memConfigSettings.display[0].maxFormat == NEXUS_VideoFormat_eUnknown) {
-        // should assume memconfig not supported on this platform. don't use memConfigSettings.
-    }
 **/
 typedef struct NEXUS_MemoryConfigurationSettings
 {

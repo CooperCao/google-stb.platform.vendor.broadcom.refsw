@@ -1,5 +1,5 @@
 /***************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -42,29 +42,40 @@
 #include <bkni.h>
 #include <bstd.h>
 
-void printUsage(void)
+BDBG_MODULE(buildfont);
+
+#define DEFAULT_SIZE 11
+#define FROM_CHAR 32
+#define TO_CHAR 127
+
+void print_usage(void)
 {
     printf(
-    "This application will prerender a font and save it to a file.\n"
-    "The characters in the font must come from stdin.\n"
-    "\n"
-    "Usage: buildfont INPUT_FONT_FILENAME SIZE ANTIALIASED CHARSET OUTPUT_FONT_FILENAME { -i }\n"
-    " ANTIALIASED = 0 or 1\n"
-    " CHARSET = default, stdin\n"
-    " -i = generate italic font\n"
+    "Usage: buildfont OPTIONS INPUTFILE OUTPUTFILE\n"
+    "  INPUTFILE should be a .ttf file\n"
+    "  OUTPUTFILE will be a bwin pre-rendered font file\n"
+    "  OPTIONS:\n"
+    "  -size X (default %u)\n"
+    "  -i         generate italic font\n"
+    "  -aa        antialias\n"
+    "  -char FROM,TO   character set range (default is %u,%u)\n",
+    DEFAULT_SIZE, FROM_CHAR, TO_CHAR
     );
 }
 
 int main(int argc, char **argv)
 {
     const char *fontface;
-    int size, antialiased, default_charset;
     const char *outputfile;
     int width, height, base;
     bwin_engine_settings win_engine_settings;
     bwin_engine_t win;
     bwin_font_t font;
-	bool italic = false;	/* default */
+    unsigned size = DEFAULT_SIZE;
+    bool italic = false;
+    bool antialiased = false;
+    unsigned from_char = FROM_CHAR, to_char = TO_CHAR;
+    int curarg = 1;
 
     /* bwin requires basemodules */
     BKNI_Init();
@@ -77,19 +88,41 @@ int main(int argc, char **argv)
     "buildfont - prerenders fonts for the bwin system using freetype.\n"
     "\n"
     );
-    if (argc < 6) {
-        printUsage();
+
+    while (curarg < argc) {
+        if (!strcmp(argv[curarg],"-size") && curarg+1<argc) {
+            size = atoi(argv[++curarg]);
+        }
+        else if (!strcmp(argv[curarg],"-i")) {
+            italic = true;
+        }
+        else if (!strcmp(argv[curarg],"-aa")) {
+            antialiased = true;
+        }
+        else if (!strcmp(argv[curarg],"-char") && curarg+1<argc) {
+            if (sscanf(argv[++curarg], "%u,%u", &from_char, &to_char) != 2) {
+                print_usage();
+                return -1;
+            }
+        }
+        else if (!fontface) {
+            fontface = argv[curarg];
+        }
+        else if (!outputfile) {
+            outputfile = argv[curarg];
+        }
+        else {
+            print_usage();
+            return -1;
+        }
+        curarg++;
+    }
+
+    if (!fontface || !outputfile) {
+        print_usage();
         return -1;
     }
 
-    fontface = argv[1];
-    size = atoi(argv[2]);
-    antialiased = atoi(argv[3]);
-    default_charset = !strcasecmp(argv[4], "default");
-    outputfile = argv[5];
-    if (argc >= 7 && !strcmp(argv[6],"-i")) {
-        italic = true;
-    }
     printf("Opening font %s, size %d %s\n", fontface, size, italic ? "for italic font" : "" );
     if (italic) {
         font = bwin_open_font_italic(win, fontface, size, antialiased);
@@ -102,21 +135,54 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    if (default_charset) {
-        unsigned char ch;
+    {
+        uint32_t        code_point  = from_char;
+        uint32_t        ch_utf8     = 0;
+        unsigned char * pch_utf8    = NULL;
+        uint32_t        num_success = 0;
+        uint32_t        num_failure = 0;
+
         /* all printable ascii characters */
-        for (ch=32;ch<=127;ch++) {
-            bwin_measure_text(font, (const char *)&ch, 1, &width, &height, &base);
-            /* printf("measure '%c' = %dx%d,base %d\n", ch, width, height, base); */
-        }
-    }
-    else {
-        while (!feof(stdin)) {
-            char ch;
-            if (fread(&ch, 1, 1, stdin) != 1)
+        while (1) {
+            pch_utf8 = (unsigned char *)&ch_utf8;
+
+            /* convert unicode code point to utf-8 value for bwin_measure_text() */
+            if (code_point < 0x80) {
+                *pch_utf8++ = code_point;
+            }
+            else if (code_point < 0x800) {
+                *pch_utf8++ = 192 + code_point / 64;
+                *pch_utf8++ = 128 + code_point % 64;
+            }
+            else if (code_point < 0x10000) {
+                *pch_utf8++ = 224 + code_point / 4096;
+                *pch_utf8++ = 128 + code_point / 64 % 64;
+                *pch_utf8++ = 128 + code_point % 64;
+            }
+            else if (code_point < 0x110000) {
+                *pch_utf8++ = 240 + code_point / 262144;
+                *pch_utf8++ = 128 + code_point / 4096 % 64;
+                *pch_utf8++ = 128 + code_point / 64 % 64;
+                *pch_utf8++ = 128 + code_point % 64;
+            }
+            else {
+                BDBG_ERR(("unicode code point (0x%X) too high to represent in utf-8 - aborting", code_point));
                 break;
-            bwin_measure_text(font, &ch, 1, &width, &height, &base);
+            }
+
+            int rc = bwin_measure_text(font, (const char *)&ch_utf8, 1, &width, &height, &base);
+            if (rc) {
+                BDBG_WRN(("font does not contain char %#x (%c)", code_point, code_point));
+                num_failure++;
+            }
+            else {
+                BDBG_WRN(("measure %#x (%c) = %dx%d, base %d", code_point, code_point, width, height, base));
+                num_success++;
+            }
+            if (code_point++ == to_char) break;
         }
+
+        BDBG_WRN(("Done! Range:%d-%d Converted:%d Missing:%d", from_char, to_char, num_success, num_failure));
     }
 
     return bwin_save_rendered_font(font, outputfile);

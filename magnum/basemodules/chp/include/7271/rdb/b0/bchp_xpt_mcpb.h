@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,238 +70,238 @@
 /***************************************************************************
  *XPT_MCPB - MCPB Top Control Registers
  ***************************************************************************/
-#define BCHP_XPT_MCPB_RUN_SET_CLEAR              0x20a70800 /* [RW] Set and Clear for the RUN bit */
-#define BCHP_XPT_MCPB_WAKE_SET                   0x20a70804 /* [RW] Set for the WAKE bit */
-#define BCHP_XPT_MCPB_WAKE_MODE_SET_CLEAR        0x20a70808 /* [RW] Set and Clear for the WAKE_MODE bit */
-#define BCHP_XPT_MCPB_BUFF_DATA_RDY_SET          0x20a7080c /* [RW] Set for the BUFF_DATA_RDY bit */
-#define BCHP_XPT_MCPB_PAUSE_AT_DESC_READ_CLEAR   0x20a70810 /* [RW] Clear for the PAUSE_AT_DESC_READ bit */
-#define BCHP_XPT_MCPB_PAUSE_AT_DESC_END_CLEAR    0x20a70814 /* [RW] Clear for the PAUSE_AT_DESC_END bit */
-#define BCHP_XPT_MCPB_PAUSE_AFTER_GROUP_PACKETS_CLEAR 0x20a70818 /* [RW] Clear for the PAUSE_AFTER_GROUP_PACKETS bit */
-#define BCHP_XPT_MCPB_CRC_COMPARE_ERROR_PAUSE_CLEAR 0x20a7081c /* [RW] Clear for the CRC_COMPARE_ERROR_PAUSE bit */
-#define BCHP_XPT_MCPB_MICRO_PAUSE_SET_CLEAR      0x20a70820 /* [RW] Set and Clear for the MICRO_PAUSE bit */
-#define BCHP_XPT_MCPB_RUN_STATUS_0_31            0x20a70824 /* [RO] Run status for all the PB channels */
-#define BCHP_XPT_MCPB_WAKE_STATUS_0_31           0x20a70828 /* [RO] Wake status for all the PB channels */
-#define BCHP_XPT_MCPB_WAKE_MODE_STATUS_0_31      0x20a7082c /* [RO] Wake Mode status for all the PB channels */
-#define BCHP_XPT_MCPB_PAUSE_AT_DESC_READ_STATUS_0_31 0x20a70830 /* [RO] Pause at descriptor read status for all the PB channels */
-#define BCHP_XPT_MCPB_PAUSE_AT_DESC_END_STATUS_0_31 0x20a70834 /* [RO] Pause at descriptor end status for all the PB channels */
-#define BCHP_XPT_MCPB_PAUSE_AFTER_GROUP_PACKETS_STATUS_0_31 0x20a70838 /* [RO] Pause after group of packets status for all the PB channels */
-#define BCHP_XPT_MCPB_CRC_COMPARE_ERROR_PAUSE_STATUS_0_31 0x20a7083c /* [RO] CRC compare error pause status for all the PB channels */
-#define BCHP_XPT_MCPB_MICRO_PAUSE_STATUS_0_31    0x20a70840 /* [RO] Micro Pause status for all the PB channels */
-#define BCHP_XPT_MCPB_FINAL_PAUSE_STATUS_0_31    0x20a70844 /* [RO] Final Pause status for all the PB channels */
-#define BCHP_XPT_MCPB_HW_PAUSE_STATUS_0_31       0x20a70848 /* [RO] Hardware Pause status for all the PB channels */
-#define BCHP_XPT_MCPB_DESC_RD_IN_PROGRESS_0_31   0x20a7084c /* [RW] Descriptor Read in Progress status flag */
-#define BCHP_XPT_MCPB_DATA_RD_IN_PROGRESS_0_31   0x20a70850 /* [RW] Data Read in Progress status flag */
-#define BCHP_XPT_MCPB_BBUFF_RD_IN_PROGRESS_0_31  0x20a70854 /* [RW] Burst Buffer Read in Progress status flag */
-#define BCHP_XPT_MCPB_LAST_DESC_REACHED_0_31     0x20a70858 /* [RW] Last Descriptor Reached status flag */
-#define BCHP_XPT_MCPB_BUFF_DATA_RDY_0_31         0x20a7085c /* [RO] Buffer data ready status flag */
-#define BCHP_XPT_MCPB_FIRST_DATA_RD_OPN_PRIORITY_0_31 0x20a70860 /* [RW] First data read operation priority flag */
-#define BCHP_XPT_MCPB_RUN_INVALID_SET_CLEAR      0x20a70864 /* [RW] Set and Clear Run Invalid */
-#define BCHP_XPT_MCPB_RUN_INVALID_STATUS_0_31    0x20a70868 /* [RO] Run Invalid status */
-#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_SET       0x20a7086c /* [RW] Set priority for channel arbitration */
-#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_STATUS_0_15 0x20a70870 /* [RO] Channel priority status for channels 0 to 15 */
-#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_STATUS_16_31 0x20a70874 /* [RO] Channel priority status for channels 16 to 31 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_0 0x20a70878 /* [RW] MCPB Band pause mapping vector for channel 0 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_1 0x20a7087c /* [RW] MCPB Band pause mapping vector for channel 1 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_2 0x20a70880 /* [RW] MCPB Band pause mapping vector for channel 2 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_3 0x20a70884 /* [RW] MCPB Band pause mapping vector for channel 3 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_4 0x20a70888 /* [RW] MCPB Band pause mapping vector for channel 4 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_5 0x20a7088c /* [RW] MCPB Band pause mapping vector for channel 5 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_6 0x20a70890 /* [RW] MCPB Band pause mapping vector for channel 6 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_7 0x20a70894 /* [RW] MCPB Band pause mapping vector for channel 7 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_8 0x20a70898 /* [RW] MCPB Band pause mapping vector for channel 8 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_9 0x20a7089c /* [RW] MCPB Band pause mapping vector for channel 9 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_10 0x20a708a0 /* [RW] MCPB Band pause mapping vector for channel 10 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_11 0x20a708a4 /* [RW] MCPB Band pause mapping vector for channel 11 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_12 0x20a708a8 /* [RW] MCPB Band pause mapping vector for channel 12 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_13 0x20a708ac /* [RW] MCPB Band pause mapping vector for channel 13 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_14 0x20a708b0 /* [RW] MCPB Band pause mapping vector for channel 14 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_15 0x20a708b4 /* [RW] MCPB Band pause mapping vector for channel 15 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_16 0x20a708b8 /* [RW] MCPB Band pause mapping vector for channel 16 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_17 0x20a708bc /* [RW] MCPB Band pause mapping vector for channel 17 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_18 0x20a708c0 /* [RW] MCPB Band pause mapping vector for channel 18 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_19 0x20a708c4 /* [RW] MCPB Band pause mapping vector for channel 19 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_20 0x20a708c8 /* [RW] MCPB Band pause mapping vector for channel 20 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_21 0x20a708cc /* [RW] MCPB Band pause mapping vector for channel 21 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_22 0x20a708d0 /* [RW] MCPB Band pause mapping vector for channel 22 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_23 0x20a708d4 /* [RW] MCPB Band pause mapping vector for channel 23 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_24 0x20a708d8 /* [RW] MCPB Band pause mapping vector for channel 24 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_25 0x20a708dc /* [RW] MCPB Band pause mapping vector for channel 25 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_26 0x20a708e0 /* [RW] MCPB Band pause mapping vector for channel 26 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_27 0x20a708e4 /* [RW] MCPB Band pause mapping vector for channel 27 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_28 0x20a708e8 /* [RW] MCPB Band pause mapping vector for channel 28 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_29 0x20a708ec /* [RW] MCPB Band pause mapping vector for channel 29 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_30 0x20a708f0 /* [RW] MCPB Band pause mapping vector for channel 30 */
-#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_31 0x20a708f4 /* [RW] MCPB Band pause mapping vector for channel 31 */
-#define BCHP_XPT_MCPB_SP_GLOBAL_CFG_REG0         0x20a708f8 /* [RW] Channel independent Stream processor specific information */
-#define BCHP_XPT_MCPB_SP_GLOBAL_CFG_REG1         0x20a708fc /* [RW] Channel independent Stream processor specific information */
-#define BCHP_XPT_MCPB_TMEU_CHANNEL_BYPASS_SET_CLEAR 0x20a70900 /* [RW] Set and clear for TMEU channel bypass bit */
-#define BCHP_XPT_MCPB_TMEU_CHANNEL_BYPASS_STATUS_0_31 0x20a70904 /* [RO] TMEU channel bypass status */
-#define BCHP_XPT_MCPB_GPC_COUNT_RELOAD_CTRL      0x20a70908 /* [RW] GPC reload control Register */
-#define BCHP_XPT_MCPB_GPC0_CTRL                  0x20a7090c /* [RW] MCPB GPC0 Control information */
-#define BCHP_XPT_MCPB_GPC0_CURR_COUNTER_VAL      0x20a70910 /* [RW] MCPB GPC0 Current counter value */
-#define BCHP_XPT_MCPB_GPC0_PAUSE_0_31            0x20a70914 /* [RW] MCPB GPC0 Current pause value */
-#define BCHP_XPT_MCPB_GPC1_CTRL                  0x20a70918 /* [RW] MCPB GPC1 Control information */
-#define BCHP_XPT_MCPB_GPC1_CURR_COUNTER_VAL      0x20a7091c /* [RW] MCPB GPC1 Current counter value */
-#define BCHP_XPT_MCPB_GPC1_PAUSE_0_31            0x20a70920 /* [RW] MCPB GPC1 Current pause value */
-#define BCHP_XPT_MCPB_GPC2_CTRL                  0x20a70924 /* [RW] MCPB GPC2 Control information */
-#define BCHP_XPT_MCPB_GPC2_CURR_COUNTER_VAL      0x20a70928 /* [RW] MCPB GPC2 Current counter value */
-#define BCHP_XPT_MCPB_GPC2_PAUSE_0_31            0x20a7092c /* [RW] MCPB GPC2 Current pause value */
-#define BCHP_XPT_MCPB_GPC3_CTRL                  0x20a70930 /* [RW] MCPB GPC3 Control information */
-#define BCHP_XPT_MCPB_GPC3_CURR_COUNTER_VAL      0x20a70934 /* [RW] MCPB GPC3 Current counter value */
-#define BCHP_XPT_MCPB_GPC3_PAUSE_0_31            0x20a70938 /* [RW] MCPB GPC3 Current pause value */
-#define BCHP_XPT_MCPB_GPC4_CTRL                  0x20a7093c /* [RW] MCPB GPC4 Control information */
-#define BCHP_XPT_MCPB_GPC4_CURR_COUNTER_VAL      0x20a70940 /* [RW] MCPB GPC4 Current counter value */
-#define BCHP_XPT_MCPB_GPC4_PAUSE_0_31            0x20a70944 /* [RW] MCPB GPC4 Current pause value */
-#define BCHP_XPT_MCPB_GPC5_CTRL                  0x20a70948 /* [RW] MCPB GPC5 Control information */
-#define BCHP_XPT_MCPB_GPC5_CURR_COUNTER_VAL      0x20a7094c /* [RW] MCPB GPC5 Current counter value */
-#define BCHP_XPT_MCPB_GPC5_PAUSE_0_31            0x20a70950 /* [RW] MCPB GPC5 Current pause value */
-#define BCHP_XPT_MCPB_GPC6_CTRL                  0x20a70954 /* [RW] MCPB GPC6 Control information */
-#define BCHP_XPT_MCPB_GPC6_CURR_COUNTER_VAL      0x20a70958 /* [RW] MCPB GPC6 Current counter value */
-#define BCHP_XPT_MCPB_GPC6_PAUSE_0_31            0x20a7095c /* [RW] MCPB GPC6 Current pause value */
-#define BCHP_XPT_MCPB_GPC7_CTRL                  0x20a70960 /* [RW] MCPB GPC7 Control information */
-#define BCHP_XPT_MCPB_GPC7_CURR_COUNTER_VAL      0x20a70964 /* [RW] MCPB GPC7 Current counter value */
-#define BCHP_XPT_MCPB_GPC7_PAUSE_0_31            0x20a70968 /* [RW] MCPB GPC7 Current pause value */
-#define BCHP_XPT_MCPB_GPC8_CTRL                  0x20a7096c /* [RW] MCPB GPC8 Control information */
-#define BCHP_XPT_MCPB_GPC8_CURR_COUNTER_VAL      0x20a70970 /* [RW] MCPB GPC8 Current counter value */
-#define BCHP_XPT_MCPB_GPC8_PAUSE_0_31            0x20a70974 /* [RW] MCPB GPC8 Current pause value */
-#define BCHP_XPT_MCPB_GPC9_CTRL                  0x20a70978 /* [RW] MCPB GPC9 Control information */
-#define BCHP_XPT_MCPB_GPC9_CURR_COUNTER_VAL      0x20a7097c /* [RW] MCPB GPC9 Current counter value */
-#define BCHP_XPT_MCPB_GPC9_PAUSE_0_31            0x20a70980 /* [RW] MCPB GPC9 Current pause value */
-#define BCHP_XPT_MCPB_GPC10_CTRL                 0x20a70984 /* [RW] MCPB GPC10 Control information */
-#define BCHP_XPT_MCPB_GPC10_CURR_COUNTER_VAL     0x20a70988 /* [RW] MCPB GPC10 Current counter value */
-#define BCHP_XPT_MCPB_GPC10_PAUSE_0_31           0x20a7098c /* [RW] MCPB GPC10 Current pause value */
-#define BCHP_XPT_MCPB_GPC11_CTRL                 0x20a70990 /* [RW] MCPB GPC11 Control information */
-#define BCHP_XPT_MCPB_GPC11_CURR_COUNTER_VAL     0x20a70994 /* [RW] MCPB GPC11 Current counter value */
-#define BCHP_XPT_MCPB_GPC11_PAUSE_0_31           0x20a70998 /* [RW] MCPB GPC11 Current pause value */
-#define BCHP_XPT_MCPB_GPC12_CTRL                 0x20a7099c /* [RW] MCPB GPC12 Control information */
-#define BCHP_XPT_MCPB_GPC12_CURR_COUNTER_VAL     0x20a709a0 /* [RW] MCPB GPC12 Current counter value */
-#define BCHP_XPT_MCPB_GPC12_PAUSE_0_31           0x20a709a4 /* [RW] MCPB GPC12 Current pause value */
-#define BCHP_XPT_MCPB_GPC13_CTRL                 0x20a709a8 /* [RW] MCPB GPC13 Control information */
-#define BCHP_XPT_MCPB_GPC13_CURR_COUNTER_VAL     0x20a709ac /* [RW] MCPB GPC13 Current counter value */
-#define BCHP_XPT_MCPB_GPC13_PAUSE_0_31           0x20a709b0 /* [RW] MCPB GPC13 Current pause value */
-#define BCHP_XPT_MCPB_GPC14_CTRL                 0x20a709b4 /* [RW] MCPB GPC14 Control information */
-#define BCHP_XPT_MCPB_GPC14_CURR_COUNTER_VAL     0x20a709b8 /* [RW] MCPB GPC14 Current counter value */
-#define BCHP_XPT_MCPB_GPC14_PAUSE_0_31           0x20a709bc /* [RW] MCPB GPC14 Current pause value */
-#define BCHP_XPT_MCPB_GPC15_CTRL                 0x20a709c0 /* [RW] MCPB GPC15 Control information */
-#define BCHP_XPT_MCPB_GPC15_CURR_COUNTER_VAL     0x20a709c4 /* [RW] MCPB GPC15 Current counter value */
-#define BCHP_XPT_MCPB_GPC15_PAUSE_0_31           0x20a709c8 /* [RW] MCPB GPC15 Current pause value */
-#define BCHP_XPT_MCPB_GPC16_CTRL                 0x20a709cc /* [RW] MCPB GPC16 Control information */
-#define BCHP_XPT_MCPB_GPC16_CURR_COUNTER_VAL     0x20a709d0 /* [RW] MCPB GPC16 Current counter value */
-#define BCHP_XPT_MCPB_GPC16_PAUSE_0_31           0x20a709d4 /* [RW] MCPB GPC16 Current pause value */
-#define BCHP_XPT_MCPB_GPC17_CTRL                 0x20a709d8 /* [RW] MCPB GPC17 Control information */
-#define BCHP_XPT_MCPB_GPC17_CURR_COUNTER_VAL     0x20a709dc /* [RW] MCPB GPC17 Current counter value */
-#define BCHP_XPT_MCPB_GPC17_PAUSE_0_31           0x20a709e0 /* [RW] MCPB GPC17 Current pause value */
-#define BCHP_XPT_MCPB_GPC18_CTRL                 0x20a709e4 /* [RW] MCPB GPC18 Control information */
-#define BCHP_XPT_MCPB_GPC18_CURR_COUNTER_VAL     0x20a709e8 /* [RW] MCPB GPC18 Current counter value */
-#define BCHP_XPT_MCPB_GPC18_PAUSE_0_31           0x20a709ec /* [RW] MCPB GPC18 Current pause value */
-#define BCHP_XPT_MCPB_GPC19_CTRL                 0x20a709f0 /* [RW] MCPB GPC19 Control information */
-#define BCHP_XPT_MCPB_GPC19_CURR_COUNTER_VAL     0x20a709f4 /* [RW] MCPB GPC19 Current counter value */
-#define BCHP_XPT_MCPB_GPC19_PAUSE_0_31           0x20a709f8 /* [RW] MCPB GPC19 Current pause value */
-#define BCHP_XPT_MCPB_GPC20_CTRL                 0x20a709fc /* [RW] MCPB GPC20 Control information */
-#define BCHP_XPT_MCPB_GPC20_CURR_COUNTER_VAL     0x20a70a00 /* [RW] MCPB GPC20 Current counter value */
-#define BCHP_XPT_MCPB_GPC20_PAUSE_0_31           0x20a70a04 /* [RW] MCPB GPC20 Current pause value */
-#define BCHP_XPT_MCPB_GPC21_CTRL                 0x20a70a08 /* [RW] MCPB GPC21 Control information */
-#define BCHP_XPT_MCPB_GPC21_CURR_COUNTER_VAL     0x20a70a0c /* [RW] MCPB GPC21 Current counter value */
-#define BCHP_XPT_MCPB_GPC21_PAUSE_0_31           0x20a70a10 /* [RW] MCPB GPC21 Current pause value */
-#define BCHP_XPT_MCPB_GPC22_CTRL                 0x20a70a14 /* [RW] MCPB GPC22 Control information */
-#define BCHP_XPT_MCPB_GPC22_CURR_COUNTER_VAL     0x20a70a18 /* [RW] MCPB GPC22 Current counter value */
-#define BCHP_XPT_MCPB_GPC22_PAUSE_0_31           0x20a70a1c /* [RW] MCPB GPC22 Current pause value */
-#define BCHP_XPT_MCPB_GPC23_CTRL                 0x20a70a20 /* [RW] MCPB GPC23 Control information */
-#define BCHP_XPT_MCPB_GPC23_CURR_COUNTER_VAL     0x20a70a24 /* [RW] MCPB GPC23 Current counter value */
-#define BCHP_XPT_MCPB_GPC23_PAUSE_0_31           0x20a70a28 /* [RW] MCPB GPC23 Current pause value */
-#define BCHP_XPT_MCPB_GPC24_CTRL                 0x20a70a2c /* [RW] MCPB GPC24 Control information */
-#define BCHP_XPT_MCPB_GPC24_CURR_COUNTER_VAL     0x20a70a30 /* [RW] MCPB GPC24 Current counter value */
-#define BCHP_XPT_MCPB_GPC24_PAUSE_0_31           0x20a70a34 /* [RW] MCPB GPC24 Current pause value */
-#define BCHP_XPT_MCPB_GPC25_CTRL                 0x20a70a38 /* [RW] MCPB GPC25 Control information */
-#define BCHP_XPT_MCPB_GPC25_CURR_COUNTER_VAL     0x20a70a3c /* [RW] MCPB GPC25 Current counter value */
-#define BCHP_XPT_MCPB_GPC25_PAUSE_0_31           0x20a70a40 /* [RW] MCPB GPC25 Current pause value */
-#define BCHP_XPT_MCPB_GPC26_CTRL                 0x20a70a44 /* [RW] MCPB GPC26 Control information */
-#define BCHP_XPT_MCPB_GPC26_CURR_COUNTER_VAL     0x20a70a48 /* [RW] MCPB GPC26 Current counter value */
-#define BCHP_XPT_MCPB_GPC26_PAUSE_0_31           0x20a70a4c /* [RW] MCPB GPC26 Current pause value */
-#define BCHP_XPT_MCPB_GPC27_CTRL                 0x20a70a50 /* [RW] MCPB GPC27 Control information */
-#define BCHP_XPT_MCPB_GPC27_CURR_COUNTER_VAL     0x20a70a54 /* [RW] MCPB GPC27 Current counter value */
-#define BCHP_XPT_MCPB_GPC27_PAUSE_0_31           0x20a70a58 /* [RW] MCPB GPC27 Current pause value */
-#define BCHP_XPT_MCPB_GPC28_CTRL                 0x20a70a5c /* [RW] MCPB GPC28 Control information */
-#define BCHP_XPT_MCPB_GPC28_CURR_COUNTER_VAL     0x20a70a60 /* [RW] MCPB GPC28 Current counter value */
-#define BCHP_XPT_MCPB_GPC28_PAUSE_0_31           0x20a70a64 /* [RW] MCPB GPC28 Current pause value */
-#define BCHP_XPT_MCPB_GPC29_CTRL                 0x20a70a68 /* [RW] MCPB GPC29 Control information */
-#define BCHP_XPT_MCPB_GPC29_CURR_COUNTER_VAL     0x20a70a6c /* [RW] MCPB GPC29 Current counter value */
-#define BCHP_XPT_MCPB_GPC29_PAUSE_0_31           0x20a70a70 /* [RW] MCPB GPC29 Current pause value */
-#define BCHP_XPT_MCPB_GPC30_CTRL                 0x20a70a74 /* [RW] MCPB GPC30 Control information */
-#define BCHP_XPT_MCPB_GPC30_CURR_COUNTER_VAL     0x20a70a78 /* [RW] MCPB GPC30 Current counter value */
-#define BCHP_XPT_MCPB_GPC30_PAUSE_0_31           0x20a70a7c /* [RW] MCPB GPC30 Current pause value */
-#define BCHP_XPT_MCPB_GPC31_CTRL                 0x20a70a80 /* [RW] MCPB GPC31 Control information */
-#define BCHP_XPT_MCPB_GPC31_CURR_COUNTER_VAL     0x20a70a84 /* [RW] MCPB GPC31 Current counter value */
-#define BCHP_XPT_MCPB_GPC31_PAUSE_0_31           0x20a70a88 /* [RW] MCPB GPC31 Current pause value */
-#define BCHP_XPT_MCPB_TMEU_ARB_DELAY             0x20a70a8c /* [RW] MCPB Arbitration delay value */
-#define BCHP_XPT_MCPB_DMA_MEM_ADDR_START         0x20a70a90 /* [RW] Address start for CFG DMA SP memory */
-#define BCHP_XPT_MCPB_BBUFF_MEM_ADDR_START       0x20a70a94 /* [RW] Address start for CFG BBUFF memory */
-#define BCHP_XPT_MCPB_TMEU_MEM_ADDR_START        0x20a70a98 /* [RW] Address start for TMEU memory */
-#define BCHP_XPT_MCPB_DCPM_MEM_ADDR_START        0x20a70a9c /* [RW] Address start for DCPM memory */
-#define BCHP_XPT_MCPB_PER_CH_MEM_ADDR_END        0x20a70aa0 /* [RW] Address end in configuration memory for each channel */
-#define BCHP_XPT_MCPB_GLOBAL_CTRL_SIGNALS        0x20a70aa4 /* [RW] Global control signals */
-#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_MEMDMA_SET_CLEAR 0x20a70aa8 /* [RW] Set and clear of Pause at descriptor end clear mask status bit */
-#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_MEMDMA_STATUS_0_31 0x20a70aac /* [RO] Pause at descriptor end clear mask status bit for all PB channels */
-#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_HOST_SET_CLEAR 0x20a70ab0 /* [RW] Set and clear of Pause at descriptor end clear mask status bit */
-#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_HOST_STATUS_0_31 0x20a70ab4 /* [RO] Pause at descriptor end clear mask status bit for all PB channels */
-#define BCHP_XPT_MCPB_DESCRIPTOR_LESS_MODE_SET_CLEAR 0x20a70ab8 /* [RW] Set and clear for DESCRIPTOR_LESS_MODE_STATUS bit */
-#define BCHP_XPT_MCPB_DESCRIPTOR_LESS_MODE_STATUS_0_31 0x20a70abc /* [RO] Descriptorless status for all PB channels */
-#define BCHP_XPT_MCPB_ARBITER_ZERO_BYTE_TRANS_PRIORITY_SET_CLEAR 0x20a70ac0 /* [RW] Set and clear for Zero Byte Transaction Priority bit */
-#define BCHP_XPT_MCPB_ARBITER_ZERO_BYTE_TRANS_PRIORITY_STATUS_0_31 0x20a70ac4 /* [RO] Zero Byte Transaction Priority status for all PB channels */
-#define BCHP_XPT_MCPB_ARBITER_SEND_DCP_ONLY_TRANS_AS_HIGH_PRIORITY_SET_CLEAR 0x20a70ac8 /* [RW] Set and clear for DCP-only-transaction priority bit */
-#define BCHP_XPT_MCPB_ARBITER_SEND_DCP_ONLY_TRANS_AS_HIGH_PRIORITY_STATUS_0_31 0x20a70acc /* [RO] DCP-only-transaction priority status for all PB channels */
-#define BCHP_XPT_MCPB_MPOD_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad0 /* [RW] Packet gapper controls for MPOD O/P pipe */
-#define BCHP_XPT_MCPB_SEC_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad4 /* [RW] Packet gapper controls for SECURITY O/P pipe */
-#define BCHP_XPT_MCPB_TSIO0_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad8 /* [RW] Packet gapper controls for TSIO0 O/P pipe */
-#define BCHP_XPT_MCPB_TSIO1_OUTPUT_PIPE_PACKET_GAPPER 0x20a70adc /* [RW] Packet gapper controls for TSIO1 O/P pipe */
-#define BCHP_XPT_MCPB_RAVE_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ae0 /* [RW] Packet gapper controls for RAVE O/P pipe */
-#define BCHP_XPT_MCPB_MEMDMA_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ae4 /* [RW] Packet gapper controls for MEMDMA O/P pipe */
-#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_0          0x20a70ae8 /* [RW] Manual mode select signals Selection 0 */
-#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_1          0x20a70aec /* [RW] Manual mode select signals Selection 1 */
-#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_2          0x20a70af0 /* [RW] Manual mode select signals Selection 2 */
-#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_3          0x20a70af4 /* [RW] Manual mode select signals Selection 3 */
-#define BCHP_XPT_MCPB_DEBUG_0                    0x20a70af8 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_1                    0x20a70afc /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_2                    0x20a70b00 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_3                    0x20a70b04 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_4                    0x20a70b08 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_5                    0x20a70b0c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_6                    0x20a70b10 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_7                    0x20a70b14 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_8                    0x20a70b18 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_9                    0x20a70b1c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_10                   0x20a70b20 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_11                   0x20a70b24 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_12                   0x20a70b28 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_13                   0x20a70b2c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_14                   0x20a70b30 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_15                   0x20a70b34 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_16                   0x20a70b38 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_17                   0x20a70b3c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_18                   0x20a70b40 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_19                   0x20a70b44 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_20                   0x20a70b48 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_21                   0x20a70b4c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_22                   0x20a70b50 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_23                   0x20a70b54 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_24                   0x20a70b58 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_25                   0x20a70b5c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_26                   0x20a70b60 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_27                   0x20a70b64 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_28                   0x20a70b68 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_29                   0x20a70b6c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_30                   0x20a70b70 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_31                   0x20a70b74 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_32                   0x20a70b78 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_33                   0x20a70b7c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_34                   0x20a70b80 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_35                   0x20a70b84 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_36                   0x20a70b88 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_37                   0x20a70b8c /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_DEBUG_38                   0x20a70b90 /* [RO] Debug Register */
-#define BCHP_XPT_MCPB_SP_TIME_OUT_THRESHOLD      0x20a70b94 /* [RW] SP Timeout Threshold */
-#define BCHP_XPT_MCPB_DEBUG_SP_FORCE_RECOVER     0x20a70b98 /* [RW] Debug SP Force Recover */
-#define BCHP_XPT_MCPB_DEBUG_SP_TX_SLOT_CMD_AUTO_RECOVER_OVERWR 0x20a70b9c /* [RW] Debug SP TX Overwrite Slot Cmd Auto Recover Overwrite */
+#define BCHP_XPT_MCPB_RUN_SET_CLEAR              0x20a70800 /* [RW][32] Set and Clear for the RUN bit */
+#define BCHP_XPT_MCPB_WAKE_SET                   0x20a70804 /* [RW][32] Set for the WAKE bit */
+#define BCHP_XPT_MCPB_WAKE_MODE_SET_CLEAR        0x20a70808 /* [RW][32] Set and Clear for the WAKE_MODE bit */
+#define BCHP_XPT_MCPB_BUFF_DATA_RDY_SET          0x20a7080c /* [RW][32] Set for the BUFF_DATA_RDY bit */
+#define BCHP_XPT_MCPB_PAUSE_AT_DESC_READ_CLEAR   0x20a70810 /* [RW][32] Clear for the PAUSE_AT_DESC_READ bit */
+#define BCHP_XPT_MCPB_PAUSE_AT_DESC_END_CLEAR    0x20a70814 /* [RW][32] Clear for the PAUSE_AT_DESC_END bit */
+#define BCHP_XPT_MCPB_PAUSE_AFTER_GROUP_PACKETS_CLEAR 0x20a70818 /* [RW][32] Clear for the PAUSE_AFTER_GROUP_PACKETS bit */
+#define BCHP_XPT_MCPB_CRC_COMPARE_ERROR_PAUSE_CLEAR 0x20a7081c /* [RW][32] Clear for the CRC_COMPARE_ERROR_PAUSE bit */
+#define BCHP_XPT_MCPB_MICRO_PAUSE_SET_CLEAR      0x20a70820 /* [RW][32] Set and Clear for the MICRO_PAUSE bit */
+#define BCHP_XPT_MCPB_RUN_STATUS_0_31            0x20a70824 /* [RO][32] Run status for all the PB channels */
+#define BCHP_XPT_MCPB_WAKE_STATUS_0_31           0x20a70828 /* [RO][32] Wake status for all the PB channels */
+#define BCHP_XPT_MCPB_WAKE_MODE_STATUS_0_31      0x20a7082c /* [RO][32] Wake Mode status for all the PB channels */
+#define BCHP_XPT_MCPB_PAUSE_AT_DESC_READ_STATUS_0_31 0x20a70830 /* [RO][32] Pause at descriptor read status for all the PB channels */
+#define BCHP_XPT_MCPB_PAUSE_AT_DESC_END_STATUS_0_31 0x20a70834 /* [RO][32] Pause at descriptor end status for all the PB channels */
+#define BCHP_XPT_MCPB_PAUSE_AFTER_GROUP_PACKETS_STATUS_0_31 0x20a70838 /* [RO][32] Pause after group of packets status for all the PB channels */
+#define BCHP_XPT_MCPB_CRC_COMPARE_ERROR_PAUSE_STATUS_0_31 0x20a7083c /* [RO][32] CRC compare error pause status for all the PB channels */
+#define BCHP_XPT_MCPB_MICRO_PAUSE_STATUS_0_31    0x20a70840 /* [RO][32] Micro Pause status for all the PB channels */
+#define BCHP_XPT_MCPB_FINAL_PAUSE_STATUS_0_31    0x20a70844 /* [RO][32] Final Pause status for all the PB channels */
+#define BCHP_XPT_MCPB_HW_PAUSE_STATUS_0_31       0x20a70848 /* [RO][32] Hardware Pause status for all the PB channels */
+#define BCHP_XPT_MCPB_DESC_RD_IN_PROGRESS_0_31   0x20a7084c /* [RW][32] Descriptor Read in Progress status flag */
+#define BCHP_XPT_MCPB_DATA_RD_IN_PROGRESS_0_31   0x20a70850 /* [RW][32] Data Read in Progress status flag */
+#define BCHP_XPT_MCPB_BBUFF_RD_IN_PROGRESS_0_31  0x20a70854 /* [RW][32] Burst Buffer Read in Progress status flag */
+#define BCHP_XPT_MCPB_LAST_DESC_REACHED_0_31     0x20a70858 /* [RW][32] Last Descriptor Reached status flag */
+#define BCHP_XPT_MCPB_BUFF_DATA_RDY_0_31         0x20a7085c /* [RO][32] Buffer data ready status flag */
+#define BCHP_XPT_MCPB_FIRST_DATA_RD_OPN_PRIORITY_0_31 0x20a70860 /* [RW][32] First data read operation priority flag */
+#define BCHP_XPT_MCPB_RUN_INVALID_SET_CLEAR      0x20a70864 /* [RW][32] Set and Clear Run Invalid */
+#define BCHP_XPT_MCPB_RUN_INVALID_STATUS_0_31    0x20a70868 /* [RO][32] Run Invalid status */
+#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_SET       0x20a7086c /* [RW][32] Set priority for channel arbitration */
+#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_STATUS_0_15 0x20a70870 /* [RO][32] Channel priority status for channels 0 to 15 */
+#define BCHP_XPT_MCPB_CHANNEL_PRIORITY_STATUS_16_31 0x20a70874 /* [RO][32] Channel priority status for channels 16 to 31 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_0 0x20a70878 /* [RW][32] MCPB Band pause mapping vector for channel 0 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_1 0x20a7087c /* [RW][32] MCPB Band pause mapping vector for channel 1 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_2 0x20a70880 /* [RW][32] MCPB Band pause mapping vector for channel 2 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_3 0x20a70884 /* [RW][32] MCPB Band pause mapping vector for channel 3 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_4 0x20a70888 /* [RW][32] MCPB Band pause mapping vector for channel 4 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_5 0x20a7088c /* [RW][32] MCPB Band pause mapping vector for channel 5 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_6 0x20a70890 /* [RW][32] MCPB Band pause mapping vector for channel 6 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_7 0x20a70894 /* [RW][32] MCPB Band pause mapping vector for channel 7 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_8 0x20a70898 /* [RW][32] MCPB Band pause mapping vector for channel 8 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_9 0x20a7089c /* [RW][32] MCPB Band pause mapping vector for channel 9 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_10 0x20a708a0 /* [RW][32] MCPB Band pause mapping vector for channel 10 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_11 0x20a708a4 /* [RW][32] MCPB Band pause mapping vector for channel 11 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_12 0x20a708a8 /* [RW][32] MCPB Band pause mapping vector for channel 12 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_13 0x20a708ac /* [RW][32] MCPB Band pause mapping vector for channel 13 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_14 0x20a708b0 /* [RW][32] MCPB Band pause mapping vector for channel 14 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_15 0x20a708b4 /* [RW][32] MCPB Band pause mapping vector for channel 15 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_16 0x20a708b8 /* [RW][32] MCPB Band pause mapping vector for channel 16 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_17 0x20a708bc /* [RW][32] MCPB Band pause mapping vector for channel 17 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_18 0x20a708c0 /* [RW][32] MCPB Band pause mapping vector for channel 18 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_19 0x20a708c4 /* [RW][32] MCPB Band pause mapping vector for channel 19 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_20 0x20a708c8 /* [RW][32] MCPB Band pause mapping vector for channel 20 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_21 0x20a708cc /* [RW][32] MCPB Band pause mapping vector for channel 21 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_22 0x20a708d0 /* [RW][32] MCPB Band pause mapping vector for channel 22 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_23 0x20a708d4 /* [RW][32] MCPB Band pause mapping vector for channel 23 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_24 0x20a708d8 /* [RW][32] MCPB Band pause mapping vector for channel 24 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_25 0x20a708dc /* [RW][32] MCPB Band pause mapping vector for channel 25 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_26 0x20a708e0 /* [RW][32] MCPB Band pause mapping vector for channel 26 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_27 0x20a708e4 /* [RW][32] MCPB Band pause mapping vector for channel 27 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_28 0x20a708e8 /* [RW][32] MCPB Band pause mapping vector for channel 28 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_29 0x20a708ec /* [RW][32] MCPB Band pause mapping vector for channel 29 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_30 0x20a708f0 /* [RW][32] MCPB Band pause mapping vector for channel 30 */
+#define BCHP_XPT_MCPB_BAND_PAUSE_MAPPING_VECTOR_31 0x20a708f4 /* [RW][32] MCPB Band pause mapping vector for channel 31 */
+#define BCHP_XPT_MCPB_SP_GLOBAL_CFG_REG0         0x20a708f8 /* [RW][32] Channel independent Stream processor specific information */
+#define BCHP_XPT_MCPB_SP_GLOBAL_CFG_REG1         0x20a708fc /* [RW][32] Channel independent Stream processor specific information */
+#define BCHP_XPT_MCPB_TMEU_CHANNEL_BYPASS_SET_CLEAR 0x20a70900 /* [RW][32] Set and clear for TMEU channel bypass bit */
+#define BCHP_XPT_MCPB_TMEU_CHANNEL_BYPASS_STATUS_0_31 0x20a70904 /* [RO][32] TMEU channel bypass status */
+#define BCHP_XPT_MCPB_GPC_COUNT_RELOAD_CTRL      0x20a70908 /* [RW][32] GPC reload control Register */
+#define BCHP_XPT_MCPB_GPC0_CTRL                  0x20a7090c /* [RW][32] MCPB GPC0 Control information */
+#define BCHP_XPT_MCPB_GPC0_CURR_COUNTER_VAL      0x20a70910 /* [RW][32] MCPB GPC0 Current counter value */
+#define BCHP_XPT_MCPB_GPC0_PAUSE_0_31            0x20a70914 /* [RW][32] MCPB GPC0 Current pause value */
+#define BCHP_XPT_MCPB_GPC1_CTRL                  0x20a70918 /* [RW][32] MCPB GPC1 Control information */
+#define BCHP_XPT_MCPB_GPC1_CURR_COUNTER_VAL      0x20a7091c /* [RW][32] MCPB GPC1 Current counter value */
+#define BCHP_XPT_MCPB_GPC1_PAUSE_0_31            0x20a70920 /* [RW][32] MCPB GPC1 Current pause value */
+#define BCHP_XPT_MCPB_GPC2_CTRL                  0x20a70924 /* [RW][32] MCPB GPC2 Control information */
+#define BCHP_XPT_MCPB_GPC2_CURR_COUNTER_VAL      0x20a70928 /* [RW][32] MCPB GPC2 Current counter value */
+#define BCHP_XPT_MCPB_GPC2_PAUSE_0_31            0x20a7092c /* [RW][32] MCPB GPC2 Current pause value */
+#define BCHP_XPT_MCPB_GPC3_CTRL                  0x20a70930 /* [RW][32] MCPB GPC3 Control information */
+#define BCHP_XPT_MCPB_GPC3_CURR_COUNTER_VAL      0x20a70934 /* [RW][32] MCPB GPC3 Current counter value */
+#define BCHP_XPT_MCPB_GPC3_PAUSE_0_31            0x20a70938 /* [RW][32] MCPB GPC3 Current pause value */
+#define BCHP_XPT_MCPB_GPC4_CTRL                  0x20a7093c /* [RW][32] MCPB GPC4 Control information */
+#define BCHP_XPT_MCPB_GPC4_CURR_COUNTER_VAL      0x20a70940 /* [RW][32] MCPB GPC4 Current counter value */
+#define BCHP_XPT_MCPB_GPC4_PAUSE_0_31            0x20a70944 /* [RW][32] MCPB GPC4 Current pause value */
+#define BCHP_XPT_MCPB_GPC5_CTRL                  0x20a70948 /* [RW][32] MCPB GPC5 Control information */
+#define BCHP_XPT_MCPB_GPC5_CURR_COUNTER_VAL      0x20a7094c /* [RW][32] MCPB GPC5 Current counter value */
+#define BCHP_XPT_MCPB_GPC5_PAUSE_0_31            0x20a70950 /* [RW][32] MCPB GPC5 Current pause value */
+#define BCHP_XPT_MCPB_GPC6_CTRL                  0x20a70954 /* [RW][32] MCPB GPC6 Control information */
+#define BCHP_XPT_MCPB_GPC6_CURR_COUNTER_VAL      0x20a70958 /* [RW][32] MCPB GPC6 Current counter value */
+#define BCHP_XPT_MCPB_GPC6_PAUSE_0_31            0x20a7095c /* [RW][32] MCPB GPC6 Current pause value */
+#define BCHP_XPT_MCPB_GPC7_CTRL                  0x20a70960 /* [RW][32] MCPB GPC7 Control information */
+#define BCHP_XPT_MCPB_GPC7_CURR_COUNTER_VAL      0x20a70964 /* [RW][32] MCPB GPC7 Current counter value */
+#define BCHP_XPT_MCPB_GPC7_PAUSE_0_31            0x20a70968 /* [RW][32] MCPB GPC7 Current pause value */
+#define BCHP_XPT_MCPB_GPC8_CTRL                  0x20a7096c /* [RW][32] MCPB GPC8 Control information */
+#define BCHP_XPT_MCPB_GPC8_CURR_COUNTER_VAL      0x20a70970 /* [RW][32] MCPB GPC8 Current counter value */
+#define BCHP_XPT_MCPB_GPC8_PAUSE_0_31            0x20a70974 /* [RW][32] MCPB GPC8 Current pause value */
+#define BCHP_XPT_MCPB_GPC9_CTRL                  0x20a70978 /* [RW][32] MCPB GPC9 Control information */
+#define BCHP_XPT_MCPB_GPC9_CURR_COUNTER_VAL      0x20a7097c /* [RW][32] MCPB GPC9 Current counter value */
+#define BCHP_XPT_MCPB_GPC9_PAUSE_0_31            0x20a70980 /* [RW][32] MCPB GPC9 Current pause value */
+#define BCHP_XPT_MCPB_GPC10_CTRL                 0x20a70984 /* [RW][32] MCPB GPC10 Control information */
+#define BCHP_XPT_MCPB_GPC10_CURR_COUNTER_VAL     0x20a70988 /* [RW][32] MCPB GPC10 Current counter value */
+#define BCHP_XPT_MCPB_GPC10_PAUSE_0_31           0x20a7098c /* [RW][32] MCPB GPC10 Current pause value */
+#define BCHP_XPT_MCPB_GPC11_CTRL                 0x20a70990 /* [RW][32] MCPB GPC11 Control information */
+#define BCHP_XPT_MCPB_GPC11_CURR_COUNTER_VAL     0x20a70994 /* [RW][32] MCPB GPC11 Current counter value */
+#define BCHP_XPT_MCPB_GPC11_PAUSE_0_31           0x20a70998 /* [RW][32] MCPB GPC11 Current pause value */
+#define BCHP_XPT_MCPB_GPC12_CTRL                 0x20a7099c /* [RW][32] MCPB GPC12 Control information */
+#define BCHP_XPT_MCPB_GPC12_CURR_COUNTER_VAL     0x20a709a0 /* [RW][32] MCPB GPC12 Current counter value */
+#define BCHP_XPT_MCPB_GPC12_PAUSE_0_31           0x20a709a4 /* [RW][32] MCPB GPC12 Current pause value */
+#define BCHP_XPT_MCPB_GPC13_CTRL                 0x20a709a8 /* [RW][32] MCPB GPC13 Control information */
+#define BCHP_XPT_MCPB_GPC13_CURR_COUNTER_VAL     0x20a709ac /* [RW][32] MCPB GPC13 Current counter value */
+#define BCHP_XPT_MCPB_GPC13_PAUSE_0_31           0x20a709b0 /* [RW][32] MCPB GPC13 Current pause value */
+#define BCHP_XPT_MCPB_GPC14_CTRL                 0x20a709b4 /* [RW][32] MCPB GPC14 Control information */
+#define BCHP_XPT_MCPB_GPC14_CURR_COUNTER_VAL     0x20a709b8 /* [RW][32] MCPB GPC14 Current counter value */
+#define BCHP_XPT_MCPB_GPC14_PAUSE_0_31           0x20a709bc /* [RW][32] MCPB GPC14 Current pause value */
+#define BCHP_XPT_MCPB_GPC15_CTRL                 0x20a709c0 /* [RW][32] MCPB GPC15 Control information */
+#define BCHP_XPT_MCPB_GPC15_CURR_COUNTER_VAL     0x20a709c4 /* [RW][32] MCPB GPC15 Current counter value */
+#define BCHP_XPT_MCPB_GPC15_PAUSE_0_31           0x20a709c8 /* [RW][32] MCPB GPC15 Current pause value */
+#define BCHP_XPT_MCPB_GPC16_CTRL                 0x20a709cc /* [RW][32] MCPB GPC16 Control information */
+#define BCHP_XPT_MCPB_GPC16_CURR_COUNTER_VAL     0x20a709d0 /* [RW][32] MCPB GPC16 Current counter value */
+#define BCHP_XPT_MCPB_GPC16_PAUSE_0_31           0x20a709d4 /* [RW][32] MCPB GPC16 Current pause value */
+#define BCHP_XPT_MCPB_GPC17_CTRL                 0x20a709d8 /* [RW][32] MCPB GPC17 Control information */
+#define BCHP_XPT_MCPB_GPC17_CURR_COUNTER_VAL     0x20a709dc /* [RW][32] MCPB GPC17 Current counter value */
+#define BCHP_XPT_MCPB_GPC17_PAUSE_0_31           0x20a709e0 /* [RW][32] MCPB GPC17 Current pause value */
+#define BCHP_XPT_MCPB_GPC18_CTRL                 0x20a709e4 /* [RW][32] MCPB GPC18 Control information */
+#define BCHP_XPT_MCPB_GPC18_CURR_COUNTER_VAL     0x20a709e8 /* [RW][32] MCPB GPC18 Current counter value */
+#define BCHP_XPT_MCPB_GPC18_PAUSE_0_31           0x20a709ec /* [RW][32] MCPB GPC18 Current pause value */
+#define BCHP_XPT_MCPB_GPC19_CTRL                 0x20a709f0 /* [RW][32] MCPB GPC19 Control information */
+#define BCHP_XPT_MCPB_GPC19_CURR_COUNTER_VAL     0x20a709f4 /* [RW][32] MCPB GPC19 Current counter value */
+#define BCHP_XPT_MCPB_GPC19_PAUSE_0_31           0x20a709f8 /* [RW][32] MCPB GPC19 Current pause value */
+#define BCHP_XPT_MCPB_GPC20_CTRL                 0x20a709fc /* [RW][32] MCPB GPC20 Control information */
+#define BCHP_XPT_MCPB_GPC20_CURR_COUNTER_VAL     0x20a70a00 /* [RW][32] MCPB GPC20 Current counter value */
+#define BCHP_XPT_MCPB_GPC20_PAUSE_0_31           0x20a70a04 /* [RW][32] MCPB GPC20 Current pause value */
+#define BCHP_XPT_MCPB_GPC21_CTRL                 0x20a70a08 /* [RW][32] MCPB GPC21 Control information */
+#define BCHP_XPT_MCPB_GPC21_CURR_COUNTER_VAL     0x20a70a0c /* [RW][32] MCPB GPC21 Current counter value */
+#define BCHP_XPT_MCPB_GPC21_PAUSE_0_31           0x20a70a10 /* [RW][32] MCPB GPC21 Current pause value */
+#define BCHP_XPT_MCPB_GPC22_CTRL                 0x20a70a14 /* [RW][32] MCPB GPC22 Control information */
+#define BCHP_XPT_MCPB_GPC22_CURR_COUNTER_VAL     0x20a70a18 /* [RW][32] MCPB GPC22 Current counter value */
+#define BCHP_XPT_MCPB_GPC22_PAUSE_0_31           0x20a70a1c /* [RW][32] MCPB GPC22 Current pause value */
+#define BCHP_XPT_MCPB_GPC23_CTRL                 0x20a70a20 /* [RW][32] MCPB GPC23 Control information */
+#define BCHP_XPT_MCPB_GPC23_CURR_COUNTER_VAL     0x20a70a24 /* [RW][32] MCPB GPC23 Current counter value */
+#define BCHP_XPT_MCPB_GPC23_PAUSE_0_31           0x20a70a28 /* [RW][32] MCPB GPC23 Current pause value */
+#define BCHP_XPT_MCPB_GPC24_CTRL                 0x20a70a2c /* [RW][32] MCPB GPC24 Control information */
+#define BCHP_XPT_MCPB_GPC24_CURR_COUNTER_VAL     0x20a70a30 /* [RW][32] MCPB GPC24 Current counter value */
+#define BCHP_XPT_MCPB_GPC24_PAUSE_0_31           0x20a70a34 /* [RW][32] MCPB GPC24 Current pause value */
+#define BCHP_XPT_MCPB_GPC25_CTRL                 0x20a70a38 /* [RW][32] MCPB GPC25 Control information */
+#define BCHP_XPT_MCPB_GPC25_CURR_COUNTER_VAL     0x20a70a3c /* [RW][32] MCPB GPC25 Current counter value */
+#define BCHP_XPT_MCPB_GPC25_PAUSE_0_31           0x20a70a40 /* [RW][32] MCPB GPC25 Current pause value */
+#define BCHP_XPT_MCPB_GPC26_CTRL                 0x20a70a44 /* [RW][32] MCPB GPC26 Control information */
+#define BCHP_XPT_MCPB_GPC26_CURR_COUNTER_VAL     0x20a70a48 /* [RW][32] MCPB GPC26 Current counter value */
+#define BCHP_XPT_MCPB_GPC26_PAUSE_0_31           0x20a70a4c /* [RW][32] MCPB GPC26 Current pause value */
+#define BCHP_XPT_MCPB_GPC27_CTRL                 0x20a70a50 /* [RW][32] MCPB GPC27 Control information */
+#define BCHP_XPT_MCPB_GPC27_CURR_COUNTER_VAL     0x20a70a54 /* [RW][32] MCPB GPC27 Current counter value */
+#define BCHP_XPT_MCPB_GPC27_PAUSE_0_31           0x20a70a58 /* [RW][32] MCPB GPC27 Current pause value */
+#define BCHP_XPT_MCPB_GPC28_CTRL                 0x20a70a5c /* [RW][32] MCPB GPC28 Control information */
+#define BCHP_XPT_MCPB_GPC28_CURR_COUNTER_VAL     0x20a70a60 /* [RW][32] MCPB GPC28 Current counter value */
+#define BCHP_XPT_MCPB_GPC28_PAUSE_0_31           0x20a70a64 /* [RW][32] MCPB GPC28 Current pause value */
+#define BCHP_XPT_MCPB_GPC29_CTRL                 0x20a70a68 /* [RW][32] MCPB GPC29 Control information */
+#define BCHP_XPT_MCPB_GPC29_CURR_COUNTER_VAL     0x20a70a6c /* [RW][32] MCPB GPC29 Current counter value */
+#define BCHP_XPT_MCPB_GPC29_PAUSE_0_31           0x20a70a70 /* [RW][32] MCPB GPC29 Current pause value */
+#define BCHP_XPT_MCPB_GPC30_CTRL                 0x20a70a74 /* [RW][32] MCPB GPC30 Control information */
+#define BCHP_XPT_MCPB_GPC30_CURR_COUNTER_VAL     0x20a70a78 /* [RW][32] MCPB GPC30 Current counter value */
+#define BCHP_XPT_MCPB_GPC30_PAUSE_0_31           0x20a70a7c /* [RW][32] MCPB GPC30 Current pause value */
+#define BCHP_XPT_MCPB_GPC31_CTRL                 0x20a70a80 /* [RW][32] MCPB GPC31 Control information */
+#define BCHP_XPT_MCPB_GPC31_CURR_COUNTER_VAL     0x20a70a84 /* [RW][32] MCPB GPC31 Current counter value */
+#define BCHP_XPT_MCPB_GPC31_PAUSE_0_31           0x20a70a88 /* [RW][32] MCPB GPC31 Current pause value */
+#define BCHP_XPT_MCPB_TMEU_ARB_DELAY             0x20a70a8c /* [RW][32] MCPB Arbitration delay value */
+#define BCHP_XPT_MCPB_DMA_MEM_ADDR_START         0x20a70a90 /* [RW][32] Address start for CFG DMA SP memory */
+#define BCHP_XPT_MCPB_BBUFF_MEM_ADDR_START       0x20a70a94 /* [RW][32] Address start for CFG BBUFF memory */
+#define BCHP_XPT_MCPB_TMEU_MEM_ADDR_START        0x20a70a98 /* [RW][32] Address start for TMEU memory */
+#define BCHP_XPT_MCPB_DCPM_MEM_ADDR_START        0x20a70a9c /* [RW][32] Address start for DCPM memory */
+#define BCHP_XPT_MCPB_PER_CH_MEM_ADDR_END        0x20a70aa0 /* [RW][32] Address end in configuration memory for each channel */
+#define BCHP_XPT_MCPB_GLOBAL_CTRL_SIGNALS        0x20a70aa4 /* [RW][32] Global control signals */
+#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_MEMDMA_SET_CLEAR 0x20a70aa8 /* [RW][32] Set and clear of Pause at descriptor end clear mask status bit */
+#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_MEMDMA_STATUS_0_31 0x20a70aac /* [RO][32] Pause at descriptor end clear mask status bit for all PB channels */
+#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_HOST_SET_CLEAR 0x20a70ab0 /* [RW][32] Set and clear of Pause at descriptor end clear mask status bit */
+#define BCHP_XPT_MCPB_MASK_CLEAR_PAUSE_AT_DESC_END_FROM_HOST_STATUS_0_31 0x20a70ab4 /* [RO][32] Pause at descriptor end clear mask status bit for all PB channels */
+#define BCHP_XPT_MCPB_DESCRIPTOR_LESS_MODE_SET_CLEAR 0x20a70ab8 /* [RW][32] Set and clear for DESCRIPTOR_LESS_MODE_STATUS bit */
+#define BCHP_XPT_MCPB_DESCRIPTOR_LESS_MODE_STATUS_0_31 0x20a70abc /* [RO][32] Descriptorless status for all PB channels */
+#define BCHP_XPT_MCPB_ARBITER_ZERO_BYTE_TRANS_PRIORITY_SET_CLEAR 0x20a70ac0 /* [RW][32] Set and clear for Zero Byte Transaction Priority bit */
+#define BCHP_XPT_MCPB_ARBITER_ZERO_BYTE_TRANS_PRIORITY_STATUS_0_31 0x20a70ac4 /* [RO][32] Zero Byte Transaction Priority status for all PB channels */
+#define BCHP_XPT_MCPB_ARBITER_SEND_DCP_ONLY_TRANS_AS_HIGH_PRIORITY_SET_CLEAR 0x20a70ac8 /* [RW][32] Set and clear for DCP-only-transaction priority bit */
+#define BCHP_XPT_MCPB_ARBITER_SEND_DCP_ONLY_TRANS_AS_HIGH_PRIORITY_STATUS_0_31 0x20a70acc /* [RO][32] DCP-only-transaction priority status for all PB channels */
+#define BCHP_XPT_MCPB_MPOD_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad0 /* [RW][32] Packet gapper controls for MPOD O/P pipe */
+#define BCHP_XPT_MCPB_SEC_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad4 /* [RW][32] Packet gapper controls for SECURITY O/P pipe */
+#define BCHP_XPT_MCPB_TSIO0_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ad8 /* [RW][32] Packet gapper controls for TSIO0 O/P pipe */
+#define BCHP_XPT_MCPB_TSIO1_OUTPUT_PIPE_PACKET_GAPPER 0x20a70adc /* [RW][32] Packet gapper controls for TSIO1 O/P pipe */
+#define BCHP_XPT_MCPB_RAVE_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ae0 /* [RW][32] Packet gapper controls for RAVE O/P pipe */
+#define BCHP_XPT_MCPB_MEMDMA_OUTPUT_PIPE_PACKET_GAPPER 0x20a70ae4 /* [RW][32] Packet gapper controls for MEMDMA O/P pipe */
+#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_0          0x20a70ae8 /* [RW][32] Manual mode select signals Selection 0 */
+#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_1          0x20a70aec /* [RW][32] Manual mode select signals Selection 1 */
+#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_2          0x20a70af0 /* [RW][32] Manual mode select signals Selection 2 */
+#define BCHP_XPT_MCPB_MANUAL_MODE_SEL_3          0x20a70af4 /* [RW][32] Manual mode select signals Selection 3 */
+#define BCHP_XPT_MCPB_DEBUG_0                    0x20a70af8 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_1                    0x20a70afc /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_2                    0x20a70b00 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_3                    0x20a70b04 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_4                    0x20a70b08 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_5                    0x20a70b0c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_6                    0x20a70b10 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_7                    0x20a70b14 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_8                    0x20a70b18 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_9                    0x20a70b1c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_10                   0x20a70b20 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_11                   0x20a70b24 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_12                   0x20a70b28 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_13                   0x20a70b2c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_14                   0x20a70b30 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_15                   0x20a70b34 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_16                   0x20a70b38 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_17                   0x20a70b3c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_18                   0x20a70b40 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_19                   0x20a70b44 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_20                   0x20a70b48 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_21                   0x20a70b4c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_22                   0x20a70b50 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_23                   0x20a70b54 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_24                   0x20a70b58 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_25                   0x20a70b5c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_26                   0x20a70b60 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_27                   0x20a70b64 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_28                   0x20a70b68 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_29                   0x20a70b6c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_30                   0x20a70b70 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_31                   0x20a70b74 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_32                   0x20a70b78 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_33                   0x20a70b7c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_34                   0x20a70b80 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_35                   0x20a70b84 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_36                   0x20a70b88 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_37                   0x20a70b8c /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_DEBUG_38                   0x20a70b90 /* [RO][32] Debug Register */
+#define BCHP_XPT_MCPB_SP_TIME_OUT_THRESHOLD      0x20a70b94 /* [RW][32] SP Timeout Threshold */
+#define BCHP_XPT_MCPB_DEBUG_SP_FORCE_RECOVER     0x20a70b98 /* [RW][32] Debug SP Force Recover */
+#define BCHP_XPT_MCPB_DEBUG_SP_TX_SLOT_CMD_AUTO_RECOVER_OVERWR 0x20a70b9c /* [RW][32] Debug SP TX Overwrite Slot Cmd Auto Recover Overwrite */
 
 /***************************************************************************
  *RUN_SET_CLEAR - Set and Clear for the RUN bit

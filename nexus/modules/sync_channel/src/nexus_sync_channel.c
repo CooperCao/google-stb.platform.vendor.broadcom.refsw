@@ -1998,15 +1998,6 @@ void NEXUS_SyncChannel_GetSettings(NEXUS_SyncChannelHandle syncChannel, NEXUS_Sy
     *pSettings = syncChannel->settings;
 }
 
-NEXUS_Error NEXUS_SyncChannel_GetStatus(NEXUS_SyncChannelHandle syncChannel, NEXUS_SyncChannelStatus *pStatus)
-{
-    BDBG_OBJECT_ASSERT(syncChannel, NEXUS_SyncChannel);
-
-    *pStatus = syncChannel->status;
-
-    return NEXUS_SUCCESS;
-}
-
 NEXUS_Error NEXUS_Synclib_P_SetVideoSource(NEXUS_SyncChannelHandle syncChannel, const NEXUS_SyncChannelSettings *pSettings, unsigned int index)
 {
     NEXUS_VideoInputSyncStatus status;

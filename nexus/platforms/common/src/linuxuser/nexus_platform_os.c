@@ -1,43 +1,40 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_platform.h"
 #include "nexus_platform_priv.h"
 #include "bkni.h"
@@ -224,7 +221,7 @@ static void NEXUS_Platform_P_IsrTask(void)
             nanosleep(&ts, NULL);
             continue;
         }
-        
+
         for (i=0;i<NEXUS_NUM_L1_REGISTERS;i++) {
             isrData.interruptmask[i] = mask[i];
             isrData.interruptstatus[i] = 0;
@@ -363,7 +360,7 @@ static void NEXUS_Platform_P_StartIsrTask(void)
     BDBG_MSG(("ISR thread:%p", &stack));
     sp = (unsigned long)&stack;
     stackSpacer = (sp&4095)+(4096 - B_ISR_STACK_GUARD_STACK_SIZE);
-    BDBG_MSG(("stackSpacer %d sp:%#x(%#x)\n",stackSpacer, sp, sp-stackSpacer));
+    BDBG_MSG(("stackSpacer %d sp:%#x(%#x)",stackSpacer, sp, sp-stackSpacer));
 
     s_NEXUS_Platform_P_IsrLauncher(stackSpacer);
 }
@@ -405,9 +402,9 @@ static void NEXUS_Platform_P_DebugCallback(void *context, NEXUS_ModuleHandle han
 {
     if ( !strcmp( (const char *)context , "ls") && settings->dbgPrint ) {
         /* Print out nexus modules that have a "Print" module defined */
-        BDBG_LOG(("%s", name ));     
-    } 
-    else if (!strcmp((const char *)context , "mma")) {
+        BDBG_LOG(("%s", name ));
+    }
+    else if (!strcmp((const char *)context , "mma") && !strcmp(name,"core")) {
         NEXUS_Module_Lock(g_NEXUS_platformHandles.core);
         NEXUS_Core_DumpHeaps_priv(NULL);
         NEXUS_Module_Unlock(g_NEXUS_platformHandles.core);
@@ -613,6 +610,7 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
 #if !B_REFSW_SYSTEM_MODE_CLIENT
     {
         struct bcmdriver_version get_version;
+        struct bcmdriver_chip_info chip_info;
         bcmdriver_os_config os_cfg;
         get_version.version = 0;
         rc = ioctl(g_NEXUS_driverFd, BRCM_IOCTL_GET_VERSION, &get_version);
@@ -642,6 +640,9 @@ NEXUS_Error NEXUS_Platform_P_InitOS(void)
             }
 #endif
         }
+        memset(&chip_info, 0, sizeof(chip_info));
+        chip_info.bchp_physical_offset = BCHP_PHYSICAL_OFFSET;
+        ioctl(g_NEXUS_driverFd, BRCM_IOCTL_SET_CHIP_INFO, &chip_info);
     }
 #endif
     rc = fcntl(g_NEXUS_driverFd, F_SETFD, FD_CLOEXEC);
@@ -916,7 +917,7 @@ static void NEXUS_Platform_P_DisconnectInterrupt_isr(
 {
     IsrTableEntry *pEntry;
     NEXUS_Platform_Os_State *state = &g_NEXUS_Platform_Os_State;
-    
+
     NEXUS_Platform_P_DisableInterrupt_isr(irqNum);
 
     if (irqNum >= NUM_IRQS) {

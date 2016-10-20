@@ -1,5 +1,5 @@
 /******************************************************************************
- *  Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  *  This program is the proprietary software of Broadcom and/or its licensors,
  *  and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -34,7 +34,6 @@
  *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  *  ANY LIMITED REMEDY.
-
  ******************************************************************************/
 
 #include "nexus_frontend_module.h"
@@ -102,7 +101,7 @@ NEXUS_Error NEXUS_Frontend_GetInputBandStatus(NEXUS_FrontendHandle handle, NEXUS
     if (rc) {
         return BERR_TRACE(rc);
     }
-    pStatus->syncCount = ibStatus.syncCount[userParams.param1];
+    pStatus->syncCount = ibStatus.syncCount[NEXUS_FRONTEND_USER_PARAM1_GET_INPUT_BAND(userParams.param1)];
 }
     return NEXUS_SUCCESS;
 #else
@@ -195,6 +194,7 @@ NEXUS_Error NEXUS_Frontend_GetUserParameters( NEXUS_FrontendHandle handle, NEXUS
         NEXUS_FRONTEND_USER_PARAM1_SET_INPUT_BAND(pParams->param1, handle->mtsif.inputBand);
         NEXUS_FRONTEND_USER_PARAM1_SET_MTSIF_TX(pParams->param1, handle->mtsif.txOut);
         NEXUS_FRONTEND_USER_PARAM1_SET_DAISYCHAIN_MTSIF_TX(pParams->param1, handle->mtsif.daisyTxOut);
+        NEXUS_FRONTEND_USER_PARAM1_SET_DAISYCHAIN_OVERRIDE(pParams->param1, handle->mtsif.daisyOverride);
     }
     return BERR_SUCCESS;
 }
@@ -208,6 +208,7 @@ NEXUS_Error NEXUS_Frontend_SetUserParameters( NEXUS_FrontendHandle handle, const
         handle->mtsif.inputBand = NEXUS_FRONTEND_USER_PARAM1_GET_INPUT_BAND(pParams->param1);
         handle->mtsif.txOut = NEXUS_FRONTEND_USER_PARAM1_GET_MTSIF_TX(pParams->param1);
         handle->mtsif.daisyTxOut = NEXUS_FRONTEND_USER_PARAM1_GET_DAISYCHAIN_MTSIF_TX(pParams->param1);
+        handle->mtsif.daisyOverride = NEXUS_FRONTEND_USER_PARAM1_GET_DAISYCHAIN_OVERRIDE(pParams->param1);
     }
     return BERR_SUCCESS;
 }
@@ -611,6 +612,7 @@ void NEXUS_Frontend_GetDefaultSpectrumSettings(NEXUS_FrontendSpectrumSettings *p
 {
     BDBG_ASSERT(NULL != pSettings);
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->dataReadyCallback);
 }
 
 
@@ -834,7 +836,7 @@ static void NEXUS_Frontend_P_DumpMtsifConfig(const NEXUS_FrontendDeviceMtsifConf
 static NEXUS_Error NEXUS_Frontend_P_ConfigMtsifConfig(NEXUS_FrontendHandle frontend, bool enabled)
 {
     unsigned i;
-    unsigned demodIb, demodPb, demodMtsifTx, demodDaisyMtsifTx;
+    unsigned demodIb, demodPb, demodMtsifTx, demodDaisyMtsifTx, daisyOverride;
     NEXUS_FrontendUserParameters userParams;
     NEXUS_FrontendDeviceMtsifConfig *pConfig = &frontend->pGenericDeviceHandle->mtsifConfig;
     NEXUS_FrontendDeviceMtsifConfig *pChainedConfig = frontend->pGenericDeviceHandle->chainedConfig; /* points to a chained MTSIF config, if it exists */
@@ -850,6 +852,7 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigMtsifConfig(NEXUS_FrontendHandle front
     demodIb = frontend->mtsif.inputBand;
     demodMtsifTx = frontend->mtsif.txOut;
     demodDaisyMtsifTx = frontend->mtsif.daisyTxOut;
+    daisyOverride = frontend->mtsif.daisyOverride;
 
     if (!userParams.isMtsif) {
         rc = NEXUS_SUCCESS; goto done;
@@ -890,6 +893,10 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigMtsifConfig(NEXUS_FrontendHandle front
     else {
         num = 0;
     }
+    if (pChainedConfig && (num > 1)) {
+        BDBG_WRN(("Daisy-chained MTSIF configurations only support 1-to-1 mappings. Only the first host PB will receive demod data"));
+        num = 1;
+    }
 
     for (i=0; i<num; i++) {
         unsigned hostPb = mtsifConnections[i].index;
@@ -923,92 +930,72 @@ static NEXUS_Error NEXUS_Frontend_P_ConfigMtsifConfig(NEXUS_FrontendHandle front
         }
 
         /* 3. pick a free demod PB */
-        for (demodPb=0; demodPb<pConfig->numDemodPb; demodPb++) {
-            /* coverity [dead_error_condition:false] */
-            if (pConfig->demodPbSettings[demodPb].enabled==false) {
-                BMXT_ParserConfig parserConfig;
-
-                /* if chained, then the chainedConfig adds more restrictions to which PB we can pick */
-                if (pChainedConfig) {
-                    unsigned k;
-                    if (!pConfig->slave) {
-                        /* master has to avoid physical PBs that are in use by slave as virtual PBs.
-                           could also do this by adding .enabledPassthrough to demodPbSettings instead */
-                        for (k=0; k<pChainedConfig->numDemodPb; k++) {
-                            if (pChainedConfig->demodPbSettings[k].enabled &&
-                                pChainedConfig->demodPbSettings[k].virtualNum==demodPb)
-                            {
-                                goto next;
-                            }
-                        }
-                    }
-                    else {
-                        /* slave has to check if virtual PB is in use by master as physical PB and error out */
-                        if (pChainedConfig->demodPbSettings[hostPb].enabled) {
-                            BDBG_ERR(("Unable to route data IB%u -> PB%u -> PB%u -> PB%u because PB%u is in use by chain master", demodIb, demodPb, hostPb, hostPb, hostPb));
-                            demodPb = pConfig->numDemodPb; /* no way to get around this for now */
-                            break;
-                        }
-                    }
+        if (pChainedConfig) {
+            demodPb = hostPb; /* 1-to-1 mapping only */
+        }
+        else {
+            for (demodPb=0; demodPb<pConfig->numDemodPb; demodPb++) {
+                if (pConfig->demodPbSettings[demodPb].enabled==false) {
+                    break;
                 }
+            }
+        }
 
 set_mapping:
-                /* 4a. map demod IB->demod PB */
-                BMXT_GetParserConfig(mxt, demodPb, &parserConfig);
-                pConfig->demodPbSettings[demodPb].inputBandNum = parserConfig.InputBandNumber = demodIb;
-                pConfig->demodPbSettings[demodPb].enabled = parserConfig.Enable = true;
-                pConfig->demodPbSettings[demodPb].connector = frontend->connector;
-                if (pChainedConfig && !pConfig->slave) {
-                    pConfig->demodPbSettings[demodPb].mtsifTxSel = parserConfig.mtsifTxSelect = 0; /* master's own PBs are always routed through TX0 */
-                }
-                else {
-                    pConfig->demodPbSettings[demodPb].mtsifTxSel = parserConfig.mtsifTxSelect = demodMtsifTx; /* otherwise, honor the TX selection */
-                }
-                BMXT_SetParserConfig(mxt, demodPb, &parserConfig);
+        if (demodPb < pConfig->numDemodPb) {
+            BMXT_ParserConfig parserConfig;
 
-                /* if slave, then we need to change the passthrough routing on master */
-                if (pConfig->slave) {
-                    BMXT_Handle mxt_master;
-                    BDBG_ASSERT(pChainedConfig); /* if slave, then by definition, pChainedConfig is non-NULL */
-                    mxt_master = pChainedConfig->mxt;
-                    BMXT_GetParserConfig(mxt_master, hostPb, &parserConfig);
-                    BDBG_ASSERT(parserConfig.Enable == false);
-                    pChainedConfig->demodPbSettings[hostPb].mtsifTxSel = parserConfig.mtsifTxSelect = demodDaisyMtsifTx;
-                    BMXT_SetParserConfig(mxt_master, hostPb, &parserConfig);
-                }
+            /* 4a. map demod IB->demod PB */
+            BMXT_GetParserConfig(mxt, demodPb, &parserConfig);
+            pConfig->demodPbSettings[demodPb].inputBandNum = parserConfig.InputBandNumber = demodIb;
+            pConfig->demodPbSettings[demodPb].enabled = parserConfig.Enable = true;
+            pConfig->demodPbSettings[demodPb].connector = frontend->connector;
+            pConfig->demodPbSettings[demodPb].mtsifTxSel = parserConfig.mtsifTxSelect = demodMtsifTx;
+            BMXT_SetParserConfig(mxt, demodPb, &parserConfig);
 
-                /* 4b. set virtual PB num of demod PB equal to host PB num */
-                BMXT_GetParserConfig(mxt, demodPb, &parserConfig);
-                pConfig->demodPbSettings[demodPb].virtualNum = parserConfig.virtualParserNum = hostPb;
-                BMXT_SetParserConfig(mxt, demodPb, &parserConfig);
-                BDBG_MSG(("MTSIF connect:    IB%u -> PB%u -> PB%u (TX%u, %p:%p) %s", demodIb, demodPb, hostPb, parserConfig.mtsifTxSelect,
-                    (void *)frontend, (void *)mxt, pChainedConfig?(pConfig->slave?"(chain slave) ":"(chain master)"):""));
-
-                if ( (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected) && /* if this hostPb is already being fed */
-                    (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig != pConfig) )
-                {
-                    NEXUS_FrontendDeviceMtsifConfig *otherConfig = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig;
-                    BMXT_Handle otherMxt;
-                    unsigned otherDemodPb;
-                    BDBG_ASSERT(otherConfig);
-
-                    otherMxt = otherConfig->mxt;
-                    otherDemodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb;
-
-                    BMXT_GetParserConfig(otherMxt, otherDemodPb, &parserConfig);
-                    otherConfig->demodPbSettings[otherDemodPb].enabled = parserConfig.Enable = false;
-                    BMXT_SetParserConfig(otherMxt, otherDemodPb, &parserConfig);
-                    BDBG_WRN(("MTSIF conflict: host PB%u is already receiving data from another MTSIF device (%p). Forcing disable of demod PB%u (IB%u -> PB%u -> PB%u)",
-                        hostPb, (void*)otherMxt, otherDemodPb, parserConfig.InputBandNumber, otherDemodPb, parserConfig.virtualParserNum));
-                }
-
-                g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb = demodPb;
-                g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected = true;
-                g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig = pConfig;
-                break;
+            /* if slave, then we need to change the passthrough routing on master */
+            if (pConfig->slave && !daisyOverride) {
+                BMXT_Handle mxt_master;
+                BDBG_ASSERT(pChainedConfig); /* if slave, then by definition, pChainedConfig is non-NULL */
+                mxt_master = pChainedConfig->mxt;
+                BMXT_GetParserConfig(mxt_master, hostPb, &parserConfig);
+                #if 0 /* no need to do this as we check for conflicts later and force a disable */
+                BDBG_ASSERT(parserConfig.Enable == false);
+                #endif
+                pChainedConfig->demodPbSettings[hostPb].mtsifTxSel = parserConfig.mtsifTxSelect = demodDaisyMtsifTx;
+                BMXT_SetParserConfig(mxt_master, hostPb, &parserConfig);
+                BDBG_MSG(("MTSIF passthrough: setting PB%u and TX%u on master", hostPb, demodDaisyMtsifTx));
             }
-next:
-            BSTD_UNUSED(0);
+
+            /* 4b. set virtual PB num of demod PB equal to host PB num */
+            BMXT_GetParserConfig(mxt, demodPb, &parserConfig);
+            pConfig->demodPbSettings[demodPb].virtualNum = parserConfig.virtualParserNum = hostPb;
+            BMXT_SetParserConfig(mxt, demodPb, &parserConfig);
+            BDBG_MSG(("MTSIF connect:    IB%u -> PB%u -> PB%u (TX%u, %p:%p) %s", demodIb, demodPb, hostPb, parserConfig.mtsifTxSelect,
+                (void *)frontend, (void *)mxt, pChainedConfig?(pConfig->slave?"(chain slave) ":"(chain master)"):""));
+
+            if ( (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected) && /* if this hostPb is already being fed */
+                (g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig != pConfig) )
+            {
+                NEXUS_FrontendDeviceMtsifConfig *otherConfig = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig;
+                BMXT_Handle otherMxt;
+                unsigned otherDemodPb;
+                BDBG_ASSERT(otherConfig);
+
+                otherMxt = otherConfig->mxt;
+                otherDemodPb = g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb;
+
+                BMXT_GetParserConfig(otherMxt, otherDemodPb, &parserConfig);
+                otherConfig->demodPbSettings[otherDemodPb].enabled = parserConfig.Enable = false;
+                BMXT_SetParserConfig(otherMxt, otherDemodPb, &parserConfig);
+
+                BDBG_WRN(("MTSIF conflict: host PB%u is already receiving data from another MTSIF device (%p). Forcing disable of demod PB%u (IB%u -> PB%u -> PB%u)",
+                    hostPb, (void*)otherMxt, otherDemodPb, parserConfig.InputBandNumber, otherDemodPb, parserConfig.virtualParserNum));
+            }
+
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].demodPb = demodPb;
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].connected = true;
+            g_NEXUS_Frontend_P_HostMtsifConfig.hostPbSettings[hostPb].deviceConfig = pConfig;
         }
 
 apply_settings:
@@ -1601,6 +1588,8 @@ NEXUS_Error NEXUS_FrontendDevice_P_Standby(NEXUS_FrontendDeviceHandle handle, co
 void NEXUS_FrontendDevice_GetDefaultRecalibrateSettings(NEXUS_FrontendDeviceRecalibrateSettings *pSettings)
 {
     BKNI_Memset(pSettings, 0, sizeof(*pSettings));
+    NEXUS_CallbackDesc_Init(&pSettings->cppm.powerLevelChange);
+    NEXUS_CallbackDesc_Init(&pSettings->cppm.calibrationComplete);
 }
 
 NEXUS_Error NEXUS_FrontendDevice_Recalibrate(NEXUS_FrontendDeviceHandle handle, const NEXUS_FrontendDeviceRecalibrateSettings *pSettings)
@@ -2022,18 +2011,18 @@ NEXUS_Error NEXUS_FrontendDevice_Probe(const NEXUS_FrontendDeviceOpenSettings *p
     }
 #if NEXUS_HAS_SPI
 #define NUM_SPI_BYTES 8
-#define NUM_SPI_ADDRESSES 2
+#define NUM_SPI_ADDRESSES 3
     else if (pSettings->spiDevice) {
         uint8_t wData[2], rData[NUM_SPI_BYTES];
         NEXUS_Error rc;
-        uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x40, 0x80 };
+        uint8_t spiAddr[NUM_SPI_ADDRESSES] = { 0x20, 0x40, 0x24 };
         unsigned i = 0;
 
         BDBG_MSG(("Probing for chip at SPI %p",(void *)pSettings->spiDevice));
 
         while (i < NUM_SPI_ADDRESSES && (chipId == 0 || chipId == 0xFFFF)) {
 
-            wData[0] = spiAddr[i];
+            wData[0] = spiAddr[i]<<1;
             wData[1] = 0x00;
 #if DEBUG_SPI_READS
             {
@@ -2091,6 +2080,7 @@ void NEXUS_FrontendDevice_GetDefaultOpenSettings(NEXUS_FrontendDeviceOpenSetting
     for (i=0; i < NEXUS_MAX_MTSIF; i++) {
         pSettings->mtsif[i].enabled = true;
     }
+    NEXUS_CallbackDesc_Init(&pSettings->updateGainCallback);
 }
 
 NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS_FrontendDeviceOpenSettings *pSettings)
@@ -2109,6 +2099,7 @@ NEXUS_FrontendDeviceHandle NEXUS_FrontendDevice_Open(unsigned index, const NEXUS
     {
         unsigned familyId = probe.chip.familyId;
         if (familyId == 0x45316) familyId = 0x45308;
+        if (familyId == 0x3465) familyId = 0x3466;
         BDBG_WRN(("Detected frontend %x does not have an entry in the frontend table. Was Nexus built with NEXUS_FRONTEND_%x=y set?", familyId, familyId));
     }
     BERR_TRACE(NEXUS_NOT_SUPPORTED);

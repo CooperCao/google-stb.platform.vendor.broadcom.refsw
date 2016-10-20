@@ -524,25 +524,6 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
             goto err;
         }
     }
-
-    {
-        BKNI_EventHandle event;
-
-        /* hook up the FTM data ready callback*/
-        for(i=0; i<pDevice->numFskChannels; i++){
-            errCode = BFSK_GetRxEventHandle(pDevice->fskChannels[i], &event);
-            if (errCode) {
-                errCode = BERR_TRACE(errCode);
-                goto err;
-            }
-
-            pDevice->ftmEventCallback[i] = NEXUS_RegisterEvent(event, NEXUS_Frontend_P_45216_FtmEventCallback, pDevice);
-            if (!pDevice->ftmEventCallback[i]) {
-                errCode = BERR_TRACE(NEXUS_UNKNOWN);
-                goto err;
-            }
-        }
-    }
 #endif
 
     BDBG_MSG(("Configuring MTSIF"));
@@ -574,6 +555,9 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
             NEXUS_Module_Unlock(g_NEXUS_frontendModuleSettings.transport);
         }
 
+        mxtSettings.MtsifRxCfg[0].Enable = true;
+        mxtSettings.MtsifRxCfg[0].RxClockPolarity = 1;
+        mxtSettings.MtsifRxCfg[0].Decrypt = mxtSettings.MtsifTxCfg[0].Encrypt;
         mxtSettings.MtsifTxCfg[0].TxClockPolarity = 0;
         mxtSettings.MtsifTxCfg[1].TxClockPolarity = 0;
 
@@ -594,6 +578,28 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
         }
     }
 #endif
+
+    {
+        /* Change clocks to move out of wifi band */
+        uint32_t val;
+        uint32_t addr;
+        BERR_Code e;
+        addr = 0x069207a4;
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+        BDBG_MSG(("%08x: %08x", addr, val));
+        BDBG_MSG(("VCO Old divider: %d", val & 0x000003FF));
+        val &= ~0x000003FF;
+        val |= 44;
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+
+        addr = 0x06920798;
+        e = BHAB_ReadRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+        BDBG_MSG(("%08x: %08x", addr, val));
+        BDBG_MSG(("DEMOD_XPT Old divider: %d", (val & 0x000001FE)>>1));
+        val &= ~0x000001FE;
+        val |= 8<<1;
+        e = BHAB_WriteRegister(pDevice->satDevice->habHandle, addr, &val); if (e) BERR_TRACE(e);
+    }
 
     for (i=0; i < 2; i++) {
         uint32_t val;
@@ -617,53 +623,23 @@ static NEXUS_Error NEXUS_FrontendDevice_P_Init45216_PostInitAP(NEXUS_45216Device
                 e  = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
                 if (e) BERR_TRACE(e);
             }
-            if (pSettings->mtsif[i].clockRate != 0) {
-                unsigned clockRate = pSettings->mtsif[i].clockRate;
+
+            {
+                unsigned clockRate = pSettings->mtsif[i].clockRate / 1000;
                 unsigned divider;
+                unsigned clock = 4752000;
 
-                e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val);
-                if (e) BERR_TRACE(e);
+                if (clockRate == 0) clockRate = 81000;
 
-                switch (clockRate) {
-                case 81000000: /* 81 MHz. (hardware default) */
-                    divider = 32; break;
-                case 90000000: /* 90 MHz. */
-                    divider = 29; break;
-                case 93000000: /* 93 MHz. */
-                case 92500000: /* 92.5 MHz. (actual value) */
-                    divider = 29; break;
-                case 95000000: /* 95.5 MHz. */
-                case 95500000:
-                case 96000000: /* 96 MHz. (actual value) */
-                    divider = 27; break;
-                case 98000000: /* 98.2 MHz. */
-                case 98100000:
-                case 98200000:
-                case 100000000: /* 101.25 MHz. */
-                case 101000000: /* 101.25 MHz. */
-                case 101250000:
-                case 101500000:
-                case 99700000: /* 99.68 MHz (actual value) */
-                    divider = 26; break;
-                case 104000000: /* 104.5 MHz. Also accept 104 Mhz. */
-                case 104500000:
-                case 103680000: /* 103.68MHz (actual value) */
-                    divider = 25; break;
-                case 108000000: /* 108 MHz. */
-                    divider = 24; break;
-                case 135000000: /* 135 MHz. */
-                case 136000000: /* 135 MHz. */
-                case 136400000: /* 136.4 MHz. (actual value) */
-                    divider = 19; break;
-                default:
-                    BDBG_WRN(("NEXUS_FrontendDevice_Open45216: Unrecognized rate (MTSIF%d): %u, defaulting to 81MHz.", i, clockRate));
-                    divider = 32;
-                    break;
-                }
+                divider = clock / (2*clockRate);
+
+                e = BHAB_ReadRegister(pDevice->satDevice->habHandle, clockAddr, &val); if (e) BERR_TRACE(e);
+                BDBG_MSG(("%08x: %08x", clockAddr, val));
+                BDBG_MSG(("clockRate(%d) divider: %d", clockRate, divider));
+
                 val &= ~0x000001fe;
                 val |= (divider << 1);
-                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val);
-                if (e) BERR_TRACE(e);
+                e = BHAB_WriteRegister(pDevice->satDevice->habHandle, clockAddr, &val); if (e) BERR_TRACE(e);
             }
 
             if (pSettings->mtsif[i].driveStrength != 0) {
@@ -776,6 +752,29 @@ static NEXUS_Error NEXUS_Frontend_45216_P_DelayedInitialization(NEXUS_FrontendDe
         errCode = BERR_TRACE(BERR_OS_ERROR);
         goto err;
     }
+
+#ifdef NEXUS_HAS_FSK
+    {
+        BKNI_EventHandle event;
+        unsigned i;
+
+        BDBG_MSG(("Connecting FSK callbacks"));
+        /* hook up the FTM data ready callback*/
+        for(i=0; i<pDevice->numFskChannels; i++){
+            errCode = BFSK_GetRxEventHandle(pDevice->fskChannels[i], &event);
+            if (errCode) {
+                errCode = BERR_TRACE(errCode);
+                goto err;
+            }
+
+            pDevice->ftmEventCallback[i] = NEXUS_RegisterEvent(event, NEXUS_Frontend_P_45216_FtmEventCallback, pDevice);
+            if (!pDevice->ftmEventCallback[i]) {
+                errCode = BERR_TRACE(NEXUS_UNKNOWN);
+                goto err;
+            }
+        }
+    }
+#endif
 
     return NEXUS_SUCCESS;
 
@@ -1373,6 +1372,16 @@ static NEXUS_Error NEXUS_Frontend_P_45216_TuneSatellite(void *handle, const NEXU
     NEXUS_SatChannel *pSatChannel = handle;
     NEXUS_45216Device *p45216Device = pSatChannel->settings.pDevice;
     NEXUS_Error rc;
+
+    if (pSettings->mode == NEXUS_FrontendSatelliteMode_eTurboQpsk || pSettings->mode == NEXUS_FrontendSatelliteMode_eTurbo8psk) {
+        uint32_t disabledFeatures = 0;
+        rc = BSAT_GetConfig(pSatChannel->satDevice->satHandle, BSAT_45216_CONFIG_PARAM_OTP_DISABLE_FEATURE, &disabledFeatures);
+        if (rc) BERR_TRACE(rc);
+        if (disabledFeatures & 0x1) {
+            BDBG_ERR(("Turbo modes are not supported on this frontend."));
+            return BERR_TRACE(NEXUS_NOT_SUPPORTED);
+        }
+    }
 
     if (p45216Device->pGenericDeviceHandle->mtsifConfig.mxt) {
         rc = NEXUS_Frontend_P_SetMtsifConfig(pSatChannel->frontendHandle);

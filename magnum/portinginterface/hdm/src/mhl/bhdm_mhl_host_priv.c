@@ -173,8 +173,6 @@ void BHDM_P_Mhl_Host_S0ToS3Handover_isr
 void BHDM_P_Mhl_Host_S3ToS0Handover_isr
     ( BREG_Handle      hRegister )
 {
-    uint32_t ulData;
-
     BREG_Write32(hRegister, BCHP_HDMI_TX_PHY_POWERDOWN_CTL,
         BCHP_FIELD_DATA(HDMI_TX_PHY_POWERDOWN_CTL, TX_PWRDN_SEL, 0));
 
@@ -195,22 +193,6 @@ void BHDM_P_Mhl_Host_S3ToS0Handover_isr
         ulData |= BCHP_FIELD_DATA(MPM_CPU_CTRL_CLOCK_CTRL, DISABLE_MPM_SPI_CLOCK, 1);
         BREG_Write32(hRegister, BCHP_MPM_CPU_CTRL_CLOCK_CTRL, ulData);
     }
-#endif
-
-#if (BCHP_CHIP==7250 || BCHP_CHIP==7364)
-    /* Unmask the DVP_MT_CBUS interrupts in HIF_CPU_INTR1_INTR_W0.CBUS_CPU_INTR */
-    ulData = BREG_Read32(hRegister, BCHP_HIF_CPU_INTR1_INTR_W0_MASK_STATUS);
-    ulData &= ~BCHP_HIF_CPU_INTR1_INTR_W0_MASK_STATUS_CBUS_CPU_INTR_MASK;
-    ulData |= BCHP_FIELD_DATA(HIF_CPU_INTR1_INTR_W0_MASK_STATUS, CBUS_CPU_INTR, 0);
-    BREG_Write32(hRegister, BCHP_HIF_CPU_INTR1_INTR_W0_MASK_STATUS, ulData);
-#elif (BCHP_CHIP==7271) || (BCHP_CHIP==7268) || (BCHP_CHIP==7260)
-    /* Unmask the DVP_MT_CBUS interrupts in HIF_CPU_INTR1_INTR_W3.CBUS_CPU_INTR */
-    ulData = BREG_Read32(hRegister, BCHP_HIF_CPU_INTR1_INTR_W3_MASK_STATUS);
-    ulData &= ~BCHP_HIF_CPU_INTR1_INTR_W3_MASK_STATUS_CBUS_CPU_INTR_MASK;
-    ulData |= BCHP_FIELD_DATA(HIF_CPU_INTR1_INTR_W3_MASK_STATUS, CBUS_CPU_INTR, 0);
-    BREG_Write32(hRegister, BCHP_HIF_CPU_INTR1_INTR_W3_MASK_STATUS, ulData);
-#else
-    BSTD_UNUSED(ulData);
 #endif
 
 }

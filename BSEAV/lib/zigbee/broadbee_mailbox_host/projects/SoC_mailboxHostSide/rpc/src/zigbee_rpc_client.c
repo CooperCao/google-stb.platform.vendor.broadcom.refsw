@@ -492,8 +492,8 @@ static void process_rx_message(unsigned int *message_rx)
     case (RPC_C2S_ZBPRO_ZCL_IASWDCmdStartWarningReq | RPC_RESPONSE):
         client_ZBPRO_ZCL_IASWDCmdStartWarningReq_callback(message_payload);
         break;
-    case (RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkgReq | RPC_RESPONSE):
-        client_ZBPRO_ZCL_IASWDCmdSquawkgReq_callback(message_payload);
+    case (RPC_C2S_ZBPRO_ZCL_IASWDCmdSquawkReq | RPC_RESPONSE):
+        client_ZBPRO_ZCL_IASWDCmdSquawkReq_callback(message_payload);
         break;
     case (RPC_C2S_ZBPRO_ZCL_IdentifyInd):
         client_ZBPRO_ZCL_IdentifyInd(message_payload);

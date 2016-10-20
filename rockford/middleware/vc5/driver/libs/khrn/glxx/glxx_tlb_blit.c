@@ -7,9 +7,7 @@ All rights reserved.
 #include "glxx_hw.h"
 #include "glxx_framebuffer.h"
 
-#if !V3D_HAS_NEW_TLB_CFG
 #include "libs/core/lfmt/lfmt_translate_v3d.h"
-#endif
 
 #if !V3D_HAS_NEW_TLB_CFG
 static bool store_general_compatible(GFX_LFMT_T lfmt)
@@ -66,6 +64,10 @@ static bool try_init_blit(
       blit->color_read_buffer = src_fb->read_buffer - GLXX_COLOR0_ATT;
       blit->color_draw_to_buf = glxx_fb_get_valid_draw_buf_mask(dst_fb);
 
+      GFX_LFMT_T src_api_fmt = src_hw_fb->color[blit->color_read_buffer].image ?
+         src_hw_fb->color[blit->color_read_buffer].image->api_fmt :
+         src_hw_fb->color_ms[blit->color_read_buffer].image->api_fmt;
+
 #if !V3D_HAS_NEW_TLB_CFG
       GFX_LFMT_T src_nonms_lfmt = khrn_image_plane_lfmt_maybe(
          &src_hw_fb->color[blit->color_read_buffer]);
@@ -77,14 +79,34 @@ static bool try_init_blit(
       {
          if (mask & 1)
          {
-            /* Destination format must be compatible with internal TLB type */
-            if (blit->dst_fb.color_internal_type[b] != src_hw_fb->color_internal_type[blit->color_read_buffer])
+            GFX_LFMT_T dst_api_fmt = blit->dst_fb.color[b].image->api_fmt;
+
+            /* Do not support blits where the destination has channels which
+             * the source doesn't. We sometimes have unused channels in the TLB
+             * which will not contain sensible data. Also, the TLB does not
+             * support store conversions which add channels. */
+            if (gfx_lfmt_present_channels(dst_api_fmt) & ~gfx_lfmt_present_channels(src_api_fmt))
                goto not_supported;
 
-#if !V3D_HAS_NEW_TLB_CFG
+            /* Do not support blits from UFLOAT to FLOAT. The TLB will actually
+             * contain signed floats (there is no unsigned float internal
+             * type). These should be clamped to 0 before the blit happens, but
+             * will not be if we just store directly to the destination from
+             * the TLB. This is essentially a workaround for GFXH-1025. */
+            if ((gfx_lfmt_get_type(&src_api_fmt) == GFX_LFMT_TYPE_UFLOAT) &&
+                  (gfx_lfmt_get_type(&dst_api_fmt) == GFX_LFMT_TYPE_FLOAT))
+               goto not_supported;
+
             GFX_LFMT_T dst_lfmt = khrn_image_plane_lfmt(&blit->dst_fb.color[b]);
             v3d_pixel_format_t dst_pixel_format = gfx_lfmt_translate_pixel_format(dst_lfmt);
 
+            /* Destination format must be compatible with internal TLB type/bpp */
+            if (!v3d_pixel_format_and_internal_type_bpp_compatible(dst_pixel_format,
+                  src_hw_fb->color_internal_type[blit->color_read_buffer],
+                  src_hw_fb->color_internal_bpp[blit->color_read_buffer]))
+               goto not_supported;
+
+#if !V3D_HAS_NEW_TLB_CFG
             /* We always use STORE_GENERAL instructions to do TLB blits.
              * STORE_GENERAL isn't actually fully general... */
 

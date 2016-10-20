@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,40 +70,40 @@
 /***************************************************************************
  *V3D_PCTR_0 - V3D Support Registers
  ***************************************************************************/
-#define BCHP_V3D_PCTR_0_PCTRC                    0x21208670 /* [WO] Performance Counter Clear */
-#define BCHP_V3D_PCTR_0_PCTRE                    0x21208674 /* [RW] Performance Counter Enables */
-#define BCHP_V3D_PCTR_0_PCTR0                    0x21208680 /* [RO] Performance Counter Count 0 */
-#define BCHP_V3D_PCTR_0_PCTRS0                   0x21208684 /* [RW] Performance Counter Mapping 0 */
-#define BCHP_V3D_PCTR_0_PCTR1                    0x21208688 /* [RO] Performance Counter Count 1 */
-#define BCHP_V3D_PCTR_0_PCTRS1                   0x2120868c /* [RW] Performance Counter Mapping 1 */
-#define BCHP_V3D_PCTR_0_PCTR2                    0x21208690 /* [RO] Performance Counter Count 2 */
-#define BCHP_V3D_PCTR_0_PCTRS2                   0x21208694 /* [RW] Performance Counter Mapping 2 */
-#define BCHP_V3D_PCTR_0_PCTR3                    0x21208698 /* [RO] Performance Counter Count 3 */
-#define BCHP_V3D_PCTR_0_PCTRS3                   0x2120869c /* [RW] Performance Counter Mapping 3 */
-#define BCHP_V3D_PCTR_0_PCTR4                    0x212086a0 /* [RO] Performance Counter Count 4 */
-#define BCHP_V3D_PCTR_0_PCTRS4                   0x212086a4 /* [RW] Performance Counter Mapping 4 */
-#define BCHP_V3D_PCTR_0_PCTR5                    0x212086a8 /* [RO] Performance Counter Count 5 */
-#define BCHP_V3D_PCTR_0_PCTRS5                   0x212086ac /* [RW] Performance Counter Mapping 5 */
-#define BCHP_V3D_PCTR_0_PCTR6                    0x212086b0 /* [RO] Performance Counter Count 6 */
-#define BCHP_V3D_PCTR_0_PCTRS6                   0x212086b4 /* [RW] Performance Counter Mapping 6 */
-#define BCHP_V3D_PCTR_0_PCTR7                    0x212086b8 /* [RO] Performance Counter Count 7 */
-#define BCHP_V3D_PCTR_0_PCTRS7                   0x212086bc /* [RW] Performance Counter Mapping 7 */
-#define BCHP_V3D_PCTR_0_PCTR8                    0x212086c0 /* [RO] Performance Counter Count 8 */
-#define BCHP_V3D_PCTR_0_PCTRS8                   0x212086c4 /* [RW] Performance Counter Mapping 8 */
-#define BCHP_V3D_PCTR_0_PCTR9                    0x212086c8 /* [RO] Performance Counter Count 9 */
-#define BCHP_V3D_PCTR_0_PCTRS9                   0x212086cc /* [RW] Performance Counter Mapping 9 */
-#define BCHP_V3D_PCTR_0_PCTR10                   0x212086d0 /* [RO] Performance Counter Count 10 */
-#define BCHP_V3D_PCTR_0_PCTRS10                  0x212086d4 /* [RW] Performance Counter Mapping 10 */
-#define BCHP_V3D_PCTR_0_PCTR11                   0x212086d8 /* [RO] Performance Counter Count 11 */
-#define BCHP_V3D_PCTR_0_PCTRS11                  0x212086dc /* [RW] Performance Counter Mapping 11 */
-#define BCHP_V3D_PCTR_0_PCTR12                   0x212086e0 /* [RO] Performance Counter Count 12 */
-#define BCHP_V3D_PCTR_0_PCTRS12                  0x212086e4 /* [RW] Performance Counter Mapping 12 */
-#define BCHP_V3D_PCTR_0_PCTR13                   0x212086e8 /* [RO] Performance Counter Count 13 */
-#define BCHP_V3D_PCTR_0_PCTRS13                  0x212086ec /* [RW] Performance Counter Mapping 13 */
-#define BCHP_V3D_PCTR_0_PCTR14                   0x212086f0 /* [RO] Performance Counter Count 14 */
-#define BCHP_V3D_PCTR_0_PCTRS14                  0x212086f4 /* [RW] Performance Counter Mapping 14 */
-#define BCHP_V3D_PCTR_0_PCTR15                   0x212086f8 /* [RO] Performance Counter Count 15 */
-#define BCHP_V3D_PCTR_0_PCTRS15                  0x212086fc /* [RW] Performance Counter Mapping 15 */
+#define BCHP_V3D_PCTR_0_PCTRC                    0x21208670 /* [WO][32] Performance Counter Clear */
+#define BCHP_V3D_PCTR_0_PCTRE                    0x21208674 /* [RW][32] Performance Counter Enables */
+#define BCHP_V3D_PCTR_0_PCTR0                    0x21208680 /* [RO][32] Performance Counter Count 0 */
+#define BCHP_V3D_PCTR_0_PCTRS0                   0x21208684 /* [RW][32] Performance Counter Mapping 0 */
+#define BCHP_V3D_PCTR_0_PCTR1                    0x21208688 /* [RO][32] Performance Counter Count 1 */
+#define BCHP_V3D_PCTR_0_PCTRS1                   0x2120868c /* [RW][32] Performance Counter Mapping 1 */
+#define BCHP_V3D_PCTR_0_PCTR2                    0x21208690 /* [RO][32] Performance Counter Count 2 */
+#define BCHP_V3D_PCTR_0_PCTRS2                   0x21208694 /* [RW][32] Performance Counter Mapping 2 */
+#define BCHP_V3D_PCTR_0_PCTR3                    0x21208698 /* [RO][32] Performance Counter Count 3 */
+#define BCHP_V3D_PCTR_0_PCTRS3                   0x2120869c /* [RW][32] Performance Counter Mapping 3 */
+#define BCHP_V3D_PCTR_0_PCTR4                    0x212086a0 /* [RO][32] Performance Counter Count 4 */
+#define BCHP_V3D_PCTR_0_PCTRS4                   0x212086a4 /* [RW][32] Performance Counter Mapping 4 */
+#define BCHP_V3D_PCTR_0_PCTR5                    0x212086a8 /* [RO][32] Performance Counter Count 5 */
+#define BCHP_V3D_PCTR_0_PCTRS5                   0x212086ac /* [RW][32] Performance Counter Mapping 5 */
+#define BCHP_V3D_PCTR_0_PCTR6                    0x212086b0 /* [RO][32] Performance Counter Count 6 */
+#define BCHP_V3D_PCTR_0_PCTRS6                   0x212086b4 /* [RW][32] Performance Counter Mapping 6 */
+#define BCHP_V3D_PCTR_0_PCTR7                    0x212086b8 /* [RO][32] Performance Counter Count 7 */
+#define BCHP_V3D_PCTR_0_PCTRS7                   0x212086bc /* [RW][32] Performance Counter Mapping 7 */
+#define BCHP_V3D_PCTR_0_PCTR8                    0x212086c0 /* [RO][32] Performance Counter Count 8 */
+#define BCHP_V3D_PCTR_0_PCTRS8                   0x212086c4 /* [RW][32] Performance Counter Mapping 8 */
+#define BCHP_V3D_PCTR_0_PCTR9                    0x212086c8 /* [RO][32] Performance Counter Count 9 */
+#define BCHP_V3D_PCTR_0_PCTRS9                   0x212086cc /* [RW][32] Performance Counter Mapping 9 */
+#define BCHP_V3D_PCTR_0_PCTR10                   0x212086d0 /* [RO][32] Performance Counter Count 10 */
+#define BCHP_V3D_PCTR_0_PCTRS10                  0x212086d4 /* [RW][32] Performance Counter Mapping 10 */
+#define BCHP_V3D_PCTR_0_PCTR11                   0x212086d8 /* [RO][32] Performance Counter Count 11 */
+#define BCHP_V3D_PCTR_0_PCTRS11                  0x212086dc /* [RW][32] Performance Counter Mapping 11 */
+#define BCHP_V3D_PCTR_0_PCTR12                   0x212086e0 /* [RO][32] Performance Counter Count 12 */
+#define BCHP_V3D_PCTR_0_PCTRS12                  0x212086e4 /* [RW][32] Performance Counter Mapping 12 */
+#define BCHP_V3D_PCTR_0_PCTR13                   0x212086e8 /* [RO][32] Performance Counter Count 13 */
+#define BCHP_V3D_PCTR_0_PCTRS13                  0x212086ec /* [RW][32] Performance Counter Mapping 13 */
+#define BCHP_V3D_PCTR_0_PCTR14                   0x212086f0 /* [RO][32] Performance Counter Count 14 */
+#define BCHP_V3D_PCTR_0_PCTRS14                  0x212086f4 /* [RW][32] Performance Counter Mapping 14 */
+#define BCHP_V3D_PCTR_0_PCTR15                   0x212086f8 /* [RO][32] Performance Counter Count 15 */
+#define BCHP_V3D_PCTR_0_PCTRS15                  0x212086fc /* [RW][32] Performance Counter Mapping 15 */
 
 /***************************************************************************
  *PCTRC - Performance Counter Clear

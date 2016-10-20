@@ -56,6 +56,7 @@ var localdatetime = "";
 var userAgent = 0;
 var gNumCpus = 0;
 var gCpuData = [0,0,0,0,0,0,0,0];
+var gCpuFreq = [0,0,0,0,0,0,0,0];
 var gIrqLatestData = [0,0,0,0,0,0,0,0];
 var gIrqMaxData = [0,0,0,0,0,0,0,0];
 var bCpuDataHeightSet = 0;
@@ -69,10 +70,16 @@ var NetBytesTx10SecondsCount=[0,0,0,0,0,0,0,0,0,0];
 var NetBytesTx10Seconds =[[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0]
                          ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0] ,[0,0,0,0,0,0,0,0,0,0]];
 var NetBytesSeconds = 0; // net bytes are accumulated for as long as the browser is on this page; this value is used to compute the average Mbps
+var NetGfxCheckbox=[0,0,0,0,0,0,0,0,0,0]; // up to 10 network interfaces ... indicates whether checkbox_netifgfx is checked or not
+var NetGfxDivisor= [[1,1,1,1,1,1,1,1,1,1], [1,1,1,1,1,1,1,1,1,1]]; // divisor will increase/decrease relative to network bytes received per second
+var NetGfxBytes= [["","","","","","","","","",""], ["","","","","","","","","",""]]; // 10 network interfaces ... also indexed by Rx/Tx
+var RxTxStr = ["rx","tx"];
+var POINTS_PER_GRAPH = 250;
 var GetCpuInfo = {Value: 0};
 var GetMemory = {Value: 0};
 var GetIrqInfo = {Value: 0};
 var GetNetStats =  {Value: 0};
+var GetNetStatsInit = true; // set to true when user checks the checkbox; then set to false
 var GetWifiStats =  {Value: 0, Init:0, SecondsEnabled:0 };
 var GetWifiStatsCountdown = 0;
 var GetWifiScan =  {Value: 0, State:0, MaxNumAps:1, ServerIdx:0 };
@@ -123,6 +130,7 @@ var cpuUsageLongAverageCount = 0; // number of 10-second average CPU utilization
 var iperfStateEnum = { UNINIT:0, INIT:1, RUNNING:2, STOP:3 };
 var iperfStateClient = iperfStateEnum.UNINIT;
 var iperfStateServer = iperfStateEnum.UNINIT;
+var iperfStateServerRetry = 0; // the 1st time after reboot, the start of the server happens so slowly, the pid comes back 0 which causes JS to think the server died
 var iperfInit = false;
 var iperfStartTimeClient = 0;
 var iperfStartTimeServer = 0;
@@ -132,6 +140,9 @@ var iperfPidServer = 0;
 var iperfRunningClient = "";
 var iperfRunningServer = "";
 var iperfClientServerRow = 0;
+var DvfsControl =  {Value: 0};
+var GovernorSettingNow = 0;
+var GovernorSettingPrev = 0;
 
 Number.prototype.padZero= function(len){
     var s= String(this), c= '0';
@@ -152,28 +163,34 @@ function OneSecond ()
 }
 function getNumEntries ( arrayname )
 {
-    var num_entries = arrayname.length-1;
+    var num_entries = arrayname.length;
     if (userAgent.indexOf("MSIE") >= 0 ) {
-        num_entries++; // for ie9, length is one less than firefox, chrome, safari
+        //num_entries++; // for ie9, length is one less than firefox, chrome, safari
     }
-    //if (numlines==1) alert("1 coords (" + coords + "); num points" + num_entries );
+    //alert("1 array(" + arrayname + "); num points" + num_entries );
 
     return num_entries;
 }
 
 function hideOrShow ( elementid, trueOrFalse )
 {
-    if (trueOrFalse) {
-        //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to SHOW");
-        document.getElementById(elementid).style.display = '';
-        document.getElementById(elementid).style.visibility = '';
-        //alert("hideOrShow: " + elementid + "; SHOW");
-    } else {
-        //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to HIDE");
-        document.getElementById(elementid).style.display = 'none';
-        document.getElementById(elementid).style.visibility = 'hidden';
-        //alert("hideOrShow: " + elementid + "; HIDE");
+    var obj=document.getElementById(elementid);
+
+    if ( obj ) {
+        if (trueOrFalse) {
+            //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to SHOW");
+            obj.style.display = '';
+            obj.style.visibility = '';
+            //alert("hideOrShow: " + elementid + "; SHOW");
+        } else {
+            //if (elementid.indexOf('wifi') ) alert("hideOrShow: " + elementid + "; starting to HIDE");
+            obj.style.display = 'none';
+            obj.style.visibility = 'hidden';
+            //alert("hideOrShow: " + elementid + "; HIDE");
+        }
     }
+
+    return true;
 }
 
 function hideElement ( elementid )
@@ -289,6 +306,46 @@ function SvgClickHandler (event)
     MyClick(event);
 }
 
+/*
+ * This function is called to update the CPU utilization graph as well as the Network Interface graphs.
+*/
+function AddSvgPoints ( svgobj, newValue )
+{
+    var coords = svgobj.getAttribute('points' );
+    var minYcoord = 100;
+
+    if (coords == null) {
+        coords = "0," + newValue + " ";
+    }
+
+    if (coords) {
+        var coords2 = rtrim(coords);
+        var splits = coords2.split(' ');
+        var newcoords = "";
+        var starting_idx = 0;
+        var num_entries = getNumEntries(splits);
+
+        if ( num_entries < POINTS_PER_GRAPH ) {
+            starting_idx = 0;
+        } else {
+            starting_idx = 1;// skip the first element; it is dropping off the left side
+        }
+        for (idx=starting_idx; idx < num_entries; idx++ ) {
+            var justone = splits[idx].split(',');
+            newcoords += idx*2 + "," + justone[1] + " " ;
+            minYcoord = Math.min ( minYcoord, justone[1] );
+        }
+
+        // add new last point to the far right
+        newcoords += idx*2 + "," + newValue + " " ;
+        minYcoord = Math.min ( minYcoord, newValue );
+
+        svgobj.setAttribute('points', newcoords );
+    }
+
+    return minYcoord;
+}
+
 function AppendPolylineXY ( polylinenumber, newValue )
 {
     var lineid = "polyline0" + polylinenumber;
@@ -297,37 +354,11 @@ function AppendPolylineXY ( polylinenumber, newValue )
     // alert("polylinenumber " + polylinenumber + "; gNumCpus " + gNumCpus + "; svgobj " + svgobj + "; lineid " + lineid );
     if (svgobj && gNumCpus && polylinenumber<(gNumCpus+1) ) { // added one for limegreen 5-second average line
         // coords example: 0,100 2,85 5,95 6,95 (i.e. x,y where the y value is pixels "below" the top of the graph; 100 pixels means 0 percent
-        var coords = svgobj.getAttribute('points' );
-        //if(polylinenumber==5) alert("gNumCpus " + gNumCpus + "; lineid " + lineid + "; coords " + coords );
-        if (coords == null) {
-            coords = "0,100 ";
-        }
-
-        if (coords) {
-            var splits = coords.split(' ');
-            var newcoords = "";
-            var starting_idx = 0;
-            var num_entries = getNumEntries(splits);
-
-            if ( num_entries < 250 ) {
-                starting_idx = 0;
+        if (polylinenumber < (gNumCpus+1) ) { // if we are processing the cpu poly lines
+            if ( newValue == 255 ) { // if the cpu is inactive
             } else {
-                starting_idx = 1;// skip the first element; it is dropping off the left side
+                AddSvgPoints ( svgobj, newValue );
             }
-            for (idx=starting_idx; idx < num_entries; idx++ ) {
-                var justone = splits[idx].split(',');
-                newcoords += idx*2 + "," + justone[1] + " " ;
-                //if(polylinenumber==5) alert("for point " + idx + ", newcoords (" + newcoords + ")" );
-            }
-            // add new last point to the far right
-            if (polylinenumber < (gNumCpus+1) ) { // if we are processing the cpu poly lines
-                if ( newValue == 255) { // if the cpu is inactive
-                } else {
-                    newcoords += idx*2 + "," + newValue + " " ;
-                }
-            }
-            //if(polylinenumber==5) alert("setAttribute:(" + newcoords + ")" );
-            svgobj.setAttribute('points', newcoords );
         }
     } else {
         //alert ("lineid " + lineid + " does not exist");
@@ -342,6 +373,7 @@ function Wifi3DDelayed()
     if ( obj && obj.checked == false) {
         hideOrShow("row_cpus", HIDE );
     }
+    hideOrShow("row_netgfx_all", HIDE );
 }
 
 function MyLoad()
@@ -411,12 +443,12 @@ function MyLoad()
 
         GetSataUsb.Stop = 1; // tell the server to stop any SATA/USB data collection that may have been started earlier
 
+        hideOrShow("row_DvfsControl", HIDE );
+
         //alert("pass 0 done");
     } else {
         var objCheckboxCpus = document.getElementById("checkboxcpus");
         if (objCheckboxCpus && objCheckboxCpus.checked ) {
-            var adjusted_poly = [0,0,0,0];
-            var irqIdx = 0;
             for (polylinenumber=1; polylinenumber<(gNumCpus-1)+1 ; polylinenumber++) { //once for all CPUs
                 AppendPolylineXY ( polylinenumber, gCpuData[polylinenumber-1] );
             }
@@ -655,8 +687,7 @@ function checkboxWifiAmpduGraphDoit ( fieldValue )
         }
         if (checkboxWifiAmpduGraph1stPass) {
             checkboxWifiAmpduGraph1stPass = false;
-            for(sidx=0; sidx<2; sidx++) {
-                // rotate both SVG elements to the left a bit
+            for(sidx=0; sidx<2; sidx++) { // rotate both SVG elements to the left a bit
                 for(var i=0; i<6; i++) {
                     ChangeViewer(0,-5);
                 }
@@ -705,6 +736,23 @@ function setVariable(fieldName)
                 SetInternalCheckboxStatus ( "checkboxnets", GetNetStats );
                 hideOrShow("row_net_stats", fieldValue);
                 iperfInit = fieldValue;
+                GetNetStatsInit = fieldValue;
+
+                // hide all ten of the histogram rows
+                for ( var idx=0; idx<10; idx++) {
+                    hideOrShow("row_netgfxsvg" + idx, HIDE );
+                    hideOrShow("row_netgfxtxt" + idx, HIDE );
+                    NetGfxCheckbox[idx] = 0;
+
+                    for ( var RxTxIndex=0; RxTxIndex<2; RxTxIndex++) {
+                        var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + idx );
+                        if ( objline ) {
+                            objline.setAttribute('points', '' ); // clear out the polyline coordinates for each of 10 network interfaces ... two graphs each (Rx/Tx)
+                        }
+                        NetGfxDivisor[RxTxIndex][idx] = 1;
+                        NetGfxBytes[RxTxIndex][idx] = "";
+                    }
+                }
             } else if (fieldName == "checkboxwifi" ) {
                 checkboxwifiDoit( fieldValue );
             } else if (fieldName == "checkboxirqs" ) {
@@ -846,6 +894,35 @@ function setVariable(fieldName)
                     iperfClientServerRow = 1;
                     hideOrShow("row_iperf_client_server", SHOW );
                 }
+            } else if ( fieldName.indexOf ( "checkbox_netgfx" ) == 0 ) {
+                var idx = fieldName.substr(15);
+                if ( idx < 10 ) {
+                    NetGfxCheckbox[idx] = fieldValue;
+                    hideOrShow("row_netgfxsvg" + idx, fieldValue );
+                    hideOrShow("row_netgfxtxt" + idx, fieldValue );
+                    if (fieldValue) {
+                        hideOrShow("row_netgfx_all", fieldValue );
+                    } else {
+                        var found_row_visible = false;
+                        for ( var idx=0; idx<10; idx++) { // determine if at least one row is visible
+                            if ( NetGfxCheckbox[idx] ) {
+                                found_row_visible = true;
+                                break;
+                            }
+                        }
+                        if ( found_row_visible == false ) { // if not gfx rows are visible, hide the mother row
+                            hideOrShow("row_netgfx_all", fieldValue );
+                        }
+                    }
+                }
+            } else if (fieldName == "checkboxDvfsControl" ) {
+                hideOrShow("row_DvfsControl", fieldValue);
+
+                if (fieldValue) {
+                    DvfsControl.Value = 1;
+                } else {
+                    DvfsControl.Value = 0;
+                }
             }
 
             if (obj.checked) {
@@ -858,6 +935,17 @@ function setVariable(fieldName)
             //alert("textarea ... " + fieldName );
             HideThisDisplayOther(fieldName);
         } else if ( obj.type == "radio" ) {
+            var radios = document.getElementsByName( fieldName );
+
+            fieldValue = document.querySelector('input[name=radioGovernor]:checked').value
+
+            if ( fieldName.indexOf ( "radioGovernor" ) >= 0 ) {
+                var objgovernor = document.getElementById( fieldName );
+                if ( objgovernor ) {
+                    GovernorSettingNow = fieldValue;
+                    sendCgiRequest();
+                }
+            }
         } else if ( obj.type == "button" ) {
             //alert("button:" + fieldName);
             if (fieldName == "PerfFlameStartStop") {
@@ -1036,7 +1124,11 @@ function sendCgiRequest( )
 
     var checkboxiperf=document.getElementById('checkboxiperfrow');
     if (GetNetStats.Value == true) {
-        url += "&netstats=1";
+        if ( GetNetStatsInit ) {
+            url += "&netStatsInit=1";
+            GetNetStatsInit = false;
+        }
+        url += "&netStatsUpdate=1";
         if (iperfInit) {
             url += "&iperfInit=1";
             iperfInit = false;
@@ -1065,6 +1157,7 @@ function sendCgiRequest( )
     } else if ( iperfStateServer == iperfStateEnum.STOP ) {
         url += "&iperfCmdLine=STOP iperf -s";
         iperfStateServer = iperfStateEnum.UNINIT;
+        iperfStateServerRetry = 0;
         if ( iperfPidServer != "terminated" && iperfPidServer != "Executable not found" ) iperfPidServer = "";
         set_iperf_status_cell();
         set_iperf_button( "Server" );
@@ -1217,6 +1310,16 @@ function sendCgiRequest( )
         ChangeCpuState = "";
     }
 
+    if ( DvfsControl.Value ) {
+        url += "&DvfsControl=" + DvfsControl.Value;
+    }
+
+    if ( GovernorSettingNow ) {
+        url += "&GovernorSetting=" + GovernorSettingNow;
+        GovernorSettingPrev = GovernorSettingNow;
+        GovernorSettingNow = 0;
+    }
+
     // seems the data sent to the browser cannot exceed 1010 for unknown reason
     if (url.length > 1010) {
         url = url.substr(0,1010);
@@ -1279,37 +1382,65 @@ function GetPerfCacheResultsFunc()
     }
 }
 
+function ComputePrecision ( Mbps )
+{
+    var precision = 2;
+    var integerPart = Mbps.toFixed(0);
+    var decimalPoint = ""; // if the integer part is 4 digits or more, add the decimal point after the integer
+
+    // if the Mbps is less than one Mbps, increase the decimal precision to show kilobits
+    if ( integerPart == 0 ) {
+        precision = 3;
+    } else if ( integerPart.length > 3 ) {
+        precision = 0;
+        decimalPoint = ".";
+    } else if ( integerPart.length > 2 ) {
+        precision = 1;
+    }
+
+    return [ precision, decimalPoint ];
+}
+
+function ConvertBitsToMbps ( bits )
+{
+    var Mbps      = 0;
+    var precision = 2;
+    var decimalPoint = ""; // if the integer part is 4 digits or more, add the decimal point after the integer
+
+    Mbps =  Number( bits / 1024 / 1024 );
+
+    var return_values = ComputePrecision ( Mbps );
+    precision = return_values[0];
+    decimalPoint = return_values[1];
+
+    return Mbps.toFixed(precision) + decimalPoint;
+}
+
 function ComputeNetBytes10SecondsAverage ( InterfaceIndex, RxTxIndex )
 {
     var averageMbps     = 0;
     var secs            = 0;
     var cummulativeMbps = 0;
     var precision       = 0;
-    var spacer          = "";
+    var decimalPoint = ""; // if the integer part is 4 digits or more, add the decimal point after the integer
 
     //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "ComputeAverage: num secs " + NetBytesRx10SecondsCount[InterfaceIndex] + ": ";
     for(secs=0; secs<NetBytesRx10SecondsCount[InterfaceIndex]; secs++) {
-        spacer = "";
         if (RxTxIndex == 0) {
             cummulativeMbps += NetBytesRx10Seconds[InterfaceIndex][secs];
-            //if (objdebug && InterfaceIndex == 1 ) if (NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
-            //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesRx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
         } else {
-            //if (objdebug && InterfaceIndex == 1 ) if (NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(0) < 10 ) { spacer = " "; }
             cummulativeMbps += NetBytesTx10Seconds[InterfaceIndex][secs];
-            //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "[" + secs + "]=" + spacer + NetBytesTx10Seconds[InterfaceIndex][secs].toFixed(2) + ", ";
         }
     }
     if ( NetBytesRx10SecondsCount[InterfaceIndex] > 0) {
         averageMbps = Number ( cummulativeMbps / NetBytesRx10SecondsCount[InterfaceIndex] );
     }
-    //if (objdebug && InterfaceIndex == 1 ) if (averageMbps.toFixed(0) < 10 ) { spacer = " "; }
-    //if (objdebug && InterfaceIndex == 1 ) objdebug.innerHTML += "; avg=" + spacer + averageMbps.toFixed(2) + "\n";
-    // if the average is less than one Mbps, increase the decimal precision to show kilobits
-    if (averageMbps.toFixed(0) == 0) {
-        precision = 2;
-    }
-    return averageMbps.toFixed(precision);
+
+    var return_values = ComputePrecision ( averageMbps );
+    precision = return_values[0];
+    decimalPoint = return_values[1];
+
+    return averageMbps.toFixed(precision) + decimalPoint;
 }
 
 // This function will insert SVG code into the appropriate HTML structure to either draw a red or green
@@ -1496,6 +1627,196 @@ function SwapTxRx( which )
     //alert("SwapTxRx done");
 }
 
+function UpdateDashTickText ( svg_text_id, max_value )
+{
+    // tags should be something like this ... dash_rx_0 .. dash_rx_9 ... or same with tx
+    var text_value = "";
+    var multiplier = [10,30,50,70,90];
+    var full_id = svg_text_id + "_";
+    var objtext = 0;
+    var yidx = 0; // the y coordinates are the reverse of idx values
+
+    // loop through 5 text values and set the text values to 90%, 70%, 50%, 30%, 10% of the new max_value
+    for ( var idx=0; idx<5; idx++) {
+        text_value = Number ( max_value * multiplier[idx] / 100 );
+        yidx = Number(4-idx);
+        full_id = svg_text_id + "_" + yidx;
+        objtext = document.getElementById( full_id );
+        if (objtext) {
+            var shorter_text = text_value.toString().replace(/000000000$/, "G");
+            shorter_text = shorter_text.toString().replace(/000000$/, "M");
+            shorter_text = shorter_text.toString().replace(/000$/, "K");
+            objtext.textContent = shorter_text;
+        }
+    }
+
+    return true;
+}
+
+function ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, newValue )
+{
+    var prev_divisor = NetGfxDivisor[RxTxIndex][netIfIdx];
+    var temp = Number ( newValue / 100 );
+    var newValueStr = newValue.toString();
+    var log10 = Math.max ( 1, Number ( newValueStr.length - 2 ) ); // Math.ceil ( Math.log10 ( temp ));
+    //var log10_chrome_ff_safari = Math.ceil ( Math.log10 ( temp )); // fails on IE9 and Safari Windows
+    NetGfxDivisor[RxTxIndex][netIfIdx] = temp = Number ( Math.pow ( 10, log10 ) );
+
+    return [ prev_divisor, NetGfxDivisor[RxTxIndex][netIfIdx] ];
+}
+
+function ResetPolylinePoints ( objline, netIfIdx, RxTxIndex )
+{
+    var delta2 = 0;
+    var coords = "";
+    var newcoords = "";
+
+    if ( objline ) {
+        coords = objline.getAttribute('points' );
+        var bytes = NetGfxBytes[RxTxIndex][netIfIdx].split(" ");
+        var max_idx = Math.min(POINTS_PER_GRAPH, bytes.length);
+
+        ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, bytes[0] );
+
+        for (var idx=0; idx < max_idx; idx++ ) {
+            delta2 = Math.floor ( Number ( bytes[idx] / NetGfxDivisor[RxTxIndex][netIfIdx] ) );
+            if (delta2 && delta2<=100) {
+                delta2 = Number(100 - delta2);
+            } else {
+                delta2 = 100;
+            }
+            newcoords += Number(idx+1)*2 + "," + delta2 + " " ;
+        }
+        objline.setAttribute('points', newcoords );
+    }
+
+    return true;
+}
+
+function AppendNetGfxBytes(RxTxIndex, netIfIdx, delta1 )
+{
+    // if we have already saved some values in the y-axis array
+    if ( NetGfxBytes[RxTxIndex][netIfIdx].length ) {
+        // determine how many entries are in the string (separated by spaces)
+        var entries = NetGfxBytes[RxTxIndex][netIfIdx].split(" ");
+        var num_entries = entries.length;
+        // if we have not filled up the width of the graph histogram, add this entry to the end ... delimiting with a space
+        if ( num_entries < POINTS_PER_GRAPH ) {
+            NetGfxBytes[RxTxIndex][netIfIdx] += " " + delta1;
+        } else { // drop the first entry in the list and add new entry at the end
+            var first_space = NetGfxBytes[RxTxIndex][netIfIdx].indexOf(" ");
+            if ( first_space > 0 ) {
+                NetGfxBytes[RxTxIndex][netIfIdx] = NetGfxBytes[RxTxIndex][netIfIdx].substr( Number(first_space + 1) );
+            } else {
+                NetGfxBytes[RxTxIndex][netIfIdx] += " " + delta1;
+            }
+        }
+    } else {
+        NetGfxBytes[RxTxIndex][netIfIdx] += delta1;
+    }
+}
+
+function AdjustPolylinePoints ( objline, old_divisor, new_divisor )
+{
+    if (objline && (new_divisor > old_divisor) ) {
+        var delta_divisor = Number ( new_divisor / old_divisor ); // going from 100 to 1000 means we have to divide all the existing y values by 10
+        var coords = objline.getAttribute('points');
+        if (coords) {
+            var splits = coords.split(' ');
+            var newY = "";
+            var new_points = "";
+
+            for (var idx=0; idx < splits.length; idx++ ) {
+                var justone = splits[idx].split(',');
+                if ( justone.length == 2 ) {
+                    if ( idx > 0 ) {
+                        new_points += " ";
+                    }
+                    newY = Number ( 100 - Math.floor ( Number( ( 100 - justone[1] ) / delta_divisor ) ) );
+                    new_points += idx*2 + "," + newY;
+                }
+            }
+            objline.setAttribute('points', new_points );
+        }
+    }
+    return true;
+}
+
+/*
+ * This function will append the specified value to the end of the text area element. When the text area element contains
+ * 250 values, the first value will be dropped off. Then, the new value will be appended to the end ... thereby ensuring
+ * that a maximum of 250 values will be the in text area.
+*/
+function AppendToTextarea ( textareaId, newValue )
+{
+    var objtxt = document.getElementById( textareaId );
+
+    if (objtxt) {
+        var values = objtxt.innerHTML.split(' ');
+
+        if ( values.length >= 250 ) {
+            var firstDelimiter = objtxt.innerHTML.indexOf(' ');
+            if (firstDelimiter > 0 ) {
+                objtxt.innerHTML = objtxt.innerHTML.substr ( Number ( firstDelimiter + 1 ) );
+            }
+        }
+
+        if ( objtxt.innerHTML.length > 1 ) {
+            objtxt.innerHTML += ' ';
+        }
+        //objtxt.innerHTML += delta1.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ",") + " "; // format number with commas
+        objtxt.innerHTML += newValue;
+        objtxt.scrollTop = objtxt.scrollHeight;
+    }
+
+    return true;
+}
+
+function UpdateNetGfxElements ( netIfIdx, RxTxIndex, previousBytes, currentBytes )
+{
+    var temp = 0;
+
+    if ( NetGfxCheckbox[netIfIdx] && 0 <= RxTxIndex && RxTxIndex <=1 && currentBytes >= previousBytes ) {
+        var objbox = document.getElementById( 'checkbox_netgfx' + netIfIdx );
+        if ( objbox ) {
+            var delta1 = Math.floor ( Number ( (currentBytes - previousBytes) * 8 ) );
+            var objline = document.getElementById( 'polyline_netgfx_' + RxTxStr[RxTxIndex] + '_' + netIfIdx );
+
+            objbox.checked = true;
+
+            // determine if the divisor has to change
+            if ( Number (delta1 / NetGfxDivisor[RxTxIndex][netIfIdx] ) > 100 ) {
+                var returns = ComputeNewNetGfxDivisor ( RxTxIndex, netIfIdx, delta1 ); // returns old and new values
+                AdjustPolylinePoints ( objline, returns[0], returns[1] );
+                UpdateDashTickText ( "dash_" + RxTxStr[RxTxIndex] + "_" + netIfIdx, Number ( NetGfxDivisor[RxTxIndex][netIfIdx] * 100 ) );
+            }
+
+            // value could be quite large ... 951,155,955
+            // reverse the number so that lower number has a "higher" Y coordinate value on the browser
+            var delta2 = Math.floor ( Number ( delta1 / NetGfxDivisor[RxTxIndex][netIfIdx] ) );
+            delta2 = Number(100 - delta2);
+            if (objline) {
+                var minYcoord = AddSvgPoints ( objline, delta2 );
+                if (minYcoord > 90) { // big values dropped off ... adjust the Y scale ... > 90% of graph height is used
+                    NetGfxDivisor[RxTxIndex][netIfIdx] = 1; // force the y-axis to redraw the next time around
+                    ResetPolylinePoints ( objline, netIfIdx, RxTxIndex );
+                    UpdateDashTickText ( "dash_" + RxTxStr[RxTxIndex] + "_" + netIfIdx, Number ( NetGfxDivisor[RxTxIndex][netIfIdx] * 100 ) );
+                }
+            }
+
+            AppendToTextarea ( 'txt_netgfx_' + RxTxStr[RxTxIndex] + '_' + netIfIdx, ConvertBitsToMbps ( delta1 ) );
+
+            // if this is the first time we are appending a value, the first value gets saved twice ( so that the graph doesn't start at zero)
+            if ( NetGfxBytes[RxTxIndex][netIfIdx].length == 0 ) {
+                AppendNetGfxBytes(RxTxIndex, netIfIdx, delta1 );
+            }
+            AppendNetGfxBytes(RxTxIndex, netIfIdx, delta1 );
+        }
+    }
+
+    return true;
+}
+
 // This function runs as an asynchronous response to a previous server request
 function serverHttpResponse ()
 {
@@ -1643,12 +1964,8 @@ function serverHttpResponse ()
                                             var cputitleid = "cputitle0" + idx;
                                             var objtitle = document.getElementById(cputitleid);
 
-                                            if (cpudataobj.innerHTML.length > 100) {
-                                                //cpudataobj.innerHTML = cpudataobj.innerHTML.substr(0,)
-                                            }
                                             ChangeCpuTag ( idx, idle );
                                             if (idle == 255) { // if the cpu has been disabled
-                                                //cpudataobj.innerHTML += "255 ";
                                                 // add inactive to the title
                                                 if (objtitle) {
                                                     objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(<span style=\"background-color:red;\">(INACTIVE)</span>)";
@@ -1658,7 +1975,9 @@ function serverHttpResponse ()
                                                 cpudataobj.innerHTML += usage + " ";
 
                                                 if (objtitle) {
-                                                    objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(&nbsp;" + usage + "%&nbsp;)";
+                                                    var MHz = Number(gCpuFreq[idx]);
+                                                    if ( MHz == 0 || MHz == 999999 ) MHz = "__";
+                                                    objtitle.innerHTML = "CPU " + idx + "&nbsp;&nbsp;(&nbsp;" + usage + "% @ " + MHz + " MHz)";
                                                 }
 
                                                 cpuUsageTotal += Number(usage);
@@ -1689,15 +2008,33 @@ function serverHttpResponse ()
 
                                     // if there are two or more CPUs, update the red overall average line and the limegreen 5-second cpu average line
                                     if (gNumCpus > 1) {
-                                        AppendPolylineXY ( 0, 100 - Number( cpuUsageTotal / cpuActiveCount ) ); // update red CPU utilization average line
-                                        AppendPolylineXY ( gNumCpus, 100 - Number( avg ) ); // line number needs to match the polyline0x definition in bsysperf.c
-                                                                                            // update green 5-second CPU utilization average line
+                                        AppendPolylineXY ( 0, 100 - Math.floor ( Number( cpuUsageTotal / cpuActiveCount ) ) ); // update red CPU utilization average line
+                                        AppendPolylineXY ( gNumCpus, 100 - Math.floor ( Number( avg ) ) ); // line number needs to match the polyline0x definition in bsysperf.c
+                                                                                                           // update green 5-second CPU utilization average line
                                     }
                                 }
 
                                 bCpuDataHeightSet = 1;
                             } else {
                                 AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
+                            }
+                        }
+                        i++;
+                    } else if (entry == "CPUFREQUENCY") {
+                        var response = oResponses[i+1];
+                        AddToDebugOutput ( entry + ":" + response + ";" + eol );
+                        var objCheckboxCpus = document.getElementById("checkboxcpus");
+                        if (objCheckboxCpus) {
+                            // if the checkbox to show CPU utilization is checked
+                            if (objCheckboxCpus.checked) {
+                                var tempNumCpus = 0;
+                                tempNumCpus = Number(response.substr(0,1));
+                                for (idx=0; idx < tempNumCpus; idx++ ) {
+                                    // 000000 means cpu is active but freq is unknown (old BOLT?); 999999 means cpu is inactive
+                                    var freq = rtrim ( response.substr(2+(idx*7), 7) );
+                                    //AddToDebugOutput ( "cpu " + idx + ":" + freq+ ";" + eol );
+                                    gCpuFreq[idx] = freq;
+                                }  // for each CPU
                             }
                         }
                         i++;
@@ -1728,7 +2065,7 @@ function serverHttpResponse ()
                             }
                         }
                         i++;
-                    } else if (entry == "NETSTATS") {
+                    } else if (entry == "netStatsInit") { // only return when user first checks the Network Stats checkbox
                         var obj2 = document.getElementById("checkboxnets");
                         if (obj2) {
                             if (obj2.checked) {
@@ -1737,35 +2074,74 @@ function serverHttpResponse ()
                                 if (obj2) {
                                     obj2.innerHTML = oResponses[i+1];
                                     AddToDebugOutput ( entry + ":iperfClientServerRow:" + iperfClientServerRow + eol );
-                                    // because the checkboxbox gets updated every second, we have to remember the status of the previous second
-                                    if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
-                                        var objbox=document.getElementById('checkboxiperfrow');
-                                        if (objbox) {
-                                            objbox.checked = true;
-                                        }
-                                        hideOrShow("row_iperf_client_server", SHOW );
-                                    } else {
-                                        hideOrShow("row_iperf_client_server", HIDE );
-                                    }
+                                }
+
+                                // hide all ten of the histogram rows because the visibility:hidden attribute in the HTML doesn't work initially
+                                for ( var idx=0; idx<10; idx++) {
+                                    hideOrShow("row_netgfxsvg" + idx, HIDE );
+                                    hideOrShow("row_netgfxtxt" + idx, HIDE );
                                 }
                             } else {
                                 AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
                             }
                         }
+                        i++;
+
+                    } else if (entry == "netStatsUpdate") {
+                        i++;
+                        var num_interfaces = oResponses[i];
+                        i++;
+                        for ( var idx=0; idx<num_interfaces; idx++ ) {
+                            var splits = oResponses[i].split('|'); // rx_bytes|tx_bytes|rx_error|tx_error
+                            if ( splits.length == 4 ) {
+                                var objcell = "";
+                                var tagid = "";
+                                for ( var jdx=0; jdx<splits.length; jdx++ ) {
+                                    if ( jdx==0 ) {
+                                        tagid = "netif_rxBytes_" + idx;
+                                    } else if ( jdx==1 ) {
+                                        tagid = "netif_txBytes_" + idx;
+                                    } else if ( jdx==2 ) {
+                                        tagid = "netif_rxError_" + idx;
+                                    } else if ( jdx==3 ) {
+                                        tagid = "netif_txError_" + idx;
+                                    }
+                                    objcell = document.getElementById( tagid );
+                                    if (objcell) {
+                                        objcell.innerHTML = splits[jdx];
+                                    }
+                                }
+                            }
+                            //AddToDebugOutput ( "netif " + idx + ":" + oResponses[i] + eol );
+                            i++;
+                        }
+
+                        // because the checkboxbox gets updated every second, we have to remember the status of the previous second
+                        if ( iperfClientServerRow == 1 ) { // if the previous status was checked, set current status to same
+                            var objbox=document.getElementById('checkboxiperfrow');
+                            if (objbox) {
+                                objbox.checked = true;
+                            }
+                            hideOrShow("row_iperf_client_server", SHOW );
+                        } else {
+                            hideOrShow("row_iperf_client_server", HIDE );
+                        }
+
                         if ( iperfStateClient != iperfStateEnum.UNINIT || iperfStateServer != iperfStateEnum.UNINIT ) {
                             set_iperf_count_cell();
                             set_iperf_status_cell();
                         }
-                        i++;
+
                     } else if (entry == "NETBYTES") {
                         var obj2 = document.getElementById("checkboxnets");
                         var Mbps = 0;
+                        var Bits = 0;
                         if (obj2) {
                             if (obj2.checked) {
                                 NetBytesSeconds++;
 
                                 var response = oResponses[i+1];
-                                AddToDebugOutput ( entry + ":" + response + "; NetBytesSeconds " + NetBytesSeconds + eol );
+                                //AddToDebugOutput ( entry + ":" + response + "; NetBytesSeconds " + NetBytesSeconds + eol );
                                 var oRxTxPairs = response.split( "," ); // split the response using comma delimiter
 
                                 for (var idx = 0; idx < oRxTxPairs.length; idx++) {
@@ -1777,20 +2153,17 @@ function serverHttpResponse ()
                                         var tagTx = "netif" + idx + "tx";
                                         var objTx = document.getElementById(tagTx);
 
-                                        // DEBUG: only interested in seeing gphy numbers
-                                        if ( 0 && idx == 1){
-                                            if (objdebug) {
-                                                objdebug.innerHTML += entry + ": oRxTx[RX] " + oRxTx[0] + " > NetBytesPrev[" + idx + "][RX]=" + NetBytesPrev[idx][0] + "\n";
-                                                objdebug.innerHTML += entry + ": RX:";
-                                                for (idx2=0; idx2<NetBytesRx10SecondsCount[idx]; idx2++) {
-                                                    objdebug.innerHTML += "[" + idx2 + "]" + NetBytesRx10Seconds[idx][idx2] + ", ";
-                                                }
-                                                objdebug.innerHTML += "\n\n";
-                                            }
+                                        if (! objRx ) {
+                                            continue;
+                                        }
+
+                                        if (! objTx ) {
+                                            continue;
                                         }
 
                                         // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
                                         Mbps =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) / 128 / 1024);
+                                        Bits =  Number( (oRxTx[0] - NetBytesPrev[idx][0]) * 8 );
 
                                         if (NetBytesPrev[idx][0] > 0 && (oRxTx[0] >= NetBytesPrev[idx][0]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
                                             // if the array has filled up
@@ -1806,27 +2179,17 @@ function serverHttpResponse ()
                                                 // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                                 // convert bytes to megabits
                                                 // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objRx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
+                                                objRx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 0 ) + ")"; // 0 for RX and 1 for TX
                                             }
                                         } else {
                                             objRx.innerHTML = 0;
                                         }
+                                        UpdateNetGfxElements ( idx, 0/*RX*/, NetBytesPrev[idx][0], oRxTx[0] );
                                         NetBytesPrev[idx][0] = oRxTx[0];
-
-                                        // DEBUG: only interested in seeing gphy numbers
-                                        if ( 0 && idx == 1){
-                                            if (objdebug) {
-                                                objdebug.innerHTML += entry + ": oRxTx[TX] " + oRxTx[1] + " > NetBytesPrev[" + idx + "][TX]=" + NetBytesPrev[idx][1] + "\n";
-                                                objdebug.innerHTML += entry + ": TX:";
-                                                for (idx2=0; idx2<NetBytesTx10SecondsCount[idx]; idx2++) {
-                                                    objdebug.innerHTML += "[" + idx2 + "]" + NetBytesTx10Seconds[idx][idx2] + ", ";
-                                                }
-                                                objdebug.innerHTML += "\n\n";
-                                            }
-                                        }
 
                                         // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
                                         Mbps =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) / 128 / 1024);
+                                        Bits =  Number( (oRxTx[1] - NetBytesPrev[idx][1]) * 8 );
 
                                         if (NetBytesPrev[idx][1] > 0 && (oRxTx[1] >= NetBytesPrev[idx][1]) && (NetBytesSeconds > 1) && (Mbps > 0) ) {
                                             // if the array has filled up, move the entries left one position and add new entry to the very end
@@ -1842,11 +2205,12 @@ function serverHttpResponse ()
                                                 // NetBytesSeconds is subtracted by one because we need at least two-second's worth of data to compute a delta
                                                 // convert bytes to megabits
                                                 // instead of multiplying by 8 and then dividing by 1024 ... reduce it simply to dividing by 128
-                                                objTx.innerHTML = Mbps.toFixed(0) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
+                                                objTx.innerHTML = ConvertBitsToMbps ( Bits ) + "&nbsp;&nbsp;(" + ComputeNetBytes10SecondsAverage ( idx, 1 ) + ")"; // 0 for RX and 1 for TX
                                             }
                                         } else {
                                             objTx.innerHTML = 0;
                                         }
+                                        UpdateNetGfxElements ( idx, 1/*TX*/, NetBytesPrev[idx][1], oRxTx[1] );
                                         NetBytesPrev[idx][1] = oRxTx[1];
                                     }
                                 }
@@ -1876,7 +2240,7 @@ function serverHttpResponse ()
                             if (obj2.checked) {
                                 iperfPidClient = oResponses[i+1];
                                 if (iperfPidClient == 0 && iperfStateClient == iperfStateEnum.RUNNING) {
-                                    alert(entry + " is (" + oResponses[i+1] + ")" );
+                                    //alert(entry + " is (" + oResponses[i+1] + ")" );
                                     iperfStateClient = iperfStateEnum.STOP;
                                     set_iperf_button( entry );
                                     iperfPidClient = "terminated";
@@ -1893,9 +2257,17 @@ function serverHttpResponse ()
                             if (obj2.checked) {
                                 iperfPidServer = oResponses[i+1];
                                 if (iperfPidServer == 0 && iperfStateServer == iperfStateEnum.RUNNING) {
-                                    iperfStateServer = iperfStateEnum.STOP;
-                                    set_iperf_button( entry );
-                                    iperfPidServer = "terminated";
+                                    // The first time after a reboot when we try to start the server, the events happen so slowly that the returned
+                                    // PID is 0. This zero PID was causing the logic to change states to STOP inadvertently. By adding a 1-second
+                                    // retry, the premature abort after reboot went away.
+                                    if ( iperfStateServerRetry < 1 ) {
+                                        iperfStateServerRetry++;
+                                    } else {
+                                        iperfStateServerRetry=0;
+                                        iperfStateServer = iperfStateEnum.STOP;
+                                        set_iperf_button( entry );
+                                        iperfPidServer = "terminated";
+                                    }
                                 }
                             } else {
                                 AddToDebugOutput ( entry + ":ignored because checkbox is not checked" + eol );
@@ -1923,6 +2295,7 @@ function serverHttpResponse ()
                             if (obj2.checked) {
                                 iperfPidServer = oResponses[i+1];
                                 iperfStateServer = iperfStateEnum.UNINIT;
+                                iperfStateServerRetry = 0;
                                 set_iperf_button( entry );
                                 set_iperf_status_cell();
                             } else {
@@ -1931,19 +2304,24 @@ function serverHttpResponse ()
                         }
                         i++;
                     } else if (entry == "iperfRunningClient") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        //console.log (entry + " is (" + oResponses[i+1] + ") ... len " + oResponses[i+1].length);
                         var obj2 = document.getElementById("checkboxnets");
                         if (obj2) {
                             if (obj2.checked) {
-                                iperfRunningClient = oResponses[i+1];
-                                if (iperfRunningClient.length) {
-                                    //fillin_iperf_entry_boxes();
-                                    var obj=document.getElementById("iperf_start_stop_c");
-                                    if (obj && obj.value == "START") {
-                                        obj.value = "STOP";
-                                        iperfStateClient = iperfStateEnum.RUNNING;
-                                        set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
-                                        set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
+                                if ( oResponses[i+1].length ) {
+                                    if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -c running, make sure the START button is enabled
+                                        set_iperf_cmd ( "", entry );
+                                    } else {
+                                        iperfRunningClient = oResponses[i+1];
+
+                                        //fillin_iperf_entry_boxes();
+                                        var obj=document.getElementById("iperf_start_stop_c");
+                                        if (obj && obj.value == "START") {
+                                            obj.value = "STOP";
+                                            iperfStateClient = iperfStateEnum.RUNNING;
+                                            set_iperf_cmd ( iperfRunningClient.substr(iperfRunningClient.indexOf('iperf ')), entry );
+                                            set_iperf_count_value(entry, get_unix_seconds( iperfRunningClient ) ); // if we loaded the page and iperf is already running, set the start time
+                                        }
                                     }
                                 }
                             } else {
@@ -1952,7 +2330,7 @@ function serverHttpResponse ()
                         }
                         i++;
                     } else if (entry == "iperfRunningServer") {
-                        //alert(entry + " is (" + oResponses[i+1] + ")" );
+                        //console.log ( entry + " is (" + oResponses[i+1] + ")" );
                         var obj2 = document.getElementById("checkboxnets");
                         if (obj2) {
                             if (obj2.checked) {
@@ -1961,10 +2339,22 @@ function serverHttpResponse ()
                                     //fillin_iperf_entry_boxes();
                                     var obj=document.getElementById("iperf_start_stop_s");
                                     if (obj && obj.value == "START") {
-                                        obj.value = "STOP";
-                                        iperfStateServer = iperfStateEnum.RUNNING;
-                                        set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
-                                        set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
+                                        // if the running iperf was started by bsysperf (i.e. it has the special -Q option)
+                                        if ( oResponses[i+1].indexOf(" iperf -s -Q ") > 0 ) {
+                                            obj.value = "STOP";
+                                            iperfStateServer = iperfStateEnum.RUNNING;
+                                            set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')), entry );
+                                            set_iperf_count_value(entry, get_unix_seconds( iperfRunningServer ) ); // if we loaded the page and iperf is already running, set the start time
+                                        } else {
+                                            if ( oResponses[i+1] == "NONE" ) { // if there is no iperf -s running, make sure the START button is enabled
+                                                setButtonDisabled( 'iperf_start_stop_s', false );
+                                                set_iperf_cmd ( "", entry );
+                                            } else {
+                                                // if someone started iperf -s outside of bsysperf, do not allow bsysperf to start another one
+                                                setButtonDisabled( 'iperf_start_stop_s', true );
+                                                set_iperf_cmd ( iperfRunningServer.substr(iperfRunningServer.indexOf('iperf ')) + " (started outside of bsysperf)", entry );
+                                            }
+                                        }
                                     }
                                 }
                             } else {
@@ -2515,6 +2905,26 @@ function serverHttpResponse ()
                         //alert(entry + ":" + oResponses[i+1] );
                         GetPerfFlameSetState( GetPerfFlameState.IDLE );
                         i++;
+                    } else if ( entry == "DvfsControl" ) {
+                        //AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+                        var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+                        if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                            var DvfsControl = document.getElementById('DvfsControl');
+                            if ( DvfsControl ) {
+                                DvfsControl.innerHTML = oResponses[i+1];
+                            }
+                        }
+                        i++;
+                    } else if ( entry == "GovernorSetting" ) {
+                        AddToDebugOutput ( entry + ":" + oResponses[i+1] + eol );
+                        var checkboxDvfsControl = document.getElementById('checkboxDvfsControl');
+                        if ( checkboxDvfsControl && checkboxDvfsControl.checked ) {
+                            var objGovernorSetting = document.getElementById('radioGovernor' + oResponses[i+1] );
+                            if ( objGovernorSetting ) {
+                                objGovernorSetting.checked = true;
+                            }
+                        }
+                        i++;
                     } else {
                         if (entry.length > 1 ) {
                             AddToDebugOutput ( entry + eol );
@@ -2544,11 +2954,18 @@ function serverHttpResponse ()
                 //alert( msg );
 
                 CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 );
-                //AddToDebugOutput ( "calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
+                AddToDebugOutput ( "calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
             } else {
-                msg = "There was a problem retrieving the XML data:" + eol + eol + xmlhttp.statusText;
+                msg = "There was a problem retrieving the XML data:" + xmlhttp.statusText;
                 AddToDebugOutput ( msg + eol );
-                alert( msg );
+                //alert( msg );
+                AddToDebugOutput ( "urlSendRetryCount is " + urlSentRetryCount + eol );
+
+                if ( urlSentRetryCount < 2 ) {
+                    urlSentRetryCount++; // this one should never get reset to zero
+                    CgiRetryTimeoutId = setTimeout ('sendCgiRequestRetry()', REFRESH_IN_MILLISECONDS/4 );
+                    AddToDebugOutput ( "urlSentRetryCount is " + urlSentRetryCount + " ... calling setTimeout(); ID (" + CgiRetryTimeoutId + ")" + eol );
+                }
             }
         }
 
@@ -2574,7 +2991,6 @@ function RadioClick(event)
         sidx=0;
     }
     //alert("RadioClick: radio button (" + GetRxTxRadioButtonSelected() + "); sidx=" + sidx );
-    //console.log("RadioClick: radio button (" + GetRxTxRadioButtonSelected() + ")" );
     return true;
 }
 
@@ -2644,17 +3060,14 @@ function set_iperf_cmd( cmd, clientOrServer )
         obj=document.getElementById('iperf_cmd_s');
     }
 
-    if (obj && cmd.length) {
-        if (cmd.indexOf(" -Q ") > 0 ) {
-            obj.innerHTML = cmd.substr(0,cmd.indexOf(" -Q ") );
-        } else {
-            obj.innerHTML = cmd;
-        }
+    if (obj) {
+        obj.innerHTML = cmd;
+        //console.log ( "for " + clientOrServer + ": cmd.len " + cmd.length + "; cmd (" + cmd + ")" );
     }
     return true;
 }
 
-// event if triggered from onkeyup event ... or could be from "iperf_start_stop_s" or "iperf_start_stop_c"
+// event is triggered from onkeyup event ... or could be from "iperf_start_stop_s" or "iperf_start_stop_c"
 function KeyupEntryBox(event)
 {
     var clientOrServer = "Client";
@@ -2685,6 +3098,9 @@ function CreateIperfString( clientOrServer )
     if ( clientOrServer == "iperf_start_stop_c" || clientOrServer == "Client" ) {
         if ( document.getElementById('iperf_addr').value.length ) {
             iperfCmd += " -c " + document.getElementById('iperf_addr').value;
+
+            // add a special option to the end of the command line to let other browsers know the start time of this thread
+            iperfCmd += " -Q " + Math.floor(local.getTime() / 1000);
         }
 
         if ( document.getElementById('iperf_duration').value.length ) {
@@ -2705,6 +3121,9 @@ function CreateIperfString( clientOrServer )
     } else {
         iperfCmd += " -s";
 
+        // add a special option to the end of the command line to let other browsers know the start time of this thread
+        iperfCmd += " -Q " + Math.floor(local.getTime() / 1000);
+
         if ( document.getElementById('iperf_port_s') && document.getElementById('iperf_port_s').value.length ) {
             iperfCmd += " -p" + document.getElementById('iperf_port_s').value + " ";
         } else {
@@ -2715,8 +3134,7 @@ function CreateIperfString( clientOrServer )
             iperfCmd += " " + document.getElementById('iperf_options_s').value;
         }
     }
-    // add a special option to the end of the command line to let other browsers know the start time of this thread
-    iperfCmd += " -Q " + Math.floor(local.getTime() / 1000);
+
     return iperfCmd;
 }
 // iperf_start_stop_c, iperfRunningClient ... iperf_start_stop_s, iperfRunningServer

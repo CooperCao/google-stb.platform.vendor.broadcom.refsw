@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -39,8 +39,6 @@
 #ifndef BDSP_ARM_CIT_PRIV_H__
 #define BDSP_ARM_CIT_PRIV_H__
 
-#include "bdsp_arm_fw.h"
-
 #define BDSP_ARM_CIT_P_MINIMUM_ALGO_THRESHOLD               ((uint32_t)(8192))  /*This is based on DTSHD HBR case */
 #define BDSP_ARM_CIT_P_MAXIMUM_RESIDUAL_COLLECTION          ((uint32_t)(1024))  /*This value is based on the DSOLA*/
 
@@ -58,7 +56,6 @@
 
 #define BDSP_ARM_MAX_STAGE_PER_BRANCH (2)/*MAX PP stage added externally + MAX internal stage added*/
                                                                                /*(Encode + Framse Sync)*/
-#define BDSP_ARM_MAX_BRANCH   1
 #define BDSP_ARM_P_MAX_FW_STG_PER_FW_BRANCH             ((uint32_t)(BDSP_ARM_MAX_STAGE_PER_BRANCH))
 #define BDSP_ARM_P_MAX_FW_BRANCH_PER_FW_TASK            ((uint32_t)BDSP_ARM_MAX_BRANCH)
 
@@ -150,9 +147,5 @@ typedef struct BDSP_ARM_CIT_P_Output
 
 
 uint32_t BDSP_P_GenArmCit(void* pTaskHandle);
-
-void BDSP_Arm_P_AnalyseCit(BMEM_Handle   hHeap,
-                       BDSP_ARM_AF_P_sTASK_CONFIG   *psCit
-                      );
 
 #endif /* BDSP_ARM_CIT_PRIV_H__ */

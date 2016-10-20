@@ -41,7 +41,6 @@
 #ifndef BSP_S_HW_7400_H__
 #define BSP_S_HW_7400_H__
 
-
 /* multi2 system keys supported by hardware*/
 #define BCMD_MULTI2_MAXSYSKEY                     8
 /* Total number of pid channels supported */
@@ -60,5 +59,6 @@
 #define BHSM_OUT_BUF1_ADDR  	BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BCMD_BUFFER_BYTE_SIZE * 1)
 #define BHSM_IN_BUF2_ADDR  		BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BCMD_BUFFER_BYTE_SIZE * 2)
 #define BHSM_OUT_BUF2_ADDR  	BCHP_BSP_CMDBUF_DMEMi_ARRAY_BASE + (BCMD_BUFFER_BYTE_SIZE * 3)
+
 
 #endif  /* BSP_S_HW_7400_H__ end of header file*/

@@ -342,6 +342,11 @@ void v3d_get_info(struct v3d_idents *info)
    s_context.sched_iface.GetInfo(s_context.sched_iface.context, s_context.session_id, info);
 }
 
+bool v3d_platform_explicit_sync(void)
+{
+   return s_context.sched_iface.ExplicitSync(s_context.sched_iface.context);
+}
+
 /* Debug functions. These don't do anything on real HW. */
 void v3d_platform_set_debug_callback(v3d_debug_callback_t callback, void *p) {}
 void v3d_platform_set_fragment_shader_debug(bool enabled) {}

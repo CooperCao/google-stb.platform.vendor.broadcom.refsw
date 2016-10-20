@@ -40,6 +40,12 @@
 NEXUS_TOP := $(shell cd ../../../../nexus; pwd)
 BSEAV_TOP := $(shell cd ../../../../BSEAV; pwd)
 
+ifeq ($(SAGE_VERSION), 2x)
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/$(SAGE_VERSION)
+else
+PRDY_LIB_PATH := ${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib
+endif
+
 #APPS = encode_piff playback_piff playback_piff_PR_drm
 #SRCS = encode_piff.c playback_piff.c playback_piff_PR_drm.c
 APPS = encode_playback_piff
@@ -84,10 +90,10 @@ LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/drmrootfs/${DRMROOTFS_LIBDIR} -ldrmro
 ifeq ($(SAGE_SUPPORT), y)
 LDFLAGS := -L$(BSEAV_TOP)/lib/security/common_drm_tl/lib/${CMNDRM_DIR} -lcmndrm_tl
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/sage/srai/lib -lsrai
-LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk_host
+LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk_host
 else
 LDFLAGS += -L$(BSEAV_TOP)/lib/security/common_drm/lib/${CMNDRM_DIR} -lcmndrm
-LDFLAGS += -L${BSEAV_TOP}/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib -lplayreadypk
+LDFLAGS += -L${PRDY_LIB_PATH} -lplayreadypk
 endif
 LDFLAGS += -L${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR) -lcmndrmprdy
 LDFLAGS += $(B_OPENSSL_LDFLAGS)
@@ -164,9 +170,9 @@ copy:
 	cp -f -P $(B_OPENSSL_LIB_INSTALL_DIR)/libcrypto.* $(NEXUS_BIN_DIR)/
 	cp -f ${B_REFSW_OBJ_ROOT}/BSEAV/lib/security/common_drm/$(CMNDRM_PRDY_LIBDIR)/libcmndrmprdy.so $(NEXUS_BIN_DIR)
 ifeq ($(SAGE_SUPPORT), y)
-	cp -f $(BSEAV_TOP)/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
+	cp -f $(PRDY_LIB_PATH)/libplayreadypk_host.so  ${NEXUS_BIN_DIR}
 else
-	cp -f $(BSEAV_TOP)/lib/playready/2.5/bin/${ARCH_DIR_PRDY}/lib/libplayreadypk.so  ${NEXUS_BIN_DIR}
+	cp -f $(PRDY_LIB_PATH)/libplayreadypk.so  ${NEXUS_BIN_DIR}
 endif
 	@echo [Copying executables...]
 	cp $(APPS) $(NEXUS_BIN_DIR)/

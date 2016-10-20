@@ -288,13 +288,8 @@ BERR_Code BVDC_P_BoxDetect_Create
 
         /* TODO: Check for register layout assumptions below, and reset bit
          * position. */
-#if BVDC_P_SUPPORT_NEW_SW_INIT
         pBoxDetect->ulResetAddr = BCHP_MMISC_SW_INIT;
         pBoxDetect->ulResetMask = BCHP_MMISC_SW_INIT_LBOX_0_MASK << (ulLboxIdx);
-#else
-        pBoxDetect->ulResetAddr = BCHP_MMISC_SOFT_RESET;
-        pBoxDetect->ulResetMask = BCHP_MMISC_SOFT_RESET_LBOX_0_MASK << (ulLboxIdx);
-#endif
 
 #if (BVDC_P_SUPPORT_BOX_DETECT > 1)
         pBoxDetect->ulRegOffset = (ulLboxIdx) *

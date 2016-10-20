@@ -97,7 +97,7 @@ KHRN_IMAGE_FORMAT_T glxx_get_draw_image_format(GLXX_SERVER_STATE_T *state)
    if (valid_frame_buffer(state)) {
       GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
 
-      MEM_HANDLE_T himage = glxx_attachment_info_get_image(&framebuffer->attachments.color);
+      MEM_HANDLE_T himage = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
       if (himage != MEM_INVALID_HANDLE) {
          KHRN_IMAGE_T *image = (KHRN_IMAGE_T *)mem_lock(himage, NULL);   //TODO is this valid?
          result = image->format;
@@ -209,28 +209,10 @@ static MEM_HANDLE_T create_texture(GLenum target)
    MEM_HANDLE_T ret = MEM_ALLOC_STRUCT_EX(GLXX_TEXTURE_T, MEM_COMPACT_DISCARD);
    if (ret == MEM_INVALID_HANDLE) return ret;
 
-   mem_set_term(ret, glxx_texture_term);
+   mem_set_term(ret, glxx_texture_term, NULL);
    glxx_texture_init(mem_lock(ret, NULL), 0, target);
    mem_unlock(ret);
    return ret;
-}
-
-static void create_ms_color(GLXX_SERVER_STATE_T *state, GLXX_TEXTURE_T *texture,
-   uint32_t width, uint32_t height, bool secure)
-{
-   /* Allocate ms colour buffer */
-   KHRN_IMAGE_FORMAT_T format = COL_32_TLBD;
-   const GLuint MS_SIZE_FACTOR = 2;
-   MEM_HANDLE_T himage;
-
-   himage = khrn_image_create(format, MS_SIZE_FACTOR*width, MS_SIZE_FACTOR*height,
-      IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
-
-   if (himage == MEM_INVALID_HANDLE)
-      glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
-
-   MEM_ASSIGN(texture->mh_ms_image, himage);
-   mem_release(himage);
 }
 
 /*
@@ -530,14 +512,10 @@ void glxx_server_state_set_buffers(GLXX_SERVER_STATE_T *state,
    mem_unlock(hdraw);
 }
 
-void glxx_server_state_term(void *v, uint32_t size)
+void glxx_server_state_term(MEM_HANDLE_T handle)
 {
-   GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)v;
-
+   GLXX_SERVER_STATE_T *state = (GLXX_SERVER_STATE_T *)mem_lock(handle, NULL);
    int i;
-
-   UNUSED_NDEBUG(size);
-   vcos_assert(size == sizeof(GLXX_SERVER_STATE_T));
 
    // We want to make sure that any external buffers modified by this context
    // get updated.
@@ -578,6 +556,8 @@ void glxx_server_state_term(void *v, uint32_t size)
        mem_unretain(state->mh_cache);
        MEM_ASSIGN(state->mh_cache, MEM_INVALID_HANDLE);
    }
+
+   mem_unlock(handle);
 }
 
 //TODO are there any other operations which need a valid framebuffer and
@@ -981,7 +961,7 @@ static MEM_HANDLE_T get_read_image(GLXX_SERVER_STATE_T *state)
    if (valid_frame_buffer(state)) {
       GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
 
-      MEM_HANDLE_T result = glxx_attachment_info_get_image(&framebuffer->attachments.color);
+      MEM_HANDLE_T result = glxx_attachment_info_get_images(&framebuffer->attachments.color, NULL);
 
       vcos_assert(result != MEM_INVALID_HANDLE);      //TODO: is this valid?
 
@@ -2719,13 +2699,7 @@ GLboolean glTexImage2D_impl (GLenum target, GLint level, GLint internalformat,
    else if (!glxx_texture_image(texture, target, level, width, height, format, type, alignment, pixels, secure))
       error = GL_OUT_OF_MEMORY;
    else
-   {
-      /* the texture already contains a MS variant.  It needs to be resized & invalidated if the non-ms changes */
-      if (texture->mh_ms_image)
-         create_ms_color(state, texture, width, height, secure);
-
       res = GL_TRUE;
-   }
 
 end:
    if (texture)
@@ -2922,11 +2896,6 @@ void glTexSubImage2D_impl (GLenum target, GLint level, GLint xoffset, GLint yoff
    {
       if (!glxx_texture_sub_image(texture, target, level, xoffset, yoffset, width, height, format, type, alignment, pixels))
          error = GL_OUT_OF_MEMORY;
-      else
-      {
-         if (texture->mh_ms_image)
-            create_ms_color(state, texture, width, height, false);
-      }
    }
 
 end:
@@ -3341,7 +3310,8 @@ static GLboolean is_internal_format(GLenum format)
           ;
 }
 
-void glRenderbufferStorage_impl (GLenum target, GLenum internalformat, GLsizei width, GLsizei height, bool secure)
+void glRenderbufferStorageMultisample_impl (GLenum target, GLsizei samples,
+   GLenum internalformat, GLsizei width, GLsizei height, bool secure)
 {
    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
 
@@ -3355,11 +3325,13 @@ void glRenderbufferStorage_impl (GLenum target, GLenum internalformat, GLsizei w
       glxx_server_state_set_error(state, GL_INVALID_OPERATION);
    else if (!is_internal_format(internalformat))
       glxx_server_state_set_error(state, GL_INVALID_ENUM);
-   else if (width < 0 || width > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE || height < 0 || height > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE)
+   else if (width < 0 || width > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE ||
+            height < 0 || height > GLXX_CONFIG_MAX_RENDERBUFFER_SIZE ||
+            samples < 0 || samples > GLXX_CONFIG_SAMPLES)
       glxx_server_state_set_error(state, GL_INVALID_VALUE);
    else {
       GLXX_RENDERBUFFER_T *bound_renderbuffer = mem_lock(state->mh_bound_renderbuffer, NULL);
-      if (!glxx_renderbuffer_storage(bound_renderbuffer, internalformat, width, height, secure))
+      if (!glxx_renderbuffer_storage_multisample(bound_renderbuffer, samples, internalformat, width, height, secure))
          glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
 
       mem_unlock(state->mh_bound_renderbuffer);
@@ -3602,7 +3574,8 @@ GLenum glCheckFramebufferStatus_impl (GLenum target)
    return result;
 }
 
-void glFramebufferTexture2D_impl (GLenum target, GLenum a, GLenum textarget, GLuint texture, GLint level)
+void glFramebufferTexture2DMultisample_impl (GLenum target, GLenum a,
+   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool secure)
 {
    GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
 
@@ -3637,6 +3610,8 @@ void glFramebufferTexture2D_impl (GLenum target, GLenum a, GLenum textarget, GLu
                   glxx_server_state_set_error(state, GL_INVALID_ENUM);
                else if (IS_GL_11(state) && GL_TEXTURE_2D != textarget)
                   glxx_server_state_set_error(state, GL_INVALID_ENUM);
+               else if (samples < 0 || samples > GLXX_CONFIG_SAMPLES)
+                  glxx_server_state_set_error(state, GL_INVALID_VALUE);
                else {
                   MEM_HANDLE_T handle = glxx_shared_get_texture((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), texture);
                   mem_unlock(state->mh_shared);
@@ -3644,15 +3619,35 @@ void glFramebufferTexture2D_impl (GLenum target, GLenum a, GLenum textarget, GLu
                   if (handle == MEM_INVALID_HANDLE)
                      glxx_server_state_set_error(state, GL_INVALID_OPERATION);
                   else {
-                     if ((((GLXX_TEXTURE_T *)mem_lock(handle, NULL))->target == GL_TEXTURE_CUBE_MAP) != (textarget != GL_TEXTURE_2D))
+                     GLXX_TEXTURE_T *texture = (GLXX_TEXTURE_T *)mem_lock(handle, NULL);
+
+                     if ((texture->target == GL_TEXTURE_CUBE_MAP) != (textarget != GL_TEXTURE_2D))
                         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
                      else {
                         attachment->type = GL_TEXTURE;
                         attachment->target = textarget;
                         attachment->level = level;
-                        attachment->samples = 0;
 
-                        MEM_ASSIGN(attachment->mh_object, handle);
+                        /* Clamp the number of samples to 0 (non-multisample) or 4 (multisample)
+                        1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
+                        (Written based on the wording of the OpenGL 1.5 specification.) */
+                        attachment->samples = samples ? GLXX_CONFIG_SAMPLES : 0;
+
+                        if (samples) {
+                           MEM_HANDLE_T ms_image = glxx_image_create_ms(COL_32_TLBD,
+                              texture->width, texture->height,
+                              IMAGE_CREATE_FLAG_RENDER_TARGET | IMAGE_CREATE_FLAG_ONE, secure);
+
+                           if (ms_image != MEM_INVALID_HANDLE) {
+                              MEM_ASSIGN(texture->mh_ms_image, ms_image);
+                              mem_release(ms_image);
+                              MEM_ASSIGN(attachment->mh_object, handle);
+                           }
+                           else
+                              glxx_server_state_set_error(state, GL_OUT_OF_MEMORY);
+                        }
+                        else
+                           MEM_ASSIGN(attachment->mh_object, handle);
                      }
                      mem_unlock(handle);
                   }
@@ -3977,95 +3972,6 @@ void glxx_RenderbufferStorageMultisampleEXT_impl(GLenum target, GLsizei samples,
 
       mem_unlock(state->mh_bound_renderbuffer);
    }
-
-   GLXX_UNLOCK_SERVER_STATE();
-
-}
-
-void glxx_FramebufferTexture2DMultisampleEXT_impl(GLenum target, GLenum a,
-   GLenum textarget, GLuint texture, GLint level, GLsizei samples, bool secure)
-{
-   GLXX_SERVER_STATE_T *state = GLXX_LOCK_SERVER_STATE();
-
-   if (target == GL_FRAMEBUFFER && is_valid_attachment(a)) {
-      if (state->mh_bound_framebuffer != MEM_INVALID_HANDLE) {
-         GLXX_ATTACHMENT_INFO_T *attachment;
-         GLXX_FRAMEBUFFER_T *framebuffer = (GLXX_FRAMEBUFFER_T *)mem_lock(state->mh_bound_framebuffer, NULL);
-
-         vcos_assert(framebuffer);
-
-         switch (a) {
-         case GL_COLOR_ATTACHMENT0:
-            attachment = &framebuffer->attachments.color;
-            break;
-         default:
-            attachment = NULL;
-           UNREACHABLE();
-            break;
-         }
-
-         if (texture) {
-            if (level != 0)
-               glxx_server_state_set_error(state, GL_INVALID_VALUE);
-            else {
-               if (!glxx_is_texture_target(state, textarget))
-                  glxx_server_state_set_error(state, GL_INVALID_ENUM);
-               else if (IS_GL_11(state) && GL_TEXTURE_2D != textarget)
-                  glxx_server_state_set_error(state, GL_INVALID_ENUM);
-               else if (samples > GLXX_CONFIG_SAMPLES)
-                  glxx_server_state_set_error(state, GL_INVALID_VALUE);
-               else {
-                  MEM_HANDLE_T handle = glxx_shared_get_texture((GLXX_SHARED_T *)mem_lock(state->mh_shared, NULL), texture);
-                  mem_unlock(state->mh_shared);
-
-                  if (handle == MEM_INVALID_HANDLE)
-                     glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-                  else {
-                     GLXX_TEXTURE_T *texture;
-
-                     if ((((GLXX_TEXTURE_T *)mem_lock(handle, NULL))->target != GL_TEXTURE_2D) || (textarget != GL_TEXTURE_2D))
-                        glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-                     else {
-                        attachment->type = GL_TEXTURE;
-                        attachment->target = textarget;
-                        attachment->level = level;
-
-                        // Clamp the number of samples to 0 (non-multisample) or 4(multisample)
-                        // 1 is considerated as multisample in the spec EXT_framebuffer_multisample, revision #7, Issue (2)
-                        // (Written based on the wording of the OpenGL 1.5 specification.)
-                        if (samples == 0)
-                            attachment->samples = 0;
-                        else
-                            attachment->samples = GLXX_CONFIG_SAMPLES;
-
-                        MEM_ASSIGN(attachment->mh_object, handle);
-                     }
-
-                     mem_unlock(handle);
-
-                     texture = (GLXX_TEXTURE_T *)mem_lock(handle, NULL);
-
-                     if (texture->mh_ms_image == MEM_INVALID_HANDLE)
-                        create_ms_color(state, texture, texture->width, texture->height, secure);
-
-                     mem_unlock(handle);
-                  }
-               }
-            }
-         } else {
-            attachment->type = GL_NONE;
-            attachment->target = 0;
-            attachment->level = 0;
-            attachment->samples = 0;
-
-            MEM_ASSIGN(attachment->mh_object, MEM_INVALID_HANDLE);
-         }
-
-         mem_unlock(state->mh_bound_framebuffer);
-      } else
-         glxx_server_state_set_error(state, GL_INVALID_OPERATION);
-   } else
-      glxx_server_state_set_error(state, GL_INVALID_ENUM);
 
    GLXX_UNLOCK_SERVER_STATE();
 }

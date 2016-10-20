@@ -177,7 +177,7 @@ int main(int argc, const char **argv)
     rc = NEXUS_SurfaceClient_SetSettings(blit_client, &client_settings);
     BDBG_ASSERT(!rc);
 
-    if (pig_inc.x && !nxapps_cmdline_is_set(&cmdline, nxapps_cmdline_type_SurfaceComposition)) {
+    if (pig_inc.x && !cmdline.comp.rect.set) {
         const char *argv[] = {"-rect","0,0,400,300"};
         nxapps_cmdline_parse(0, 2, argv, &cmdline);
     }
@@ -387,8 +387,8 @@ int main(int argc, const char **argv)
         if (pig_inc.x) {
             comp.position.x += pig_inc.x;
             comp.position.y += pig_inc.y;
-            if (!comp.position.x || comp.position.x + comp.position.width == 1920) pig_inc.x *= -1;
-            if (!comp.position.y || comp.position.y + comp.position.height == 1080) pig_inc.y *= -1;
+            if (!comp.position.x || comp.position.x + comp.position.width >= 1920) pig_inc.x *= -1;
+            if (!comp.position.y || comp.position.y + comp.position.height >= 1080) pig_inc.y *= -1;
             NxClient_SetSurfaceClientComposition(allocResults.surfaceClient[0].id, &comp);
         }
 

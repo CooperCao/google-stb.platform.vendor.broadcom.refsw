@@ -1,7 +1,0 @@
-# enable memory overcommit
-echo 0 > /proc/sys/vm/overcommit_memory
-
-vconfig add eth2 3
-ip link set eth2.3 address 00:33:33:33:33:33
-vconfig set_flag eth2.3 1 1
-ifconfig eth2.3 192.168.17.10 netmask 255.255.255.0 up

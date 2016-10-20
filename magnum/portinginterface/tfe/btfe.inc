@@ -83,4 +83,3 @@ BTFE_SOURCES += \
     $(MAGNUM)/portinginterface/tfe/src/btfe_scd_common_func_priv.c \
     $(MAGNUM)/portinginterface/tfe/src/btfe_scd_chip_priv.c
 endif
-

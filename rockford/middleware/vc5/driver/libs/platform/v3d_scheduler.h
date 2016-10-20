@@ -63,7 +63,6 @@ typedef struct
    unsigned int num_bins;
    v3d_addr_t bin_begins[V3D_MAX_BIN_SUBJOBS];
    v3d_addr_t bin_ends[V3D_MAX_BIN_SUBJOBS];
-   unsigned bin_offset; /* GFXH-1179 */
 
    unsigned int num_renders;
    v3d_addr_t render_begins[V3D_MAX_RENDER_SUBJOBS];

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -155,6 +155,8 @@ CConfiguration::Predefined CConfiguration::_predefines[] = {
     ATLAS_DECLARE(UI_TUNER_UPDATE_TIMEOUT,                 int,    "500",              "Update period for tuner statistics panel in millisecs"),
     ATLAS_DECLARE(UI_NETWORK_WIFI_UPDATE_TIMEOUT,          int,    "5000",             "Update period for wifi network panel in millisecs"),
     ATLAS_DECLARE(UI_BLUETOOTH_UPDATE_TIMEOUT,             int,    "5000",             "Update period for wifi network panel in millisecs"),
+    ATLAS_DECLARE(UI_QAM_SCAN_START_FREQ,                  int,    "57000000",         "QAM scan start frequency in Hz"),
+    ATLAS_DECLARE(UI_QAM_SCAN_END_FREQ,                    int,    "789000000",        "QAM scan end frequency in Hz"),
     ATLAS_DECLARE(TUNER_LOCK_CHECK_TIMEOUT,                int,    "2000",             "Length of time between check for tuner lock in millisecs"),
     ATLAS_DECLARE(POWER_ON_TIMEOUT,                        int,    "3000",             "If powering Off with timeout, length of time before power On in millisecs"),
     ATLAS_DECLARE(DROP_FIELD_MODE_ENABLED,                 bool,   "false",            "If true, when the video decoder needs to drop pictures because of TSM, it will drop only single fields.  Otherwise it will drop field pairs."),

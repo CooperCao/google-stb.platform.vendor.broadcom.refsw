@@ -17,12 +17,13 @@ from the allocator to decide which thing to schedule next.
 =============================================================================*/
 //#define OUTPUT_GRAPHVIZ_ON_SUCCESS
 //#define OUTPUT_GRAPHVIZ_ON_FAILURE
-#include "glsl_common.h"
 
 #include "glsl_backflow.h"
 #include "glsl_backflow_visitor.h"
 #include "glsl_backend.h"
 #include "glsl_backend_uniforms.h"
+
+#include "glsl_sched_node_helpers.h"
 
 #include "libs/core/v3d/v3d_tmu.h"
 #include <stdlib.h>
@@ -78,10 +79,7 @@ static void dpostv_init_backend_fields(Backflow *backend, void *data)
    }
 
    if (backend->type != SPECIAL_VOID && !is_uniform && !is_attribute)
-   {
-      backend->delay = -(int)backend->age;
       glsl_backflow_priority_queue_push(age_queue, backend);
-   }
 }
 
 static bool all_tmu_deps_done(struct tmu_dep_s *dep) {
@@ -188,7 +186,8 @@ static void start_new_section(struct thread_section *sec, Backflow *pre_write, B
  * Returns the number of thread switches.  */
 static uint32_t fix_texture_dependencies(SchedBlock *block,
                                          struct sched_deps_s *sched_deps,
-                                         uint32_t thread_count)
+                                         uint32_t thread_count,
+                                         bool sbwaited)
 {
    uint32_t input_fifo_size  = V3D_TMU_INPUT_FIFO_SIZE / thread_count;
    uint32_t config_fifo_size = V3D_TMU_CONFIG_FIFO_SIZE / thread_count;
@@ -273,34 +272,43 @@ static uint32_t fix_texture_dependencies(SchedBlock *block,
    /* TODO: Make this more intelligent */
    if (thread_count > 1) {
       if (block->first_tlb_read) {
-         Backflow *cond_false = create_sig(SIGBIT_LDUNIF);
-         cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
-         cond_false->unif = 1;
-         Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
-         fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
-         Backflow *fake_tmu_read = create_sig(SIGBIT_LDTMU);
-         Backflow *sbwait_switch = glsl_backflow_thrsw();
-         iodep_texture(sched_deps, sbwait_switch, fake_tmu_lookup);
-         iodep_texture(sched_deps, fake_tmu_read, sbwait_switch);
-         if (block->tmu_lookups)
-            iodep_texture(sched_deps, block->tmu_lookups->first_write, fake_tmu_read);
-         iodep_texture(sched_deps, block->first_tlb_read, fake_tmu_read);
-         iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
+         /* If sbwaited && section_count == 1 then there is nothing to do */
+         if (sbwaited && section_count > 1) {
+            /* There's already been an sbwait, so place ldtlb in the first section */
+            iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
+         } else if (!sbwaited) {
+            /* Create a new section at the start for ldtlb. TODO: Try to use an existing one */
+            Backflow *cond_false = create_sig(SIGBIT_LDUNIF);
+            cond_false->unif_type = BACKEND_UNIFORM_LITERAL;
+            cond_false->unif = 1;
+            Backflow *fake_tmu_lookup = create_node(BACKFLOW_MOV, UNPACK_NONE, COND_IFFLAG, cond_false, cond_false, NULL, NULL);
+            fake_tmu_lookup->magic_write = REG_MAGIC_TMUA;
+            Backflow *fake_tmu_read = create_sig(SIGBIT_LDTMU);
+            Backflow *sbwait_switch = glsl_backflow_thrsw();
+            iodep_texture(sched_deps, sbwait_switch, fake_tmu_lookup);
+            iodep_texture(sched_deps, fake_tmu_read, sbwait_switch);
+            if (block->tmu_lookups)
+               iodep_texture(sched_deps, block->tmu_lookups->first_write, fake_tmu_read);
+            iodep_texture(sched_deps, block->first_tlb_read, fake_tmu_read);
+            iodep_texture(sched_deps, first_thrsw, block->last_tlb_read);
 
-         first_thrsw = sbwait_switch;
-         if (last_thrsw == NULL) last_thrsw = sbwait_switch;
-         section_count++;
+            first_thrsw = sbwait_switch;
+            if (last_thrsw == NULL) last_thrsw = sbwait_switch;
+            section_count++;
+         }
       }
 
       if (section_count > 1) {
          /* Force any TLB writes after the last threadswitch */
          iodep_texture(sched_deps, block->first_tlb_write, last_thrsw);
 
+#if !V3D_HAS_LDVPM
          /* Force all vpm reads/writes into the first/last thread section */
          if (block->last_vpm_read != NULL)
             iodep_texture(sched_deps, first_thrsw, block->last_vpm_read);
          if (block->first_vpm_write != NULL)
             iodep_texture(sched_deps, block->first_vpm_write, last_thrsw);
+#endif
       }
    }
 
@@ -357,7 +365,8 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
                                           bool bin_mode,
                                           int threads,
                                           bool last,
-                                          bool lthrsw)
+                                          bool lthrsw,
+                                          bool sbwaited)
 {
    GENERATED_SHADER_T *result;
 
@@ -368,7 +377,7 @@ GENERATED_SHADER_T *glsl_backend_schedule(SchedBlock *block,
    glsl_backflow_chain_init(&sched_deps.consumers);
    glsl_backflow_chain_init(&sched_deps.suppliers);
 
-   uint32_t thrsw_count = fix_texture_dependencies(block, &sched_deps, threads);
+   uint32_t thrsw_count = fix_texture_dependencies(block, &sched_deps, threads, sbwaited);
 
    /* TODO: This is messy, make it simpler and more consistent */
    for (int i=0; i<block->num_outputs; i++)

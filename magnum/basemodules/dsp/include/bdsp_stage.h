@@ -282,6 +282,7 @@ BERR_Code BDSP_Stage_AddInterTaskBufferInput(
     unsigned *pInputIndex /* [out] */    /* input index, reflects the source stage's input index for the inter task buffer. */
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Remove an output from a stage
@@ -290,6 +291,7 @@ void BDSP_Stage_RemoveOutput(
     BDSP_StageHandle hStage,
     unsigned outputIndex
     );
+#endif /*!B_REFSW_MINIMAL*/
 
 /***************************************************************************
 Summary:
@@ -459,6 +461,7 @@ void BDSP_Queue_Flush(
     BDSP_QueueHandle hQueue
     );
 
+#if !B_REFSW_MINIMAL
 /***************************************************************************
 Summary:
 Add an Queue as Input
@@ -468,6 +471,7 @@ BERR_Code BDSP_Stage_AddQueueInput(
     BDSP_QueueHandle hQueue,    /*Queue handle */
     unsigned *pInputIndex /* [out] */    /* input index, reflects the source stage's input index for the queue */
     );
+#endif /* !B_REFSW_MINIMAL*/
 
 /***************************************************************************
 Summary:

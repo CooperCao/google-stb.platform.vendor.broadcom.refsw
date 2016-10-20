@@ -19,10 +19,9 @@ VG path object handling implementation.
 vcos_static_assert(sizeof(VG_PATH_BPRINT_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_PATH_BPRINT_T) <= VG_STEM_ALIGN);
 
-void vg_path_bprint_term(void *p, uint32_t size)
+void vg_path_bprint_term(MEM_HANDLE_T handle)
 {
-   UNUSED(p);
-   UNUSED(size);
+   UNUSED(handle);
 }
 
 void vg_path_bprint_from_stem(
@@ -50,22 +49,22 @@ void vg_path_bprint_from_stem(
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_PATH_BPRINT_T");
-   mem_set_term(handle, vg_path_bprint_term);
+   mem_set_term(handle, vg_path_bprint_term, NULL);
 }
 
 vcos_static_assert(sizeof(VG_PATH_T) <= VG_STEM_SIZE);
 vcos_static_assert(alignof(VG_PATH_T) <= VG_STEM_ALIGN);
 
-void vg_path_term(void *p, uint32_t size)
+void vg_path_term(MEM_HANDLE_T handle)
 {
-   VG_PATH_T *path = (VG_PATH_T *)p;
-
-   UNUSED(size);
+   VG_PATH_T *path = (VG_PATH_T *)mem_lock(handle, NULL);
 
    vg_path_extra_term(path);
 
    mem_release(path->coords);
    mem_release(path->segments);
+
+   mem_unlock(handle);
 }
 
 bool vg_path_from_bprint(MEM_HANDLE_T handle)
@@ -126,7 +125,7 @@ bool vg_path_from_bprint(MEM_HANDLE_T handle)
    mem_unlock(handle);
 
    mem_set_desc(handle, "VG_PATH_T");
-   mem_set_term(handle, vg_path_term);
+   mem_set_term(handle, vg_path_term, NULL);
 
    return true;
 }

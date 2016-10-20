@@ -509,31 +509,35 @@ void *commands_thread(void *context)
 
 static void print_usage(void)
 {
-    printf("Usage: nexus standby [-timeout SECONDS]\n");
     printf("\n");
-    printf("-timeout SECONDS   sets the standby timeout. 0 means no timeout.\n"  );
-    printf("-ir                1 : enable IR wake up;  0 : disable IR wakeup; default is 1.\n");
-    printf("-uhf               1 : enable UHF wake up; 0 : disable UHF wakeup; default is 1.\n");
-    printf("-xpt               1 : enable XPT wake up; 0 : disable XPT wakeup; default is 1.\n");
-    printf("-cec               1 : enable CEC wake up; 0 : disable CEC wakeup; default is 1.\n");
-    printf("-gpio              1 : enable GPIO wake up; 0 : disable GPIO wakeup; default is 1.\n");
-    printf("-kpd               1 : enable Keypad wake up; 0 : disable Keypad wakeup; default is 1.\n");
-    printf("-ethwol            1 : enable ETH WOL wake up; 0 : disable ETH WOL wakeup; default is 1.\n");
-    printf("-mocawol           1 : enable MOCA WOL wake up; 0 : disable MOCA WOL wakeup; default is 1.\n");
-    printf("-ethoff            1 : Eth  is powered down in S1; 0 : Eth  is powered up in S1; default is 0.\n");
-    printf("-mocaoff           1 : Moca is powered down in S1; 0 : Moca is powered up in S1; default is 0.\n");
-    printf("-sataoff           1 : SATA is powered down in S1; 0 : SATA is powered up in S1; default is 1.\n");
-    printf("-qam               Use qam input. Default is playback.\n");
-    printf("-qammode           Qam mode to use eg; 64, 256 or 1024\n");
-    printf("-ofdm              Use ofdm input. Default is playback.\n");
-    printf("-ofdmmode          Ofdm mode to use eg; DVBT(0), DVBT2(1), DVBC2(2) or ISDBT(3)\n");
-    printf("-sat               Use satellite input. Default is playback.\n");
-    printf("-freq              Qam, Ofdm or Sat frequency to tune in MHz\n");
-    printf("-play              Specify the file to playback. Default is cnnticker.mpg\n");
-    printf("-streamer          Use streamer input. Default is playback.\n");
-    printf("-auto              Automatically transition through all power states.\n");
-    printf("-autostate         Power state to transtion in auto mode. Default is all states. 1 for S1 only, 2 for S2 only, 3 for S3 only. 0 for all states\n");
-    printf("-flags             Standby Flags. Used for debug. e.g. -flags 0x1\n");
+    printf("Usage: nexus standby OPTIONS\n");
+    printf("\n");
+    printf("OPTIONS:\n");
+    printf("  -h or --help       Print help.\n");
+    printf("  -timeout seconds   Sets the standby timeout. 0 means no timeout.\n");
+    printf("  -ir 0|1            Disable/enable Ir wake up. Enabled by default.\n");
+    printf("  -cec 0|1           Disable/enable Cec wake up. Enabled by default.\n");
+    printf("  -gpio 0|1          Disable/enable Gpio wake up. Enabled by default.\n");
+    printf("  -xpt 0|1           Disable/enable Transport wake up. Disabled by default.\n");
+    printf("  -uhf 0|1           Disable/enable Uhf wake up. Disabled by default.\n");
+    printf("  -kpd 0|1           Disable/enable Keypad wake up. Disabled by default.\n");
+    printf("  -ethwol 0|1        Disable/enable Ethernet WOL wake up. Disabled by default.\n");
+    printf("  -mocawol 0|1       Disable/enable Moca WOL wake up. Disabled by default.\n");
+    printf("  -eth on|off        Ethernet is powered on|off in S1. Default is power on. Leave on if running from nfs mount\n");
+    printf("  -moca on|off       Moca is powered on|off in S1. Default is power off.\n");
+    printf("  -sata on|off       Sata is powered on|off in S1. Default is power off.\n");
+    printf("  -qam 64|256        \n");
+    printf("  -ofdm 0|1|2|3      \n");
+    printf("  -sat  0..9         \n");
+    printf("  -freq #            \n");
+    printf("  -play filename     Default is videos/cnnticker.mpg\n");
+    printf("  -streamer #        \n");
+    printf("  -auto 1|2|3        Automatically cycle power states.\n");
+    printf("                       1 for S1 only\n");
+    printf("                       2 for S2 only\n");
+    printf("                       3 for S3 only\n");
+    printf("  -flags             Standby Flags. Used for debug. e.g. -flags 0x1\n");
+    printf("  -gpiopin #         AON GPIO pin number to open. Default is AON_GPIO_01\n");
 }
 
 int parse_cmdline_args(int argc, char **argv)
@@ -572,38 +576,48 @@ int parse_cmdline_args(int argc, char **argv)
         else if (!strcmp(argv[curarg], "-mocawol") && curarg+1 < argc) {
             g_cmd_options.moca_wol_wakeup = atoi(argv[++curarg]);
         }
-        else if (!strcmp(argv[curarg], "-ethoff") && curarg+1 < argc) {
-            g_cmd_options.ethoff = atoi(argv[++curarg]);
+        else if (!strcmp(argv[curarg], "-eth") && curarg+1 < argc) {
+                g_cmd_options.ethoff = strcasecmp(argv[++curarg], "on");
         }
-        else if (!strcmp(argv[curarg], "-mocaoff") && curarg+1 < argc) {
-            g_cmd_options.mocaoff = atoi(argv[++curarg]);
+        else if (!strcmp(argv[curarg], "-moca") && curarg+1 < argc) {
+            g_cmd_options.mocaoff = strcasecmp(argv[++curarg], "on");
         }
-        else if (!strcmp(argv[curarg], "-sataoff") && curarg+1 < argc) {
-            g_cmd_options.sataoff = atoi(argv[++curarg]);
+        else if (!strcmp(argv[curarg], "-sata") && curarg+1 < argc) {
+            g_cmd_options.sataoff = strcasecmp(argv[++curarg], "on");
         }
         else if (!strcmp(argv[curarg], "-flags") && curarg+1 < argc) {
             g_cmd_options.standby_flags = strtol(argv[++curarg], NULL, 0);
         }
         else if(!strcmp(argv[curarg], "-qam")){
             g_DeviceState.source[0] = eInputSourceQam;
+            if (curarg+1<argc && argv[curarg+1][0]!='-') {
+                unsigned mode = atoi(argv[curarg+1]);
+                if (mode == 64 || mode == 256) {
+                    g_DeviceState.frontend[0].qammode = mode;
+                    curarg++;
+                }
+            }
         }
         else if(!strcmp(argv[curarg], "-sat")){
             g_DeviceState.source[0] = eInputSourceSat;
+            if (curarg+1<argc && argv[curarg+1][0]!='-') {
+                ++curarg;
+                if (argv[curarg][0] >= '0' && argv[curarg][0] <= '9' && argv[curarg][1] == 0) {
+                    g_DeviceState.frontend[0].satmode = atoi(argv[curarg]);
+                }
+            }
         }
         else if(!strcmp(argv[curarg], "-ofdm")){
             g_DeviceState.source[0] = eInputSourceOfdm;
+            if (argc>curarg+1 && argv[curarg+1][0]!='-') {
+                ++curarg;
+                if (argv[curarg][0] >= '0' && argv[curarg][0] <= '3') {
+                    g_DeviceState.frontend[0].ofdmmode = atoi(argv[curarg]);
+                }
+            }
         }
         else if (!strcmp(argv[curarg], "-freq") && curarg+1 < argc) {
             g_DeviceState.frontend[0].freq = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-qammode") && curarg+1 < argc) {
-            g_DeviceState.frontend[0].qammode = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-satmode") && curarg+1 < argc) {
-            g_DeviceState.frontend[0].satmode = atoi(argv[++curarg]);
-        }
-        else if (!strcmp(argv[curarg], "-ofdmmode") && curarg+1 < argc) {
-            g_DeviceState.frontend[0].ofdmmode = atoi(argv[++curarg]);
         }
         else if (!strcmp(argv[curarg], "-adc") && curarg+1 < argc) {
             g_DeviceState.frontend[0].adc = atoi(argv[++curarg]);
@@ -618,11 +632,18 @@ int parse_cmdline_args(int argc, char **argv)
         else if(!strcmp(argv[curarg], "-openfe")){
             g_DeviceState.openfe = true;
         }
+        else if (!strcmp(argv[curarg], "-gpiopin") && curarg+1 < argc) {
+            g_DeviceState.gpio_pin = atoi(argv[++curarg]);
+        }
         else if (!strcmp(argv[curarg], "-auto")) {
             g_cmd_options._auto = true;
-        }
-        else if(!strcmp(argv[curarg], "-autostate") && curarg+1 < argc){
-            g_cmd_options._autostate = atoi(argv[++curarg]);
+            if (curarg+1<argc && argv[curarg+1][0]!='-') {
+                unsigned state = atoi(argv[curarg+1]);
+                if(state == 1 || state == 2 || state == 3) {
+                    g_cmd_options._autostate = state;
+                    curarg++;
+                }
+            }
         }
     }
 

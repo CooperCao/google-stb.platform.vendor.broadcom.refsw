@@ -158,8 +158,8 @@ typedef struct BHSM_FirmwareVersion
     } platform, bseck;              /* BSECK and platform versions. Platform should correlate with Zeus version. */
 
     struct {
-        bool      valid;                 /* true if the parameter is available */
-        unsigned  value;                 /* parameter value   */
+        bool      valid;                 /* true if the firmware EPOCH is available */
+        uint8_t   value;                 /* The EPOCH value */
     }bfwEpoch;                           /* The EPOCH of the BSECK Firmware */
 
     unsigned customerModes;

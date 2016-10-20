@@ -451,8 +451,8 @@ BERR_Code BVDC_P_Vip_AllocBuffer
         BDBG_ERR(("Failed to allocate MMA block for display[%d]'s VIP[%d]", hDisplay->eId, hVip->eId));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-    hVip->ulDeviceOffset = BMMA_LockOffset(hVip->hBlock);
-    BDBG_MODULE_MSG(BVDC_VIP_MEM,("starting offset = %#x", hVip->ulDeviceOffset));
+    hVip->ullDeviceOffset = BMMA_LockOffset(hVip->hBlock);
+    BDBG_MODULE_MSG(BVDC_VIP_MEM,("starting offset = "BDBG_UINT64_FMT, BDBG_UINT64_ARG(hVip->ullDeviceOffset)));
     for(pBuffer = BLST_SQ_FIRST(&hVip->stFreeQ); pBuffer;  pBuffer= BLST_SQ_NEXT(pBuffer, link)) {
         BKNI_Memset(&pBuffer->stPicture, 0, sizeof(BAVC_EncodePictureBuffer));
         pBuffer->stPicture.hLumaBlock   = hVip->hBlock;
@@ -554,7 +554,7 @@ BERR_Code BVDC_P_Vip_FreeBuffer
     }
     /* free picture buffers for VIP queues */
     pBuffer = BLST_SQ_FIRST(&hVip->stFreeQ);
-    BMMA_UnlockOffset(pBuffer->stPicture.hLumaBlock, hVip->ulDeviceOffset);
+    BMMA_UnlockOffset(pBuffer->stPicture.hLumaBlock, hVip->ullDeviceOffset);
     BMMA_Free(hVip->hBlock);
     hVip->hBlock = NULL;
 #if BVDC_P_DUMP_VIP_PICTURE
@@ -683,7 +683,7 @@ BERR_Code BVDC_P_Vip_Create
 
     /* initialize bchp memory info */
     if(hVdc->stMemInfo.memc[0].size == 0) {
-        BCHP_GetMemoryInfo(hVdc->hRegister, &hVdc->stMemInfo);
+        BCHP_GetMemoryInfo(hVdc->hChip, &hVdc->stMemInfo);
         BDBG_MODULE_MSG(BVDC_DISP_VIP,("Get chip memory info:"));
         for(i=0; i<3; i++) {
             BDBG_MODULE_MSG(BVDC_VIP_MEM,("memc[%u]:", i));
@@ -825,15 +825,15 @@ void BVDC_P_Vip_Init
     BDBG_OBJECT_ASSERT(hVip, BVDC_VIP);
 
     /* Clear out shadow registers. */
-    BKNI_Memset((void*)hVip->aulRegs, 0x0, sizeof(hVip->aulRegs));
+    BKNI_Memset((void*)&hVip->stRegs, 0x0, sizeof(BVDC_P_VipRegisterSetting));
 
-    BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_FW_CONTROL) = (
+    hVip->stRegs.ulFwControl = (
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_RD_HIST, DONE) |
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_RD_PCC,  DONE) |
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,    NULL) |
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG,  NULL) );
 
-    BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) = (
+    hVip->stRegs.ulConfig = (
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, AUTO_SHUTOFF,           ENABLE) |
         BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, PADDING_MODE,           ENABLE) |
@@ -854,7 +854,7 @@ void BVDC_P_Vip_Init
     if(hVip->stMemSettings.DcxvEnable)
     {
         /* VICE2_VIP_0_0_DCXV_CFG */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_DCXV_CFG) =  (
+        hVip->stRegs.ulDcxvCfg =  (
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, MODE,     COMPRESS) |
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, PREDICTION,    AVG) |
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_DCXV_CFG, LINE_STORE, BITS_6));
@@ -910,7 +910,7 @@ void BVDC_P_Vip_BuildRul_isr
 
     /* if STG or VIP is disabled, put VIP back to auto drain mode */
     if(!hDisplay->stCurInfo.bEnableStg || !hDisplay->stCurInfo.hVipHeap) {
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) &= ~(
+        hVip->stRegs.ulConfig  &= ~(
             BCHP_MASK(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE) |
             BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL));
     }
@@ -986,12 +986,12 @@ void BVDC_P_Vip_BuildRul_isr
             hDisplay->hCompositor->ulStgPxlAspRatio_x_y, pBuffer->stPicture.ulOriginalPTS));
 
         /* set FW_CONTROL */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_FW_CONTROL) = (
+        hVip->stRegs.ulFwControl = (
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,  START) |
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG, DONE) );
 
         /* set VIP config. TODO: add decimated luma, interlaced and itfp support */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) &= ~(
+        hVip->stRegs.ulConfig &= ~(
             BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL) |
 #if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   DRAM_STRIPE_WIDTH)
             BCHP_MASK(VICE2_VIP_0_0_CONFIG, DRAM_STRIPE_WIDTH) |
@@ -1002,7 +1002,7 @@ void BVDC_P_Vip_BuildRul_isr
 #endif
             BCHP_MASK(VICE2_VIP_0_0_CONFIG,        INPUT_TYPE) );
 
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) |= (
+        hVip->stRegs.ulConfig |= (
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL,      ENABLE_BY_PICTURE) |
 #if BCHP_MASK(VICE2_VIP_0_0_CONFIG,   DRAM_STRIPE_WIDTH)
             BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, DRAM_STRIPE_WIDTH, (pBuffer->stPicture.ulStripeWidth==128)) |
@@ -1014,51 +1014,66 @@ void BVDC_P_Vip_BuildRul_isr
             BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, INPUT_TYPE,        eFieldPolarity) );
 
         /* set VIP input pixel size */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE) =  (
+        hVip->stRegs.ulInputPicSize =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, HSIZE, pBuffer->stPicture.ulWidth) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, VSIZE, pBuffer->stPicture.ulHeight));
 
         /* set output MB size */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE) =  (
+        hVip->stRegs.ulOutputPicSize =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE, HSIZE_MB, pBuffer->stPicture.ulWidth/16) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE, VSIZE_MB, pBuffer->stPicture.ulHeight/16));
 
         /* luma address */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_LUMA_ADDR) =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_ADDR, ADDR, hVip->ulDeviceOffset + pBuffer->stPicture.ulLumaOffset));
+        hVip->stRegs.ullLumaAddr =  (
+            BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_ADDR, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulLumaOffset));
 
         /* luma nmby */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_LUMA_NMBY) =  (
+        hVip->stRegs.ulLumaNMBY =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_LUMA_NMBY, NMBY, pBuffer->stPicture.ulLumaNMBY));
 
         /* chroma address */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CHROMA_420_ADDR) =  (
-            BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_ADDR, ADDR, hVip->ulDeviceOffset + pBuffer->stPicture.ulChromaOffset));
+        hVip->stRegs.ullChromaAddr =  (
+            BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_ADDR, ADDR, hVip->ullDeviceOffset + pBuffer->stPicture.ulChromaOffset));
 
         /* chroma nmby */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CHROMA_420_NMBY) =  (
+        hVip->stRegs.ulChromaNMBY =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_NMBY, LINE_STRIDE_MODE, !pFmtInfo->bInterlaced) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_CHROMA_420_NMBY, NMBY, pBuffer->stPicture.ulChromaNMBY));
 
         /* TODO: add shifted chroma for interlaced; decimated luma for motion search */
 
-        /* BVB error enable */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_ERR_STATUS_ENABLE) =  0x3FF;
-
         /* DCXV config */
 #if BCHP_VICE2_VIP_0_0_DCXV_CFG
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_DCXV_CFG) =  (
+        hVip->stRegs.ulDcxvCfg =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_DCXV_CFG, MODE, hVip->stMemSettings.DcxvEnable));
 #endif
 
         /* build RUL */
-        BVDC_P_VIP_BLOCK_WRITE_TO_RUL(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, VICE2_VIP_0_0_LUMA_NMBY, pList->pulCurrent);
-        BVDC_P_VIP_BLOCK_WRITE_TO_RUL(VICE2_VIP_0_0_CHROMA_420_ADDR, VICE2_VIP_0_0_CHROMA_420_NMBY, pList->pulCurrent);
+        BDBG_CASSERT(2 == (((BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE - BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE) / sizeof(uint32_t)) + 1));
+        *pList->pulCurrent++ = BRDC_OP_IMMS_TO_REGS(((BCHP_VICE2_VIP_0_0_OUTPUT_PICTURE_SIZE - BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE) / sizeof(uint32_t)) + 1);
+        *pList->pulCurrent++ = BRDC_REGISTER(BCHP_VICE2_VIP_0_0_INPUT_PICTURE_SIZE + hVip->ulRegOffset);
+        *pList->pulCurrent++ = hVip->stRegs.ulInputPicSize;
+        *pList->pulCurrent++ = hVip->stRegs.ulOutputPicSize;
+
+        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_LUMA_NMBY, pList->pulCurrent,
+            hVip->stRegs.ulLumaNMBY);
+        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_CHROMA_420_NMBY, pList->pulCurrent,
+            hVip->stRegs.ulChromaNMBY);
+
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_VICE2_VIP_0_0_LUMA_ADDR + hVip->ulRegOffset,
+            hVip->stRegs.ullLumaAddr);
+        BRDC_AddrRul_ImmToReg_isr(&pList->pulCurrent,
+            BCHP_VICE2_VIP_0_0_CHROMA_420_ADDR + hVip->ulRegOffset,
+            hVip->stRegs.ullChromaAddr);
+
         if(hVip->bInitial) {
-            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_ERR_STATUS_ENABLE, pList->pulCurrent);
+            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_ERR_STATUS_ENABLE, pList->pulCurrent, 0x3FF);
+
 #if BCHP_VICE2_VIP_0_0_DCXV_CFG
-            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_DCXV_CFG, pList->pulCurrent);
+            BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_DCXV_CFG, pList->pulCurrent,
+                hVip->stRegs.ulDcxvCfg);
 #endif
             hVip->bInitial = false;
         }
@@ -1066,27 +1081,28 @@ void BVDC_P_Vip_BuildRul_isr
     {
         BDBG_MODULE_MSG(BVDC_DISP_VIP,("VIP[%d] drop pic[pBuf=%p][ign=%d]", hVip->eId, (void *)pBuffer, hDisplay->hCompositor->bIgnorePicture));
         /* set VIP config. drop it */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) &= ~(
+        hVip->stRegs.ulConfig &= ~(
             BCHP_MASK(VICE2_VIP_0_0_CONFIG,       ENABLE_CTRL) |
             BCHP_MASK(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE) |
             BCHP_MASK(VICE2_VIP_0_0_CONFIG,        INPUT_TYPE) );
 
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_CONFIG) |= (
+        hVip->stRegs.ulConfig |= (
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, ENABLE_CTRL, ENABLE_BY_PICTURE) |
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_CONFIG, DROP_PROCESS_MODE,        DROP) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_CONFIG, INPUT_TYPE,     eFieldPolarity) );
 
         /* set FW_CONTROL */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_FW_CONTROL) = (
+        hVip->stRegs.ulFwControl = (
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, PIC_START,  START) |
             BCHP_FIELD_ENUM(VICE2_VIP_0_0_FW_CONTROL, DONE_WR_REG, DONE) );
 
         /* set VIP input pixel size */
-        BVDC_P_VIP_GET_REG_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE) =  (
+        hVip->stRegs.ulInputPicSize =  (
             BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, HSIZE, pFmtInfo->ulDigitalWidth) |
             BCHP_FIELD_DATA(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, VSIZE, (pFmtInfo->ulDigitalHeight>>pFmtInfo->bInterlaced)));
 
-        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, pList->pulCurrent);
+        BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_INPUT_PICTURE_SIZE, pList->pulCurrent,
+            hVip->stRegs.ulInputPicSize);
 
         if(pBuffer == NULL && hDisplay->stCurInfo.bStgNonRealTime) {/* if FULL, stall STC in NRT mode since it's dropped! */
             hDisplay->hCompositor->bStallStc = true;
@@ -1099,8 +1115,8 @@ void BVDC_P_Vip_BuildRul_isr
         hDisplay->hCompositor->bIgnorePicture = true;
     }
 
-    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_CONFIG, pList->pulCurrent);
-    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_FW_CONTROL, pList->pulCurrent);
+    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_CONFIG, pList->pulCurrent, hVip->stRegs.ulConfig);
+    BVDC_P_VIP_WRITE_TO_RUL(VICE2_VIP_0_0_FW_CONTROL, pList->pulCurrent, hVip->stRegs.ulFwControl);
     BDBG_LEAVE(BVDC_P_Vip_BuildRul_isr);
     return;
 }

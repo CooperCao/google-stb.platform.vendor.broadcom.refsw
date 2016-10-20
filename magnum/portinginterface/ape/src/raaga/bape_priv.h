@@ -34,7 +34,10 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *****************************************************************************/
+ *
+ * Module Description: Audio PI Private Interfaces
+ *
+ ***************************************************************************/
 
 #ifndef BAPE_PRIV_H_
 #define BAPE_PRIV_H_
@@ -760,6 +763,7 @@ typedef struct BAPE_MixerInterface {
     BERR_Code (*setInputVolume)     (BAPE_MixerHandle handle, BAPE_Connector input, const BAPE_MixerInputVolume *pVolume);
     BERR_Code (*applyOutputVolume)  (BAPE_MixerHandle handle, BAPE_OutputPort output);
     BERR_Code (*setSettings)        (BAPE_MixerHandle hMixer, const BAPE_MixerSettings *pSettings);
+    BERR_Code (*applyStereoMode)    (BAPE_MixerHandle handle, BAPE_StereoMode stereoMode);
 } BAPE_MixerInterface ;
 
 /***************************************************************************
@@ -792,6 +796,9 @@ typedef struct BAPE_Mixer
     bool inputRunning[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_MixerInputVolume inputVolume[BAPE_CHIP_MAX_MIXER_INPUTS];
     BAPE_CrcHandle crcs[BAPE_CHIP_MAX_MIXER_INPUTS];
+    BAPE_StereoMode stereoMode; /* For HDMI on IOP devices.  We may need to adjust the input channel pairs to swap left and
+                                   right or put just left or right on both channels.  Using the crossbar introduces issues
+                                   with Sony TVs because the channel status would be invalid. */
 #if BAPE_CHIP_MAX_DSP_MIXERS > 0
     bool taskStarted;
     BDSP_InterTaskBufferHandle hInterTaskBuffers[BAPE_CHIP_MAX_MIXER_INPUTS];
@@ -1040,17 +1047,21 @@ void BAPE_InputPort_P_BurstPreambleToCodec_isr(
 /***************************************************************************
 Summary:
 ***************************************************************************/
-unsigned BAPE_InputPort_P_GetNumConsumersAttached(BAPE_InputPort inputPort);
+unsigned BAPE_InputPort_P_GetNumConsumersAttached_isrsafe(BAPE_InputPort inputPort);
+#define BAPE_InputPort_P_GetNumConsumersAttached BAPE_InputPort_P_GetNumConsumersAttached_isrsafe
 
 /***************************************************************************
 Summary:
 ***************************************************************************/
-bool BAPE_InputPort_P_HasConsumersAttached(BAPE_InputPort inputPort);
+bool BAPE_InputPort_P_HasConsumersAttached_isrsafe(BAPE_InputPort inputPort);
+#define BAPE_InputPort_P_HasConsumersAttached BAPE_InputPort_P_HasConsumersAttached_isrsafe
 
 /***************************************************************************
 Summary:
 ***************************************************************************/
-bool BAPE_InputPort_P_ConsumerIsAttached(BAPE_InputPort inputPort, BAPE_PathNode * pConsumer);
+bool BAPE_InputPort_P_ConsumerIsAttached_isrsafe(BAPE_InputPort inputPort, BAPE_PathNode * pConsumer);
+
+#define BAPE_InputPort_P_ConsumerIsAttached BAPE_InputPort_P_ConsumerIsAttached_isrsafe
 
 #ifdef BCHP_AUD_FMM_BF_CTRL_RINGBUF_0_RDADDR
 /***************************************************************************
@@ -1215,6 +1226,12 @@ BERR_Code BAPE_Mixer_P_ApplyOutputVolume(BAPE_MixerHandle mixer, BAPE_OutputPort
 
 /***************************************************************************
 Summary:
+Apply the stereo mode for the mixer
+***************************************************************************/
+BERR_Code BAPE_Mixer_P_ApplyStereoMode(BAPE_MixerHandle handle, BAPE_StereoMode stereoMode);
+
+/***************************************************************************
+Summary:
 Print information (using BDBG_LOG) about a BAPE_PathNode.
 ***************************************************************************/
 BERR_Code BAPE_Mixer_P_PrintNodeInfo( BAPE_PathNode *pPathNode, int level, int index);
@@ -1325,7 +1342,8 @@ typedef struct BAPE_NcoConfiguration {
 Summary:
 Get the NCO configuration
 ***************************************************************************/
-BERR_Code BAPE_P_GetNcoConfiguration(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig);
+BERR_Code BAPE_P_GetNcoConfiguration_isrsafe(BAPE_Handle handle, BAPE_Nco nco, BAPE_NcoConfiguration * pConfig);
+#define BAPE_P_GetNcoConfiguration BAPE_P_GetNcoConfiguration_isrsafe
 
 /***************************************************************************
 Summary:
@@ -1582,7 +1600,8 @@ typedef struct BAPE_Decoder
         BDSP_Raaga_Audio_MultiStreamDDPStreamInfo ddp;
 #else
         BDSP_Raaga_Audio_UdcStreamInfo ddp;
-#endif
+ #endif
+        BDSP_Raaga_Audio_DdpStreamInfo ddpPassthrough;
         BDSP_Raaga_Audio_AC4StreamInfo ac4;
         BDSP_Raaga_Audio_MpegStreamInfo mpeg;
         BDSP_Raaga_Audio_AacheStreamInfo aac;
@@ -1623,7 +1642,7 @@ typedef struct BAPE_Decoder
     BAPE_DecoderCodecSettings adpcmSettings;
     BAPE_DecoderCodecSettings ilbcSettings;
     BAPE_DecoderCodecSettings isacSettings;
-    BAPE_DecoderCodecSettings alsSettings;
+    BAPE_DecoderCodecSettings alsSettings, alsLoasSettings;
     BAPE_DecoderInterruptHandlers interrupts;
 
     /* DSP Task Information */

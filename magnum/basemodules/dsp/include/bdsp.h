@@ -146,16 +146,6 @@ void BDSP_GetStatus(
 
 /***************************************************************************
 Summary:
-Returns single null terminated line from the debug log
-***************************************************************************/
-BERR_Code BDSP_GetDebugLog(
-    BDSP_Handle handle,
-    char *pBuffer,
-    size_t bufferLength
-    );
-
-/***************************************************************************
-Summary:
     Enter standby mode with  DSP.
 
 Description:
@@ -227,17 +217,6 @@ BERR_Code BDSP_GetAlgorithmInfo(
 
 /***************************************************************************
 Summary:
-    Get defalt settings for a given algorithm
-***************************************************************************/
-void BDSP_GetAlgorithmDefaultSettings(
-    BDSP_Handle hDevice,
-    BDSP_Algorithm algorithm,     /* [in ] */
-    void *pSettingsBuffer,        /* [out] */
-    size_t settingsBufferSize     /* [in ] */
-    );
-
-/***************************************************************************
-Summary:
     Description of an external interrupt to the DSP
 ***************************************************************************/
 typedef struct BDSP_ExternalInterruptInfo
@@ -247,16 +226,6 @@ typedef struct BDSP_ExternalInterruptInfo
     /* Bit number starts with 0 as LSB and goes upwards */
     uint32_t bitNum;
 } BDSP_ExternalInterruptInfo;
-
-/***************************************************************************
-Summary:
-    Description of RDB registers from DSP page
-***************************************************************************/
-typedef struct BDSP_RdbRegisterInfo
-{
-    /* BCHP address. CHIP Offset to be added to get full 32 bit address */
-    uint32_t addressOfBaseRdb;
-} BDSP_RdbRegisterInfo;
 
 /***************************************************************************
 Summary:
@@ -313,65 +282,6 @@ See Also:
 BERR_Code BDSP_GetExternalInterruptInfo(
     BDSP_ExternalInterruptHandle hInterrupt,
     BDSP_ExternalInterruptInfo **pInfo /* [out] */
-    );
-
-/***************************************************************************
-Summary:
-    Allocate RDB registers from dsp page for upper SW layer
-
-Description:
-    This function allocates RDB registers handle that can be used to send msg etc to DSP.
-
-Returns:
-    BERR_SUCCESS - If allocation is successful, otherwise error
-
-See Also:
-    BDSP_FreeRdbRegisters
-    BDSP_GetRdbRegistersInfo
-***************************************************************************/
-
-BERR_Code BDSP_AllocateRdbRegisters(
-    BDSP_Handle hDsp,
-    uint32_t    dspIndex,
-    uint32_t    numRdbToAllocate,
-    BDSP_RdbRegisterHandle *pRdbRegisterHandle /* [out] */
-    );
-
-/***************************************************************************
-Summary:
-    Frees an allocated Rdb Registers handle.
-
-Description:
-    This function frees an Rdb Registers handle that was already allocated.
-
-Returns:
-    BERR_SUCCESS if sucessful else error
-
-See Also:
-    BDSP_AllocateRdbRegisters
-    BDSP_GetRdbRegistersInfo
-***************************************************************************/
-BERR_Code BDSP_FreeRdbRegisters(
-            BDSP_RdbRegisterHandle  hRdbRegister
-            );
-
-/***************************************************************************
-Summary:
-    Retrieve Rdb Registers information.
-
-Description:
-    This function provides the address (offset) of base RDB register.
-
-Returns:
-    BERR_SUCCESS - If successful, otherwise error
-
-See Also:
-    BDSP_FreeRdbRegisters
-    BDSP_AllocateRdbRegisters
-***************************************************************************/
-BERR_Code BDSP_GetRdbRegistersInfo(
-    BDSP_RdbRegisterHandle hRdbRegister,
-    BDSP_RdbRegisterInfo **pInfo /* [out] */
     );
 
 /***************************************************************************

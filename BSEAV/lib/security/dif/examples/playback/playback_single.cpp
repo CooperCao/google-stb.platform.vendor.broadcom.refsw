@@ -52,8 +52,8 @@
 #include <stdlib.h>
 #include <signal.h>
 
-#define LOG_TAG "playback_dif"
 BDBG_MODULE(playback_dif);
+#define LOG_TAG "playback_dif"
 #undef LOGE
 #undef LOGW
 #undef LOGD
@@ -66,7 +66,6 @@ BDBG_MODULE(playback_dif);
 // DRM Integration Framework
 //#include "secure_playback.h"
 #include "decryptor.h"
-#include "media_parser.h"
 #include "cenc_parser.h"
 #include "piff_parser.h"
 
@@ -90,6 +89,7 @@ using namespace dif_streamer;
 using namespace media_parser;
 
 static bool shouldExit = false;
+static bool secure_video = false;
 
 static void sigHandler(int sig) {
     LOGW(("Caught Siginal %d", sig));
@@ -112,6 +112,7 @@ public:
     bool use_default_url;
     IStreamer* videoStreamer;
     IStreamer* audioStreamer;
+    int video_decode_hdr;
 
     uint8_t *pAvccHdr;
     uint8_t *pPayload;
@@ -138,27 +139,27 @@ public:
 
 AppContext::AppContext()
 {
-    parser = NULL;
-    decryptor = NULL;
-    use_default_url = false;
-    videoStreamer = NULL;
-    audioStreamer = NULL;
-
     pAvccHdr = NULL;
     pPayload = NULL;
     pAudioHeaderBuf = NULL;
     pVideoHeaderBuf = NULL;
 
-    fp_mp4 = NULL;
     file = NULL;
     drmType = drm_type_eUnknown;
-    display = NULL;
-    window = NULL;
+    parser = NULL;
+    decryptor = NULL;
+    use_default_url = false;
+    fp_mp4 = NULL;
+    videoStreamer = NULL;
+    audioStreamer = NULL;
+    video_decode_hdr = 0;
     videoDecoder = NULL;
     audioDecoder = NULL;
     stcChannel = NULL;
     videoPidChannel = NULL;
     audioPidChannel = NULL;
+    display = NULL;
+    window = NULL;
     event = NULL;
 
     last_video_fragment_time = 0;
@@ -181,49 +182,49 @@ AppContext::~AppContext()
     if (pVideoHeaderBuf) NEXUS_Memory_Free(pVideoHeaderBuf);
 
     if(parser) {
-        LOGW(("Destroying parser %p", parser));
+        LOGW(("Destroying parser %p", (void*)parser));
         delete parser;
     }
 
     if (fp_mp4) fclose(fp_mp4);
 
     if (decryptor != NULL) {
-        LOGW(("Destroying decryptor %p", decryptor));
+        LOGW(("Destroying decryptor %p", (void*)decryptor));
         DecryptorFactory::DestroyDecryptor(decryptor);
     }
 
     if (videoStreamer != NULL) {
-        LOGW(("Destroying videoStreamer %p", videoStreamer));
+        LOGW(("Destroying videoStreamer %p", (void*)videoStreamer));
         StreamerFactory::DestroyStreamer(videoStreamer);
     }
 
     if (audioStreamer != NULL) {
-        LOGW(("Destroying audioStreamer %p", audioStreamer));
+        LOGW(("Destroying audioStreamer %p", (void*)audioStreamer));
         StreamerFactory::DestroyStreamer(audioStreamer);
     }
 
     if (videoDecoder != NULL) {
-        LOGW(("Closing videoDecoder %p", videoDecoder));
+        LOGW(("Closing videoDecoder %p", (void*)videoDecoder));
         NEXUS_VideoDecoder_Close(videoDecoder);
     }
 
     if (audioDecoder != NULL) {
-        LOGW(("Closing audioDecoder %p", audioDecoder));
+        LOGW(("Closing audioDecoder %p", (void*)audioDecoder));
         NEXUS_AudioDecoder_Close(audioDecoder);
     }
 
     if (stcChannel!= NULL) {
-        LOGW(("Closing stcChannel %p", stcChannel));
+        LOGW(("Closing stcChannel %p", (void*)stcChannel));
         NEXUS_StcChannel_Close(stcChannel);
     }
 
     if (window != NULL) {
-        LOGW(("Closing window %p", window));
+        LOGW(("Closing window %p", (void*)window));
         NEXUS_VideoWindow_Close(window);
     }
 
     if (display != NULL) {
-        LOGW(("Closing display %p", display));
+        LOGW(("Closing display %p", (void*)display));
         NEXUS_Display_Close(display);
     }
 
@@ -265,10 +266,6 @@ const std::string kGpClientOfflineRenewalQueryParameters =
     "&offline=true&renewal=true";
 const std::string kGpClientOfflineReleaseQueryParameters =
     "&offline=true&release=true";
-
-int vc1_stream = 0;                        /* stream type */
-static int video_decode_hdr = 0;
-static bool secure_video = false;
 
 static AppContext s_app;
 
@@ -367,7 +364,7 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             pes_info.pts_valid = true;
             pes_info.pts = (uint32_t)CALCULATE_PTS(frag_duration);
 
-            if (video_decode_hdr == 0) {
+            if (s_app.video_decode_hdr == 0) {
                 pes_header_len = bmedia_pes_header_init(s_app.pVideoHeaderBuf,
                     (sampleSize + avcc_hdr_size - nalu_len + sizeof(bmp4_nal)), &pes_info);
             } else {
@@ -383,13 +380,13 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
                 bytes_processed += pes_header_len;
             }
 
-            if (video_decode_hdr == 0) {
+            if (s_app.video_decode_hdr == 0) {
                 IBuffer* output =
                     streamer->GetBuffer(avcc_hdr_size);
                 output->Copy(0, s_app.pAvccHdr, avcc_hdr_size);
                 BufferFactory::DestroyBuffer(output);
                 bytes_processed += avcc_hdr_size;
-                video_decode_hdr = 1;
+                s_app.video_decode_hdr = 1;
             }
 
             IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
@@ -441,39 +438,44 @@ static int process_fragment(mp4_parse_frag_info *frag_info,
             bmedia_info_aac *info_aac = (bmedia_info_aac *)decoder_data;
             parse_esds_config(s_app.pAudioHeaderBuf + pes_header_len, info_aac, sampleSize);
 
-            IBuffer* output =
-                streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
-            output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
-            bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
-            BufferFactory::DestroyBuffer(output);
+            if (streamer) {
+                IBuffer* output =
+                    streamer->GetBuffer(pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+                output->Copy(0, s_app.pAudioHeaderBuf, pes_header_len + BMEDIA_ADTS_HEADER_SIZE);
+                bytes_processed += pes_header_len + BMEDIA_ADTS_HEADER_SIZE;
+                BufferFactory::DestroyBuffer(output);
+            }
 
             IBuffer* input = BufferFactory::CreateBuffer(sampleSize, (uint8_t*)frag_info->cursor.cursor);
             batom_cursor_skip(&frag_info->cursor, sampleSize);
 
-            IBuffer* decOutput = streamer->GetBuffer(sampleSize);
-            if (s_app.decryptor) {
-                numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
-                    input, decOutput, sampleSize);
-            } else {
-                decOutput->Copy(0, input, sampleSize);
-                numOfByteDecrypted = sampleSize;
-            }
-            if (numOfByteDecrypted != sampleSize)
-            {
-                LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+            if (streamer) {
+                IBuffer* decOutput = streamer->GetBuffer(sampleSize);
+                if (s_app.decryptor) {
+                    numOfByteDecrypted = s_app.decryptor->DecryptSample(pSample,
+                        input, decOutput, sampleSize);
+                } else {
+                    decOutput->Copy(0, input, sampleSize);
+                    numOfByteDecrypted = sampleSize;
+                }
+                if (numOfByteDecrypted != sampleSize)
+                {
+                    LOGE(("%s Failed to decrypt sample, can't continue - %d", __FUNCTION__, __LINE__));
+                    BufferFactory::DestroyBuffer(input);
+                    BufferFactory::DestroyBuffer(decOutput);
+                    return -1;
+                }
                 BufferFactory::DestroyBuffer(input);
                 BufferFactory::DestroyBuffer(decOutput);
-                return -1;
+                bytes_processed += numOfByteDecrypted;
             }
-            BufferFactory::DestroyBuffer(input);
-            BufferFactory::DestroyBuffer(decOutput);
-            bytes_processed += numOfByteDecrypted;
         } else {
             LOGW(("%s Unsupported track type %d detected", __FUNCTION__, frag_info->trackType));
             return -1;
         }
 
-        streamer->Push(bytes_processed - last_bytes_processed);
+        if (streamer)
+            streamer->Push(bytes_processed - last_bytes_processed);
         last_bytes_processed = bytes_processed;
     }
 
@@ -612,7 +614,11 @@ static void setup_gui()
 
     /* bring up decoder and connect to display */
     NEXUS_VideoDecoder_GetDefaultOpenSettings(&videoDecoderOpenSettings);
-    videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    if (secure_video)
+    {
+        videoDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+        videoDecoderOpenSettings.secureVideo = true;
+    }
     s_app.videoDecoder = NEXUS_VideoDecoder_Open(0, &videoDecoderOpenSettings);
     if (s_app.videoDecoder == NULL) {
         exit(EXIT_FAILURE);
@@ -621,7 +627,10 @@ static void setup_gui()
 
     /* Bring up audio decoders and outputs */
     NEXUS_AudioDecoder_GetDefaultOpenSettings(&audioDecoderOpenSettings);
-    audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    if (secure_video)
+    {
+        audioDecoderOpenSettings.cdbHeap = platformConfig.heap[NEXUS_VIDEO_SECURE_HEAP];
+    }
     s_app.audioDecoder = NEXUS_AudioDecoder_Open(0, &audioDecoderOpenSettings);
     if (s_app.audioDecoder == NULL) {
         exit(EXIT_FAILURE);
@@ -733,15 +742,9 @@ static void setup_streamer()
     NEXUS_AudioDecoder_GetDefaultStartSettings(&audioProgram);
     NEXUS_VideoDecoder_GetDefaultStartSettings(&videoProgram);
 
-    if ( vc1_stream ) {
-       LOGW(("@@@ set video audio program for vc1"));
-       videoProgram.codec = NEXUS_VideoCodec_eVc1;
-       audioProgram.codec = NEXUS_AudioCodec_eWmaPro;
-    } else {
-       LOGW(("@@@ set video audio program for h264"));
-       videoProgram.codec = NEXUS_VideoCodec_eH264;
-       audioProgram.codec = NEXUS_AudioCodec_eAacAdts;
-    }
+    LOGW(("@@@ set video audio program for h264"));
+    videoProgram.codec = NEXUS_VideoCodec_eH264;
+    audioProgram.codec = NEXUS_AudioCodec_eAacAdts;
 
     videoProgram.pidChannel = s_app.videoPidChannel;
     videoProgram.stcChannel = s_app.stcChannel;
@@ -797,43 +800,43 @@ static void setup_parser()
             LOGE(("failed to initialize the CencParser for %s", s_app.file));
             exit(EXIT_FAILURE);
         }
-    }
 
-    if (s_app.drmType != drm_type_eUnknown){
-        bool drmMatch = false;
-        DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
-        uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
-        for (int i = 0; i<numOfDrmSchemes; i++){
-            if (drmTypes[i] == s_app.drmType){
-                drmMatch = true;
-                s_app.parser-> SetDrmSchemes(i);
+        if (s_app.drmType != drm_type_eUnknown){
+            bool drmMatch = false;
+            DrmType drmTypes[BMP4_MAX_DRM_SCHEMES];
+            uint8_t numOfDrmSchemes = s_app.parser->GetNumOfDrmSchemes(drmTypes, BMP4_MAX_DRM_SCHEMES);
+            for (int i = 0; i<numOfDrmSchemes; i++){
+                if (drmTypes[i] == s_app.drmType){
+                    drmMatch = true;
+                    s_app.parser->SetDrmSchemes(i);
+                }
             }
-        }
-        if (!drmMatch){
-            LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType ));
-            LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
-            char resp;
-            scanf("%c", &resp);
-            if (resp != 'y')
-                exit(EXIT_FAILURE);
+            if (!drmMatch){
+                LOGE(("DRM Type: %d was not found in the stream.", s_app.drmType ));
+                LOGE(("Do you want to play it with its default DRM type: %d? [y/n]", drmTypes[0]));
+                char resp;
+                scanf("%c", &resp);
+                if (resp != 'y')
+                    exit(EXIT_FAILURE);
+            }
         }
     }
 }
 
 static void setup_decryptor()
 {
-    std::string license_server;
-    std::string key_response;
-
     std::string cpsSpecificData;    /*content protection system specific data*/
     std::string psshDataStr;
     DrmType drmType;
+
+    std::string license_server;
+    std::string key_response;
 
     // New API - creating Decryptor
     drmType = s_app.parser->GetDrmType();
     if (s_app.drmType == drm_type_ePlayready30){
         drmType = drm_type_ePlayready30;
-        LOGW(("Playready 3.0 for %s", s_app.file[i]));
+        LOGW(("Playready 3.0 for %s", s_app.file));
     } else if (drmType == drm_type_eWidevine) {
         LOGW(("Widevine for %s", s_app.file));
     } else if (drmType == drm_type_ePlayready) {
@@ -870,19 +873,16 @@ static void setup_decryptor()
     if (s_app.use_default_url) {
         license_server.clear();
     } else {
-#if 1
         // Use Google Play server
         if (drmType == drm_type_eWidevine) {
             license_server.assign(kGpLicenseServer + kGpWidevineAuth);
         } else if (drmType == drm_type_ePlayready) {
             license_server.assign(kGpLicenseServer + kGpPlayreadyAuth);
         }
-#else
-        // Use Content Protection server
-        license_server.assign(kCpLicenseServer + kCpClientAuth);
-#endif
         license_server.append(kGpClientOfflineQueryParameters);
     }
+
+    LOGW(("License Server for %s: %s", s_app.file, license_server.c_str()));
 
     // New API - GetKeyRequestResponse
     key_response = s_app.decryptor->GetKeyRequestResponse(license_server);
@@ -900,7 +900,7 @@ void playback_loop()
 {
     mp4_parse_frag_info frag_info;
     void *decoder_data;
-    size_t decoder_len;
+    uint32_t decoder_len;
 
     for (;;) {
         decoder_data = s_app.parser->GetFragmentData(frag_info, s_app.pPayload, decoder_len);
@@ -915,8 +915,6 @@ void playback_loop()
     if (!shouldExit) {
         wait_for_drain();
     }
-
-    return;
 }
 
 static void rewind_parser()
@@ -955,7 +953,7 @@ int main(int argc, char* argv[])
         exit(EXIT_FAILURE);
     }
 
-    for (int i = 1; i< argc; i++){
+    for (int i = 1; i < argc; i++) {
         if (strcmp(argv[i], "-pr30") == 0) {
             if (i >= argc - 1) {
                 print_usage(argv[0]);

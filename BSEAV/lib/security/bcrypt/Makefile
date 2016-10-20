@@ -168,7 +168,9 @@ D_FOR_LIB_INSTALL	:= ${BCRYPT_OBJ_ROOT}/${BCRYPT_LIBDIR}
 
 F_SRCS	       		:= $(filter-out ${F_SRC_EXCLUDES}, $(notdir $(wildcard $(addsuffix /*.c, ${D_ALL_SUBDIRS}))))
 F_OBJS 		   		:= $(patsubst %.c,%.o, ${F_SRCS})
+F_DEPS 		   		:= $(patsubst %.c,%.d, ${F_SRCS})
 END_OBJS            := $(addprefix ${BCRYPT_OBJ_ROOT}/,${F_OBJS})
+END_DEPS            := $(addprefix ${BCRYPT_OBJ_ROOT}/,${F_DEPS})
 F_INSTALLED_LIBS	:= $(addprefix ${D_FOR_LIB_INSTALL}/, ${F_LIB_NAMES})
 CDEP_FLAGS          := -MMD
 #^^^^#####################^^^^^^^^^^^^^^^^^^^^^^^#####################^^^^##
@@ -198,17 +200,13 @@ ifneq ($(ANDROID_BUILD),y)
     ${F_PUBLIC_LIBS}  ${END_OBJS} : | ssl_lib
 endif
 
+include $(BSEAV)/lib/openssl/b_openssl_targets.inc
 .PHONY : ssl_lib
+ifeq ($(B_BUILD_DEPS),n)
 ssl_lib:
-	$(B_TRACE_RECIPE_BEGIN)
-    # B_OPENSSL_BUILD_COMPLETED=y means that some higher level makefile has already built OpenSSL, so we don't need to.
-    ifeq ($(B_OPENSSL_BUILD_COMPLETED),y)
-		$(Q_)echo [Skipping..... OpenSSL \(Already built\)];
-    else
-		$(Q_)echo [Build..... OpenSSL];
-		$(Q_)$(MAKE) -C $(B_OPENSSL_BUILD_DIR)
-    endif
-	$(B_TRACE_RECIPE_END)
+else
+ssl_lib: b_openssl_target_build
+endif
 
 .PHONY : prep_folder
 prep_folder:
@@ -219,10 +217,9 @@ prep_folder:
 .PHONY : clean
 clean:
 	$(B_TRACE_RECIPE_BEGIN)
-	$(Q_)if [ -d ${BCRYPT_OBJ_ROOT} ] ; then find ${BCRYPT_OBJ_ROOT} \( -name '*.d' -or -name '*.o' \) -execdir rm {} \; ;fi
-	$(Q_)echo Cleaning objects... [${END_OBJS}]
+	@ echo "[Clean..... bcrypt]"
+	$(Q_)rm -f ${END_DEPS}
 	$(Q_)rm -f ${END_OBJS}
-	$(Q_)echo Cleaning libraries... [${F_PUBLIC_LIBS}]
 	$(Q_)rm -f ${F_INSTALLED_LIBS} ${BCRYPT_OBJ_ROOT}/lib${LIB_BASENAME}.so ${BCRYPT_OBJ_ROOT}/lib${LIB_BASENAME}.a
 	$(B_TRACE_RECIPE_END)
 
@@ -239,7 +236,7 @@ ${BCRYPT_OBJ_ROOT}/lib${LIB_BASENAME}.so: ${END_OBJS}
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
 	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
 else
-	$(Q_)echo [Linking shared library .... $@ ]
+	@ echo "[Link...... $(notdir $@) (bcrypt)]"
 	$(Q_)${CC} -shared -o $@ ${LDFLAGS} ${END_OBJS} -Wl,-dy
 
 endif
@@ -247,13 +244,13 @@ endif
 
 ${BCRYPT_OBJ_ROOT}/lib${LIB_BASENAME}.a: ${END_OBJS}
 	$(B_TRACE_RECIPE_BEGIN)
-	$(Q_)echo [Linking static library .... $@ ]
+	@ echo "[Archive... $(notdir $@) (bcrypt)]"
 	$(Q_)${AR} rc $@ ${END_OBJS}
 	$(B_TRACE_RECIPE_END)
 
 ${BCRYPT_OBJ_ROOT}/%.o: %.c
 	$(B_TRACE_RECIPE_BEGIN)
-	$(Q_)echo [Compiling  with $(CC).... $< ]
+	@ echo "[Compile... $(notdir $<) (bcrypt)]"
 	$(Q_)${CC} ${CFLAGS} ${CDEP_FLAGS} -c -o $@ $<
 	$(B_TRACE_RECIPE_END)
 
@@ -267,19 +264,19 @@ install: all idirs ${F_INSTALLED_LIBS}
 
 ${D_FOR_LIB_INSTALL}/%.a : ${BCRYPT_OBJ_ROOT}/%.a
 	$(B_TRACE_RECIPE_BEGIN)
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 	$(B_TRACE_RECIPE_END)
 
 ${D_FOR_LIB_INSTALL}/%.so : ${BCRYPT_OBJ_ROOT}/%.so
 	$(B_TRACE_RECIPE_BEGIN)
-	install -m 0755 $< $@
+	@install -m 0755 $< $@
 	$(B_TRACE_RECIPE_END)
 
 .PHONY : copy
 copy:
 	$(B_TRACE_RECIPE_BEGIN)
-	@echo [Copying proper bcrypt lib version...]
-	cp -f ${D_FOR_LIB_INSTALL}/libbcrypt.so $(NEXUS_BIN_DIR)/
+	@echo [Install... bcrypt]
+	@cp -f ${D_FOR_LIB_INSTALL}/libbcrypt.so $(NEXUS_BIN_DIR)/
 	$(B_TRACE_RECIPE_END)
 
 #  Include dependency file:

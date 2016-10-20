@@ -157,8 +157,10 @@ BERR_Code BVBI_Field_GetSCTEData_isr (
      */
     if (pData->pam_data_count > pScteData->pam_size)
         return BERR_TRACE(BVBI_ERR_FLDH_CONFLICT);
+    BVBI_P_MmaFlush_isrsafe (pData->pam_data, pData->pam_data_count);
     BKNI_Memcpy (
-        pScteData->luma_PAM_data, pData->pam_data, pData->pam_data_count);
+        pScteData->luma_PAM_data, pData->pam_data->pSwAccess,
+        pData->pam_data_count);
     pScteData->pam_count = pData->pam_data_count;
 
     BDBG_LEAVE(BVBI_Field_GetSCTEData_isr);
@@ -289,13 +291,10 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
 {
     BVBI_P_Field_Handle* pVbi_Fld;
     BVBI_P_SCTE_Data* pData;
-    BMEM_Handle hMem;
-    BERR_Code eErr;
     int entry;
     uint32_t cc_line_number;
     uint32_t nrtv_line_number;
     uint32_t mono_line_number;
-    void* cached_ptr;
     size_t cc_count = 0;
     size_t nrtv_count = 0;
     size_t mono_count = 0;
@@ -311,9 +310,6 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
         BDBG_ERR(("Invalid parameter"));
         return BERR_TRACE(BERR_INVALID_PARAMETER);
     }
-
-    /* Convenience */
-    hMem = pVbi_Fld->pVbi->hMem;
 
     /* Verify that the field handle can hold SCTE data */
     pData = pVbi_Fld->pPScteData;
@@ -419,14 +415,10 @@ BERR_Code BVBI_Field_SetSCTEData_isr(
      */
     if (pScteData->pam_count > pData->pam_data_size)
         return BERR_TRACE(BVBI_ERR_FLDH_CONFLICT);
-    if ((eErr = BERR_TRACE (BMEM_ConvertAddressToCached_isr (
-        hMem, pData->pam_data, &cached_ptr))) !=
-            BERR_SUCCESS)
-    {
-        return eErr;
-    }
-    BKNI_Memcpy (cached_ptr,  pScteData->luma_PAM_data, pScteData->pam_count);
-    BMEM_FlushCache_isr (hMem, cached_ptr, pScteData->pam_count);
+    BKNI_Memcpy (
+        pData->pam_data->pSwAccess, pScteData->luma_PAM_data,
+        pScteData->pam_count);
+    BVBI_P_MmaFlush_isrsafe (pData->pam_data, pScteData->pam_count);
     pData->pam_data_count = pScteData->pam_count;
 
     /* Indicate valid data is present */
@@ -465,8 +457,8 @@ BERR_Code BVBI_P_SCTE_Init( BVBI_P_Handle *pVbi )
  *
  */
 BERR_Code BVBI_P_SCTEData_Alloc (
-    BMEM_Handle hMem, size_t cc_size, bool scteEnableNrtv, size_t pam_size,
-    bool scteEnableMono, BVBI_P_SCTE_Data* pPScteData)
+    BMMA_Heap_Handle hMmaHeap, size_t cc_size, bool scteEnableNrtv,
+    size_t pam_size, bool scteEnableMono, BVBI_P_SCTE_Data* pPScteData)
 {
     int iBulk;
     size_t line_size;
@@ -490,7 +482,9 @@ BERR_Code BVBI_P_SCTEData_Alloc (
     }
     if (pPScteData->pam_data_size != 0)
     {
-        BMEM_Free (hMem, pPScteData->pam_data);
+        BVBI_P_MmaFree (pPScteData->pam_data);
+        BKNI_Free (pPScteData->pam_data);
+        pPScteData->pam_data = NULL;
         pPScteData->pam_data_size = 0;
         pPScteData->pam_data_count = 0;
     }
@@ -542,10 +536,16 @@ BERR_Code BVBI_P_SCTEData_Alloc (
      */
     if (pam_size != 0)
     {
-        pPScteData->pam_data = BMEM_AllocAligned (hMem, pam_size, 4, 0);
+        BERR_Code eErr;
+        pPScteData->pam_data = BKNI_Malloc (sizeof (BVBI_P_MmaData));
         if (!(pPScteData->pam_data))
         {
             return BERR_TRACE(BERR_OUT_OF_SYSTEM_MEMORY);
+        }
+        eErr = BVBI_P_MmaAlloc (hMmaHeap, pam_size, 16, pPScteData->pam_data);
+        if (eErr != BERR_SUCCESS)
+        {
+            return BERR_TRACE(eErr);
         }
         pPScteData->pam_data_size  = pam_size;
         pPScteData->pam_data_count = 0;
@@ -570,18 +570,19 @@ BERR_Code BVBI_P_SCTEData_Alloc (
     return BERR_SUCCESS;
 }
 
-#if (BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
+/* Debug code: knocked out */
+#if (1 || BVBI_NUM_SCTEE > 0) || (BVBI_NUM_SCTEE_656 > 0) /** { **/
 
 /***************************************************************************
  *
  */
 BERR_Code BVBI_P_Encode_AllocScte (
-    BMEM_Handle hMem,
+    BMMA_Heap_Handle hMmaHeap,
     BVBI_LineBuilder_Handle topScteNrtv[2],
     BVBI_LineBuilder_Handle botScteNrtv[2],
     BVBI_LineBuilder_Handle topScteMono[2],
     BVBI_LineBuilder_Handle botScteMono[2],
-    uint8_t** pSctePamData
+    BVBI_P_MmaData*  pSctePamData
 )
 {
     int iBulk;
@@ -591,46 +592,45 @@ BERR_Code BVBI_P_Encode_AllocScte (
     for (iBulk = 0 ; iBulk < 2 ; ++iBulk)
     {
         if ((eErr = BVBI_LineBuilder_Open (
-            &topScteNrtv[iBulk], hMem, 704, 720)) !=
+            &topScteNrtv[iBulk], hMmaHeap, 704, 720)) !=
             BERR_SUCCESS)
         {
             return BERR_TRACE(eErr);
         }
         if ((eErr = BVBI_LineBuilder_Open (
-            &botScteNrtv[iBulk], hMem, 704, 720)) !=
+            &botScteNrtv[iBulk], hMmaHeap, 704, 720)) !=
             BERR_SUCCESS)
         {
             BVBI_P_Encode_FreeScte (
-                hMem, topScteNrtv, botScteNrtv, topScteMono,
+                topScteNrtv, botScteNrtv, topScteMono,
                 botScteMono, pSctePamData);
             return BERR_TRACE(eErr);
         }
         if ((eErr = BVBI_LineBuilder_Open (
-            &topScteMono[iBulk], hMem, 720, 720)) !=
+            &topScteMono[iBulk], hMmaHeap, 720, 720)) !=
             BERR_SUCCESS)
         {
             BVBI_P_Encode_FreeScte (
-                hMem, topScteNrtv, botScteNrtv, topScteMono,
+                topScteNrtv, botScteNrtv, topScteMono,
                 botScteMono, pSctePamData);
             return BERR_TRACE(eErr);
         }
         if ((eErr = BVBI_LineBuilder_Open (
-            &botScteMono[iBulk], hMem, 720, 720)) !=
+            &botScteMono[iBulk], hMmaHeap, 720, 720)) !=
             BERR_SUCCESS)
         {
             BVBI_P_Encode_FreeScte (
-                hMem, topScteNrtv, botScteNrtv, topScteMono,
+                topScteNrtv, botScteNrtv, topScteMono,
                 botScteMono, pSctePamData);
             return BERR_TRACE(eErr);
         }
 
     }
-    *pSctePamData = BMEM_AllocAligned (hMem, 4096, 4, 0);
-    if (!(*pSctePamData))
+    eErr = BVBI_P_MmaAlloc (hMmaHeap, 4096, 16, pSctePamData);
+    if (eErr != BERR_SUCCESS)
     {
         BVBI_P_Encode_FreeScte (
-            hMem, topScteNrtv, botScteNrtv, topScteMono,
-            botScteMono, pSctePamData);
+            topScteNrtv, botScteNrtv, topScteMono, botScteMono, pSctePamData);
         return BERR_TRACE(eErr);
     }
     return BERR_SUCCESS;
@@ -640,12 +640,11 @@ BERR_Code BVBI_P_Encode_AllocScte (
  *
  */
 void BVBI_P_Encode_FreeScte (
-    BMEM_Handle hMem,
     BVBI_LineBuilder_Handle topScteNrtv[2],
     BVBI_LineBuilder_Handle botScteNrtv[2],
     BVBI_LineBuilder_Handle topScteMono[2],
     BVBI_LineBuilder_Handle botScteMono[2],
-    uint8_t** pSctePam
+    BVBI_P_MmaData* pSctePam
 )
 {
     int iBulk;
@@ -674,10 +673,9 @@ void BVBI_P_Encode_FreeScte (
         }
     }
 
-    if (*pSctePam)
+    if (pSctePam->handle != NULL)
     {
-        BMEM_Free (hMem, *pSctePam);
-        *pSctePam = 0x0;
+        BVBI_P_MmaFree (pSctePam);
     }
 }
 

@@ -1,7 +1,7 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom and/or its
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -41,13 +41,6 @@
 #define BDSP_ARM_PRIV_H_
 
 #include "blst_slist.h"
-#include "bdsp_arm_fw.h"
-#include "bdsp_arm_mm_priv.h"
-#include "bdsp_arm_fwdownload_priv.h"
-#include "bdsp_arm_cit_priv.h"
-#include "bdsp_arm_cmdresp_priv.h"
-#include "bdsp_arm_fw_algo.h"
-#include "bdsp_common_priv.h"
 
 BDBG_OBJECT_ID_DECLARE(BDSP_Arm);
 BDBG_OBJECT_ID_DECLARE(BDSP_ArmContext);
@@ -73,11 +66,11 @@ typedef struct BDSP_ArmDspApp{
     BTEE_InstanceHandle hBteeInstance;
     BTEE_ClientHandle hClient;
     BTEE_ApplicationHandle hApplication;
-	BTEE_ConnectionHandle hConnection;
+    BTEE_ConnectionHandle hConnection;
 
-	/* Handle for HBC */
+    /* Handle for HBC */
     BTEE_ApplicationHandle hHbcApplication;
-	BTEE_ConnectionHandle hHbcConnection;
+    BTEE_ConnectionHandle hHbcConnection;
 
     /* msg lock and count */
     BKNI_MutexHandle    msgLock;
@@ -126,8 +119,8 @@ typedef struct BDSP_Arm_P_MemoryGrant
 
 typedef struct BDSP_Arm_P_HbcInfo
 {
-	uint32_t hbcValid;
-	uint32_t hbc;
+    uint32_t hbcValid;
+    uint32_t hbc;
 
 }BDSP_Arm_P_HbcInfo;
 
@@ -160,9 +153,9 @@ typedef struct BDSP_Arm
     bool                    deviceWatchdogFlag;
     BKNI_MutexHandle armInterfaceQHndlMutex;
     BKNI_MutexHandle captureMutex;
-	BKNI_MutexHandle    watchdogMutex;
+    BKNI_MutexHandle    watchdogMutex;
     BDSP_Arm_MapTableEntry       sDeviceMapTable[BDSP_ARM_MAX_ALLOC_DEVICE];
-	BDSP_Arm_P_HbcInfo          *psHbcInfo;
+    BDSP_Arm_P_HbcInfo          *psHbcInfo;
 
 }BDSP_Arm;
 
@@ -298,12 +291,12 @@ void BDSP_Arm_P_Close(
     void *pDeviceHandle);
 
 BERR_Code BDSP_Arm_P_DownloadFwToAstra(
-	BTEE_ClientHandle hClient,
-	BDSP_Arm *pDevice,
-	BDSP_Arm_SystemImgId ImgId);
+    BTEE_ClientHandle hClient,
+    BDSP_Arm *pDevice,
+    BDSP_Arm_SystemImgId ImgId);
 
 BERR_Code BDSP_Arm_P_StartHbcMonitor(
-	BDSP_Arm *pDevice);
+    BDSP_Arm *pDevice);
 
 BERR_Code BDSP_Arm_P_Open(
     void *pDeviceHandle);
@@ -316,6 +309,13 @@ void BDSP_Arm_P_GetStatus(
 void BDSP_Arm_P_GetAlgorithmInfo(
     BDSP_Algorithm algorithm,
     BDSP_AlgorithmInfo *pInfo /* [out] */
+    );
+
+void BDSP_Arm_P_GetAlgorithmDefaultSettings(
+    void *pDeviceHandle,
+    BDSP_Algorithm algorithm,
+    void *pSettingsBuffer,        /* [out] */
+    size_t settingsBufferSize
     );
 
 void BDSP_Arm_P_GetDefaultContextSettings(
@@ -342,19 +342,6 @@ BERR_Code BDSP_Arm_P_CreateTask(
 
 void BDSP_Arm_P_DestroyTask(
     void *pTaskHandle);
-
-/***********************************************************************
-Name        :   BDSP_Arm_P_ProcessWatchdogInterrupt
-
-Type        :   PI Interface
-
-Input       :   pContextHandle  -   Context handle provided by the PI.
-
-Return      :   Error Code to return SUCCESS or FAILURE
-
-Functionality   :   On occurance of an watchdog, call the Arm Open function.
-                On completion, clear the watchdog flag of the Device handle and Context handle
-***********************************************************************/
 
 BERR_Code BDSP_Arm_P_ProcessWatchdogInterrupt(
     void *pContextHandle);

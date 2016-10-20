@@ -78,14 +78,18 @@ typedef struct GLXX_BUFFER_BINDING_T_ {
 
 
 /*
- * if size == -1, use full size, even if changed after binding buffer (see
+ * if size == SIZE_MAX, use full size, even if changed after binding buffer (see
  * BindBufferBase)
  */
 typedef struct GLXX_INDEXED_BINDING_POINT_T_ {
    GLXX_BUFFER_BINDING_T   buffer;
-   GLintptr                offset;
-   GLsizeiptr              size;
+   size_t offset;
+   size_t size;
 } GLXX_INDEXED_BINDING_POINT_T;
+
+/* Return the bound size of this point. The size is not relative to the offset.
+ * If the bound point size is SIZE_MAX, return bounded buffer size */
+extern size_t glxx_indexed_binding_point_get_size(const GLXX_INDEXED_BINDING_POINT_T *binding);
 
 extern void glxx_buffer_init(GLXX_BUFFER_T *buffer, uint32_t name);
 extern void glxx_buffer_enable(GLXX_BUFFER_T *buffer);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -166,6 +166,8 @@ static void BAPE_Decoder_P_GetDefaultAc3Settings(BAPE_DecoderHandle handle)
     handle->ac3Settings.codecSettings.ac3.dialogNormalizationValue = handle->userConfig.ddp.i32UserDialNormVal;
     handle->ac3Settings.codecSettings.ac3.drcMode = BAPE_Ac3DrcMode_eLine; /* Default multichannel outputs to Line Mode */
     handle->ac3Settings.codecSettings.ac3.drcModeDownmix = BAPE_Ac3DrcMode_eRf; /* Default stereo outputs to RF Mode */
+    handle->ac3Settings.codecSettings.ac3.customTargetLevel = 0;
+    handle->ac3Settings.codecSettings.ac3.customTargetLevelDownmix = 0;
 
     handle->ac3Settings.codecSettings.ac3.scale = 100;
     handle->ac3Settings.codecSettings.ac3.scaleDownmix = 100;
@@ -207,24 +209,30 @@ static void BAPE_Decoder_P_GetDefaultAc4Settings(BAPE_DecoderHandle handle)
     handle->ac4Settings.codec = BAVC_AudioCompressionStd_eAc4;
     handle->ac4Settings.codecSettings.ac4.drcMode = BAPE_DolbyDrcMode_eLine; /* Default multichannel outputs to Line Mode */
     handle->ac4Settings.codecSettings.ac4.drcModeDownmix = BAPE_DolbyDrcMode_eRf; /* Default stereo outputs to RF Mode */
+    handle->ac4Settings.codecSettings.ac4.drcScaleHi = 100;
+    handle->ac4Settings.codecSettings.ac4.drcScaleLow = 100;
+    handle->ac4Settings.codecSettings.ac4.drcScaleHiDownmix = 100;
+    handle->ac4Settings.codecSettings.ac4.drcScaleLowDownmix = 100;
     handle->ac4Settings.codecSettings.ac4.stereoMode = BAPE_DolbyStereoMode_eLoRo; /* Default stereo outputs to RF Mode */
+    handle->ac4Settings.codecSettings.ac4.selectionMode = BAPE_Ac4PresentationSelectionMode_ePresentationIndex;
     handle->ac4Settings.codecSettings.ac4.programSelection = handle->userConfig.ac4.ui32MainAssocDec;
     handle->ac4Settings.codecSettings.ac4.programBalance = handle->userConfig.ac4.sUserOutputCfg[0].i32MainAssocMixPref;
-    handle->ac4Settings.codecSettings.ac4.presentationId = handle->userConfig.ac4.ui32PresentationNumber;
+    handle->ac4Settings.codecSettings.ac4.presentationIndex = handle->userConfig.ac4.ui32PresentationNumber;
     handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount = handle->userConfig.ac4.sUserOutputCfg[0].i32DialogEnhGainInput;
 
     /* personalization settings */
-    handle->ac4Settings.codecSettings.ac4.selectionMode = (handle->userConfig.ac4.ui32PreferAssociateTypeOverLanguage == 1)?BAPE_Ac4PresentationSelectionMode_eAssociateType:BAPE_Ac4PresentationSelectionMode_eLanguageCode;
+    handle->ac4Settings.codecSettings.ac4.preferLanguageOverAssociateType = (handle->userConfig.ac4.ui32PreferAssociateTypeOverLanguage == 0) ? 1 : 0;
     handle->ac4Settings.codecSettings.ac4.preferredAssociateType = (BAPE_Ac4AssociateType)handle->userConfig.ac4.ui32PreferredAssociateType;
     handle->ac4Settings.codecSettings.ac4.enableAssociateMixing = (handle->userConfig.ac4.ui32EnableADMixing == 1)?true:false;
     for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
     {
-        handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage1[i/sizeof(uint32_t)] >> (8*(4-(i%4)))) & 0xff);
+        handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage1[i/sizeof(uint32_t)] >> (8*(4-((i+1)%4)))) & 0xff);
     }
     for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
     {
-        handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage2[i/sizeof(uint32_t)] >> (8*(4-(i%4)))) & 0xff);
+        handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] = (char)((handle->userConfig.ac4.ui32PreferredLanguage2[i/sizeof(uint32_t)] >> (8*(4-((i+1)%4)))) & 0xff);
     }
+    BKNI_Memset(handle->ac4Settings.codecSettings.ac4.presentationId, 0, sizeof(char) * BAPE_AC4_PRESENTATION_ID_LENGTH);
 }
 
 #if BDSP_MS12_SUPPORT
@@ -498,6 +506,8 @@ static void BAPE_Decoder_P_GetDefaultAlsSettings(BAPE_DecoderHandle handle)
     BERR_TRACE(BDSP_Raaga_GetDefaultAlgorithmSettings(BDSP_Algorithm_eALSDecode, &handle->userConfig.als, sizeof(handle->userConfig.als)));
 
     handle->alsSettings.codec = BAVC_AudioCompressionStd_eAls;
+    handle->alsLoasSettings.codec = BAVC_AudioCompressionStd_eAlsLoas;
+
     switch ( handle->userConfig.als.sUsrOutputCfg[0].ui32OutMode )
     {
     default:
@@ -510,6 +520,7 @@ static void BAPE_Decoder_P_GetDefaultAlsSettings(BAPE_DecoderHandle handle)
     }
 
     handle->alsSettings.codecSettings.als.aribMatrixMixdownIndex = handle->userConfig.als.i32AribMatrixMixdownIndex;
+    BKNI_Memcpy(&handle->alsLoasSettings.codecSettings, &handle->alsSettings.codecSettings, sizeof(handle->alsLoasSettings.codecSettings.als));
 }
 
 void BAPE_Decoder_P_GetDefaultCodecSettings(BAPE_DecoderHandle handle)
@@ -726,6 +737,37 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
             case BAPE_Ac3DrcMode_eRf:
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 3;
                 break;
+            case BAPE_Ac3DrcMode_eCustomTarget:
+                if ( pSettings->customTargetLevelDownmix == 0 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
+            #endif
+                }
+                else if ( pSettings->customTargetLevelDownmix == 23 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 5;   /* -23dB */
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 9;   /* -23dB */
+            #endif
+                }
+                else if ( pSettings->customTargetLevelDownmix == 24 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 6;   /* -24dB */
+            #else
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 10;   /* -24dB */
+            #endif
+                }
+                else
+                {
+                    BDBG_ERR(("%s Invalid value(%u) for customTargetLevelDownmix.  Default to RF", __FUNCTION__, pSettings->customTargetLevelDownmix));
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 3;
+                }
+                break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
 #if BAPE_DSP_LEGACY_DDP_ALGO
@@ -751,6 +793,37 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             case BAPE_Ac3DrcMode_eRf:
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 3;
+                break;
+            case BAPE_Ac3DrcMode_eCustomTarget:
+                if ( pSettings->customTargetLevel == 0 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
+            #endif
+                }
+                else if ( pSettings->customTargetLevel == 23 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 5;   /* -23dB */
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 9;   /* -23dB */
+            #endif
+                }
+                else if ( pSettings->customTargetLevel == 24 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 6;   /* -24dB */
+            #else
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 10;   /* -24dB */
+            #endif
+                }
+                else
+                {
+                    BDBG_ERR(("%s Invalid value(%u) for customTargetLevel.  Default to Line", __FUNCTION__, pSettings->customTargetLevel));
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 2;
+                }
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
@@ -778,6 +851,37 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
             case BAPE_Ac3DrcMode_eRf:
                 handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 3;
                 break;
+            case BAPE_Ac3DrcMode_eCustomTarget:
+                if ( pSettings->customTargetLevel == 0 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 4;
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 8;
+            #endif
+                }
+                else if ( pSettings->customTargetLevel == 23 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 5;   /* -23dB */
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 9;   /* -23dB */
+            #endif
+                }
+                else if ( pSettings->customTargetLevel == 24 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 6;   /* -24dB */
+            #else
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 10;   /* -24dB */
+            #endif
+                }
+                else
+                {
+                    BDBG_ERR(("%s Invalid value(%u) for customTargetLevel.  Default to Line", __FUNCTION__, pSettings->customTargetLevel));
+                    handle->userConfig.ddp.sUserOutputCfg[0].i32CompMode = 2;
+                }
+                break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
 #if BAPE_DSP_LEGACY_DDP_ALGO
@@ -800,6 +904,37 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
                 break;
             case BAPE_Ac3DrcMode_eRf:
                 handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 3;
+                break;
+            case BAPE_Ac3DrcMode_eCustomTarget:
+                if ( pSettings->customTargetLevelDownmix == 0 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 4;
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 8;
+            #endif
+                }
+                else if ( pSettings->customTargetLevelDownmix == 23 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 5;   /* -23dB */
+            #else
+                handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 9;   /* -23dB */
+            #endif
+                }
+                else if ( pSettings->customTargetLevelDownmix == 24 )
+                {
+            #if BAPE_DSP_LEGACY_DDP_ALGO
+                    handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 6;   /* -24dB */
+            #else
+                    handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 10;   /* -24dB */
+            #endif
+                }
+                else
+                {
+                    BDBG_ERR(("%s Invalid value(%u) for customTargetLevelDownmix.  Default to RF", __FUNCTION__, pSettings->customTargetLevelDownmix));
+                    handle->userConfig.ddp.sUserOutputCfg[1].i32CompMode = 3;
+                }
                 break;
             default:
             case BAPE_Ac3DrcMode_eDisabled:
@@ -875,6 +1010,15 @@ static BERR_Code BAPE_Decoder_P_ApplyAc3Settings(BAPE_DecoderHandle handle, BAPE
 }
 
 #define BAPE_DECODER_INVALID_USERCONFIG_ID 0xffffffff
+
+/***************************************************************************
+Summary:
+Certification mode parameters for AC4 Decoder
+***************************************************************************/
+/* |111x xxxx xxxx xxxx| */
+#define BAPE_DOLBY_AC4_DECODEMODE_MASK          (0xe0000000)
+#define BAPE_DOLBY_AC4_DECODEMODE_SHIFT         (29)
+
 static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE_Ac4Settings *pSettings)
 {
     bool lfe;
@@ -883,6 +1027,7 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
     BAPE_ChannelMode channelMode;
     unsigned stereoOutputPort = BAPE_DECODER_INVALID_USERCONFIG_ID;
     unsigned multichOutputPort = BAPE_DECODER_INVALID_USERCONFIG_ID;
+    unsigned decodeMode = 0;
 
     if ( handle->deviceHandle->settings.loudnessMode != BAPE_LoudnessEquivalenceMode_eNone )
     {
@@ -932,11 +1077,11 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
 
     if ( handle->ddre && BAPE_Decoder_P_HasMultichannelOutput(handle) )
     {
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, 1);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, BDSP_AF_P_DolbyMsUsageMode_eMS12DecodeMode);
     }
     else
     {
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, 0);
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, eDolbyMSUsageMode, BDSP_AF_P_DolbyMsUsageMode_eSingleDecodeMode);
     }
 
     BAPE_DSP_P_GetChannelMatrix(channelMode, lfe, handle->userConfig.ac4.sUserOutputCfg[0].ui32OutputChannelMatrix);
@@ -1026,30 +1171,116 @@ static BERR_Code BAPE_Decoder_P_ApplyAc4Settings(BAPE_DecoderHandle handle, BAPE
         BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, sUserOutputCfg[stereoOutputPort].i32DialogEnhGainInput, BAPE_DSP_P_VALIDATE_VARIABLE_RANGE(handle->ac4Settings.codecSettings.ac4.dialogEnhancerAmount,-12,12));
     }
 
+    /* AC4 does not set DRC scale values directly.  They are place holders here, but are used by PCMR/DDRE */
+    #if 0
+    uint16_t drcScaleHi;            /* In %, ranges from 0..100 */
+    uint16_t drcScaleLow;           /* In %, ranges from 0..100 */
+    uint16_t drcScaleHiDownmix;     /* In %, ranges from 0..100 */
+    uint16_t drcScaleLowDownmix;    /* In %, ranges from 0..100 */
+    #endif
+
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32MainAssocDec, handle->ac4Settings.codecSettings.ac4.programSelection);
-    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.presentationId);
+    decodeMode = (handle->ac4Settings.codecSettings.ac4.certificationMode & BAPE_DOLBY_AC4_DECODEMODE_MASK) >> BAPE_DOLBY_AC4_DECODEMODE_SHIFT;
+    if ( decodeMode != 0 )
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32AC4DecodeMode, decodeMode-1);
+    }
+    else /* use programSelection to determine AC4DecodeMode */
+    {
+        /* TBD -- update for MS12 v1.3 */
+        /*
+        if ( Standalone )
+        {
+            switch ( handle->ac4Settings.codecSettings.ac4.programSelection )
+            {
+            default:
+            case 0: decodeMode = 1; break;
+            case 1: case 2: decodeMode = 0; break;
+            }
+        }
+        else */ /* Dual Decode instance mode */
+        {
+            /* if ( handle->ac4Settings.codecSettings.ac4.programSelection == 0 )
+            {
+                BDBG_ERR(("ProgramSelection mode 0 (main + associate) requires the decoder to be started in Standalone mixing mode"));
+                return BERR_TRACE(BERR_INVALID_PARAMETER);
+            } */
+            decodeMode = 3;
+        }
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32AC4DecodeMode, decodeMode);
+    }
+
+    /* decide how we select the presentation */
+    if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIndex ||
+         handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, handle->ac4Settings.codecSettings.ac4.presentationIndex);
+    }
+    else
+    {
+        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PresentationNumber, 0xffffffff);
+    }
+
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 0);
+    if ( handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_ePresentationIdentifier ||
+         handle->ac4Settings.codecSettings.ac4.selectionMode == BAPE_Ac4PresentationSelectionMode_eAuto )
+    {
+        unsigned length = 0;
+
+        while ( length < BAPE_AC4_PRESENTATION_ID_LENGTH && handle->ac4Settings.codecSettings.ac4.presentationId[length] != '\0' )
+        {
+            length++;
+        }
+
+        if ( length == 2 )
+        {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 1);
+        }
+        else if ( length == 16 )
+        {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredIdentifierType, 2);
+        }
+        else if ( length > 0 )
+        {
+            BDBG_WRN(("WARNING: Invalid Presentation ID length %d.  Valid lengths are 2 chars or 16 chars, selection by Presentation Id will not be prioritized and language or associate will be used instead.", length));
+        }
+        /* Presentation id will be set below with personalization settings */
+    }
 
     /* personalization settings */
-    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferAssociateTypeOverLanguage, (handle->ac4Settings.codecSettings.ac4.selectionMode==BAPE_Ac4PresentationSelectionMode_eLanguageCode)?0:1);
+    BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferAssociateTypeOverLanguage, handle->ac4Settings.codecSettings.ac4.preferLanguageOverAssociateType ? 0 : 1);
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredAssociateType, (uint32_t)handle->ac4Settings.codecSettings.ac4.preferredAssociateType);
     BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32EnableADMixing, handle->ac4Settings.codecSettings.ac4.enableAssociateMixing?1:0);
     {
         unsigned i;
         uint32_t preferredLanguage1[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
         uint32_t preferredLanguage2[AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH] = {0};
+        uint32_t presId[AC4_DEC_PROGRAM_IDENTIFIER_LENGTH] = {0};
+        BDBG_MSG(("Preferred Languages: 1) \"%s\", 2) \"%s\"",
+                  handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection,
+                  handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection));
+        BDBG_MSG(("Presentation Id: \"%s\"", handle->ac4Settings.codecSettings.ac4.presentationId));
         for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
         {
-            preferredLanguage1[i/sizeof(uint32_t)] = preferredLanguage1[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] << (8*(4-(i%4))) );
+            preferredLanguage1[i/sizeof(uint32_t)] = preferredLanguage1[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[0].selection[i] << (8*(4-((i+1)%4))) );
         }
         for ( i = 0; i < BAPE_AC4_LANGUAGE_NAME_LENGTH; i++ )
         {
-            preferredLanguage2[i/sizeof(uint32_t)] = preferredLanguage2[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] << (8*(4-(i%4))) );
+            preferredLanguage2[i/sizeof(uint32_t)] = preferredLanguage2[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.languagePreference[1].selection[i] << (8*(4-((i+1)%4))) );
         }
-
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[0], preferredLanguage1[0]);
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[1], preferredLanguage1[1]);
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[0], preferredLanguage2[0]);
-        BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[1], preferredLanguage2[1]);
+        for ( i = 0; i < BAPE_AC4_PRESENTATION_ID_LENGTH; i++ )
+        {
+            presId[i/sizeof(uint32_t)] = presId[i/sizeof(uint32_t)] | (handle->ac4Settings.codecSettings.ac4.presentationId[i] << (8*(4-((i+1)%4))) );
+        }
+        for ( i = 0; i < AC4_DEC_ABBREV_PRESENTATION_LANGUAGE_LENGTH; i++ )
+        {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage1[i], preferredLanguage1[i]);
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, ui32PreferredLanguage2[i], preferredLanguage2[i]);
+        }
+        for ( i = 0; i < AC4_DEC_PROGRAM_IDENTIFIER_LENGTH; i++ )
+        {
+            BAPE_DSP_P_SET_VARIABLE(handle->userConfig.ac4, i32PreferredProgramID[i], presId[i]);
+        }
     }
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.ac4, sizeof(handle->userConfig.ac4));
     if ( errCode )
@@ -2739,6 +2970,7 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
             case BAVC_AudioCompressionStd_eOpus:
                 return BAPE_Decoder_P_ApplyOpusSettings(handle);
             case BAVC_AudioCompressionStd_eAls:
+            case BAVC_AudioCompressionStd_eAlsLoas:
                 return BAPE_Decoder_P_ApplyAlsSettings(handle);
             default:
                 BDBG_MSG(("DSP Codec %u (%s) does not have settings", handle->startSettings.codec, BAPE_P_GetCodecName(handle->startSettings.codec)));

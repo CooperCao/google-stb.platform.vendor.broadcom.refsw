@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:09 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:49 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,33 +70,33 @@
 /***************************************************************************
  *HEVD_IL_CPU_REGS_0
  ***************************************************************************/
-#define BCHP_HEVD_IL_CPU_REGS_0_HST2CPU_MBX      0x20030000 /* [RW] Host 2 CPU mailbox register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU2HST_MBX      0x20030004 /* [RW] CPU to Host mailbox register */
-#define BCHP_HEVD_IL_CPU_REGS_0_MBX_STAT         0x20030008 /* [RO] Mailbox status flags */
-#define BCHP_HEVD_IL_CPU_REGS_0_INST_BASE        0x2003000c /* [RW] Instruction base address register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INT_ENA      0x20030010 /* [RW] CPU interrupt enable */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INT_STAT     0x20030014 /* [RO] CPU interrupt status */
-#define BCHP_HEVD_IL_CPU_REGS_0_HST2CPU_STAT     0x20030018 /* [RW] Host to CPU status register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU2HST_STAT     0x2003001c /* [RW] CPU to Host status register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_SET   0x20030020 /* [RW] CPU interrupt set register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_CLR   0x20030024 /* [RW] CPU interrupt clear register */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_ICACHE_MISS  0x20030028 /* [RW] Instruction cache miss counter */
-#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_MASK  0x2003002c /* [RW] CPU interrupt mask register */
-#define BCHP_HEVD_IL_CPU_REGS_0_DRAM_RD_CNTR     0x20030030 /* [RW] CPU DRAM Read access Counter */
-#define BCHP_HEVD_IL_CPU_REGS_0_END_OF_CODE      0x20030034 /* [RW] End of code register */
-#define BCHP_HEVD_IL_CPU_REGS_0_GLOBAL_IO_BASE   0x20030038 /* [RW] Global IO base register */
-#define BCHP_HEVD_IL_CPU_REGS_0_DRAM_WR_CNTR     0x20030048 /* [RW] CPU DRAM Write access Counter */
-#define BCHP_HEVD_IL_CPU_REGS_0_WATCHDOG_TMR     0x2003004c /* [RW] Watchdog timer register */
-#define BCHP_HEVD_IL_CPU_REGS_0_SDRAM_STATUS     0x20030050 /* [RO] SDRAM Status register */
-#define BCHP_HEVD_IL_CPU_REGS_0_DEBUG_CTL        0x20030054 /* [RW] Debug Control */
-#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG0         0x20030060 /* [RW] Command register 0 */
-#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG1         0x20030064 /* [RW] Command register 1 */
-#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG2         0x20030068 /* [RW] Command register 2 */
-#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG3         0x2003006c /* [RW] Command register 3 */
-#define BCHP_HEVD_IL_CPU_REGS_0_GENERAL_TMR      0x20030070 /* [RW] General purpose timer register */
-#define BCHP_HEVD_IL_CPU_REGS_0_RM2_ARB_TIMEOUT  0x20030074 /* [RW] RM2 ARBITER TIMEOUT Register */
-#define BCHP_HEVD_IL_CPU_REGS_0_RM2_ARB_TIMEOUT_SLICE 0x20030078 /* [RW] RM2 ARBITER TIMEOUT SLICE Register */
-#define BCHP_HEVD_IL_CPU_REGS_0_DEC_VERSION      0x20030108 /* [RO] Decoder versions */
+#define BCHP_HEVD_IL_CPU_REGS_0_HST2CPU_MBX      0x20030000 /* [RW][32] Host 2 CPU mailbox register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU2HST_MBX      0x20030004 /* [RW][32] CPU to Host mailbox register */
+#define BCHP_HEVD_IL_CPU_REGS_0_MBX_STAT         0x20030008 /* [RO][32] Mailbox status flags */
+#define BCHP_HEVD_IL_CPU_REGS_0_INST_BASE        0x2003000c /* [RW][32] Instruction base address register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INT_ENA      0x20030010 /* [RW][32] CPU interrupt enable */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INT_STAT     0x20030014 /* [RO][32] CPU interrupt status */
+#define BCHP_HEVD_IL_CPU_REGS_0_HST2CPU_STAT     0x20030018 /* [RW][32] Host to CPU status register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU2HST_STAT     0x2003001c /* [RW][32] CPU to Host status register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_SET   0x20030020 /* [RW][32] CPU interrupt set register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_CLR   0x20030024 /* [RW][32] CPU interrupt clear register */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_ICACHE_MISS  0x20030028 /* [RW][32] Instruction cache miss counter */
+#define BCHP_HEVD_IL_CPU_REGS_0_CPU_INTGEN_MASK  0x2003002c /* [RW][32] CPU interrupt mask register */
+#define BCHP_HEVD_IL_CPU_REGS_0_DRAM_RD_CNTR     0x20030030 /* [RW][32] CPU DRAM Read access Counter */
+#define BCHP_HEVD_IL_CPU_REGS_0_END_OF_CODE      0x20030034 /* [RW][32] End of code register */
+#define BCHP_HEVD_IL_CPU_REGS_0_GLOBAL_IO_BASE   0x20030038 /* [RW][32] Global IO base register */
+#define BCHP_HEVD_IL_CPU_REGS_0_DRAM_WR_CNTR     0x20030048 /* [RW][32] CPU DRAM Write access Counter */
+#define BCHP_HEVD_IL_CPU_REGS_0_WATCHDOG_TMR     0x2003004c /* [RW][32] Watchdog timer register */
+#define BCHP_HEVD_IL_CPU_REGS_0_SDRAM_STATUS     0x20030050 /* [RO][32] SDRAM Status register */
+#define BCHP_HEVD_IL_CPU_REGS_0_DEBUG_CTL        0x20030054 /* [RW][32] Debug Control */
+#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG0         0x20030060 /* [RW][32] Command register 0 */
+#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG1         0x20030064 /* [RW][32] Command register 1 */
+#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG2         0x20030068 /* [RW][32] Command register 2 */
+#define BCHP_HEVD_IL_CPU_REGS_0_CMD_REG3         0x2003006c /* [RW][32] Command register 3 */
+#define BCHP_HEVD_IL_CPU_REGS_0_GENERAL_TMR      0x20030070 /* [RW][32] General purpose timer register */
+#define BCHP_HEVD_IL_CPU_REGS_0_RM2_ARB_TIMEOUT  0x20030074 /* [RW][32] RM2 ARBITER TIMEOUT Register */
+#define BCHP_HEVD_IL_CPU_REGS_0_RM2_ARB_TIMEOUT_SLICE 0x20030078 /* [RW][32] RM2 ARBITER TIMEOUT SLICE Register */
+#define BCHP_HEVD_IL_CPU_REGS_0_DEC_VERSION      0x20030108 /* [RO][32] Decoder versions */
 
 #endif /* #ifndef BCHP_HEVD_IL_CPU_REGS_0_H__ */
 

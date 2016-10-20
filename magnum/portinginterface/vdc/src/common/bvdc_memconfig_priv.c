@@ -38,14 +38,12 @@
 #include "bstd.h"
 #include "bkni.h"
 #include "bvdc_priv.h"
-#include "bvdc_mad_priv.h"
+#include "bvdc_mcvp_priv.h"
 #include "bvdc_compositor_priv.h"
 #include "bvdc_memconfig_priv.h"
 
 
-#if (BVDC_P_SUPPORT_MCVP)
 #include "bvdc_mcdi_priv.h"
-#endif
 
 BDBG_MODULE(BVDC_MEMCONFIG);
 
@@ -90,7 +88,7 @@ static const bool abStg[BVDC_MAX_DISPLAYS] =
     /*  Disp0    Disp1    Disp2    Disp3    disp4   disp5   disp6 */
             0,       1,       0,       0,       0,      0,       0
 
-#elif ((BCHP_CHIP==7439) && (BCHP_VER>=BCHP_VER_B0))
+#elif ((BCHP_CHIP==7439) && (BCHP_VER>=BCHP_VER_B0)) || (BCHP_CHIP==7278)
     /* 2 stg: Special case */
     /*  Disp0    Disp1    Disp2    Disp3    disp4   disp5   disp6 */
             0,       0,       1,       1,       0,      0,       0
@@ -200,7 +198,8 @@ static const uint32_t aaulMemcIndex[BVDC_MAX_DISPLAYS][BVDC_MAX_VIDEO_WINDOWS] =
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
     { BBOX_MemcIndex_Invalid, BBOX_MemcIndex_Invalid },
 
-#elif ((BCHP_CHIP==7439) && (BCHP_VER >= BCHP_VER_B0))
+#elif ((BCHP_CHIP==7439) && (BCHP_VER >= BCHP_VER_B0)) || \
+      (BCHP_CHIP==7278)
     { BBOX_MemcIndex_1,       BBOX_MemcIndex_1 },
     { BBOX_MemcIndex_1,       BBOX_MemcIndex_0 },
     { BBOX_MemcIndex_0,       BBOX_MemcIndex_Invalid },
@@ -294,16 +293,10 @@ BERR_Code BVDC_P_MemConfig_GetDefaultDisplaySettings
     pDisplay->eMaxDisplayFormat =
         (ulDispIndex == 0) ? BFMT_VideoFmt_e4096x2160p_24Hz :
         (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
-#elif (BVDC_P_SUPPORT_3D_VIDEO)
+#else
     pDisplay->eMaxDisplayFormat =
         (ulDispIndex == 0) ? BFMT_VideoFmt_e3D_1080p_30Hz :
         (bStg ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC);
-#elif (BVDC_P_SUPPORT_1080p_60HZ)
-    pDisplay->eMaxDisplayFormat =
-        ((ulDispIndex == 0) || bStg) ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_eNTSC;
-#else
-    pDisplay->eMaxDisplayFormat =
-        ((ulDispIndex == 0) || bStg) ? BFMT_VideoFmt_e1080p_30Hz: BFMT_VideoFmt_eNTSC;
 #endif
 
     return BERR_SUCCESS;
@@ -337,13 +330,9 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
 
 #if (BVDC_P_SUPPORT_DTG_RMD) && (!BVDC_P_SUPPORT_DSCL)
     pWindow->eMaxSourceFormat = BFMT_VideoFmt_e4096x2160p_24Hz;
-#elif (BVDC_P_SUPPORT_3D_VIDEO)
+#else
     pWindow->eMaxSourceFormat =
         (ulDispIndex) ? BFMT_VideoFmt_e1080p : BFMT_VideoFmt_e3D_1080p_30Hz;
-#elif (BVDC_P_SUPPORT_1080p_60HZ)
-    pWindow->eMaxSourceFormat = BFMT_VideoFmt_e1080p;
-#else
-    pWindow->eMaxSourceFormat = BFMT_VideoFmt_e1080p_30Hz;
 #endif
 
 #if (BVDC_P_SUPPORT_HDDVI || BVDC_P_NUM_656IN_SUPPORT)
@@ -355,12 +344,7 @@ BERR_Code BVDC_P_MemConfig_GetDefaultWindowSettings
     pWindow->bMosaicMode = aaulClearRectCount[ulDispIndex][ulWinIndex]
         ? true : false;
 
-#if (BVDC_P_SUPPORT_3D_VIDEO)
     pWindow->b3DMode = ulDispIndex ? false : true;
-#else
-    pWindow->b3DMode = false;
-#endif
-
     pWindow->bPip = ulWinIndex ? true : false;
     pWindow->b5060Convert = false;
     pWindow->bSlave_24_25_30_Display = (ulDispIndex == 1) ? true : false;
@@ -434,7 +418,7 @@ BERR_Code BVDC_P_MemConfigInfo_Init
 
     pSystemConfigInfo->ulNumCmp  = BVDC_P_GetNumCmp(&s_VdcFeatures);
     pSystemConfigInfo->ulNumStg  = BVDC_P_SUPPORT_STG;
-    pSystemConfigInfo->ulNumMad  = BVDC_P_SUPPORT_MAD + BVDC_P_SUPPORT_MCVP;
+    pSystemConfigInfo->ulNumMad  = BVDC_P_SUPPORT_MCVP;
     pSystemConfigInfo->ulNumMadr = BVDC_P_SUPPORT_MADR;
 
     pSystemConfigInfo->ulNumCmpUsed  = 0;
@@ -598,11 +582,6 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
     uint32_t        ulSrcSize, ulDispSize;
     BFMT_VideoFmt   eSrcFormat, eDispFormat;
 
-#if (!BVDC_P_SUPPORT_MCVP)
-    BSTD_UNUSED(pSystemConfigInfo);
-    BSTD_UNUSED(ulDispIndex);
-    BSTD_UNUSED(ulWinIndex);
-#endif
 
     BDBG_ASSERT(pWindow);
     BDBG_ASSERT(pWinConfigInfo);
@@ -638,7 +617,7 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
         (pWindow->ulMadMemcIndex == BBOX_MemcIndex_Invalid)
         ? BVDC_DeinterlacerMode_eNone : pWindow->eDeinterlacerMode;
 
-#if (BVDC_P_SUPPORT_MCVP)
+
     if(pSystemConfigInfo->ulNumMad == pSystemConfigInfo->ulNumMadr)
     {
         /* NO Mcvp, all deinterlacers are MADR */
@@ -657,9 +636,6 @@ BERR_Code BVDC_P_MemConfig_GetWindowInfo
             pWinConfigInfo->bMadr = (ulWinIndex == 0) ? false : true;
         }
     }
-#else
-    pWinConfigInfo->bMadr = false;
-#endif
 
     /* Get format */
     eSrcFormat = pWindow->eMaxSourceFormat;
@@ -799,10 +775,6 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
     BVDC_P_BufferHeap_SizeInfo   *pHeapSizeInfo;
     BVDC_P_Compression_Settings   stCompression;
 
-#if (BVDC_P_SUPPORT_MAD)
-    BSTD_UNUSED(pWinConfigInfo);
-    BSTD_UNUSED(eMadGameMode);
-#endif
 
 #if (!BDBG_DEBUG_BUILD)
     BSTD_UNUSED(ulDispIndex);
@@ -819,25 +791,9 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
 
     BVDC_P_Window_Compression_Init(false, false, NULL, &stCompression, BVDC_P_Mvp_Dcxs);
 
-    BVDC_P_Mad_Init_Default(NULL, &ePxlFormat,
-        NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL);
+    BVDC_P_Mvp_Init_Default(NULL, &ePxlFormat,
+        NULL, NULL, NULL, NULL, NULL, NULL);
 
-#if (BVDC_P_SUPPORT_MAD)
-    /* MAD */
-    ulPixelBufCnt = BVDC_P_MAD_PIXEL_SD_BUFFER_COUNT;
-    ulQmBufCnt    = BVDC_P_MAD_QM_BUFFER_COUNT;
-
-#if (BVDC_P_SUPPORT_MAD_SRC_1080I )
-    /* HD MAD: 6 HD buffers */
-    stMadBufRect.ulWidth = BFMT_1080I_WIDTH;
-    stMadBufRect.ulHeight = BFMT_1080I_HEIGHT;
-#else
-    /* SD MAD: 6 SD buffers */
-    stMadBufRect.ulWidth = BFMT_PAL_WIDTH;
-    stMadBufRect.ulHeight = BFMT_PAL_HEIGHT;
-#endif
-
-#elif (BVDC_P_SUPPORT_MCVP)
     /*MCVP */
     /* TODO: Clean up for mosaic. Box mode? */
 #if BVDC_P_SUPPORT_MOSAIC_DEINTERLACE
@@ -867,7 +823,7 @@ static BERR_Code BVDC_P_MemConfig_GetWindowDeinterlacerBufCnt
 
     /* no QM buffer needed for 1/0 field buffer force spatial */
     ulQmBufCnt = BVDC_P_MAD_SPATIAL(eMadGameMode)? 0:ulQmBufCnt;
-#endif
+
 
     /* Get Pixel buffers */
     BVDC_P_Window_GetBufSize_isr(ulWinIndex, &stMadBufRect, true,

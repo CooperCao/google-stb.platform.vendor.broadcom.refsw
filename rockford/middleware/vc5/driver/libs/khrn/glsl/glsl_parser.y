@@ -11,8 +11,6 @@
    #include <limits.h>
    #include <assert.h>
 
-   #include "vcos_string.h"
-
    #include "glsl_common.h"
    #include "glsl_symbols.h"
    #include "glsl_errors.h"
@@ -60,10 +58,7 @@
 
       SymbolTable *symbol_table;
 
-      LayoutQualifier *buffer_default_lq;
-      LayoutQualifier *uniform_default_lq;
-      unsigned int atomic_buffer_offset[GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS];
-      FunctionBuilder function_builder;
+      DeclDefaultState dflt;
 
       PrecisionTable *precision_table;
 
@@ -98,23 +93,17 @@
       state.seq = NULL;
       state.user_code = true;
 
-      glsl_reinit_function_builder(&state.function_builder);
-
       /* Set up the root precision table with default precisions */
-      state.precision_table = NULL;
-      state.precision_table = glsl_prec_add_table(state.precision_table);
+      state.precision_table = glsl_prec_add_table(NULL);
       glsl_prec_set_defaults(state.precision_table, flavour);
 
-      state.buffer_default_lq = malloc_fast(sizeof(LayoutQualifier));
-      state.buffer_default_lq->qualified = UNIF_QUALED;
-      state.buffer_default_lq->unif_bits = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
-
-      state.uniform_default_lq = malloc_fast(sizeof(LayoutQualifier));
-      state.uniform_default_lq->qualified = UNIF_QUALED;
-      state.uniform_default_lq->unif_bits = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
+      state.dflt.buffer_layout  = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
+      state.dflt.uniform_layout = LAYOUT_SHARED | LAYOUT_COLUMN_MAJOR;
+      state.dflt.input_size     = 0;
+      state.dflt.output_size    = 0;
 
       for (int i=0; i<GLXX_CONFIG_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS; i++)
-         state.atomic_buffer_offset[i] = 0;
+         state.dflt.atomic_offset[i] = 0;
 
       glsl_init_preprocessor(version);
       glsl_init_lexer(sourcec, sourcev);
@@ -230,19 +219,6 @@
          }
       }
 
-      /* detokenize tokens which were meaningful to the preprocessor */
-      if (KEYWORDS_BEGIN < type && type < KEYWORDS_END && (data.flags & PREPROC_KEYWORD) != 0)
-      {
-         data.s = glsl_keyword_to_string(type);
-         type = IDENTIFIER;
-      }
-      else if (type == PPNUMBER)
-      {
-         Token *token = glsl_lex_ppnumber(glsl_token_construct(type, data));
-         type = token->type;
-         data = token->data;
-      }
-
       switch (type) {
       case IDENTIFIER:
       {
@@ -268,9 +244,10 @@
       }
       case BOOLCONSTANT:
       case INTCONSTANT:
-      case UINTCONSTANT:
-      case FLOATCONSTANT:
          yylvalp->v = data.v;
+         break;
+      case PPNUMBER:
+         type = glsl_lex_ppnumber(data.s, &yylvalp->v);
          break;
       default:
          break;
@@ -307,10 +284,12 @@
    {
       Qualifiers q;
       qualifiers_from_list(&q, quals);
-      if (q.sq == STORAGE_UNIFORM)
-         q.lq = glsl_create_mixed_lq(q.lq, state->uniform_default_lq);
-      if (q.sq == STORAGE_BUFFER)
-         q.lq = glsl_create_mixed_lq(q.lq, state->buffer_default_lq);
+      if (q.sq == STORAGE_UNIFORM || q.sq == STORAGE_BUFFER) {
+         uint32_t dflt = (q.sq == STORAGE_UNIFORM) ? state->dflt.uniform_layout : state->dflt.buffer_layout;
+         if (!q.lq) q.lq = glsl_layout_create(NULL);
+         q.lq->qualified |= UNIF_QUALED;
+         q.lq->unif_bits = glsl_layout_combine_block_bits(dflt, q.lq->unif_bits);
+      }
 
       SymbolType *type  = glsl_build_block_type(&q, block_name, type_members);
       if (array_size != NULL)
@@ -329,7 +308,7 @@
 
 // Create a reentrant, pure parser:
 %define api.pure
-%lex-param { void *state }
+%lex-param   { void *state }
 %parse-param { void *state }
 //%token-table       // for debugging: include token table:
 %verbose             // for debugging: emit *.output file with parser states
@@ -339,9 +318,9 @@
 
 // Yacc's value stack type.
 %union {
-   const char* s;
+   const char *s;
    const_value v;
-   struct { const char* name; Symbol* symbol; } lookup;
+   struct { const char *name; Symbol *symbol; } lookup;
    Symbol *symbol;
    SymbolList *symbol_list;
    CallContext call_context;
@@ -366,7 +345,8 @@
    InterpolationQualifier interp_qual;
    struct { const char *name; ExprChain *size; } declarator;
    struct { const char *name; ExprChain *size; Expr *init; } init_declarator;
-   LayoutQualifier *layout_qual;
+   struct param *param;
+   struct param_list *param_list;
    LayoutID *lq_id;
    LayoutIDList *lq_id_list;
    struct { QualList *quals; SymbolType *type; } fs_type;
@@ -710,6 +690,9 @@
 %type<qualifier> single_type_qualifier
 %type<qual_list> type_qualifier
 
+%type<param> parameter_declaration
+%type<param_list> parameter_declaration_list parameter_declaration_list_opt
+
 %type<declarator> declarator
 
 %type<fs_type> fully_specified_type
@@ -968,7 +951,7 @@ declaration
    | type_qualifier SEMICOLON
       {
          $$ = glsl_statement_construct_qualifier_default(g_LineNumber, $1);
-         qualifiers_process_default($1, PS->symbol_table, &PS->uniform_default_lq, &PS->buffer_default_lq);
+         qualifiers_process_default($1, PS->symbol_table, &PS->dflt);
       }
    | type_qualifier identifier_list SEMICOLON
       { $$ = glsl_statement_construct_qualifier_augment(g_LineNumber, $1, $2); }
@@ -992,20 +975,26 @@ function_prototype
    : fully_specified_type IDENTIFIER LEFT_PAREN parameter_declaration_list_opt RIGHT_PAREN
       {
          $$.name = $2.name;
-         $$.type = glsl_build_function_type($1.quals, $1.type, &PS->function_builder);
-
-         glsl_reinit_function_builder(&PS->function_builder);
+         $$.type = glsl_build_function_type($1.quals, $1.type, $4);
       }
    ;
 
 parameter_declaration_list_opt
-   : /* empty */
+   : /* empty */ { $$ = NULL; }
    | parameter_declaration_list
    ;
 
 parameter_declaration_list
-   : parameter_declaration
+   : parameter_declaration { $$ = malloc_fast(sizeof(ParamList)); $$->p = $1; $$->next = NULL; }
    | parameter_declaration_list COMMA parameter_declaration
+      { ParamList *l = $1;
+        while (l->next != NULL) l = l->next;
+        l->next = malloc_fast(sizeof(ParamList));
+        l = l->next;
+        l->p = $3;
+        l->next = NULL;
+        $$ = $1;
+      }
    ;
 
 declarator
@@ -1020,9 +1009,9 @@ identifier_or_typename
 
 parameter_declaration
    : fully_specified_type declarator
-      { glsl_commit_function_param(&PS->function_builder, $2.name, $1.type, $1.quals, $2.size); }
+      { $$ = malloc_fast(sizeof(Param)); $$->name = $2.name; $$->type = $1.type; $$->quals = $1.quals; $$->size = $2.size; }
    | fully_specified_type
-      { glsl_commit_function_param(&PS->function_builder, NULL, $1.type, $1.quals, NULL); }
+      { $$ = malloc_fast(sizeof(Param)); $$->name = NULL;    $$->type = $1.type; $$->quals = $1.quals; $$->size = NULL; }
    ;
 
 init_declarator
@@ -1041,7 +1030,7 @@ init_declarator_list
       }
    | init_declarator_list COMMA init_declarator
       {
-         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
+         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, &PS->dflt,
                                                         $1.quals, $1.type, $3.name, $3.size, $3.init);
          $$.quals       = $1.quals;
          $$.type        = $1.type;
@@ -1056,7 +1045,7 @@ single_declaration
          $$.quals = $1.quals;
          $$.type  = $1.type;
 
-         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
+         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, &PS->dflt,
                                                         $1.quals, $1.type, NULL, NULL, NULL);
          assert(symbol == NULL);
          $$.s = NULL;
@@ -1066,7 +1055,7 @@ single_declaration
          $$.quals = $1.quals;
          $$.type  = $1.type;
 
-         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
+         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, &PS->dflt,
                                                         $1.quals, $1.type, $2.name, $2.size, $2.init);
          $$.s           = glsl_statement_construct_var_decl(g_LineNumber, $1.quals, $1.type, symbol, $2.init);
       }
@@ -1248,17 +1237,20 @@ type_specifier_nonarray
    | SAMPLERCUBESHADOW       { $$ = &primitiveTypes[PRIM_SAMPLERCUBESHADOW]; }
    | SAMPLER2DARRAY          { $$ = &primitiveTypes[PRIM_SAMPLER2DARRAY]; }
    | SAMPLER2DARRAYSHADOW    { $$ = &primitiveTypes[PRIM_SAMPLER2DARRAYSHADOW]; }
+   | SAMPLERBUFFER           { $$ = &primitiveTypes[PRIM_SAMPLERBUFFER]; }
    | SAMPLERCUBEARRAY        { $$ = &primitiveTypes[PRIM_SAMPLERCUBEARRAY]; }
    | SAMPLERCUBEARRAYSHADOW  { $$ = &primitiveTypes[PRIM_SAMPLERCUBEARRAYSHADOW]; }
    | ISAMPLER2D              { $$ = &primitiveTypes[PRIM_ISAMPLER2D]; }
    | ISAMPLER3D              { $$ = &primitiveTypes[PRIM_ISAMPLER3D]; }
    | ISAMPLERCUBE            { $$ = &primitiveTypes[PRIM_ISAMPLERCUBE]; }
    | ISAMPLER2DARRAY         { $$ = &primitiveTypes[PRIM_ISAMPLER2DARRAY]; }
+   | ISAMPLERBUFFER          { $$ = &primitiveTypes[PRIM_ISAMPLERBUFFER]; }
    | ISAMPLERCUBEARRAY       { $$ = &primitiveTypes[PRIM_ISAMPLERCUBEARRAY]; }
    | USAMPLER2D              { $$ = &primitiveTypes[PRIM_USAMPLER2D]; }
    | USAMPLER3D              { $$ = &primitiveTypes[PRIM_USAMPLER3D]; }
    | USAMPLERCUBE            { $$ = &primitiveTypes[PRIM_USAMPLERCUBE]; }
    | USAMPLER2DARRAY         { $$ = &primitiveTypes[PRIM_USAMPLER2DARRAY]; }
+   | USAMPLERBUFFER          { $$ = &primitiveTypes[PRIM_USAMPLERBUFFER]; }
    | USAMPLERCUBEARRAY       { $$ = &primitiveTypes[PRIM_USAMPLERCUBEARRAY]; }
    | SAMPLER2DMS             { $$ = &primitiveTypes[PRIM_SAMPLER2DMS]; }
    | ISAMPLER2DMS            { $$ = &primitiveTypes[PRIM_ISAMPLER2DMS]; }
@@ -1278,6 +1270,9 @@ type_specifier_nonarray
    | IMAGE2DARRAY            { $$ = &primitiveTypes[PRIM_IMAGE2DARRAY]; }
    | IIMAGE2DARRAY           { $$ = &primitiveTypes[PRIM_IIMAGE2DARRAY]; }
    | UIMAGE2DARRAY           { $$ = &primitiveTypes[PRIM_UIMAGE2DARRAY]; }
+   | IMAGEBUFFER             { $$ = &primitiveTypes[PRIM_IMAGEBUFFER]; }
+   | IIMAGEBUFFER            { $$ = &primitiveTypes[PRIM_IIMAGEBUFFER]; }
+   | UIMAGEBUFFER            { $$ = &primitiveTypes[PRIM_UIMAGEBUFFER]; }
    | UIMAGECUBEARRAY         { $$ = &primitiveTypes[PRIM_UIMAGECUBEARRAY]; }
    | IMAGECUBEARRAY          { $$ = &primitiveTypes[PRIM_IMAGECUBEARRAY]; }
    | IIMAGECUBEARRAY         { $$ = &primitiveTypes[PRIM_IIMAGECUBEARRAY]; }
@@ -1407,7 +1402,7 @@ condition
    : expression                                        { $$ = glsl_statement_construct_expr(g_LineNumber, $1); }
    | fully_specified_type IDENTIFIER EQUAL initializer
       {
-         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, PS->atomic_buffer_offset,
+         Symbol *symbol = glsl_commit_variable_instance(PS->symbol_table, PS->precision_table, &PS->dflt,
                                                         $1.quals, $1.type, $2.name, NULL, $4);
          $$ = glsl_statement_construct_var_decl(g_LineNumber, $1.quals, $1.type, symbol, $4);
       }

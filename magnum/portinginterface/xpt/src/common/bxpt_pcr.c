@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -1015,12 +1015,13 @@ static int64_t CorrectLeakyIntegrator(
         PcrThreshold |= (int64_t)(0xFFFFFFFF) << 32;
         PcrThreshold |= (int64_t) 0xFFF00000;
     }
-    BDBG_MSG(( "DPCR%u: Accum %lld, PHASE_ERROR %lld (0x%08lX)", hPcr->ChannelNo, hPcr->Accum, PcrThreshold, PcrThreshold ));
+    BDBG_MSG(( "DPCR%u: Accum " BDBG_UINT64_FMT ", PHASE_ERROR " BDBG_UINT64_FMT "", hPcr->ChannelNo, BDBG_UINT64_ARG(hPcr->Accum), BDBG_UINT64_ARG(PcrThreshold) ));
 
     PcrB = PcrThreshold << (15 - FiltB);   /* hPcr->FiltB is gainB */
     PcrB_PreSat =  PcrB << 2;
     PcrB2 = Saturate38(PcrB_PreSat, 5); /* TrackRange == 5 forces 38-bit to 36-bit */
-    BDBG_MSG(( "DPCR%u: PcrB %lld, PcrB_PreSat %lld, PcrB2 %lld", hPcr->ChannelNo, PcrB, PcrB_PreSat, PcrB2 ));
+    BDBG_MSG(( "DPCR%u: PcrB " BDBG_UINT64_FMT ", PcrB_PreSat " BDBG_UINT64_FMT ", PcrB2 " BDBG_UINT64_FMT "",
+            hPcr->ChannelNo, BDBG_UINT64_ARG(PcrB), BDBG_UINT64_ARG(PcrB_PreSat), BDBG_UINT64_ARG(PcrB2) ));
 
     PcrCTemp = Accum << 5;
     PcrC2 = PcrCTemp >> (8 + FiltC);
@@ -1033,17 +1034,16 @@ static int64_t CorrectLeakyIntegrator(
         int64_t PcrC2_28_0 = PcrC2; /*  & 0x1FFFFFFF;*/
         PcrC3 = PcrCTemp - PcrC2_28_0;
     }
-    BDBG_MSG(( "DPCR%u: PcrC2 %lld, PcrC3 %lld", hPcr->ChannelNo, PcrC2, PcrC3 ));
+    BDBG_MSG(( "DPCR%u: PcrC2 " BDBG_UINT64_FMT ", PcrC3 " BDBG_UINT64_FMT "", hPcr->ChannelNo, BDBG_UINT64_ARG(PcrC2), BDBG_UINT64_ARG(PcrC3) ));
 
     PcrC4 = (int64_t) Saturate38( PcrC3, (uint64_t) TrackRange );
     PcrCNew = PcrB2 + PcrC4;
     NewAccum = PcrCNew;
     BREG_Write32( hPcr->hRegister, BCHP_XPT_DPCR0_ACCUM_VALUE + hPcr->RegOffset, NewAccum >> 5);
 
-    BDBG_MSG(( "DPCR%u: PcrC4 %lld, Accum(new) %lld, Accum(new) >> 5 %lld, ACCUM reg 0x%08lX",
+    BDBG_MSG(( "DPCR%u: PcrC4 " BDBG_UINT64_FMT ", Accum(new) " BDBG_UINT64_FMT ", Accum(new) >> 5 " BDBG_UINT64_FMT "",
         hPcr->ChannelNo,
-        PcrC4, Accum, NewAccum >> 5,
-        BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_ACCUM_VALUE + hPcr->RegOffset) ));
+        BDBG_UINT64_ARG(PcrC4), BDBG_UINT64_ARG(Accum), BDBG_UINT64_ARG(NewAccum >> 5) ));
     return NewAccum >> 5;
 }
 
@@ -1096,16 +1096,16 @@ BERR_Code BXPT_PCR_P_Integrator(
         /* Note: this number is stored in hw as 2's complement format. See BXPT_PCR_GetPhaseError_isr() */
         Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_PHASE_ERROR + hPcr->RegOffset );
         PcrThreshold = BCHP_GET_FIELD_DATA(Reg, XPT_DPCR0_PHASE_ERROR, PHASE_ERROR);
-        BDBG_MSG(( "DPCR%u latest PHASE_ERROR %lld (0x%08lX), Saved PHASE_ERROR %lld (0x%08lX)",
-            PcrNum, PcrThreshold, PcrThreshold, hPcr->PcrThreshold, hPcr->PcrThreshold ));
+        BDBG_MSG(( "DPCR%u latest PHASE_ERROR " BDBG_UINT64_FMT ", Saved PHASE_ERROR " BDBG_UINT64_FMT "",
+            PcrNum, BDBG_UINT64_ARG(PcrThreshold), BDBG_UINT64_ARG(hPcr->PcrThreshold) ));
 
         Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_PCR_COUNT + hPcr->RegOffset );
-        BDBG_MSG(( "DPCR%u latest PCR_COUNT: 0x%08lX", PcrNum, Reg ));
+        BDBG_MSG(( "DPCR%u latest PCR_COUNT: 0x%08lX", PcrNum, (unsigned long) Reg ));
         PcrCount = BCHP_GET_FIELD_DATA(Reg, XPT_DPCR0_PCR_COUNT, PCR_COUNT);
 
         /* Don't use the current PHASE_ERROR if a PCR ERROR occurred. */
         Reg = BREG_Read32( hPcr->hRegister, BCHP_XPT_DPCR0_INTR_STATUS_REG + hPcr->RegOffset );
-        BDBG_MSG(( "DPCR%u INTR_STATUS_REG: 0x%08lX", PcrNum, Reg ));
+        BDBG_MSG(( "DPCR%u INTR_STATUS_REG: 0x%08lX", PcrNum, (unsigned long) Reg ));
         PcrErrSeen = BCHP_GET_FIELD_DATA(Reg, XPT_DPCR0_INTR_STATUS_REG, ONE_PCR_ERROR )
             || BCHP_GET_FIELD_DATA(Reg, XPT_DPCR0_INTR_STATUS_REG, TWO_PCR_ERROR );
 

@@ -20,7 +20,7 @@ extern v3d_index_type_t gfx_lfmt_translate_index_type(GFX_LFMT_T lfmt);
 extern GFX_LFMT_T gfx_lfmt_translate_from_memory_format(
    v3d_memory_format_t memory_format);
 extern GFX_LFMT_T gfx_lfmt_translate_from_tfu_iformat(
-   v3d_tfu_iformat_t tfu_iformat);
+   v3d_tfu_iformat_t tfu_iformat, unsigned dram_map_version);
 extern GFX_LFMT_T gfx_lfmt_translate_from_tfu_oformat(
    v3d_tfu_oformat_t tfu_oformat);
 
@@ -149,7 +149,7 @@ static inline GFX_LFMT_T gfx_lfmt_translate_from_tmu_type_and_ltype(
 /* Returns just formats */
 extern void gfx_lfmt_translate_from_tfu_type(
    GFX_LFMT_T *fmts, uint32_t *num_planes, v3d_tfu_yuv_col_space_t *yuv_col_space,
-   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_sand);
+   v3d_tfu_type_t tfu_type, v3d_tfu_rgbord_t rgbord, bool srgb, bool is_bigend_sand);
 
 /* Pays attention to format *and layout*
  * Returns false on failure to translate */

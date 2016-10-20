@@ -441,11 +441,14 @@ BERR_Code BSYNClib_VideoSource_P_ProcessConfig_isr(BSYNClib_VideoSource * psSour
 	if (sElementDiffResults.eLifecycleEvent == BSYNClib_DelayElement_LifecycleEvent_eStarted)
 	{
 		BSYNClib_DelayElement_Reset_isr(psCurrent);
-		/* reset will zero out, we need to set back to default */
-		psSource->sElement.sDelay.sResults.uiDesired =
-			BSYNClib_P_Convert_isrsafe(BSYNCLIB_VIDEO_INITIAL_DELAY,
-				BSYNClib_Units_eMilliseconds, BSYNClib_Units_e27MhzTicks);
-		psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
+		/* reset will zero out, we need to set back to default if not NRT */
+		if (!psConfig->bNonRealTime)
+		{
+            psSource->sElement.sDelay.sResults.uiDesired =
+                BSYNClib_P_Convert_isrsafe(BSYNCLIB_VIDEO_INITIAL_DELAY,
+                    BSYNClib_Units_eMilliseconds, BSYNClib_Units_e27MhzTicks);
+            psSource->sElement.sDelay.sResults.uiApplied = psSource->sElement.sDelay.sResults.uiDesired;
+		}
 	}
 
 	/* create "desired" delay element config from current plus changes */

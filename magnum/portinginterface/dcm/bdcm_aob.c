@@ -96,7 +96,7 @@ BDCM_AobChannelHandle BDCM_Aob_OpenChannel(
 
     if(hDevice->hAob)
     {
-       BDBG_WRN(("%s: OOB channel already opened %ul",__FUNCTION__,(unsigned int)hDevice->hAob));
+       BDBG_WRN(("%s: OOB channel already opened %p",__FUNCTION__,(void*)hDevice->hAob));
        return NULL;
     }
     /* Alloc memory from the system heap */

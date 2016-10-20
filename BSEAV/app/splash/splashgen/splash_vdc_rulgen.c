@@ -44,7 +44,6 @@
 #define STRINGIZE(x) XSTRINGIZE(x)
 static const char* s_suffix_string = STRINGIZE(SPLASH_DATA_SUFFIX);
 
-
 BDBG_MODULE(splash_vdc_generate);
 
 static BERR_Code APP_BRDC_Slot_SetList_isr
@@ -153,106 +152,116 @@ static void ReplaceRegisterList(
 	uint32_t          ulData
 	)
 {
-	BRDC_DBG_ListEntry  eEntry;
-	uint32_t            aulArgs[4];
-	bool                bCheckCommand = false;
-	uint32_t            ulCurrRegister = 0;
-	uint32_t           *pulAddress;
+    BRDC_DBG_ListEntry  eEntry;
+    uint32_t            aulArgs[4];
+    bool                bCheckCommand = false;
+    uint32_t            ulCurrRegister = 0;
+    uint32_t           *pulAddress;
 
-	/* get address to list */
-	pulAddress = BRDC_List_GetStartAddress_isr(hList);
+    /* get address to list */
+    pulAddress = BRDC_List_GetStartAddress_isr(hList);
 
-	/* prepare to traverse this list */
-	if (BRDC_DBG_SetList(hList) != BERR_SUCCESS)
-	{
-		/* error */
-		BDBG_ERR(("ERROR parsing list %d", __LINE__));
-		goto done;
-	}
+    /* prepare to traverse this list */
+    if (BRDC_DBG_SetList(hList) != BERR_SUCCESS)
+    {
+        /* error */
+        BDBG_ERR(("ERROR parsing list %d", __LINE__));
+        goto done;
+    }
 
-	/* get first entry in list */
-	if(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs))
-	{
-		/* error */
-		BDBG_ERR(("ERROR parsing list %d", __LINE__));
-		goto done;
-	}
+    /* get first entry in list */
+    if(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs))
+    {
+        /* error */
+        BDBG_ERR(("ERROR parsing list %d", __LINE__));
+        goto done;
+    }
 
-	/* traverse until finished */
-	while(eEntry != BRDC_DBG_ListEntry_eEnd)
-	{
-		/*printf("1--ReplaceRegisterList\n");*/
-		/* command entry? */
-		if(eEntry == BRDC_DBG_ListEntry_eCommand)
-		{
-			/*printf("2--ReplaceRegisterList\n");*/
-			/* is this a write to register command? */
-			bCheckCommand = false;
-			switch(aulArgs[0])
-			{
-				case BRDC_OP_VAR_TO_REG_OPCODE:
-				case BRDC_OP_REG_TO_REG_OPCODE:
-				case BRDC_OP_REGS_TO_REGS_OPCODE:
-				case BRDC_OP_REG_TO_REGS_OPCODE:
-				case BRDC_OP_REGS_TO_REG_OPCODE:
-					/* unhandled */
-					BDBG_MSG(("Unhandled register write command!!!!"));
-					break;
+    /* traverse until finished */
+    while(eEntry != BRDC_DBG_ListEntry_eEnd)
+    {
+        /*printf("1--ReplaceRegisterList\n");*/
+        /* command entry? */
+        if(eEntry == BRDC_DBG_ListEntry_eCommand)
+        {
+            /*printf("2--ReplaceRegisterList\n");*/
+            /* is this a write to register command? */
+            bCheckCommand = false;
+            switch(aulArgs[0])
+            {
+                case BRDC_OP_VAR_TO_REG_OPCODE:
+                case BRDC_OP_REG_TO_REG_OPCODE:
+                case BRDC_OP_REGS_TO_REGS_OPCODE:
+                #if BRDC_64BIT_SUPPORT
+                case BRDC_OP_VAR_TO_REG_OPCODE64:
+                case BRDC_OP_REG_TO_REG_OPCODE64:
+                case BRDC_OP_REGS_TO_REGS_OPCODE64:
+                #endif
+                    /* unhandled */
+                    BDBG_MSG(("Unhandled register write command!!!!"));
+                    break;
 
-				case BRDC_OP_IMMS_TO_REG_OPCODE:
-				case BRDC_OP_IMMS_TO_REGS_OPCODE:
-					bCheckCommand = true;
-					break;
+                case BRDC_OP_IMMS_TO_REG_OPCODE:
+                case BRDC_OP_IMMS_TO_REGS_OPCODE:
+                #if BRDC_64BIT_SUPPORT
+                case BRDC_OP_IMMS_TO_REG_OPCODE64:
+                case BRDC_OP_IMMS_TO_REGS_OPCODE64:
+                #endif
+                    bCheckCommand = true;
+                    break;
 
-				case BRDC_OP_IMM_TO_REG_OPCODE:
-					bCheckCommand = true;
-					break;
+                case BRDC_OP_IMM_TO_REG_OPCODE:
+                #if BRDC_64BIT_SUPPORT
+                case BRDC_OP_IMM_TO_REG_OPCODE64:
+                #endif
+                    bCheckCommand = true;
+                    break;
 
-				default:
-					break;
-			}
+                default:
+                    break;
+            }
 
-		/* check this command contents? */
-		} else if(bCheckCommand)
-		{
-			/* register? */
-			if(eEntry == BRDC_DBG_ListEntry_eRegister)
-			{
-				/* store register */
-				ulCurrRegister = aulArgs[0];
+        /* check this command contents? */
+        } else if(bCheckCommand)
+        {
+            /* register? */
+            if(eEntry == BRDC_DBG_ListEntry_eRegister)
+            {
+                /* store register */
+                ulCurrRegister = aulArgs[0];
 
-			} else if(eEntry == BRDC_DBG_ListEntry_eData)
-			{
-				/* data -- do we have the right register? */
-				if(ulCurrRegister == ulReg)
-				{
-					/* update register with new value */
-					*pulAddress &= ulMask;
-					*pulAddress |= ulData;
-					BDBG_MSG(("Replacing RUL register %08x old: %08x, new %08x",
-						ulReg, aulArgs[0], *pulAddress));
+            } else if(eEntry == BRDC_DBG_ListEntry_eData)
+            {
+                /* data -- do we have the right register? */
+                if(ulCurrRegister == ulReg)
+                {
+                    /* update register with new value */
+                    *pulAddress &= ulMask;
+                    *pulAddress |= ulData;
+                    BDBG_MSG(("Replacing RUL register %08x old: %08x, new %08x",
+                        ulReg, aulArgs[0], *pulAddress));
 
-				/* not a match */
-				} else
-				{
-					/* assume that the next data goes with the next register */
-					ulCurrRegister += 4;
-				}
-			}
-		}
+                /* not a match */
+                } else
+                {
+                    /* assume that the next data goes with the next register */
+                    ulCurrRegister += 4;
+                }
+            }
+        }
 
-		/* get next entry in list */
-		pulAddress++;
-		if(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs))
-		{
-			/* error */
-			BDBG_ERR(("ERROR parsing list %d", __LINE__));
-			goto done;
-		}
-	}
+        /* get next entry in list */
+        pulAddress++;
+        if(BRDC_DBG_GetListEntry(hList, &eEntry, aulArgs))
+        {
+            /* error */
+            BDBG_ERR(("ERROR parsing list %d", __LINE__));
+            goto done;
+        }
+    }
 
 done:
-	return;
+    return;
 }
 
 static void WriteSplashInfo(FILE *fp, ModeHandles *pMode)
@@ -1170,267 +1179,280 @@ void APP_BREG_Write32
 /* called in BRDC_P_Slot_SetList_isr and BRDC_P_Slot_SetListDual_isr */
 static BERR_Code APP_BRDC_Slot_SetList_isr
 (
-	BRDC_Slot_Handle hSlot,
-	BRDC_List_Handle hList,
-	BRDC_Trigger     eTrigger
+    BRDC_Slot_Handle hSlot,
+    BRDC_List_Handle hList,
+    BRDC_Trigger     eTrigger
 )
 {
-	int i, j;
-	bool bMatch = false;
-	uint32_t ulNumEntries;
-	uint32_t *pulStartAddress;
-	uint32_t ulNumEntriesStored;
-	uint32_t *pulStartAddressStored;
-	BRDC_List_Handle  hNewList;
-	int iTriggerIndex;
+    int i, j;
+    bool bMatch = false;
+    uint32_t ulNumEntries;
+    uint32_t *pulStartAddress;
+    uint32_t ulNumEntriesStored;
+    uint32_t *pulStartAddressStored;
+    BRDC_List_Handle  hNewList;
+    int iTriggerIndex;
 
-	/* get information on new list */
-	BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
-	pulStartAddress = BRDC_List_GetStartAddress_isr(hList);
+    /* get information on new list */
+    BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
+    pulStartAddress = BRDC_List_GetStartAddress_isr(hList);
 
-	BDBG_MSG(("Slot_SetList_isr: hSlot[0x%x]; hList(0x%x) (%d) : %d", (uint32_t)hSlot, (uint32_t)hList, eTrigger, ulNumEntries));
+    BDBG_MSG((
+        "Slot_SetList_isr: hSlot[%p]; hList(%p) (%d) : %d",
+        hSlot, hList, eTrigger, ulNumEntries));
 
-	/* Search for the list and slot in existing list. */
-	for(i=g_iListCount-1; i>=0; --i)
-	{
-		/* Find a matching slot/list entry. Note that the same list is used for both top and bottom field slots.
-		   Frames only use the top field slot. */
-		if ((g_aHandleList[i] == hList) &&
-			(g_aHandleSlot[i] == hSlot))
-		{
-			/* match found */
-			break;
-		}
-	}
+    /* Search for the list and slot in existing list. */
+    for(i=g_iListCount-1; i>=0; --i)
+    {
+        /* Find a matching slot/list entry. Note that the same list is used for both top and bottom field slots.
+           Frames only use the top field slot. */
+        if ((g_aHandleList[i] == hList) && (g_aHandleSlot[i] == hSlot))
+        {
+            /* match found */
+            break;
+        }
+    }
 
-	/* If slot/list entry is found, compare the entries with the stored slot/list entry.
-	   If a match is found, don't store else store. If a match is found but the entries are
-	   different clear the stored slot/list entry and overwrite with the new slot/list.
-	 */
-	if(i>=0)
-	{
-		BRDC_SlotId slotId;
-		BRDC_Slot_GetId(hSlot, &slotId);
-		BDBG_MSG(("Found slot %d for hList %d [%p] ; g_aRulList [%p]", slotId, i,
-			(void*)hList, (void*)g_aRulList[i]));
+    /* If slot/list entry is found, compare the entries with the stored
+     * slot/list entry.  If a match is found, don't store else store. If a
+     * match is found but the entries are different clear the stored slot/list
+     * entry and overwrite with the new slot/list.
+     */
+    if(i>=0)
+    {
+        BRDC_SlotId slotId;
+        BRDC_Slot_GetId(hSlot, &slotId);
+        BDBG_MSG(("Found slot %d for hList %d [%p] ; g_aRulList [%p]", slotId, i,
+            hList, g_aRulList[i]));
 
-		/* get information on stored list */
-		BRDC_List_GetNumEntries_isr(g_aRulList[i], &ulNumEntriesStored);
-		pulStartAddressStored = BRDC_List_GetStartAddress_isr(g_aRulList[i]);
+        /* get information on stored list */
+        BRDC_List_GetNumEntries_isr(g_aRulList[i], &ulNumEntriesStored);
+        pulStartAddressStored = BRDC_List_GetStartAddress_isr(g_aRulList[i]);
 
-		/* number of elements the same? */
-		if(ulNumEntriesStored == ulNumEntries)
-		{
-			/* compare elements */
-			bMatch = true;
-			for(j=0; j<(int)ulNumEntries; j++)
-			{
-				/* element different? */
-				if(*(pulStartAddress + j) != *(pulStartAddressStored + j))
-				{
-					if(true) /* !BRDC_IsScratchReg(g_stModeHandles.hRdc, *(pulStartAddress+j-1)) ) */
-					{
-						BDBG_MSG(("SlotList: Cleared %d [0x%8.8x] (element different: #%d of %d)", i, (uint32_t)hList, j+1, ulNumEntries));
-						bMatch = false;
-						break;
-					}
-					#if 0
-					else
-					{
-						printf("************ Mismatch in Scratch pad area - ignoring (%d)!!\n", j);
-					}
-					#endif
-				}
-			}
-		}
-		else
-		{
-			BDBG_MSG(("SlotList: Cleared %d [0x%8.8x] (sizes different: %d vs. %d)", i, (uint32_t)hList, ulNumEntriesStored, ulNumEntries));
-		}
+        /* number of elements the same? */
+        if(ulNumEntriesStored == ulNumEntries)
+        {
+            /* compare elements */
+            bMatch = true;
+            for(j=0; j<(int)ulNumEntries; j++)
+            {
+                /* element different? */
+                if(*(pulStartAddress + j) != *(pulStartAddressStored + j))
+                {
+                    if(true) /* !BRDC_IsScratchReg(g_stModeHandles.hRdc, *(pulStartAddress+j-1)) ) */
+                    {
+                        BDBG_MSG((
+                            "SlotList: Cleared %d [%p] (element different: #%d of %d)",
+                            i, hList, j+1, ulNumEntries));
+                        bMatch = false;
+                        break;
+                    }
+                    #if 0
+                    else
+                    {
+                        printf("************ Mismatch in Scratch pad area - ignoring (%d)!!\n", j);
+                    }
+                    #endif
+                }
+            }
+        }
+        else
+        {
+            BDBG_MSG((
+                "SlotList: Cleared %d [%p] (sizes different: %d vs. %d)",
+                i, hList, ulNumEntriesStored, ulNumEntries));
+        }
 
-		/* A match is found so skip storing it. */
-		if(bMatch)
-		{
-			/* no need to update list */
-			/* printf("SetList_isr: OLD LIST\n"); */
-			BDBG_MSG(("Match for slot %d", slotId));
-			goto done;
-		}
-		else /* Not a match so clear slot/list entry and store new slot/list. */
-		{
-			BDBG_MSG(("No match for slot %d, clearing list", slotId));
-			/* clear out the handle since this is not active any longer */
-			/* printf("Clearing...\n"); */
-			g_aHandleList[i] = NULL;
-		}
-	}
+        /* A match is found so skip storing it. */
+        if(bMatch)
+        {
+            /* no need to update list */
+            /* printf("SetList_isr: OLD LIST\n"); */
+            BDBG_MSG(("Match for slot %d", slotId));
+            goto done;
+        }
+        else /* Not a match so clear slot/list entry and store new slot/list. */
+        {
+            BDBG_MSG(("No match for slot %d, clearing list", slotId));
+            /* clear out the handle since this is not active any longer */
+            /* printf("Clearing...\n"); */
+            g_aHandleList[i] = NULL;
+        }
+    }
 
-	/* new list -- no more storage? */
-	/* printf("SetList_isr: NEW LIST... (%x, %d)\n", (uint32_t)hList, ulNumEntries);*/
-	if((g_iListCount == MAX_RUL_COUNT) ||
-		(ulNumEntries > MAX_RUL_ENTRIES))
-	{
-		/* cannot store */
-		BDBG_ERR(("ERROR: %d %d -No pre-allocation available for list.",g_iListCount,ulNumEntries));
-	}
+    /* new list -- no more storage? */
+    /* printf("SetList_isr: NEW LIST... (%x, %d)\n", (uint32_t)hList, ulNumEntries);*/
+    if((g_iListCount == MAX_RUL_COUNT) ||
+            (ulNumEntries > MAX_RUL_ENTRIES))
+    {
+        /* cannot store */
+        BDBG_ERR(("ERROR: %d %d -No pre-allocation available for list.",g_iListCount,ulNumEntries));
+    }
 
-	/* Store new slot/list */
-	g_aHandleList[g_iListCount] = hList;
-	g_aHandleSlot[g_iListCount] = hSlot;
-	hNewList = g_aRulList[g_iListCount];
-	BRDC_List_SetNumEntries_isr(hNewList, ulNumEntries);
-	pulStartAddressStored = BRDC_List_GetStartAddress_isr(hNewList);
-	for(j=0; j<(int)ulNumEntries; j++)
-	{
-		/* copy */
-		*(pulStartAddressStored + j) = *(pulStartAddress + j);
-	}
+    /* Store new slot/list */
+    g_aHandleList[g_iListCount] = hList;
+    g_aHandleSlot[g_iListCount] = hSlot;
+    hNewList = g_aRulList[g_iListCount];
+    BRDC_List_SetNumEntries_isr(hNewList, ulNumEntries);
+    pulStartAddressStored = BRDC_List_GetStartAddress_isr(hNewList);
+    for(j=0; j<(int)ulNumEntries; j++)
+    {
+        /* copy */
+        *(pulStartAddressStored + j) = *(pulStartAddress + j);
+    }
 
-	/* store as top list for that trigger */
-	iTriggerIndex = GetArrayIndex(eTrigger);
+    /* store as top list for that trigger */
+    iTriggerIndex = GetArrayIndex(eTrigger);
 
-	if (-1 == iTriggerIndex)
-	{
-		BDBG_MSG(("trigger index is -1"));
-		return BERR_SUCCESS;
-	}
+    if (-1 == iTriggerIndex)
+    {
+        BDBG_MSG(("trigger index is -1"));
+        return BERR_SUCCESS;
+    }
 
-	g_aTopLists[iTriggerIndex] = g_iListCount;
+    g_aTopLists[iTriggerIndex] = g_iListCount;
 
-	/* Add the list. The trigger is used to determine if the list is
-	   a candidate to be added. There are 2 qualifying triggers:
-	   1. The trigger was used for kick-starting the RDMA - this is typically
-	      associated with the top field
-	   2. Since VEC/COMP triggers are pairs, the 2nd part of the trigger pair -
-	      this typically associated with the bottom field.
-	 */
-	if(isTrigger(eTrigger) || g_bExecuteList[iTriggerIndex])
-	{
-		/* first bottom field? */
-		if(g_bFirstBottom[iTriggerIndex] && isTrigger(eTrigger))
-		{
-			/* ignore first bottom field */
-			g_bFirstBottom[iTriggerIndex] = false;
+    /* Add the list. The trigger is used to determine if the list is
+       a candidate to be added. There are 2 qualifying triggers:
+       1. The trigger was used for kick-starting the RDMA - this is typically
+          associated with the top field
+       2. Since VEC/COMP triggers are pairs, the 2nd part of the trigger pair -
+          this typically associated with the bottom field.
+     */
+    if(isTrigger(eTrigger) || g_bExecuteList[iTriggerIndex])
+    {
+        /* first bottom field? */
+        if(g_bFirstBottom[iTriggerIndex] && isTrigger(eTrigger))
+        {
+            /* ignore first bottom field */
+            g_bFirstBottom[iTriggerIndex] = false;
 
-		/* not the first bottom */
-		} else
-		{
-			/* add to list */
-			g_aListOrder[iTriggerIndex][g_aListOrderCount[iTriggerIndex]++] =
-				g_iListCount;
-			BDBG_MSG(("SlotList: Added	 %d [0x%8.8x] TriggerIndex=%d", g_iListCount, (uint32_t)hList, iTriggerIndex));
-		}
-	}
+        /* not the first bottom */
+        } else
+        {
+            /* add to list */
+            g_aListOrder[iTriggerIndex][g_aListOrderCount[iTriggerIndex]++] =
+                g_iListCount;
+            BDBG_MSG((
+                "SlotList: Added	 %d [%p] TriggerIndex=%d",
+                g_iListCount, hList, iTriggerIndex));
+        }
+    }
 
-	/* Update Trigger Map */
-	{
-		BRDC_SlotId slotId;
-		const BRDC_TrigInfo *trigInfo = BRDC_Trigger_GetInfo(g_stModeHandles.hRdc, eTrigger);
-		BRDC_Slot_GetId(hSlot, &slotId);
-		BDBG_MSG(("Slot number %d, Trigger enum %d Trigger HW num %d TriggerIndex %d", slotId, eTrigger, trigInfo->ulTrigVal, iTriggerIndex));
-		g_asTriggerMap[iTriggerIndex].SlotNum = slotId;
-		g_asTriggerMap[iTriggerIndex].TriggerHwNum = trigInfo->ulTrigVal;
-	}
+    /* Update Trigger Map */
+    {
+        BRDC_SlotId slotId;
+        const BRDC_TrigInfo *trigInfo = BRDC_Trigger_GetInfo(g_stModeHandles.hRdc, eTrigger);
+        BRDC_Slot_GetId(hSlot, &slotId);
+        BDBG_MSG(("Slot number %d, Trigger enum %d Trigger HW num %d TriggerIndex %d", slotId, eTrigger, trigInfo->ulTrigVal, iTriggerIndex));
+        g_asTriggerMap[iTriggerIndex].SlotNum = slotId;
+        g_asTriggerMap[iTriggerIndex].TriggerHwNum = trigInfo->ulTrigVal;
+    }
 
-	/* Added the new list element and update the slot/list entry count. */
-	g_iListCount++;
+    /* Added the new list element and update the slot/list entry count. */
+    g_iListCount++;
 
 done:
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /* called in BRDC_Slot_ExecuteOnTrigger_isr */
 static BERR_Code APP_BRDC_Slot_ExecuteOnTrigger_isr
 (
-	BRDC_Slot_Handle hSlot,
-	BRDC_Trigger     eRDCTrigger,
-	bool             bRecurring
+    BRDC_Slot_Handle hSlot,
+    BRDC_Trigger     eRDCTrigger,
+    bool             bRecurring
 )
 {
-	BRDC_List_Handle hList;
-	uint32_t ulNumEntries;
+    BRDC_List_Handle hList;
+    uint32_t ulNumEntries;
 
-	BSTD_UNUSED(bRecurring);
+    BSTD_UNUSED(bRecurring);
 
-	/* get list that was executed without trigger
-	   (only one should be this way) */
-	BRDC_Slot_GetList_isr(hSlot, &hList);
-	BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
-	BDBG_MSG(("ExecuteOnTrigger_isr: hSlot[0x%x]; hList[0x%x] : (%d) : %d", (uint32_t)hSlot,  (uint32_t)hList, eRDCTrigger, ulNumEntries));
+    /* get list that was executed without trigger
+       (only one should be this way) */
+    BRDC_Slot_GetList_isr(hSlot, &hList);
+    BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
+    BDBG_MSG((
+        "ExecuteOnTrigger_isr: hSlot[%p]; hList[Tp] : (%d) : %d",
+        hSlot, hList, eRDCTrigger, ulNumEntries));
 
-	switch(eRDCTrigger)
-	{
-	case BRDC_Trigger_eCap0Trig0:
-		BDBG_MSG(("BRDC_Trigger_eCap0Trig0"));
-		break;
-	case BRDC_Trigger_eCap0Trig1:
-		BDBG_MSG(("BRDC_Trigger_eCap0Trig1"));
-		break;
-	case BRDC_Trigger_eVec0Trig0:
-		BDBG_MSG(("BRDC_Trigger_eVec0Trig0"));
-		break;
-	case BRDC_Trigger_eVec0Trig1:
-		BDBG_MSG(("BRDC_Trigger_eVec0Trig1"));
-		break;
+    switch(eRDCTrigger)
+    {
+    case BRDC_Trigger_eCap0Trig0:
+        BDBG_MSG(("BRDC_Trigger_eCap0Trig0"));
+        break;
+    case BRDC_Trigger_eCap0Trig1:
+        BDBG_MSG(("BRDC_Trigger_eCap0Trig1"));
+        break;
+    case BRDC_Trigger_eVec0Trig0:
+        BDBG_MSG(("BRDC_Trigger_eVec0Trig0"));
+        break;
+    case BRDC_Trigger_eVec0Trig1:
+        BDBG_MSG(("BRDC_Trigger_eVec0Trig1"));
+        break;
 
-	case BRDC_Trigger_eVec1Trig0:
-		BDBG_MSG(("BRDC_Trigger_eVec1Trig0"));
-		break;
-	case BRDC_Trigger_eVec1Trig1:
-		BDBG_MSG(("BRDC_Trigger_eVec1Trig1"));
-		break;
+    case BRDC_Trigger_eVec1Trig0:
+        BDBG_MSG(("BRDC_Trigger_eVec1Trig0"));
+        break;
+    case BRDC_Trigger_eVec1Trig1:
+        BDBG_MSG(("BRDC_Trigger_eVec1Trig1"));
+        break;
 
-	case BRDC_Trigger_eCmp_0Trig0:
-		BDBG_MSG(("BRDC_Trigger_eCmp_0Trig0"));
-		break;
-	case BRDC_Trigger_eCmp_0Trig1:
-		BDBG_MSG(("BRDC_Trigger_eCmp_0Trig1"));
-		break;
-	case BRDC_Trigger_eCmp_1Trig0:
-		BDBG_MSG(("BRDC_Trigger_eCmp_1Trig0"));
-		break;
-	case BRDC_Trigger_eCmp_1Trig1:
-		BDBG_MSG(("BRDC_Trigger_eCmp_1Trig1"));
-		break;
+    case BRDC_Trigger_eCmp_0Trig0:
+        BDBG_MSG(("BRDC_Trigger_eCmp_0Trig0"));
+        break;
+    case BRDC_Trigger_eCmp_0Trig1:
+        BDBG_MSG(("BRDC_Trigger_eCmp_0Trig1"));
+        break;
+    case BRDC_Trigger_eCmp_1Trig0:
+        BDBG_MSG(("BRDC_Trigger_eCmp_1Trig0"));
+        break;
+    case BRDC_Trigger_eCmp_1Trig1:
+        BDBG_MSG(("BRDC_Trigger_eCmp_1Trig1"));
+        break;
 
-	default:
-		BDBG_MSG(("(%d)Trigger unknown" , eRDCTrigger));
-		break;
-	}
+    default:
+        BDBG_MSG(("(%d)Trigger unknown" , eRDCTrigger));
+        break;
+    }
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
+
 /* called in BRDC_Slot_Execute_isr */
 static BERR_Code APP_BRDC_Slot_Execute_isr
 (
-	BRDC_Slot_Handle hSlot,
-	BRDC_Trigger	 eTrigger
+    BRDC_Slot_Handle hSlot,
+    BRDC_Trigger	 eTrigger
 )
 {
-	BRDC_List_Handle hList;
-	uint32_t ulNumEntries;
-	int iTriggerIndex;
+    BRDC_List_Handle hList;
+    uint32_t ulNumEntries;
+    int iTriggerIndex;
 
-	/* printf("Execute_isr\n"); */
+    /* printf("Execute_isr\n"); */
 
-	/* get list that was executed without trigger
-	   (only one should be this way) */
-	BRDC_Slot_GetList_isr(hSlot, &hList);
-	BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
-	BDBG_MSG(("Execute_isr: t: hSlot[0x%x]; hList[0x%x] : (%d) : %d", (uint32_t)hSlot,  (uint32_t)hList, eTrigger, ulNumEntries));
+    /* get list that was executed without trigger
+       (only one should be this way) */
+    BRDC_Slot_GetList_isr(hSlot, &hList);
+    BRDC_List_GetNumEntries_isr(hList, &ulNumEntries);
+    BDBG_MSG((
+        "Execute_isr: t: hSlot[%p]; hList[%p] : (%d) : %d",
+        hSlot, hList, eTrigger, ulNumEntries));
 
-	/* which trigger fired? */
-	iTriggerIndex = GetArrayIndex(eTrigger);
-	if(-1 == iTriggerIndex) return BERR_SUCCESS;
+    /* which trigger fired? */
+    iTriggerIndex = GetArrayIndex(eTrigger);
+    if(-1 == iTriggerIndex) return BERR_SUCCESS;
 
-	/* add list that was executed to start of list */
-	g_aListOrder[iTriggerIndex][0] = g_aTopLists[iTriggerIndex];
-	g_aListOrderCount[iTriggerIndex]++;
+    /* add list that was executed to start of list */
+    g_aListOrder[iTriggerIndex][0] = g_aTopLists[iTriggerIndex];
+    g_aListOrderCount[iTriggerIndex]++;
 
-	/* a list has been executed. At this point, keep all new lists */
-	g_bExecuteList[iTriggerIndex] = true;
+    /* a list has been executed. At this point, keep all new lists */
+    g_bExecuteList[iTriggerIndex] = true;
 
-	return BERR_SUCCESS;
+    return BERR_SUCCESS;
 }
 
 /* End of file */

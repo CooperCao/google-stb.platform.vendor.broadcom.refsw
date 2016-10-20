@@ -44,7 +44,7 @@
 #include "bsat.h"
 
 #define BSAT_G1_MAJOR_VERSION 2
-#define BSAT_G1_MINOR_VERSION 4
+#define BSAT_G1_MINOR_VERSION 6
 
 
 /* define device configuration parameters */
@@ -130,8 +130,6 @@ typedef enum BSAT_g1_IntID{
 /* BSAT G1 public functions */
 BERR_Code BSAT_g1_GetDefaultSettings(BSAT_Settings*);
 BERR_Code BSAT_g1_GetChannelDefaultSettings(BSAT_Handle, uint32_t, BSAT_ChannelSettings *);
-void BSAT_g1_ResetInterruptCounters(BSAT_ChannelHandle h);
-BERR_Code BSAT_g1_GetInterruptCount(BSAT_ChannelHandle h, BSAT_g1_IntID idx, uint32_t *pCount);
 
 
 #ifdef BSAT_EXCLUDE_API_TABLE

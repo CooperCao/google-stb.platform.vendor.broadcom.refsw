@@ -108,6 +108,7 @@ sub process_function_attributes {
             next if($attr eq 'destructor');
             next if($attr eq 'release');
             next if($attr eq 'local');
+            next if($attr eq 'thunk');
             next if($attr eq 'shutdown');
             print STDERR "ERROR: Unsupported attribute $attr = $value for $func->{FUNCNAME}\n";
         }

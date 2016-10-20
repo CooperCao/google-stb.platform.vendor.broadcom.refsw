@@ -247,7 +247,6 @@ static const char * const algoidname[]=
     "BDSP_AF_P_AlgoId_eMax"
 
 };
-/*#define FWDWNLD_DBG 1*/
 /**********************************************************************************
 Please keep the following debug related information in-sync with the BDSP_AlgorithmType definition
 ***********************************************************************************/
@@ -266,6 +265,7 @@ static const char * const BDSP_P_AlgoTypeName[]=
     "Custom"
 };
 
+#ifdef FWDWNLD_DBG
 void BDSP_Raaga_P_FwDwnldBuf_Dump( void *pDeviceHandle)
 {
     BDSP_Raaga *pDevice = pDeviceHandle;
@@ -280,7 +280,7 @@ void BDSP_Raaga_P_FwDwnldBuf_Dump( void *pDeviceHandle)
             i, pDevice->imgCache[i].pMemory,
             pDevice->imgCache[i].offset, (unsigned long)pDevice->imgCache[i].size));
     }
-    BDBG_MSG(("\n"));
+    BDBG_MSG(("--"));
     BDBG_MSG((" Download buffer log - Used when image is not preloaded "));
     for(i=0;i<BDSP_AlgorithmType_eMax; i++)
     {
@@ -291,6 +291,7 @@ void BDSP_Raaga_P_FwDwnldBuf_Dump( void *pDeviceHandle)
     }
 
 }
+#endif /*FWDWNLD_DBG*/
 
 BERR_Code BDSP_Raaga_P_Dwnld_AudioProc_Algos(void* pDeviceHandle, void *ptr)
 {
@@ -479,9 +480,9 @@ BERR_Code BDSP_Raaga_P_Alloc_DwnldFwExec(
         IF_ERR_GOTO_error;
     }
 
-    #ifdef FWDWNLD_DBG
-        BDSP_Raaga_P_FwDwnldBuf_Dump(pDeviceHandle);
-    #endif
+#ifdef FWDWNLD_DBG
+    BDSP_Raaga_P_FwDwnldBuf_Dump(pDeviceHandle);
+#endif
 
 return errCode;
 
@@ -806,7 +807,7 @@ void BDSP_Raaga_P_ReleaseAlgorithm(
             errCode = BDSP_Raaga_P_Release_DwnldBufUsage(pDeviceHandle, algorithm, pInfo);
             if(errCode)
             {
-                BDBG_ERR(("Algorithm %s (%u) could not be released properly\n",pInfo->pName, algorithm));
+                BDBG_ERR(("Algorithm %s (%u) could not be released properly",pInfo->pName, algorithm));
                 errCode = BERR_TRACE(errCode);
             }
         }

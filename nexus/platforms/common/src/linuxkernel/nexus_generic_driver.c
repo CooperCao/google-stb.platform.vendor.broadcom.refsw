@@ -1,43 +1,40 @@
 /******************************************************************************
  * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
  *
- * This program is the proprietary software of Broadcom and/or its
- * licensors, and may only be used, duplicated, modified or distributed pursuant
- * to the terms and conditions of a separate, written license agreement executed
- * between you and Broadcom (an "Authorized License").  Except as set forth in
- * an Authorized License, Broadcom grants no license (express or implied), right
- * to use, or waiver of any kind with respect to the Software, and Broadcom
- * expressly reserves all rights in and to the Software and all intellectual
- * property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
  * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
  * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
  *
  * Except as expressly set forth in the Authorized License,
  *
- * 1. This program, including its structure, sequence and organization,
- *    constitutes the valuable trade secrets of Broadcom, and you shall use all
- *    reasonable efforts to protect the confidentiality thereof, and to use
- *    this information only in connection with your use of Broadcom integrated
- *    circuit products.
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
  *
- * 2. TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *    AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *    WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT
- *    TO THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED
- *    WARRANTIES OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A
- *    PARTICULAR PURPOSE, LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET
- *    ENJOYMENT, QUIET POSSESSION OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME
- *    THE ENTIRE RISK ARISING OUT OF USE OR PERFORMANCE OF THE SOFTWARE.
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
  *
- * 3. TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *    LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT,
- *    OR EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO
- *    YOUR USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN
- *    ADVISED OF THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS
- *    OF THE AMOUNT ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER
- *    IS GREATER. THESE LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF
- *    ESSENTIAL PURPOSE OF ANY LIMITED REMEDY.
- ******************************************************************************/
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "nexus_base_driver.h"
 #include "nexus_base_mmap.h"
 #include "nexus_base_os.h"
@@ -46,7 +43,11 @@
 #include "nexus_generic_driver_impl.h"
 #include "nexus_driver_procfs.h"
 #include "nexus_driver_ioctl.h"
+#if NEXUS_ABICOMPAT_MODE
+#include "nexus_platform_abiverify_ioctl.h" /* allows driver to watch for certain platform ioctls */
+#else
 #include "nexus_platform_ioctl.h" /* allows driver to watch for certain platform ioctls */
+#endif
 
 /* do not #include linux header files here. this file is generic and must compile with no OS dependency.
 if a new OS feature is needed, an API must be added. */
@@ -338,7 +339,7 @@ int nexus_generic_driver_validate_mmap(unsigned module, void *context_, uint64_t
     if (!client) return NEXUS_NOT_AVAILABLE;
 
     BSTD_UNUSED(module); /* unused. added for api consistency. */
-    BDBG_MSG(("nexus_generic_driver_validate_mmap %#x, %d\n", offset, size));
+    BDBG_MSG(("nexus_generic_driver_validate_mmap %#x, %d", offset, size));
 
     BDBG_OBJECT_ASSERT(client, nexus_driver_client_state);
     BDBG_ASSERT(client->refcnt);
@@ -454,6 +455,7 @@ nexus_generic_driver_ioctl(unsigned module, void *context_, unsigned int cmd, un
         case IOCTL_PLATFORM_NEXUS_Platform_UninitStandby:
         case IOCTL_PLATFORM_NEXUS_GetDefaultMemoryConfigurationSettings_tagged:
         case IOCTL_PLATFORM_NEXUS_GetPlatformCapabilities_tagged:
+        case IOCTL_PLATFORM_NEXUS_GetPlatformConfigCapabilities_tagged:
         case IOCTL_PLATFORM_NEXUS_INIT:
             unlocked = true;
             break;
@@ -961,7 +963,7 @@ nexus_driver_disable_client_lock(struct nexus_driver_client_state *client)
         }
         nexus_driver_state.cleanup_pending = true;
     }
-    
+
     nexus_driver_unlock_schedulers(client);
 }
 
@@ -1232,12 +1234,12 @@ static int nexus_driver_server_init_lock(unsigned pid)
     if (!nexus_driver_state.server) {
         NEXUS_ClientConfiguration config;
         struct nexus_driver_client_state *client;
-        
+
         NEXUS_Platform_GetDefaultClientConfiguration(&config);
         config.mode = NEXUS_ClientMode_eVerified;
         client = nexus_driver_create_client_lock(NULL, &config);
         if (!client) return BERR_TRACE(-1);
-        
+
         client->pid = pid;
         nexus_driver_state.server = client;
         b_objdb_set_default_client(&client->client);
@@ -1271,12 +1273,12 @@ static int nexus_driver_server_postinit_lock(void)
     for (i=0;i<NEXUS_PLATFORM_P_NUM_DRIVERS-1;i++) {
         rc = g_nexus_driver_state_handlers[i].open(i);
         if (rc) { rc = BERR_TRACE(rc); break; }
-        
+
         /* for sorting */
         g_nexus_driver_state_order[i].index = i;
         g_nexus_driver_state_order[i].order = g_nexus_driver_state_handlers[i].header->module ? NEXUS_Module_GetOrder(g_nexus_driver_state_handlers[i].header->module) : 0;
     }
-    
+
     /* sort g_nexus_driver_state_order[] by module initialization order, greatest to least, which makes objdb cleanup possible */
     for (i=0;i<NEXUS_PLATFORM_P_NUM_DRIVERS-1;i++) {
         unsigned j;
@@ -1288,7 +1290,7 @@ static int nexus_driver_server_postinit_lock(void)
             }
         }
     }
-    
+
     if (g_NEXUS_platformSettings.mode == NEXUS_ClientMode_eVerified) {
         client->client.mode = NEXUS_ClientMode_eVerified;
         client->client.config.mode = g_NEXUS_platformSettings.mode;
@@ -1493,4 +1495,106 @@ NEXUS_Error NEXUS_Platform_P_RemoveDynamicRegion(NEXUS_Addr addr, unsigned size)
     return NEXUS_SUCCESS;
 }
 
+void NEXUS_P_DriverInVararg_Init(NEXUS_P_DriverInVararg *state, struct b_objdb_client *client, void *data, unsigned size)
+{
+    state->data = data;
+    state->original_data = data;
+    state->size = size;
+    state->varargs_begin = 0;
+    state->varargs_offset = 0;
+    state->client = client;
+    return;
+}
+
+void NEXUS_P_DriverInVararg_Shutdown(NEXUS_P_DriverInVararg *state)
+{
+    if(state->data != state->original_data) {
+        BDBG_MSG(("%p: free %p:%u", (void *)state, state->data, state->size));
+        BKNI_Free(state->data);
+    }
+    return;
+}
+
+static void *NEXUS_P_DriverInVararg_Allocate(NEXUS_P_DriverInVararg *state, unsigned vararg_size)
+{
+    unsigned aligned_vararg_size = B_IPC_DATA_ALIGN(vararg_size);
+    unsigned required_size = state->varargs_offset + state->varargs_begin + aligned_vararg_size;
+    void *data;
+    BDBG_MSG(("%p: alloc %p:%u -> %u", (void *)state, state->data, state->size, required_size));
+    if( required_size > state->size) {
+        void *buf = nexus_client_driver_alloc(state->client, required_size);
+        BDBG_MSG(("%p: realloc %p:%u -> %p:%u", (void *)state, state->data, state->size, required_size, buf));
+        if(buf==NULL) {
+            (void)BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+            return NULL;
+        }
+        BKNI_Memcpy(buf, state->data, state->size);
+        state->size = required_size;
+        if(state->data != state->original_data) {
+            BDBG_MSG(("%p: reaalloc free %p:%u", (void *)state, state->data, state->size));
+            BKNI_Free(state->data);
+        }
+        state->data = buf;
+    }
+    data = (uint8_t *)state->data + state->varargs_begin + state->varargs_offset;
+    state->varargs_offset += aligned_vararg_size;
+    return data;
+}
+
+NEXUS_Error NEXUS_P_DriverInVararg_InVarArg(NEXUS_P_DriverInVararg *state, unsigned vararg_size, const void *src, int *field, bool *is_null)
+{
+    if(src) {
+        void *data;
+        void *old_data = state->data;
+        *is_null = false; /* assign is_null earlies so don't worry about relocation */
+        data = NEXUS_P_DriverInVararg_Allocate(state, vararg_size);
+        if(data==NULL) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        /* field is the pointer into the state->data, so adjust it if data was relocated */
+        field = (void *)((uint8_t *)state->data + ((uint8_t *)field - (uint8_t *)old_data));
+        *field = (uint8_t *)data - (uint8_t *)state->data;
+        if(copy_from_user_small(data, src, vararg_size)!=0) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    } else {
+        *is_null = true;
+        *field = -1;
+    }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_P_DriverInVararg_InVarArg_AddrField(NEXUS_P_DriverInVararg *state, const NEXUS_Addr *src, unsigned count, int varArg, int *varArgField)
+{
+    if(varArg!=-1) {
+        unsigned i;
+        void *old_data = state->data;
+        NEXUS_Addr *dataAddr = NEXUS_P_DriverInVararg_Allocate(state, count*sizeof(NEXUS_Addr));
+        if(dataAddr==NULL) {
+            return BERR_TRACE(NEXUS_OUT_OF_SYSTEM_MEMORY);
+        }
+        /* varArgField is the pointer into the state->data, so adjust it if data was relocated */
+        varArgField = (void *)((uint8_t *)state->data + ((uint8_t *)varArgField - (uint8_t *)old_data));
+        *varArgField= (uint8_t *)dataAddr - (uint8_t *)state->data;
+        if(copy_from_user_small(dataAddr, src, count*sizeof(NEXUS_Addr))!=0) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+        for(i=0;i<count;i++) {
+            BDBG_MSG(("%p NEXUS_P_DriverInVararg_InVarArg_AddrField:%d(%d) %p[%u]=" BDBG_UINT64_FMT "", (void *)state, varArg, *varArgField, (void *)dataAddr, i, BDBG_UINT64_ARG(dataAddr[i])));
+        }
+    } else {
+        *varArgField= -1;
+    }
+    return NEXUS_SUCCESS;
+}
+
+NEXUS_Error NEXUS_P_Driver_OutVarArg(const void *out_data, unsigned size, void *dest, int varArg)
+{
+    if(dest && varArg>=0) {
+        if(copy_to_user_small(dest, (uint8_t *)out_data + varArg, size)!=0) {
+            return BERR_TRACE(NEXUS_INVALID_PARAMETER);
+        }
+    }
+    return NEXUS_SUCCESS;
+}
 #include "b_memory_regions.inc"

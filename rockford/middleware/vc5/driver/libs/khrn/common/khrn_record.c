@@ -77,10 +77,10 @@ static void record_render(const V3D_BIN_RENDER_INFO_T *br_info,
 void khrn_record(const V3D_BIN_RENDER_INFO_T *br_info)
 {
    int32_t only = khrn_options.autoclif_only_one_clif_i;
-   if ((only < 0) || (only == khrn_fmem_frame_i))
+   if (((only < 0) || (only == khrn_fmem_frame_i)) &&
+       br_info->num_bins > 0)    /* Workaround broken compute shader recording */
    {
       autoclif_pseudo_ptr_t pseudo_tile_alloc_ptrs[V3D_MAX_CORES];
-      unsigned i;
 
       log_info("recording frame %u", khrn_fmem_frame_i);
 
@@ -90,16 +90,13 @@ void khrn_record(const V3D_BIN_RENDER_INFO_T *br_info)
 #endif
          );
 
-      for (i = 0; i != br_info->num_bins; ++i)
+      for (unsigned i = 0; i != br_info->num_bins; ++i)
       {
-         /* bin_offset is to workaround GFXH-1179 */
          char name[32];
          sprintf(name, "tile_alloc_%u", i);
 
          pseudo_tile_alloc_ptrs[i] = autoclif_new_pseudo_mem(
-            name, khrn_options.autoclif_bin_block_size + br_info->bin_offset, V3D_TILE_ALLOC_ALIGN);
-         pseudo_tile_alloc_ptrs[i] = autoclif_pseudo_ptr_offset(
-            pseudo_tile_alloc_ptrs[i], br_info->bin_offset);
+            name, khrn_options.autoclif_bin_block_size, V3D_TILE_ALLOC_ALIGN);
       }
 
       record_bin(br_info, pseudo_tile_alloc_ptrs, khrn_options.autoclif_bin_block_size);

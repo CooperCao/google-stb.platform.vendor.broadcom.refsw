@@ -96,6 +96,7 @@ in highp int gl_InvocationID = DATAFLOW_GET_INVOCATION_ID;
 patch out highp float gl_TessLevelOuter[4];
 patch out highp float gl_TessLevelInner[2];
 patch out highp vec4  gl_BoundingBox[2];
+patch out highp vec4  gl_BoundingBoxOES[2];
 patch out highp vec4  gl_BoundingBoxEXT[2];
 
 

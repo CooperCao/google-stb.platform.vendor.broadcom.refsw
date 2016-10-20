@@ -1,684 +1,40 @@
-
-/***************************************************************************
- *     (c)2005-2013 Broadcom Corporation
- *
- *  This program is the proprietary software of Broadcom Corporation and/or its licensors,
- *  and may only be used, duplicated, modified or distributed pursuant to the terms and
- *  conditions of a separate, written license agreement executed between you and Broadcom
- *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
- *  no license (express or implied), right to use, or waiver of any kind with respect to the
- *  Software, and Broadcom expressly reserves all rights in and to the Software and all
- *  intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
- *  HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
- *  NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
- *
- *  Except as expressly set forth in the Authorized License,
- *
- *  1.     This program, including its structure, sequence and organization, constitutes the valuable trade
- *  secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
- *  and to use this information only in connection with your use of Broadcom integrated circuit products.
- *
- *  2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
- *  AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
- *  WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
- *  THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
- *  OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
- *  LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
- *  OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
- *  USE OR PERFORMANCE OF THE SOFTWARE.
- *
- *  3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
- *  LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
- *  EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
- *  USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
- *  THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
- *  ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
- *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
- *  ANY LIMITED REMEDY.
- *
- * $brcm_Workfile: $
- * $brcm_Revision: $
- * $brcm_Date: $
- *
- * [File Description:]
- *
- * Revision History:
- *
- * $brcm_Log: $
- *
- 98   7/16/12 6:02p farshidf
- * SW7552-302: fix the QAM signal strength
- *
- * Fw_Integration_Devel/63   7/16/12 6:00p farshidf
- * SW7552-302: fix the QAM signal strength
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/31   7/16/12 5:59p farshidf
- * SW7552-302: fix the QAM signal strength
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/SW3472-6/2   7/16/12 2:29p mpovich
- * SW3472-6: Rebase with DEV branch.
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/30   7/13/12 5:35p farshidf
- * SW7552-302: update power measurment
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/29   7/12/12 4:26p farshidf
- * SW7552-302: improve the tuner time for 7552
- *
- * 95   7/3/12 4:13p farshidf
- * SW3461-120: remove  warning/compile issue
- *
- * Fw_Integration_Devel/60   7/3/12 4:12p farshidf
- * SW3461-120: remove  warning/compile issue
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/27   7/3/12 3:57p farshidf
- * SW3461-120: fix the bypass isssue on 7552
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/26   7/3/12 3:24p mbsingh
- * SW3461-195: Implemting tuner driver function to support gain API
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/25   7/2/12 5:59p farshidf
- * SW3461-120: remove warning
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/24   7/2/12 4:06p shchang
- * SW3461-208: correct typo
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/23   7/2/12 3:29p shchang
- * SW3461-208: reduce FGLNA bypass mode threshold
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/22   6/28/12 4:59p mbsingh
- * SW7552-278: Fixing Signal Strength value incorrecteness during tuner
- *  gear shift
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/21   6/28/12 2:50p mbsingh
- * SW7552-278: Fix QAM Signal strength ( RF VGA degeneration compensation)
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/20   6/14/12 2:56p mbsingh
- * SW3461-195: Adding driver functions to support gain api - Adding
- *  function to calculate RFOutGains
- *
- * 89   6/13/12 10:57a farshidf
- * SW3461-1: merge
- *
- * Fw_Integration_Devel/54   6/13/12 10:56a farshidf
- * SW3461-1: merge
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/19   6/13/12 10:54a farshidf
- * SW3461-1: remove warning
- *
- * 88   6/13/12 10:24a farshidf
- * SW3462-1: merge to integ
- *
- * Fw_Integration_Devel/53   6/13/12 10:23a farshidf
- * SW3462-1: merge to integ
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/18   6/13/12 9:49a shchang
- * SW3462-208: enable dithering for 7552 Cable application
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/17   6/11/12 1:42p shchang
- * SW3462-31: fix 99MHz unlock issue due to 100MHz spur
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/16   6/8/12 2:52p shchang
- * SW3462-31: fix AGC settle speed for bypass mode
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/14   6/4/12 9:23a shchang
- * SW3462-31: fix performance issue below 130MHz
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/13   5/23/12 5:08p farshidf
- * SW3461-1: update the tuner status
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/12   5/23/12 5:06p farshidf
- * SW3461-1: move the Tuner AGC monitor out of tuner status
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/11   5/22/12 7:06p shchang
- * SW3461-208: add control for external FGLNA in branch 5 development
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/10   5/17/12 3:34p shchang
- * SW3462-27: fix ADS Degraded performance with clean (no AWGN) nominal RF
- *  level QAM signals
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/9   5/16/12 3:57p mbsingh
- * SW3462-26: Removing smart tune for "Cable" mode to get DS working for
- *  smart tune frequencies
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/8   5/15/12 3:51p shchang
- * SW3461-208: optimize RFAGC TOP for cable application
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/7   5/14/12 2:22p shchang
- * SW3461-208: fix 507MHz unlock issue due to MoCA trap/tracking filter
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/6   5/11/12 10:59a farshidf
- * SW3461-1: clean up
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/4   5/7/12 6:31p farshidf
- * SW3472-2: Make the tuner multi channel
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/3   5/7/12 11:55a shchang
- * SW3461-120: 1. optimize 6-bit ADC power/performance. 2. modify DPM LO
- *  table.
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/2   5/2/12 3:09p shchang
- * SW3461-120: add dithering on/off
- *
- * Fw_Integration_Devel/AP_V5_0_TNR_DEV/1   4/27/12 6:09p farshidf
- * SW3462-19: merge to branch 5.0
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/SW3462-6/3   4/27/12 5:29p farshidf
- * SW3462-19: merge to branch 5.0
- *
- * Fw_Integration_Devel/50   4/17/12 5:28p farshidf
- * SW3461-186: merge to integ
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/24   4/17/12 7:14a shchang
- * SW-3461-184: tuner gain smooth transition
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/23   4/11/12 9:57p shchang
- * SW3461-120: fix tune stuck issue
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/22   3/29/12 5:15p shchang
- * SW3461-120: fix sync time-varying test failure
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/21   3/28/12 11:09p farshidf
- * SW3461-120: merge to dev
- *
- * SW3461-173/3   3/28/12 11:07p farshidf
- * SW3461-120: merge to branch
- *
- * 80   3/28/12 11:06p farshidf
- * SW3461-120: merge to main
- *
- * SW3461-173/2   3/28/12 7:16p shchang
- * SW3461-120: fix N+/-9 far adjacent channel issue
- *
- * SW3461-173/1   3/15/12 3:37p shchang
- * SW3461-120: fix huawei Ch.538MHz sensitivity issue
- *
- * 76   3/12/12 3:45p farshidf
- * SW3461-171: merge to inetg
- *
- * Fw_Integration_Devel/44   3/12/12 3:44p farshidf
- * SW3461-171: merge to inetg
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/17   3/12/12 3:39p shchang
- * SW3461-120: fix time varying sync
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/16   3/8/12 6:35p mbsingh
- * SW3461-1: Fixed tuner frequency calculation
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/15   3/7/12 10:47p shchang
- * SW3461-120: fix AGC TOP settings
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/14   3/7/12 5:49p shchang
- * SW3461-125: improve ACI performance while without affecting C/N and
- *  echo tests.
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/13   3/2/12 10:52a mbsingh
- * SW3461-145: Fix Signal Strength Calculations
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/12   2/27/12 5:51p shchang
- * SW3461-1: fix "dead zone" issue on J83A
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/11   2/23/12 12:51p farshidf
- * SW3461-120: remove warning
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/10   2/23/12 12:39p farshidf
- * SW3461-120: change BTNR_J83B_SUPPORT to   #ifdnef BTNR_J83A_SUPPORT
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/9   2/23/12 12:35p farshidf
- * SW3461-120: rename STCE40 compile flag to BTNR_J83B_SUPPORT
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/8   2/22/12 5:56p mbsingh
- * SW3461-145: Changed LNA start from mid gain to improve Signal Strength
- *  convergence on 3461
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/7   2/22/12 11:41a shchang
- * SW34610120: 1. update tuner status such that dithering can be changed
- *  without retune. 2. move SCTE-40 settings to ifdef.
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/6   2/16/12 5:09p shchang
- * SW3461-1: improve N+/-4
- *
- * Fw_Integration_Devel/35   2/16/12 9:41a farshidf
- * SW7552-209: compile fix
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/5   2/16/12 9:40a farshidf
- * SW7552-109: compile fix
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/4   2/15/12 2:56p farshidf
- * SW3461-1: compile fix
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/3   2/15/12 9:24a farshidf
- * SW3461-120: add the 7552 register name for 7552 A0
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/2   2/14/12 10:58p shchang
- * SW3461-120: change RFVGA initial gain to maximum
- *
- * Fw_Integration_Devel/AP_V4_0_TNR_DEV/1   2/10/12 12:06p shchang
- * SW3461-120: 1. add ADC6B reset 2. fix 7552 shift-gear
- *
- * Fw_Integration_Devel/31   2/3/12 2:15p farshidf
- * SW3461-120: merge to main
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/27   1/31/12 7:22p shchang
- * SW3461-120: fix 1. LO DDFS reset 2. tuner status 3. PHYPLL change on-
- *  the-fly
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/26   1/30/12 11:28a farshidf
- * SW3461-120: put the A0 tuner code under its own flag
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/25   1/16/12 7:17p shchang
- * SW3461-120: differetiate PLL not lock/not use
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/24   1/16/12 1:42p shchang
- * SW3461-120: improve N+/-4 ACI performance
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/23   1/11/12 4:08p shchang
- * SW3461-120: add power mode e_Lna_Daisy inside the power control
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/22   1/11/12 10:29a farshidf
- * SW3461-1: fix the second 3461 tuner setting for UHF mode
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/21   1/5/12 6:10p shchang
- * SW3461-120: add smart tune to relsove LO spur around 845MHz
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/20   1/3/12 11:41p shchang
- * SW3461-120: B0 use PHYPLL with CMOS input; B1 use PHYPLL with CML input
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/19   12/26/11 8:50p shchang
- * SW3461-120: 1. optimize tuner settings for DVB-T LTE scenarios. 2.
- *  optimize tuner settings to pass SCTE-40 spec
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/18   12/22/11 11:10a farshidf
- * SW3461-120: merge to dev
- *
- * 59   12/22/11 11:08a farshidf
- * SW3461-120: make A0 compatible
- *
- * 58   12/20/11 6:40p farshidf
- * SW3128-1: remove warning
- *
- * 57   12/15/11 5:59p farshidf
- * SW3461-118: update the tuner to work on B0 and B1
- *
- * 56   12/8/11 3:18p shchang
- * SW3461-1: power down REFPLL, use PHYPLL to save power
- *
- * 55   11/23/11 11:12a farshidf
- * SW3461-99: merge to integ
- *
- * Fw_Integration_Devel/26   11/23/11 11:12a farshidf
- * SW3461-99: merge to integ
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/15   11/23/11 11:10a farshidf
- * SW3461-99:compile fix
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/14   11/22/11 12:24p farshidf
- * SW3461-99: warning fix
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/13   11/22/11 12:20p farshidf
- * SW3461-99: merge Dave's Mixer PLL fix
- *
- * 52   11/21/11 11:26p farshidf
- * SW7552-139: fix compile issue
- *
- * 51   11/16/11 6:50p shchang
- * SW3461-1: add BTNR_P_Tuner_PowerUpPLL() to resolve MIXPLL unlock issue
- *
- * 50   11/4/11 4:11p farshidf
- * SW3461-82: merge to main
- *
- * Fw_Integration_Devel/24   11/4/11 11:38a farshidf
- * SW3461-82: merge to integ
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/12   11/1/11 12:21p shchang
- * SW3461-1: increase LDO voltage to fix sensitivity issue
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/11   10/25/11 5:18p jputnam
- * CDFEDEMOD-6: Consolidated SmartTune logic such that only PLL dividers
- *  are changed rather than calling P_TunerInit().  This seems to
- *  eliminate occassional instability associated with repeatedly tuning
- *  between FreqPlanA and FreqPlanDefault
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/10   10/25/11 11:17a shchang
- * SW7552-137: fix re-scan issue below 334MHz for DVB-C
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/9   10/25/11 8:16a jputnam
- * CDFEDEMOD-6: Added 756MHz to SmartTune frequency list
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/8   10/17/11 7:42p shchang
- * SW3461-1: 1. add dithering off 2. modified registers in power control
- *  subroutine
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/7   10/16/11 9:42p farshidf
- * SW3461-1: fix th LDO osng lock issue from Dave
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/6   10/14/11 12:56a farshidf
- * SW3461-64: fix warning
- *
- * 48   10/14/11 12:05a farshidf
- * SW3461-64: fix tuner compile issues
- *
- * 47   10/13/11 11:58p farshidf
- * SW3461-64: merge to main
- *
- * Fw_Integration_Devel/22   10/13/11 7:18p farshidf
- * SW3461-64: merge to integ
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/5   10/13/11 7:17p farshidf
- * SW3461-1: fix teh a0 compile issue
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/4   10/11/11 2:18p shchang
- * SW3461-1: optimize AGC for DVB-T2
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/3   10/5/11 1:01p shchang
- * SW3461-1:  1. Select RFAGC clock from REFPLL 2. Set internal LNA bias
- *  current 3. Remove dithering off
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/2   9/27/11 11:52a mbsingh
- * SW3461-1: Made the code compile for B0 with new register changes
- *
- * Fw_Integration_Devel/AP_V3_0_TNR_DEV/1   9/26/11 5:26p mbsingh
- * SW3461-1: Incorporate correct register writes for B0
- *
- * Fw_Integration_Devel/21   9/22/11 4:44p farshidf
- * SW3461-1: merge to integ
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/16   9/21/11 4:14p farshidf
- * SW3461-1: update files for B0
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/15   9/14/11 10:53p shchang
- * SW3461-1: fix tune-delay issue.
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/14   9/12/11 4:02p shchang
- * SW3461-1: 1. change LNA AGC settings 2. improve AGC shift gear
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/13   9/10/11 9:20p shchang
- * SW3461-1: 1.  fix DDFS FCW resolution. 2. add AGC shift gear. 3.
- *  sensitivity fix.
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/12   9/7/11 11:32a jputnam
- * SW3461-1: Added explicit assertion of PHYPLL reset for reliable
- *  SmartTune operation, rather than assuming PHYPLL reset is already
- *  asserted prior to P_TunerInit().
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/11   9/6/11 11:42a shchang
- * SW3461-1: fix 143/537MHz locking issue.
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/10   9/6/11 11:03a jputnam
- * SW3461-1:  Restore call to P_TunerInit() when SmartTune indicates
- *  change in PLL programming required
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/9   9/1/11 4:50p shchang
- * SW3461-1: optimize AGC settings for DVB-T2 ACI_CCI
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/8   9/1/11 9:17a jputnam
- * SW3461-1: Added Ch K8 (198.5MHz) to SmartTune list
- *
- * 41   8/29/11 1:32p farshidf
- * SW3461-1: merge to main
- *
- * Fw_Integration_Devel/16   8/29/11 1:31p farshidf
- * SW3461-1: merge to integ
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/6   8/29/11 1:30p farshidf
- * SW3461-1: add back the TunerInit to fix the AGC problem
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/5   8/26/11 4:58p farshidf
- * SW3461-1: make SmartTuneEnabled magnum compatible
- *
- * 39   8/26/11 3:45p farshidf
- * SW3461-1: merge to main
- *
- * Fw_Integration_Devel/14   8/26/11 3:38p farshidf
- * SW3461-1: merge to integ
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/4   8/26/11 2:29p farshidf
- * SW3461-42: remove the extra initTune and reduce the sleep for DCO
- *  stabilization from 100ms to 20ms
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/3   8/24/11 12:40p mbsingh
- * sw3461-1: Fixed tune to work till 1Hz resolution
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/2   8/23/11 5:04p jputnam
- * SW3461-1:  Assert load_en so that PLL divider changes are effective.
- *  Enable SmartTune by default
- *
- * Fw_Integration_Devel/AP_V2_0_TNR_DEV/1   8/22/11 12:44p jputnam
- * SW3461-1: Added SmartTune
- *
- * Fw_Integration_Devel/11   8/2/11 6:23p farshidf
- * SW3461-1: merge to integ
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/15   8/2/11 6:11p farshidf
- * SW3461-1: update the tuner structure
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/14   7/29/11 1:57p jputnam
- * SW3461-1: Zero reported LNA and PreADC gains in low-IF mode
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/13   7/28/11 3:54p jputnam
- * SW3461-1: Added hooks for low-IF mode
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/12   7/28/11 3:41p farshidf
- * SW3461-1: fix the LNA register usage
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/11   7/27/11 4:36p farshidf
- * SW3461-1: magnum fix
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/10   7/27/11 1:33p farshidf
- * SW3461-1: magnum compatible
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/9   7/27/11 1:15p farshidf
- * SW3461-1: make it magnum compatile
- *
- * Fw_Integration_Devel/AP_V0_6_TNR_DEV/8   7/21/11 5:46p farshidf
- * SW3461-1: add DCO fix from Dave
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/16   7/21/11 5:42p farshidf
- * SW3461-1: add DC0 fix from Dave
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/14   7/19/11 7:25p farshidf
- * SW3461-28: remove printf
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/12   7/14/11 10:56p farshidf
- * SW3461-28: chekc-in fixes from Dave
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/11   7/12/11 4:08p farshidf
- * SW3461-17: During 2nd tune, the clocks of 6-bit ADC and DCO will be
- *  turned off, which might causes the following issues: 1. LNA AGC will
- *  be freeze 2. SNR degradation due to DCO offset
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/10   6/29/11 12:32p shchang
- * SW3461-1: replace 6-phase with 8-phase mixer
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/9   6/28/11 6:57p shchang
- * SW3461-1: fix mixer reset sequence
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/8   6/24/11 4:24p mbsingh
- * SW3461-1: SD ADC Cal function improvements
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/7   6/24/11 4:10p shchang
- * SW3461-1: adjust power settings for cable
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/6   6/23/11 5:42p mbsingh
- * SW3461-1: Remove Sleep's from tuner to reduce tune time
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/5   6/23/11 5:33p mbsingh
- * SW3461-1: Remove Sleep's from tuner to reduce tune time
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/4   6/22/11 6:49p cbrooks
- * sw3461-1:Checked tune fix for Dave
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/3   6/21/11 5:34p shchang
- * SW3461-1: fix DDFS FCW accuracy issue.
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/2   6/20/11 9:20p shchang
- * SW3461-1: add tracking filter & move AGC-related subroutine to tuner
- *  initialization
- *
- * Fw_Integration_Devel/Tnr_Fw_Devel_Rc05/1   6/16/11 6:05p shchang
- * SW3461-1: add DPM feature
- *
- * 29   6/12/11 12:46p farshidf
- * SW3461-1: clena up
- *
- * 28   6/12/11 12:35p farshidf
- * SW3461-1: code clean up
- *
- * 27   6/9/11 6:40p mpovich
- * SW3461-1: Merge Ver 0.4 Integ. onto main branch.
- *
- * SW_System_4_Integ_Test/2   6/9/11 4:48p farshidf
- * SW3461-1: sync up with 7552 code
- *
- * SW_System_4_Integ_Test/1   6/6/11 2:09p mpovich
- * SW3461-1: Merge disparate branches for test purposes.
- *
- * Tnr_Fw_Devel_4/9   6/3/11 1:50p mbsingh
- * SW3461-1: ifdef out the LNA AGC code
- *
- * Tnr_Fw_Devel_4/8   5/26/11 7:24p shchang
- * SW3461-1: fix AGC power-cycle
- *
- * Tnr_Fw_Devel_4/7   5/25/11 3:19p shchang
- * SW3461-1: increase RFVGA bias for senesitivity
- *
- * Tnr_Fw_Devel_4/6   5/25/11 3:07p shchang
- * SW3461-1: Remonving code .. for now. Need to fix it later
- *
- * Tnr_Fw_Devel_4/5   5/25/11 10:03a farshidf
- * SW3461-6: add the timer Interrupt
- *
- * Tnr_Fw_Devel_4/4   5/24/11 5:34p mbsingh
- * SW3461-1: Implement the LNA AGC cycle ( call back function ) function
- *  for power saving
- *
- * Tnr_Fw_Devel_4/3   5/23/11 4:55p mbsingh
- * SW3461-1: Got Daisy output working in firmware through BBS
- *
- * Tnr_Fw_Devel_4/2   5/23/11 4:30p mbsingh
- * SW3461-1: Got loop through working in firmware through BBS
- *
- * Tnr_Fw_Devel_4/1   5/23/11 3:17p mbsingh
- * SW3461-1: Lower the power consumption of the tuner - LNA AGC take over
- *  point  - PHY PLL Optimization
- *
- * 26   5/20/11 6:44a mpovich
- * SW3461-1: rename UFE (BUFE) module to TNR (BTNR).
- *
- * TNR_3461_1/1   5/19/11 5:16p mpovich
- * SW3461-1: Change BUFE module prefix to BTNR
- *
- * 25   5/18/11 11:09a farshidf
- * SW3461-1: merge main
- *
- * TNR_3461_1/18   5/17/11 6:17p mbsingh
- * SW3461-1: Calibrate I and Q channel in parallel
- *
- * TNR_3461_1/17   5/16/11 5:16p shchang
- * change LNA/RF AGC TOP to pass far adjacent scenario
- *
- * TNR_3461_1/16   5/3/11 2:58p hfu
- * To resolve fractional (0.5MHz) tune issue.  This solution is a
- *  workaround and the frequency resolution depends on variable M.
- *
- * TNR_3461_1/15   4/8/11 2:44p farshidf
- * SW3461-1: power up the PLL for DS
- *
- * TNR_3461_1/14   4/5/11 8:24a jputnam
- * SW3461-1: Replaced digital I/Q swap with analog fix when 8-phase mixer
- *  is enabled
- *
- * TNR_3461_1/13   4/4/11 5:55p jputnam
- * SW3461-1: Added I/Q swap when 8-phase mixer is used
- *
- * TNR_3461_1/12   3/24/11 11:53a jputnam
- * SW3461-1: Change TNR clock to 540MHz for cable mode
- *
- * TNR_3461_1/11   3/21/11 2:45p mbsingh
- * SW3461-1: Move SD ADC calibration after tune
- *
- * TNR_3461_1/10   3/18/11 4:09p farshidf
- * SW3461-1: merge  main
- *
- * 20   3/18/11 4:08p farshidf
- * SW3461-1: merge  main
- *
- * TNR_3461_1/9   3/17/11 5:36p mbsingh
- * SW3461-1: Added watchdog reset or mixer PLL lock
- *
- * TNR_3461_1/8   3/15/11 5:08p mbsingh
- * SW3461-1: Enabled 6 bit ADC and LNA AGC
- *
- * TNR_3461_1/7   3/15/11 3:38p mbsingh
- * SW3461-1: Adding RF AGC setup for tuner
- *
- * TNR_3461_1/6   3/14/11 8:08p lukose
- * SW3461-1: Temporarily bypass LNA to get tuner tuned. Will be removed
- *  later
- *
- * TNR_3461_1/5   3/14/11 7:41p lukose
- * SW3461-1: Ported tuner .bbs script. Tuner is tuning
- *
- * TNR_3461_1/4   3/14/11 6:27p lukose
- * SW3461-1: Fix for the DDFS calculation
- *
- * TNR_3461_1/3   3/11/11 6:49p mbsingh
- * SW3461-1: Fixing DCO Setup
- *
- * TNR_3461_1/2   3/11/11 6:06p lukose
- * SXW3461-1: Merging Tuner Changes
- *
- * 17   3/10/11 5:35p cbrooks
- * sw3461-1: New Code
- *
- * 16   3/10/11 5:00p mbsingh
- * sw3461-1:  Updating SD ADC Calibration routine based on sd_routine.bss
- *  from Dave
- *
- * 15   3/9/11 9:02p cbrooks
- * sw3461-1:Added LNA level and RFVGA level to status
- *
- * 14   3/9/11 3:01p farshidf
- * SW3461-1: fix the math function
- *
- * 13   3/8/11 8:26p cbrooks
- * sw3461-1:new code
- *
- * 12   3/8/11 2:43p cbrooks
- * sw3461-1:new code
- *
- * 11   3/7/11 9:27p cbrooks
- * sw3461-1:new code
- *
- * 9   3/6/11 6:36p cbrooks
- * sw3461-1:new code
- *
- * 7   3/6/11 5:58p cbrooks
- * SW3461-1:New TNR Code
- *
- * 6   3/2/11 4:59p mpovich
- * SW3461-1: Fix TNR struct compiler bugs.  Add HAB related updates for T2
- *  and for TNR.
- *
- * Rom_Devel_3461/1   3/2/11 4:24p mpovich
- * SW3461-1: Fix TNR struct compiler bugs.  Add HAB related updates for T2
- *  and for TNR.
- *
- * 5   3/1/11 12:59p cbrooks
- * sw3461-1:new code
- *
- * 4   2/28/11 3:38p cbrooks
- * SW3461-1:new code for tuner
- *
- * 3   2/25/11 5:04p shchang
- * sw3461-1:new code
- *
- * 2   2/24/11 3:18p farshidf
- * SW3461-1: update the code for tuner
- *
- * 1   2/24/11 11:27a farshidf
- * SW3461-1: add the initial Tuner code from Dave
- *
- ***************************************************************************/
+/******************************************************************************
+ * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ *
+ * This program is the proprietary software of Broadcom and/or its licensors,
+ * and may only be used, duplicated, modified or distributed pursuant to the terms and
+ * conditions of a separate, written license agreement executed between you and Broadcom
+ * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
+ * no license (express or implied), right to use, or waiver of any kind with respect to the
+ * Software, and Broadcom expressly reserves all rights in and to the Software and all
+ * intellectual property rights therein.  IF YOU HAVE NO AUTHORIZED LICENSE, THEN YOU
+ * HAVE NO RIGHT TO USE THIS SOFTWARE IN ANY WAY, AND SHOULD IMMEDIATELY
+ * NOTIFY BROADCOM AND DISCONTINUE ALL USE OF THE SOFTWARE.
+ *
+ * Except as expressly set forth in the Authorized License,
+ *
+ * 1.     This program, including its structure, sequence and organization, constitutes the valuable trade
+ * secrets of Broadcom, and you shall use all reasonable efforts to protect the confidentiality thereof,
+ * and to use this information only in connection with your use of Broadcom integrated circuit products.
+ *
+ * 2.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, THE SOFTWARE IS PROVIDED "AS IS"
+ * AND WITH ALL FAULTS AND BROADCOM MAKES NO PROMISES, REPRESENTATIONS OR
+ * WARRANTIES, EITHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO
+ * THE SOFTWARE.  BROADCOM SPECIFICALLY DISCLAIMS ANY AND ALL IMPLIED WARRANTIES
+ * OF TITLE, MERCHANTABILITY, NONINFRINGEMENT, FITNESS FOR A PARTICULAR PURPOSE,
+ * LACK OF VIRUSES, ACCURACY OR COMPLETENESS, QUIET ENJOYMENT, QUIET POSSESSION
+ * OR CORRESPONDENCE TO DESCRIPTION. YOU ASSUME THE ENTIRE RISK ARISING OUT OF
+ * USE OR PERFORMANCE OF THE SOFTWARE.
+ *
+ * 3.     TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BROADCOM OR ITS
+ * LICENSORS BE LIABLE FOR (i) CONSEQUENTIAL, INCIDENTAL, SPECIAL, INDIRECT, OR
+ * EXEMPLARY DAMAGES WHATSOEVER ARISING OUT OF OR IN ANY WAY RELATING TO YOUR
+ * USE OF OR INABILITY TO USE THE SOFTWARE EVEN IF BROADCOM HAS BEEN ADVISED OF
+ * THE POSSIBILITY OF SUCH DAMAGES; OR (ii) ANY AMOUNT IN EXCESS OF THE AMOUNT
+ * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
+ * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
+ * ANY LIMITED REMEDY.
+ *****************************************************************************/
 #include "bstd.h"
 #include "bkni.h"
 #include "btmr.h"
@@ -1076,7 +432,7 @@ void BTNR_P_TunerSetLO(BTNR_3x7x_ChnHandle h)
 	ulMultA = 0x1;
 	ulMultB = 0;
 	ulNrmHi = 0;
-	if ((index == 8) || (index == 9) || (index == 10)) 	{ulNrmLo = Freq/2*(M/4);}
+	if ((index == 8) || (index == 9) || (index == 10)) {ulNrmLo = Freq/2*(M/4);}
 	else {ulNrmLo = Freq*(M/4);}
 
 #if (BTNR_P_BCHP_TNR_CORE_VER == BTNR_P_BCHP_CORE_V_1_0)
@@ -1238,14 +594,14 @@ else
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_03, i_clk_sel, 0x1);
 #endif
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_02, ndiv_frac, 0x0);/*ndiv_frac = 0*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_03, p1div, 	0x03);/*p1div = 3*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_03, p1div,    0x03);/*p1div = 3*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_03, ndiv_int, 0x78);/*ndiv_int = 150*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m1div, 	0x01);/*m1div = 1*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m2div,	0x02);/*m2div = 2*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m3div, 	0x0C);/*m3div = 12*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m4div, 	0x1B);/*m4div = 27*/
-	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m5div, 	0x00);/*m5div = 256*/
-    BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m6div, 	0x04);/*m6div = 4*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m1div,    0x01);/*m1div = 1*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m2div,    0x02);/*m2div = 2*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m3div,    0x0C);/*m3div = 12*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m4div,    0x1B);/*m4div = 27*/
+	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m5div,    0x00);/*m5div = 256*/
+    BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, m6div,    0x04);/*m6div = 4*/
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, load_en_ch6_ch1, 0x3F);
 
 #ifdef SmartTuneEnabled
@@ -1433,7 +789,7 @@ else
 	BTNR_P_TunerSetSignalPath(h);
 	if (h->pTunerParams->BTNR_Acquire_Params.Application == BTNR_TunerApplicationMode_eTerrestrial)
 	{h->pTunerStatus->AGC_TOP = 0; h->pTunerStatus->LNA_TOP = LNA_TOP_MAX; BTNR_P_Ods_TunerSetAGCTOP(h);}
-	if (h->pTunerParams->BTNR_Acquire_Params.Application  == BTNR_TunerApplicationMode_eCable) 	BTNR_P_Ads_TunerSetAGCTOP(h);
+	if (h->pTunerParams->BTNR_Acquire_Params.Application  == BTNR_TunerApplicationMode_eCable) BTNR_P_Ads_TunerSetAGCTOP(h);
 	BTNR_P_TunerSetRFAGC(h);
 	BTNR_P_TunerSetADC6B(h); h->pTunerStatus->LNAAGC_FRZ = 0; h->pTunerStatus->RFVGA_byp = 0;
 	BTNR_P_TunerSetLNAAGC(h);
@@ -1858,9 +1214,9 @@ BERR_Code BTNR_P_Calculate_RFout_Gains(BTNR_3x7x_ChnHandle h)
 		/*Assign value of Daisy Gain*/
 		h->pTunerParams->BTNR_Gain_Params.InternalGain_To_Daisy = LNA_Gain + LNA_Ctrl_Bias_Correction + LNA_Tilt ;
 
-		BDBG_MSG(("\n\n****** RFout Gain Calculations ******"));
+		BDBG_MSG(("****** RFout Gain Calculations ******"));
 		BDBG_MSG(("Gain_To_Daisy = %d ; LNA_Gain = %d ; LNA_Ctrl_Bias=%d ; LNA_Tilt = %d ", h->pTunerParams->BTNR_Gain_Params.InternalGain_To_Daisy*100/256, LNA_Gain*100/256,LNA_Ctrl_Bias_Correction*100/256,LNA_Tilt*100/256 ));
-		BDBG_MSG(("\n---------------------------------"));
+		BDBG_MSG(("---------------------------------"));
 		#endif
 
 		break;
@@ -1967,7 +1323,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 	/*as well as the parameters in the UFE_AFE_TNR0_MXR_01 register*/
 
 	/*Get pre-div ratio*/
-	ReadReg0 = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXR_01, 	i_MIXER_sel_div_ratio);
+	ReadReg0 = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXR_01, i_MIXER_sel_div_ratio);
 	PreDivRatio = 1<<ReadReg0;
 
 	ReadReg0 = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXR_01, i_MIXER_HRM_mode);
@@ -2057,7 +1413,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 
 	/*Mixer_FGA Gain*/
 	/*The GainReg is set above and now must be scaled based on high gain*/
-	ReadReg0 = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXR_02, 	i_FGA_HiGain);
+	ReadReg0 = BREG_ReadField(h->hRegister, UFE_AFE_TNR0_MXR_02, i_FGA_HiGain);
 	GainReg = (ReadReg0 == 0) ? GainReg - 768 : GainReg;  /*unit is 256*db*/
 	/*printf("%d,", GainReg/256);*/
 
@@ -2336,7 +1692,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 	if (h->pTunerParams->BTNR_RF_Input_Mode != BTNR_3x7x_TunerRfInputMode_eExternalLna)
 	{
 		Tuner_Gain = LNA_Gain + RFVGA_Gain + MXR_Fga_Gain + FREQ_rsp + LNA_Ctrl_Bias_Correction + RFVGA_Ctrl_Rdeg_Correction + RFVGA_Ctrl_Bias_Correction + TRKFIL_Buf_I_Ctrl_Correction + MIXER_Bias_Ctrl_Correction + FGA_Higain_Correction + LNA_Tilt + RFVGA_Tilt;
-		/*BDBG_MSG(("\n\n******  Gain Calculations ******"));
+		/*BDBG_MSG(("******  Gain Calculations ******"));
 		BDBG_MSG(("LNA_Gain = %d ; RFVGA_Gain = %d ; MXR_Fga_Gain=%d ; FREQ_rsp = %d ",LNA_Gain*100/256, RFVGA_Gain*100/256, MXR_Fga_Gain*100/256,FREQ_rsp*100/256 ));
 		BDBG_MSG(("LNA_Ctrl_Bias = %d ; RFVGA_Ctrl_Rdeg = %d ; RFVGA_Ctrl_Bias=%d ; RFFIL_Buffer_bias = %d ; MIXER_Bias = %d ",LNA_Ctrl_Bias_Correction*100/256,RFVGA_Ctrl_Rdeg_Correction*100/256,RFVGA_Ctrl_Bias_Correction*100/256, TRKFIL_Buf_I_Ctrl_Correction*100/256, MIXER_Bias_Ctrl_Correction*100/256 ));
 		BDBG_MSG(("FGA_Higain = %d ; LNA_Tilt = %d ; RFVGA_Tilt=%d ",FGA_Higain_Correction*100/256, LNA_Tilt*100/256, RFVGA_Tilt*100/256 ));*/
@@ -2344,7 +1700,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 	else
 	{
 		Tuner_Gain = RFVGA_Gain + MXR_Fga_Gain + FREQ_rsp + RFVGA_Ctrl_Rdeg_Correction + RFVGA_Ctrl_Bias_Correction + TRKFIL_Buf_I_Ctrl_Correction + MIXER_Bias_Ctrl_Correction + FGA_Higain_Correction + RFVGA_Tilt;
-		/*BDBG_MSG(("\n\n******  Gain Calculations ******"));
+		/*BDBG_MSG(("******  Gain Calculations ******"));
 		BDBG_MSG(("LNA_Gain = %d ; RFVGA_Gain = %d ; MXR_Fga_Gain=%d ; FREQ_rsp = %d ",0, RFVGA_Gain*100/256, MXR_Fga_Gain*100/256,FREQ_rsp*100/256 ));
 		BDBG_MSG(("LNA_Ctrl_Bias = %d ; RFVGA_Ctrl_Rdeg = %d ; RFVGA_Ctrl_Bias=%d ; RFFIL_Buffer_bias = %d ; MIXER_Bias_Ctrl = %d ",0,RFVGA_Ctrl_Rdeg_Correction*100/256,RFVGA_Ctrl_Bias_Correction*100/256, TRKFIL_Buf_I_Ctrl_Correction*100/256, MIXER_Bias_Ctrl_Correction*100/256 ));
 		BDBG_MSG(("FGA_Higain = %d ; LNA_Tilt = %d ; RFVGA_Tilt=%d ",FGA_Higain_Correction*100/256, 0, RFVGA_Tilt*100/256 ));*/
@@ -2359,7 +1715,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 	h->pTunerStatus->Tuner_PreADC_Gain_x256db = (int16_t)(Tuner_Gain + SDADC_PGA_Gain);
 
 	/*BDBG_MSG(("Total_PreADC_Gain = %d ; Tuner_Gain = %d ; SDADC_PGA_Gain=%d",h->pTunerStatus->Tuner_PreADC_Gain_x256db*100/256, Tuner_Gain*100/256, SDADC_PGA_Gain*100/256));
-	BDBG_MSG(("\n---------------------------------"));*/
+	BDBG_MSG(("---------------------------------"));*/
 	#endif
 
 	/*Zero internal gain for Low-IF mode */
@@ -2388,7 +1744,7 @@ BERR_Code BTNR_P_TunerStatus(BTNR_3x7x_ChnHandle h)
 		h->pTunerParams->BTNR_Gain_Params.Gain_Bypassed = 0;
 	}
 
-/*	BDBG_MSG(("\nPreADC Gain = %d, ExternalGain = %d\n",h->pTunerStatus->Tuner_PreADC_Gain_x256db*100/256,h->pTunerStatus->External_Gain_x256db*100/256));*/
+/*	BDBG_MSG(("PreADC Gain = %d, ExternalGain = %d",h->pTunerStatus->Tuner_PreADC_Gain_x256db*100/256,h->pTunerStatus->External_Gain_x256db*100/256));*/
 	return retCode;
 }
 
@@ -3084,7 +2440,7 @@ void BTNR_P_TunerSetDCOCLK(BTNR_3x7x_ChnHandle h)
 	}
 	else
 	{
-		BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m4div, 	0x1B);
+		BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_04, m4div, 0x1B);
 	}
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, load_en_ch6_ch1, 0x0);
 	BREG_WriteField(h->hRegister, UFE_AFE_TNR0_PHYPLL_05, load_en_ch6_ch1, 0x3F);

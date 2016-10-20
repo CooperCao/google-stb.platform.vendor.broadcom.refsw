@@ -102,7 +102,7 @@ char *getClientName(
 } /* getClientName */
 
 pid_t daemonize(
-    void
+    const char * logFileName
     )
 {
     pid_t pid = 0, sid = 0;
@@ -161,14 +161,17 @@ pid_t daemonize(
             }
         }
 
-        PrependTempDirectory( utilsLogFilename, sizeof( utilsLogFilename ), "bmemperf_utils.log" );
-        fd = open( utilsLogFilename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR  );
-
-        if (fd != -1)
+        if ( logFileName && strlen(logFileName) )
         {
-            /*printf( "%u: Assign STDOUT/STDERR to fd (%u)\n", pid, fd );*/
-            dup2( fd, STDOUT_FILENO );
-            dup2( fd, STDERR_FILENO );
+            PrependTempDirectory( utilsLogFilename, sizeof( utilsLogFilename ), logFileName );
+            fd = open( utilsLogFilename, O_CREAT | O_RDWR, S_IRUSR | S_IWUSR  );
+
+            if (fd != -1)
+            {
+                /*printf( "%u: Assign STDOUT/STDERR to fd (%u)\n", pid, fd );*/
+                dup2( fd, STDOUT_FILENO );
+                dup2( fd, STDERR_FILENO );
+            }
         }
 
         /*reset file creation mask */

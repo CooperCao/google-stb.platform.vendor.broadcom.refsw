@@ -73,23 +73,6 @@ void BDSP_GetStatus(
     return;
 }
 
-BERR_Code BDSP_GetDebugLog(
-    BDSP_Handle handle,
-    char *pBuffer,
-    size_t bufferLength
-    )
-{
-    BDBG_OBJECT_ASSERT(handle, BDSP_Device);
-    if ( handle->getDebugLog )
-    {
-        return handle->getDebugLog(handle->pDeviceHandle, pBuffer, bufferLength);
-    }
-    else
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-}
-
 BERR_Code BDSP_Standby(
     BDSP_Handle             handle,         /* [in] DSP device handle */
     BDSP_StandbySettings    *pSettings  /* [in] standby settings */
@@ -143,26 +126,6 @@ BERR_Code BDSP_GetAlgorithmInfo(
         return BERR_TRACE(BERR_NOT_SUPPORTED);
     }
     return BERR_SUCCESS;
-}
-
-void BDSP_GetAlgorithmDefaultSettings(
-    BDSP_Handle hDevice,
-    BDSP_Algorithm algorithm,
-    void *pSettingsBuffer,        /* [out] */
-    size_t settingsBufferSize
-    )
-{
-    BDBG_ASSERT(NULL != pSettingsBuffer);
-    BDBG_ASSERT(settingsBufferSize > 0);
-
-    if (hDevice->getAlgorithmDefaultSettings)
-    {
-        hDevice->getAlgorithmDefaultSettings(hDevice->pDeviceHandle, algorithm, pSettingsBuffer, settingsBufferSize);
-    }
-    else
-    {
-        BKNI_Memset(pSettingsBuffer, 0, settingsBufferSize);
-    }
 }
 
 /***************************************************************************
@@ -266,118 +229,6 @@ BERR_Code BDSP_GetExternalInterruptInfo(
     if(handle->getExternalInterruptInfo)
     {
         ErrCode = handle->getExternalInterruptInfo(hInterrupt->pExtInterruptHandle, pInfo);
-    }
-    else
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    return ErrCode;
-
-}
-
-/***************************************************************************
-Summary:
-    Allocate RDB registers from dsp page for upper SW layer
-
-Description:
-    This function allocates RDB registers handle that can be used to send msg etc to DSP.
-
-Returns:
-    BERR_SUCCESS - If allocation is successful, otherwise error
-
-See Also:
-    BDSP_FreeRdbRegisters
-    BDSP_GetRdbRegistersInfo
-***************************************************************************/
-BERR_Code BDSP_AllocateRdbRegisters(
-    BDSP_Handle hDsp,
-    uint32_t    dspIndex,
-    uint32_t    numRdbToAllocate,
-    BDSP_RdbRegisterHandle *pRdbRegisterHandle /* [out] */
-    )
-{
-    BERR_Code   ErrCode = BERR_SUCCESS;
-    BDBG_OBJECT_ASSERT(hDsp, BDSP_Device);
-
-    if ( hDsp->allocateRdbRegister)
-    {
-        ErrCode = hDsp->allocateRdbRegister(hDsp->pDeviceHandle, dspIndex, numRdbToAllocate, pRdbRegisterHandle);
-    }
-    else
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-    return ErrCode;
-}
-
-
-/***************************************************************************
-Summary:
-    Frees an allocated Rdb Registers handle.
-
-Description:
-    This function frees an Rdb Registers handle that was already allocated.
-
-Returns:
-    BERR_SUCCESS if sucessful else error
-
-See Also:
-    BDSP_AllocateRdbRegisters
-    BDSP_GetRdbRegistersInfo
-***************************************************************************/
-BERR_Code BDSP_FreeRdbRegisters(
-            BDSP_RdbRegisterHandle  hRdbRegister
-            )
-{
-    BDSP_Handle handle;
-    BERR_Code   ErrCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hRdbRegister, BDSP_RdbRegister);
-
-    handle = hRdbRegister->hDsp;
-
-    if(handle->freeRdbRegister)
-    {
-        ErrCode = handle->freeRdbRegister(hRdbRegister->pRdbRegisterHandle);
-    }
-    else
-    {
-        return BERR_TRACE(BERR_NOT_SUPPORTED);
-    }
-
-    return ErrCode;
-}
-
-/***************************************************************************
-Summary:
-    Retrieve Rdb Registers information.
-
-Description:
-    This function provides the address (offset) of base RDB register.
-
-Returns:
-    BERR_SUCCESS - If successful, otherwise error
-
-See Also:
-    BDSP_FreeRdbRegisters
-    BDSP_AllocateRdbRegisters
-***************************************************************************/
-BERR_Code BDSP_GetRdbRegistersInfo(
-    BDSP_RdbRegisterHandle hRdbRegister,
-    BDSP_RdbRegisterInfo **pInfo /* [out] */
-    )
-{
-    BDSP_Handle handle;
-    BERR_Code   ErrCode = BERR_SUCCESS;
-
-    BDBG_OBJECT_ASSERT(hRdbRegister, BDSP_RdbRegister);
-
-    handle = hRdbRegister->hDsp;
-
-    if(handle->getRdbRegisterInfo)
-    {
-        ErrCode = handle->getRdbRegisterInfo(hRdbRegister->pRdbRegisterHandle, pInfo);
     }
     else
     {

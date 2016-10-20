@@ -46,12 +46,7 @@ BDBG_MODULE(breg_mem);
 
 BDBG_OBJECT_ID(BREG);
 
-#if (BCHP_CHIP == 7145)
-    #define BCHP_GISB_REGISTER_OFFSET BCHP_HEVD_OL_CPU_REGS_0_REG_START
-#else
-    #define BCHP_GISB_REGISTER_OFFSET 0
-#endif
-
+#define BCHP_GISB_REGISTER_OFFSET 0
 
 static void BREG_P_systemUpdate32_isrsafe(void *context, uint32_t reg, uint32_t mask, uint32_t value, bool atomic)
 {
@@ -77,10 +72,57 @@ static void BREG_P_systemUpdate32_isrsafe(void *context, uint32_t reg, uint32_t 
 
 static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg );
 
+#if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
+#if BDBG_DEBUG_BUILD
+static bool BREG_P_Test64RegOffset_isrsafe(uint32_t regOffset)
+{
+#define BCHP_REGISTER_64BIT(name, offset) case (offset/8): BDBG_CASSERT((offset%8)==0);return true;
+    switch(regOffset) {
+#include "bchp_64bit.h"
+    default: break;
+    }
+    return false;
+}
+
+static bool BREG_P_Test64Reg_isrsafe(uint32_t reg)
+{
+    return reg%8==0 && BREG_P_Test64RegOffset_isrsafe(reg/8);
+}
+#endif /* BDBG_DEBUG_BUILD */
+
+static void BREG_P_Test32Reg_isrsafe(uint32_t reg)
+{
+    BSTD_UNUSED(reg);
+#if BDBG_DEBUG_BUILD
+    if(reg%4!=0 || BREG_P_Test64RegOffset_isrsafe(reg/8)) {
+        BDBG_ERR(("Invalid 32-bit register access"));
+    }
+#endif
+    return;
+}
+#else
+static void BREG_P_Test32Reg_isrsafe(uint32_t reg)
+{
+    BSTD_UNUSED(reg);
+    return ;
+}
+#endif
+
+static void BREG_P_runSerialized_isrsafe(void *context, void (*action)(BREG_Handle, void *), void *action_context)
+{
+    BSTD_UNUSED(context);
+    BSTD_UNUSED(action);
+    BSTD_UNUSED(action_context);
+    BDBG_ERR(("runSerialized is not supported"));
+    BDBG_ASSERT(0);
+    return ;
+}
 static const BREG_OpenSettings BREG_OpenSettings_Default = {
     NULL,
     BREG_P_isRegisterAtomic_isrsafe,
-    BREG_P_systemUpdate32_isrsafe
+    BREG_P_systemUpdate32_isrsafe,
+    BREG_P_runSerialized_isrsafe,
+    0
 };
 
 void BREG_GetDefaultOpenSettings(BREG_OpenSettings *pSettings)
@@ -150,240 +192,7 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_SUN_TOP_CTRL_SW_RESET);
 #endif
 
-#if (BCHP_CHIP==7405)
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_ip_shim_0.h"
-#include "bchp_clk.h"
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_IP_SHIM_0_PFRI_REG);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_AVD_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_REG_START);
-#elif (BCHP_CHIP==7400)
-#include "bchp_clk.h"
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC0_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC1_CTRL);
-#elif (BCHP_CHIP==3556 || BCHP_CHIP==3548)
-#include "bchp_decode_sd_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-#include "bchp_clkgen.h"
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_3);
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_AVD_CTRL);
-#elif ( BCHP_CHIP==7335 )
-#include "bchp_clk.h"
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_ip_shim_0.h"
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_IP_SHIM_0_PFRI_REG);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_AVD_CTRL);
-#elif    (BCHP_CHIP==7325 )
-#include "bchp_clkgen.h"
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_ip_shim_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_IP_SHIM_0_PFRI_REG);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_AVD_CTRL);
-#elif    (BCHP_CHIP==7340 )
-#include "bchp_clkgen.h"
-#include "bchp_decode_sd_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-#if (BCHP_VER==BCHP_VER_A0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_216_108_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_216_108_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_MISC_CLOCKS);
-#endif
-#elif    (BCHP_CHIP==7342 )
-#include "bchp_clk.h"
-#include "bchp_decode_sd_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-#elif    (BCHP_CHIP==7125 )
-#include "bchp_clkgen.h"
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_ip_shim_0.h"
-#include "bchp_vcxo_ctl_misc.h"
-#include "bchp_smartcard_pll.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_IP_SHIM_0_PFRI_REG);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_SMARTCARD_CLOCK_CTRL);
-#if (BCHP_VER<BCHP_VER_C0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PWRDN_CTRL_2);
-#else
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_TDAC0_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_TDAC1_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_RPTD_AIO_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VEC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GFX_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GFX_3D_OTP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_BVN_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_AVD_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_XPT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_SECTOP_DMA_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_RAP_AVD_PLL_CHL_6);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_MAIN_CH3_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC0_PM_DIS_CHL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DVP_HT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_SMARTCARD_PLL_SC_MACRO);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC0_CTRL);
-#endif
-#elif (BCHP_CHIP==7420)
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_sd_1.h"
-#include "bchp_clk.h"
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_1_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_1_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_CLK_DVP_HT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_UHFR_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SUN_DAA_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SUN_SM_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_RFM_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_TDAC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_QDAC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_RPT_AIO_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_VEC_656_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_VEC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_GFX_2D_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_GFX_3D_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_BVN_EDGE_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_BVN_MCVP_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_BVN_MIDDLE_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_AVD0_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_AVD1_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_XPT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SECTOP_DMA_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_TOP1394_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SYS_PLL_0_PLL_3);
-    BREG_P_ATOMIC_REG(BCHP_CLK_MISC);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC0_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC1_CTRL);
-#elif (BCHP_CHIP==7550)
-#include "bchp_decode_sd_0.h"
-#include "bchp_clk.h"
-#include "bchp_avd_cache_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_1);
-    BREG_P_ATOMIC_REG(BCHP_CLK_PM_CTRL_2);
-    BREG_P_ATOMIC_REG(BCHP_CLK_MISC_CLK_SEL);
-    BREG_P_ATOMIC_REG(BCHP_AVD_CACHE_0_REG_PCACHE_MODE0);
-#elif (BCHP_CHIP==7422)
-#include "bchp_decode_sd_0.h"
-#include "bchp_decode_sd_1.h"
-    /* TODO: Add other clocks */
-#elif (BCHP_CHIP==35230)
-#include "bchp_avd_cache_0.h"
-    BREG_P_ATOMIC_REG(BCHP_AVD_CACHE_0_REG_PCACHE_MODE0);
-#include "bchp_decode_sd_0.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-#elif ((BCHP_CHIP==35233))
-#include "bchp_clock_gating_regs.h"
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_RAAGA_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_DVP_HR_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_PCU_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_HIF_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_SYS_CTRL_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_USB0_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_USB1_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_GNET_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_MCVP_FRONT_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_BVN_MCDI_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_CORE_XPT_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_GRAPHICS_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_OTP_PROD_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_DS_TOP_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_ADEC_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_DFE_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_VDEC_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_X8_MASTER_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_DVP_LT_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_AVS_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_DVP_PT_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_AVD0_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_VEC_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_MEMSYS_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_MEMSYS_1_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_AVFE_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_PINMUX_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_AIO_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_ZCPU_TOP_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_V3D_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_FRC_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_VIDBLK_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_VINDECO_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_TCON_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_SHARF_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_BVN_EDGE_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_BVN_MIDDLE_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_BVN_PDP_CLOCK_CONTROL);
-    BREG_P_ATOMIC_REG(BCHP_Clock_gating_regs_THD_TOP_CLOCK_CONTROL);
-#elif (BCHP_CHIP==7468)
-#include "bchp_decode_sd_0.h"
-#include "bchp_avd_rgr_0.h"
-#include "bchp_clk.h"
-#include "bchp_vcxo_ctl_misc.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_CLK_AVD0_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_BVN_TOP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_RPT_AIO_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_VEC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_QDAC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_XPT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_DVP_HT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SYS_PLL_1_3);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SYS_PLL_1_6);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SYS_PLL_0_2);
-    BREG_P_ATOMIC_REG(BCHP_CLK_M2MC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_MISC);
-    BREG_P_ATOMIC_REG(BCHP_AVD_RGR_0_SW_RESET_0);
-    BREG_P_ATOMIC_REG(BCHP_VCXO_CTL_MISC_VC0_CTRL);
-#elif (BCHP_CHIP==7408)
-#include "bchp_decode_sd_0.h"
-#include "bchp_clk.h"
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_PFRI_DATA_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_DECODE_SD_0_REG_SD_STRIPE_WIDTH);
-    BREG_P_ATOMIC_REG(BCHP_CLK_DVP_HT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_AVD0_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_SYS_PLL_1_1);
-    BREG_P_ATOMIC_REG(BCHP_CLK_GFX_2D_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_GFX_3D_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_AIO_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_XPT_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_VEC_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_BVN_TOP_CLK_PM_CTRL);
-    BREG_P_ATOMIC_REG(BCHP_CLK_UHFR_CLK_PM_CTRL);
-#elif (BCHP_CHIP==7231)
+#if (BCHP_CHIP==7231)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1);
@@ -1115,7 +924,7 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON);
-#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268)
+#elif (BCHP_CHIP==7271 || BCHP_CHIP==7268 || BCHP_CHIP==7260)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
@@ -1213,124 +1022,6 @@ static bool BREG_P_isRegisterAtomic_isrsafe(void *unused, uint32_t reg)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
-#elif (BCHP_CHIP==7145)
-#include "bchp_clkgen.h"
-#include "bchp_avs_top_ctrl.h"
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_HVD0_TOP_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_HVD);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_AVD_SID1_TOP_INST_CLOCK_ENABLE);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_AVD);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VICE2_0_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_VICE2_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VICE2_1_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_VICE2_1);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VEC_AIO_TOP_INST_CLOCK_DISABLE);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VEC_AIO_TOP_INST_CLOCK_ENABLE);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_AIO);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_RAAGA_DSP_TOP_0_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_RAAGA0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_RAAGA_DSP_TOP_1_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_RAAGA1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_BVN_MVP_TOP_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_BVN_TOP_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_BVND);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_BVN);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DVP_HT_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DVP_HR_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_ANA_QDAC_TS28HPM_6MX_2MR_FC_H_E_INST_CLOCK_DISABLE);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_VEC_AIO_TOP_INST_CLOCK_ENABLE_VEC_QDAC_INTF);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_VEC);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_CORE_XPT_INST_CLOCK_ENABLE);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PM_CLOCK_Async_ALIVE_SEL);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_DVPHT);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DVP_HR_INST_ENABLE);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DVP_HR_INST_CLOCK_DISABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_DVPHR);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GRAPHICS_INST_CLOCK_ENABLE_M2MC0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GRAPHICS_INST_CLOCK_ENABLE0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GRAPHICS_INST_CLOCK_ENABLE_M2MC1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_GRAPHICS_INST_CLOCK_ENABLE1);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_M2MC0);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_M2MC1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_V3D_TOP_INST_CLOCK_ENABLE);
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_V3D);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_SYS_CTRL_INST_CLOCK_DISABLE);
-#if (BCHP_VER >= BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_DS_TOPB_INST_CLOCK_DISABLE_STATUS);
-#else
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_AVD_SID1_TOP_INST_CLOCK_ENABLE_SID);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_AVS_TOP_CTRL_SRAM_POWER_GATE_IN_SID);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_CHANNEL_CTRL_CH_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AVD_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PM_PLL_LDO_POWERUP);
-#if (BCHP_VER < BCHP_VER_B0)
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO0_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO0_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO0_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO0_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO1_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO1_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO1_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO1_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO2_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO2_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO2_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_AUDIO2_PLL_RESET);
-#endif
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO1_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_BG_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO2_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_XPT_PLL_CHANNEL_CTRL_CH_5);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SWITCH_PLL_CHANNEL_CTRL_CH_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC0_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC0_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC0_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC0_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_SC1_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_0);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_1);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_2);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_CHANNEL_CTRL_CH_3);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_LDO_PWRON);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_RAAGA_PLL_RESET);
-    BREG_P_ATOMIC_REG(BCHP_CLKGEN_RFM_TOP_INST_CLOCK_ENABLE);
 #elif (BCHP_CHIP==7366)
 #include "bchp_clkgen.h"
     BREG_P_ATOMIC_REG(BCHP_CLKGEN_PLL_VCXO0_PLL_RESET );
@@ -1419,10 +1110,12 @@ static void BREG_P_CheckAtomicRegister_isrsafe(BREG_Handle regHandle, uint32_t r
 #define BREG_P_CheckAtomicRegister_isrsafe(regHandle, reg, function, atomic)
 #endif
 
+
 uint32_t BREG_Read32(BREG_Handle RegHandle, uint32_t reg)
 {
     /* BDBG_OBJECT_ASSERT(RegHandle, BREG); */
     BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
+    BREG_P_Test32Reg_isrsafe(reg);
 
     return BREG_P_Read32(RegHandle, reg);
 }
@@ -1447,10 +1140,12 @@ The feature should not be enabled for a production system. */
 extern void APP_BREG_Write32(BREG_Handle RegHandle, uint32_t reg, uint32_t data);
 #endif
 
+
 void BREG_Write32(BREG_Handle RegHandle, uint32_t reg, uint32_t data)
 {
     /* BDBG_OBJECT_ASSERT(RegHandle, BREG); */
     BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
+    BREG_P_Test32Reg_isrsafe(reg);
     BREG_P_CheckAtomicRegister_isrsafe(RegHandle, reg, "BREG_Write32", false);
 
 #if BREG_CAPTURE
@@ -1486,6 +1181,7 @@ void BREG_AtomicUpdate32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t m
 {
     BDBG_OBJECT_ASSERT(RegHandle, BREG);
     BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
+    BREG_P_Test32Reg_isrsafe(reg);
     BREG_P_CheckAtomicRegister_isrsafe(RegHandle, reg, "BREG_AtomicUpdate32_isr", true);
     RegHandle->openSettings.systemUpdate32_isrsafe(RegHandle->openSettings.callbackContext, reg, mask, value, true);
 #if BREG_CAPTURE
@@ -1496,6 +1192,8 @@ void BREG_AtomicUpdate32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t m
 void BREG_Update32_isrsafe(BREG_Handle RegHandle, uint32_t reg, uint32_t mask, uint32_t value)
 {
     BDBG_OBJECT_ASSERT(RegHandle, BREG);
+    BDBG_ASSERT(reg < RegHandle->MaxRegOffset);
+    BREG_P_Test32Reg_isrsafe(reg);
 
     RegHandle->openSettings.systemUpdate32_isrsafe(RegHandle->openSettings.callbackContext, reg, mask, value, false);
     return;
@@ -1539,5 +1237,169 @@ void BREG_P_Tracelog_Register(BREG_Handle RegHandle, unsigned moduleId, const ch
     BSTD_UNUSED(moduleName);
 #endif
 }
+
+#if defined(BCHP_HIF_MSAT_REG_START) /* MSAT is hw atomizer for 64-bit register access from 32-bit host */
+
+static void BREG_P_Write64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
+{
+    BREG_P_Write64(regHandle, reg, data);
+    return;
+}
+
+static uint64_t BREG_P_Read64_Native_isrsafe(BREG_Handle regHandle, uint32_t reg)
+{
+    uint32_t data;
+    data = BREG_P_Read64(regHandle, reg);
+    return data;
+}
+
+#include "bchp_hif_msat.h"
+    /* 64-bits Migration: Control/Busses/Register Update */
+    /* 5.7  Managed SAT */
+
+static void BREG_P_Msat_SetAddress_isrsafe(BREG_Handle regHandle, unsigned offset, uint32_t reg)
+{
+    uint64_t deviceOffset = reg + (uint64_t)BCHP_PHYSICAL_OFFSET;
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_LO_ADDR + offset, (uint32_t)deviceOffset);
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_HI_ADDR + offset, (uint32_t)(deviceOffset>>32));
+    return;
+}
+
+struct BREG_P_Msat_ActionContext {
+    uint32_t reg;
+    uint64_t data;
+};
+
+static void BREG_P_Msat_Write64_isrsafe(BREG_Handle regHandle, unsigned index, uint32_t reg, uint64_t data)
+{
+    unsigned offset = (BCHP_HIF_MSAT_CHANNEL_1_LO_ADDR - BCHP_HIF_MSAT_CHANNEL_0_LO_ADDR)*index;
+    BREG_P_Msat_SetAddress_isrsafe(regHandle, offset, reg);
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_LO_DATA + offset, (uint32_t)data);
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_HI_DATA + offset, (uint32_t)(data>>32));
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_ACTION + offset, BCHP_FIELD_ENUM(HIF_MSAT_CHANNEL_0_ACTION, WRITE, WRITE_CYC));
+    return;
+}
+
+static void BREG_P_Msat_Action_Write64_isrsafe(BREG_Handle regHandle, void *_context)
+{
+    struct BREG_P_Msat_ActionContext *context = _context;
+    BREG_P_Msat_Write64_isrsafe(regHandle, regHandle->openSettings.msatChannel, context->reg, context->data);
+    return;
+}
+
+
+static void BREG_P_Write64_Msat_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
+{
+    uint32_t tmp;
+    unsigned index;
+
+    tmp = BREG_P_Read32(regHandle, BCHP_HIF_MSAT_ACQUIRE);
+    index = BCHP_GET_FIELD_DATA(tmp, HIF_MSAT_ACQUIRE, CHANNEL_INDEX);
+    if(index!=0xFF) {
+        BREG_P_Msat_Write64_isrsafe(regHandle, index, reg, data);
+        BREG_P_Write32(regHandle, BCHP_HIF_MSAT_RELEASE, BCHP_FIELD_DATA(HIF_MSAT_RELEASE, CHANNEL_INDEX, index));
+    } else {
+        struct BREG_P_Msat_ActionContext context;
+        context.reg = reg;
+        context.data = data;
+        regHandle->openSettings.runSerialized_isrsafe(regHandle->openSettings.callbackContext, BREG_P_Msat_Action_Write64_isrsafe, &context);
+    }
+    return ;
+}
+
+static uint64_t BREG_P_Msat_Read64_isrsafe(BREG_Handle regHandle, unsigned index, uint32_t reg)
+{
+    unsigned offset = (BCHP_HIF_MSAT_CHANNEL_1_LO_ADDR - BCHP_HIF_MSAT_CHANNEL_0_LO_ADDR)*index;
+    uint64_t data;
+    uint32_t tmp;
+    BREG_P_Msat_SetAddress_isrsafe(regHandle, offset, reg);
+    BREG_P_Write32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_ACTION + offset, BCHP_FIELD_ENUM(HIF_MSAT_CHANNEL_0_ACTION, READ, READ_CYC));
+    tmp = BREG_P_Read32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_LO_DATA + offset);
+    data = BREG_P_Read32(regHandle, BCHP_HIF_MSAT_CHANNEL_0_HI_DATA + offset);
+    data = (data<<32) | tmp;
+    return data;
+}
+
+static void BREG_P_Msat_Action_Read64_isrsafe(BREG_Handle regHandle, void *_context)
+{
+    struct BREG_P_Msat_ActionContext *context = _context;
+    context->data = BREG_P_Msat_Read64_isrsafe(regHandle, regHandle->openSettings.msatChannel, context->reg);
+    return;
+}
+
+static uint64_t BREG_P_Read64_Msat_isrsafe(BREG_Handle regHandle, uint32_t reg)
+{
+    uint64_t data;
+    uint32_t tmp;
+    unsigned index;
+
+    tmp = BREG_P_Read32(regHandle, BCHP_HIF_MSAT_ACQUIRE);
+    index = BCHP_GET_FIELD_DATA(tmp, HIF_MSAT_ACQUIRE, CHANNEL_INDEX);
+    if(index!=0xFF) {
+        data = BREG_P_Msat_Read64_isrsafe(regHandle, index, reg);
+        BREG_P_Write32(regHandle, BCHP_HIF_MSAT_RELEASE, BCHP_FIELD_DATA(HIF_MSAT_RELEASE, CHANNEL_INDEX, index));
+    } else {
+        struct BREG_P_Msat_ActionContext context;
+        context.reg = reg;
+        regHandle->openSettings.runSerialized_isrsafe(regHandle->openSettings.callbackContext, BREG_P_Msat_Action_Read64_isrsafe, &context);
+        data = context.data;
+    }
+    return data;
+}
+
+uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
+{
+    uint32_t data;
+    bool native = false;
+
+    BDBG_ASSERT(reg < regHandle->MaxRegOffset);
+    BDBG_ASSERT(BREG_P_Test64Reg_isrsafe(reg));
+#if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
+    native = true;
+#endif /*  #if defined(BREG_64_NATIVE_SUPPORT)  */
+    if(native) {
+        data = BREG_P_Read64_Native_isrsafe(regHandle, reg);
+    } else {
+        data = BREG_P_Read64_Msat_isrsafe(regHandle, reg);
+    }
+    return data;
+}
+
+void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
+{
+    bool native = false;
+
+    BDBG_ASSERT(reg < regHandle->MaxRegOffset);
+    BDBG_ASSERT(BREG_P_Test64Reg_isrsafe(reg));
+#if defined(BREG_64_NATIVE_SUPPORT) /* allow native 64-bit register access from 64-bit host interface */
+    native = true;
+#endif /*  #if defined(BREG_64_NATIVE_SUPPORT)  */
+    if(native) {
+        BREG_P_Write64_Native_isrsafe(regHandle, reg, data);
+    } else {
+        BREG_P_Write64_Msat_isrsafe(regHandle, reg, data);
+    }
+    return;
+}
+#else /*  #if defined(BCHP_HIF_MSAT_REG_START)  */
+
+void BREG_Write64_isrsafe(BREG_Handle regHandle, uint32_t reg, uint64_t data)
+{
+    if((data>>32)!= 0) {
+        BDBG_ERR(("BREG_Write64_isrsafe: will drop " BDBG_UINT64_FMT "  when writing " BDBG_UINT64_FMT " to %#x", BDBG_UINT64_ARG((data>>32)<<32), BDBG_UINT64_ARG(data), reg));
+        /* BDBG_ASSERT(data>>32==0); */
+    }
+    BREG_Write32(regHandle, reg, data);
+    return;
+}
+
+uint64_t BREG_Read64_isrsafe(BREG_Handle regHandle, uint32_t reg)
+{
+    uint32_t data;
+    data = BREG_Read32(regHandle, reg);
+    return data;
+}
+#endif /*  #if defined(BCHP_HIF_MSAT_REG_START)  */
+
 
 /* End of File */

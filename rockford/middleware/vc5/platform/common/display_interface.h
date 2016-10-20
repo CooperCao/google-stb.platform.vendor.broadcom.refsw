@@ -17,22 +17,22 @@ typedef enum DisplayInterfaceResult
    eDisplayPending /* have to wait on a display_fence before reuse */
 } DisplayInterfaceResult;
 
-struct DisplayInterface
+typedef struct DisplayInterface
 {
-   struct Interface base;
+   Interface base;
 
    DisplayInterfaceResult (*display)(void *context, void *surface,
          int render_fence, int *display_fence);
    bool (*wait_sync)(void *context);
    void (*stop)(void *context);
-};
+} DisplayInterface;
 
 DisplayInterfaceResult DisplayInterface_Display(
-      const struct DisplayInterface *di, void *surface,
+      const DisplayInterface *di, void *surface,
       int render_fence, int *display_fence);
 
-bool DisplayInterface_WaitSync(const struct DisplayInterface *di);
+bool DisplayInterface_WaitSync(const DisplayInterface *di);
 
-void DisplayInterface_Stop(const struct DisplayInterface *di);
+void DisplayInterface_Stop(const DisplayInterface *di);
 
 #endif /* __DISPLAY_INTERFACE_H__ */

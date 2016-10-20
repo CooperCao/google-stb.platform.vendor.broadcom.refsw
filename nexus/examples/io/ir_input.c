@@ -1,7 +1,7 @@
 /******************************************************************************
- *    (c)2008-2009 Broadcom Corporation
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
- * This program is the proprietary software of Broadcom Corporation and/or its licensors,
+ * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
  * conditions of a separate, written license agreement executed between you and Broadcom
  * (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -34,7 +34,6 @@
  * ACTUALLY PAID FOR THE SOFTWARE ITSELF OR U.S. $1, WHICHEVER IS GREATER. THESE
  * LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
  * ANY LIMITED REMEDY.
- *
  *****************************************************************************/
 /* Example to get IR remote input using nexus */
 
@@ -55,7 +54,9 @@ void irCallback(void *pParam, int iParam)
         NEXUS_IrInputEvent irEvent;
         rc = NEXUS_IrInput_GetEvents(irHandle,&irEvent,1,&numEvents,&overflow);
         if (numEvents)
-            printf("irCallback: rc: %d, code: %08x, repeat: %s\n", rc, irEvent.code, irEvent.repeat ? "true" : "false");
+            printf("irCallback: rc: %d, %s%s code: %08x, codeHigh: %08x, repeat: %s\n",
+                rc, irEvent.preamble.preambleA?"A":"", irEvent.preamble.preambleB?"B":"",
+                irEvent.code, irEvent.codeHigh, irEvent.repeat ? "true" : "false");
     }
 }
 

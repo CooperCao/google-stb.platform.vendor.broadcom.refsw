@@ -48,7 +48,7 @@ typedef struct _Token {
 extern Token *glsl_token_construct(TokenType type, TokenData data);
 extern Token *glsl_token_construct_identifier(const char *s);
 extern Token *glsl_token_construct_intconst(int i);
-extern Token *glsl_lex_ppnumber(Token *token);
+extern TokenType glsl_lex_ppnumber(const char *s, const_value *value);
 extern bool glsl_token_equals(Token *t1, Token *t2);
 
 static inline bool is_pp_identifier(Token *t)

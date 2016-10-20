@@ -16,7 +16,7 @@ generated each frame as HW input.
 #include "khrn_record.h"
 #include "khrn_synclist_validate.h"
 #include "khrn_process.h"
-#include "khrn_process.h"
+#include "khrn_tile_state.h"
 #include "../glxx/glxx_query.h"
 #include "khrn_mem.h"
 #include "khrn_fence.h"
@@ -55,20 +55,6 @@ static void free_client_handles(KHRN_UINTPTR_VECTOR_T *handles)
       gmem_free(handle);
    }
    khrn_uintptr_vector_destroy(handles);
-}
-
-static void release_occlusion_queries(KHRN_OCCLUSION_QUERY_BLOCK_T *occlusion_query_list)
-{
-   KHRN_OCCLUSION_QUERY_BLOCK_T *b;
-   unsigned i;
-
-   b = occlusion_query_list;
-   while (b)
-   {
-      for (i = 0; i < b->count; ++i)
-         KHRN_MEM_ASSIGN(b->query[i].obj, NULL);
-      b = b->prev;
-   }
 }
 
 static void stage_persist_init(khrn_fmem_stage_persist *stage_per,
@@ -127,11 +113,18 @@ static void common_persist_term(void *v, size_t size)
    khrn_fmem_common_persist *per = (khrn_fmem_common_persist *)v;
    vcos_unused(size);
 
-   release_occlusion_queries(per->occlusion_query_list);
+   if (per->occlusion_query_list)
+      glxx_queries_release(per->occlusion_query_list);
+#if V3D_HAS_NEW_TF
+   if (per->prim_counts_query_list)
+      glxx_queries_release(per->prim_counts_query_list);
+#endif
    khrn_fmem_pool_deinit(&per->pool);
 
    for (unsigned i = 0; i != per->num_bin_tile_states; ++i)
       gmem_free(per->bin_tile_state[i]);
+   if (per->bin_shared_tile_state)
+      khrn_tile_state_release_shared(per->bin_shared_tile_state);
 
    free_client_handles(&per->client_handles);
 
@@ -155,22 +148,27 @@ static khrn_fmem_common_persist* common_persist_create(KHRN_RENDER_STATE_T *rs)
    return per;
 }
 
-static void render_completion(void *data, uint64_t job_id,
-      v3d_sched_job_error error)
+static void render_completion(void *data, uint64_t job_id, v3d_sched_job_error error)
 {
    khrn_fmem_stage_persist *stage_per = (khrn_fmem_stage_persist*)data;
 
-   /* go through the list of queries and update the queries results */
-   khrn_fmem_pool_pre_cpu_read_outputs(&stage_per->common->pool);
-   glxx_occlusion_queries_update(stage_per->common->occlusion_query_list, true);
+   /* go through the list of queries and update occlusion queries results */
+   if (stage_per->common->occlusion_query_list)
+      glxx_occlusion_queries_update(stage_per->common->occlusion_query_list, true);
 
    KHRN_MEM_ASSIGN(stage_per, NULL);
 }
 
-static void bin_completion(void *data, uint64_t job_id,
-      v3d_sched_job_error error)
+static void bin_completion(void *data, uint64_t job_id, v3d_sched_job_error error)
 {
    khrn_fmem_stage_persist *stage_per = (khrn_fmem_stage_persist*)data;
+
+#if V3D_HAS_NEW_TF
+   /* go through the list of queries and update prim counts queries results */
+   if (stage_per->common->prim_counts_query_list)
+      glxx_prim_counts_queries_update(stage_per->common->prim_counts_query_list, true);
+#endif
+
    KHRN_MEM_ASSIGN(stage_per, NULL);
 }
 
@@ -291,6 +289,9 @@ void khrn_fmem_discard(KHRN_FMEM_T *fmem)
     * updating results */
    khrn_fmem_common_persist *fmem_common = khrn_fmem_get_common_persist(fmem);
    glxx_occlusion_queries_update(fmem_common->occlusion_query_list, false);
+#if V3D_HAS_NEW_TF
+   glxx_prim_counts_queries_update(fmem_common->prim_counts_query_list, false);
+#endif
 
    for (unsigned stage = 0; stage < COUNT_STAGES; stage++)
       KHRN_MEM_ASSIGN(fmem->persist[stage], NULL);
@@ -381,45 +382,6 @@ uint32_t *khrn_fmem_data(KHRN_FMEM_T *fmem, unsigned size, unsigned align)
    void * p = alloc(&fmem_common->pool, &fmem->data, size, align, fmem->render_state);
 
    return p;
-}
-
-void khrn_fmem_new_occlusion_query_entry(KHRN_FMEM_T *fmem,
-      KHRN_OCCLUSION_QUERY_BLOCK_T **p_block, unsigned *index)
-{
-   khrn_fmem_common_persist *fmem_common = khrn_fmem_get_common_persist(fmem);
-
-   KHRN_OCCLUSION_QUERY_BLOCK_T *block = fmem_common->occlusion_query_list;
-
-   if (block == NULL || block->count == KHRN_CLE_OCCLUSION_QUERY_COUNT)
-   {
-      KHRN_OCCLUSION_QUERY_BLOCK_T *new_block = (KHRN_OCCLUSION_QUERY_BLOCK_T *)khrn_fmem_data(fmem,
-            sizeof(KHRN_OCCLUSION_QUERY_BLOCK_T), KHRN_FMEM_ALIGN_MAX);
-      if (new_block != NULL)
-      {
-         khrn_fmem_pool_mark_as_render_output(&fmem_common->pool, new_block);
-
-         /* Clear values here to indicate unused counters. We will initialise the
-          * values correctly if/when we actually start using them. */
-         /* Clear the counters for cores 1+ to 0, so we get the same sums for unused
-          * counters no matter how many cores we have. This is a useful for
-          * verification. */
-         memset(new_block->query_values, 0, sizeof(new_block->query_values));
-         memset(new_block->query_values, 0x55, V3D_OCCLUSION_QUERY_COUNTER_SINGLE_CORE_CACHE_LINE_SIZE);
-         new_block->count = 0;
-         new_block->prev = block;
-         fmem_common->occlusion_query_list = new_block;
-      }
-      block = new_block;
-   }
-
-   *p_block = block;
-   if (block)
-   {
-      *index = block->count;
-      block->count++;
-   }
-
-   return;
 }
 
 v3d_addr_t khrn_fmem_begin_clist(KHRN_FMEM_T *fmem)
@@ -736,7 +698,7 @@ static void pre_submit_debug(
 #if defined(KHRN_AUTOCLIF) || defined(KHRN_VALIDATE_SYNCLIST)
    bool sync_all = false;
 #ifdef KHRN_AUTOCLIF
-   bool record = khrn_options.autoclif_enabled && br_info->num_bins; // workaround for broken compute shader recording.
+   bool record = khrn_options.autoclif_enabled;
    if (record)
       sync_all = true;
 #endif
@@ -1002,22 +964,30 @@ bool khrn_fmem_record_res_interlock_self_read_conflicting_write(KHRN_FMEM_T *fme
 /* Allocate memory for the tile state */
 v3d_addr_t khrn_fmem_tile_state_alloc(KHRN_FMEM_T *fmem, size_t size)
 {
-   gmem_usage_flags_t   flags = GMEM_USAGE_V3D | GMEM_USAGE_HINT_DYNAMIC;
+   khrn_fmem_common_persist* persist = khrn_fmem_get_common_persist(fmem);
 
-   if (fmem->br_info.secure)
-      flags = flags | GMEM_USAGE_SECURE;
+   gmem_handle_t handle;
+   if (khrn_get_num_cores() == 1)
+   {
+      // Store shared object to be released on bin completion.
+      persist->bin_shared_tile_state = khrn_tile_state_alloc_shared(size, fmem->br_info.secure);
+      if (!persist->bin_shared_tile_state)
+         return 0;
+      handle = persist->bin_shared_tile_state->handle;
+   }
+   else
+   {
+      handle = khrn_tile_state_alloc_gmem(size, fmem->br_info.secure);
+      if (!handle)
+         return 0;
 
-   gmem_handle_t handle = gmem_alloc(size, V3D_TILE_STATE_ALIGN, flags, "tile state");
-   if (handle == GMEM_HANDLE_INVALID)
-      return 0;
-
-   // store gmem handle
-   khrn_fmem_common_persist *fmem_common = khrn_fmem_get_common_persist(fmem);
-   assert(fmem_common->num_bin_tile_states < countof(fmem_common->bin_tile_state));
-   fmem_common->bin_tile_state[fmem_common->num_bin_tile_states++] = handle;
+      // Store handle to be freed on bin completion.
+      assert(persist->num_bin_tile_states < countof(persist->bin_tile_state));
+      persist->bin_tile_state[persist->num_bin_tile_states++] = handle;
+   }
 
    return khrn_fmem_lock_and_sync(fmem, handle,
-         GMEM_SYNC_CORE_READ | GMEM_SYNC_CORE_WRITE, 0);
+         GMEM_SYNC_PTB_TILESTATE_READ | GMEM_SYNC_PTB_TILESTATE_WRITE | GMEM_SYNC_DISCARD, 0);
 }
 
 v3d_addr_t khrn_fmem_lock_and_sync(KHRN_FMEM_T *fmem, gmem_handle_t handle,

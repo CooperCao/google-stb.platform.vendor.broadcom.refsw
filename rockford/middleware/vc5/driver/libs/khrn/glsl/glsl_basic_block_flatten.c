@@ -108,13 +108,18 @@ static Dataflow *dataflow_simplify_recursive(Map *dataflow_copy, int age_offset,
    return n;
 }
 
+static bool guard_is_always_true(Dataflow *guard_value) {
+   return guard_value == NULL ||
+          (guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 1);
+}
+
 // set scalar values in the dst_basic_block
 static void set_dst_scalar_values(BasicBlock *dst_block, const BasicBlock *src_block,
                                   const Symbol *symbol, Dataflow **new_scalar_values, Dataflow *guard)
 {
    bool is_uniform = (symbol->flavour == SYMBOL_INTERFACE_BLOCK || (symbol->flavour == SYMBOL_VAR_INSTANCE && symbol->u.var_instance.storage_qual == STORAGE_UNIFORM));
 
-   if (is_uniform || guard == NULL) {
+   if (is_uniform || guard_is_always_true(guard)) {
       glsl_basic_block_set_scalar_values(dst_block, symbol, new_scalar_values);
    } else {
       Dataflow **v = glsl_basic_block_get_scalar_values(dst_block, symbol);
@@ -176,7 +181,7 @@ static void copy_block_dataflow(BasicBlock *dst_block, const BasicBlock *src_blo
    Dataflow *memory_head = dataflow_simplify_recursive(dataflow_copy, age_offset,
                                                        src_block->memory_head, generate_new_ids);
    for (Dataflow *m = memory_head; m != NULL; m=m->d.addr_store.prev) {
-      if (guard_value != NULL) {
+      if (!guard_is_always_true(guard_value)) {
          if (m->d.addr_store.cond != NULL) m->d.addr_store.cond = glsl_dataflow_construct_binary_op(DATAFLOW_LOGICAL_AND, m->d.addr_store.cond, guard_value);
          else m->d.addr_store.cond = guard_value;
       }
@@ -391,6 +396,7 @@ static void copy_basic_block_simple(BasicBlock *dst_block, const BasicBlock *src
    Dataflow *guard_value = NULL;
    if (guard != NULL)
       guard_value = guard[0];
+   if (guard_value && guard_value->flavour == DATAFLOW_CONST && guard_value->u.constant.value == 0) return;
 
    Dataflow *branch_cond, *not_branch_cond;
    copy_block_dataflow(dst_block, src_block, guard_value, age_offsets, false, &branch_cond, &not_branch_cond);

@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -38,7 +38,7 @@
  * Module Description:
  *
  *****************************************************************************/
-
+#if NEXUS_HAS_SIMPLE_DECODER
 #include "nxclient.h"
 #include "nexus_platform.h"
 #include "nexus_simple_video_decoder.h"
@@ -343,3 +343,11 @@ int main(int argc, char **argv)
     error:
     return 1;
 }
+#else
+#include <stdio.h>
+int main(void)
+{
+    printf("This application is not supported on this platform\n");
+    return 0;
+}
+#endif

@@ -40,13 +40,56 @@
 #define BSAGELIB_BOOT_H_
 
 #include "bsagelib_types.h"
+
+#if SAGE_VERSION >= SAGE_VERSION_CALC(3,0)
 #include "bsagelib_region_map.h"
+#endif
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+/* SAGElib boot settings
+ * This structure is used to provide SAGE binaries and general 'middleware' configuration to SAGE system library
+ * So that BSAGElib can kick off SAGE system. */
+typedef struct
+{
+    /* The image buffers shall be allocated in a global region (general heap or other global heaps)    */
+    uint8_t *pBootloader; /* SAGE bootloader image loaded into memory.                    */
+    uint32_t bootloaderSize;
 
+    uint8_t *pOsApp;      /* SAGE OS/APP image loaded into memory.                        */
+    uint32_t osAppSize;
+
+    /* Global Regions - 0: main, 1: client/secondary */
+    uint64_t GLR0Offset;
+    uint32_t GLR0Size;
+    uint64_t GLR1Offset;
+    uint32_t GLR1Size;
+
+    /* SAGE Restricted Region */
+    uint64_t SRROffset;
+    uint32_t SRRSize;
+
+    /* Compressed Restricted Region */
+    uint64_t CRROffset;
+    uint32_t CRRSize;
+
+    /* Uncompressed Restricted Regions - one per memory controler */
+    uint64_t URR0Offset;
+    uint32_t URR0Size;
+    uint64_t URR1Offset;
+    uint32_t URR1Size;
+    uint64_t URR2Offset;
+    uint32_t URR2Size;
+
+    /* Buffer holding the parameters of SAGE log buffer*/
+    uint64_t logBufferOffset;
+    uint32_t logBufferSize;
+
+} BSAGElib_BootSettings;
+#else
 /* SAGElib boot settings
  * This structure is used to provide SAGE binaries and general 'middleware' configuration to SAGE system library
  * So that BSAGElib can kick off SAGE system. */
@@ -63,12 +106,13 @@ typedef struct
     uint32_t logBufferOffset;
     uint32_t logBufferSize;
 
-    /* Regions map; memory block that mus be accessible by SAGE-side
+    /* Regions map; memory block that must be accessible by SAGE-side
        (see bsagelib_shared_globalsram.h for more details) */
     BSAGElib_RegionInfo *pRegionMap;
     uint32_t regionMapNum;
 
 } BSAGElib_BootSettings;
+#endif
 
 typedef struct
 {
@@ -82,6 +126,11 @@ typedef struct
 void
 BSAGElib_Boot_GetDefaultSettings(
     BSAGElib_BootSettings *pBootSettings /* [in/out] */);
+
+BERR_Code
+BSAGElib_Boot_HostReset(
+    BSAGElib_Handle hSAGElib,
+    const BSAGElib_BootSettings *pBootSettings);
 
 /* Launch the Given SAGE Firmwares:
  *  - Parse given binaries headers
@@ -120,6 +169,14 @@ BSAGElib_Boot_GetBinariesInfo(
     BSAGElib_Handle hSAGElib,
     BSAGElib_ImageInfo *pBootloaderInfo,
     BSAGElib_ImageInfo *pFrameworkInfo);
+
+#if SAGE_VERSION < SAGE_VERSION_CALC(3,0)
+void
+BSAGElib_Boot_GetBinariesVersion(
+    BSAGElib_Handle hSAGElib,
+    char **ppBLVer,
+    char **ppOSVer);
+#endif
 
 BERR_Code
 BSAGElib_Boot_Post(

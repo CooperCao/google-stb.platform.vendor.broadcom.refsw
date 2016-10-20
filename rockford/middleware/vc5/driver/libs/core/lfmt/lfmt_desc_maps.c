@@ -31,15 +31,25 @@ static const struct desc_map_entry gfx_lfmt_swizzling_desc_map_entries_value_ord
    {"UIF_NOUTILE", 0x00000014},
    {"UIF_NOUTILE_XOR", 0x00000018},
    {"UBLINEAR", 0x0000001c},
-   {"SAND_128", 0x00000020},
-   {"SAND_256", 0x00000024},
+   {"SAND_128_MAP2", 0x00000020},
+   {"SAND_256_MAP2", 0x00000024},
+   {"SAND_128_MAP2_BIGEND", 0x00000028},
+   {"SAND_128_MAP5_BIGEND", 0x0000002c},
+   {"SAND_256_MAP2_BIGEND", 0x00000030},
+   {"SAND_256_MAP5_BIGEND", 0x00000034},
+   {"SAND_256_MAP8_BIGEND", 0x00000038},
 };
 static const struct desc_map_entry gfx_lfmt_swizzling_desc_map_entries_desc_ordered[] = {
    {"LT", 0x00000008},
    {"NONE", 0x00000000},
    {"RSO", 0x00000004},
-   {"SAND_128", 0x00000020},
-   {"SAND_256", 0x00000024},
+   {"SAND_128_MAP2", 0x00000020},
+   {"SAND_128_MAP2_BIGEND", 0x00000028},
+   {"SAND_128_MAP5_BIGEND", 0x0000002c},
+   {"SAND_256_MAP2", 0x00000024},
+   {"SAND_256_MAP2_BIGEND", 0x00000030},
+   {"SAND_256_MAP5_BIGEND", 0x00000034},
+   {"SAND_256_MAP8_BIGEND", 0x00000038},
    {"UBLINEAR", 0x0000001c},
    {"UIF", 0x0000000c},
    {"UIF_NOUTILE", 0x00000014},
@@ -47,7 +57,7 @@ static const struct desc_map_entry gfx_lfmt_swizzling_desc_map_entries_desc_orde
    {"UIF_XOR", 0x00000010},
 };
 const struct desc_map gfx_lfmt_swizzling_desc_map = {
-   .num_entries = 10,
+   .num_entries = 15,
    .entries_value_ordered = gfx_lfmt_swizzling_desc_map_entries_value_ordered,
    .entries_desc_ordered = gfx_lfmt_swizzling_desc_map_entries_desc_ordered};
 static const struct desc_map_entry gfx_lfmt_yflip_desc_map_entries_value_ordered[] = {

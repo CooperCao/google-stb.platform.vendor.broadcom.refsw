@@ -145,59 +145,6 @@ do { \
 #define BVDC_P_CMP_REGS_COUNT \
     BVDC_P_REGS_ENTRIES(CMP_0_REG_START, CMP_0_REG_END)
 
-/* get register offset base on id. */
-#ifdef BCHP_CMP_6_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor6==(cmp_id)) ? (BCHP_CMP_6_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor5==(cmp_id)) ? (BCHP_CMP_5_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor4==(cmp_id)) ? (BCHP_CMP_4_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor3==(cmp_id)) ? (BCHP_CMP_3_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor2==(cmp_id)) ? (BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_CMP_5_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor5==(cmp_id)) ? (BCHP_CMP_5_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor4==(cmp_id)) ? (BCHP_CMP_4_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor3==(cmp_id)) ? (BCHP_CMP_3_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor2==(cmp_id)) ? (BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_CMP_4_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor4==(cmp_id)) ? (BCHP_CMP_4_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor3==(cmp_id)) ? (BCHP_CMP_3_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor2==(cmp_id)) ? (BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_CMP_3_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor3==(cmp_id)) ? (BCHP_CMP_3_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor2==(cmp_id)) ? (BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_CMP_2_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor2==(cmp_id)) ? (BCHP_CMP_2_REG_START - BCHP_CMP_0_REG_START) \
-    :(BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#ifdef BCHP_CMP_1_REG_START
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id) \
-    ((BVDC_CompositorId_eCompositor1==(cmp_id)) ? (BCHP_CMP_1_REG_START - BCHP_CMP_0_REG_START) \
-    :(0))
-#else
-#define BVDC_P_CMP_GET_REG_OFFSET(cmp_id)           (0)
-#endif /* CMP_1 */
-#endif /* CMP_2 */
-#endif /* CMP_3 */
-#endif /* CMP_4 */
-#endif /* CMP_5 */
-#endif /* CMP_6 */
 
 #define BVDC_P_CMP_GET_LIST_IDX(polarity_id, idx) \
     (BVDC_P_MAX_MULTI_RUL_BUFFER_COUNT * (polarity_id) + (idx))
@@ -252,9 +199,6 @@ typedef union
     struct
     {
         uint32_t                          bColorClip : 1; /* new colorclip settings */
-#if BVDC_P_SUPPORT_OSCL
-        uint32_t                          bOScl: 1; /* enable/disable OSCL */
-#endif
     } stBits;
 
     uint32_t aulInts[BVDC_P_DIRTY_INT_ARRAY_SIZE];
@@ -271,10 +215,6 @@ typedef struct
     const BFMT_VideoInfo             *pFmtInfo;
     BVDC_ColorClipSettings            stColorClipSettings;
     BFMT_Orientation                  eOrientation;
-
-#if BVDC_P_SUPPORT_OSCL
-    uint32_t                          bEnableOScl; /* enable OSCL for 1080i to 1080p convertion */
-#endif
 
     /* dirty bits */
     BVDC_P_Compositor_DirtyBits       stDirty;

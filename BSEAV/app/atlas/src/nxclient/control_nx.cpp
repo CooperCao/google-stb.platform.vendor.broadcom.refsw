@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -309,7 +309,7 @@ eRet CControlNx::swapPip()
         goto error;
     }
 
-    if (false == pChannel->isPipSwapSupported())
+    if ((NULL != pChannel) && (false == pChannel->isPipSwapSupported()))
     {
         BDBG_WRN(("PIP swap is disabled by channel"));
         goto error;
@@ -469,14 +469,14 @@ eRet CControlNx::connectDecoders(
                 {
                     CDisplayVbiData vbiData = pDisplayHD->getVbiSettings();
                     vbiData.bClosedCaptions = false;
-                    ret = pDisplayHD->setVbiSettings(&vbiData);
+                    ret                     = pDisplayHD->setVbiSettings(&vbiData);
                     CHECK_ERROR_GOTO("unable set disable closed caption passthru for mosaic channel", ret, error);
                 }
                 if (NULL != pDisplaySD)
                 {
                     CDisplayVbiData vbiData = pDisplaySD->getVbiSettings();
                     vbiData.bClosedCaptions = false;
-                    ret = pDisplaySD->setVbiSettings(&vbiData);
+                    ret                     = pDisplaySD->setVbiSettings(&vbiData);
                     CHECK_ERROR_GOTO("unable set disable closed caption passthru for mosaic channel", ret, error);
                 }
             }

@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:11 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,22 +70,22 @@
 /***************************************************************************
  *ICAP - Input Capture
  ***************************************************************************/
-#define BCHP_ICAP_INEDGE                         0x204198c0 /* [RW] ICAP INEDGE REGISTER */
-#define BCHP_ICAP_RCNT0                          0x204198c4 /* [RW] ICAP RCNT0 REGISTERS */
-#define BCHP_ICAP_RCNT1                          0x204198c8 /* [RW] ICAP RCNT1 REGISTERS */
-#define BCHP_ICAP_RCNT2                          0x204198cc /* [RW] ICAP RCNT2 REGISTERS */
-#define BCHP_ICAP_MASK                           0x204198d0 /* [RW] ICAP MASK REGISTERS */
-#define BCHP_ICAP_TCNT0MSB                       0x204198d4 /* [RO] ICAP TCNT0MSB REGISTERS */
-#define BCHP_ICAP_TCNT0LSB                       0x204198d8 /* [RO] ICAP TCNT0LSB REGISTERS */
-#define BCHP_ICAP_TCNT1MSB                       0x204198dc /* [RO] ICAP TCNT1MSB REGISTERS */
-#define BCHP_ICAP_TCNT1LSB                       0x204198e0 /* [RO] ICAP TCNT1LSB REGISTERS */
-#define BCHP_ICAP_TCNT2MSB                       0x204198e4 /* [RO] ICAP TCNT2MSB REGISTERS */
-#define BCHP_ICAP_TCNT2LSB                       0x204198e8 /* [RO] ICAP TCNT2LSB REGISTERS */
-#define BCHP_ICAP_RCNT3                          0x204198ec /* [RW] ICAP RCNT3 REGISTERS */
-#define BCHP_ICAP_TCNT3MSB                       0x204198f0 /* [RO] ICAP TCNT3MSB REGISTERS */
-#define BCHP_ICAP_TCNT3LSB                       0x204198f4 /* [RO] ICAP TCNT3LSB REGISTERS */
-#define BCHP_ICAP_RST                            0x204198f8 /* [WO] ICAP RST REGISTERS */
-#define BCHP_ICAP_INSTATUS                       0x204198fc /* [RO] ICAP INSTATUS REGISTERS */
+#define BCHP_ICAP_INEDGE                         0x204198c0 /* [RW][32] ICAP INEDGE REGISTER */
+#define BCHP_ICAP_RCNT0                          0x204198c4 /* [RW][32] ICAP RCNT0 REGISTERS */
+#define BCHP_ICAP_RCNT1                          0x204198c8 /* [RW][32] ICAP RCNT1 REGISTERS */
+#define BCHP_ICAP_RCNT2                          0x204198cc /* [RW][32] ICAP RCNT2 REGISTERS */
+#define BCHP_ICAP_MASK                           0x204198d0 /* [RW][32] ICAP MASK REGISTERS */
+#define BCHP_ICAP_TCNT0MSB                       0x204198d4 /* [RO][32] ICAP TCNT0MSB REGISTERS */
+#define BCHP_ICAP_TCNT0LSB                       0x204198d8 /* [RO][32] ICAP TCNT0LSB REGISTERS */
+#define BCHP_ICAP_TCNT1MSB                       0x204198dc /* [RO][32] ICAP TCNT1MSB REGISTERS */
+#define BCHP_ICAP_TCNT1LSB                       0x204198e0 /* [RO][32] ICAP TCNT1LSB REGISTERS */
+#define BCHP_ICAP_TCNT2MSB                       0x204198e4 /* [RO][32] ICAP TCNT2MSB REGISTERS */
+#define BCHP_ICAP_TCNT2LSB                       0x204198e8 /* [RO][32] ICAP TCNT2LSB REGISTERS */
+#define BCHP_ICAP_RCNT3                          0x204198ec /* [RW][32] ICAP RCNT3 REGISTERS */
+#define BCHP_ICAP_TCNT3MSB                       0x204198f0 /* [RO][32] ICAP TCNT3MSB REGISTERS */
+#define BCHP_ICAP_TCNT3LSB                       0x204198f4 /* [RO][32] ICAP TCNT3LSB REGISTERS */
+#define BCHP_ICAP_RST                            0x204198f8 /* [WO][32] ICAP RST REGISTERS */
+#define BCHP_ICAP_INSTATUS                       0x204198fc /* [RO][32] ICAP INSTATUS REGISTERS */
 
 /***************************************************************************
  *INEDGE - ICAP INEDGE REGISTER

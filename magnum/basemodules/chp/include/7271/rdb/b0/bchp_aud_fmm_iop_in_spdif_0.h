@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:10 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:50 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,54 +70,54 @@
 /***************************************************************************
  *AUD_FMM_IOP_IN_SPDIF_0
  ***************************************************************************/
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CAP_STREAM_CFG_0 0x20cb1800 /* [RW] Capture Stream configuration */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_REVISION     0x20cb1820 /* [RO] SPDIF receiver revision ID */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CONFIG       0x20cb1824 /* [RW] SPDIF receiver configuration */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ADJUST       0x20cb1828 /* [RW] Processing adjustments */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS       0x20cb182c /* [RO] Input status */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PLL_RANGE_CTRL 0x20cb1830 /* [RW] PLL_RANGE control */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RAW_RATE     0x20cb1834 /* [RO] Raw sample rate */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PPM_CTRL     0x20cb1838 /* [RW] Rate change control */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RATE_PPM     0x20cb183c /* [RO] Clock rate relative to system clock */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_CTRL 0x20cb1840 /* [RW] Channel status control */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK0 0x20cb1844 /* [RW] Channel status mask 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK1 0x20cb1848 /* [RW] Channel status mask 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK2 0x20cb184c /* [RW] Channel status mask 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L0 0x20cb1850 /* [RO] Left channel status 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R0 0x20cb1854 /* [RO] Right channel status 0 to 31 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L1 0x20cb1858 /* [RO] Left channel status 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R1 0x20cb185c /* [RO] Right channel status 32 to 63 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L2 0x20cb1860 /* [RO] Left channel status 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R2 0x20cb1864 /* [RO] Right channel status 64 to 91 */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_MAX_PLL_ERROR 0x20cb1868 /* [RO] Maximum lock threshold value */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RATE_MISMATCH 0x20cb186c /* [RW] Input rate mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PBIT_MISMATCH 0x20cb1870 /* [RW] Parity mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_VBIT_MISMATCH 0x20cb1874 /* [RW] Validity bit mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CBIT_MISMATCH 0x20cb1878 /* [RW] Channel status mismatch count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_OUT_RATE_CTRL 0x20cb187c /* [RW] FIFO threshold control */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CLKS_PER_SAMP 0x20cb1880 /* [RW] FIFO threshold control */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_INTR_THRESHOLD 0x20cb1884 /* [RW] Interrupts threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_16K 0x20cb1888 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_22P05K 0x20cb188c /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_24K 0x20cb1890 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_32K 0x20cb1894 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_44P1K 0x20cb1898 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_48K 0x20cb189c /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_64K 0x20cb18a0 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_88P2K 0x20cb18a4 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_96K 0x20cb18a8 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_128K 0x20cb18ac /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_176P4K 0x20cb18b0 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_192K 0x20cb18b4 /* [RW] Lock threshold count */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_MCLK_CFG_0   0x20cb18d0 /* [RW] SPDIF Input MCLK configuration */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS   0x20cb18e0 /* [RO] Error Status Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS_SET 0x20cb18e4 /* [WO] Error Set Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS_CLEAR 0x20cb18e8 /* [WO] Error Clear Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK     0x20cb18ec /* [RO] Mask Status Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK_SET 0x20cb18f0 /* [WO] Mask Set Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK_CLEAR 0x20cb18f4 /* [WO] Mask Clear Register */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CAPTURE_FCI_ID_TABLE 0x20cb18f8 /* [RO] SPDIF_IN Capture FCI_ID table */
-#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_DIAG         0x20cb18fc /* [RO] Diagnostics */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CAP_STREAM_CFG_0 0x20cb1800 /* [RW][32] Capture Stream configuration */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_REVISION     0x20cb1820 /* [RO][32] SPDIF receiver revision ID */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CONFIG       0x20cb1824 /* [RW][32] SPDIF receiver configuration */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ADJUST       0x20cb1828 /* [RW][32] Processing adjustments */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_STATUS       0x20cb182c /* [RO][32] Input status */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PLL_RANGE_CTRL 0x20cb1830 /* [RW][32] PLL_RANGE control */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RAW_RATE     0x20cb1834 /* [RO][32] Raw sample rate */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PPM_CTRL     0x20cb1838 /* [RW][32] Rate change control */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RATE_PPM     0x20cb183c /* [RO][32] Clock rate relative to system clock */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_CTRL 0x20cb1840 /* [RW][32] Channel status control */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK0 0x20cb1844 /* [RW][32] Channel status mask 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK1 0x20cb1848 /* [RW][32] Channel status mask 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_MASK2 0x20cb184c /* [RW][32] Channel status mask 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L0 0x20cb1850 /* [RO][32] Left channel status 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R0 0x20cb1854 /* [RO][32] Right channel status 0 to 31 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L1 0x20cb1858 /* [RO][32] Left channel status 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R1 0x20cb185c /* [RO][32] Right channel status 32 to 63 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_L2 0x20cb1860 /* [RO][32] Left channel status 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CHAN_STAT_R2 0x20cb1864 /* [RO][32] Right channel status 64 to 91 */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_MAX_PLL_ERROR 0x20cb1868 /* [RO][32] Maximum lock threshold value */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_RATE_MISMATCH 0x20cb186c /* [RW][32] Input rate mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_PBIT_MISMATCH 0x20cb1870 /* [RW][32] Parity mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_VBIT_MISMATCH 0x20cb1874 /* [RW][32] Validity bit mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CBIT_MISMATCH 0x20cb1878 /* [RW][32] Channel status mismatch count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_OUT_RATE_CTRL 0x20cb187c /* [RW][32] FIFO threshold control */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CLKS_PER_SAMP 0x20cb1880 /* [RW][32] FIFO threshold control */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_INTR_THRESHOLD 0x20cb1884 /* [RW][32] Interrupts threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_16K 0x20cb1888 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_22P05K 0x20cb188c /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_24K 0x20cb1890 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_32K 0x20cb1894 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_44P1K 0x20cb1898 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_48K 0x20cb189c /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_64K 0x20cb18a0 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_88P2K 0x20cb18a4 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_96K 0x20cb18a8 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_128K 0x20cb18ac /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_176P4K 0x20cb18b0 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_LOCK_THRESHOLD_192K 0x20cb18b4 /* [RW][32] Lock threshold count */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_MCLK_CFG_0   0x20cb18d0 /* [RW][32] SPDIF Input MCLK configuration */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS   0x20cb18e0 /* [RO][32] Error Status Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS_SET 0x20cb18e4 /* [WO][32] Error Set Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_STATUS_CLEAR 0x20cb18e8 /* [WO][32] Error Clear Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK     0x20cb18ec /* [RO][32] Mask Status Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK_SET 0x20cb18f0 /* [WO][32] Mask Set Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_ESR_MASK_CLEAR 0x20cb18f4 /* [WO][32] Mask Clear Register */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_CAPTURE_FCI_ID_TABLE 0x20cb18f8 /* [RO][32] SPDIF_IN Capture FCI_ID table */
+#define BCHP_AUD_FMM_IOP_IN_SPDIF_0_DIAG         0x20cb18fc /* [RO][32] Diagnostics */
 
 /***************************************************************************
  *CAP_STREAM_CFG_0 - Capture Stream configuration

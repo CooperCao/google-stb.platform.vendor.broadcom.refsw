@@ -43,7 +43,6 @@ BDBG_MODULE(bdsp_arm_fwdownload_priv);
 extern const uint32_t BDSP_ARM_SystemID_MemoryReqd[BDSP_ARM_SystemImgId_eMax];
 
 
-/*#define FWDWNLD_DBG 1*/
 /**********************************************************************************
 Please keep the following debug related information in-sync with the BDSP_AlgorithmType definition
 ***********************************************************************************/
@@ -98,7 +97,7 @@ BERR_Code BDSP_Arm_P_CopyFWImageToMem(
     rc = iface->next(image, 0, &data, 8);
     if (rc != BERR_SUCCESS)
     {
-      BDBG_ERR(("\nError in fetching next chunk in Image Interface\n"));
+      BDBG_ERR(("Error in fetching next chunk in Image Interface"));
       iface->close(image);
       return BERR_TRACE(rc);
     }
@@ -128,7 +127,7 @@ BERR_Code BDSP_Arm_P_CopyFWImageToMem(
       rc = iface->next(image, ui32Count, &data, ui32ChunkLen);
       if (rc != BERR_SUCCESS)
       {
-          BDBG_ERR(("\nError in fetching next chunk in Image Interface\n"));;
+          BDBG_ERR(("Error in fetching next chunk in Image Interface"));;
           iface->close(image);
           return BERR_TRACE(rc);
       }
@@ -775,7 +774,7 @@ BERR_Code BDSP_Arm_P_RequestAlgorithm(
                 }
 
             }
-#ifdef FWDWNLD_DBG
+#ifdef ARM_FWDWNLD_DBG
 #if 0  /* TBD : CODE_DOWNLOAD Enable when individual algo code download is enabled */
             BDBG_MSG(("Code ptr = %p (off = %p)",pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].pMemory, pDevice->imgCache[BDSP_ARM_IMG_ID_CODE(algoId)].offset));
 #endif
@@ -833,7 +832,7 @@ void BDSP_Arm_P_ReleaseAlgorithm(
             errCode = BDSP_Arm_P_Release_DwnldBufUsage(pDeviceHandle, algorithm, pInfo);
             if(errCode)
             {
-                BDBG_ERR(("Algorithm %s (%u) could not be released properly\n",pInfo->pName, algorithm));
+                BDBG_ERR(("Algorithm %s (%u) could not be released properly",pInfo->pName, algorithm));
                 errCode = BERR_TRACE(errCode);
             }
         }

@@ -67,43 +67,24 @@ This can be done using the BINT_GetL1BitMask() routine.
 
 #include "breg_mem.h"
 #include "bint.h"
+#include "bchp_hif_cpu_intr1.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* New interrupt model!  Avoid doing this in many files that uses
- * new int model. */
-#if((BCHP_CHIP==7038) || (BCHP_CHIP==7401) || (BCHP_CHIP==7118) || \
-    (BCHP_CHIP==7440) || (BCHP_CHIP==7601) || (BCHP_CHIP==3560) || \
-    (BCHP_CHIP==3563) || (BCHP_CHIP==3573))
-#define BINT_NEW_INT_MODEL   (0)
-#else
-/* the #else should always contain the new architecture.
-also, if the number of L1 registers changes in the future, consider a macro whose value is the # of registers. */
-#define BINT_NEW_INT_MODEL   (1)
-#if ((BCHP_CHIP==7445) && (BCHP_VER >= BCHP_VER_D0)) || ((BCHP_CHIP==7145) && (BCHP_VER >= BCHP_VER_B0)) || (BCHP_CHIP==11360)
+#if defined BCHP_HIF_CPU_INTR1_INTR_W4_STATUS
 #define BINT_INTC_SIZE 5
-#elif ((BCHP_CHIP==7435) || (BCHP_CHIP==7445) || (BCHP_CHIP==7145)  || \
-       (BCHP_CHIP==7366) || (BCHP_CHIP==7439)) || (BCHP_CHIP==7364) || \
-       (BCHP_CHIP==7250) || (BCHP_CHIP==74371) || (BCHP_CHIP==7586)|| \
-       (BCHP_CHIP==7271) || (BCHP_CHIP==7268)  || (BCHP_CHIP==7260)
+#elif defined BCHP_HIF_CPU_INTR1_INTR_W3_STATUS
 #define BINT_INTC_SIZE 4
-#elif ((BCHP_CHIP==7400) || (BCHP_CHIP==7403))
-#define BINT_INTC_SIZE 2
-#else
+#elif defined BCHP_HIF_CPU_INTR1_INTR_W2_STATUS
 #define BINT_INTC_SIZE 3
-#endif
+#else
+#define BINT_INTC_SIZE 2
 #endif
 
-#if (BINT_NEW_INT_MODEL)
 #define BINT_MAX_INTC_SIZE    5  /* interrupt controller size this interface is capable of handling */
 #define BINT_P_L1_SIZE        (32*BINT_INTC_SIZE) /* Size of L1 interrupt register */
-#else
-#define BINT_MAX_INTC_SIZE    5  /* interrupt controller size this interface is capable of handling */
-#define BINT_P_L1_SIZE        64 /* Size of L1 interrupt register */
-#define BINT_INTC_SIZE        2
-#endif
 
 #define BINT_DONT_PROCESS_L2    0xFFFFFFFF
 #define BINT_IS_STANDARD        0x40000000 /* See BINT_P_IntMap.L1Shift for usage. */
@@ -382,18 +363,10 @@ static void BFramework_EnableIsr( BINT_Handle intHandle )
     }
 }
 */
-#if (BINT_NEW_INT_MODEL)
 void BINT_GetL1BitMask(
                      BINT_Handle intHandle, /* [in] handle created by BINT_Open */
                      uint32_t   *BitMask  /* [out] Bitmask that specifies which L1 bits are managed by BINT */
                      );
-#else
-void BINT_GetL1BitMask(
-                     BINT_Handle intHandle, /* [in] handle created by BINT_Open */
-                     uint32_t *pBitMaskLo,  /* [out] Bitmask that specifies which L1 bits are managed by BINT */
-                     uint32_t *pBitMaskHi   /* [out] Bitmask that specifies which L1 bits are managed by BINT */
-                     );
-#endif
 
 /*
 Summary:

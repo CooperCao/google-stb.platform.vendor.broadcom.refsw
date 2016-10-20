@@ -220,37 +220,6 @@ static void NEXUS_Platform_P_GetNumTranscodes(unsigned *pNumTranscodes)
     }
 }
 
-/* read memoryMode & memSizes[].
-this function does not know memc offsets.
-this function is needed for memc's that linux doesn't report (e.g. non-UMA 7405 MEMC1)
-*/
-NEXUS_Error NEXUS_Platform_P_ReadMemcConfig(NEXUS_PlatformMemory *pMemory, NEXUS_PlatformSettings *pSettings)
-{
-    int rc;
-
-    rc = NEXUS_Platform_P_ReadGenericMemcConfig(pMemory, pSettings);
-    if (rc) return BERR_TRACE(rc);
-
-    BDBG_MSG(("Memory indicates: MEMC0: %d MB, MEMC1: %d MB", pMemory->memc[0].length >> 20, pMemory->memc[1].length >> 20));
-    BDBG_WRN(("CFE RTS is configured for %u transcodes",g_num_xcodes));
-#if NEXUS_PLATFORM_97435_1STB1T
-    if (g_num_xcodes>1) {
-        BDBG_ERR(("For cfgrts dual or quad transcode, must build Nexus _without_ NEXUS_PLATFORM_97435_1STB1T=y."));
-        BKNI_Memset(pMemory, 0, sizeof(*pMemory)); /* force failure */
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-#else
-    if (g_num_xcodes==1) {
-        BDBG_ERR(("For cfgrts single transcode, must build Nexus with NEXUS_PLATFORM_97435_1STB1T=y."));
-        BKNI_Memset(pMemory, 0, sizeof(*pMemory));
-        return BERR_TRACE(NEXUS_INVALID_PARAMETER);
-    }
-#endif
-    else {
-    return 0;
-    }
-}
-
 NEXUS_Error NEXUS_Platform_P_InitBoard(void)
 {
     return NEXUS_SUCCESS;

@@ -102,7 +102,6 @@ BHSI_Open()
 {
     BHSI_Settings       settings;        /* current settings */
     BREG_Handle         regHandle;       /* register handle */
-    BCHP_Handle         chipHandle;      /* chip handle */
     BINT_Handle         interruptHandle; /* interrupt handle */
     bool                bIsOpen;         /* Is Module opened */
     bool                bReceivePending; /* data is pending. BHSI_Receive() is allowed */

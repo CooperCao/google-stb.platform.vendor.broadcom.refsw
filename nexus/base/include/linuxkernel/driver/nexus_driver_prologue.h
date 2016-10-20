@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2013 Broadcom Corporation
+*  Copyright (C) 2004-2016 Broadcom. The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: Platform (private)
 *    Common part of all kernel drivers
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #ifndef _NEXUS_DRIVER_PROLOGUE_H_
@@ -137,4 +129,20 @@ int nexus_driver_module_init(unsigned index, struct nexus_driver_module_header *
 void nexus_driver_module_uninit(struct nexus_driver_module_header *header);
 struct nexus_driver_client_state *nexus_driver_client_id(struct nexus_driver_module_driver_state *state);
 
-#endif 
+#define NEXUS_P_API_ID(module, api) NEXUS_P_API_##module##api##_id
+#endif
+
+typedef struct NEXUS_P_DriverInVararg {
+    void *data;
+    void *original_data;
+    unsigned size;
+    unsigned varargs_begin;
+    unsigned varargs_offset;
+    struct b_objdb_client *client;
+} NEXUS_P_DriverInVararg;
+
+void NEXUS_P_DriverInVararg_Init(NEXUS_P_DriverInVararg *state, struct b_objdb_client *client, void *data, unsigned size);
+void NEXUS_P_DriverInVararg_Shutdown(NEXUS_P_DriverInVararg *state);
+NEXUS_Error NEXUS_P_DriverInVararg_InVarArg(NEXUS_P_DriverInVararg *state, unsigned vararg_size, const void *src, int *field, bool *is_null);
+NEXUS_Error NEXUS_P_DriverInVararg_InVarArg_AddrField(NEXUS_P_DriverInVararg *state, const NEXUS_Addr *src, unsigned count, int varArg, int *varArgField);
+NEXUS_Error NEXUS_P_Driver_OutVarArg(const void *out_data, unsigned size, void *dest, int varArg);

@@ -24,19 +24,17 @@ VCOS_EXTERN_C_BEGIN
 #define V3D_CL_TILE_BINNING_MODE_CFG_PART2_TILE_ALLOC_SIZE_OFFSET 1
 
 extern bool v3d_prim_mode_is_patch(v3d_prim_mode_t prim_mode);
-extern v3d_prim_type_t v3d_prim_type_from_mode(v3d_prim_mode_t prim_mode);
-extern v3d_prim_type_t v3d_prim_type_from_tess_type(v3d_cl_tess_type_t tess_type);
-extern bool v3d_prim_type_is_patch(v3d_prim_type_t prim_type);
-extern uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode);
-extern uint32_t v3d_prim_type_num_verts(v3d_prim_type_t prim_type);
+extern uint32_t v3d_prim_mode_num_verts(v3d_prim_mode_t prim_mode, bool tg_enabled);
+extern uint32_t v3d_tess_type_num_verts(v3d_cl_tess_type_t tess_type);
+extern uint32_t v3d_geom_prim_type_num_verts(v3d_cl_geom_prim_type_t type);
 
-static inline v3d_prim_type_t v3d_prim_type_from_wireframe_mode(v3d_wireframe_mode_t mode)
+static inline uint32_t v3d_wireframe_mode_num_verts(v3d_wireframe_mode_t mode)
 {
    switch (mode)
    {
-   case V3D_WIREFRAME_MODE_LINES:   return V3D_PRIM_TYPE_LINE;
-   case V3D_WIREFRAME_MODE_POINTS:  return V3D_PRIM_TYPE_POINT;
-   default:                         unreachable(); return V3D_PRIM_TYPE_INVALID;
+   case V3D_WIREFRAME_MODE_LINES:   return 2;
+   case V3D_WIREFRAME_MODE_POINTS:  return 1;
+   default:                         unreachable(); return 0;
    }
 }
 
@@ -69,6 +67,16 @@ static inline v3d_rt_bpp_t v3d_pixel_format_internal_bpp(v3d_pixel_format_t pixe
    v3d_rt_bpp_t bpp;
    v3d_pixel_format_internal_type_and_bpp(&type, &bpp, pixel_format);
    return bpp;
+}
+
+static inline bool v3d_pixel_format_and_internal_type_bpp_compatible(
+   v3d_pixel_format_t pixel_format, v3d_rt_type_t type, v3d_rt_bpp_t bpp)
+{
+   /* See http://confluence.broadcom.com/x/qwLKB */
+   v3d_rt_type_t pf_type;
+   v3d_rt_bpp_t pf_bpp;
+   v3d_pixel_format_internal_type_and_bpp(&pf_type, &pf_bpp, pixel_format);
+   return (type == pf_type) && (bpp >= pf_bpp);
 }
 
 static inline bool v3d_rt_type_supports_4x_decimate(v3d_rt_type_t type)

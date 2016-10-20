@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -278,8 +278,21 @@ bool CVideo::isPlaybackActive(void)
 
 bool CVideo::hasIndex()
 {
-    return(false == _indexName.isEmpty());
-}
+    struct stat stIndex;
+    MString     strIndexNamePath = getIndexNamePath();
+
+    B_Os_Memset(&stIndex, 0, sizeof(stIndex));
+
+    if (false == strIndexNamePath.isEmpty())
+    {
+        if (stat(strIndexNamePath, &stIndex) < 0)
+        {
+            BDBG_ERR((" Stat returned an error"));
+        }
+    }
+
+    return((false == _indexName.isEmpty()) && (0 < stIndex.st_size));
+} /* hasIndex */
 
 eRet CVideo::writeXML(MXmlElement * xmlElem)
 {
@@ -437,7 +450,7 @@ eRet CPlaybackList::readInfo(
     MXmlElement * xmlElemTop   = NULL;
     MXmlElement * xmlElemAtlas = NULL;
     CVideo *      pVideo       = NULL;
-    int           fd           = 0;
+    int           fd           = -1;
     char *        buf          = NULL;
     int           nBufSize     = 0;
     eRet          ret          = eRet_Ok;
@@ -471,7 +484,7 @@ eRet CPlaybackList::readInfo(
         nBufSize        = read(fd, buf, (size_t)bufMax - 1);
         buf[bufMax - 1] = '\0';
         close(fd);
-        fd = 0;
+        fd = -1;
     }
 
     if (nBufSize <= 0)
@@ -637,10 +650,10 @@ done:
         buf = NULL;
     }
 
-    if (0 < fd)
+    if (0 <= fd)
     {
         close(fd);
-        fd = 0;
+        fd = -1;
     }
     return(ret);
 } /* readInfo */

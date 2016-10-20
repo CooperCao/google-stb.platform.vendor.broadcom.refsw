@@ -117,7 +117,7 @@ install: all ${F_INSTALLED_LIBS}
 all: prep_folder ${F_PUBLIC_LIBS}
 
 clean: 
-	${RM} -fr ${F_INSTALLED_LIBS} ${DRMROOTFS_OBJ_ROOT}
+	@${RM} -fr ${F_INSTALLED_LIBS} ${DRMROOTFS_OBJ_ROOT}
 
 ############################################################################
 #                             BUILD RULES
@@ -126,29 +126,31 @@ prep_folder:
 	@ mkdir -p ${DRMROOTFS_OBJ_ROOT}
 	@ mkdir -p ${D_FOR_LIB_INSTALL}
 
-${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.so: ${END_OBJS}
+${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.so: ${END_OBJS} |prep_folder
+	@echo "[Link...... $(notdir $@) (drmrootfs)]"
 ifeq ($(findstring $(B_REFSW_ARCH), arm-linux aarch64-linux), $(B_REFSW_ARCH))
 ifeq ($(B_REFSW_CROSS_COMPILE),arm-linux-androideabi-)
-	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
+	@${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-Bdynamic
 else # B_REFSW_CROSS_COMPILE is not arm-linux-androideabi-
-	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy,--no-wchar-size-warning
+	@${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy,--no-wchar-size-warning
 endif # End B_REFSW_CROSS_COMPILE
 else # B_REFSW_ARCH is not arm-linux or aarch64-linux
-	${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
+	@${CC} -shared -o $@  ${LDFLAGS}  $^ -Wl,-dy
 endif # End B_REFSW_ARCH
 
-${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.a: ${END_OBJS}
-	${AR} rc $@  $^
+${DRMROOTFS_OBJ_ROOT}/libdrmrootfs.a: ${END_OBJS} |prep_folder
+	@echo "[Archive... $(notdir $@) (drmrootfs)]"
+	@${AR} rc $@  $^
 
-${DRMROOTFS_OBJ_ROOT}/%.o: %.c
-	@echo [Compile... $<]
+${DRMROOTFS_OBJ_ROOT}/%.o: %.c |prep_folder
+	@echo "[Compile... $< (drmrootfs)]"
 	${Q_}$(CC) -c -o $@ $< $(CFLAGS)
 
-${D_FOR_LIB_INSTALL}/%.a : ${DRMROOTFS_OBJ_ROOT}/%.a
-	install -m 0755 $< $@
+${D_FOR_LIB_INSTALL}/%.a : ${DRMROOTFS_OBJ_ROOT}/%.a |prep_folder
+	@install -m 0755 $< $@
 
-${D_FOR_LIB_INSTALL}/%.so : ${DRMROOTFS_OBJ_ROOT}/%.so
-	install -m 0755 $< $@
+${D_FOR_LIB_INSTALL}/%.so : ${DRMROOTFS_OBJ_ROOT}/%.so |prep_folder
+	@install -m 0755 $< $@
 
 ############################################################################
 #                             DEP FILES, PHONY

@@ -11,6 +11,7 @@ Emulates QPU floating point operations and 16-bit float packing/unpacking.
 
 #include "qpu_float.h"
 #include "libs/util/gfx_util/gfx_util.h"
+#include "libs/util/gfx_util/gfx_util_conv.h"
 #include "libs/core/v3d/v3d_common.h"
 #include <assert.h>
 #include <float.h>
@@ -23,28 +24,28 @@ Emulates QPU floating point operations and 16-bit float packing/unpacking.
 #define PROPAGATED_NAN 0x7fc00000
 #define GENERATED_NAN  0xffc00000
 
-static uint32_t choose_nan(uint32_t a, uint32_t b)
+static uint32_t choose_nan(float f, float g)
 {
-   if (gfx_is_nan_bits(a) || gfx_is_nan_bits(b)) {
+   if (isnan(f) || isnan(g))
       return PROPAGATED_NAN;
-   }
    return GENERATED_NAN;
 }
 
 uint32_t qpu_float_unpack16(uint32_t f16)
 {
-   uint32_t f32 = gfx_float_to_bits(gfx_float16_to_float(f16));
-   if (gfx_is_nan_bits(f32))
+   float f = gfx_float16_to_float(f16);
+   if (isnan(f))
       return PROPAGATED_NAN;
-   return f32;
+   return gfx_float_to_bits(f);
 }
 
 uint32_t qpu_float_pack16(uint32_t f32)
 {
-   if (gfx_is_nan_bits(f32))
+   float f = gfx_float_from_bits(f32);
+   if (isnan(f))
       /* Preserve the sign bit */
       return (f32 & (1u << 31)) ? 0xfe00 : 0x7e00;
-   return gfx_float_to_float16(gfx_float_from_bits(f32));
+   return gfx_float_to_float16(f);
 }
 
 uint32_t qpu_fadd(uint32_t a, uint32_t b, bool prop_nan)
@@ -54,9 +55,8 @@ uint32_t qpu_fadd(uint32_t a, uint32_t b, bool prop_nan)
 
    float x = f + g;
 
-   if (gfx_is_nan(x)) {
-      return prop_nan ? choose_nan(a, b) : 0;
-   }
+   if (isnan(x))
+      return prop_nan ? choose_nan(f, g) : 0;
    return gfx_float_to_bits(x);
 }
 
@@ -68,8 +68,8 @@ uint32_t qpu_fsub(uint32_t a, uint32_t b, bool prop_nan)
 /* See GFXH-1080 */
 uint32_t qpu_fcmp(uint32_t a, uint32_t b, bool prop_nan)
 {
-   if (((a == GFX_INF_BITS) && (b == GFX_INF_BITS)) ||
-      ((a == GFX_NEGINF_BITS) && (b == GFX_NEGINF_BITS)))
+   // Handle equality of +ve/-ve infinities.
+   if (a == b && (a == 0x7f800000 || a == 0xff800000))
       return 0;
 
    return qpu_fsub(a, b, prop_nan);
@@ -81,9 +81,8 @@ uint32_t qpu_fmul(uint32_t a, uint32_t b, bool prop_nan)
    float g = gfx_float_from_bits(b);
 
    float x = f * g;
-   if (gfx_is_nan(x)) {
-      return prop_nan ? choose_nan(a, b) : 0;
-   }
+   if (isnan(x))
+      return prop_nan ? choose_nan(f, g) : 0;
    return gfx_float_to_bits(x);
 }
 
@@ -104,12 +103,15 @@ static bool float_less_than(uint32_t a, uint32_t b)
 
 uint32_t qpu_fmin(uint32_t a, uint32_t b, bool prop_nan)
 {
-   if (gfx_is_nan_bits(a) && !gfx_is_nan_bits(b))
-      return b;
-   else if (gfx_is_nan_bits(b) && !gfx_is_nan_bits(a))
+   if (isnan(gfx_float_from_bits(a)))
+   {
+      if (isnan(gfx_float_from_bits(b)))
+         return prop_nan ? PROPAGATED_NAN : 0;
+      else
+         return b;
+   }
+   else if (isnan(gfx_float_from_bits(b)))
       return a;
-   else if (gfx_is_nan_bits(a) && gfx_is_nan_bits(b))
-      return prop_nan ? PROPAGATED_NAN : 0;
    else if (float_less_than(a, b))
       return a;
    else
@@ -118,12 +120,15 @@ uint32_t qpu_fmin(uint32_t a, uint32_t b, bool prop_nan)
 
 uint32_t qpu_fmax(uint32_t a, uint32_t b, bool prop_nan)
 {
-   if (gfx_is_nan_bits(a) && !gfx_is_nan_bits(b))
-      return b;
-   else if (gfx_is_nan_bits(b) && !gfx_is_nan_bits(a))
+   if (isnan(gfx_float_from_bits(a)))
+   {
+      if (isnan(gfx_float_from_bits(b)))
+         return prop_nan ? PROPAGATED_NAN : 0;
+      else
+         return b;
+   }
+   else if (isnan(gfx_float_from_bits(b)))
       return a;
-   else if (gfx_is_nan_bits(a) && gfx_is_nan_bits(b))
-      return prop_nan ? PROPAGATED_NAN : 0;
    else if (float_less_than(a, b))
       return b;
    else
@@ -138,14 +143,13 @@ uint32_t qpu_fabs(uint32_t a)
 uint32_t qpu_fround(uint32_t a, bool prop_nan)
 {
    /*TODO: this may be nonsense*/
-   float x, f, c;
-   x = gfx_float_from_bits(a);
-   if (gfx_is_nan(x))
+   float x = gfx_float_from_bits(a);
+   if (isnan(x))
       return prop_nan ? PROPAGATED_NAN : 0;
    else
    {
-      f = floorf(x);
-      c = ceilf(x);
+      float f = floorf(x);
+      float c = ceilf(x);
       assert(f <= x && x <= c);
       if (x - f < c - x)
          return gfx_float_to_bits(f);
@@ -160,9 +164,8 @@ uint32_t qpu_fround(uint32_t a, bool prop_nan)
 
 uint32_t qpu_ftrunc(uint32_t a, bool prop_nan)
 {
-   float f;
-   f = gfx_float_from_bits(a);
-   if (gfx_is_nan(f))
+   float f = gfx_float_from_bits(a);
+   if (isnan(f))
       return prop_nan ? PROPAGATED_NAN : 0;
    else
    {
@@ -176,28 +179,28 @@ uint32_t qpu_ftrunc(uint32_t a, bool prop_nan)
 
 uint32_t qpu_ffloor(uint32_t a, bool prop_nan)
 {
-   if (gfx_is_nan_bits(a)) {
+   float f = gfx_float_from_bits(a);
+   if (isnan(f))
       return prop_nan ? PROPAGATED_NAN : 0;
-   }
-   return gfx_float_to_bits(floorf(gfx_float_from_bits(a)));
+   return gfx_float_to_bits(floorf(f));
 }
 
 uint32_t qpu_fceil(uint32_t a, bool prop_nan)
 {
-   if (gfx_is_nan_bits(a)) {
+   float f = gfx_float_from_bits(a);
+   if (isnan(f))
       return prop_nan ? PROPAGATED_NAN : 0;
-   }
-   return gfx_float_to_bits(ceilf(gfx_float_from_bits(a)));
+   return gfx_float_to_bits(ceilf(f));
 }
 
 uint32_t qpu_ftoin(uint32_t a, bool *carry)
 {
    *carry = false;
-   if (gfx_is_nan_bits(a))
+   if (isnan(gfx_float_from_bits(a)))
       return 0;
-   else if (a >= 0xcf000000)
+   else if (a > 0xcf000000)
    {
-      *carry = (a >= 0xcf000001);
+      *carry = true;
       return 0x80000000; /* negative overflow */
    }
    else if (a >= 0x4f000000 && a < 0x80000000)
@@ -216,11 +219,11 @@ uint32_t qpu_ftoin(uint32_t a, bool *carry)
 uint32_t qpu_ftoiz(uint32_t a, bool *carry)
 {
    *carry = false;
-   if (gfx_is_nan_bits(a))
+   if (isnan(gfx_float_from_bits(a)))
       return 0;
-   else if (a >= 0xcf000000)
+   else if (a > 0xcf000000)
    {
-      *carry = (a >= 0xcf000001);
+      *carry = true;
       return 0x80000000; /* negative overflow */
    }
    else if (a >= 0x4f000000 && a < 0x80000000)
@@ -235,7 +238,7 @@ uint32_t qpu_ftoiz(uint32_t a, bool *carry)
 uint32_t qpu_ftouz(uint32_t a, bool *carry)
 {
    *carry = false;
-   if (gfx_is_nan_bits(a))
+   if (isnan(gfx_float_from_bits(a)))
       return 0;
    else if (a >= 0x80000001)
    {
@@ -253,18 +256,28 @@ uint32_t qpu_ftouz(uint32_t a, bool *carry)
 
 uint32_t qpu_ftoc(uint32_t a, uint32_t quad_elnum)
 {
-   uint32_t x, y, i;
-   uint32_t result;
-   float f = gfx_is_nan_bits(a)? 0.0f : gfx_float_from_bits(a);  // map naN @ input to zero
-   /* dither values are generated by casting integers below to floats, and then divide these by 17.0. The bits are stored, to make sure, we use the same table in hardware implementation.
-                                     {          1,         9,         3,        11,        13,         5,        15,         7,         4,        12,         2,        10,        16,         8,        14,         6 } */
-   const uint32_t dither_pattern[] = { 0x3d70f0f1,0x3f078788,0x3e34b4b5,0x3f25a5a6,0x3f43c3c4,0x3e969697,0x3f61e1e2,0x3ed2d2d3,0x3e70f0f1,0x3f34b4b5,0x3df0f0f1,0x3f169697,0x3f70f0f1,0x3ef0f0f1,0x3f52d2d3,0x3eb4b4b5 } ;
+   float f = gfx_float_from_bits(a);
+   if (isnan(f))
+      f = 0.0f;
 
-   result = 0;
-   for (i = 0; i < 4; i++)
+   /* dither values are generated by casting integers below to floats, and then
+    * divide these by 17.0. The bits are stored, to make sure, we use the same
+    * table in hardware implementation. */
+   const uint32_t dither_pattern[] = {
+      //  1          9          3         11
+      0x3d70f0f1,0x3f078788,0x3e34b4b5,0x3f25a5a6,
+      // 13          5         15          7
+      0x3f43c3c4,0x3e969697,0x3f61e1e2,0x3ed2d2d3,
+      //  4         12          2         10
+      0x3e70f0f1,0x3f34b4b5,0x3df0f0f1,0x3f169697,
+      // 16          8         14          6
+      0x3f70f0f1,0x3ef0f0f1,0x3f52d2d3,0x3eb4b4b5};
+
+   uint32_t result = 0;
+   for (uint32_t i = 0; i < 4; i++)
    {
-      x = (quad_elnum & 1)    << 1 | (i & 1);
-      y = (quad_elnum>>1 & 1) << 1 | (i>>1 & 1);
+      uint32_t x = (quad_elnum & 1)    << 1 | (i & 1);
+      uint32_t y = (quad_elnum>>1 & 1) << 1 | (i>>1 & 1);
       if (f >= gfx_float_from_bits(dither_pattern[4 * y + x]))
       {
          result |= 1<<i;

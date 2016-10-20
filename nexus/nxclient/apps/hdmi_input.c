@@ -400,7 +400,6 @@ int main(int argc, const char **argv)  {
     if (rc) return BERR_TRACE(rc);
 
     NEXUS_HdmiInput_GetDefaultSettings(&hdmiInputSettings);
-    /* TODO: nexus must set timebase source to eHdDvi */
     hdmiInputSettings.frontend.hpdDisconnected = false;
     g_app.hdmiInput = NEXUS_HdmiInput_Open(index, &hdmiInputSettings);
     if (!g_app.hdmiInput) {

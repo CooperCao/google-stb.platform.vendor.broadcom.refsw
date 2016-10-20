@@ -47,14 +47,14 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Thu Jun 16 14:47:13 2016
- *                 Full Compile MD5 Checksum  098033a88f172abd8fa618ee2737bdb7
+ * Date:           Generated on               Mon Sep 12 16:49:52 2016
+ *                 Full Compile MD5 Checksum  2c753a6ff9f24b6ac602c21018c4b7f4
  *                     (minus title and desc)
- *                 MD5 Checksum               d174f8c92909befa902ff630df348d55
+ *                 MD5 Checksum               ad217b051860840cb47ca1b2b0397a1f
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1009
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
  *                 Perl Interpreter           5.014001
  *                 Operating System           linux
@@ -70,27 +70,27 @@
 /***************************************************************************
  *MDI_TOP_1 - MADR Top Control Block Registers
  ***************************************************************************/
-#define BCHP_MDI_TOP_1_REVISION_ID               0x20692000 /* [RO] MADR Revision register */
-#define BCHP_MDI_TOP_1_HW_CONFIGURATION          0x20692004 /* [RO] Hardware Configuration Register */
-#define BCHP_MDI_TOP_1_ENABLE_CONTROL            0x20692008 /* [RW] Enable Control register */
-#define BCHP_MDI_TOP_1_MODE_CONTROL_0            0x2069200c /* [RW] Operation Mode Set 0 */
-#define BCHP_MDI_TOP_1_SRC_PIC_SIZE              0x20692010 /* [RW] MADR Source Picture Size Information */
-#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_0      0x20692014 /* [RW] MAD-R Pixel Field 0 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_1      0x20692018 /* [RW] MAD-R Pixel Field 1 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_2      0x2069201c /* [RW] MAD-R Pixel Field 2 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_3      0x20692020 /* [RW] MAD-R Pixel Field 3 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_OSD_POSITION              0x20692024 /* [RW] MADR On Screen Display Position */
-#define BCHP_MDI_TOP_1_BVB_IN_STATUS             0x20692028 /* [RO] MADR Broadcom Video Bus Input Status */
-#define BCHP_MDI_TOP_1_BVB_IN_STATUS_CLEAR       0x2069202c /* [WO] MADR Broadcom Video Bus Input Status Clear */
-#define BCHP_MDI_TOP_1_TEST_PORT_DATA            0x20692030 /* [RO] Testport data register */
-#define BCHP_MDI_TOP_1_TEST_PORT_CONTROL         0x20692034 /* [RW] Testportl control register */
-#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_1         0x20692038 /* [RW] MADR Quantized Motion Field 1 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_2         0x2069203c /* [RW] MADR Quantized Motion Field 2 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_3         0x20692040 /* [RW] MADR Quantized Motion Field 3 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_4         0x20692044 /* [RW] MADR Quantized Motion Field 4 Buffer Starting Address */
-#define BCHP_MDI_TOP_1_MULTI_CONTEXT_TO          0x20692050 /* [RW] MADR Multi-Context To register */
-#define BCHP_MDI_TOP_1_MULTI_CONTEXT_FROM        0x20692054 /* [RW] MADR Multi-Context From register */
-#define BCHP_MDI_TOP_1_SCRATCH_0                 0x206920fc /* [RW] Scratch register 0 */
+#define BCHP_MDI_TOP_1_REVISION_ID               0x20692000 /* [RO][32] MADR Revision register */
+#define BCHP_MDI_TOP_1_HW_CONFIGURATION          0x20692004 /* [RO][32] Hardware Configuration Register */
+#define BCHP_MDI_TOP_1_ENABLE_CONTROL            0x20692008 /* [RW][32] Enable Control register */
+#define BCHP_MDI_TOP_1_MODE_CONTROL_0            0x2069200c /* [RW][32] Operation Mode Set 0 */
+#define BCHP_MDI_TOP_1_SRC_PIC_SIZE              0x20692010 /* [RW][32] MADR Source Picture Size Information */
+#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_0      0x20692014 /* [RW][32] MAD-R Pixel Field 0 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_1      0x20692018 /* [RW][32] MAD-R Pixel Field 1 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_2      0x2069201c /* [RW][32] MAD-R Pixel Field 2 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_PIXEL_FIELD_MSTART_3      0x20692020 /* [RW][32] MAD-R Pixel Field 3 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_OSD_POSITION              0x20692024 /* [RW][32] MADR On Screen Display Position */
+#define BCHP_MDI_TOP_1_BVB_IN_STATUS             0x20692028 /* [RO][32] MADR Broadcom Video Bus Input Status */
+#define BCHP_MDI_TOP_1_BVB_IN_STATUS_CLEAR       0x2069202c /* [WO][32] MADR Broadcom Video Bus Input Status Clear */
+#define BCHP_MDI_TOP_1_TEST_PORT_DATA            0x20692030 /* [RO][32] Testport data register */
+#define BCHP_MDI_TOP_1_TEST_PORT_CONTROL         0x20692034 /* [RW][32] Testportl control register */
+#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_1         0x20692038 /* [RW][32] MADR Quantized Motion Field 1 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_2         0x2069203c /* [RW][32] MADR Quantized Motion Field 2 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_3         0x20692040 /* [RW][32] MADR Quantized Motion Field 3 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_QM_FIELD_MSTART_4         0x20692044 /* [RW][32] MADR Quantized Motion Field 4 Buffer Starting Address */
+#define BCHP_MDI_TOP_1_MULTI_CONTEXT_TO          0x20692050 /* [RW][32] MADR Multi-Context To register */
+#define BCHP_MDI_TOP_1_MULTI_CONTEXT_FROM        0x20692054 /* [RW][32] MADR Multi-Context From register */
+#define BCHP_MDI_TOP_1_SCRATCH_0                 0x206920fc /* [RW][32] Scratch register 0 */
 
 #endif /* #ifndef BCHP_MDI_TOP_1_H__ */
 

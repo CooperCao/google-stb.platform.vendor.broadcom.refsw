@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:04 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:26 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,27 +70,27 @@
 /***************************************************************************
  *MDI_TOP_0 - MADR Top Control Block Registers
  ***************************************************************************/
-#define BCHP_MDI_TOP_0_REVISION_ID               0x2068a000 /* [RO] MADR Revision register */
-#define BCHP_MDI_TOP_0_HW_CONFIGURATION          0x2068a004 /* [RO] Hardware Configuration Register */
-#define BCHP_MDI_TOP_0_ENABLE_CONTROL            0x2068a008 /* [RW] Enable Control register */
-#define BCHP_MDI_TOP_0_MODE_CONTROL_0            0x2068a00c /* [RW] Operation Mode Set 0 */
-#define BCHP_MDI_TOP_0_SRC_PIC_SIZE              0x2068a010 /* [RW] MADR Source Picture Size Information */
-#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0      0x2068a014 /* [RW] MAD-R Pixel Field 0 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1      0x2068a018 /* [RW] MAD-R Pixel Field 1 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2      0x2068a01c /* [RW] MAD-R Pixel Field 2 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3      0x2068a020 /* [RW] MAD-R Pixel Field 3 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_OSD_POSITION              0x2068a024 /* [RW] MADR On Screen Display Position */
-#define BCHP_MDI_TOP_0_BVB_IN_STATUS             0x2068a028 /* [RO] MADR Broadcom Video Bus Input Status */
-#define BCHP_MDI_TOP_0_BVB_IN_STATUS_CLEAR       0x2068a02c /* [WO] MADR Broadcom Video Bus Input Status Clear */
-#define BCHP_MDI_TOP_0_TEST_PORT_DATA            0x2068a030 /* [RO] Testport data register */
-#define BCHP_MDI_TOP_0_TEST_PORT_CONTROL         0x2068a034 /* [RW] Testportl control register */
-#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_1         0x2068a038 /* [RW] MADR Quantized Motion Field 1 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_2         0x2068a03c /* [RW] MADR Quantized Motion Field 2 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_3         0x2068a040 /* [RW] MADR Quantized Motion Field 3 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_4         0x2068a044 /* [RW] MADR Quantized Motion Field 4 Buffer Starting Address */
-#define BCHP_MDI_TOP_0_MULTI_CONTEXT_TO          0x2068a050 /* [RW] MADR Multi-Context To register */
-#define BCHP_MDI_TOP_0_MULTI_CONTEXT_FROM        0x2068a054 /* [RW] MADR Multi-Context From register */
-#define BCHP_MDI_TOP_0_SCRATCH_0                 0x2068a0fc /* [RW] Scratch register 0 */
+#define BCHP_MDI_TOP_0_REVISION_ID               0x2068a000 /* [RO][32] MADR Revision register */
+#define BCHP_MDI_TOP_0_HW_CONFIGURATION          0x2068a004 /* [RO][32] Hardware Configuration Register */
+#define BCHP_MDI_TOP_0_ENABLE_CONTROL            0x2068a008 /* [RW][32] Enable Control register */
+#define BCHP_MDI_TOP_0_MODE_CONTROL_0            0x2068a00c /* [RW][32] Operation Mode Set 0 */
+#define BCHP_MDI_TOP_0_SRC_PIC_SIZE              0x2068a010 /* [RW][32] MADR Source Picture Size Information */
+#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_0      0x2068a014 /* [RW][32] MAD-R Pixel Field 0 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_1      0x2068a018 /* [RW][32] MAD-R Pixel Field 1 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_2      0x2068a01c /* [RW][32] MAD-R Pixel Field 2 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_PIXEL_FIELD_MSTART_3      0x2068a020 /* [RW][32] MAD-R Pixel Field 3 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_OSD_POSITION              0x2068a024 /* [RW][32] MADR On Screen Display Position */
+#define BCHP_MDI_TOP_0_BVB_IN_STATUS             0x2068a028 /* [RO][32] MADR Broadcom Video Bus Input Status */
+#define BCHP_MDI_TOP_0_BVB_IN_STATUS_CLEAR       0x2068a02c /* [WO][32] MADR Broadcom Video Bus Input Status Clear */
+#define BCHP_MDI_TOP_0_TEST_PORT_DATA            0x2068a030 /* [RO][32] Testport data register */
+#define BCHP_MDI_TOP_0_TEST_PORT_CONTROL         0x2068a034 /* [RW][32] Testportl control register */
+#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_1         0x2068a038 /* [RW][32] MADR Quantized Motion Field 1 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_2         0x2068a03c /* [RW][32] MADR Quantized Motion Field 2 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_3         0x2068a040 /* [RW][32] MADR Quantized Motion Field 3 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_QM_FIELD_MSTART_4         0x2068a044 /* [RW][32] MADR Quantized Motion Field 4 Buffer Starting Address */
+#define BCHP_MDI_TOP_0_MULTI_CONTEXT_TO          0x2068a050 /* [RW][32] MADR Multi-Context To register */
+#define BCHP_MDI_TOP_0_MULTI_CONTEXT_FROM        0x2068a054 /* [RW][32] MADR Multi-Context From register */
+#define BCHP_MDI_TOP_0_SCRATCH_0                 0x2068a0fc /* [RW][32] Scratch register 0 */
 
 /***************************************************************************
  *REVISION_ID - MADR Revision register

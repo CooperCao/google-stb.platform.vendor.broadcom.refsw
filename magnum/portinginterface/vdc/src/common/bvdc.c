@@ -1,5 +1,5 @@
 /******************************************************************************
- * Broadcom Proprietary and Confidential. (c)2016 Broadcom. All rights reserved.
+ * Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
  *
  * This program is the proprietary software of Broadcom and/or its licensors,
  * and may only be used, duplicated, modified or distributed pursuant to the terms and
@@ -417,6 +417,16 @@ const BVDC_P_Features s_VdcFeatures =
 
     /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
     {  true, true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false, false, false,  true,  true, false, false, false, false, false, false },
+#elif (BCHP_CHIP==7278)
+    false,
+    /* cmp0   cmp1   cmpb   cmp3   cmp4   cmp5   cmp6 */
+    {  true,  true,  true,  true, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true,  true,  true,  true, false, false, false, false, false, false,  true,  true,  true,  true, false, false, false,  true, false, false,  true,  true,  true,  true, false, false, false, false },
+
+    /* mpg0   mpg1   mpg2   mpg3   mpg4   mpg5   vdec0  vdec1  656_0  656_1  gfx0   gfx1   gfx2   gfx3   gfx4   gfx5   gfx6   dvi0   dvi1   ds 0   vfd0   vfd1   vfd2   vfd3   vfd4   vfd5   vfd6   vfd7  */
+    {  true,  true,  true,  true, false, false, false, false, false, false,  true,  true,  true,  true, false, false, false,  true, false, false,  true,  true,  true,  true, false, false, false, false },
 #else
 #error "Unknown chip!  Not yet supported in VDC."
 #endif
@@ -496,23 +506,9 @@ static void BVDC_P_ResetBvn
     /*---------------------------*/
     ulReg = 0xffffffff;
     ulReg &= ~(
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     BCHP_MASK(FMISC_SW_INIT, RDC ));
     BREG_Write32(pVdc->hRegister, BCHP_FMISC_SW_INIT, ulReg);
     BREG_Write32(pVdc->hRegister, BCHP_FMISC_SW_INIT, 0);
-#else
-#if BVDC_P_SUPPORT_FMISC_PFRI
-        BCHP_MASK(FMISC_SOFT_RESET, MEMC_PFRI )  |
-#endif
-#if BVDC_P_SUPPORT_FMISC_MEMC
-        BCHP_MASK(FMISC_SOFT_RESET, MEMC_IOBUF ) |
-        BCHP_MASK(FMISC_SOFT_RESET, MEMC_RBUS )  |
-        BCHP_MASK(FMISC_SOFT_RESET, MEMC_CORE)   |
-#endif
-        BCHP_MASK(FMISC_SOFT_RESET, RDC ) );
-    BREG_Write32(pVdc->hRegister, BCHP_FMISC_SOFT_RESET, ulReg);
-    BREG_Write32(pVdc->hRegister, BCHP_FMISC_SOFT_RESET, 0);
-#endif
 
 #ifdef BCHP_FMISC_BVNF_CLOCK_CTRL
     BREG_Write32(pVdc->hRegister, BCHP_FMISC_BVNF_CLOCK_CTRL,
@@ -529,13 +525,8 @@ static void BVDC_P_ResetBvn
     /*---------------*/
 #if BVDC_P_SUPPORT_DMISC
     ulReg = 0xffffffff;
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     BREG_Write32(pVdc->hRegister, BCHP_DMISC_SW_INIT, ulReg);
     BREG_Write32(pVdc->hRegister, BCHP_DMISC_SW_INIT, 0);
-#else
-    BREG_Write32(pVdc->hRegister, BCHP_DMISC_SOFT_RESET, ulReg);
-    BREG_Write32(pVdc->hRegister, BCHP_DMISC_SOFT_RESET, 0);
-#endif
 #endif
 
 #ifdef BCHP_DMISC_BVND_MAD_0_CLOCK_CTRL
@@ -547,13 +538,8 @@ static void BVDC_P_ResetBvn
     /* MIDDLE BLOCKS */
     /*---------------*/
     ulReg = 0xffffffff;
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     BREG_Write32(pVdc->hRegister, BCHP_MMISC_SW_INIT, ulReg);
     BREG_Write32(pVdc->hRegister, BCHP_MMISC_SW_INIT, 0);
-#else
-    BREG_Write32(pVdc->hRegister, BCHP_MMISC_SOFT_RESET, ulReg);
-    BREG_Write32(pVdc->hRegister, BCHP_MMISC_SOFT_RESET, 0);
-#endif
 
 #ifdef BCHP_MMISC_BVNM_CLOCK_CTRL
     BREG_Write32(pVdc->hRegister, BCHP_MMISC_BVNM_CLOCK_CTRL,
@@ -564,13 +550,8 @@ static void BVDC_P_ResetBvn
     /* BACK-END BLOCKS */
     /*------------------*/
     ulReg = 0xffffffff;
-#if BVDC_P_SUPPORT_NEW_SW_INIT
     BREG_Write32(pVdc->hRegister, BCHP_BMISC_SW_INIT, ulReg);
     BREG_Write32(pVdc->hRegister, BCHP_BMISC_SW_INIT, 0);
-#else
-    BREG_Write32(pVdc->hRegister, BCHP_BMISC_SOFT_RESET, ulReg);
-    BREG_Write32(pVdc->hRegister, BCHP_BMISC_SOFT_RESET, 0);
-#endif
 
 #ifdef BCHP_BMISC_BVNB_CLOCK_CTRL
     BREG_Write32(pVdc->hRegister, BCHP_BMISC_BVNB_CLOCK_CTRL,
@@ -596,6 +577,7 @@ static void BVDC_P_SoftwareReset
     return;
 }
 
+#ifndef BVDC_FOR_BOOTUPDATER
 /***************************************************************************
  * Check VDC DAC bandgap default settings.
  */
@@ -625,6 +607,7 @@ static BERR_Code BVDC_P_CheckBandgapDefSettings
 
     return eStatus;
 }
+#endif
 
 /***************************************************************************
  *
@@ -847,7 +830,7 @@ BERR_Code BVDC_Open
             return BERR_TRACE(BERR_OUT_OF_DEVICE_MEMORY);
         }
 
-        pVdc->ulVdcNullBufOffset = (uint32_t)BMMA_LockOffset(pVdc->hVdcMosaicMmaBlock);
+        pVdc->ullVdcNullBufOffset = BMMA_LockOffset(pVdc->hVdcMosaicMmaBlock);
     }
 #endif
 
@@ -863,6 +846,9 @@ BERR_Code BVDC_Open
 
     /* Reset used Xcode GFD counter */
     pVdc->ulXcodeGfd = 0;
+
+    /* Get memory info */
+    BCHP_GetMemoryInfo(pVdc->hChip, &pVdc->stMemInfo);
 
     /* All done. now return the new fresh context to user. */
     *phVdc = (BVDC_Handle)pVdc;
@@ -914,7 +900,7 @@ BERR_Code BVDC_Close
     /* [9] free drain buffer */
 #if BVDC_P_SUPPORT_MOSAIC_MODE
     if(hVdc->hMemory) {
-        BMMA_UnlockOffset(hVdc->hVdcMosaicMmaBlock, hVdc->ulVdcNullBufOffset);
+        BMMA_UnlockOffset(hVdc->hVdcMosaicMmaBlock, hVdc->ullVdcNullBufOffset);
         BMMA_Free(hVdc->hVdcMosaicMmaBlock);
     }
 #endif

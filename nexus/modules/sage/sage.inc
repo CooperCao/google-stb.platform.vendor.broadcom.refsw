@@ -58,8 +58,13 @@ NEXUS_SAGE_PRECOMPILED_HEADER := $(NEXUS_TOP)/modules/sage/src/nexus_sage_module
 NEXUS_SAGE_SOURCES := \
 $(NEXUS_TOP)/modules/sage/src/nexus_sage.c \
 $(NEXUS_TOP)/modules/sage/src/nexus_sage_utils.c \
-$(NEXUS_TOP)/modules/sage/src/nexus_sage_module.c \
 $(NEXUS_TOP)/modules/sage/src/nexus_sage_watchdog.c
+
+ifeq ($(SAGE_VERSION), 2x)
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_module_2x.c
+else
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_module.c
+endif
 
 ##################
 #  IMG Interface #
@@ -73,7 +78,11 @@ endif #B_REFSW_OS
 ######################
 # SVP Interface #
 ######################
+ifeq ($(SAGE_VERSION), 2x)
+NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_2x.c
+else
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp.c
+endif
 NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
 ifeq ($(NEXUS_SAGE_SVP_TEST),y)
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_svp_test.c
@@ -84,7 +93,9 @@ endif
 ######################
 # AR Interface #
 ######################
+ifneq ($(SAGE_VERSION), 2x)
 NEXUS_SAGE_SOURCES += $(NEXUS_TOP)/modules/sage/src/nexus_sage_ar.c
+endif
 NEXUS_SAGE_PRIVATE_INCLUDES += $(BSEAV)/lib/security/sage/platforms/include
 
 ###############

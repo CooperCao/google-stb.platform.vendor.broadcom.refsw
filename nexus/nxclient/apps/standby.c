@@ -61,10 +61,6 @@
 
 #ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
 #include "nexus_gpio.h"
-
-/* Selecting AON_GPIO_009 for wakup GPIO pin */
-#define WAKEUP_GPIO_TYPE NEXUS_GpioType_eAonStandard
-#define WAKEUP_GPIO_PIN  9
 #endif
 
 #include <stdio.h>
@@ -76,6 +72,15 @@
 
 BDBG_MODULE(standby);
 
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+static const char *gpio_type_str[] = {
+    "GPIO",
+    "SGPIO",
+    "unused",
+    "AON_GPIO",
+    "AON_SGPIO"
+};
+#endif
 
 struct appcontext {
     bgui_t gui;
@@ -89,6 +94,9 @@ struct appcontext {
     int timeout;
     bool coldBoot;
     bool done;
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+    NEXUS_GpioHandle pin_handle;
+#endif
 } g_context;
 
 static const char *g_standby_state[] = {
@@ -163,6 +171,10 @@ void gpio_interrupt(void *context, int param)
     set_wake_event(pContext);
     pContext->mode = NEXUS_PlatformStandbyMode_eOn;
     BKNI_SetEvent(pContext->event);
+    if (pContext->pin_handle)
+    {
+        NEXUS_Gpio_ClearInterrupt(pContext->pin_handle);
+    }
 }
 #endif
 
@@ -415,14 +427,20 @@ static void print_usage(void)
     "\n"
     "OPTIONS:\n"
     "  --help or -h for help\n"
-    "  -timeout X       timeout in seconds\n"
-    "  -prompt  off     disable user prompt.\n"
-    "  -pmlib   off     disable pmlib support.\n"
-    "  -s0              wake up and exit\n"
-    "  -s1              put system into S1 and exit (unless timeout set)\n"
-    "  -s2              put system into S2 and suspend\n"
-    "  -s3              put system into S3 and suspend\n"
-    "  -s5              put system into S5 (cold boot) and suspend\n"
+    "  -timeout X               timeout in seconds\n"
+    "  -prompt  off             disable user prompt.\n"
+    "  -pmlib   off             disable pmlib support.\n");
+    printf(
+    "  -p       [s|a|as][0-99]  Wakeup GPIO pin (ex. -p a9)\n"
+    "                             s=SGPIO, special\n"
+    "                             a=AON_GPIO, AonStandard\n"
+    "                             as=AON_SGPIO, AonSpecial\n");
+    printf(
+    "  -s0                      wake up and exit\n"
+    "  -s1                      put system into S1 and exit (unless timeout set)\n"
+    "  -s2                      put system into S2 and suspend\n"
+    "  -s3                      put system into S3 and suspend\n"
+    "  -s5                      put system into S5 (cold boot) and suspend\n"
     );
 }
 
@@ -434,9 +452,11 @@ int main(int argc, const char **argv)
     int curarg = 1;
     struct bgui_settings gui_settings;
     bool gui=true, prompt=true, pmlib=true, exit=false;
+    bool gpio_enabled = false;
+    NEXUS_GpioType gpio_type;
+    unsigned gpio_pin;
 
 #ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
-    NEXUS_GpioHandle pin;
     NEXUS_GpioSettings gpioSettings;
 #endif
 
@@ -451,6 +471,23 @@ int main(int argc, const char **argv)
             print_usage();
             return 0;
         }
+#ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
+        else if (!strcmp(argv[curarg], "-p") && argc>curarg+1) {
+            char *gpio_string;
+            gpio_pin = strtoul(argv[curarg+1], &gpio_string, 10);
+            if (gpio_string == argv[curarg+1]) return 1;
+            if (*gpio_string == '\0') {
+                gpio_type = NEXUS_GpioType_eAonStandard;
+            }
+            else {
+                if      (gpio_string[0] == 'a' && gpio_string[1] == 's') gpio_type = NEXUS_GpioType_eAonSpecial;
+                else if (gpio_string[0] == 's')                          gpio_type = NEXUS_GpioType_eSpecial;
+                else if (gpio_string[0] == 'a')                          gpio_type = NEXUS_GpioType_eAonStandard;
+                else return 1;
+            }
+            gpio_enabled = true;
+        }
+#endif
         else if (!strcmp(argv[curarg], "-timeout") && argc>curarg+1) {
             pContext->timeout = atoi(argv[++curarg]);
         }
@@ -525,12 +562,15 @@ int main(int argc, const char **argv)
     NxClient_UnregisterAcknowledgeStandby(NxClient_RegisterAcknowledgeStandby());
 
 #ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
-    NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
-    gpioSettings.mode = NEXUS_GpioMode_eInput;
-    gpioSettings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
-    gpioSettings.interrupt.callback = gpio_interrupt;
-    gpioSettings.interrupt.context = pContext;
-    pin = NEXUS_Gpio_Open(WAKEUP_GPIO_TYPE, WAKEUP_GPIO_PIN, &gpioSettings);
+    if (gpio_enabled) {
+        printf("Enabling wakeup GPIO: %s-%d\n", gpio_type_str[gpio_type], gpio_pin);
+        NEXUS_Gpio_GetDefaultSettings(NEXUS_GpioType_eAonStandard, &gpioSettings);
+        gpioSettings.mode = NEXUS_GpioMode_eInput;
+        gpioSettings.interruptMode = NEXUS_GpioInterrupt_eRisingEdge;
+        gpioSettings.interrupt.callback = gpio_interrupt;
+        gpioSettings.interrupt.context = pContext;
+        pContext->pin_handle = NEXUS_Gpio_Open(gpio_type, gpio_pin, &gpioSettings);
+    }
 #endif
 
     set_power_state(pContext);
@@ -594,7 +634,9 @@ int main(int argc, const char **argv)
     }
 done:
 #ifdef ALLOW_GPIO_TO_WAKEUP_FROM_STANDBY
-    NEXUS_Gpio_Close(pin);
+    if (gpio_enabled) {
+        NEXUS_Gpio_Close(pContext->pin_handle);
+    }
 #endif
 
     if(pContext->pm_ctx) {

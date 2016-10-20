@@ -197,7 +197,7 @@ KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STAT
    }
 
    unsigned tf_required_wait_count = buffer->last_tf_write_count;
-   if (tf_required_wait_count <= rs->tf_waited_count)
+   if (tf_required_wait_count <= rs->tf.waited_count)
    {
       // No more waiting is required.
       return res_i;
@@ -216,7 +216,7 @@ KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STAT
       v3d_cl_flush_transform_feedback_data(&instr);
 
       v3d_cl_wait_transform_feedback(&instr, tf_required_wait_count);
-      rs->tf_waited_count = tf_required_wait_count;
+      rs->tf.waited_count = tf_required_wait_count;
 
       v3d_cl_flush_vcd_cache(&instr);
 
@@ -227,4 +227,23 @@ KHRN_RES_INTERLOCK_T* glxx_buffer_get_tf_aware_res_interlock(GLXX_HW_RENDER_STAT
    }
 
    return res_i;
+}
+
+size_t glxx_indexed_binding_point_get_size(const GLXX_INDEXED_BINDING_POINT_T *binding)
+{
+   GLXX_BUFFER_T *buffer = binding->buffer.obj;
+   assert(buffer != NULL);
+   size_t binding_size;
+
+   if (binding->size == SIZE_MAX)
+   {
+      // use full buffer size
+      assert(binding->offset == 0);
+      binding_size = glxx_buffer_get_size(buffer);
+   }
+   else
+   {
+      binding_size = gfx_zmin(binding->offset + binding->size, glxx_buffer_get_size(buffer));
+   }
+   return binding_size;
 }

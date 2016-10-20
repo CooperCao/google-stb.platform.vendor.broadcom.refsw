@@ -217,21 +217,13 @@ void TzMem::addRange(const unsigned long startAddr, const unsigned long size) {
     Platform::memProtect((void *)startAddr, (void *)(startAddr + size - 1));
 }
 
-// Init ramfs boundaries from the linker script.
-extern unsigned long _initramfs_start, _initramfs_end;
+void TzMem::freeInitRamFS(VirtAddr vaStart, VirtAddr vaEnd) {
 
-void TzMem::freeInitRamFS() {
+    PhysAddr paStart = virtToPhys(vaStart);
+    PhysAddr paEnd =  virtToPhys(vaEnd);
 
-    // Linker script is setup such that the init ramfs starts at a 4K page boundary.
-    unsigned long tzInitRamFSStart = (unsigned long)&_initramfs_start;
-    tzInitRamFSStart = (unsigned long)virtToPhys((void *)tzInitRamFSStart);
-
-    // Linker script is setup such that the _initramfs_end points to 4K page beyond end of init ramfs.
-    unsigned long tzInitRamFSEnd = (unsigned long)&_initramfs_end;
-    tzInitRamFSEnd = (unsigned long)virtToPhys((void *)tzInitRamFSEnd);
-
-    uint8_t *currPage = (uint8_t *)tzInitRamFSStart;
-    uint8_t *lastPage = (uint8_t *)tzInitRamFSEnd;
+    uint8_t *currPage = (uint8_t *)PAGE_START_4K(paStart);
+    uint8_t *lastPage = (uint8_t *)PAGE_START_4K(paEnd);
 
     uint32_t mapIdx = pageMapIdx(currPage);
     while (currPage < lastPage) {

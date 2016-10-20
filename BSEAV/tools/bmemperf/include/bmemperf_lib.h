@@ -41,6 +41,8 @@
 #ifndef __BMEMPERF_LIB_H__
 #define __BMEMPERF_LIB_H__
 
+#include <sys/socket.h>
+
 #define BMEMPERF_SERVER_PORT  6000
 #define BSYSPERF_SERVER_PORT  6001
 #define BMEMPERF_MAX_NUM_CPUS          8
@@ -106,6 +108,13 @@ typedef enum /* MEMC_DDR_0_CNTRLR_CONFIG -> DRAM_TOTAL_WIDTH ... can be 1, 2, or
     MEMC_DRAM_WIDTH_64=3
 } MEMC_DRAM_WIDTH;
 
+typedef enum
+{
+    DVFS_GOVERNOR_CONSERVATIVE=1,
+    DVFS_GOVERNOR_PERFORMANCE,
+    DVFS_GOVERNOR_POWERSAVE
+} DVFS_GOVERNOR_TYPES;
+
 typedef struct
 {
     unsigned int interface_bit_width; /* 16 or 32 */
@@ -159,6 +168,7 @@ int convert_to_string_with_commas(
     );
 unsigned long int getSecondsSinceEpoch( void );
 char *GetFileContents( const char *filename );
+char *GetFileContentsSeek( const char *filename, unsigned int offset );
 unsigned int GetFileLength( const char *filename );
 char *GetTempDirectoryStr( void );
 int get_proc_stat_info( bmemperf_proc_stat_info *pProcStatInfo );
@@ -187,10 +197,16 @@ unsigned int get_my_ip4_addr( void );
 unsigned long int  getPidOf ( const char * processName );
 const char        *executable_fullpath( const char * exe_name );
 const char        *get_executing_command( const char * exe_name );
-void               Bsysperf_Free( char *buffer );
+#define            Bsysperf_Free(buffer)    if(buffer){free(buffer); buffer=0;}
 int                replace_space_with_nbsp( char *buffer, long int buffer_size );
 char              *Bsysperf_GetProcessCmdline( const char * process_name );
 char              *Bsysperf_ReplaceNewlineWithNull ( char *buffer );
 int                Bsysperf_RestoreNewline( char * posEol );
+int                decodeURL ( char * URL );
+int                get_cpu_frequency( unsigned int cpuId);
+int                output_cpu_frequencies( void );
+int                set_governor_control ( int cpu, DVFS_GOVERNOR_TYPES GovernorSetting );
+int                get_governor_control ( int cpu );
+int                get_cpu_frequencies_supported( int cpu, char *cpu_frequencies_supported, int cpu_frequencies_supported_size );
 
 #endif /* __BMEMPERF_LIB_H__ */

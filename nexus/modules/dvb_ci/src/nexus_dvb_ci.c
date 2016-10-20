@@ -1,7 +1,7 @@
 /***************************************************************************
-*     (c)2004-2010 Broadcom Corporation
+*  Copyright (C) 2016 Broadcom.  The term "Broadcom" refers to Broadcom Limited and/or its subsidiaries.
 *
-*  This program is the proprietary software of Broadcom Corporation and/or its licensors,
+*  This program is the proprietary software of Broadcom and/or its licensors,
 *  and may only be used, duplicated, modified or distributed pursuant to the terms and
 *  conditions of a separate, written license agreement executed between you and Broadcom
 *  (an "Authorized License").  Except as set forth in an Authorized License, Broadcom grants
@@ -35,18 +35,10 @@
 *  LIMITATIONS SHALL APPLY NOTWITHSTANDING ANY FAILURE OF ESSENTIAL PURPOSE OF
 *  ANY LIMITED REMEDY.
 *
-* $brcm_Workfile: $
-* $brcm_Revision: $
-* $brcm_Date: $
-*
 * API Description:
 *   API name: DvbCi
 *    Specific APIs related DVB Common Interface
 *
-* Revision History:
-*
-* $brcm_Log: $
-* 
 ***************************************************************************/
 
 #include "nexus_dvb_ci_module.h"
@@ -114,6 +106,9 @@ NEXUS_DvbCiHandle NEXUS_DvbCi_Open(
     handle->cardDetectCallback = NEXUS_TaskCallback_Create(handle, NULL);
     handle->ireqCallback = NEXUS_TaskCallback_Create(handle, NULL);
     handle->fpgaTristate = handle->fpgaPcmciaMode = true;
+    NEXUS_CallbackDesc_Init(&handle->settings.errorCallback);
+    NEXUS_CallbackDesc_Init(&handle->settings.cardDetectCallback);
+    NEXUS_CallbackDesc_Init(&handle->settings.interruptCallback);
 
 #ifndef NEXUS_DVB_CI_EXTENSION
     handle->pBaseAddress = NEXUS_OffsetToUncachedAddr(pSettings->deviceOffset);
@@ -349,6 +344,7 @@ NEXUS_Error NEXUS_DvbCi_Reset(
     /* Log state change */
     handle->lastError = NEXUS_DvbCiError_eNone;
     handle->currentState = NEXUS_DvbCiState_ePcmciaReset;
+    NEXUS_CallbackDesc_Init(&callbackDesc);
     callbackDesc.callback = NEXUS_DvbCi_P_ReadyInterrupt_nosync;
     callbackDesc.context = handle;
     callbackDesc.param = 0;
@@ -908,6 +904,7 @@ static NEXUS_Error NEXUS_DvbCi_P_InitializeSlot(NEXUS_DvbCiHandle handle)
     handle->validCis = false;
 
     /* Setup card detect interrupts */
+    NEXUS_CallbackDesc_Init(&callback);
     callback.callback=NEXUS_DvbCi_P_CdInterrupt_nosync;
     callback.context = handle;
     NEXUS_DvbCi_P_EnableCardDetectInterrupt(handle, true, true, &callback);
@@ -1078,6 +1075,7 @@ static void NEXUS_DvbCi_P_CheckCardStatus(void *pParam)
     inserted = NEXUS_DvbCi_P_CardPresent(handle);
     BDBG_MSG(("CheckCardStatus = inserted=%d", inserted));
     /* Set polarity of interrupt pins correctly */
+    NEXUS_CallbackDesc_Init(&callback);
     callback.callback = NEXUS_DvbCi_P_CdInterrupt_nosync;
     callback.context = handle;
     NEXUS_DvbCi_P_EnableCardDetectInterrupt(handle, true, !inserted, &callback);
@@ -1164,6 +1162,7 @@ NEXUS_Error NEXUS_DvbCi_EnableInterrupts(
             return BERR_TRACE(BERR_NOT_SUPPORTED);
         }
 
+        NEXUS_CallbackDesc_Init(&callbackDesc);
         callbackDesc.callback = NEXUS_DvbCi_P_ReadyInterrupt_nosync;
         callbackDesc.context = handle;
         callbackDesc.param = true;

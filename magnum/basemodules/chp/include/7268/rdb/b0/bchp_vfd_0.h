@@ -47,19 +47,19 @@
  * The launch point for all information concerning RDB is found at:
  *   http://bcgbu.broadcom.com/RDB/SitePages/Home.aspx
  *
- * Date:           Generated on               Mon Jul 18 11:33:03 2016
- *                 Full Compile MD5 Checksum  d473fbf4aefc82fe025f19a353b681d2
+ * Date:           Generated on               Thu Sep 15 15:41:25 2016
+ *                 Full Compile MD5 Checksum  9fc7af7ed35d1e7168d11678a688ca95
  *                     (minus title and desc)
- *                 MD5 Checksum               a04cbea2e001ec837c188fede55d60fb
+ *                 MD5 Checksum               29af1775ea2997cb77970d772974b329
  *
  * lock_release:   n/a
  * Compiled with:  RDB Utility                combo_header.pl
- *                 RDB.pm                     1066
+ *                 RDB.pm                     1119
  *                 unknown                    unknown
- *                 Perl Interpreter           5.008008
+ *                 Perl Interpreter           5.014001
  *                 Operating System           linux
- *                 Script Source              /tools/dvtsw/current/Linux/combo_header.pl
- *                 DVTSWVER                   current
+ *                 Script Source              /home/pntruong/sbin/combo_header.pl
+ *                 DVTSWVER                   n/a
  *
  *
 ********************************************************************************/
@@ -70,45 +70,45 @@
 /***************************************************************************
  *VFD_0 - Video Feeder 0 (DCXM) Registers
  ***************************************************************************/
-#define BCHP_VFD_0_REVISION_ID                   0x20602000 /* [RO] Feeder Revision ID */
-#define BCHP_VFD_0_HW_CONFIGURATION              0x20602004 /* [RO] Hardware Configuration Status */
-#define BCHP_VFD_0_FEEDER_CNTL                   0x20602008 /* [CFG] Feeder Control */
-#define BCHP_VFD_0_LAC_CNTL                      0x2060200c /* [CFG] LAC Control */
-#define BCHP_VFD_0_FIXED_COLOUR                  0x20602010 /* [CFG] Fixed Colour Value */
-#define BCHP_VFD_0_STRIDE                        0x20602014 /* [CFG] Line Stride */
-#define BCHP_VFD_0_DISP_HSIZE                    0x20602018 /* [CFG] Horizontal Display Size */
-#define BCHP_VFD_0_DISP_VSIZE                    0x2060201c /* [CFG] Vertical Display Size */
-#define BCHP_VFD_0_DATA_MODE                     0x20602020 /* [CFG] Data Mode */
-#define BCHP_VFD_0_DITHER_CTRL                   0x20602024 /* [CFG] Dither CTRL */
-#define BCHP_VFD_0_DITHER_LFSR_INIT              0x20602028 /* [CFG] Dither LFSR Init Value and Control */
-#define BCHP_VFD_0_DITHER_LFSR_CTRL              0x2060202c /* [CFG] Dither LFSR Control */
-#define BCHP_VFD_0_COMP_ORDER                    0x20602030 /* [CFG] YCbCr Pixel Component Order */
-#define BCHP_VFD_0_PICTURE0_LINE_ADDR_0          0x20602034 /* [CFG] Line Address0 */
-#define BCHP_VFD_0_PICTURE0_LINE_ADDR_0_R        0x20602038 /* [CFG] Line Address0 Right */
-#define BCHP_VFD_0_PIC_FEED_CMD                  0x2060206c /* [RW] Picture Feed Command */
-#define BCHP_VFD_0_FEED_STATUS                   0x20602070 /* [RO] Feed Status */
-#define BCHP_VFD_0_LAC_LINE_ADDR_0_STATUS        0x20602074 /* [RO] Line Address Computer Line Address0 Status */
-#define BCHP_VFD_0_LINE_FEED_STATUS              0x20602080 /* [RO] Line Address Computer Line Feed Control Status */
-#define BCHP_VFD_0_FEEDER_TIMEOUT_REPEAT_PIC_CNTL 0x20602084 /* [CFG] Feeder Timeout and Repeat Picture Control */
-#define BCHP_VFD_0_BVB_RX_STALL_TIMEOUT_CNTL     0x20602088 /* [CFG] BVB Receiver Stall Timeout Control */
-#define BCHP_VFD_0_FEEDER_ERROR_INTERRUPT_STATUS 0x2060208c /* [RO] Feeder Error Interrupt Status */
-#define BCHP_VFD_0_FEEDER_ERROR_INTERRUPT_STATUS_CLR 0x20602090 /* [WO] Feeder Error Interrupt Status Clear */
-#define BCHP_VFD_0_FEEDER_BVB_STATUS             0x20602094 /* [RO] BVB Status */
-#define BCHP_VFD_0_FEEDER_BVB_STATUS_CLR         0x20602098 /* [WO] BVB Status Clear */
-#define BCHP_VFD_0_TEST_MODE_CNTL                0x2060209c /* [CFG] Test Mode Control */
-#define BCHP_VFD_0_BVB_SAMPLE_DATA               0x206020a0 /* [RO] BVB Output Sample Data Value */
-#define BCHP_VFD_0_TEST_PORT_CNTL                0x206020a4 /* [CFG] Test Port Control */
-#define BCHP_VFD_0_TEST_PORT_DATA                0x206020a8 /* [RO] Test Port Data Value */
-#define BCHP_VFD_0_SCB_STATUS                    0x206020ac /* [RO] SCB Status */
-#define BCHP_VFD_0_DEMO_SETTING                  0x206020b0 /* [CFG] Demo Setting */
-#define BCHP_VFD_0_DCDM_CFG                      0x20602100 /* [CFG] DCD-Mosaic Configuration */
-#define BCHP_VFD_0_DCDM_RCTRL_FIRST              0x20602104 /* [CFG] DCD-Mosaic First Qp */
-#define BCHP_VFD_0_DCDM_RCTRL                    0x20602108 /* [CFG] DCD-Mosaic Other Qp */
-#define BCHP_VFD_0_DCDM_RECT_BIT_RATE            0x2060210c /* [CFG] DCD-Mosaic Rectangle Bit Rate */
-#define BCHP_VFD_0_DCDM_RECT_CTRL                0x20602110 /* [CFG] DCD-Mosaic Rectangle Control */
-#define BCHP_VFD_0_DCDM_RECT_ENABLE_MASK         0x20602114 /* [CFG] DCD-Mosaic Rectangle Function Enable Mask */
-#define BCHP_VFD_0_SCRATCH_REGISTER_0            0x206021f8 /* [CFG] Scratch Register 0 */
-#define BCHP_VFD_0_SCRATCH_REGISTER_1            0x206021fc /* [CFG] Scratch Register 1 */
+#define BCHP_VFD_0_REVISION_ID                   0x20602000 /* [RO][32] Feeder Revision ID */
+#define BCHP_VFD_0_HW_CONFIGURATION              0x20602004 /* [RO][32] Hardware Configuration Status */
+#define BCHP_VFD_0_FEEDER_CNTL                   0x20602008 /* [CFG][32] Feeder Control */
+#define BCHP_VFD_0_LAC_CNTL                      0x2060200c /* [CFG][32] LAC Control */
+#define BCHP_VFD_0_FIXED_COLOUR                  0x20602010 /* [CFG][32] Fixed Colour Value */
+#define BCHP_VFD_0_STRIDE                        0x20602014 /* [CFG][32] Line Stride */
+#define BCHP_VFD_0_DISP_HSIZE                    0x20602018 /* [CFG][32] Horizontal Display Size */
+#define BCHP_VFD_0_DISP_VSIZE                    0x2060201c /* [CFG][32] Vertical Display Size */
+#define BCHP_VFD_0_DATA_MODE                     0x20602020 /* [CFG][32] Data Mode */
+#define BCHP_VFD_0_DITHER_CTRL                   0x20602024 /* [CFG][32] Dither CTRL */
+#define BCHP_VFD_0_DITHER_LFSR_INIT              0x20602028 /* [CFG][32] Dither LFSR Init Value and Control */
+#define BCHP_VFD_0_DITHER_LFSR_CTRL              0x2060202c /* [CFG][32] Dither LFSR Control */
+#define BCHP_VFD_0_COMP_ORDER                    0x20602030 /* [CFG][32] YCbCr Pixel Component Order */
+#define BCHP_VFD_0_PICTURE0_LINE_ADDR_0          0x20602034 /* [CFG][32] Line Address0 */
+#define BCHP_VFD_0_PICTURE0_LINE_ADDR_0_R        0x20602038 /* [CFG][32] Line Address0 Right */
+#define BCHP_VFD_0_PIC_FEED_CMD                  0x2060206c /* [RW][32] Picture Feed Command */
+#define BCHP_VFD_0_FEED_STATUS                   0x20602070 /* [RO][32] Feed Status */
+#define BCHP_VFD_0_LAC_LINE_ADDR_0_STATUS        0x20602074 /* [RO][32] Line Address Computer Line Address0 Status */
+#define BCHP_VFD_0_LINE_FEED_STATUS              0x20602080 /* [RO][32] Line Address Computer Line Feed Control Status */
+#define BCHP_VFD_0_FEEDER_TIMEOUT_REPEAT_PIC_CNTL 0x20602084 /* [CFG][32] Feeder Timeout and Repeat Picture Control */
+#define BCHP_VFD_0_BVB_RX_STALL_TIMEOUT_CNTL     0x20602088 /* [CFG][32] BVB Receiver Stall Timeout Control */
+#define BCHP_VFD_0_FEEDER_ERROR_INTERRUPT_STATUS 0x2060208c /* [RO][32] Feeder Error Interrupt Status */
+#define BCHP_VFD_0_FEEDER_ERROR_INTERRUPT_STATUS_CLR 0x20602090 /* [WO][32] Feeder Error Interrupt Status Clear */
+#define BCHP_VFD_0_FEEDER_BVB_STATUS             0x20602094 /* [RO][32] BVB Status */
+#define BCHP_VFD_0_FEEDER_BVB_STATUS_CLR         0x20602098 /* [WO][32] BVB Status Clear */
+#define BCHP_VFD_0_TEST_MODE_CNTL                0x2060209c /* [CFG][32] Test Mode Control */
+#define BCHP_VFD_0_BVB_SAMPLE_DATA               0x206020a0 /* [RO][32] BVB Output Sample Data Value */
+#define BCHP_VFD_0_TEST_PORT_CNTL                0x206020a4 /* [CFG][32] Test Port Control */
+#define BCHP_VFD_0_TEST_PORT_DATA                0x206020a8 /* [RO][32] Test Port Data Value */
+#define BCHP_VFD_0_SCB_STATUS                    0x206020ac /* [RO][32] SCB Status */
+#define BCHP_VFD_0_DEMO_SETTING                  0x206020b0 /* [CFG][32] Demo Setting */
+#define BCHP_VFD_0_DCDM_CFG                      0x20602100 /* [CFG][32] DCD-Mosaic Configuration */
+#define BCHP_VFD_0_DCDM_RCTRL_FIRST              0x20602104 /* [CFG][32] DCD-Mosaic First Qp */
+#define BCHP_VFD_0_DCDM_RCTRL                    0x20602108 /* [CFG][32] DCD-Mosaic Other Qp */
+#define BCHP_VFD_0_DCDM_RECT_BIT_RATE            0x2060210c /* [CFG][32] DCD-Mosaic Rectangle Bit Rate */
+#define BCHP_VFD_0_DCDM_RECT_CTRL                0x20602110 /* [CFG][32] DCD-Mosaic Rectangle Control */
+#define BCHP_VFD_0_DCDM_RECT_ENABLE_MASK         0x20602114 /* [CFG][32] DCD-Mosaic Rectangle Function Enable Mask */
+#define BCHP_VFD_0_SCRATCH_REGISTER_0            0x206021f8 /* [CFG][32] Scratch Register 0 */
+#define BCHP_VFD_0_SCRATCH_REGISTER_1            0x206021fc /* [CFG][32] Scratch Register 1 */
 
 /***************************************************************************
  *REVISION_ID - Feeder Revision ID

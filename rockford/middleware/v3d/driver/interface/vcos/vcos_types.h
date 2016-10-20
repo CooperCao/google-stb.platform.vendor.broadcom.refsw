@@ -209,9 +209,6 @@ typedef int32_t vcos_fourcc_t;
 #define VCOS_FALSE   0
 #define VCOS_TRUE    (!VCOS_FALSE)
 
-/** Mark unused arguments to keep compilers quiet */
-#define vcos_unused(x) (void)(x)
-
 #ifdef __cplusplus
 #define VCOS_EXTERN_C_BEGIN extern "C" {
 #define VCOS_EXTERN_C_END }
@@ -226,6 +223,8 @@ typedef int32_t vcos_fourcc_t;
 #else
 # define VCOS_ATTR_USED
 #endif
+
+#define VCOS_UNUSED(X) (void)X
 
 /** Variable attribute requiring specific alignment. */
 #if defined(__GNUC__) || defined(_VCOS_METAWARE)
