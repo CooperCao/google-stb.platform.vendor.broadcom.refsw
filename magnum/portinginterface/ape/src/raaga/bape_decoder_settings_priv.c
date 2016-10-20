@@ -349,6 +349,8 @@ static void BAPE_Decoder_P_GetDefaultMpegSettings(BAPE_DecoderHandle handle)
     {
         handle->mpegSettings.codecSettings.mpeg.inputReferenceLevel = handle->userConfig.mpeg.i32InputVolLevel;
     }
+
+    handle->mpegSettings.codecSettings.mpeg.attenuateMonoToStereo = handle->userConfig.mpeg.eMonotoStereoDownScale;
     BKNI_Memcpy(&handle->mp3Settings.codecSettings, &handle->mpegSettings.codecSettings, sizeof(handle->mpegSettings.codecSettings.mpeg));
 
 }
@@ -2000,6 +2002,8 @@ static BERR_Code BAPE_Decoder_P_ApplyMpegSettings(
         handle->userConfig.mpeg.ui32AncDataParseEnable = handle->settings.ancillaryDataEnabled?1:0;
     }
 
+    handle->userConfig.mpeg.eMonotoStereoDownScale = pSettings->attenuateMonoToStereo;
+
     errCode = BDSP_Stage_SetSettings(handle->hPrimaryStage, &handle->userConfig.mpeg, sizeof(handle->userConfig.mpeg));
     if ( errCode )
     {
@@ -2926,7 +2930,7 @@ BERR_Code BAPE_Decoder_P_ApplyCodecSettings(BAPE_DecoderHandle handle)
             case BAVC_AudioCompressionStd_eMpegL2:
                 return BAPE_Decoder_P_ApplyMpegSettings(handle, &handle->mpegSettings.codecSettings.mpeg);
             case BAVC_AudioCompressionStd_eMpegL3:
-                return BAPE_Decoder_P_ApplyMpegSettings(handle, &handle->mpegSettings.codecSettings.mp3);
+                return BAPE_Decoder_P_ApplyMpegSettings(handle, &handle->mp3Settings.codecSettings.mp3);
             case BAVC_AudioCompressionStd_eWmaStd:
             case BAVC_AudioCompressionStd_eWmaStdTs:
                 return BAPE_Decoder_P_ApplyWmaStdSettings(handle);

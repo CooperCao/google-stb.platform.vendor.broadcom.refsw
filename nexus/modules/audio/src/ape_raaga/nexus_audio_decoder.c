@@ -1553,9 +1553,11 @@ void NEXUS_AudioDecoder_GetCodecSettings(
         break;
     case NEXUS_AudioCodec_eMp3:
         pSettings->codecSettings.mp3.inputReferenceLevel = codecSettings.codecSettings.mp3.inputReferenceLevel;
+        pSettings->codecSettings.mp3.attenuateMonoToStereo = codecSettings.codecSettings.mp3.attenuateMonoToStereo;
         break;
     case NEXUS_AudioCodec_eMpeg:
         pSettings->codecSettings.mpeg.inputReferenceLevel = codecSettings.codecSettings.mpeg.inputReferenceLevel;
+        pSettings->codecSettings.mpeg.attenuateMonoToStereo = codecSettings.codecSettings.mpeg.attenuateMonoToStereo;
         break;
     case NEXUS_AudioCodec_eWmaPro:
         /* TODO: Nexus is exposing the older WMA Pro DRC mode.  This should switch from bool .. enum to match APE */
@@ -1773,9 +1775,11 @@ NEXUS_Error NEXUS_AudioDecoder_SetCodecSettings(
         break;
     case NEXUS_AudioCodec_eMp3:
         codecSettings.codecSettings.mp3.inputReferenceLevel = pSettings->codecSettings.mp3.inputReferenceLevel;
+        codecSettings.codecSettings.mp3.attenuateMonoToStereo = pSettings->codecSettings.mp3.attenuateMonoToStereo;
         break;
     case NEXUS_AudioCodec_eMpeg:
         codecSettings.codecSettings.mpeg.inputReferenceLevel = pSettings->codecSettings.mpeg.inputReferenceLevel;
+        codecSettings.codecSettings.mpeg.attenuateMonoToStereo = pSettings->codecSettings.mpeg.attenuateMonoToStereo;
         break;
     case NEXUS_AudioCodec_eWmaPro:
         /* TODO: Nexus is exposing the older WMA Pro DRC mode.  This should switch from bool .. enum to match APE */

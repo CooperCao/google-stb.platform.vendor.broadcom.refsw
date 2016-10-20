@@ -3048,6 +3048,13 @@ BERR_Code BAPE_Decoder_SetCodecSettings(
     case BAVC_AudioCompressionStd_eWmaPro:
         handle->wmaProSettings = *pSettings;
         break;
+    case BAVC_AudioCompressionStd_eMpegL1:
+    case BAVC_AudioCompressionStd_eMpegL2:
+        handle->mpegSettings = *pSettings;
+        break;
+    case BAVC_AudioCompressionStd_eMpegL3:
+        handle->mp3Settings = *pSettings;
+        break;
     default:
         updateTask = false;
         break;

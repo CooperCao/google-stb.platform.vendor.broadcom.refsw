@@ -1005,6 +1005,8 @@ typedef struct NEXUS_AudioDecoderMpegSettings
                                             are 0 to -31.
                                             Defaults to -24 if Loundness mode ATSC is enabled and
                                             -23 if Loudness mode EBU is enabled */
+    bool attenuateMonoToStereo;         /* If enabled we will attenuate 3dB when converting a mono
+                                           stream to stereo outputs.  Default is enabled. */
 } NEXUS_AudioDecoderMpegSettings;
 
 /***************************************************************************
