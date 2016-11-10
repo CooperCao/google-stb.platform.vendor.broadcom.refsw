@@ -160,11 +160,44 @@ bool egl_surface_base_get_attrib(const EGL_SURFACE_T *surface,
       return true;
 
    case EGL_WIDTH:
-      *value = surface->width;
+      {
+         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
+         {
+            KHRN_IMAGE_T *back_buffer = egl_surface_get_back_buffer(surface);
+
+            if (back_buffer)
+            {
+               unsigned width;
+               khrn_image_get_dimensions(back_buffer, &width, NULL, NULL, NULL);
+               *value = width;
+            }
+            else
+               *value = surface->width;
+         }
+         else
+            *value = surface->width;
+
+      }
       return true;
 
    case EGL_HEIGHT:
-      *value = surface->height;
+      {
+         if (surface->type == EGL_SURFACE_TYPE_NATIVE_WINDOW)
+         {
+            KHRN_IMAGE_T *back_buffer = egl_surface_get_back_buffer(surface);
+
+            if (back_buffer)
+            {
+               unsigned height;
+               khrn_image_get_dimensions(back_buffer, NULL, &height, NULL, NULL);
+               *value = height;
+            }
+            else
+               *value = surface->height;
+         }
+         else
+            *value = surface->height;
+      }
       return true;
 
    default:
