@@ -130,9 +130,20 @@ static EGLint set_attrib(EGL_SURFACE_T *surface, EGLint attrib, EGLAttribKHR val
       set_mipmap_level(surf, (int)value);
       return EGL_SUCCESS;
 
-      /* We've already handled these */
    case EGL_WIDTH:
+      if (value < 0)
+         return EGL_BAD_PARAMETER;
+      else if (value > EGL_CONFIG_MAX_WIDTH)
+         return EGL_BAD_MATCH;
+      surf->base.width = value;
+      return EGL_SUCCESS;
+
    case EGL_HEIGHT:
+      if (value < 0)
+         return EGL_BAD_PARAMETER;
+      else if (value > EGL_CONFIG_MAX_HEIGHT)
+         return EGL_BAD_MATCH;
+      surf->base.height = value;
       return EGL_SUCCESS;
 
    default:
@@ -169,6 +180,9 @@ static bool get_attrib(const EGL_SURFACE_T *surface,
       *value = surf->current_image;
       return true;
 
+   /* handled by egl_surface_base_get_attrib()
+   case EGL_WIDTH:
+   case EGL_HEIGHT: */
    default:
       break;
    }
@@ -182,58 +196,22 @@ static KHRN_IMAGE_T *get_back_buffer(const EGL_SURFACE_T *surface)
    return surf->images[surf->current_image];
 }
 
-static EGLint get_dimensions(unsigned *width,
-                             unsigned *height, const EGLint *attrib_list)
-{
-   *width = *height = 0;
-
-   if (!attrib_list)
-      return EGL_SUCCESS;
-
-   while (*attrib_list != EGL_NONE)
-   {
-      int name = *attrib_list++;
-      int value = *attrib_list++;
-
-      switch (name)
-      {
-      case EGL_WIDTH:
-         if (value < 0)
-            return EGL_BAD_PARAMETER;
-         else if (value > EGL_CONFIG_MAX_WIDTH)
-            return EGL_BAD_MATCH;
-
-         *width = value;
-         break;
-
-      case EGL_HEIGHT:
-         if (value < 0)
-            return EGL_BAD_PARAMETER;
-         else if (value > EGL_CONFIG_MAX_HEIGHT)
-            return EGL_BAD_MATCH;
-
-         *height = value;
-         break;
-
-      default:
-         break;
-      }
-   }
-   return EGL_SUCCESS;
-}
-
 EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
       EGLConfig config, const EGLint *attrib_list)
 {
    EGLint error = EGL_BAD_ALLOC;
    EGL_PBUFFER_SURFACE_T *surface = NULL;
    EGLSurface ret = EGL_NO_SURFACE;
-   unsigned width, height, level;
+   unsigned level;
    static gfx_buffer_usage_t flags ;
    KHRN_BLOB_T *blob = NULL;
 
    GFX_LFMT_T colorformat;
    GFX_LFMT_T color_api_fmt;
+
+   /* width and height should be in the attrib_list */
+   const unsigned default_width = 0;
+   const unsigned default_height = 0;
 
    if (!egl_initialized(dpy, true))
       return EGL_NO_SURFACE;
@@ -258,12 +236,9 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    surface->bound = false;
    surface->bound_texture = NULL;
 
-   error = get_dimensions(&width, &height, attrib_list);
-   if (error != EGL_SUCCESS)
-      goto end;
-
    error = egl_surface_base_init(&surface->base,
-         &fns, config, attrib_list, attrib_EGLint, width, height, NULL, NULL);
+         &fns, config, attrib_list, attrib_EGLint,
+         default_width, default_height, NULL, NULL);
    if (error != EGL_SUCCESS) goto end;
 
    colorformat = egl_surface_base_colorformat(&surface->base);
@@ -277,7 +252,8 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
    }
 
    if (surface->texture_format != EGL_NO_TEXTURE &&
-      !glxx_texture_are_legal_dimensions(GL_TEXTURE_2D, width, height, 1))
+      !glxx_texture_are_legal_dimensions(GL_TEXTURE_2D,
+            surface->base.width, surface->base.height, 1))
    {
       error = EGL_BAD_MATCH;
       goto end;
@@ -293,14 +269,15 @@ EGLAPI EGLSurface EGLAPIENTRY eglCreatePbufferSurface(EGLDisplay dpy,
       surface->num_images = count_mipmaps(surface->base.width,
             surface->base.height);
 
-      blob = khrn_blob_create(width, height,
+      blob = khrn_blob_create(surface->base.width, surface->base.height,
             1, 1, surface->num_images, &colorformat, 1, flags,
             surface->base.secure);
       if (!blob) goto end;
    }
    else
    {
-      blob = khrn_blob_create(width, height, 1, 1, 1, &colorformat, 1, flags, surface->base.secure);
+      blob = khrn_blob_create(surface->base.width, surface->base.height,
+            1, 1, 1, &colorformat, 1, flags, surface->base.secure);
       if (!blob) goto end;
    }
 
