@@ -435,13 +435,10 @@ static int compar(const void *a, const void *b)
 }
 
 /*
- * Returns true if all attributes and values are valid. Sets up sort_params
- * (which tell us how to sort matching attribs later)
+ * Returns true if all attributes and values are valid.
  */
-static bool check_attribs(const EGLint *attrib_list, SORT_PARAMS_T *sort_params)
+static bool check_attribs(const EGLint *attrib_list)
 {
-   memset(sort_params, 0, sizeof *sort_params);
-
    if (!attrib_list)
       return true;
 
@@ -453,26 +450,14 @@ static bool check_attribs(const EGLint *attrib_list, SORT_PARAMS_T *sort_params)
       if (egl_platform_config_check_attrib(name, value))
          continue;
 
-      if (name == EGL_RED_SIZE && value != 0 && value != EGL_DONT_CARE)
-         sort_params->use_red = true;
-
-      if (name == EGL_GREEN_SIZE && value != 0 && value != EGL_DONT_CARE)
-         sort_params->use_green = true;
-
-      if (name == EGL_BLUE_SIZE && value != 0 && value != EGL_DONT_CARE)
-         sort_params->use_blue = true;
-
-      if (name == EGL_ALPHA_SIZE && value != 0 && value != EGL_DONT_CARE)
-         sort_params->use_alpha = true;
-
       switch (name)
       {
-      case EGL_BUFFER_SIZE:
       case EGL_RED_SIZE:
       case EGL_GREEN_SIZE:
       case EGL_BLUE_SIZE:
-      case EGL_LUMINANCE_SIZE:
       case EGL_ALPHA_SIZE:
+      case EGL_BUFFER_SIZE:
+      case EGL_LUMINANCE_SIZE:
       case EGL_ALPHA_MASK_SIZE:
          if (value != EGL_DONT_CARE && value < 0) return false;
          break;
@@ -936,6 +921,95 @@ end:
    return error == EGL_SUCCESS;
 }
 
+
+static void update_sort_params(EGLint *cleaned_attrib_list, SORT_PARAMS_T *sort_params)
+{
+   while (*cleaned_attrib_list != EGL_NONE)
+   {
+      EGLint name = *cleaned_attrib_list++;
+      EGLint value = *cleaned_attrib_list++;
+
+      switch (name)
+      {
+      case EGL_RED_SIZE:
+         sort_params->use_red    = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_GREEN_SIZE:
+         sort_params->use_green  = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_BLUE_SIZE:
+         sort_params->use_blue   = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      case EGL_ALPHA_SIZE:
+         sort_params->use_alpha  = (value != 0 && value != EGL_DONT_CARE);
+         break;
+      default:
+         break;
+      }
+   }
+}
+
+/*
+ * Add the attribute to the list if it is not already there or
+ * change its value if the attribute is in the list
+ */
+static void add_attrib_value(EGLint *attrib_list, EGLint name, EGLint value)
+{
+   if (name == EGL_NONE)
+      return;
+
+   /* Find attribute and update its value*/
+   while (*attrib_list != EGL_NONE)
+   {
+      if (*attrib_list == name)
+      {
+         attrib_list++;
+         *attrib_list = value;
+         /* Return because it might be the last pair before EGL_NONE */
+         return;
+      }
+
+      attrib_list+=2;
+   }
+
+   /* If not found: add attribute and EGL_NONE to the end */
+   if (*attrib_list == EGL_NONE)
+   {
+      *attrib_list++ = name;
+      *attrib_list++ = value;
+      *attrib_list = EGL_NONE;
+   }
+}
+
+static void clean_attrib_list(const EGLint *attrib_list, EGLint *cleaned_attrib_list)
+{
+   while (*attrib_list != EGL_NONE)
+   {
+      EGLint name = *attrib_list++;
+      EGLint value = *attrib_list++;
+
+      add_attrib_value(cleaned_attrib_list, name, value);
+   }
+}
+/*
+ * Counts the number of elements (name or value) in the attribute list
+ * including EGL_NONE
+ */
+static unsigned int get_size_of_attrib_list(const EGLint *attrib_list)
+{
+   unsigned int size = 0;
+
+   while (*attrib_list != EGL_NONE)
+   {
+      size += 2;
+      attrib_list +=2;
+   }
+
+   // Number of elements (name or value) + EGL_NONE
+   return size+1;
+}
+
+
 static EGLBoolean egl_choose_config(EGLDisplay dpy,
       const EGLint *attrib_list, EGLConfig *configs,
       EGLint config_size, EGLint *num_config)
@@ -944,6 +1018,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
    SORT_PARAMS_T sort_params;
    CONFIG_CHOICE_T choices[vcos_countof(egl_configs)];
    unsigned j = 0;
+   EGLint *cleaned_attrib_list = NULL;
 
    if (!egl_initialized(dpy, true))
       return EGL_FALSE;
@@ -954,10 +1029,28 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
       goto end;
    }
 
-   if (!check_attribs(attrib_list, &sort_params))
+   if (!check_attribs(attrib_list))
    {
       error = EGL_BAD_ATTRIBUTE;
       goto end;
+   }
+
+   memset(&sort_params, 0, sizeof sort_params);
+
+   if (attrib_list)
+   {
+      unsigned int num_attrib = get_size_of_attrib_list(attrib_list);
+      cleaned_attrib_list = malloc(num_attrib * sizeof(EGLint));
+      if (cleaned_attrib_list == NULL)
+      {
+         error = EGL_BAD_ALLOC;
+         goto end;
+      }
+      cleaned_attrib_list[0] = EGL_NONE;
+      // Create an attribute list without duplicate
+      clean_attrib_list(attrib_list, cleaned_attrib_list);
+
+      update_sort_params(cleaned_attrib_list, &sort_params);
    }
 
    for (unsigned int i = 0; i < vcos_countof(egl_configs); i++)
@@ -969,7 +1062,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
                           egl_can_texture_from_format(candidate->color_api_fmt)) &&
                           !candidate->invalid;
 
-      if (advertiseMe && config_matches(candidate, attrib_list))
+      if (advertiseMe && config_matches(candidate, cleaned_attrib_list))
       {
          choices[j].descriptor = candidate;
          choices[j].sort_params = &sort_params;
@@ -992,6 +1085,7 @@ static EGLBoolean egl_choose_config(EGLDisplay dpy,
 
    error = EGL_SUCCESS;
 end:
+   free(cleaned_attrib_list);
    egl_thread_set_error(error);
    return error == EGL_SUCCESS;
 }
